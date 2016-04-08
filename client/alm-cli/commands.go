@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/almighty/almighty-design/client"
+	"github.com/almighty/almighty-core/client"
 	"github.com/goadesign/goa"
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/spf13/cobra"

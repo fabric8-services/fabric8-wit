@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/almighty/almighty-design/app"
-	"github.com/almighty/almighty-design/swagger"
+	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/swagger"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 )

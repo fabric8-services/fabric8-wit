@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/almighty/almighty-design/client"
+	"github.com/almighty/almighty-core/client"
 	"github.com/spf13/cobra"
 	"os"
 	"time"
