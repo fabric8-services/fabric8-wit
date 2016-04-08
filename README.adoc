@@ -1,5 +1,10 @@
 == ALMighty Core
 
+=== Development
+
+Only files ./*.go and ./design/*.go should be edited.
+Everything else, ./app, ./client, ./models, ./swagger, is generated.
+
 === Build instructions
 
 ==== Generate GOA sources
