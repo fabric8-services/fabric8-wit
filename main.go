@@ -11,9 +11,9 @@ import (
 
 var (
 	// Commit current build commit set by build script
-	Commit string
+	Commit = "0"
 	// BuildTime set by build script
-	BuildTime string
+	BuildTime = "0"
 )
 
 func main() {
