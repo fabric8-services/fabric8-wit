@@ -35,3 +35,9 @@ generate: $(DESIGNS)
 .PHONY: clean
 clean:
 	rm -f ${BINARY_SERVER} && rm -f ${BINARY_CLIENT}
+
+.PHONY: dev
+dev:
+	go get github.com/pilu/fresh
+	docker-compose start
+	fresh
