@@ -1,0 +1,53 @@
+basePath: /api
+consumes:
+- application/json
+definitions:
+  Version:
+    description: The current running version
+    example:
+      build_time: Quaerat dolorem voluptate non omnis.
+      commit: Beatae accusantium quis magni.
+    properties:
+      build_time:
+        description: The date when build
+        example: Dolores vero rerum.
+        type: string
+      commit:
+        description: Commit SHA this build is based on
+        example: Iste odit culpa illo reiciendis quo.
+        type: string
+    required:
+    - commit
+    - build_time
+    title: 'Mediatype identifier: application/vnd.version+json'
+    type: object
+host: almighty.io
+info:
+  description: The next big thing
+  license:
+    name: Apache License Version 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+  title: 'ALMighty: One to rule them all'
+  version: "1.0"
+paths:
+  /version:
+    get:
+      description: Show current running version
+      operationId: version#show
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Version'
+      schemes:
+      - http
+produces:
+- application/json
+responses:
+  OK:
+    description: OK
+    schema:
+      $ref: '#/definitions/Version'
+schemes:
+- http
+swagger: "2.0"
