@@ -1,0 +1,35 @@
+== ALMighty Core
+
+=== Build instructions
+
+==== Generate GOA sources
+[source, console]
+----
+make generate
+----
+
+==== Build server
+[source, console]
+----
+make
+----
+
+==== Build client
+[source, console]
+----
+make alm-cli
+----
+
+==== Clean
+[source, console]
+----
+make clean
+----
+
+==== Developer setup
+
+Start up dependent docker services using `docker-compose` and runs auto reload on source change tool `fresh`.
+[source, console]
+----
+make dev
+----
