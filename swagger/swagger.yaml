@@ -19,7 +19,7 @@ definitions:
     required:
     - commit
     - build_time
-    title: 'Mediatype identifier: application/vnd.version+json'
+    title: 'Mediatype identifier: application/json'
     type: object
 host: almighty.io
 info:

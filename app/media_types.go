@@ -16,7 +16,7 @@ import "github.com/goadesign/goa"
 
 // Version media type.
 //
-// Identifier: application/vnd.version+json
+// Identifier: application/json
 type Version struct {
 	// The date when build
 	BuildTime string `json:"build_time" xml:"build_time"`

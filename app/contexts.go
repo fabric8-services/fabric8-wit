@@ -36,6 +36,6 @@ func NewShowVersionContext(ctx context.Context, service *goa.Service) (*ShowVers
 
 // OK sends a HTTP response with status code 200.
 func (ctx *ShowVersionContext) OK(r *Version) error {
-	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.version")
+	ctx.ResponseData.Header().Set("Content-Type", "application/json")
 	return ctx.Service.Send(ctx.Context, 200, r)
 }
