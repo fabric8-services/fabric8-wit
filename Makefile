@@ -19,6 +19,8 @@ LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
 .DEFAULT_GOAL: $(BINARY_SERVER)
 
+build: $(BINARY_SERVER) $(BINARY_CLIENT)
+
 $(BINARY_SERVER): $(SOURCES)
 	go build ${LDFLAGS} -o ${BINARY_SERVER}
 
