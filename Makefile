@@ -17,8 +17,6 @@ PACKAGE_NAME:=$(subst ${GOPATH}/src/,,$(realpath .))
 # Pass in build time variables to main
 LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
-.DEFAULT_GOAL: $(BINARY_SERVER)
-
 build: $(BINARY_SERVER) $(BINARY_CLIENT)
 
 $(BINARY_SERVER): $(SOURCES)
