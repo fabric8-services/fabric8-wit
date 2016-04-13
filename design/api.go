@@ -24,4 +24,11 @@ var _ = API("alm", func() {
 		MaxAge(600)
 		Credentials()
 	})
+
+	JWTSecurity("jwt", func() {
+		Description("JWT Token Auth")
+		TokenURL("/api/login/authorize")
+		Header("Authorization")
+	})
+
 })

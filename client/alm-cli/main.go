@@ -35,16 +35,29 @@ func main() {
 func RegisterCommands(app *cobra.Command, c *client.Client) {
 	var command, sub *cobra.Command
 	command = &cobra.Command{
-		Use:   "show",
-		Short: `Show current running version`,
+		Use:   "authorize",
+		Short: `Authorize with the ALM`,
 	}
-	tmp1 := new(ShowVersionCommand)
+	tmp1 := new(AuthorizeLoginCommand)
 	sub = &cobra.Command{
-		Use:   "version",
+		Use:   `login "/api/login/authorize"`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp1.Run(c, args) },
 	}
 	tmp1.RegisterFlags(sub)
+	command.AddCommand(sub)
+	app.AddCommand(command)
+	command = &cobra.Command{
+		Use:   "show",
+		Short: `Show current running version`,
+	}
+	tmp2 := new(ShowVersionCommand)
+	sub = &cobra.Command{
+		Use:   `version "/api/version"`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp2.Run(c, args) },
+	}
+	tmp2.RegisterFlags(sub)
 	command.AddCommand(sub)
 	app.AddCommand(command)
 

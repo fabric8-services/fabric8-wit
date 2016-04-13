@@ -2,24 +2,37 @@ basePath: /api
 consumes:
 - application/json
 definitions:
+  AuthToken:
+    description: JWT Token
+    example:
+      token: Iste odit culpa illo reiciendis quo.
+    properties:
+      token:
+        description: JWT Token
+        example: Dolores vero rerum.
+        type: string
+    required:
+    - token
+    title: 'Mediatype identifier: application/vnd.authtoken+json'
+    type: object
   Version:
     description: The current running version
     example:
-      build_time: Quaerat dolorem voluptate non omnis.
-      commit: Beatae accusantium quis magni.
+      build_time: Soluta ducimus explicabo et dolores.
+      commit: Est quaerat eaque quaerat.
     properties:
       build_time:
         description: The date when build
-        example: Dolores vero rerum.
+        example: Quaerat dolorem voluptate non omnis.
         type: string
       commit:
         description: Commit SHA this build is based on
-        example: Iste odit culpa illo reiciendis quo.
+        example: Beatae accusantium quis magni.
         type: string
     required:
     - commit
     - build_time
-    title: 'Mediatype identifier: application/json'
+    title: 'Mediatype identifier: application/vnd.version+json'
     type: object
 host: almighty.io
 info:
@@ -30,9 +43,26 @@ info:
   title: 'ALMighty: One to rule them all'
   version: "1.0"
 paths:
+  /login/authorize:
+    get:
+      description: Authorize with the ALM
+      operationId: login#authorize
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AuthToken'
+        "401":
+          description: Unauthorized
+      schemes:
+      - http
   /version:
     get:
-      description: Show current running version
+      description: |-
+        Show current running version
+
+        ** Required security scopes**:
+          * `system`
       operationId: version#show
       responses:
         "200":
@@ -48,6 +78,17 @@ responses:
     description: OK
     schema:
       $ref: '#/definitions/Version'
+  Unauthorized:
+    description: Unauthorized
 schemes:
 - http
+securityDefinitions:
+  jwt:
+    description: |-
+      JWT Token Auth
+
+      **Token URL**: /api/login/authorize
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

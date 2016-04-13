@@ -5,8 +5,10 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/swagger"
+	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
+	"github.com/goadesign/goa/middleware/security/jwt"
 )
 
 var (
@@ -26,9 +28,20 @@ func main() {
 	service.Use(middleware.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
+	publicKey, err := token.ParseRSAPublicKeyFromPEM([]byte(RSAPublicKey))
+	if err != nil {
+		panic(err)
+	}
+	app.ConfigureJWTSecurity(service, jwt.New(publicKey, nil))
+
 	// Mount "version" controller
 	c := NewVersionController(service)
 	app.MountVersionController(service, c)
+
+	// Mount "authtoken" controller
+	d := NewLoginController(service)
+	app.MountLoginController(service, d)
+
 	// Mount Swagger spec provider controller
 	swagger.MountController(service)
 
