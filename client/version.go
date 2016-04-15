@@ -21,5 +21,6 @@ func (c *Client) ShowVersion(ctx context.Context, path string) (*http.Response, 
 	}
 	header := req.Header
 	header.Set("Content-Type", "application/json")
+	c.SignerJWT.Sign(ctx, req)
 	return c.Client.Do(ctx, req)
 }

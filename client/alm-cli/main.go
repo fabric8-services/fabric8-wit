@@ -44,7 +44,7 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp1.Run(c, args) },
 	}
-	tmp1.RegisterFlags(sub)
+	tmp1.RegisterFlags(sub, c)
 	command.AddCommand(sub)
 	app.AddCommand(command)
 	command = &cobra.Command{
@@ -57,7 +57,7 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp2.Run(c, args) },
 	}
-	tmp2.RegisterFlags(sub)
+	tmp2.RegisterFlags(sub, c)
 	command.AddCommand(sub)
 	app.AddCommand(command)
 

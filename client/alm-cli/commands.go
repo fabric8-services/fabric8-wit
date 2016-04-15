@@ -28,7 +28,7 @@ func (cmd *AuthorizeLoginCommand) Run(c *client.Client, args []string) error {
 		path = "/api/login/authorize"
 	}
 	logger := goa.NewStdLogger(log.New(os.Stderr, "", log.LstdFlags))
-	ctx := goa.UseLogger(context.Background(), logger)
+	ctx := goa.WithLogger(context.Background(), logger)
 	resp, err := c.AuthorizeLogin(ctx, path)
 	if err != nil {
 		goa.LogError(ctx, "failed", "err", err)
@@ -40,7 +40,7 @@ func (cmd *AuthorizeLoginCommand) Run(c *client.Client, args []string) error {
 }
 
 // RegisterFlags registers the command flags with the command line.
-func (cmd *AuthorizeLoginCommand) RegisterFlags(cc *cobra.Command) {
+func (cmd *AuthorizeLoginCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
 }
 
 // Run makes the HTTP request corresponding to the ShowVersionCommand command.
@@ -52,7 +52,7 @@ func (cmd *ShowVersionCommand) Run(c *client.Client, args []string) error {
 		path = "/api/version"
 	}
 	logger := goa.NewStdLogger(log.New(os.Stderr, "", log.LstdFlags))
-	ctx := goa.UseLogger(context.Background(), logger)
+	ctx := goa.WithLogger(context.Background(), logger)
 	resp, err := c.ShowVersion(ctx, path)
 	if err != nil {
 		goa.LogError(ctx, "failed", "err", err)
@@ -64,5 +64,6 @@ func (cmd *ShowVersionCommand) Run(c *client.Client, args []string) error {
 }
 
 // RegisterFlags registers the command flags with the command line.
-func (cmd *ShowVersionCommand) RegisterFlags(cc *cobra.Command) {
+func (cmd *ShowVersionCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+	c.SignerJWT.RegisterFlags(cc)
 }
