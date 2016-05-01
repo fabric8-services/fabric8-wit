@@ -63,7 +63,7 @@ func handleLoginOrigin(h goa.Handler) goa.Handler {
 			return h(ctx, rw, req)
 		}
 		if cors.MatchOrigin(origin, "*.almighty.io") {
-			ctx = goa.WithLog(ctx, "origin", origin)
+			ctx = goa.WithLogContext(ctx, "origin", origin)
 			rw.Header().Set("Access-Control-Allow-Origin", "*.almighty.io")
 			rw.Header().Set("Vary", "Origin")
 			rw.Header().Set("Access-Control-Max-Age", "600")
@@ -74,6 +74,7 @@ func handleLoginOrigin(h goa.Handler) goa.Handler {
 			}
 			return h(ctx, rw, req)
 		}
+
 		return h(ctx, rw, req)
 	}
 }
@@ -112,7 +113,7 @@ func handleVersionOrigin(h goa.Handler) goa.Handler {
 			return h(ctx, rw, req)
 		}
 		if cors.MatchOrigin(origin, "*.almighty.io") {
-			ctx = goa.WithLog(ctx, "origin", origin)
+			ctx = goa.WithLogContext(ctx, "origin", origin)
 			rw.Header().Set("Access-Control-Allow-Origin", "*.almighty.io")
 			rw.Header().Set("Vary", "Origin")
 			rw.Header().Set("Access-Control-Max-Age", "600")
@@ -123,6 +124,7 @@ func handleVersionOrigin(h goa.Handler) goa.Handler {
 			}
 			return h(ctx, rw, req)
 		}
+
 		return h(ctx, rw, req)
 	}
 }

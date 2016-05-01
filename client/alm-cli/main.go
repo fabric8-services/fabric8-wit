@@ -40,7 +40,7 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	}
 	tmp1 := new(AuthorizeLoginCommand)
 	sub = &cobra.Command{
-		Use:   `login "/api/login/authorize"`,
+		Use:   `login ["/api/login/authorize"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp1.Run(c, args) },
 	}
@@ -53,7 +53,7 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	}
 	tmp2 := new(ShowVersionCommand)
 	sub = &cobra.Command{
-		Use:   `version "/api/version"`,
+		Use:   `version ["/api/version"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp2.Run(c, args) },
 	}

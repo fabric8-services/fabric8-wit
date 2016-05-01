@@ -1,11 +1,17 @@
 package client
 
 import (
+	"fmt"
 	"golang.org/x/net/context"
 	"io"
 	"net/http"
 	"net/url"
 )
+
+// ShowVersionPath computes a request path to the show action of version.
+func ShowVersionPath() string {
+	return fmt.Sprintf("/api/version")
+}
 
 // Show current running version
 func (c *Client) ShowVersion(ctx context.Context, path string) (*http.Response, error) {

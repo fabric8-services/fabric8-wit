@@ -27,7 +27,7 @@ func (cmd *AuthorizeLoginCommand) Run(c *client.Client, args []string) error {
 	} else {
 		path = "/api/login/authorize"
 	}
-	logger := goa.NewStdLogger(log.New(os.Stderr, "", log.LstdFlags))
+	logger := goa.NewLogger(log.New(os.Stderr, "", log.LstdFlags))
 	ctx := goa.WithLogger(context.Background(), logger)
 	resp, err := c.AuthorizeLogin(ctx, path)
 	if err != nil {
@@ -51,7 +51,7 @@ func (cmd *ShowVersionCommand) Run(c *client.Client, args []string) error {
 	} else {
 		path = "/api/version"
 	}
-	logger := goa.NewStdLogger(log.New(os.Stderr, "", log.LstdFlags))
+	logger := goa.NewLogger(log.New(os.Stderr, "", log.LstdFlags))
 	ctx := goa.WithLogger(context.Background(), logger)
 	resp, err := c.ShowVersion(ctx, path)
 	if err != nil {
