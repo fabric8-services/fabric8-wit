@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/swagger"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -20,9 +19,9 @@ var (
 
 func main() {
 	// Create service
-	service := goa.New("API")
+	service := goa.New("alm")
 
-	// Setup middleware
+	// Mount middleware
 	service.Use(middleware.RequestID())
 	service.Use(middleware.LogRequest(true))
 	service.Use(middleware.ErrorHandler(service, true))
@@ -32,21 +31,20 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	app.ConfigureJWTSecurity(service, jwt.New(publicKey, nil))
+	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 
+	// Mount "login" controller
+	c := NewLoginController(service)
+	app.MountLoginController(service, c)
 	// Mount "version" controller
-	c := NewVersionController(service)
-	app.MountVersionController(service, c)
-
-	// Mount "authtoken" controller
-	d := NewLoginController(service)
-	app.MountLoginController(service, d)
-
-	// Mount Swagger spec provider controller
-	swagger.MountController(service)
+	c2 := NewVersionController(service)
+	app.MountVersionController(service, c2)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 
-	service.ListenAndServe(":8080")
+	// Start service
+	if err := service.ListenAndServe(":8080"); err != nil {
+		service.LogError("startup", "err", err)
+	}
 }

@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 )
 
@@ -28,11 +29,14 @@ func ShowVersionOKCtx(t *testing.T, ctx context.Context, ctrl app.VersionControl
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
 	}
-	goaCtx := goa.NewContext(goa.WithAction(ctx, "VersionTest"), rw, req, nil)
+	prms := url.Values{}
+
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "VersionTest"), rw, req, prms)
 	showCtx, err := app.NewShowVersionContext(goaCtx, service)
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
+
 	err = ctrl.Show(showCtx)
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())

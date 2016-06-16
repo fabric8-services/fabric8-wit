@@ -23,7 +23,7 @@ $(BINARY_SERVER): $(SOURCES)
 	go build ${LDFLAGS} -o ${BINARY_SERVER}
 
 $(BINARY_CLIENT): $(SOURCES)
-	cd client/${BINARY_CLIENT} && go build -o ../../${BINARY_CLIENT}
+	cd tool/${BINARY_CLIENT} && go build -o ../../${BINARY_CLIENT}
 
 generate: $(DESIGNS)
 	go get github.com/goadesign/goa

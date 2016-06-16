@@ -56,6 +56,7 @@ paths:
           description: Unauthorized
       schemes:
       - http
+      summary: authorize
   /version:
     get:
       description: |-
@@ -71,6 +72,7 @@ paths:
             $ref: '#/definitions/Version'
       schemes:
       - http
+      summary: show
 produces:
 - application/json
 responses:
@@ -87,7 +89,7 @@ securityDefinitions:
     description: |-
       JWT Token Auth
 
-      **Token URL**: /api/login/authorize
+      **Token URL**: http://almighty.io/api/login/authorize
     in: header
     name: Authorization
     type: apiKey

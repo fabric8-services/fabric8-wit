@@ -9,6 +9,7 @@ import (
 	"golang.org/x/net/context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 )
 
@@ -28,11 +29,14 @@ func AuthorizeLoginOKCtx(t *testing.T, ctx context.Context, ctrl app.LoginContro
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
 	}
-	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, nil)
+	prms := url.Values{}
+
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
 	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, service)
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
+
 	err = ctrl.Authorize(authorizeCtx)
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
@@ -71,11 +75,14 @@ func AuthorizeLoginUnauthorizedCtx(t *testing.T, ctx context.Context, ctrl app.L
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
 	}
-	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, nil)
+	prms := url.Values{}
+
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
 	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, service)
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
+
 	err = ctrl.Authorize(authorizeCtx)
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
