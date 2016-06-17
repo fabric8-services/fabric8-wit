@@ -26,7 +26,7 @@ $(BINARY_CLIENT): $(SOURCES)
 	cd tool/${BINARY_CLIENT} && go build -o ../../${BINARY_CLIENT}
 
 generate: $(DESIGNS)
-	go get github.com/goadesign/goa
+	go get -u github.com/goadesign/goa/...
 	go get github.com/goadesign/gorma
 	goagen bootstrap -d ${PACKAGE_NAME}/${DESIGNDIR}
 	goagen gen -d ${PACKAGE_NAME}/${DESIGNDIR} --pkg-path=github.com/goadesign/gorma
