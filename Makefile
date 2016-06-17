@@ -12,7 +12,7 @@ COMMIT=`git rev-parse HEAD`
 BUILD_TIME=`date -u '+%Y-%m-%d_%I:%M:%S%p'`
 
 # Dynamically determinate the package name based on relative path from GOPATH
-PACKAGE_NAME:=$(subst ${GOPATH}/src/,,$(realpath .))
+PACKAGE_NAME:=$(subst $(realpath ${GOPATH})/src/,,$(realpath .))
 
 # Pass in build time variables to main
 LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
@@ -39,5 +39,5 @@ clean:
 .PHONY: dev
 dev:
 	go get github.com/pilu/fresh
-	docker-compose start
+	docker-compose up
 	fresh
