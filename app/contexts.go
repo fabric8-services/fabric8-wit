@@ -2,10 +2,9 @@
 // API "alm": Application Contexts
 //
 // Generated with goagen v0.0.1, command line:
-// $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
-// --design=github.com/almighty/almighty-core/design
-// --pkg=app
+// $ goagen.exe
+// --design=github.com/ALMighty/almighty-core/design
+// --out=$(GOPATH)\src\github.com\ALMighty\almighty-core
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//
@@ -65,6 +64,6 @@ func NewShowVersionContext(ctx context.Context, service *goa.Service) (*ShowVers
 
 // OK sends a HTTP response with status code 200.
 func (ctx *ShowVersionContext) OK(r *Version) error {
-	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.version")
+	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.version+json")
 	return ctx.Service.Send(ctx.Context, 200, r)
 }

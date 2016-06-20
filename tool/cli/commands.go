@@ -1,7 +1,7 @@
-package main
+package cli
 
 import (
-	"github.com/almighty/almighty-core/client"
+	"github.com/ALMighty/almighty-core/client"
 	"github.com/goadesign/goa"
 	goaclient "github.com/goadesign/goa/client"
 	"github.com/spf13/cobra"
@@ -13,11 +13,47 @@ import (
 type (
 	// AuthorizeLoginCommand is the command line data structure for the authorize action of login
 	AuthorizeLoginCommand struct {
+		PrettyPrint bool
 	}
+
 	// ShowVersionCommand is the command line data structure for the show action of version
 	ShowVersionCommand struct {
+		PrettyPrint bool
 	}
 )
+
+// RegisterCommands registers the resource action CLI commands.
+func RegisterCommands(app *cobra.Command, c *client.Client) {
+	var command, sub *cobra.Command
+	command = &cobra.Command{
+		Use:   "authorize",
+		Short: `Authorize with the ALM`,
+	}
+	tmp1 := new(AuthorizeLoginCommand)
+	sub = &cobra.Command{
+		Use:   `login [/api/login/authorize]`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp1.Run(c, args) },
+	}
+	tmp1.RegisterFlags(sub, c)
+	sub.PersistentFlags().BoolVar(&tmp1.PrettyPrint, "pp", false, "Pretty print response body")
+	command.AddCommand(sub)
+	app.AddCommand(command)
+	command = &cobra.Command{
+		Use:   "show",
+		Short: `Show current running version`,
+	}
+	tmp2 := new(ShowVersionCommand)
+	sub = &cobra.Command{
+		Use:   `version [/api/version]`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp2.Run(c, args) },
+	}
+	tmp2.RegisterFlags(sub, c)
+	sub.PersistentFlags().BoolVar(&tmp2.PrettyPrint, "pp", false, "Pretty print response body")
+	command.AddCommand(sub)
+	app.AddCommand(command)
+}
 
 // Run makes the HTTP request corresponding to the AuthorizeLoginCommand command.
 func (cmd *AuthorizeLoginCommand) Run(c *client.Client, args []string) error {
@@ -35,7 +71,7 @@ func (cmd *AuthorizeLoginCommand) Run(c *client.Client, args []string) error {
 		return err
 	}
 
-	goaclient.HandleResponse(c.Client, resp, PrettyPrint)
+	goaclient.HandleResponse(c.Client, resp, cmd.PrettyPrint)
 	return nil
 }
 
@@ -59,11 +95,10 @@ func (cmd *ShowVersionCommand) Run(c *client.Client, args []string) error {
 		return err
 	}
 
-	goaclient.HandleResponse(c.Client, resp, PrettyPrint)
+	goaclient.HandleResponse(c.Client, resp, cmd.PrettyPrint)
 	return nil
 }
 
 // RegisterFlags registers the command flags with the command line.
 func (cmd *ShowVersionCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
-	c.SignerJWT.RegisterFlags(cc)
 }

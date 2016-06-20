@@ -2,10 +2,9 @@
 // API "alm": Application Controllers
 //
 // Generated with goagen v0.0.1, command line:
-// $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
-// --design=github.com/almighty/almighty-core/design
-// --pkg=app
+// $ goagen.exe
+// --design=github.com/ALMighty/almighty-core/design
+// --out=$(GOPATH)\src\github.com\ALMighty\almighty-core
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//
@@ -22,12 +21,12 @@ import (
 // initService sets up the service encoders, decoders and mux.
 func initService(service *goa.Service) {
 	// Setup encoders and decoders
-	service.Encoder(goa.NewJSONEncoder, "application/json")
-	service.Decoder(goa.NewJSONDecoder, "application/json")
+	service.Encoder.Register(goa.NewJSONEncoder, "application/json")
+	service.Decoder.Register(goa.NewJSONDecoder, "application/json")
 
 	// Setup default encoder and decoder
-	service.Encoder(goa.NewJSONEncoder, "*/*")
-	service.Decoder(goa.NewJSONDecoder, "*/*")
+	service.Encoder.Register(goa.NewJSONEncoder, "*/*")
+	service.Decoder.Register(goa.NewJSONDecoder, "*/*")
 }
 
 // LoginController is the controller interface for the Login actions.
@@ -40,9 +39,14 @@ type LoginController interface {
 func MountLoginController(service *goa.Service, ctrl LoginController) {
 	initService(service)
 	var h goa.Handler
-	service.Mux.Handle("OPTIONS", "/api/login/authorize", cors.HandlePreflight(service.Context, handleLoginOrigin))
+	service.Mux.Handle("OPTIONS", "/api/login/authorize", ctrl.MuxHandler("preflight", handleLoginOrigin(cors.HandlePreflight()), nil))
 
 	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		// Check if there was an error loading the request
+		if err := goa.ContextError(ctx); err != nil {
+			return err
+		}
+		// Build the context
 		rctx, err := NewAuthorizeLoginContext(ctx, service)
 		if err != nil {
 			return err
@@ -89,9 +93,14 @@ type VersionController interface {
 func MountVersionController(service *goa.Service, ctrl VersionController) {
 	initService(service)
 	var h goa.Handler
-	service.Mux.Handle("OPTIONS", "/api/version", cors.HandlePreflight(service.Context, handleVersionOrigin))
+	service.Mux.Handle("OPTIONS", "/api/version", ctrl.MuxHandler("preflight", handleVersionOrigin(cors.HandlePreflight()), nil))
 
 	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		// Check if there was an error loading the request
+		if err := goa.ContextError(ctx); err != nil {
+			return err
+		}
+		// Build the context
 		rctx, err := NewShowVersionContext(ctx, service)
 		if err != nil {
 			return err

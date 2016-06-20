@@ -3,7 +3,6 @@ package client
 import (
 	"fmt"
 	"golang.org/x/net/context"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -15,17 +14,23 @@ func AuthorizeLoginPath() string {
 
 // Authorize with the ALM
 func (c *Client) AuthorizeLogin(ctx context.Context, path string) (*http.Response, error) {
-	var body io.Reader
+	req, err := c.NewAuthorizeLoginRequest(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	return c.Client.Do(ctx, req)
+}
+
+// NewAuthorizeLoginRequest create the request corresponding to the authorize action endpoint of the login resource.
+func (c *Client) NewAuthorizeLoginRequest(ctx context.Context, path string) (*http.Request, error) {
 	scheme := c.Scheme
 	if scheme == "" {
 		scheme = "http"
 	}
 	u := url.URL{Host: c.Host, Scheme: scheme, Path: path}
-	req, err := http.NewRequest("GET", u.String(), body)
+	req, err := http.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
-	header := req.Header
-	header.Set("Content-Type", "application/json")
-	return c.Client.Do(ctx, req)
+	return req, nil
 }

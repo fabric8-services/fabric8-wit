@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/app/test"
+	"github.com/ALMighty/almighty-core/app/test"
 )
 
 func TestAuthorizeLoginOK(t *testing.T) {

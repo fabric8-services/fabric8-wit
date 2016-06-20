@@ -2,10 +2,9 @@
 // API "alm": Application User Types
 //
 // Generated with goagen v0.0.1, command line:
-// $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
-// --design=github.com/almighty/almighty-core/design
-// --pkg=app
+// $ goagen.exe
+// --design=github.com/ALMighty/almighty-core/design
+// --out=$(GOPATH)\src\github.com\ALMighty\almighty-core
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//

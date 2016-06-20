@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/almighty/almighty-core/app"
+	"github.com/ALMighty/almighty-core/app"
 	"github.com/goadesign/goa"
 )
 
