@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"net/http"
 
 	"github.com/almighty/almighty-core/app"
 	token "github.com/dgrijalva/jwt-go"
@@ -15,9 +17,15 @@ var (
 	Commit = "0"
 	// BuildTime set by build script
 	BuildTime = "0"
+	// Development enables certain dev only features, like auto token generation
+	Development = false
 )
 
 func main() {
+
+	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
+	flag.Parse()
+
 	// Create service
 	service := goa.New("alm")
 
@@ -42,9 +50,15 @@ func main() {
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
+	fmt.Println("Dev mode:       ", Development)
 
-	// Start service
-	if err := service.ListenAndServe(":8080"); err != nil {
+	http.Handle("/api/", service.Mux)
+	http.Handle("/", http.FileServer(assetFS()))
+	http.Handle("/favicon.ico", http.NotFoundHandler())
+
+	// Start http
+	if err := http.ListenAndServe(":8080", nil); err != nil {
 		service.LogError("startup", "err", err)
 	}
+
 }

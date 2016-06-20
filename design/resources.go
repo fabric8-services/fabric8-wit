@@ -36,4 +36,15 @@ var _ = Resource("login", func() {
 		})
 		Response(Unauthorized)
 	})
+
+	Action("generate", func() {
+		Routing(
+			GET("generate"),
+		)
+		Description("Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode")
+		Response(OK, func() {
+			Media(CollectionOf(AuthToken))
+		})
+		Response(Unauthorized)
+	})
 })

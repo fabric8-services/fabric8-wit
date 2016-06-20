@@ -19,7 +19,7 @@ var _ = API("alm", func() {
 		Name("Apache License Version 2.0")
 		URL("http://www.apache.org/licenses/LICENSE-2.0")
 	})
-	Origin("*.almighty.io", func() {
+	Origin("*", func() {
 		Methods("GET", "POST", "PUT", "PATCH", "DELETE")
 		MaxAge(600)
 		Credentials()
