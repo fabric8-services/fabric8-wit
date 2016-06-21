@@ -1,11 +1,11 @@
 //************************************************************************//
 // API "alm": Application Resource Href Factories
 //
-// Generated with goagen v0.0.1, command line:
+// Generated with goagen v0.2.dev, command line:
 // $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
 // --design=github.com/almighty/almighty-core/design
-// --pkg=app
+// --out=$(GOPATH)/src/github.com/almighty/almighty-core
+// --version=v0.2.dev
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//

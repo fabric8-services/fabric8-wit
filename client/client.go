@@ -3,7 +3,6 @@ package client
 import (
 	"github.com/goadesign/goa"
 	goaclient "github.com/goadesign/goa/client"
-	"net/http"
 )
 
 // Client is the alm service client.
@@ -15,7 +14,7 @@ type Client struct {
 }
 
 // New instantiates the client.
-func New(c *http.Client) *Client {
+func New(c goaclient.Doer) *Client {
 	client := &Client{
 		Client:  goaclient.New(c),
 		Encoder: goa.NewHTTPEncoder(),

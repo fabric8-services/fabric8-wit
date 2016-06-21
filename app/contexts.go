@@ -1,11 +1,11 @@
 //************************************************************************//
 // API "alm": Application Contexts
 //
-// Generated with goagen v0.0.1, command line:
+// Generated with goagen v0.2.dev, command line:
 // $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
 // --design=github.com/almighty/almighty-core/design
-// --pkg=app
+// --out=$(GOPATH)/src/github.com/almighty/almighty-core
+// --version=v0.2.dev
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//
@@ -42,6 +42,35 @@ func (ctx *AuthorizeLoginContext) OK(r *AuthToken) error {
 
 // Unauthorized sends a HTTP response with status code 401.
 func (ctx *AuthorizeLoginContext) Unauthorized() error {
+	ctx.ResponseData.WriteHeader(401)
+	return nil
+}
+
+// GenerateLoginContext provides the login generate action context.
+type GenerateLoginContext struct {
+	context.Context
+	*goa.ResponseData
+	*goa.RequestData
+	Service *goa.Service
+}
+
+// NewGenerateLoginContext parses the incoming request URL and body, performs validations and creates the
+// context used by the login controller generate action.
+func NewGenerateLoginContext(ctx context.Context, service *goa.Service) (*GenerateLoginContext, error) {
+	var err error
+	req := goa.ContextRequest(ctx)
+	rctx := GenerateLoginContext{Context: ctx, ResponseData: goa.ContextResponse(ctx), RequestData: req, Service: service}
+	return &rctx, err
+}
+
+// OK sends a HTTP response with status code 200.
+func (ctx *GenerateLoginContext) OK(r AuthTokenCollection) error {
+	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.authtoken+json; type=collection")
+	return ctx.Service.Send(ctx.Context, 200, r)
+}
+
+// Unauthorized sends a HTTP response with status code 401.
+func (ctx *GenerateLoginContext) Unauthorized() error {
 	ctx.ResponseData.WriteHeader(401)
 	return nil
 }

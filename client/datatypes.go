@@ -1,10 +1,11 @@
 //************************************************************************//
 // User Types
 //
-// Generated with goagen v0.0.1, command line:
+// Generated with goagen v0.2.dev, command line:
 // $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
 // --design=github.com/almighty/almighty-core/design
+// --out=$(GOPATH)/src/github.com/almighty/almighty-core
+// --version=v0.2.dev
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//
@@ -24,6 +25,16 @@ func (c *Client) DecodeAuthToken(resp *http.Response) (*AuthToken, error) {
 	var decoded AuthToken
 	err := c.Decoder.Decode(&decoded, resp.Body, resp.Header.Get("Content-Type"))
 	return &decoded, err
+}
+
+// AuthTokenCollection media type is a collection of AuthToken.
+type AuthTokenCollection []*AuthToken
+
+// DecodeAuthTokenCollection decodes the AuthTokenCollection instance encoded in resp body.
+func (c *Client) DecodeAuthTokenCollection(resp *http.Response) (AuthTokenCollection, error) {
+	var decoded AuthTokenCollection
+	err := c.Decoder.Decode(&decoded, resp.Body, resp.Header.Get("Content-Type"))
+	return decoded, err
 }
 
 // The current running version

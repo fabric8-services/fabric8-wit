@@ -16,6 +16,11 @@ type (
 		PrettyPrint bool
 	}
 
+	// GenerateLoginCommand is the command line data structure for the generate action of login
+	GenerateLoginCommand struct {
+		PrettyPrint bool
+	}
+
 	// ShowVersionCommand is the command line data structure for the show action of version
 	ShowVersionCommand struct {
 		PrettyPrint bool
@@ -40,17 +45,31 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	command.AddCommand(sub)
 	app.AddCommand(command)
 	command = &cobra.Command{
-		Use:   "show",
-		Short: `Show current running version`,
+		Use:   "generate",
+		Short: `Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode`,
 	}
-	tmp2 := new(ShowVersionCommand)
+	tmp2 := new(GenerateLoginCommand)
 	sub = &cobra.Command{
-		Use:   `version [/api/version]`,
+		Use:   `login [/api/login/generate]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp2.Run(c, args) },
 	}
 	tmp2.RegisterFlags(sub, c)
 	sub.PersistentFlags().BoolVar(&tmp2.PrettyPrint, "pp", false, "Pretty print response body")
+	command.AddCommand(sub)
+	app.AddCommand(command)
+	command = &cobra.Command{
+		Use:   "show",
+		Short: `Show current running version`,
+	}
+	tmp3 := new(ShowVersionCommand)
+	sub = &cobra.Command{
+		Use:   `version [/api/version]`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp3.Run(c, args) },
+	}
+	tmp3.RegisterFlags(sub, c)
+	sub.PersistentFlags().BoolVar(&tmp3.PrettyPrint, "pp", false, "Pretty print response body")
 	command.AddCommand(sub)
 	app.AddCommand(command)
 }
@@ -77,6 +96,30 @@ func (cmd *AuthorizeLoginCommand) Run(c *client.Client, args []string) error {
 
 // RegisterFlags registers the command flags with the command line.
 func (cmd *AuthorizeLoginCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+}
+
+// Run makes the HTTP request corresponding to the GenerateLoginCommand command.
+func (cmd *GenerateLoginCommand) Run(c *client.Client, args []string) error {
+	var path string
+	if len(args) > 0 {
+		path = args[0]
+	} else {
+		path = "/api/login/generate"
+	}
+	logger := goa.NewLogger(log.New(os.Stderr, "", log.LstdFlags))
+	ctx := goa.WithLogger(context.Background(), logger)
+	resp, err := c.GenerateLogin(ctx, path)
+	if err != nil {
+		goa.LogError(ctx, "failed", "err", err)
+		return err
+	}
+
+	goaclient.HandleResponse(c.Client, resp, cmd.PrettyPrint)
+	return nil
+}
+
+// RegisterFlags registers the command flags with the command line.
+func (cmd *GenerateLoginCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
 }
 
 // Run makes the HTTP request corresponding to the ShowVersionCommand command.

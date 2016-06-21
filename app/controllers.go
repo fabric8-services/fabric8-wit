@@ -1,11 +1,11 @@
 //************************************************************************//
 // API "alm": Application Controllers
 //
-// Generated with goagen v0.0.1, command line:
+// Generated with goagen v0.2.dev, command line:
 // $ goagen
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
 // --design=github.com/almighty/almighty-core/design
-// --pkg=app
+// --out=$(GOPATH)/src/github.com/almighty/almighty-core
+// --version=v0.2.dev
 //
 // The content of this file is auto-generated, DO NOT MODIFY
 //************************************************************************//
@@ -34,6 +34,7 @@ func initService(service *goa.Service) {
 type LoginController interface {
 	goa.Muxer
 	Authorize(*AuthorizeLoginContext) error
+	Generate(*GenerateLoginContext) error
 }
 
 // MountLoginController "mounts" a Login resource controller on the given service.
@@ -41,6 +42,7 @@ func MountLoginController(service *goa.Service, ctrl LoginController) {
 	initService(service)
 	var h goa.Handler
 	service.Mux.Handle("OPTIONS", "/api/login/authorize", ctrl.MuxHandler("preflight", handleLoginOrigin(cors.HandlePreflight()), nil))
+	service.Mux.Handle("OPTIONS", "/api/login/generate", ctrl.MuxHandler("preflight", handleLoginOrigin(cors.HandlePreflight()), nil))
 
 	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
 		// Check if there was an error loading the request
@@ -57,6 +59,22 @@ func MountLoginController(service *goa.Service, ctrl LoginController) {
 	h = handleLoginOrigin(h)
 	service.Mux.Handle("GET", "/api/login/authorize", ctrl.MuxHandler("Authorize", h, nil))
 	service.LogInfo("mount", "ctrl", "Login", "action", "Authorize", "route", "GET /api/login/authorize")
+
+	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		// Check if there was an error loading the request
+		if err := goa.ContextError(ctx); err != nil {
+			return err
+		}
+		// Build the context
+		rctx, err := NewGenerateLoginContext(ctx, service)
+		if err != nil {
+			return err
+		}
+		return ctrl.Generate(rctx)
+	}
+	h = handleLoginOrigin(h)
+	service.Mux.Handle("GET", "/api/login/generate", ctrl.MuxHandler("Generate", h, nil))
+	service.LogInfo("mount", "ctrl", "Login", "action", "Generate", "route", "GET /api/login/generate")
 }
 
 // handleLoginOrigin applies the CORS response headers corresponding to the origin.
@@ -67,10 +85,9 @@ func handleLoginOrigin(h goa.Handler) goa.Handler {
 			// Not a CORS request
 			return h(ctx, rw, req)
 		}
-		if cors.MatchOrigin(origin, "*.almighty.io") {
+		if cors.MatchOrigin(origin, "*") {
 			ctx = goa.WithLogContext(ctx, "origin", origin)
-			rw.Header().Set("Access-Control-Allow-Origin", "*.almighty.io")
-			rw.Header().Set("Vary", "Origin")
+			rw.Header().Set("Access-Control-Allow-Origin", "*")
 			rw.Header().Set("Access-Control-Max-Age", "600")
 			rw.Header().Set("Access-Control-Allow-Credentials", "true")
 			if acrm := req.Header.Get("Access-Control-Request-Method"); acrm != "" {
@@ -122,10 +139,9 @@ func handleVersionOrigin(h goa.Handler) goa.Handler {
 			// Not a CORS request
 			return h(ctx, rw, req)
 		}
-		if cors.MatchOrigin(origin, "*.almighty.io") {
+		if cors.MatchOrigin(origin, "*") {
 			ctx = goa.WithLogContext(ctx, "origin", origin)
-			rw.Header().Set("Access-Control-Allow-Origin", "*.almighty.io")
-			rw.Header().Set("Vary", "Origin")
+			rw.Header().Set("Access-Control-Allow-Origin", "*")
 			rw.Header().Set("Access-Control-Max-Age", "600")
 			rw.Header().Set("Access-Control-Allow-Credentials", "true")
 			if acrm := req.Header.Get("Access-Control-Request-Method"); acrm != "" {

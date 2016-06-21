@@ -15,19 +15,28 @@ definitions:
     - token
     title: 'Mediatype identifier: application/vnd.authtoken+json'
     type: object
+  AuthTokenCollection:
+    example:
+    - token: Accusantium quis magni.
+    - token: Soluta ducimus explicabo et dolores.
+    - token: Est quaerat eaque quaerat.
+    items:
+      $ref: '#/definitions/AuthToken'
+    title: 'Mediatype identifier: application/vnd.authtoken+json; type=collection'
+    type: array
   Version:
     description: The current running version
     example:
-      build_time: Soluta ducimus explicabo et dolores.
-      commit: Est quaerat eaque quaerat.
+      build_time: Id id optio.
+      commit: Non quam ipsam maiores incidunt.
     properties:
       build_time:
         description: The date when build
-        example: Quaerat dolorem voluptate non omnis.
+        example: Similique maiores.
         type: string
       commit:
         description: Commit SHA this build is based on
-        example: Beatae accusantium quis magni.
+        example: Dolor rerum enim.
         type: string
     required:
     - commit
@@ -57,6 +66,21 @@ paths:
       schemes:
       - http
       summary: authorize
+  /login/generate:
+    get:
+      description: Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION.
+        Only available if server is running in dev mode
+      operationId: login#generate
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/AuthTokenCollection'
+        "401":
+          description: Unauthorized
+      schemes:
+      - http
+      summary: generate
   /version:
     get:
       description: |-
