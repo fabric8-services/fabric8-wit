@@ -43,6 +43,104 @@ definitions:
     - build_time
     title: 'Mediatype identifier: application/vnd.version+json'
     type: object
+  WorkItem:
+    description: ALM Work Item
+    example:
+      fields:
+        Consequatur quae ut.: false
+        Quaerat odit ut qui.: false
+        Quos veritatis dolores totam temporibus hic deserunt.: 0.7804675
+      id: Perspiciatis laudantium consequatur aut.
+      name: Quia iure distinctio nihil est.
+      type: Voluptatem expedita.
+      version: 6.3529364e+18
+    properties:
+      fields:
+        additionalProperties: true
+        example:
+          Dicta consequatur.: false
+          Facilis dicta numquam aut minima.: false
+          Labore maiores similique facere.: 1972-07-14T02:20:02+02:00
+        type: object
+      id:
+        description: unique id per installation
+        example: Nemo eos ducimus maiores impedit sunt.
+        type: string
+      name:
+        description: User Readable Name of this item
+        example: Ipsum dolor.
+        type: string
+      type:
+        description: Id of the type of this work item
+        example: Reprehenderit distinctio voluptas quia dolor et et.
+        type: string
+      version:
+        description: Version for optimistic concurrency control
+        example: 5.467646e+17
+        format: int64
+        type: integer
+    required:
+    - id
+    - version
+    - name
+    - type
+    - fields
+    title: 'Mediatype identifier: application/vnd.workitem+json'
+    type: object
+  WorkItemType:
+    description: ALM Work Item Type
+    example:
+      fields:
+      - name: Deserunt id doloremque sed quam vel.
+        type: Dignissimos quibusdam ipsam id facere doloribus consequatur.
+      - name: Iste officiis expedita.
+        type: Dignissimos excepturi explicabo.
+      - name: Iusto odio eum rem qui officia aperiam.
+        type: Itaque at eveniet iste dolorem tempore.
+      id: Porro et facere.
+      name: Doloribus rerum.
+      version: 4.9371755e+18
+    properties:
+      fields:
+        example:
+        - name: Consectetur ipsam.
+          type: Voluptatem qui corporis dicta quos.
+        items:
+          $ref: '#/definitions/field'
+        type: array
+      id:
+        description: unique id per installation
+        example: Est sed nihil atque.
+        type: string
+      name:
+        description: User Readable Name of this item
+        example: Quaerat rem voluptatem.
+        type: string
+      version:
+        description: Version for optimistic concurrency control
+        example: 3.8858907e+18
+        format: int64
+        type: integer
+    required:
+    - id
+    - version
+    - name
+    - fields
+    title: 'Mediatype identifier: application/vnd.workitemtype+json'
+    type: object
+  field:
+    properties:
+      name:
+        example: Nihil ea reprehenderit voluptas rerum ut in.
+        type: string
+      type:
+        example: Maxime cum illum provident rerum quo.
+        type: string
+    required:
+    - name
+    - type
+    title: field
+    type: object
 host: almighty.io
 info:
   description: The next big thing
@@ -97,9 +195,51 @@ paths:
       schemes:
       - http
       summary: show
+  /workitem/{id}:
+    get:
+      description: Retrieve work item with given id.
+      operationId: workitem#show
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/WorkItem'
+        "404":
+          description: Not Found
+      schemes:
+      - http
+      summary: show
+  /workitemtype/{id}:
+    get:
+      description: Retrieve work item type with given id.
+      operationId: workitemtype#show
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/WorkItemType'
+        "404":
+          description: Not Found
+      schemes:
+      - http
+      summary: show
 produces:
 - application/json
 responses:
+  NotFound:
+    description: Not Found
   OK:
     description: OK
     schema:

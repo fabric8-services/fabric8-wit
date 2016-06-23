@@ -2,9 +2,9 @@
 // API "alm": Application Controllers
 //
 // Generated with goagen v0.2.dev, command line:
-// $ goagen
+// $ goagen.exe
 // --design=github.com/almighty/almighty-core/design
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
+// --out=$(GOPATH)\src\github.com\almighty\almighty-core
 // --version=v0.2.dev
 //
 // The content of this file is auto-generated, DO NOT MODIFY
@@ -133,6 +133,112 @@ func MountVersionController(service *goa.Service, ctrl VersionController) {
 
 // handleVersionOrigin applies the CORS response headers corresponding to the origin.
 func handleVersionOrigin(h goa.Handler) goa.Handler {
+	return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		origin := req.Header.Get("Origin")
+		if origin == "" {
+			// Not a CORS request
+			return h(ctx, rw, req)
+		}
+		if cors.MatchOrigin(origin, "*") {
+			ctx = goa.WithLogContext(ctx, "origin", origin)
+			rw.Header().Set("Access-Control-Allow-Origin", "*")
+			rw.Header().Set("Access-Control-Max-Age", "600")
+			rw.Header().Set("Access-Control-Allow-Credentials", "true")
+			if acrm := req.Header.Get("Access-Control-Request-Method"); acrm != "" {
+				// We are handling a preflight request
+				rw.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
+			}
+			return h(ctx, rw, req)
+		}
+
+		return h(ctx, rw, req)
+	}
+}
+
+// WorkitemController is the controller interface for the Workitem actions.
+type WorkitemController interface {
+	goa.Muxer
+	Show(*ShowWorkitemContext) error
+}
+
+// MountWorkitemController "mounts" a Workitem resource controller on the given service.
+func MountWorkitemController(service *goa.Service, ctrl WorkitemController) {
+	initService(service)
+	var h goa.Handler
+	service.Mux.Handle("OPTIONS", "/api/workitem/:id", ctrl.MuxHandler("preflight", handleWorkitemOrigin(cors.HandlePreflight()), nil))
+
+	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		// Check if there was an error loading the request
+		if err := goa.ContextError(ctx); err != nil {
+			return err
+		}
+		// Build the context
+		rctx, err := NewShowWorkitemContext(ctx, service)
+		if err != nil {
+			return err
+		}
+		return ctrl.Show(rctx)
+	}
+	h = handleWorkitemOrigin(h)
+	service.Mux.Handle("GET", "/api/workitem/:id", ctrl.MuxHandler("Show", h, nil))
+	service.LogInfo("mount", "ctrl", "Workitem", "action", "Show", "route", "GET /api/workitem/:id")
+}
+
+// handleWorkitemOrigin applies the CORS response headers corresponding to the origin.
+func handleWorkitemOrigin(h goa.Handler) goa.Handler {
+	return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		origin := req.Header.Get("Origin")
+		if origin == "" {
+			// Not a CORS request
+			return h(ctx, rw, req)
+		}
+		if cors.MatchOrigin(origin, "*") {
+			ctx = goa.WithLogContext(ctx, "origin", origin)
+			rw.Header().Set("Access-Control-Allow-Origin", "*")
+			rw.Header().Set("Access-Control-Max-Age", "600")
+			rw.Header().Set("Access-Control-Allow-Credentials", "true")
+			if acrm := req.Header.Get("Access-Control-Request-Method"); acrm != "" {
+				// We are handling a preflight request
+				rw.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
+			}
+			return h(ctx, rw, req)
+		}
+
+		return h(ctx, rw, req)
+	}
+}
+
+// WorkitemtypeController is the controller interface for the Workitemtype actions.
+type WorkitemtypeController interface {
+	goa.Muxer
+	Show(*ShowWorkitemtypeContext) error
+}
+
+// MountWorkitemtypeController "mounts" a Workitemtype resource controller on the given service.
+func MountWorkitemtypeController(service *goa.Service, ctrl WorkitemtypeController) {
+	initService(service)
+	var h goa.Handler
+	service.Mux.Handle("OPTIONS", "/api/workitemtype/:id", ctrl.MuxHandler("preflight", handleWorkitemtypeOrigin(cors.HandlePreflight()), nil))
+
+	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		// Check if there was an error loading the request
+		if err := goa.ContextError(ctx); err != nil {
+			return err
+		}
+		// Build the context
+		rctx, err := NewShowWorkitemtypeContext(ctx, service)
+		if err != nil {
+			return err
+		}
+		return ctrl.Show(rctx)
+	}
+	h = handleWorkitemtypeOrigin(h)
+	service.Mux.Handle("GET", "/api/workitemtype/:id", ctrl.MuxHandler("Show", h, nil))
+	service.LogInfo("mount", "ctrl", "Workitemtype", "action", "Show", "route", "GET /api/workitemtype/:id")
+}
+
+// handleWorkitemtypeOrigin applies the CORS response headers corresponding to the origin.
+func handleWorkitemtypeOrigin(h goa.Handler) goa.Handler {
 	return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
 		origin := req.Header.Get("Origin")
 		if origin == "" {

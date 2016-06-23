@@ -47,6 +47,14 @@ func main() {
 	// Mount "version" controller
 	c2 := NewVersionController(service)
 	app.MountVersionController(service, c2)
+	
+	// Mount "workitem" controller
+	c3 := NewWorkitemController(service)
+	app.MountWorkitemController(service, c3)
+
+	// Mount "workitemtype" controller
+	c4 := NewWorkitemtypeController(service)
+	app.MountWorkitemtypeController(service, c4)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

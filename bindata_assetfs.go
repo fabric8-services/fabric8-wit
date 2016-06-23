@@ -32,7 +32,7 @@ type asset struct {
 
 // assetsIndexHtml reads file data from disk. It returns an error on failure.
 func assetsIndexHtml() (*asset, error) {
-	path := "/home/aslak/dev/source/go/src/github.com/almighty/almighty-core/assets/index.html"
+	path := "C:\\Users\\thomas\\code\\ALM\\src\\github.com\\almighty\\almighty-core\\assets\\index.html"
 	name := "assets/index.html"
 	bytes, err := bindataRead(path, name)
 	if err != nil {
@@ -50,7 +50,7 @@ func assetsIndexHtml() (*asset, error) {
 
 // assetsJsAxiosMinJs reads file data from disk. It returns an error on failure.
 func assetsJsAxiosMinJs() (*asset, error) {
-	path := "/home/aslak/dev/source/go/src/github.com/almighty/almighty-core/assets/js/axios.min.js"
+	path := "C:\\Users\\thomas\\code\\ALM\\src\\github.com\\almighty\\almighty-core\\assets\\js\\axios.min.js"
 	name := "assets/js/axios.min.js"
 	bytes, err := bindataRead(path, name)
 	if err != nil {
@@ -68,7 +68,7 @@ func assetsJsAxiosMinJs() (*asset, error) {
 
 // assetsJsClientJs reads file data from disk. It returns an error on failure.
 func assetsJsClientJs() (*asset, error) {
-	path := "/home/aslak/dev/source/go/src/github.com/almighty/almighty-core/assets/js/client.js"
+	path := "C:\\Users\\thomas\\code\\ALM\\src\\github.com\\almighty\\almighty-core\\assets\\js\\client.js"
 	name := "assets/js/client.js"
 	bytes, err := bindataRead(path, name)
 	if err != nil {

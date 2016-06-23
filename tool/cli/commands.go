@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"github.com/almighty/almighty-core/client"
 	"github.com/goadesign/goa"
 	goaclient "github.com/goadesign/goa/client"
@@ -23,6 +24,20 @@ type (
 
 	// ShowVersionCommand is the command line data structure for the show action of version
 	ShowVersionCommand struct {
+		PrettyPrint bool
+	}
+
+	// ShowWorkitemCommand is the command line data structure for the show action of workitem
+	ShowWorkitemCommand struct {
+		// id
+		ID          string
+		PrettyPrint bool
+	}
+
+	// ShowWorkitemtypeCommand is the command line data structure for the show action of workitemtype
+	ShowWorkitemtypeCommand struct {
+		// id
+		ID          string
 		PrettyPrint bool
 	}
 )
@@ -60,7 +75,7 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	app.AddCommand(command)
 	command = &cobra.Command{
 		Use:   "show",
-		Short: `Show current running version`,
+		Short: `show action`,
 	}
 	tmp3 := new(ShowVersionCommand)
 	sub = &cobra.Command{
@@ -70,6 +85,24 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	}
 	tmp3.RegisterFlags(sub, c)
 	sub.PersistentFlags().BoolVar(&tmp3.PrettyPrint, "pp", false, "Pretty print response body")
+	command.AddCommand(sub)
+	tmp4 := new(ShowWorkitemCommand)
+	sub = &cobra.Command{
+		Use:   `workitem [/api/workitem/ID]`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp4.Run(c, args) },
+	}
+	tmp4.RegisterFlags(sub, c)
+	sub.PersistentFlags().BoolVar(&tmp4.PrettyPrint, "pp", false, "Pretty print response body")
+	command.AddCommand(sub)
+	tmp5 := new(ShowWorkitemtypeCommand)
+	sub = &cobra.Command{
+		Use:   `workitemtype [/api/workitemtype/ID]`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp5.Run(c, args) },
+	}
+	tmp5.RegisterFlags(sub, c)
+	sub.PersistentFlags().BoolVar(&tmp5.PrettyPrint, "pp", false, "Pretty print response body")
 	command.AddCommand(sub)
 	app.AddCommand(command)
 }
@@ -144,4 +177,56 @@ func (cmd *ShowVersionCommand) Run(c *client.Client, args []string) error {
 
 // RegisterFlags registers the command flags with the command line.
 func (cmd *ShowVersionCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+}
+
+// Run makes the HTTP request corresponding to the ShowWorkitemCommand command.
+func (cmd *ShowWorkitemCommand) Run(c *client.Client, args []string) error {
+	var path string
+	if len(args) > 0 {
+		path = args[0]
+	} else {
+		path = fmt.Sprintf("/api/workitem/%v", cmd.ID)
+	}
+	logger := goa.NewLogger(log.New(os.Stderr, "", log.LstdFlags))
+	ctx := goa.WithLogger(context.Background(), logger)
+	resp, err := c.ShowWorkitem(ctx, path)
+	if err != nil {
+		goa.LogError(ctx, "failed", "err", err)
+		return err
+	}
+
+	goaclient.HandleResponse(c.Client, resp, cmd.PrettyPrint)
+	return nil
+}
+
+// RegisterFlags registers the command flags with the command line.
+func (cmd *ShowWorkitemCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+	var id string
+	cc.Flags().StringVar(&cmd.ID, "id", id, `id`)
+}
+
+// Run makes the HTTP request corresponding to the ShowWorkitemtypeCommand command.
+func (cmd *ShowWorkitemtypeCommand) Run(c *client.Client, args []string) error {
+	var path string
+	if len(args) > 0 {
+		path = args[0]
+	} else {
+		path = fmt.Sprintf("/api/workitemtype/%v", cmd.ID)
+	}
+	logger := goa.NewLogger(log.New(os.Stderr, "", log.LstdFlags))
+	ctx := goa.WithLogger(context.Background(), logger)
+	resp, err := c.ShowWorkitemtype(ctx, path)
+	if err != nil {
+		goa.LogError(ctx, "failed", "err", err)
+		return err
+	}
+
+	goaclient.HandleResponse(c.Client, resp, cmd.PrettyPrint)
+	return nil
+}
+
+// RegisterFlags registers the command flags with the command line.
+func (cmd *ShowWorkitemtypeCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+	var id string
+	cc.Flags().StringVar(&cmd.ID, "id", id, `id`)
 }

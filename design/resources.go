@@ -5,6 +5,44 @@ import (
 	. "github.com/goadesign/goa/design/apidsl"
 )
 
+var _ = Resource("workitem", func() {
+	BasePath("/workitem")
+
+	Action("show", func() {
+		Routing(
+			GET("/:id"),
+		)
+		Description("Retrieve work item with given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK, func() {
+			Media(WorkItem)
+		})
+		Response(NotFound)
+	})
+})
+
+var _ = Resource("workitemtype", func() {
+
+	BasePath("/workitemtype")
+
+	Action("show", func() {
+
+		Routing(
+			GET("/:id"),
+		)
+		Description("Retrieve work item type with given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK, func() {
+			Media(WorkItemType)
+		})
+		Response(NotFound)
+	})
+})
+
 var _ = Resource("version", func() {
 
 	DefaultMedia(ALMVersion)
