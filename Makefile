@@ -4,9 +4,9 @@ else
 include ./Makefile.lnx
 endif
 SOURCEDIR=.
-SOURCES := $(shell find $(SOURCEDIR) -name '*.go')
+SOURCES := $(shell $(FIND) $(SOURCEDIR) -name '*.go')
 DESIGNDIR=design
-DESIGNS := $(shell find $(DESIGNDIR) -name '*.go')
+DESIGNS := $(shell $(FIND) $(DESIGNDIR) -name '*.go')
 
 
 # Used as target and binary output names... defined in includes
@@ -53,5 +53,6 @@ clean:
 .PHONY: dev
 dev:
 	go get github.com/pilu/fresh
-	docker-compose up
+	docker-compose start
 	fresh
+	
