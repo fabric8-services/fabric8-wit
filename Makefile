@@ -31,13 +31,14 @@ $(BINARY_SERVER): $(SOURCES)
 $(BINARY_CLIENT): $(SOURCES)
 	cd ${CLIENT_DIR} && go build -o ../../${BINARY_CLIENT}
 
-generate: $(DESIGNS)
+deps:
 	go get github.com/jteeuwen/go-bindata/...
 	go get github.com/elazarl/go-bindata-assetfs/...
 
 	go get -u github.com/goadesign/goa/...
 	go get -u github.com/goadesign/gorma
 
+generate: $(DESIGNS)
 	goagen bootstrap -d ${PACKAGE_NAME}/${DESIGNDIR}
 	goagen js -d ${PACKAGE_NAME}/${DESIGNDIR} -o assets/ --noexample
 	goagen gen -d ${PACKAGE_NAME}/${DESIGNDIR} --pkg-path=github.com/goadesign/gorma
