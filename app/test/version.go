@@ -13,13 +13,15 @@ import (
 	"testing"
 )
 
-// ShowVersionOK test setup
-func ShowVersionOK(t *testing.T, ctrl app.VersionController) *app.Version {
-	return ShowVersionOKCtx(t, context.Background(), ctrl)
+// ShowVersionOK Show runs the method Show of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers and the media type struct written to the response.
+func ShowVersionOK(t *testing.T, ctrl app.VersionController) (http.ResponseWriter, *app.Version) {
+	return ShowVersionOKWithContext(t, context.Background(), ctrl)
 }
 
-// ShowVersionOKCtx test setup
-func ShowVersionOKCtx(t *testing.T, ctx context.Context, ctrl app.VersionController) *app.Version {
+// ShowVersionOKWithContext Show runs the method Show of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers and the media type struct written to the response.
+func ShowVersionOKWithContext(t *testing.T, ctx context.Context, ctrl app.VersionController) (http.ResponseWriter, *app.Version) {
 	var logBuf bytes.Buffer
 	var resp interface{}
 	respSetter := func(r interface{}) { resp = r }
@@ -41,20 +43,21 @@ func ShowVersionOKCtx(t *testing.T, ctx context.Context, ctrl app.VersionControl
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
 	}
-
-	a, ok := resp.(*app.Version)
-	if !ok {
-		t.Errorf("invalid response media: got %+v, expected instance of app.Version", resp)
-	}
-
 	if rw.Code != 200 {
 		t.Errorf("invalid response status code: got %+v, expected 200", rw.Code)
 	}
-
-	err = a.Validate()
-	if err != nil {
-		t.Errorf("invalid response payload: got %v", err)
+	var mt *app.Version
+	if resp != nil {
+		var ok bool
+		mt, ok = resp.(*app.Version)
+		if !ok {
+			t.Errorf("invalid response media: got %+v, expected instance of app.Version", resp)
+		}
+		err = mt.Validate()
+		if err != nil {
+			t.Errorf("invalid response media type: %s", err)
+		}
 	}
-	return a
 
+	return rw, mt
 }
