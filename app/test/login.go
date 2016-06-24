@@ -13,13 +13,15 @@ import (
 	"testing"
 )
 
-// AuthorizeLoginOK test setup
-func AuthorizeLoginOK(t *testing.T, ctrl app.LoginController) *app.AuthToken {
-	return AuthorizeLoginOKCtx(t, context.Background(), ctrl)
+// AuthorizeLoginOK Authorize runs the method Authorize of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers and the media type struct written to the response.
+func AuthorizeLoginOK(t *testing.T, ctrl app.LoginController) (http.ResponseWriter, *app.AuthToken) {
+	return AuthorizeLoginOKWithContext(t, context.Background(), ctrl)
 }
 
-// AuthorizeLoginOKCtx test setup
-func AuthorizeLoginOKCtx(t *testing.T, ctx context.Context, ctrl app.LoginController) *app.AuthToken {
+// AuthorizeLoginOKWithContext Authorize runs the method Authorize of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers and the media type struct written to the response.
+func AuthorizeLoginOKWithContext(t *testing.T, ctx context.Context, ctrl app.LoginController) (http.ResponseWriter, *app.AuthToken) {
 	var logBuf bytes.Buffer
 	var resp interface{}
 	respSetter := func(r interface{}) { resp = r }
@@ -41,31 +43,34 @@ func AuthorizeLoginOKCtx(t *testing.T, ctx context.Context, ctrl app.LoginContro
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
 	}
-
-	a, ok := resp.(*app.AuthToken)
-	if !ok {
-		t.Errorf("invalid response media: got %+v, expected instance of app.AuthToken", resp)
-	}
-
 	if rw.Code != 200 {
 		t.Errorf("invalid response status code: got %+v, expected 200", rw.Code)
 	}
-
-	err = a.Validate()
-	if err != nil {
-		t.Errorf("invalid response payload: got %v", err)
+	var mt *app.AuthToken
+	if resp != nil {
+		var ok bool
+		mt, ok = resp.(*app.AuthToken)
+		if !ok {
+			t.Errorf("invalid response media: got %+v, expected instance of app.AuthToken", resp)
+		}
+		err = mt.Validate()
+		if err != nil {
+			t.Errorf("invalid response media type: %s", err)
+		}
 	}
-	return a
 
+	return rw, mt
 }
 
-// AuthorizeLoginUnauthorized test setup
-func AuthorizeLoginUnauthorized(t *testing.T, ctrl app.LoginController) {
-	AuthorizeLoginUnauthorizedCtx(t, context.Background(), ctrl)
+// AuthorizeLoginUnauthorized Authorize runs the method Authorize of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers.
+func AuthorizeLoginUnauthorized(t *testing.T, ctrl app.LoginController) http.ResponseWriter {
+	return AuthorizeLoginUnauthorizedWithContext(t, context.Background(), ctrl)
 }
 
-// AuthorizeLoginUnauthorizedCtx test setup
-func AuthorizeLoginUnauthorizedCtx(t *testing.T, ctx context.Context, ctrl app.LoginController) {
+// AuthorizeLoginUnauthorizedWithContext Authorize runs the method Authorize of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers.
+func AuthorizeLoginUnauthorizedWithContext(t *testing.T, ctx context.Context, ctrl app.LoginController) http.ResponseWriter {
 	var logBuf bytes.Buffer
 	var resp interface{}
 	respSetter := func(r interface{}) { resp = r }
@@ -87,20 +92,22 @@ func AuthorizeLoginUnauthorizedCtx(t *testing.T, ctx context.Context, ctrl app.L
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
 	}
-
 	if rw.Code != 401 {
 		t.Errorf("invalid response status code: got %+v, expected 401", rw.Code)
 	}
 
+	return rw
 }
 
-// GenerateLoginOK test setup
-func GenerateLoginOK(t *testing.T, ctrl app.LoginController) *app.AuthTokenCollection {
-	return GenerateLoginOKCtx(t, context.Background(), ctrl)
+// GenerateLoginOK Generate runs the method Generate of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers and the media type struct written to the response.
+func GenerateLoginOK(t *testing.T, ctrl app.LoginController) (http.ResponseWriter, *app.AuthTokenCollection) {
+	return GenerateLoginOKWithContext(t, context.Background(), ctrl)
 }
 
-// GenerateLoginOKCtx test setup
-func GenerateLoginOKCtx(t *testing.T, ctx context.Context, ctrl app.LoginController) *app.AuthTokenCollection {
+// GenerateLoginOKWithContext Generate runs the method Generate of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers and the media type struct written to the response.
+func GenerateLoginOKWithContext(t *testing.T, ctx context.Context, ctrl app.LoginController) (http.ResponseWriter, *app.AuthTokenCollection) {
 	var logBuf bytes.Buffer
 	var resp interface{}
 	respSetter := func(r interface{}) { resp = r }
@@ -122,31 +129,34 @@ func GenerateLoginOKCtx(t *testing.T, ctx context.Context, ctrl app.LoginControl
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
 	}
-
-	a, ok := resp.(*app.AuthTokenCollection)
-	if !ok {
-		t.Errorf("invalid response media: got %+v, expected instance of app.AuthTokenCollection", resp)
-	}
-
 	if rw.Code != 200 {
 		t.Errorf("invalid response status code: got %+v, expected 200", rw.Code)
 	}
-
-	err = a.Validate()
-	if err != nil {
-		t.Errorf("invalid response payload: got %v", err)
+	var mt *app.AuthTokenCollection
+	if resp != nil {
+		var ok bool
+		mt, ok = resp.(*app.AuthTokenCollection)
+		if !ok {
+			t.Errorf("invalid response media: got %+v, expected instance of app.AuthTokenCollection", resp)
+		}
+		err = mt.Validate()
+		if err != nil {
+			t.Errorf("invalid response media type: %s", err)
+		}
 	}
-	return a
 
+	return rw, mt
 }
 
-// GenerateLoginUnauthorized test setup
-func GenerateLoginUnauthorized(t *testing.T, ctrl app.LoginController) {
-	GenerateLoginUnauthorizedCtx(t, context.Background(), ctrl)
+// GenerateLoginUnauthorized Generate runs the method Generate of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers.
+func GenerateLoginUnauthorized(t *testing.T, ctrl app.LoginController) http.ResponseWriter {
+	return GenerateLoginUnauthorizedWithContext(t, context.Background(), ctrl)
 }
 
-// GenerateLoginUnauthorizedCtx test setup
-func GenerateLoginUnauthorizedCtx(t *testing.T, ctx context.Context, ctrl app.LoginController) {
+// GenerateLoginUnauthorizedWithContext Generate runs the method Generate of the given controller with the given parameters.
+// It returns the response writer so it's possible to inspect the response headers.
+func GenerateLoginUnauthorizedWithContext(t *testing.T, ctx context.Context, ctrl app.LoginController) http.ResponseWriter {
 	var logBuf bytes.Buffer
 	var resp interface{}
 	respSetter := func(r interface{}) { resp = r }
@@ -168,9 +178,9 @@ func GenerateLoginUnauthorizedCtx(t *testing.T, ctx context.Context, ctrl app.Lo
 	if err != nil {
 		t.Fatalf("controller returned %s, logs:\n%s", err, logBuf.String())
 	}
-
 	if rw.Code != 401 {
 		t.Errorf("invalid response status code: got %+v, expected 401", rw.Code)
 	}
 
+	return rw
 }
