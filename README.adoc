@@ -1,5 +1,8 @@
 == ALMighty Core
 
+image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"] 
+image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
+
 === Development
 
 Only files ./*.go and ./design/*.go should be edited.
