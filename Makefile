@@ -44,11 +44,11 @@ deps:
 	go get -u github.com/goadesign/gorma
 
 generate: $(DESIGNS)
-	goagen bootstrap -d ${PACKAGE_NAME}/${DESIGNDIR}
-	goagen js -d ${PACKAGE_NAME}/${DESIGNDIR} -o assets/ --noexample
-	goagen gen -d ${PACKAGE_NAME}/${DESIGNDIR} --pkg-path=github.com/goadesign/gorma
-	go-bindata-assetfs -debug assets/...
-	godep get
+	$(GOPATH)/bin/goagen bootstrap -d ${PACKAGE_NAME}/${DESIGNDIR}
+	$(GOPATH)/bin/goagen js -d ${PACKAGE_NAME}/${DESIGNDIR} -o assets/ --noexample
+	$(GOPATH)/bin/goagen gen -d ${PACKAGE_NAME}/${DESIGNDIR} --pkg-path=github.com/goadesign/gorma
+	$(GOPATH)/bin/go-bindata-assetfs -debug assets/...
+	$(GOPATH)/bin/godep get
 
 .PHONY: clean
 clean:
@@ -56,7 +56,6 @@ clean:
 
 .PHONY: dev
 dev: 
-	echo $(GOPATH)
 	go get github.com/pilu/fresh
 	$(DOCKERCOMPOSE) start
 	$(GOPATH)/bin/fresh
