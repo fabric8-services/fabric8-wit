@@ -1,0 +1,9 @@
+BINARY_SERVER=alm.exe
+BINARY_CLIENT=alm-cli.exe
+FIND=/usr/bin/find
+DBHOST:=$(shell docker-machine ip)
+DOCKERCOMPOSE=build/dockercompose.bat
+GOPATH:=$(shell cygpath -w $(realpath ../../../..))
+
+	
+	

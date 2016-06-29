@@ -1,8 +1,12 @@
 ifeq ($(OS),Windows_NT)
-include ./Makefile.win
+include ./build/Makefile.win
 else
-include ./Makefile.lnx
+include ./build/Makefile.lnx
 endif
+
+export DBHOST
+export GOPATH
+
 SOURCEDIR=.
 SOURCES := $(shell $(FIND) $(SOURCEDIR) -name '*.go')
 DESIGNDIR=design
@@ -51,8 +55,12 @@ clean:
 	rm -f ${BINARY_SERVER} && rm -f ${BINARY_CLIENT}
 
 .PHONY: dev
-dev:
+dev: 
+	echo $(GOPATH)
 	go get github.com/pilu/fresh
-	docker-compose start
-	fresh
+	$(DOCKERCOMPOSE) start
+	$(GOPATH)/bin/fresh
+	
+test:
+	go test -dbhost $(DBHOST)
 	

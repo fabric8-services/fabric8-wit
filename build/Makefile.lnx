@@ -1,0 +1,6 @@
+BINARY_SERVER=alm
+BINARY_CLIENT=alm-cli
+FIND=find
+DBHOST=localhost
+DOCKERCOMPOSE=docker-compose
+GOPATH:=$(shell cygpath -w $(realpath ../../../..))

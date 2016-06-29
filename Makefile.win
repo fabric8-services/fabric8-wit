@@ -1,3 +1,0 @@
-BINARY_SERVER=alm.exe
-BINARY_CLIENT=alm-cli.exe
-FIND=/usr/bin/find
