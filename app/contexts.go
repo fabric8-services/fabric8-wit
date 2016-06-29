@@ -2,9 +2,9 @@
 // API "alm": Application Contexts
 //
 // Generated with goagen v0.2.dev, command line:
-// $ goagen
+// $ goagen.exe
 // --design=github.com/almighty/almighty-core/design
-// --out=$(GOPATH)/src/github.com/almighty/almighty-core
+// --out=$(GOPATH)\src\github.com\almighty\almighty-core
 // --version=v0.2.dev
 //
 // The content of this file is auto-generated, DO NOT MODIFY
@@ -99,4 +99,76 @@ func NewShowVersionContext(ctx context.Context, service *goa.Service) (*ShowVers
 func (ctx *ShowVersionContext) OK(r *Version) error {
 	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.version+json")
 	return ctx.ResponseData.Service.Send(ctx.Context, 200, r)
+}
+
+// ShowWorkitemContext provides the workitem show action context.
+type ShowWorkitemContext struct {
+	context.Context
+	*goa.ResponseData
+	*goa.RequestData
+	ID string
+}
+
+// NewShowWorkitemContext parses the incoming request URL and body, performs validations and creates the
+// context used by the workitem controller show action.
+func NewShowWorkitemContext(ctx context.Context, service *goa.Service) (*ShowWorkitemContext, error) {
+	var err error
+	resp := goa.ContextResponse(ctx)
+	resp.Service = service
+	req := goa.ContextRequest(ctx)
+	rctx := ShowWorkitemContext{Context: ctx, ResponseData: resp, RequestData: req}
+	paramID := req.Params["id"]
+	if len(paramID) > 0 {
+		rawID := paramID[0]
+		rctx.ID = rawID
+	}
+	return &rctx, err
+}
+
+// OK sends a HTTP response with status code 200.
+func (ctx *ShowWorkitemContext) OK(r *WorkItem) error {
+	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.workitem+json")
+	return ctx.ResponseData.Service.Send(ctx.Context, 200, r)
+}
+
+// NotFound sends a HTTP response with status code 404.
+func (ctx *ShowWorkitemContext) NotFound() error {
+	ctx.ResponseData.WriteHeader(404)
+	return nil
+}
+
+// ShowWorkitemtypeContext provides the workitemtype show action context.
+type ShowWorkitemtypeContext struct {
+	context.Context
+	*goa.ResponseData
+	*goa.RequestData
+	ID string
+}
+
+// NewShowWorkitemtypeContext parses the incoming request URL and body, performs validations and creates the
+// context used by the workitemtype controller show action.
+func NewShowWorkitemtypeContext(ctx context.Context, service *goa.Service) (*ShowWorkitemtypeContext, error) {
+	var err error
+	resp := goa.ContextResponse(ctx)
+	resp.Service = service
+	req := goa.ContextRequest(ctx)
+	rctx := ShowWorkitemtypeContext{Context: ctx, ResponseData: resp, RequestData: req}
+	paramID := req.Params["id"]
+	if len(paramID) > 0 {
+		rawID := paramID[0]
+		rctx.ID = rawID
+	}
+	return &rctx, err
+}
+
+// OK sends a HTTP response with status code 200.
+func (ctx *ShowWorkitemtypeContext) OK(r *WorkItemType) error {
+	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.workitemtype+json")
+	return ctx.ResponseData.Service.Send(ctx.Context, 200, r)
+}
+
+// NotFound sends a HTTP response with status code 404.
+func (ctx *ShowWorkitemtypeContext) NotFound() error {
+	ctx.ResponseData.WriteHeader(404)
+	return nil
 }
