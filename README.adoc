@@ -13,10 +13,10 @@ git clone https://github.com/almighty/almighty-core $GOPATH/src/github.com/almig
 
 Fetch necessary dependencies:
 
----
+----
 cd $GOPATH/src/github.com/almighty/almighty-core
 make deps
----
+----
 
 === Development
 
