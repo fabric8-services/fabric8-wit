@@ -37,6 +37,26 @@ define(['axios'] , function (axios) {
     return client(cfg);
   }
 
+  // create work item with type and id.
+  // path is the request path, the format is "/api/workitem"
+  // data contains the action payload (request body)
+  // config is an optional object to be merged into the config built by the function prior to making the request.
+  // The content of the config object is described here: https://github.com/mzabriskie/axios#request-api
+  // This function returns a promise which raises an error if the HTTP response is a 4xx or 5xx.
+  client.createWorkitem = function (path, data, config) {
+    cfg = {
+      timeout: timeout,
+      url: urlPrefix + path,
+      method: 'post',
+    data: data,
+      responseType: 'json'
+    };
+    if (config) {
+      cfg = merge(cfg, config);
+    }
+    return client(cfg);
+  }
+
   // Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode
   // path is the request path, the format is "/api/login/generate"
   // config is an optional object to be merged into the config built by the function prior to making the request.

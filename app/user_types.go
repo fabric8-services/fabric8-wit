@@ -14,6 +14,41 @@ package app
 
 import "github.com/goadesign/goa"
 
+// createWorkItemPayload user type.
+type createWorkItemPayload struct {
+	// The field values, must conform to the type
+	Fields map[string]interface{} `json:"fields,omitempty" xml:"fields,omitempty" form:"fields,omitempty"`
+	// User Readable Name of this item
+	Name *string `json:"name,omitempty" xml:"name,omitempty" form:"name,omitempty"`
+	// The type of the newly created work item
+	TypeID *string `json:"typeId,omitempty" xml:"typeId,omitempty" form:"typeId,omitempty"`
+}
+
+// Publicize creates CreateWorkItemPayload from createWorkItemPayload
+func (ut *createWorkItemPayload) Publicize() *CreateWorkItemPayload {
+	var pub CreateWorkItemPayload
+	if ut.Fields != nil {
+		pub.Fields = ut.Fields
+	}
+	if ut.Name != nil {
+		pub.Name = ut.Name
+	}
+	if ut.TypeID != nil {
+		pub.TypeID = ut.TypeID
+	}
+	return &pub
+}
+
+// CreateWorkItemPayload user type.
+type CreateWorkItemPayload struct {
+	// The field values, must conform to the type
+	Fields map[string]interface{} `json:"fields,omitempty" xml:"fields,omitempty" form:"fields,omitempty"`
+	// User Readable Name of this item
+	Name *string `json:"name,omitempty" xml:"name,omitempty" form:"name,omitempty"`
+	// The type of the newly created work item
+	TypeID *string `json:"typeId,omitempty" xml:"typeId,omitempty" form:"typeId,omitempty"`
+}
+
 // field user type.
 type field struct {
 	Name *string `json:"name,omitempty" xml:"name,omitempty" form:"name,omitempty"`

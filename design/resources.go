@@ -21,6 +21,19 @@ var _ = Resource("workitem", func() {
 		})
 		Response(NotFound)
 	})
+	
+	Action("create", func() {
+		Routing(
+			POST(""),
+		)
+		Description("create work item with type and id.")
+		Payload(CreateWorkItemPayload)
+		Response(OK, func() {
+			Media(WorkItem)
+		})
+		Response(NotFound)
+	})
+
 })
 
 var _ = Resource("workitemtype", func() {

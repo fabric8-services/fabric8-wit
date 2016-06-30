@@ -101,6 +101,72 @@ func (ctx *ShowVersionContext) OK(r *Version) error {
 	return ctx.ResponseData.Service.Send(ctx.Context, 200, r)
 }
 
+// CreateWorkitemContext provides the workitem create action context.
+type CreateWorkitemContext struct {
+	context.Context
+	*goa.ResponseData
+	*goa.RequestData
+	Payload *CreateWorkitemPayload
+}
+
+// NewCreateWorkitemContext parses the incoming request URL and body, performs validations and creates the
+// context used by the workitem controller create action.
+func NewCreateWorkitemContext(ctx context.Context, service *goa.Service) (*CreateWorkitemContext, error) {
+	var err error
+	resp := goa.ContextResponse(ctx)
+	resp.Service = service
+	req := goa.ContextRequest(ctx)
+	rctx := CreateWorkitemContext{Context: ctx, ResponseData: resp, RequestData: req}
+	return &rctx, err
+}
+
+// createWorkitemPayload is the workitem create action payload.
+type createWorkitemPayload struct {
+	// The field values, must conform to the type
+	Fields map[string]interface{} `json:"fields,omitempty" xml:"fields,omitempty" form:"fields,omitempty"`
+	// User Readable Name of this item
+	Name *string `json:"name,omitempty" xml:"name,omitempty" form:"name,omitempty"`
+	// The type of the newly created work item
+	TypeID *string `json:"typeId,omitempty" xml:"typeId,omitempty" form:"typeId,omitempty"`
+}
+
+// Publicize creates CreateWorkitemPayload from createWorkitemPayload
+func (payload *createWorkitemPayload) Publicize() *CreateWorkitemPayload {
+	var pub CreateWorkitemPayload
+	if payload.Fields != nil {
+		pub.Fields = payload.Fields
+	}
+	if payload.Name != nil {
+		pub.Name = payload.Name
+	}
+	if payload.TypeID != nil {
+		pub.TypeID = payload.TypeID
+	}
+	return &pub
+}
+
+// CreateWorkitemPayload is the workitem create action payload.
+type CreateWorkitemPayload struct {
+	// The field values, must conform to the type
+	Fields map[string]interface{} `json:"fields,omitempty" xml:"fields,omitempty" form:"fields,omitempty"`
+	// User Readable Name of this item
+	Name *string `json:"name,omitempty" xml:"name,omitempty" form:"name,omitempty"`
+	// The type of the newly created work item
+	TypeID *string `json:"typeId,omitempty" xml:"typeId,omitempty" form:"typeId,omitempty"`
+}
+
+// OK sends a HTTP response with status code 200.
+func (ctx *CreateWorkitemContext) OK(r *WorkItem) error {
+	ctx.ResponseData.Header().Set("Content-Type", "application/vnd.workitem+json")
+	return ctx.ResponseData.Service.Send(ctx.Context, 200, r)
+}
+
+// NotFound sends a HTTP response with status code 404.
+func (ctx *CreateWorkitemContext) NotFound() error {
+	ctx.ResponseData.WriteHeader(404)
+	return nil
+}
+
 // ShowWorkitemContext provides the workitem show action context.
 type ShowWorkitemContext struct {
 	context.Context

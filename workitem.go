@@ -47,3 +47,8 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			Version: res.Version,
 			Fields: res.Fields})
 }
+
+func (c *WorkitemController) Create(*app.CreateWorkitemContext) error {
+	return nil
+}
+

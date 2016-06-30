@@ -158,6 +158,7 @@ func handleVersionOrigin(h goa.Handler) goa.Handler {
 // WorkitemController is the controller interface for the Workitem actions.
 type WorkitemController interface {
 	goa.Muxer
+	Create(*CreateWorkitemContext) error
 	Show(*ShowWorkitemContext) error
 }
 
@@ -165,7 +166,30 @@ type WorkitemController interface {
 func MountWorkitemController(service *goa.Service, ctrl WorkitemController) {
 	initService(service)
 	var h goa.Handler
+	service.Mux.Handle("OPTIONS", "/api/workitem", ctrl.MuxHandler("preflight", handleWorkitemOrigin(cors.HandlePreflight()), nil))
 	service.Mux.Handle("OPTIONS", "/api/workitem/:id", ctrl.MuxHandler("preflight", handleWorkitemOrigin(cors.HandlePreflight()), nil))
+
+	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+		// Check if there was an error loading the request
+		if err := goa.ContextError(ctx); err != nil {
+			return err
+		}
+		// Build the context
+		rctx, err := NewCreateWorkitemContext(ctx, service)
+		if err != nil {
+			return err
+		}
+		// Build the payload
+		if rawPayload := goa.ContextRequest(ctx).Payload; rawPayload != nil {
+			rctx.Payload = rawPayload.(*CreateWorkitemPayload)
+		} else {
+			return goa.MissingPayloadError()
+		}
+		return ctrl.Create(rctx)
+	}
+	h = handleWorkitemOrigin(h)
+	service.Mux.Handle("POST", "/api/workitem", ctrl.MuxHandler("Create", h, unmarshalCreateWorkitemPayload))
+	service.LogInfo("mount", "ctrl", "Workitem", "action", "Create", "route", "POST /api/workitem")
 
 	h = func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
 		// Check if there was an error loading the request
@@ -206,6 +230,16 @@ func handleWorkitemOrigin(h goa.Handler) goa.Handler {
 
 		return h(ctx, rw, req)
 	}
+}
+
+// unmarshalCreateWorkitemPayload unmarshals the request body into the context request data Payload field.
+func unmarshalCreateWorkitemPayload(ctx context.Context, service *goa.Service, req *http.Request) error {
+	payload := &createWorkitemPayload{}
+	if err := service.DecodeRequest(req, payload); err != nil {
+		return err
+	}
+	goa.ContextRequest(ctx).Payload = payload.Publicize()
+	return nil
 }
 
 // WorkitemtypeController is the controller interface for the Workitemtype actions.

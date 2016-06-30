@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/almighty/almighty-core/client"
 	"github.com/goadesign/goa"
@@ -24,6 +25,13 @@ type (
 
 	// ShowVersionCommand is the command line data structure for the show action of version
 	ShowVersionCommand struct {
+		PrettyPrint bool
+	}
+
+	// CreateWorkitemCommand is the command line data structure for the create action of workitem
+	CreateWorkitemCommand struct {
+		Payload     string
+		ContentType string
 		PrettyPrint bool
 	}
 
@@ -51,7 +59,7 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	}
 	tmp1 := new(AuthorizeLoginCommand)
 	sub = &cobra.Command{
-		Use:   `login [/api/login/authorize]`,
+		Use:   `login ["/api/login/authorize"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp1.Run(c, args) },
 	}
@@ -60,12 +68,12 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	command.AddCommand(sub)
 	app.AddCommand(command)
 	command = &cobra.Command{
-		Use:   "generate",
-		Short: `Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode`,
+		Use:   "create",
+		Short: `create work item with type and id.`,
 	}
-	tmp2 := new(GenerateLoginCommand)
+	tmp2 := new(CreateWorkitemCommand)
 	sub = &cobra.Command{
-		Use:   `login [/api/login/generate]`,
+		Use:   `workitem ["/api/workitem"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp2.Run(c, args) },
 	}
@@ -74,35 +82,49 @@ func RegisterCommands(app *cobra.Command, c *client.Client) {
 	command.AddCommand(sub)
 	app.AddCommand(command)
 	command = &cobra.Command{
-		Use:   "show",
-		Short: `show action`,
+		Use:   "generate",
+		Short: `Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode`,
 	}
-	tmp3 := new(ShowVersionCommand)
+	tmp3 := new(GenerateLoginCommand)
 	sub = &cobra.Command{
-		Use:   `version [/api/version]`,
+		Use:   `login ["/api/login/generate"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp3.Run(c, args) },
 	}
 	tmp3.RegisterFlags(sub, c)
 	sub.PersistentFlags().BoolVar(&tmp3.PrettyPrint, "pp", false, "Pretty print response body")
 	command.AddCommand(sub)
-	tmp4 := new(ShowWorkitemCommand)
+	app.AddCommand(command)
+	command = &cobra.Command{
+		Use:   "show",
+		Short: `show action`,
+	}
+	tmp4 := new(ShowVersionCommand)
 	sub = &cobra.Command{
-		Use:   `workitem [/api/workitem/ID]`,
+		Use:   `version ["/api/version"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp4.Run(c, args) },
 	}
 	tmp4.RegisterFlags(sub, c)
 	sub.PersistentFlags().BoolVar(&tmp4.PrettyPrint, "pp", false, "Pretty print response body")
 	command.AddCommand(sub)
-	tmp5 := new(ShowWorkitemtypeCommand)
+	tmp5 := new(ShowWorkitemCommand)
 	sub = &cobra.Command{
-		Use:   `workitemtype [/api/workitemtype/ID]`,
+		Use:   `workitem ["/api/workitem/ID"]`,
 		Short: ``,
 		RunE:  func(cmd *cobra.Command, args []string) error { return tmp5.Run(c, args) },
 	}
 	tmp5.RegisterFlags(sub, c)
 	sub.PersistentFlags().BoolVar(&tmp5.PrettyPrint, "pp", false, "Pretty print response body")
+	command.AddCommand(sub)
+	tmp6 := new(ShowWorkitemtypeCommand)
+	sub = &cobra.Command{
+		Use:   `workitemtype ["/api/workitemtype/ID"]`,
+		Short: ``,
+		RunE:  func(cmd *cobra.Command, args []string) error { return tmp6.Run(c, args) },
+	}
+	tmp6.RegisterFlags(sub, c)
+	sub.PersistentFlags().BoolVar(&tmp6.PrettyPrint, "pp", false, "Pretty print response body")
 	command.AddCommand(sub)
 	app.AddCommand(command)
 }
@@ -177,6 +199,39 @@ func (cmd *ShowVersionCommand) Run(c *client.Client, args []string) error {
 
 // RegisterFlags registers the command flags with the command line.
 func (cmd *ShowVersionCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+}
+
+// Run makes the HTTP request corresponding to the CreateWorkitemCommand command.
+func (cmd *CreateWorkitemCommand) Run(c *client.Client, args []string) error {
+	var path string
+	if len(args) > 0 {
+		path = args[0]
+	} else {
+		path = "/api/workitem"
+	}
+	var payload client.CreateWorkitemPayload
+	if cmd.Payload != "" {
+		err := json.Unmarshal([]byte(cmd.Payload), &payload)
+		if err != nil {
+			return fmt.Errorf("failed to deserialize payload: %s", err)
+		}
+	}
+	logger := goa.NewLogger(log.New(os.Stderr, "", log.LstdFlags))
+	ctx := goa.WithLogger(context.Background(), logger)
+	resp, err := c.CreateWorkitem(ctx, path, &payload, cmd.ContentType)
+	if err != nil {
+		goa.LogError(ctx, "failed", "err", err)
+		return err
+	}
+
+	goaclient.HandleResponse(c.Client, resp, cmd.PrettyPrint)
+	return nil
+}
+
+// RegisterFlags registers the command flags with the command line.
+func (cmd *CreateWorkitemCommand) RegisterFlags(cc *cobra.Command, c *client.Client) {
+	cc.Flags().StringVar(&cmd.Payload, "payload", "", "Request body encoded in JSON")
+	cc.Flags().StringVar(&cmd.ContentType, "content", "", "Request content type override, e.g. 'application/x-www-form-urlencoded'")
 }
 
 // Run makes the HTTP request corresponding to the ShowWorkitemCommand command.

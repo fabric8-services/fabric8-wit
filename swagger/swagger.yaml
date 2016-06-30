@@ -24,6 +24,20 @@ definitions:
       $ref: '#/definitions/AuthToken'
     title: 'Mediatype identifier: application/vnd.authtoken+json; type=collection'
     type: array
+  CreateWorkitemPayload:
+    properties:
+      fields:
+        additionalProperties: true
+        description: The field values, must conform to the type
+        type: object
+      name:
+        description: User Readable Name of this item
+        type: string
+      typeId:
+        description: The type of the newly created work item
+        type: string
+    title: CreateWorkitemPayload
+    type: object
   Version:
     description: The current running version
     example:
@@ -163,7 +177,9 @@ paths:
           description: Unauthorized
       schemes:
       - http
-      summary: authorize
+      summary: authorize login
+      tags:
+      - login
   /login/generate:
     get:
       description: Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION.
@@ -178,7 +194,9 @@ paths:
           description: Unauthorized
       schemes:
       - http
-      summary: generate
+      summary: generate login
+      tags:
+      - login
   /version:
     get:
       description: |-
@@ -194,7 +212,31 @@ paths:
             $ref: '#/definitions/Version'
       schemes:
       - http
-      summary: show
+      summary: show version
+      tags:
+      - version
+  /workitem:
+    post:
+      description: create work item with type and id.
+      operationId: workitem#create
+      parameters:
+      - in: body
+        name: payload
+        required: true
+        schema:
+          $ref: '#/definitions/CreateWorkitemPayload'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/WorkItem'
+        "404":
+          description: Not Found
+      schemes:
+      - http
+      summary: create workitem
+      tags:
+      - workitem
   /workitem/{id}:
     get:
       description: Retrieve work item with given id.
@@ -214,7 +256,9 @@ paths:
           description: Not Found
       schemes:
       - http
-      summary: show
+      summary: show workitem
+      tags:
+      - workitem
   /workitemtype/{id}:
     get:
       description: Retrieve work item type with given id.
@@ -234,7 +278,9 @@ paths:
           description: Not Found
       schemes:
       - http
-      summary: show
+      summary: show workitemtype
+      tags:
+      - workitemtype
 produces:
 - application/json
 responses:
