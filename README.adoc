@@ -3,6 +3,21 @@
 image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"] 
 image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
 
+Assuming you have Go installed and configured (have $GOPATH setup) here is how to build.
+
+Checking out the code:
+
+----
+git clone https://github.com/almighty/almighty-core $GOPATH/src/github.com/almighty/almighty-core
+----
+
+Fetch necessary dependencies:
+
+---
+cd $GOPATH/src/github.com/almighty/almighty-core
+make deps
+---
+
 === Development
 
 Only files ./*.go and ./design/*.go should be edited.
