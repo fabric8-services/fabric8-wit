@@ -9,8 +9,25 @@ import (
 type Fields map[string]interface{}
 
 func (j Fields) Value() (driver.Value, error) {
+	return toBytes(j);
+}
+
+func (j *Fields) Scan(src interface{}) error {
+	return fromBytes(src, j)
+}
+
+func (j FieldTypes) Value() (driver.Value, error) {
+	return toBytes(j);
+}
+
+func (j *FieldTypes) Scan(src interface{}) error {
+	return fromBytes(src, j)
+}
+
+
+func toBytes(j interface{}) (driver.Value, error) {
 	if j == nil {
-		//      log.Trace("returning null")
+		// log.Trace("returning null")
 		return nil, nil
 	}
 
@@ -18,18 +35,15 @@ func (j Fields) Value() (driver.Value, error) {
 	return res, error
 }
 
-func (j *Fields) Scan(src interface{}) error {
+
+func fromBytes(src interface{}, target interface{}) error {
 	if src == nil {
-		*j = nil
+		target = nil
 		return nil
 	}
 	s, ok := src.([]byte)
 	if !ok {
 		return errors.New("Scan source was not string")
 	}
-	res:= Fields{}
-	err := json.Unmarshal(s, &res)
-	*j=res;
-
-	return err
+	return json.Unmarshal(s, target)
 }

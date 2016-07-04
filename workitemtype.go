@@ -1,18 +1,21 @@
 package main
 
 import (
+	"strconv"
+	
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
 )
 
-var wellKnown = map[string]*app.WorkItemType{
-	"1": &app.WorkItemType{
-		ID:      "1",
+var wellKnown = map[string]*models.WorkItemType{
+	"1": &models.WorkItemType{
+		Id:      1,
 		Name:    "system.workitem",
 		Version: 1,
-		Fields: []*app.Field{
-			{"system.owner", "user"},
-			{"system.state", "string"}}}}
+		Fields: models.FieldTypes{
+			"system.owner": models.SimpleType{Kind: models.User},
+			"system.state": models.SimpleType{Kind: models.String}}}}
 
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
@@ -28,9 +31,17 @@ func NewWorkitemtypeController(service *goa.Service) *WorkitemtypeController {
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	res := wellKnown[ctx.ID]
 	if res != nil {
-		return ctx.OK(res)
+		converted:=convertTypeFromModels(*res)
+		return ctx.OK(&converted)
 	}
 	return ctx.NotFound()
 }
 
-//enum('foo', 'bar')
+func convertTypeFromModels(t models.WorkItemType) app.WorkItemType {
+	var converted= app.WorkItemType{
+		ID: strconv.FormatUint(t.Id, 10),
+		Name: t.Name,
+		Version: 0,
+	}
+	return converted
+}

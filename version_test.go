@@ -17,7 +17,7 @@ func TestAuthorizeLoginOK(t *testing.T) {
 
 func TestShowVersionOK(t *testing.T) {
 	controller := VersionController{}
-	resp := test.ShowVersionOK(t, &controller)
+	resp := test.ShowVersionOK(t, &controller) 
 
 	if resp.Commit != "0" {
 		t.Error("Commit not found")
