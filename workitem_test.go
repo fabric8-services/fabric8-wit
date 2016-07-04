@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -45,20 +46,33 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetWork(t *testing.T) {
-	if db == nil {
-		panic("no db")
-	}
 	controller := WorkitemController{db: db}
-	if controller.db == nil {
-		panic("no db 2")
-	}
-	resp := test.ShowWorkitemOK(t, &controller, strconv.FormatUint(uint64(id), 10))
+	_, wi := test.ShowWorkitemOK(t, nil, nil, &controller, strconv.FormatUint(uint64(id), 10))
 
-	if resp == nil {
+	if wi == nil {
 		t.Errorf("Work Item '%d' not present", id)
 	}
 
-	if resp.ID != strconv.FormatUint(uint64(id), 10) {
-		t.Errorf("Id should be %d, but is %s", id, resp.ID)
+	if wi.ID != strconv.FormatUint(uint64(id), 10) {
+		t.Errorf("Id should be %d, but is %s", id, wi.ID)
+	}
+}
+
+func TestCreateWI(t *testing.T) {
+	controller := WorkitemController{db: db}
+	name:= "some name"
+	typeid:="1"
+	payload:= app.CreateWorkitemPayload {
+		Name: &name,
+		TypeID: &typeid,
+		Fields: map[string]interface{}{
+			"system.owner": "tmaeder",
+			"system.state": "open",
+		},
+	}
+	
+	_, created := test.CreateWorkitemOK(t, nil, nil, &controller, &payload)
+	if created.ID == "" {
+		t.Error("no id")
 	}
 }

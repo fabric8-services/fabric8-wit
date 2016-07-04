@@ -29,12 +29,16 @@ func NewWorkitemtypeController(service *goa.Service) *WorkitemtypeController {
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	res := wellKnown[ctx.ID]
+	res := loadTypeFromDB(ctx.ID)
 	if res != nil {
 		converted:=convertTypeFromModels(*res)
 		return ctx.OK(&converted)
 	}
 	return ctx.NotFound()
+}
+
+func loadTypeFromDB(id string) *models.WorkItemType {
+	return wellKnown[id]
 }
 
 func convertTypeFromModels(t models.WorkItemType) app.WorkItemType {

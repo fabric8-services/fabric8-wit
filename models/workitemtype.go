@@ -49,11 +49,10 @@ type FieldTypes map[string]interface{}
 
 type WorkItemType struct {
 	Id      uint64
-	Version uint64
+	Version int
 	Name    string
 	Fields  FieldTypes `sql:"type:jsonb"`
 }
-
 
 func (self *FieldTypes) UnmarshalJSON(bytes []byte) error {
 	type fieldType struct {
@@ -66,8 +65,8 @@ func (self *FieldTypes) UnmarshalJSON(bytes []byte) error {
 	if err != nil {
 		return err
 	}
-	
-	*self=FieldTypes{}
+
+	*self = FieldTypes{}
 
 	for n, t := range temp {
 		switch t.Kind {

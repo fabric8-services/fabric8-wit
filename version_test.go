@@ -8,18 +8,18 @@ import (
 
 func TestAuthorizeLoginOK(t *testing.T) {
 	controller := LoginController{}
-	resp := test.AuthorizeLoginOK(t, &controller)
+	_, res := test.AuthorizeLoginOK(t, nil, nil, &controller)
 
-	if resp.Token == "" {
+	if res.Token == "" {
 		t.Error("Token not generated")
 	}
 }
 
 func TestShowVersionOK(t *testing.T) {
 	controller := VersionController{}
-	resp := test.ShowVersionOK(t, &controller) 
+	_, res := test.ShowVersionOK(t, nil, nil, &controller) 
 
-	if resp.Commit != "0" {
+	if res.Commit != "0" {
 		t.Error("Commit not found")
 	}
 }
