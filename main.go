@@ -12,7 +12,7 @@ import (
 	"github.com/goadesign/goa/middleware/security/jwt"
 )
 
-vr (
+var (
 	// Commit current build commit set by build script
 	Commit = "0"
 	// BuildTime set by build script
