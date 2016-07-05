@@ -21,7 +21,7 @@ var (
 	Development = false
 )
 
-fun main() {
+func main() {
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
 	flag.Parse()
