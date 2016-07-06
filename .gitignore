@@ -4,3 +4,7 @@
 /.vscode
 /.project
 /debug
+
+# Ignore some glide stuff
+.glide
+vendor

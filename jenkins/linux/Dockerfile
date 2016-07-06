@@ -6,17 +6,22 @@ ENV LANG=en_US.utf8
 # RVM installer
 RUN dnf install -y \
       findutils \
-      git \ 
+      git \
       golang \
       make \
       mercurial \
       procps-ng \
+      tar \
+      wget \
       which \
     && dnf clean all
 
-#----------------------------------------------------------
-# Misc.
-#----------------------------------------------------------
+# Get glide for Go package management
+RUN cd /tmp \
+    && wget https://github.com/Masterminds/glide/releases/download/v0.11.0/glide-v0.11.0-linux-amd64.tar.gz \
+    && tar xvzf glide-v*.tar.gz \
+    && mv linux-amd64/glide /usr/bin \
+    && rm -rfv glide-v* linux-amd64
 
 # Mount source and build folders to these locations to get persitency
 VOLUME ["/source", "/build"]

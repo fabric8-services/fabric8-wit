@@ -1,0 +1,84 @@
+hash: 418fb9a8a42afcfeb6224faa8ed6d8a92bfeafea44a01ad23cfdba74bae9bc39
+updated: 2016-07-06T20:55:14.876247904+02:00
+imports:
+- name: bitbucket.org/pkg/inflect
+  version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
+- name: github.com/almighty/almighty-core
+  version: d135f9e6f40f80aeccc1e5aed772db5659f2bc95
+  subpackages:
+  - app
+  - client
+  - tool/cli
+  - app/test
+- name: github.com/armon/go-metrics
+  version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
+- name: github.com/dgrijalva/jwt-go
+  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
+- name: github.com/dimfeld/httppath
+  version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
+- name: github.com/dimfeld/httptreemux
+  version: 612c3d8e47f5a166d9346b694cf2aeb68eff5369
+- name: github.com/elazarl/go-bindata-assetfs
+  version: 57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2
+  subpackages:
+  - go-bindata-assetfs
+- name: github.com/goadesign/goa
+  version: e9d38763390e88b7e842238d7bab5ba98407526a
+  vcs: git
+  subpackages:
+  - client
+  - cors
+  - design
+  - design/apidsl
+  - goagen
+  - goagen/gen_app
+  - goatest
+  - middleware
+  - middleware/security/jwt
+  - goagen/gen_app
+  - uuid
+  - dslengine
+- name: github.com/goadesign/gorma
+  version: f7116846126a4cb17a0cddd6b3b429ad1592f260
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jteeuwen/go-bindata
+  version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
+  subpackages:
+  - '...'
+- name: github.com/kr/pretty
+  version: add1dbc86daf0f983cd4a48ceb39deb95c729b67
+- name: github.com/kr/text
+  version: 7cafcd837844e784b526369c9bce262804aebc60
+- name: github.com/lsegal/gucumber
+  version: 090009ec4b32fd019e2d5e1a6a92f66268441cee
+  subpackages:
+  - gherkin
+- name: github.com/manveru/faker
+  version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
+- name: github.com/pilu/fresh
+  version: 7261a962d4340e348cda4f98bd43a327be23c93e
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+- name: github.com/shiena/ansicolor
+  version: a422bbe96644373c5753384a59d678f7d261ff10
+- name: github.com/spf13/cobra
+  version: 6a8bd97bdb1fc0d08a83459940498ea49d3e8c93
+- name: github.com/spf13/pflag
+  version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
+- name: github.com/tools/godep
+  version: f5755188800cca4cffecf6068353a75a31c0bc56
+- name: github.com/zach-klippenstein/goregen
+  version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
+- name: golang.org/x/net
+  version: b400c2eff1badec7022a8c8f5bea058b6315eed7
+  subpackages:
+  - context
+  - websocket
+- name: golang.org/x/tools
+  version: 527b253f588776e5f72a0a0d1e93195cd3f82707
+  subpackages:
+  - go/ast/astutil
+- name: gopkg.in/yaml.v2
+  version: a83829b6f1293c91addabc89d0571c246397bbf4
+testImports: []
