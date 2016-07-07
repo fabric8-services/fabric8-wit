@@ -30,7 +30,6 @@ import:
 - package: github.com/elazarl/go-bindata-assetfs
   subpackages:
   - 'go-bindata-assetfs'
-- package: github.com/pilu/fresh
 - package: github.com/goadesign/gorma
 - package: golang.org/x/tools
   subpackages:
@@ -39,3 +38,9 @@ import:
 - package: bitbucket.org/pkg/inflect
 - package: github.com/kr/pretty
 - package: github.com/kr/text
+
+# Fresh
+- package: github.com/pilu/fresh
+- package: github.com/howeyc/fsnotify
+- package: github.com/mattn/go-colorable
+- package: github.com/pilu/config

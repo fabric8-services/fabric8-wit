@@ -1,15 +1,13 @@
-hash: 418fb9a8a42afcfeb6224faa8ed6d8a92bfeafea44a01ad23cfdba74bae9bc39
-updated: 2016-07-06T20:55:14.876247904+02:00
+hash: 9beeb2e6cfdfe654cb8b7b4165c2309c3b5bc30e09bf7d73a7e44f20a4747ef0
+updated: 2016-07-07T13:06:17.705468927+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: github.com/almighty/almighty-core
   version: d135f9e6f40f80aeccc1e5aed772db5659f2bc95
   subpackages:
-  - app
   - client
   - tool/cli
-  - app/test
 - name: github.com/armon/go-metrics
   version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
 - name: github.com/dgrijalva/jwt-go
@@ -23,7 +21,7 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/goadesign/goa
-  version: e9d38763390e88b7e842238d7bab5ba98407526a
+  version: 2e7da3053d6414a39453cf0dc60d00d749ad9158
   vcs: git
   subpackages:
   - client
@@ -40,6 +38,8 @@ imports:
   - dslengine
 - name: github.com/goadesign/gorma
   version: f7116846126a4cb17a0cddd6b3b429ad1592f260
+- name: github.com/howeyc/fsnotify
+  version: f0c08ee9c60704c1879025f2ae0ff3e000082c13
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/jteeuwen/go-bindata
@@ -52,16 +52,16 @@ imports:
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/lsegal/gucumber
   version: 090009ec4b32fd019e2d5e1a6a92f66268441cee
-  subpackages:
-  - gherkin
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
+- name: github.com/mattn/go-colorable
+  version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
+- name: github.com/pilu/config
+  version: 3eb99e6c0b9a2dae0f56f05552c06ca5a643919b
 - name: github.com/pilu/fresh
   version: 7261a962d4340e348cda4f98bd43a327be23c93e
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
-- name: github.com/shiena/ansicolor
-  version: a422bbe96644373c5753384a59d678f7d261ff10
 - name: github.com/spf13/cobra
   version: 6a8bd97bdb1fc0d08a83459940498ea49d3e8c93
 - name: github.com/spf13/pflag
@@ -71,7 +71,7 @@ imports:
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
 - name: golang.org/x/net
-  version: b400c2eff1badec7022a8c8f5bea058b6315eed7
+  version: 7864c9eef811cd4e2387a4d17eaf985e412b5032
   subpackages:
   - context
   - websocket
