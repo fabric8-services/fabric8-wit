@@ -29,6 +29,8 @@ mkdir -pv ${build_dir}/go/bin \
 && mkdir -pv ${build_dir}/go/src/github.com/almighty/almighty-core \
 && export GOPATH=${build_dir}/go \
 && export PATH=\$PATH:${build_dir}/go/bin \
+&& export GO15VENDOREXPERIMENT=1 \
+&& go env \
 && cd ${source_dir} \
 && cp -Rfp . ${build_dir}/go/src/github.com/almighty/almighty-core \
 && chown -Rf $USER ${build_dir} \

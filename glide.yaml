@@ -1,0 +1,41 @@
+package: github.com/almighty/almighty-core
+import:
+- package: github.com/dgrijalva/jwt-go
+  version: ^3.0.0
+- package: github.com/goadesign/goa
+  version: master
+  vcs: git
+  subpackages:
+  - client
+  - cors
+  - design
+  - design/apidsl
+  - goagen
+  - goagen/gen_app
+  - goatest
+  - middleware
+  - middleware/security/jwt
+  - goagen/gen_app
+- package: github.com/lsegal/gucumber
+- package: github.com/spf13/cobra
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: github.com/tools/godep
+  version: ^74.0.0
+- package: github.com/jteeuwen/go-bindata
+  version: ^3.0.7
+  subpackages:
+  - '...'
+- package: github.com/elazarl/go-bindata-assetfs
+  subpackages:
+  - 'go-bindata-assetfs'
+- package: github.com/pilu/fresh
+- package: github.com/goadesign/gorma
+- package: golang.org/x/tools
+  subpackages:
+  - go/ast/astutil
+- package: gopkg.in/yaml.v2
+- package: bitbucket.org/pkg/inflect
+- package: github.com/kr/pretty
+- package: github.com/kr/text

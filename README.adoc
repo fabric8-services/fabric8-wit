@@ -1,58 +1,154 @@
 == ALMighty Core
 
-image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"] 
+image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"]
 image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
 
-Assuming you have Go installed and configured (have $GOPATH setup) here is how to build.
+== Building from source [[building]]
 
-Checking out the code:
+=== Prerequisites [[prerequisites]]
+
+You need to install `go` (>= v1.5) and `git`.
+
+==== Check your Go version [[check-go-version]]
+
+Run the following command to find out your Go version.
 
 ----
-git clone https://github.com/almighty/almighty-core $GOPATH/src/github.com/almighty/almighty-core
+$ go version
 ----
 
-Fetch necessary dependencies:
+If you are using Go `1.5` ensure the environment variable `GO15VENDOREXPERIMENT`
+is set, for example by running `export GO15VENDOREXPERIMENT=1`.
+In Go `1.6` it is enabled by default and in Go `1.7` it is always enabled
+without the ability to turn it off.
+
+If set, the `GO15VENDOREXPERIMENT` variable tells `go` to look for dependencies
+not only in the `GOPATH` (as usual) but also in a `vendor` directory located in
+the source directory.
+
+See <<fetch-dependencies>> to see an explanaition on how we deal with
+dependencies.
+
+==== Install glide [[glide-setup]]
+
+This project uses link:https://glide.sh/[glide]as a package manager for Go.
+
+To install glide, go to the
+link:https://github.com/Masterminds/glide/releases[release page] and download
+the newest binary for your operating system.
+
+Unpack the archive that you've downloaded and place the `glide` executable
+somewhere so that it is in your `PATH`.
+
+To check if everything is working, type `glide --version` in a terminal.
 
 ----
-cd $GOPATH/src/github.com/almighty/almighty-core
-make deps
+$ glide --version
+glide version v0.11.0
 ----
 
-=== Development
+Try to use at least version `0.11.0` as we haven't tested another version.
 
-Only files ./*.go and ./design/*.go should be edited.
-Everything else, ./app, ./client, ./models, ./swagger, is generated.
+=== Get the code [[get-the-code]]
 
-=== Build instructions
+Assuming you have Go installed and configured (have `$GOPATH` setup) here is
+how to build.
 
-==== Generate GOA sources
-[source, console]
+Check out the code
+
 ----
-make generate
-----
-
-==== Build server
-[source, console]
-----
-make
+$ git clone https://github.com/almighty/almighty-core $GOPATH/src/github.com/almighty/almighty-core
 ----
 
-==== Build client
-[source, console]
+=== Build [[build]]
+
+Like most other projects, this one depends on various other projects that need
+to be downloaded.
+
+We also generate some code from design files that shall make it into our
+final artifacts.
+
+To fetch the dependencies, generate code and finally build the project you can
+type `make` in a freshly clone repository of this project.
+
 ----
-make alm-cli
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make
 ----
 
-==== Clean
-[source, console]
+==== Special make targets
+
+There is no need to fetch the dependencies, or re-generate code every time you
+want to compile. That's why we offer special `make` targets for these topics:
+
+ * <<fetch-dependencies>>
+ * <<generate-code>>
+ * <<build>>
+ * <<clean>>
+
+=== Fetch dependencies [[fetch-dependencies]]
+
+This will download all the dependencies for this project inside a directory
+called `vendor`. This way we can ensure that every developer and our CI system
+is using the same version.
+
 ----
-make clean
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make deps
 ----
 
-==== Developer setup
+=== Generate GOA sources [[generate-code]]
+
+You need to run this command if you just checked out the code and later if
+you've modified the designs.
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make generate
+----
+
+=== Build [[build]]
+
+If you want to just build the ALM server and client, run `make build`.
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make build
+----
+
+==== Clean [[clean]]
+
+This removes all downloaded dependencies, all generated code and compiled
+artifacts.
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make clean
+----
+
+== Development
+
+Only files `./*.go` and `./design/*.go` should be edited.
+
+These files and directory are generated:
+
+ * `./app/`
+ * `./assets/js/`
+ * `./client/`
+ * `./models/`
+ * `./swagger/`
+ * `./tool/cli/`
+ * `./bindata_asstfs.go`
+
+== Developer setup
 
 Start up dependent docker services using `docker-compose` and runs auto reload on source change tool `fresh`.
-[source, console]
+
 ----
-make dev
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make dev
 ----
+
+== OpenShift setup
+
+TBD
