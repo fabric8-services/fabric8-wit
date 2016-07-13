@@ -16,11 +16,11 @@ func (j *Fields) Scan(src interface{}) error {
 	return fromBytes(src, j)
 }
 
-func (j FieldTypes) Value() (driver.Value, error) {
+func (j FieldDefinition) Value() (driver.Value, error) {
 	return toBytes(j);
 }
 
-func (j *FieldTypes) Scan(src interface{}) error {
+func (j *FieldDefinition) Scan(src interface{}) error {
 	return fromBytes(src, j)
 }
 

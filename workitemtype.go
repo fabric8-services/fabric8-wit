@@ -13,9 +13,10 @@ var wellKnown = map[string]*models.WorkItemType{
 		Id:      1,
 		Name:    "system.workitem",
 		Version: 1,
-		Fields: models.FieldTypes{
-			"system.owner": models.SimpleType{Kind: models.User},
-			"system.state": models.SimpleType{Kind: models.String}}}}
+		Fields: models.FieldDefinitions {
+			"system.owner": models.FieldDefinition{ Type: models.SimpleType{Kind: models.User}, Required: true},
+			"system.state": models.FieldDefinition{ Type: models.SimpleType{Kind: models.String}, Required: true},
+		}}}
 
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {

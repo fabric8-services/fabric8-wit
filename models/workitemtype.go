@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 )
 
 const (
@@ -42,89 +41,102 @@ type ListType struct {
 
 type EnumType struct {
 	SimpleType
-	Values []interface{}
+	BaseType SimpleType
+	Values   []interface{}
 }
 
-type FieldTypes map[string]interface{}
+type FieldDefinition struct {
+	Type     FieldType
+	Required bool
+}
+
+type FieldDefinitions map[string]FieldDefinition
 
 type WorkItemType struct {
 	Id      uint64
 	Version int
 	Name    string
-	Fields  FieldTypes `sql:"type:jsonb"`
+	Fields  FieldDefinitions `sql:"type:jsonb"`
 }
 
-func (self *FieldTypes) UnmarshalJSON(bytes []byte) error {
-	type fieldType struct {
-		Kind  Kind
-		Extra *json.RawMessage
-	}
-	temp := map[string]fieldType{}
+type rawFieldDef struct {
+	Type     rawFieldType
+	Required bool
+}
+
+type rawEnumType struct {
+	BaseType SimpleType
+	Values   []interface{}
+}
+
+type rawFieldType struct {
+	Kind  Kind
+	Extra *json.RawMessage
+}
+
+func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
+	
+	temp := rawFieldDef{}
 
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
 		return err
 	}
 
-	*self = FieldTypes{}
-
-	for n, t := range temp {
-		switch t.Kind {
-		case List:
-			var baseType SimpleType
-			err = json.Unmarshal(*t.Extra, &baseType)
-			if err != nil {
-				return err
-			}
-			(*self)[n] = ListType{SimpleType: SimpleType{Kind: t.Kind}, ComponentType: baseType}
-		case Enum:
-			var values []interface{}
-			json.Unmarshal(*t.Extra, &values)
-			if err != nil {
-				return err
-			}
-			(*self)[n] = EnumType{SimpleType: SimpleType{Kind: t.Kind}, Values: values}
-		default:
-			(*self)[n] = SimpleType{Kind: t.Kind}
+	switch temp.Type.Kind {
+	case List:
+		var baseType SimpleType
+		err = json.Unmarshal(*temp.Type.Extra, &baseType)
+		if err != nil {
+			return err
 		}
+		theType := ListType{SimpleType: SimpleType{Kind: temp.Type.Kind}, ComponentType: baseType}
+		*self = FieldDefinition{Type: theType, Required: temp.Required}
+	case Enum:
+		var extraInfo rawEnumType
+		err = json.Unmarshal(*temp.Type.Extra, &extraInfo)
+		if err != nil {
+			return err
+		}
+		theType := EnumType{SimpleType: SimpleType{Kind: temp.Type.Kind}, BaseType: extraInfo.BaseType, Values: extraInfo.Values}
+		*self = FieldDefinition{Type: theType, Required: temp.Required}
+	default:
+		*self = FieldDefinition{Type: SimpleType{Kind: temp.Type.Kind}, Required: temp.Required}
 	}
 	return nil
 }
 
-func (self FieldTypes) MarshalJSON() ([]byte, error) {
+func (self FieldDefinition) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
-	buf.WriteString("{")
-	first := true
-	for key, value := range self {
-		t, ok := value.(FieldType)
-		if !ok {
-			panic(fmt.Sprintf("not a type: %v", reflect.TypeOf(value)))
+	buf.WriteString("{ \"type\": {")
+	buf.WriteString(fmt.Sprintf("\"kind\": %d", self.Type.GetKind()))
+	switch complexType := self.Type.(type) {
+	case ListType:
+		buf.WriteString(", \"extra\": ")
+		v, err := json.Marshal(complexType.ComponentType)
+		if err != nil {
+			return nil, err
 		}
-		if !first {
-			first = false
-			buf.WriteString(", ")
+		buf.Write(v)
+	case EnumType:
+		buf.WriteString(", \"extra\": ")
+		r := rawEnumType{
+			BaseType: complexType.BaseType,
+			Values:   complexType.Values,
 		}
-		buf.WriteString("\"")
-		buf.WriteString(key)
-		buf.WriteString("\": {")
-		buf.WriteString(fmt.Sprintf("\"kind\": %d", t.GetKind()))
-		switch complexType := value.(type) {
-		case ListType:
-			buf.WriteString(", \"extra\": ")
-			v, err := json.Marshal(complexType.ComponentType)
-			if err != nil {
-				return nil, err
-			}
-			buf.Write(v)
-		case EnumType:
-			buf.WriteString(", \"extra\": ")
-			v, err := json.Marshal(complexType.Values)
-			if err != nil {
-				return nil, err
-			}
-			buf.Write(v)
+		v, err := json.Marshal(r)
+		if err != nil {
+			return nil, err
 		}
-		buf.WriteString("}")
+		buf.Write(v)
+	}
+	buf.WriteString("}")
+
+	buf.WriteString(", \"required\": ")
+	if self.Required {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("true")
 	}
 
 	buf.WriteString(" }")
