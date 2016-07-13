@@ -1,0 +1,50 @@
+# For documentation on this file see:
+# https://glide.readthedocs.io/en/latest/glide.yaml/
+
+package: github.com/almighty/almighty-core
+homepage: https://github.com/almighty/almighty-core
+license: Apache-2.0
+import:
+- package: github.com/dgrijalva/jwt-go
+  version: ^3.0.0
+- package: github.com/goadesign/goa
+  version: master
+  vcs: git
+  subpackages:
+  - client
+  - cors
+  - design
+  - design/apidsl
+  - goagen
+  - goagen/codegen
+  - goagen/gen_app
+  - goagen/utils
+  - goatest
+  - middleware
+  - middleware/security/jwt
+- package: github.com/lsegal/gucumber
+- package: github.com/spf13/cobra
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: github.com/jteeuwen/go-bindata
+  version: ^3.0.7
+  subpackages:
+  - '...'
+- package: github.com/elazarl/go-bindata-assetfs
+  subpackages:
+  - go-bindata-assetfs
+- package: github.com/goadesign/gorma
+- package: golang.org/x/tools
+  subpackages:
+  - go/ast/astutil
+- package: gopkg.in/yaml.v2
+- package: bitbucket.org/pkg/inflect
+- package: github.com/kr/pretty
+- package: github.com/kr/text
+
+# Fresh
+- package: github.com/pilu/fresh
+- package: github.com/howeyc/fsnotify
+- package: github.com/mattn/go-colorable
+- package: github.com/pilu/config
