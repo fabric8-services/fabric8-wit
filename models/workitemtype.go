@@ -75,7 +75,7 @@ type rawFieldType struct {
 }
 
 func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
-	
+
 	temp := rawFieldDef{}
 
 	err := json.Unmarshal(bytes, &temp)
@@ -136,7 +136,7 @@ func (self FieldDefinition) MarshalJSON() ([]byte, error) {
 	if self.Required {
 		buf.WriteString("true")
 	} else {
-		buf.WriteString("true")
+		buf.WriteString("false")
 	}
 
 	buf.WriteString(" }")

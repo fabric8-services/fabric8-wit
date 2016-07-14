@@ -15,8 +15,8 @@ func TestJsonMarshalListType(t *testing.T) {
 			Integer},
 	}
 
-	field:= FieldDefinition{
-		Type: lt,
+	field := FieldDefinition{
+		Type:     lt,
 		Required: false,
 	}
 
@@ -24,7 +24,7 @@ func TestJsonMarshalListType(t *testing.T) {
 		Id:      1,
 		Name:    "first type",
 		Version: 1,
-		Fields: map[string]FieldDefinition {
+		Fields: FieldDefinitions{
 			"aListType": field},
 	}
 
@@ -46,8 +46,8 @@ func TestMarshalEnumType(t *testing.T) {
 		SimpleType: SimpleType{Enum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
-	fd:= FieldDefinition {
-		Type: et,
+	fd := FieldDefinition{
+		Type:     et,
 		Required: true,
 	}
 
@@ -73,10 +73,10 @@ func TestMarshalEnumType(t *testing.T) {
 func TestMarshalFieldDef(t *testing.T) {
 	et := EnumType{
 		SimpleType: SimpleType{Enum},
-		Values:     []interface{} {"open", "done", "closed"},
+		Values:     []interface{}{"open", "done", "closed"},
 	}
-	fd:= FieldDefinition {
-		Type: et,
+	fd := FieldDefinition{
+		Type:     et,
 		Required: true,
 	}
 
@@ -93,9 +93,9 @@ func TestMarshalFieldDef(t *testing.T) {
 }
 
 func TestMarshalRawEnum(t *testing.T) {
-	ret:= rawEnumType {
-		BaseType: SimpleType{ Kind: Integer },
-		Values: []interface{} { float64(2), float64(4), float64(4) },
+	ret := rawEnumType{
+		BaseType: SimpleType{Kind: Integer},
+		Values:   []interface{}{float64(2), float64(4), float64(4)},
 	}
 
 	bytes, err := json.Marshal(ret)
@@ -112,7 +112,7 @@ func TestMarshalRawEnum(t *testing.T) {
 }
 
 func TestMarshalArray(t *testing.T) {
-	original:= []interface{} {float64(1), float64(2), float64(3)}
+	original := []interface{}{float64(1), float64(2), float64(3)}
 	bytes, err := json.Marshal(original)
 	if err != nil {
 		t.Error(err)
