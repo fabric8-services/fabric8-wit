@@ -31,3 +31,66 @@ var AuthToken = MediaType("application/vnd.authtoken+json", func() {
 		Attribute("token")
 	})
 })
+
+var WorkItem = MediaType("application/vnd.workitem+json", func() {
+	TypeName("WorkItem")
+	Description("ALM Work Item")
+	Attribute("id", String, "unique id per installation")
+	Attribute("version", Integer, "Version for optimistic concurrency control")
+	Attribute("name", String, "User Readable Name of this item")
+	Attribute("type", String, "Id of the type of this work item")
+	Attribute("fields", HashOf(String, Any))
+
+	Required("id")
+	Required("version")
+	Required("name")
+	Required("type")
+	Required("fields")
+
+	View("default", func() {
+		Attribute("id")
+		Attribute("version")
+		Attribute("name")
+		Attribute("type")
+		Attribute("fields")
+	})
+})
+
+var Field = Type("field", func() {
+	Attribute("name", String)
+	Attribute("type", String)
+
+	Required("name")
+	Required("type")
+
+	View("default", func() {
+		Attribute("name")
+		Attribute("type")
+	})
+
+})
+
+var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {
+	TypeName("WorkItemType")
+	Description("ALM Work Item Type")
+	Attribute("id", String, "unique id per installation")
+	Attribute("version", Integer, "Version for optimistic concurrency control")
+	Attribute("name", String, "User Readable Name of this item")
+	Attribute("fields", ArrayOf(Field))
+
+	Required("id")
+	Required("version")
+	Required("name")
+	Required("fields")
+
+	View("default", func() {
+		Attribute("id")
+		Attribute("version")
+		Attribute("name")
+		Attribute("fields")
+	})
+	View("link", func() {
+		Attribute("id")
+	})
+
+})

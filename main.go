@@ -3,9 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"net/http"
+	
+	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/migration"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -22,9 +27,28 @@ var (
 )
 
 func main() {
+	var dbHost string;
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
+	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
 	flag.Parse()
+	
+	if len(dbHost) == 0 {
+		dbHost= os.Getenv("DBHOST");
+	}
+	
+	if len(dbHost) == 0 {
+		dbHost= "localhost"
+	}
+
+	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+	if err != nil {
+		panic("failed to connect database: "+ err.Error())
+	}
+	defer db.Close()
+	
+	// Migrate the schema
+	migration.Perform(db)
 
 	// Create service
 	service := goa.New("alm")
@@ -47,6 +71,14 @@ func main() {
 	// Mount "version" controller
 	c2 := NewVersionController(service)
 	app.MountVersionController(service, c2)
+
+	// Mount "workitem" controller
+	c3 := NewWorkitemController(service, db)
+	app.MountWorkitemController(service, c3)
+
+	// Mount "workitemtype" controller
+	c4 := NewWorkitemtypeController(service)
+	app.MountWorkitemtypeController(service, c4)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
