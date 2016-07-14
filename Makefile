@@ -1,13 +1,14 @@
+
 VENDOR_DIR=vendor
 ifeq ($(OS),Windows_NT)
 include ./Makefile.win
 else
 include ./Makefile.lnx
 endif
-SOURCE_DIR=.
+SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
-DESIGNS := $(shell find $(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
@@ -80,9 +81,13 @@ generate: $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=github.com/goadesign/gorma
-	PATH=$PATH:$(shell dirname $(GO_BINDATA_BIN)) $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
+	PATH="$(PATH):$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
 
 .PHONY: dev
 dev: $(FRESH_BIN)
 	docker-compose up
 	$(FRESH_BIN)
+
+.PHONY: test
+test:
+	go test $(go list ./... | grep -v vendor)
