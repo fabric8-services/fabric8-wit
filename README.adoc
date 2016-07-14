@@ -100,6 +100,11 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make deps
 ----
 
+For dependency management of `go` packages we use `glide`.
+The file `glide.yaml` contains all dependencies.
+It is not suggested that you edit the file by hand but if you want to
+understand the format for this file, look [here](https://glide.readthedocs.io/en/latest/glide.yaml/). 
+
 ===== Generate GOA sources [[generate-code]]
 
 You need to run this command if you just checked out the code and later if
