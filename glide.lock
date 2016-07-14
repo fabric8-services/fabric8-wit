@@ -1,15 +1,8 @@
-hash: 1b7f74c6e171da288e9e1acb65e779adc76adbc40f6360cbfb8984d883ef88d5
-updated: 2016-07-08T17:54:44.291767612+02:00
+hash: bf9c7ad1a0c9daf3e328bcb6f32551f31ef523f8040eff7ee2f7f094fd2b9fb0
+updated: 2016-07-15T16:28:35.5199922+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
-- name: github.com/almighty/almighty-core
-  version: d135f9e6f40f80aeccc1e5aed772db5659f2bc95
-  subpackages:
-  - app
-  - client
-  - tool/cli
-  - app/test
 - name: github.com/armon/go-metrics
   version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
 - name: github.com/dgrijalva/jwt-go
@@ -23,7 +16,7 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/goadesign/goa
-  version: a520ec028146a329500696970c8522a36f578c60
+  version: 5302bd3d37e5be39803f4cd2d814b548952f23ea
   vcs: git
   subpackages:
   - client
@@ -45,6 +38,10 @@ imports:
   version: f0c08ee9c60704c1879025f2ae0ff3e000082c13
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/jinzhu/gorm
+  version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
+- name: github.com/jinzhu/inflection
+  version: 8f4d3a0d04ce0b7c0cf3126fb98524246d00d102
 - name: github.com/jteeuwen/go-bindata
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
   subpackages:
@@ -53,12 +50,18 @@ imports:
   version: 7497514e37543f8a9dfdb86a97c2e8d175a0f8a0
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
+- name: github.com/lib/pq
+  version: 4dd446efc17690bc53e154025146f73203b18309
+  subpackages:
+  - oid
 - name: github.com/lsegal/gucumber
   version: 090009ec4b32fd019e2d5e1a6a92f66268441cee
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mattn/go-colorable
   version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
+- name: github.com/mattn/go-isatty
+  version: 3a115632dcd687f9c8cd01679c83a06a0e21c1f3
 - name: github.com/pilu/config
   version: 3eb99e6c0b9a2dae0f56f05552c06ca5a643919b
 - name: github.com/pilu/fresh
