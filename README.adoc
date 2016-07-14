@@ -89,7 +89,7 @@ want to compile. That's why we offer special `make` targets for these topics:
  * <<build>>
  * <<clean>>
 
-=== Fetch dependencies [[fetch-dependencies]]
+===== Fetch dependencies [[fetch-dependencies]]
 
 This will download all the dependencies for this project inside a directory
 called `vendor`. This way we can ensure that every developer and our CI system
@@ -100,7 +100,7 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make deps
 ----
 
-=== Generate GOA sources [[generate-code]]
+===== Generate GOA sources [[generate-code]]
 
 You need to run this command if you just checked out the code and later if
 you've modified the designs.
@@ -110,7 +110,7 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make generate
 ----
 
-=== Build [[build]]
+===== Build [[build]]
 
 If you want to just build the ALM server and client, run `make build`.
 
@@ -119,7 +119,7 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make build
 ----
 
-==== Clean [[clean]]
+===== Clean [[clean]]
 
 This removes all downloaded dependencies, all generated code and compiled
 artifacts.
@@ -129,7 +129,7 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make clean
 ----
 
-== Development
+==== Development
 
 Only files `./*.go` and `./design/*.go` should be edited.
 
