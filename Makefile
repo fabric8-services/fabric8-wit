@@ -5,9 +5,9 @@ else
 include ./Makefile.lnx
 endif
 SOURCE_DIR=.
-SOURCES := $(shell find $(SOURCE_DIR) -name '*.go')
+SOURCES := $(shell find $(SOURCE_DIR) -name '*.go' -not -path $(SOURCE_DIR)/vendor/*)
 DESIGN_DIR=design
-DESIGNS := $(shell find $(DESIGN_DIR) -name '*.go')
+DESIGNS := $(shell find $(DESIGN_DIR) -name '*.go' -not -path $(SOURCE_DIR)/vendor/*)
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
