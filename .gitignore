@@ -4,6 +4,7 @@
 /.vscode
 /.project
 /debug
+/debug.test
 
 # Ignore some glide stuff
 .glide
