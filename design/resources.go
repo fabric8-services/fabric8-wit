@@ -21,7 +21,7 @@ var _ = Resource("workitem", func() {
 		})
 		Response(NotFound)
 	})
-	
+
 	Action("create", func() {
 		Routing(
 			POST(""),
@@ -31,6 +31,20 @@ var _ = Resource("workitem", func() {
 		Response(OK, func() {
 			Media(WorkItem)
 		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+	Action("delete", func() {
+		Routing(
+			DELETE("/:id"),
+		)
+		Description("Delete work item with given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK)
+		Response(BadRequest)
+		Response(InternalServerError)
 		Response(NotFound)
 	})
 

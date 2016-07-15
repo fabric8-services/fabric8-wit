@@ -4,7 +4,7 @@ import (
 )
 
 type WorkItem struct {
-	ID uint `gorm:"primary_key"`
+	ID uint64 `gorm:"primary_key"`
 
 	// User Readable Name of this item
 	Name string 

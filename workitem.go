@@ -28,7 +28,6 @@ func NewWorkitemController(service *goa.Service, db *gorm.DB) *WorkitemControlle
 
 // Show runs the show action.
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	// TBD: implement
 	res := models.WorkItem{}
 	idVal, error := strconv.Atoi(ctx.ID)
 	if error != nil {
@@ -41,10 +40,10 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		return ctx.NotFound()
 	}
 	result := convertFromModel(res)
-	return ctx.OK(&result);
+	return ctx.OK(&result)
 }
 
-func convertFromModel(res models.WorkItem) app.WorkItem{
+func convertFromModel(res models.WorkItem) app.WorkItem {
 	return app.WorkItem{
 		ID:      strconv.FormatUint(uint64(res.ID), 10),
 		Name:    res.Name,
@@ -56,20 +55,47 @@ func convertFromModel(res models.WorkItem) app.WorkItem{
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	wiType := loadTypeFromDB(*ctx.Payload.TypeID)
 	wi := models.WorkItem{
-		Name: *ctx.Payload.Name,
-		Type: *ctx.Payload.TypeID,
+		Name:   *ctx.Payload.Name,
+		Type:   *ctx.Payload.TypeID,
 		Fields: models.Fields{},
 	}
 
 	for fieldName, _ := range wiType.Fields {
 		fieldValue := ctx.Payload.Fields[fieldName]
-		wi.Fields[fieldName] = fieldValue;
+		wi.Fields[fieldName] = fieldValue
 		// TODO: typechecking and conversion for stuff like dates.
 	}
-	
-	c.db.Create(&wi)
-	log.Printf("created item %v\n", wi);
+	tx:= c.db.Begin();
+
+	if tx.Create(&wi) != nil {
+		tx.Rollback();
+		return ctx.InternalServerError();
+	}
+	log.Printf("created item %v\n", wi)
+	tx.Commit();
 
 	result := convertFromModel(wi)
-	return ctx.OK(&result);
+	return ctx.OK(&result)
+}
+
+func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
+	var workItem models.WorkItem = models.WorkItem{}
+	id, error := strconv.ParseUint(ctx.ID, 10, 64)
+	if error != nil {
+		return ctx.BadRequest()
+	}
+	tx:= c.db.Begin();
+	
+	if c.db.First(&workItem, id).RecordNotFound() {
+		log.Print("not found, res=%v", workItem)
+		tx.Rollback();
+		return ctx.NotFound()
+	}
+	if c.db.Delete(workItem) != nil {
+		tx.Rollback()
+		return ctx.InternalServerError()
+	}
+
+	tx.Commit();
+	return ctx.OK([]byte{})
 }
