@@ -15,6 +15,5 @@ app/
 assets/js/
 bindata_assetfs.go
 client/
-models/
 swagger/
 tool/cli/
