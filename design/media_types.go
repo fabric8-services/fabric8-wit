@@ -56,16 +56,15 @@ var WorkItem = MediaType("application/vnd.workitem+json", func() {
 	})
 })
 
-var Field = Type("field", func() {
-	Attribute("name", String)
-	Attribute("type", String)
+var FieldDefinition = Type("fieldDefinition", func() {
+	Attribute("required", Boolean)
+	Attribute("type", Any)
 
-	Required("name")
+	Required("required")
 	Required("type")
 
 	View("default", func() {
-		Attribute("name")
-		Attribute("type")
+		Attribute("kind")
 	})
 
 })
@@ -76,7 +75,7 @@ var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {
 	Attribute("id", String, "unique id per installation")
 	Attribute("version", Integer, "Version for optimistic concurrency control")
 	Attribute("name", String, "User Readable Name of this item")
-	Attribute("fields", ArrayOf(Field))
+	Attribute("fields", HashOf(String, FieldDefinition))
 
 	Required("id")
 	Required("version")
