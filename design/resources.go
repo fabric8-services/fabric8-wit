@@ -19,6 +19,10 @@ var _ = Resource("workitem", func() {
 		Response(OK, func() {
 			Media(WorkItem)
 		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
 		Response(NotFound)
 	})
 
@@ -30,6 +34,9 @@ var _ = Resource("workitem", func() {
 		Payload(CreateWorkItemPayload)
 		Response(OK, func() {
 			Media(WorkItem)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
 		})
 		Response(InternalServerError)
 		Response(NotFound)
@@ -43,7 +50,24 @@ var _ = Resource("workitem", func() {
 			Param("id", String, "id")
 		})
 		Response(OK)
-		Response(BadRequest)
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+	Action("update", func() {
+		Routing(
+			PUT(""),
+		)
+		Description("update the given work item.")
+		Payload(WorkItem)
+		Response(OK, func() {
+			Media(WorkItem)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
 		Response(InternalServerError)
 		Response(NotFound)
 	})

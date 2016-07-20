@@ -14,3 +14,4 @@ type WorkItem struct {
 	Version int                    
 	Fields  Fields `sql:"type:jsonb"`
 }
+
