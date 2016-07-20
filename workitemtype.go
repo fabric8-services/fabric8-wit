@@ -47,6 +47,13 @@ func convertTypeFromModels(t models.WorkItemType) app.WorkItemType {
 		ID: strconv.FormatUint(t.Id, 10),
 		Name: t.Name,
 		Version: 0,
+		Fields: map[string]*app.FieldDefinition{},
+	}
+	for name, def:= range t.Fields {
+		converted.Fields[name]= &app.FieldDefinition {
+			Required: def.Required,
+			Type: def.Type,
+		}
 	}
 	return converted
 }
