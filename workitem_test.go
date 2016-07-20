@@ -1,25 +1,22 @@
 package main
 
 import (
-	"strconv"
-	"testing"
 	"flag"
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 
 	"github.com/jinzhu/gorm"
 )
 
 var db *gorm.DB
-var id uint
 
 func TestMain(m *testing.M) {
-	var dbhost *string= flag.String("dbhost", "", "-dbhost <hostname>")
+	var dbhost *string = flag.String("dbhost", "", "-dbhost <hostname>")
 	flag.Parse()
 	if "" == *dbhost {
 		flag.Usage()
@@ -31,46 +28,63 @@ func TestMain(m *testing.M) {
 		panic("failed to connect database: " + err.Error())
 	}
 	defer db.Close()
-
-	item := models.WorkItem{
-		Fields:  models.Fields{"foo": "bar"},
-		Name:    "foobar",
-		Type:    "73",
-		Version: 1}
-	db.Table("work_items").Create(&item)
-	id= item.ID
 	// Migrate the schema
 	migration.Perform(db)
 	m.Run()
-	db.Table("work_items").Delete(&item, "")
 }
 
-func TestGetWork(t *testing.T) {
+func TestGetWorkItem(t *testing.T) {
 	controller := WorkitemController{db: db}
-	_, wi := test.ShowWorkitemOK(t, nil, nil, &controller, strconv.FormatUint(uint64(id), 10))
+	payload := app.CreateWorkitemPayload{
+		Name:   "foobar",
+		TypeID: "1",
+		Fields: map[string]interface{}{
+			"system.owner": "aslak",
+			"system.state": "done"},
+	}
+
+	_, result := test.CreateWorkitemOK(t, nil, nil, &controller, &payload)
+
+	_, wi := test.ShowWorkitemOK(t, nil, nil, &controller, result.ID)
 
 	if wi == nil {
-		t.Errorf("Work Item '%d' not present", id)
+		t.Fatalf("Work Item '%d' not present", result.ID)
 	}
 
-	if wi.ID != strconv.FormatUint(uint64(id), 10) {
-		t.Errorf("Id should be %d, but is %s", id, wi.ID)
+	if wi.ID != result.ID {
+		t.Errorf("Id should be %d, but is %s", result.ID, wi.ID)
 	}
+
+	wi.Fields["system.owner"] = "thomas"
+	payload2 := app.UpdateWorkitemPayload{
+		ID:      wi.ID,
+		Name:    wi.Name,
+		Type:    wi.Type,
+		Version: wi.Version,
+		Fields:  wi.Fields,
+	}
+	_, updated := test.UpdateWorkitemOK(t, nil, nil, &controller, &payload2)
+	if updated.Version != result.Version+1 {
+		t.Errorf("expected version %d, but got %d", result.Version+1, updated.Version)
+	}
+	if updated.Fields["system.owner"] != "thomas" {
+		t.Errorf("expected owner %s, but got %s", "thomas", updated.Fields["system.owner"])
+	}
+
+	test.DeleteWorkitemOK(t, nil, nil, &controller, result.ID)
 }
 
 func TestCreateWI(t *testing.T) {
 	controller := WorkitemController{db: db}
-	name:= "some name"
-	typeid:="1"
-	payload:= app.CreateWorkitemPayload {
-		Name: &name,
-		TypeID: &typeid,
+	payload := app.CreateWorkitemPayload{
+		Name:   "some name",
+		TypeID: "1",
 		Fields: map[string]interface{}{
 			"system.owner": "tmaeder",
 			"system.state": "open",
 		},
 	}
-	
+
 	_, created := test.CreateWorkitemOK(t, nil, nil, &controller, &payload)
 	if created.ID == "" {
 		t.Error("no id")

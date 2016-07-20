@@ -24,7 +24,7 @@ func TestJsonMarshalListType(t *testing.T) {
 		Id:      1,
 		Name:    "first type",
 		Version: 1,
-		Fields: FieldDefinitions{
+		Fields: map[string]FieldDefinition {
 			"aListType": field},
 	}
 
