@@ -38,5 +38,6 @@ mkdir -pv ${build_dir}/go/bin \
 && make deps \
 && make generate \
 && make \
+&& make test \
 "
 
