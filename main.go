@@ -44,6 +44,9 @@ func main() {
 	if len(dbHost) == 0 {
 		dbHost = "localhost"
 	}
+	if _, found := os.LookupEnv("ALMIGHTY_DEV"); found {
+		Development = true
+	}
 
 	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
 	if err != nil {
@@ -85,6 +88,11 @@ func main() {
 	// Mount "workitemtype" controller
 	c4 := NewWorkitemtypeController(service)
 	app.MountWorkitemtypeController(service, c4)
+
+	if Development {
+		// Mount "swagger" rewriter
+		service.Mux.Handle("GET", "/api/swagger.json", NewSwaggerController())
+	}
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
