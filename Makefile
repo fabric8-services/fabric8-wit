@@ -57,7 +57,6 @@ clean-generated:
 	rm -rfv ./app
 	rm -rfv ./assets/js
 	rm -rfv ./client/
-	rm -rfv ./models/
 	rm -rfv ./swagger/
 	rm -rfv ./tool/cli/
 	rm -fv ./bindata_asstfs.go
