@@ -24,7 +24,6 @@ func (j *FieldDefinition) Scan(src interface{}) error {
 	return fromBytes(src, j)
 }
 
-
 func toBytes(j interface{}) (driver.Value, error) {
 	if j == nil {
 		// log.Trace("returning null")

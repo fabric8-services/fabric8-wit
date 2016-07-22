@@ -66,11 +66,12 @@ func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*ap
 	return &result, nil
 }
 
+// Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	wiType := loadTypeFromDB(ctx.Payload.TypeID)
+	wiType := loadTypeFromDB(ctx.Payload.Type)
 	wi := models.WorkItem{
 		Name:   ctx.Payload.Name,
-		Type:   ctx.Payload.TypeID,
+		Type:   ctx.Payload.Type,
 		Fields: models.Fields{},
 	}
 
@@ -98,6 +99,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return ctx.OK(result)
 }
 
+// Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	var workItem models.WorkItem = models.WorkItem{}
 	id, err := strconv.ParseUint(ctx.ID, 10, 64)
@@ -120,6 +122,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return ctx.OK([]byte{})
 }
 
+// Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	res := models.WorkItem{}
 	idVal, err := strconv.Atoi(ctx.Payload.ID)

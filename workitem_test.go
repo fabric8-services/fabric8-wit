@@ -37,7 +37,7 @@ func TestGetWorkItem(t *testing.T) {
 	controller := WorkitemController{db: db}
 	payload := app.CreateWorkitemPayload{
 		Name:   "foobar",
-		TypeID: "1",
+		Type: "1",
 		Fields: map[string]interface{}{
 			"system.owner": "aslak",
 			"system.state": "done"},
@@ -78,7 +78,7 @@ func TestCreateWI(t *testing.T) {
 	controller := WorkitemController{db: db}
 	payload := app.CreateWorkitemPayload{
 		Name:   "some name",
-		TypeID: "1",
+		Type: "1",
 		Fields: map[string]interface{}{
 			"system.owner": "tmaeder",
 			"system.state": "open",

@@ -1,18 +1,53 @@
 package models
 
-import(
-	"fmt"
-	"encoding/json"
+import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 )
 
-type FieldDefinition struct {
-	Type     FieldType
-	Required bool
+// constants for describing possible field types
+const (
+	String            Kind = 1
+	Integer           Kind = 2
+	Float             Kind = 3
+	Instant           Kind = 4
+	Duration          Kind = 5
+	Url               Kind = 6
+	WorkitemReference Kind = 7
+	User              Kind = 8
+	Enum              Kind = 9
+	List              Kind = 10
+)
+
+// Kind is the kind of field type
+type Kind byte
+
+/*
+FieldType describes the possible values of a FieldDefinition
+*/
+type FieldType interface {
+	GetKind() Kind
+	/*
+	   ConvertToModel converts a field value for use in the REST API
+	*/
+	ConvertToModel(value interface{}) (interface{}, error)
+	/*
+		ConvertToModel converts a field value for storage in the db
+	*/
+	ConvertFromModel(value interface{}) (interface{}, error)
 }
 
 /*
- Convert for storage as json. As the system matures, add more checks (for example whether a user is in the system, etc.)
+FieldDefintion describes type & other restrictions of a field
+*/
+type FieldDefinition struct {
+	Required bool
+	Type     FieldType
+}
+
+/*
+ Convert a field value for storage as json. As the system matures, add more checks (for example whether a user is in the system, etc.)
 */
 func (field FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
 	if field.Required && value == nil {
@@ -21,6 +56,9 @@ func (field FieldDefinition) ConvertToModel(name string, value interface{}) (int
 	return field.Type.ConvertToModel(value)
 }
 
+/*
+ Convert from json storage to API form.
+*/
 func (field FieldDefinition) ConvertFromModel(name string, value interface{}) (interface{}, error) {
 	if field.Required && value == nil {
 		return nil, fmt.Errorf("Value %s is required", name)
@@ -42,7 +80,7 @@ type rawFieldType struct {
 	Kind  Kind
 	Extra *json.RawMessage
 }
-
+// UnmarshalJSON implements encoding/json.Unmarshaler
 func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
 	temp := rawFieldDef{}
@@ -75,6 +113,7 @@ func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	return nil
 }
 
+// MarshalJSON implements encoding/json.Marshaler
 func (self FieldDefinition) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString("{ \"type\": {")

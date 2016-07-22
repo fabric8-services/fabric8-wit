@@ -7,17 +7,19 @@ import (
 	"strconv"
 )
 
-// simple types
+// SimpleType is an unstructured FieldType
 type SimpleType struct {
 	Kind Kind
 }
 
+// GetKind implements FieldType
 func (self SimpleType) GetKind() Kind {
 	return self.Kind
 }
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
+// ConvertToModel implements the FieldType interface
 func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
@@ -48,7 +50,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
 	}
 }
-
+// ConvertFromModel implements the FieldType interface
 func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
