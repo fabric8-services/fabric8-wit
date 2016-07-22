@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
@@ -29,7 +30,7 @@ func NewWorkitemtypeController(service *goa.Service) *WorkitemtypeController {
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	res := loadTypeFromDB(ctx.ID)
+	res, _ := loadTypeFromDB(ctx.ID)
 	if res != nil {
 		converted := convertTypeFromModels(*res)
 		return ctx.OK(&converted)
@@ -37,8 +38,11 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return ctx.NotFound()
 }
 
-func loadTypeFromDB(id string) *models.WorkItemType {
-	return wellKnown[id]
+func loadTypeFromDB(id string) (*models.WorkItemType, error) {
+	if wellKnown[id] == nil {
+		return nil, fmt.Errorf("Work item type not found: %s", id)
+	}
+	return wellKnown[id], nil
 }
 
 func convertTypeFromModels(t models.WorkItemType) app.WorkItemType {
