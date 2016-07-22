@@ -16,7 +16,7 @@ import (
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
-	var dbhost = flag.String("dbhost", "", "-dbhost <hostname>")
+	var dbhost *string = flag.String("dbhost", "", "-dbhost <hostname>")
 	flag.Parse()
 	if "" == *dbhost {
 		flag.Usage()
@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 func TestGetWorkItem(t *testing.T) {
 	controller := WorkitemController{db: db}
 	payload := app.CreateWorkitemPayload{
-		Name: "foobar",
+		Name:   "foobar",
 		Type: "1",
 		Fields: map[string]interface{}{
 			"system.owner": "aslak",
@@ -67,6 +67,9 @@ func TestGetWorkItem(t *testing.T) {
 	if updated.Version != result.Version+1 {
 		t.Errorf("expected version %d, but got %d", result.Version+1, updated.Version)
 	}
+	if updated.ID != result.ID {
+		t.Errorf("id has changed from %d to %d", result.ID, updated.ID)
+	}
 	if updated.Fields["system.owner"] != "thomas" {
 		t.Errorf("expected owner %s, but got %s", "thomas", updated.Fields["system.owner"])
 	}
@@ -77,7 +80,7 @@ func TestGetWorkItem(t *testing.T) {
 func TestCreateWI(t *testing.T) {
 	controller := WorkitemController{db: db}
 	payload := app.CreateWorkitemPayload{
-		Name: "some name",
+		Name:   "some name",
 		Type: "1",
 		Fields: map[string]interface{}{
 			"system.owner": "tmaeder",
