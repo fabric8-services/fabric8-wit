@@ -103,7 +103,7 @@ $ make deps
 For dependency management of `go` packages we use `glide`.
 The file `glide.yaml` contains all dependencies.
 It is not suggested that you edit the file by hand but if you want to
-understand the format for this file, look [here](https://glide.readthedocs.io/en/latest/glide.yaml/). 
+understand the format for this file, look https://glide.readthedocs.io/en/latest/glide.yaml/[here]. 
 
 ===== Generate GOA sources [[generate-code]]
 
