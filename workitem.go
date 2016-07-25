@@ -150,6 +150,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 	wiType, err := loadTypeFromDB(res.Type)
 	if err != nil {
+		tx.Rollback()
 		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
 	}
 
