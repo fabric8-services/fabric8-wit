@@ -34,7 +34,7 @@ dependencies.
 
 ==== Install glide [[glide-setup]]
 
-This project uses link:https://glide.sh/[glide]as a package manager for Go.
+This project uses link:https://glide.sh/[glide] as a package manager for Go.
 
 To install glide, go to the
 link:https://github.com/Masterminds/glide/releases[release page] and download
