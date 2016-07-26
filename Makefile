@@ -59,7 +59,7 @@ clean-generated:
 	rm -rfv ./client/
 	rm -rfv ./swagger/
 	rm -rfv ./tool/cli/
-	rm -fv ./bindata_asstfs.go
+	rm -fv ./bindata_assetfs.go
 
 .PHONY: clean-vendor
 clean-vendor:
