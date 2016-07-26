@@ -9,6 +9,7 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+DIRS=$(shell go list -f {{.Dir}} ./... | grep -v vendor)
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
@@ -97,3 +98,19 @@ test-unit:
 .PHONY: test-integration
 test-integration:
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -tags=integration
+
+.PHONY: check
+.ONESHELL: format
+check:
+	export CHECK_ERROR=0
+	for d in $(DIRS) ; do \
+		if [ "`goimports -l $$d/*.go | tee /dev/stderr`" ]; then \
+			export CHECK_ERROR=1 && echo "^ - Repo contains improperly formatted go files" && echo; \
+		fi \
+	done
+	for d in $(DIRS) ; do \
+		if [ "`golint $$d | grep -vf .golint_exclude | tee /dev/stderr`" ]; then \
+			export CHECK_ERROR=1 && echo "^ - Lint errors!" && echo; \
+		fi \
+	done
+	exit $$CHECK_ERROR
