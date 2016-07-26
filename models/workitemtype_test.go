@@ -2,9 +2,9 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
-	"fmt"
 )
 
 func TestJsonMarshalListType(t *testing.T) {
@@ -21,9 +21,9 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		Id:      1,
-		Name:    "first type",
-		Fields: map[string]FieldDefinition {
+		Id:   1,
+		Name: "first type",
+		Fields: map[string]FieldDefinition{
 			"aListType": field},
 	}
 
@@ -51,8 +51,8 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		Id:      1,
-		Name:    "first type",
+		Id:   1,
+		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": fd},
 	}
