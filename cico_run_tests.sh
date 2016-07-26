@@ -30,6 +30,7 @@ service docker start
 # Let's test
 make docker-start
 make docker-deps
+make docker-check
 make docker-generate
 make docker-build
 make docker-test-unit

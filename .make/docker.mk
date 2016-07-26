@@ -89,6 +89,14 @@ ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/
 endif
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make deps
 
+.PHONY: docker-check
+## Runs "make check" inside the already started docker check container (see "make docker-start").
+docker-check:
+ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
+	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the check. Try running "make docker-start && make docker-deps && make docker-generate && make docker-check")
+endif
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make check
+
 .PHONY: docker-generate
 ## Runs "make generate" inside the already started docker build container (see "make docker-start").
 docker-generate:

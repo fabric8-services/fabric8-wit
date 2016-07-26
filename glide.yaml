@@ -35,6 +35,7 @@ import:
 - package: golang.org/x/tools
   subpackages:
   - go/ast/astutil
+  - cmd/goimports
 - package: gopkg.in/yaml.v2
 - package: bitbucket.org/pkg/inflect
 - package: github.com/kr/pretty
@@ -79,3 +80,4 @@ import:
 - package: github.com/spf13/afero
 - package: github.com/spf13/cast
 - package: github.com/spf13/jwalterweatherman
+- package: github.com/golang/lint/golint
