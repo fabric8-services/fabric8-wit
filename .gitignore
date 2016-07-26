@@ -26,6 +26,9 @@ tool/cli/
 /check-gopath
 /check-gopath.exe
 
+# Ignore check temp file
+/check_error
+
 # Ignore Go coverage files
 **/coverage-unit.out
 **/coverage-integration.out

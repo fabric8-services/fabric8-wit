@@ -8,6 +8,7 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+CHECK_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -48,10 +49,18 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GOIMPORTS_BIN):
+	cd $(VENDOR_DIR)/golang.org/x/tools/cmd/goimports && go build -v
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
 
 .PHONY: clean
+<<<<<<< ba871491157a02595ef6c650eff4d1d51e4dd99c
 clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
 	rm -fv check-gopath
+=======
+clean: clean-artifacts clean-generated clean-vendor clean-glide-cache clean-check
+>>>>>>> Add 'make check' target for running goimports/golint/vet
 
 .PHONY: clean-artifacts
 clean-artifacts:
@@ -74,6 +83,10 @@ clean-vendor:
 .PHONY: clean-glide-cache
 clean-glide-cache:
 	rm -rf ./.glide
+
+.PHONY: clean-check
+clean-check:
+	rm -f check_error
 
 # This will download the dependencies
 .PHONY: deps
@@ -122,3 +135,21 @@ ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
 	go build .make/check-gopath.go
+
+.PHONY: check
+.ONESHELL: check
+check: clean-check $(GOIMPORTS_BIN) $(GOLINT_BIN)
+	for d in $(CHECK_DIRS) ; do \
+		$(GOIMPORTS_BIN) -l $$d/*.go | grep -vEf .golint_exclude >> check_error; \
+	done
+	for d in $(CHECK_DIRS) ; do \
+		$(GOLINT_BIN) $$d | grep -vEf .golint_exclude >> check_error; \
+	done
+	for d in $(CHECK_DIRS) ; do \
+		go tool vet --all $$d/*.go 2>&1 >> check_error; \
+	done
+	if [ -a check_error ]; then \
+		if [ "`cat check_error`" ]; then \
+			cat check_error && exit 1; \
+		fi
+	fi
