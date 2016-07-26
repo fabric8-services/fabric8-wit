@@ -1,10 +1,10 @@
 package models
 
 import (
-	"reflect"
 	"fmt"
-	"time"
+	"reflect"
 	"strconv"
+	"time"
 )
 
 // SimpleType is an unstructured FieldType
@@ -50,6 +50,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
 	}
 }
+
 // ConvertFromModel implements the FieldType interface
 func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
