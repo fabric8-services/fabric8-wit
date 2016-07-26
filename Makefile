@@ -87,8 +87,8 @@ dev: $(FRESH_BIN)
 	docker-compose up
 	$(FRESH_BIN)
 
-.PHONY: all-tests
-all-tests: test-unit test-integration
+.PHONY: test-all
+test-all: test-unit test-integration
 
 .PHONY: test-unit
 test-unit:
