@@ -87,8 +87,11 @@ dev: $(FRESH_BIN)
 	docker-compose up
 	$(FRESH_BIN)
 
-.PHONY: test
-test:
+.PHONY: test-all
+test-all: test-unit test-integration
+
+.PHONY: test-unit
+test-unit:
 	go test $(go list ./... | grep -v vendor) -v
 
 .PHONY: test-integration
