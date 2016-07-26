@@ -23,7 +23,7 @@ var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case String, Url, User:
+	case String, URL, User:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
@@ -55,7 +55,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case String, Url, User, Integer, Float, Duration:
+	case String, URL, User, Integer, Float, Duration:
 		return value, nil
 	case Instant:
 		return time.Unix(0, value.(int64)), nil

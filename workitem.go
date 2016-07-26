@@ -107,7 +107,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	var workItem models.WorkItem = models.WorkItem{}
+	var workItem = models.WorkItem{}
 	id, err := strconv.ParseUint(ctx.ID, 10, 64)
 	if err != nil {
 		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))

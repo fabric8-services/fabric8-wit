@@ -2,7 +2,7 @@ package models
 
 type WorkItemType struct {
 	// internal id of this work item type
-	Id uint64
+	ID uint64
 	// the name of this work item type. Does not have to be unique.
 	Name string
 	// definitions of the fields this work item type supports
