@@ -36,6 +36,7 @@ mkdir -pv ${build_dir}/go/bin \
 && chown -Rf $USER ${build_dir} \
 && cd ${build_dir}/go/src/github.com/almighty/almighty-core \
 && make deps \
+&& make check \
 && make generate \
 && make \
 && make test-unit \

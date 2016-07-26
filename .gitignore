@@ -21,3 +21,4 @@ bindata_assetfs.go
 client/
 swagger/
 tool/cli/
+check_error

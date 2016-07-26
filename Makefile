@@ -9,6 +9,7 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+CHECK_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
@@ -43,9 +44,13 @@ $(GO_BINDATA_ASSETFS_BIN):
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN):
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GOIMPORTS_BIN):
+	cd $(VENDOR_DIR)/golang.org/x/tools/cmd/goimports && go build -v
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
 
 .PHONY: clean
-clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
+clean: clean-artifacts clean-generated clean-vendor clean-glide-cache clean-check
 
 .PHONY: clean-artifacts
 clean-artifacts:
@@ -68,6 +73,10 @@ clean-vendor:
 .PHONY: clean-glide-cache
 clean-glide-cache:
 	rm -rf ./.glide
+
+.PHONY: clean-check
+clean-check:
+	rm -f check_error
 
 # This will download the dependencies
 .PHONY: deps
@@ -97,3 +106,19 @@ test-unit:
 .PHONY: test-integration
 test-integration:
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -tags=integration
+
+.PHONY: check
+check: clean-check $(GOIMPORTS_BIN) $(GOLINT_BIN)
+	touch check_error
+	@for d in $(CHECK_DIRS) ; do \
+		$(GOIMPORTS_BIN) -l $$d/*.go | grep -vEf .golint_exclude | tee -a check_error; \
+	done
+	@for d in $(CHECK_DIRS) ; do \
+		$(GOLINT_BIN) $$d | grep -vEf .golint_exclude | tee -a check_error; \
+	done
+	@for d in $(CHECK_DIRS) ; do \
+		go tool vet --all $$d/*.go 2>&1 | tee -a check_error; \
+	done
+	@if [ "`cat check_error`" ]; then \
+		cat check_error && exit 1; \
+	fi
