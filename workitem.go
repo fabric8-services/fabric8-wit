@@ -148,14 +148,14 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return ctx.BadRequest(goa.ErrBadRequest("version conflict: expected %d but got %d", res.Version, ctx.Payload.Version))
 	}
 
-	wiType, err := loadTypeFromDB(res.Type)
+	wiType, err := loadTypeFromDB(ctx.Payload.Type)
 	if err != nil {
 		tx.Rollback()
 		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
 	}
 
 	wi := models.WorkItem{
-		ID: id,
+		ID:      id,
 		Name:    ctx.Payload.Name,
 		Type:    ctx.Payload.Type,
 		Version: ctx.Payload.Version + 1,
@@ -171,8 +171,8 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return ctx.BadRequest(goa.ErrBadRequest("Could not convert field %s: %s", fieldName, err.Error()))
 		}
 	}
-	
-	if err:= tx.Save(&wi).Error;err != nil {
+
+	if err := tx.Save(&wi).Error; err != nil {
 		tx.Rollback()
 		log.Print(err.Error())
 		return ctx.InternalServerError()
