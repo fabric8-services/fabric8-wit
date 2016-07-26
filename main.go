@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 	"net/http"
-	
+	"os"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
@@ -27,26 +27,26 @@ var (
 )
 
 func main() {
-	var dbHost string;
+	var dbHost string
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
 	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
 	flag.Parse()
-	
+
 	if len(dbHost) == 0 {
-		dbHost= os.Getenv("DBHOST");
+		dbHost = os.Getenv("DBHOST")
 	}
-	
+
 	if len(dbHost) == 0 {
-		dbHost= "localhost"
+		dbHost = "localhost"
 	}
 
 	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
 	if err != nil {
-		panic("failed to connect database: "+ err.Error())
+		panic("failed to connect database: " + err.Error())
 	}
 	defer db.Close()
-	
+
 	// Migrate the schema
 	migration.Perform(db)
 
