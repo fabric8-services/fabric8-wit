@@ -108,21 +108,24 @@ test-integration:
 check: $(GOIMPORTS_BIN) $(GOLINT_BIN)
 	export FMT_ERROR=0
 	export LINT_ERROR=0
+	echo "" > check_error
 	for d in $(DIRS) ; do \
-		if [ "`$(GOIMPORTS_BIN) -l $$d/*.go | tee /dev/stderr`" ]; then \
+		if [ "`$(GOIMPORTS_BIN) -l $$d/*.go | tee -a check_error`" ]; then \
 			export FMT_ERROR=1; \
 		fi \
 	done
 	if [ $$FMT_ERROR -eq 1 ]; then \
-		echo "^ - Repo contains improperly formatted go files" && echo; \
+		cat check_error && echo && echo "^ - Repo contains improperly formatted go files" && echo; \
 	fi
+	echo "" > check_error
 	for d in $(DIRS) ; do \
-		if [ "`$(GOLINT_BIN) $$d | grep -vf .golint_exclude | tee /dev/stderr`" ]; then \
+		if [ "`$(GOLINT_BIN) $$d | grep -vf .golint_exclude | tee -a check_error`" ]; then \
 			export LINT_ERROR=1; \
 		fi
 	done
 	if [ $$LINT_ERROR -eq 1 ]; then \
-		echo "^ - Lint errors!" && echo; \
+		cat check_error && echo && echo "^ - Lint errors!" && echo; \
 	fi
+	rm -f check_error
 	export EXIT_CODE=`expr $$LINT_ERROR + $$FMT_ERROR`
 	exit $$EXIT_CODE
