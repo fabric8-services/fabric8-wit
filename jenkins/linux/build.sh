@@ -11,10 +11,10 @@ export GO15VENDOREXPERIMENT=1
 
 make deps 
 
+make check
+
 make generate 
 
 make build
 
-make test-unit 
-
-
+make test-unit
