@@ -2,17 +2,17 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"testing"
-	"fmt"
 )
 
 func TestJsonMarshalListType(t *testing.T) {
 	lt := ListType{
 		SimpleType: SimpleType{
-			List},
+			ListKind},
 		ComponentType: SimpleType{
-			Integer},
+			IntegerKind},
 	}
 
 	field := FieldDefinition{
@@ -21,9 +21,9 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		Id:      1,
-		Name:    "first type",
-		Fields: map[string]FieldDefinition {
+		Id:   1,
+		Name: "first type",
+		Fields: map[string]FieldDefinition{
 			"aListType": field},
 	}
 
@@ -42,7 +42,7 @@ func TestJsonMarshalListType(t *testing.T) {
 
 func TestMarshalEnumType(t *testing.T) {
 	et := EnumType{
-		SimpleType: SimpleType{Enum},
+		SimpleType: SimpleType{EnumKind},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
 	fd := FieldDefinition{
@@ -51,8 +51,8 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		Id:      1,
-		Name:    "first type",
+		Id:   1,
+		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": fd},
 	}
@@ -70,7 +70,7 @@ func TestMarshalEnumType(t *testing.T) {
 
 func TestMarshalFieldDef(t *testing.T) {
 	et := EnumType{
-		SimpleType: SimpleType{Enum},
+		SimpleType: SimpleType{EnumKind},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
 	fd := FieldDefinition{
@@ -92,7 +92,7 @@ func TestMarshalFieldDef(t *testing.T) {
 
 func TestMarshalRawEnum(t *testing.T) {
 	ret := rawEnumType{
-		BaseType: SimpleType{Kind: Integer},
+		BaseType: SimpleType{Kind: IntegerKind},
 		Values:   []interface{}{float64(2), float64(4), float64(4)},
 	}
 

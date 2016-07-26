@@ -8,16 +8,16 @@ import (
 
 // constants for describing possible field types
 const (
-	String            Kind = 1
-	Integer           Kind = 2
-	Float             Kind = 3
-	Instant           Kind = 4
-	Duration          Kind = 5
-	Url               Kind = 6
-	WorkitemReference Kind = 7
-	User              Kind = 8
-	Enum              Kind = 9
-	List              Kind = 10
+	StringKind            Kind = 1
+	IntegerKind           Kind = 2
+	FloatKind             Kind = 3
+	InstantKind           Kind = 4
+	DurationKind          Kind = 5
+	UrlKind               Kind = 6
+	WorkitemReferenceKind Kind = 7
+	UserKind              Kind = 8
+	EnumKind              Kind = 9
+	ListKind              Kind = 10
 )
 
 // Kind is the kind of field type
@@ -80,6 +80,7 @@ type rawFieldType struct {
 	Kind  Kind
 	Extra *json.RawMessage
 }
+
 // UnmarshalJSON implements encoding/json.Unmarshaler
 func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
@@ -91,7 +92,7 @@ func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	}
 
 	switch temp.Type.Kind {
-	case List:
+	case ListKind:
 		var baseType SimpleType
 		err = json.Unmarshal(*temp.Type.Extra, &baseType)
 		if err != nil {
@@ -99,7 +100,7 @@ func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 		}
 		theType := ListType{SimpleType: SimpleType{Kind: temp.Type.Kind}, ComponentType: baseType}
 		*self = FieldDefinition{Type: theType, Required: temp.Required}
-	case Enum:
+	case EnumKind:
 		var extraInfo rawEnumType
 		err = json.Unmarshal(*temp.Type.Extra, &extraInfo)
 		if err != nil {
