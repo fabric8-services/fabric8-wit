@@ -11,7 +11,7 @@ import (
 
 var wellKnown = map[string]*models.WorkItemType{
 	"1": &models.WorkItemType{
-		Id:   1,
+		ID:   1,
 		Name: "system.workitem",
 		Fields: map[string]models.FieldDefinition{
 			"system.owner": models.FieldDefinition{Type: models.SimpleType{Kind: models.User}, Required: true},
@@ -47,7 +47,7 @@ func loadTypeFromDB(id string) (*models.WorkItemType, error) {
 
 func convertTypeFromModels(t models.WorkItemType) app.WorkItemType {
 	var converted = app.WorkItemType{
-		ID:      strconv.FormatUint(t.Id, 10),
+		ID:      strconv.FormatUint(t.ID, 10),
 		Name:    t.Name,
 		Version: 0,
 		Fields:  map[string]*app.FieldDefinition{},

@@ -39,7 +39,7 @@ func convertList(converter converter, fieldType ListType, value interface{}) (in
 	}
 	valueArray := value.([]interface{})
 	converted := make([]interface{}, len(valueArray))
-	for i, _ := range converted {
+	for i := range converted {
 		var err error
 		converted[i], err = converter(fieldType, valueArray[i])
 		if err != nil {
