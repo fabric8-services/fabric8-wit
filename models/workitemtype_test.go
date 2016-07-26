@@ -64,7 +64,7 @@ func TestMarshalEnumType(t *testing.T) {
 	var readType WorkItemType
 	json.Unmarshal(bytes, &readType)
 	if !reflect.DeepEqual(wt, readType) {
-		t.Error(fmt.Sprintf("not the same type: %v, %v", readType, wt))
+		t.Errorf("not the same type: %v, %v", readType, wt)
 	}
 }
 
@@ -86,7 +86,7 @@ func TestMarshalFieldDef(t *testing.T) {
 	var readField FieldDefinition
 	json.Unmarshal(bytes, &readField)
 	if !reflect.DeepEqual(fd, readField) {
-		t.Error(fmt.Sprintf("not the same : %v, %v", readField, fd))
+		t.Errorf("not the same : %v, %v", readField, fd)
 	}
 }
 
