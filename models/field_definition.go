@@ -13,7 +13,7 @@ const (
 	Float             Kind = 3
 	Instant           Kind = 4
 	Duration          Kind = 5
-	Url               Kind = 6
+	URL               Kind = 6
 	WorkitemReference Kind = 7
 	User              Kind = 8
 	Enum              Kind = 9
