@@ -1,3 +1,5 @@
+// +build !integration
+
 package main
 
 import (
@@ -17,7 +19,7 @@ func TestAuthorizeLoginOK(t *testing.T) {
 
 func TestShowVersionOK(t *testing.T) {
 	controller := VersionController{}
-	_, res := test.ShowVersionOK(t, nil, nil, &controller) 
+	_, res := test.ShowVersionOK(t, nil, nil, &controller)
 
 	if res.Commit != "0" {
 		t.Error("Commit not found")

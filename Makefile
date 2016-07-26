@@ -89,4 +89,8 @@ dev: $(FRESH_BIN)
 
 .PHONY: test
 test:
-	go test $(go list ./... | grep -v vendor) -dbhost localhost
+	go test $(go list ./... | grep -v vendor) -v
+
+.PHONY: test-integration
+test-integration:
+	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -tags=integration
