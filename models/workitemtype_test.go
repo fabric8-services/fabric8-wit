@@ -21,7 +21,7 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		Id:   1,
+		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": field},
@@ -51,7 +51,7 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		Id:   1,
+		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": fd},
