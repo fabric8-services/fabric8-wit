@@ -44,6 +44,10 @@ $(GO_BINDATA_ASSETFS_BIN):
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN):
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GOIMPORTS_BIN):
+	cd $(VENDOR_DIR)/golang.org/x/tools/cmd/goimports && go build -v
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
 
 .PHONY: clean
 clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
@@ -101,15 +105,15 @@ test-integration:
 
 .PHONY: check
 .ONESHELL: format
-check:
+check: $(GOIMPORTS_BIN) $(GOLINT_BIN)
 	export CHECK_ERROR=0
 	for d in $(DIRS) ; do \
-		if [ "`goimports -l $$d/*.go | tee /dev/stderr`" ]; then \
+		if ( "`$(GOIMPORTS_BIN) -l $$d/*.go | tee /dev/stderr`" ); then \
 			export CHECK_ERROR=1 && echo "^ - Repo contains improperly formatted go files" && echo; \
 		fi \
 	done
 	for d in $(DIRS) ; do \
-		if [ "`golint $$d | grep -vf .golint_exclude | tee /dev/stderr`" ]; then \
+		if [ "`$(GOLINT_BIN) $$d | grep -vf .golint_exclude | tee /dev/stderr`" ]; then \
 			export CHECK_ERROR=1 && echo "^ - Lint errors!" && echo; \
 		fi \
 	done

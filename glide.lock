@@ -1,10 +1,19 @@
-hash: bf9c7ad1a0c9daf3e328bcb6f32551f31ef523f8040eff7ee2f7f094fd2b9fb0
-updated: 2016-07-15T16:28:35.5199922+02:00
+hash: b92640b47f6f858337e107b81b3a105c078547005b0d794651f02798ba072089
+updated: 2016-07-26T21:30:24.039703273+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
+- name: github.com/almighty/almighty-core
+  version: 1a04a5c291c384056d85b28c18b24621abcf3198
+  subpackages:
+  - app
+  - migration
+  - models
+  - client
+  - tool/cli
+  - app/test
 - name: github.com/armon/go-metrics
-  version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
+  version: 3df31a1ada83e310c2e24b267c8e8b68836547b4
 - name: github.com/dgrijalva/jwt-go
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - name: github.com/dimfeld/httppath
@@ -16,7 +25,7 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/goadesign/goa
-  version: 5302bd3d37e5be39803f4cd2d814b548952f23ea
+  version: 392b661ac2d4f1af3178fd3ae542aaa8e27b2e0c
   vcs: git
   subpackages:
   - client
@@ -33,7 +42,11 @@ imports:
   - uuid
   - dslengine
 - name: github.com/goadesign/gorma
-  version: f7116846126a4cb17a0cddd6b3b429ad1592f260
+  version: 368640678f1c45d4c541b91a31a2b604153ad4b4
+- name: github.com/golang/lint
+  version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
+  subpackages:
+  - golint
 - name: github.com/howeyc/fsnotify
   version: f0c08ee9c60704c1879025f2ae0ff3e000082c13
 - name: github.com/inconshreveable/mousetrap
@@ -47,7 +60,7 @@ imports:
   subpackages:
   - '...'
 - name: github.com/kr/pretty
-  version: 7497514e37543f8a9dfdb86a97c2e8d175a0f8a0
+  version: 737b74a46c4bf788349f72cb256fed10aea4d0ac
 - name: github.com/kr/text
   version: 7cafcd837844e784b526369c9bce262804aebc60
 - name: github.com/lib/pq
@@ -55,7 +68,7 @@ imports:
   subpackages:
   - oid
 - name: github.com/lsegal/gucumber
-  version: 090009ec4b32fd019e2d5e1a6a92f66268441cee
+  version: 71608e2f6e76fd4da5b09a376aeec7a5c0b5edbc
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mattn/go-colorable
@@ -67,22 +80,23 @@ imports:
 - name: github.com/pilu/fresh
   version: 7261a962d4340e348cda4f98bd43a327be23c93e
 - name: github.com/satori/go.uuid
-  version: 879c5887cd475cd7864858769793b2ceb0d44feb
+  version: 0aa62d5ddceb50dbcb909d790b5345affd3669b6
 - name: github.com/spf13/cobra
-  version: 6a8bd97bdb1fc0d08a83459940498ea49d3e8c93
+  version: f62e98d28ab7ad31d707ba837a966378465c7b57
 - name: github.com/spf13/pflag
-  version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
+  version: 1560c1005499d61b80f865c04d39ca7505bf7f0b
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
 - name: golang.org/x/net
-  version: f841c39de738b1d0df95b5a7187744f0e03d8112
+  version: 9f2c271364b418388d150f9c12ecbf12794095c1
   subpackages:
   - context
   - websocket
 - name: golang.org/x/tools
-  version: 527b253f588776e5f72a0a0d1e93195cd3f82707
+  version: 1c6f639aae50dbb1e0b87915849b4bb206e5bc05
   subpackages:
   - go/ast/astutil
+  - cmd/goimports
 - name: gopkg.in/yaml.v2
-  version: a83829b6f1293c91addabc89d0571c246397bbf4
+  version: e4d366fc3c7938e2958e662b4258c7a89e1f0e3e
 testImports: []
