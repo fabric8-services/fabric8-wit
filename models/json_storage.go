@@ -9,7 +9,7 @@ import (
 type Fields map[string]interface{}
 
 func (j Fields) Value() (driver.Value, error) {
-	return toBytes(j);
+	return toBytes(j)
 }
 
 func (j *Fields) Scan(src interface{}) error {
@@ -17,7 +17,7 @@ func (j *Fields) Scan(src interface{}) error {
 }
 
 func (j FieldDefinition) Value() (driver.Value, error) {
-	return toBytes(j);
+	return toBytes(j)
 }
 
 func (j *FieldDefinition) Scan(src interface{}) error {
@@ -33,7 +33,6 @@ func toBytes(j interface{}) (driver.Value, error) {
 	res, error := json.Marshal(j)
 	return res, error
 }
-
 
 func fromBytes(src interface{}, target interface{}) error {
 	if src == nil {

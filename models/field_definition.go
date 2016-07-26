@@ -80,6 +80,7 @@ type rawFieldType struct {
 	Kind  Kind
 	Extra *json.RawMessage
 }
+
 // UnmarshalJSON implements encoding/json.Unmarshaler
 func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
