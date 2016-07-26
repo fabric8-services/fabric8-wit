@@ -29,17 +29,20 @@ func NewWorkitemController(service *goa.Service, db *gorm.DB) *WorkitemControlle
 // Show runs the show action.
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	res := models.WorkItem{}
-	idVal, err := strconv.Atoi(ctx.ID)
+	id, err := strconv.ParseUint(ctx.ID, 10, 64)
 	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest("could not parse"))
+		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
 	}
 
-	log.Printf("looking for id %d", idVal)
-	if c.db.First(&res, idVal).RecordNotFound() {
+	log.Printf("looking for id %d", id)
+	if c.db.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return ctx.NotFound()
 	}
-	wiType := loadTypeFromDB(res.Type)
+	wiType, err := loadTypeFromDB(res.Type)
+	if err != nil {
+		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
+	}
 	result, err := convertFromModel(*wiType, res)
 	if err != nil {
 		ctx.InternalServerError()
@@ -68,7 +71,10 @@ func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*ap
 
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	wiType := loadTypeFromDB(ctx.Payload.Type)
+	wiType, err := loadTypeFromDB(ctx.Payload.Type)
+	if err != nil {
+		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
+	}
 	wi := models.WorkItem{
 		Name:   ctx.Payload.Name,
 		Type:   ctx.Payload.Type,
@@ -80,7 +86,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
+			return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
 		}
 	}
 	tx := c.db.Begin()
@@ -101,15 +107,15 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	var workItem = models.WorkItem{}
+	var workItem models.WorkItem = models.WorkItem{}
 	id, err := strconv.ParseUint(ctx.ID, 10, 64)
 	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
+		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
 	}
 	tx := c.db.Begin()
 
 	if tx.First(&workItem, id).RecordNotFound() {
-		log.Printf("not found, res=%v", workItem)
+		log.Print("not found, res=%v", workItem)
 		tx.Rollback()
 		return ctx.NotFound()
 	}
@@ -125,14 +131,14 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 // Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	res := models.WorkItem{}
-	idVal, err := strconv.Atoi(ctx.Payload.ID)
+	id, err := strconv.ParseUint(ctx.Payload.ID, 10, 64)
 	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest("could not parse %s", ctx.Payload.ID))
+		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
 	}
 
-	log.Printf("looking for id %d", idVal)
+	log.Printf("looking for id %d", id)
 	tx := c.db.Begin()
-	if tx.First(&res, idVal).RecordNotFound() {
+	if tx.First(&res, id).RecordNotFound() {
 		tx.Rollback()
 		log.Printf("not found, res=%v", res)
 		return ctx.NotFound()
@@ -142,9 +148,14 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		return ctx.BadRequest(goa.ErrBadRequest("version conflict: expected %d but got %d", res.Version, ctx.Payload.Version))
 	}
 
-	wiType := loadTypeFromDB(res.Type)
+	wiType, err := loadTypeFromDB(res.Type)
+	if err != nil {
+		tx.Rollback()
+		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
+	}
 
 	wi := models.WorkItem{
+		ID: id,
 		Name:    ctx.Payload.Name,
 		Type:    ctx.Payload.Type,
 		Version: ctx.Payload.Version + 1,
@@ -157,11 +168,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			tx.Rollback()
-			return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
+			return ctx.BadRequest(goa.ErrBadRequest("Could not convert field %s: %s", fieldName, err.Error()))
 		}
 	}
-
-	if err := tx.Save(&wi).Error; err != nil {
+	
+	if err:= tx.Save(&wi).Error;err != nil {
 		tx.Rollback()
 		log.Print(err.Error())
 		return ctx.InternalServerError()
