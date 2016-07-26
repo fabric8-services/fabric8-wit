@@ -104,17 +104,25 @@ test-integration:
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -tags=integration
 
 .PHONY: check
-.ONESHELL: format
+.ONESHELL: check
 check: $(GOIMPORTS_BIN) $(GOLINT_BIN)
-	export CHECK_ERROR=0
+	export FMT_ERROR=0
+	export LINT_ERROR=0
 	for d in $(DIRS) ; do \
-		if ( "`$(GOIMPORTS_BIN) -l $$d/*.go | tee /dev/stderr`" ); then \
-			export CHECK_ERROR=1 && echo "^ - Repo contains improperly formatted go files" && echo; \
+		if [ "`$(GOIMPORTS_BIN) -l $$d/*.go | tee /dev/stderr`" ]; then \
+			export FMT_ERROR=1; \
 		fi \
 	done
+	if [ $$FMT_ERROR -eq 1 ]; then \
+		echo "^ - Repo contains improperly formatted go files" && echo; \
+	fi
 	for d in $(DIRS) ; do \
 		if [ "`$(GOLINT_BIN) $$d | grep -vf .golint_exclude | tee /dev/stderr`" ]; then \
-			export CHECK_ERROR=1 && echo "^ - Lint errors!" && echo; \
-		fi \
+			export LINT_ERROR=1; \
+		fi
 	done
-	exit $$CHECK_ERROR
+	if [ $$LINT_ERROR -eq 1 ]; then \
+		echo "^ - Lint errors!" && echo; \
+	fi
+	export EXIT_CODE=`expr $$LINT_ERROR + $$FMT_ERROR`
+	exit $$EXIT_CODE
