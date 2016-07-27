@@ -32,7 +32,7 @@ var _ = Resource("workitem", func() {
 		)
 		Description("create work item with type and id.")
 		Payload(CreateWorkItemPayload)
-		Response(OK, func() {
+		Response(Created, "/workitem/.*", func() {
 			Media(WorkItem)
 		})
 		Response(BadRequest, func() {

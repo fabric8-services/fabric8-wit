@@ -102,7 +102,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		return ctx.InternalServerError()
 	}
 	tx.Commit()
-	return ctx.OK(result)
+	ctx.ResponseData.Header().Set("Location", app.WorkitemHref(result.ID))
+	return ctx.Created(result)
 }
 
 // Delete runs the delete action.
