@@ -45,7 +45,7 @@ func TestGetWorkItem(t *testing.T) {
 			"system.state": "done"},
 	}
 
-	_, result := test.CreateWorkitemOK(t, nil, nil, &controller, &payload)
+	_, result := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
 
 	_, wi := test.ShowWorkitemOK(t, nil, nil, &controller, result.ID)
 
@@ -90,7 +90,7 @@ func TestCreateWI(t *testing.T) {
 		},
 	}
 
-	_, created := test.CreateWorkitemOK(t, nil, nil, &controller, &payload)
+	_, created := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
 	if created.ID == "" {
 		t.Error("no id")
 	}
