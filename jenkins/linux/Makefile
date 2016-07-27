@@ -17,6 +17,10 @@ BUILD_DIR := $(WORKSPACE)/almighty-core-linux-build
 BUILD_TAG ?= almighty-core-local-build
 DOCKER_CONTAINER_NAME := $(BUILD_TAG)
 
+# Where is the GOPATH inside the build container?
+GOPATH=/tmp/go
+PACKAGE_PATH=$(GOPATH)/src/github.com/almighty/almighty-core
+
 .PHONY: all
 # Triggers the "build" target
 all: build
@@ -75,10 +79,9 @@ build: build-dir docker-image-core
 		$(DOCKER_RUN_INTERACTIVE_SWITCH) \
 		--rm \
 		--name="$(DOCKER_CONTAINER_NAME)" \
-		-v $(SOURCE_DIR):/source-dir:ro \
-		-v $(BUILD_DIR):/build-dir:rw \
-		-e USER=$(USER) \
-		-e USERID=$(shell id -u $(USER)) \
+		-v $(SOURCE_DIR):$(PACKAGE_PATH):rw \
+		-u $(shell id -u $(USER)):$(shell id -g $(USER)) \
+		-w $(PACKAGE_PATH) \
 		$(DOCKER_IMAGE_CORE) \
-		/source-dir/jenkins/linux/build.sh /source-dir /build-dir
+		$(PACKAGE_PATH)/jenkins/linux/build.sh
 
