@@ -6,7 +6,6 @@ set -x
 # Exit if a command fails
 set -e
 
-export GOPATH=/tmp/go
 export PATH=$PATH:${GOPATH}/bin
 export GO15VENDOREXPERIMENT=1 
 
