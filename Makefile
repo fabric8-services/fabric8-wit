@@ -9,7 +9,7 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
-DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
+CHECK_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
@@ -109,7 +109,7 @@ check: $(GOIMPORTS_BIN) $(GOLINT_BIN)
 	export FMT_ERROR=0
 	export LINT_ERROR=0
 	echo "" > check_error
-	for d in $(DIRS) ; do \
+	for d in $(CHECK_DIRS) ; do \
 		if [ "`$(GOIMPORTS_BIN) -l $$d/*.go | grep -vEf .golint_exclude | tee -a check_error`" ]; then \
 			export FMT_ERROR=1; \
 		fi \
@@ -118,7 +118,7 @@ check: $(GOIMPORTS_BIN) $(GOLINT_BIN)
 		cat check_error && echo && echo "^ - Repo contains improperly formatted go files" && echo; \
 	fi
 	echo "" > check_error
-	for d in $(DIRS) ; do \
+	for d in $(CHECK_DIRS) ; do \
 		if [ "`$(GOLINT_BIN) $$d | grep -vEf .golint_exclude | tee -a check_error`" ]; then \
 			export LINT_ERROR=1; \
 		fi
