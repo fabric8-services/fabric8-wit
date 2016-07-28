@@ -7,3 +7,7 @@ GO_BINDATA_ASSETFS_BIN=$(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bi
 FRESH_BIN=$(VENDOR_DIR)/github.com/pilu/fresh/fresh
 EXTRA_PATH=$(shell dirname $(GO_BINDATA_BIN))
 
+GIT_BIN_NAME := git
+GLIDE_BIN_NAME := glide
+GO_BIN_NAME := go
+HG_BIN_NAME := hg

@@ -1,4 +1,3 @@
-
 VENDOR_DIR=vendor
 ifeq ($(OS),Windows_NT)
 include ./Makefile.win
@@ -9,6 +8,12 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+
+# Find all required tools:
+GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
+GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
+GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
+HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
@@ -23,37 +28,37 @@ LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
-all: deps generate build
+all: prebuild-check deps generate build
 
 .PHONY: build
-build: $(BINARY_SERVER) $(BINARY_CLIENT)
+build: prebuild-check $(BINARY_SERVER) $(BINARY_CLIENT)
 
-$(BINARY_SERVER): $(SOURCES)
+$(BINARY_SERVER): prebuild-check $(SOURCES)
 	go build -v ${LDFLAGS} -o ${BINARY_SERVER}
 
-$(BINARY_CLIENT): $(SOURCES)
+$(BINARY_CLIENT): prebuild-check $(SOURCES)
 	cd ${CLIENT_DIR} && go build -v -o ../../${BINARY_CLIENT}
 
 # These are binary tools from our vendored packages
-$(GOAGEN_BIN):
+$(GOAGEN_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
-$(GO_BINDATA_BIN):
+$(GO_BINDATA_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
-$(GO_BINDATA_ASSETFS_BIN):
+$(GO_BINDATA_ASSETFS_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
-$(FRESH_BIN):
+$(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 .PHONY: clean
-clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
+clean: prebuild-check clean-artifacts clean-generated clean-vendor clean-glide-cache
 
 .PHONY: clean-artifacts
-clean-artifacts:
+clean-artifacts: prebuild-check
 	rm -fv $(BINARY_SERVER)
 	rm -fv $(BINARY_CLIENT)
 
 .PHONY: clean-generated
-clean-generated:
+clean-generated: prebuild-check
 	rm -rfv ./app
 	rm -rfv ./assets/js
 	rm -rfv ./client/
@@ -62,20 +67,20 @@ clean-generated:
 	rm -fv ./bindata_assetfs.go
 
 .PHONY: clean-vendor
-clean-vendor:
+clean-vendor: prebuild-check
 	rm -rf $(VENDOR_DIR)
 
 .PHONY: clean-glide-cache
-clean-glide-cache:
+clean-glide-cache: prebuild-check
 	rm -rf ./.glide
 
 # This will download the dependencies
 .PHONY: deps
-deps:
+deps: prebuild-check
 	$(GLIDE_BIN) install
 
 .PHONY: generate
-generate: $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
+generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
 	$(GOAGEN_BIN) version
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
@@ -83,17 +88,37 @@ generate: $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
 	PATH="$(PATH):$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
 
 .PHONY: dev
-dev: $(FRESH_BIN)
+dev: prebuild-check $(FRESH_BIN)
 	docker-compose up -d
 	$(FRESH_BIN)
 
 .PHONY: test-all
-test-all: test-unit test-integration
+test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
-test-unit:
+test-unit: prebuild-check
 	go test $(go list ./... | grep -v vendor) -v
 
 .PHONY: test-integration
-test-integration:
+test-integration: prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -tags=integration
+
+.PHONY: prebuild-check
+prebuild-check: 
+# Check that all tools where found
+ifndef GIT_BIN
+	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
+endif
+ifndef GLIDE_BIN
+	$(error The "$(GLIDE_BIN_NAME)" executable could not be found in your PATH)
+endif
+ifndef GO_BIN
+	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
+endif
+ifndef HG_BIN
+	$(error The "$(HG_BIN_NAME)" executable could not be found in your PATH)
+endif
+# Check that the code is located in $GOPATH/src/github.com/almighty/almighty-core
+ifneq ($(GOPATH)/src/$(PACKAGE_NAME),$(shell pwd))
+    $(error The code and this Makefile must live here "$(GOPATH)/src/$(PACKAGE_NAME)" and not here "$(shell pwd)")
+endif
