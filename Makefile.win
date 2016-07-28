@@ -7,3 +7,8 @@ GO_BINDATA_DIR=$(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata/
 GO_BINDATA_ASSETFS_BIN=$(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs/go-bindata-assetfs.exe
 FRESH_BIN=$(VENDOR_DIR)/github.com/pilu/fresh/fresh.exe
 EXTRA_PATH=$(shell cygpath --unix '$(GO_BINDATA_DIR)')
+
+GIT_BIN_NAME := git.exe
+GLIDE_BIN_NAME := glide.exe
+GO_BIN_NAME := go.exe
+HG_BIN_NAME := hg.exe
