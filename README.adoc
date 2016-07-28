@@ -88,6 +88,7 @@ want to compile. That's why we offer special `make` targets for these topics:
  * <<generate-code>>
  * <<build>>
  * <<clean>>
+ * <<test>>
 
 ===== Fetch dependencies [[fetch-dependencies]]
 
@@ -132,6 +133,29 @@ artifacts.
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make clean
+----
+
+===== Tests [[test]]
+
+This runs all unit-tests
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make test-unit
+----
+
+This runs all integration tests (you need to have a postgres database running for this to work)
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make test-integration
+----
+
+To run all above tests you can run
+
+----
+$ cd $GOPATH/src/github.com/almighty/almighty-core
+$ make test-all
 ----
 
 ==== Development
