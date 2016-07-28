@@ -50,11 +50,11 @@ func TestGetWorkItem(t *testing.T) {
 	_, wi := test.ShowWorkitemOK(t, nil, nil, &controller, result.ID)
 
 	if wi == nil {
-		t.Fatalf("Work Item '%d' not present", result.ID)
+		t.Fatalf("Work Item '%s' not present", result.ID)
 	}
 
 	if wi.ID != result.ID {
-		t.Errorf("Id should be %d, but is %s", result.ID, wi.ID)
+		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
 	wi.Fields["system.owner"] = "thomas"
@@ -70,7 +70,7 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("expected version %d, but got %d", result.Version+1, updated.Version)
 	}
 	if updated.ID != result.ID {
-		t.Errorf("id has changed from %d to %d", result.ID, updated.ID)
+		t.Errorf("id has changed from %s to %s", result.ID, updated.ID)
 	}
 	if updated.Fields["system.owner"] != "thomas" {
 		t.Errorf("expected owner %s, but got %s", "thomas", updated.Fields["system.owner"])
