@@ -34,5 +34,5 @@ func main() {
 		}
 	}
 
-	log.Fatal(fmt.Errorf("Make sure you've checked out your project in GOPATH/%s", packageName))
+	log.Fatal(fmt.Errorf("Make sure you've checked out your project in GOPATH/src/%s", packageName))
 }
