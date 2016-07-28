@@ -119,6 +119,9 @@ ifndef HG_BIN
 	$(error The "$(HG_BIN_NAME)" executable could not be found in your PATH)
 endif
 # Check that the code is located in $GOPATH/src/github.com/almighty/almighty-core
+ifneq ($(OS),Windows_NT)
 ifneq ($(GOPATH)/src/$(PACKAGE_NAME),$(shell pwd))
-    $(error The code and this Makefile must live here "$(GOPATH)/src/$(PACKAGE_NAME)" and not here "$(shell pwd)")
+  	$(error The code and this Makefile must live here "$(GOPATH)/src/$(PACKAGE_NAME)" and not here "$(shell pwd)")
 endif
+endif
+
