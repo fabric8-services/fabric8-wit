@@ -115,7 +115,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	tx := c.db.Begin()
 
 	if tx.First(&workItem, id).RecordNotFound() {
-		log.Print("not found, res=%v", workItem)
+		log.Printf("not found, res=%v", workItem)
 		tx.Rollback()
 		return ctx.NotFound()
 	}
