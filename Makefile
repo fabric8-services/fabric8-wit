@@ -1,8 +1,8 @@
 VENDOR_DIR=vendor
 ifeq ($(OS),Windows_NT)
-include ./Makefile.win
+include ./.make/Makefile.win
 else
-include ./Makefile.lnx
+include ./.make/Makefile.lnx
 endif
 SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
@@ -50,15 +50,16 @@ $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 .PHONY: clean
-clean: prebuild-check clean-artifacts clean-generated clean-vendor clean-glide-cache
+clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
+	rm -fv check-gopath
 
 .PHONY: clean-artifacts
-clean-artifacts: prebuild-check
+clean-artifacts:
 	rm -fv $(BINARY_SERVER)
 	rm -fv $(BINARY_CLIENT)
 
 .PHONY: clean-generated
-clean-generated: prebuild-check
+clean-generated:
 	rm -rfv ./app
 	rm -rfv ./assets/js
 	rm -rfv ./client/
@@ -67,11 +68,11 @@ clean-generated: prebuild-check
 	rm -fv ./bindata_assetfs.go
 
 .PHONY: clean-vendor
-clean-vendor: prebuild-check
+clean-vendor:
 	rm -rf $(VENDOR_DIR)
 
 .PHONY: clean-glide-cache
-clean-glide-cache: prebuild-check
+clean-glide-cache:
 	rm -rf ./.glide
 
 # This will download the dependencies
@@ -81,7 +82,6 @@ deps: prebuild-check
 
 .PHONY: generate
 generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
-	$(GOAGEN_BIN) version
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=github.com/goadesign/gorma
@@ -97,14 +97,14 @@ test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
 test-unit: prebuild-check
-	go test $(go list ./... | grep -v vendor) -v
+	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out
 
 .PHONY: test-integration
 test-integration: prebuild-check
-	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -tags=integration
+	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration
 
 .PHONY: prebuild-check
-prebuild-check: 
+prebuild-check: $(CHECK_GOPATH_BIN)
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
@@ -112,13 +112,14 @@ endif
 ifndef GLIDE_BIN
 	$(error The "$(GLIDE_BIN_NAME)" executable could not be found in your PATH)
 endif
-ifndef GO_BIN
-	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
-endif
 ifndef HG_BIN
 	$(error The "$(HG_BIN_NAME)" executable could not be found in your PATH)
 endif
-# Check that the code is located in $GOPATH/src/github.com/almighty/almighty-core
-ifneq ($(GOPATH)/src/$(PACKAGE_NAME),$(shell pwd))
-    $(error The code and this Makefile must live here "$(GOPATH)/src/$(PACKAGE_NAME)" and not here "$(shell pwd)")
+	@$(CHECK_GOPATH_BIN) $(PACKAGE_NAME) || (echo "Project lives in wrong location"; exit 1)
+
+$(CHECK_GOPATH_BIN): .make/check-gopath.go
+ifndef GO_BIN
+	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
+	# Check that the code is located in $GOPATH/src/github.com/almighty/almighty-core
+	go build .make/check-gopath.go
