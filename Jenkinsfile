@@ -17,14 +17,7 @@ node {
         error "This file can only run on unix-like systems."
     }
 
-    stage 'Prepare GOPATH'
-
-      def GOPATH = '/tmp/go'
-      def PACKAGE_NAME = 'github.com/almighty/almighty-core'
-      def PACKAGE_PATH = "${GOPATH}/src/${PACKAGE_NAME}"
-      sh "mkdir -pv ${PACKAGE_PATH}"
-      sh "mkdir -pv ${GOPATH}/bin"
-      sh "mkdir -pv ${GOPATH}/pkg"
+    def PACKAGE_NAME = 'github.com/almighty/almighty-core'
 
     stage 'Checkout from SCM'
 
@@ -43,7 +36,7 @@ node {
           // Specify a local directory (relative to the workspace root) where
           // the Git repository will be checked out.
           // If left empty, the workspace root itself will be used.
-          [$class: 'RelativeTargetDirectory', relativeTargetDir: "${PACKAGE_PATH}"]
+          [$class: 'RelativeTargetDirectory', relativeTargetDir: "go/src/${PACKAGE_NAME}"]
         ]
       ])
 
@@ -57,7 +50,13 @@ node {
     stage 'Build with builder container'
 
       builderImage.withRun {
-        env.GOPATH = "${GOPATH}"
+        // Setup GOPATH
+        env.GOPATH = "${env.WORKSPACE}/go"
+        def PACKAGE_PATH = "${env.GOPATH}/src/${PACKAGE_NAME}"
+        sh "mkdir -pv ${PACKAGE_PATH}"
+        sh "mkdir -pv ${env.GOPATH}/bin"
+        sh "mkdir -pv ${env.GOPATH}/pkg"
+
         sh 'cat /etc/redhat-release'
         sh 'go version'
         sh 'git --version'
