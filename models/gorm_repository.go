@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/models/criteria"
 )
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
@@ -158,6 +159,33 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, name
 	result, err := convertFromModel(*wiType, wi)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
+	}
+
+	return result, nil
+}
+
+func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start int, length int) ([]*app.WorkItem, error) {
+	where, parameters, err := Compile(criteria)
+	if err != nil {
+		return nil, BadParameterError{"expression", criteria}
+	}
+
+	var rows []WorkItem
+	if err := r.ts.tx.Where(where, parameters).Offset(start).Limit(length).Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make([]*app.WorkItem, len(rows))
+
+	for index, value := range rows {
+		var err error
+		wiType, err := loadTypeFromDB(value.Type)
+		if err != nil {
+			return nil, InternalError{simpleError{err.Error()}}
+		}
+		result[index], err = convertFromModel(*wiType, value)
+		if err != nil {
+			return nil, ConversionError{simpleError{err.Error()}}
+		}
 	}
 
 	return result, nil
