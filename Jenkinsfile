@@ -23,13 +23,19 @@ node {
     def builderImageTag = "almighty-core-builder-image:" + env.BRANCH_NAME + "-" + env.BUILD_NUMBER
     def builderImageDir = "jenkins/docker/builder"
     def builderImage = docker.build(builderImageTag, builderImageDir)
-    builderImage.inside {
+
+    stage 'build with container'
+    builderImage.withRun {
+        sh 'cat /etc/redhat-release'
+        sh 'go version'
+        sh 'git --version'
+        sh 'hg --version'
         sh 'glide --version'
-        // sh 'cat /etc/redhat-release'
-        // sh 'glide --version'
-        // sh 'go version'
-        // sh 'git --version'
-        // sh 'hg --version'
+
+        sh 'make deps'
+        sh 'make generate'
+        sh 'make build'
+        sh 'make test-unit'
     }
 
     // Can be used when executing downloaded glide tool

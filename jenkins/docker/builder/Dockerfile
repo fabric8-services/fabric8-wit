@@ -20,7 +20,7 @@ RUN dnf install -y \
 RUN cd /tmp \
     && wget https://github.com/Masterminds/glide/releases/download/v0.11.0/glide-v0.11.0-linux-amd64.tar.gz \
     && tar xvzf glide-v*.tar.gz \
-    && mv linux-amd64/glide /usr/bin \
+    && cp linux-amd64/glide /usr/bin \
     && rm -rfv glide-v* linux-amd64
 
 ENTRYPOINT ["/bin/bash"]
