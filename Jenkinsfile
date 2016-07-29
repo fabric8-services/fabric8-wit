@@ -3,29 +3,61 @@
 // Pipeline documentation: https://jenkins.io/doc/pipeline/
 // Groovy syntax reference: http://groovy-lang.org/syntax.html
 
-def projectDescription = '''
-This project is awesome.
-'''
-
 // Node executes on 64bit linux only
 //node('unix && 64bit') {
 node {
+
+  def err = null
+  currentBuild.result = FAILURE
+
+  try {
+
     // no longer needed if node ('linux && 64bit') was used...
     if (!isUnix()) {
         error "This file can only run on unix-like systems."
     }
 
-    stage 'checkout'
-    checkout scm
+    stage 'Prepare GOPATH'
 
-    // Build a custom docker image for building the project
-    stage 'create builder image'
-    def builderImageTag = "almighty-core-builder-image:" + env.BRANCH_NAME + "-" + env.BUILD_NUMBER
-    def builderImageDir = "jenkins/docker/builder"
-    def builderImage = docker.build(builderImageTag, builderImageDir)
+      def GOPATH = '/tmp/go'
+      def PACKAGE_NAME = 'github.com/almighty/almighty-core'
+      def PACKAGE_PATH = "${env.GOPATH}/src/${env.PACKAGE_NAME}"
+      sh "mkdir -pv ${PACKAGE_PATH}"
+      sh "mkdir -pv ${GOPATH}/bin"
+      sh "mkdir -pv ${GOPATH}/pkg"
 
-    stage 'build with container'
-    builderImage.withRun {
+    stage 'Checkout from SCM'
+
+      print "Will checkout from SCM into ${PACKAGE_PATH}"
+      checkout scm
+      checkout([
+        $class: 'GitSCM',
+        branches: [[
+          name: '*/' + env.BRANCH_NAME
+        ]],
+        extensions: [
+          [$class: 'LocalBranch', localBranch: env.BRANCH_NAME],
+          // Delete the contents of the workspace before building,
+          // ensuring a fully fresh workspace.
+          [$class: 'WipeWorkspace'],
+          // Specify a local directory (relative to the workspace root) where
+          // the Git repository will be checked out.
+          // If left empty, the workspace root itself will be used.
+          [$class: 'RelativeTargetDirectory', relativeTargetDir: "${PACKAGE_PATH}"]
+        ]
+      ])
+
+    stage 'Create builder image'
+
+      def builderImageTag = "almighty-core-builder-image:" + env.BRANCH_NAME + "-" + env.BUILD_NUMBER
+      // Path to where to find the builder's "Dockerfile"
+      def builderImageDir = "jenkins/docker/builder"
+      def builderImage = docker.build(builderImageTag, builderImageDir)
+
+    stage 'Build with builder container'
+
+      builderImage.withRun {
+        env.GOPATH = "${GOPATH}"
         sh 'cat /etc/redhat-release'
         sh 'go version'
         sh 'git --version'
@@ -36,22 +68,25 @@ node {
         sh 'make generate'
         sh 'make build'
         sh 'make test-unit'
-    }
 
-    // Can be used when executing downloaded glide tool
-    // withEnv(["PATH+MAVEN=${tool 'M3'}/bin"]) {
-    //   sh 'mvn -B verify'
-    // }
-    // or env.PATH = "${nodeHome}/bin:${env.PATH}"
+        // Add stage inside withRun {} and add a cleanup stage?
+      }
 
-    stage 'output branch name'
-    echo env.BRANCH_NAME
+    currentBuild.result = "SUCCESS"
 
-    stage 'docker tool'
-    // Ensure that the docker tool is installed somewhere accessible to Jenkins
-    def dockerTool = tool 'docker'
+  } catch (err) {
 
-    sh 'echo hello world'
+    def w = new StringWriter()
+    err.printStackTrace(new PrintWriter(w))
+
+    mail body: "project build error: ${err}" ,
+    from: 'admin@your-jenkins.com',
+    replyTo: 'noreply@your-jenkins.com',
+    subject: 'project build failed',
+    to: 'kkleine@redhat.com'
+
+    throw err
+  }
 }
 
 // Don't use "input" within a "node"
