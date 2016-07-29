@@ -9,10 +9,6 @@ set -e
 export PATH=$PATH:${GOPATH}/bin
 export GO15VENDOREXPERIMENT=1 
 
-make deps 
-
-make generate 
-
 make 
 
 make test-unit 
