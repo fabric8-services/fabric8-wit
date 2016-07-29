@@ -23,23 +23,24 @@ node {
     stage 'Checkout from SCM'
 
       print "Will checkout from SCM into ${checkoutDir}"
-      checkout scm
-      checkout([
-        $class: 'GitSCM',
-        // branches: [[
-        //   name: '*/' + env.BRANCH_NAME
-        // ]],
-        extensions: [
-          [$class: 'LocalBranch', localBranch: env.BRANCH_NAME],
-          // Delete the contents of the workspace before building,
-          // ensuring a fully fresh workspace.
-          [$class: 'WipeWorkspace'],
-          // Specify a local directory (relative to the workspace root) where
-          // the Git repository will be checked out.
-          // If left empty, the workspace root itself will be used.
-          [$class: 'RelativeTargetDirectory', relativeTargetDir: "${checkoutDir}"]
-        ]
-      ])
+      //checkout scm
+      checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "*/${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'WipeWorkspace'], [$class: 'RelativeTargetDirectory', relativeTargetDir: "go/src/${PACKAGE_NAME}"]], submoduleCfg: [], userRemoteConfigs: [[]]]
+      //checkout([
+      //  $class: 'GitSCM',
+      //  // branches: [[
+      //  //   name: '*/' + env.BRANCH_NAME
+      //  // ]],
+      //  extensions: [
+      //    [$class: 'LocalBranch', localBranch: env.BRANCH_NAME],
+      //    // Delete the contents of the workspace before building,
+      //    // ensuring a fully fresh workspace.
+      //    [$class: 'WipeWorkspace'],
+      //    // Specify a local directory (relative to the workspace root) where
+      //    // the Git repository will be checked out.
+      //    // If left empty, the workspace root itself will be used.
+      //    [$class: 'RelativeTargetDirectory', relativeTargetDir: "${checkoutDir}"]
+      //  ]
+      //])
 
     stage 'Create builder image'
 
