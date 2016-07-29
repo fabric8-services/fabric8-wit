@@ -18,29 +18,33 @@ node {
     }
 
     def PACKAGE_NAME = 'github.com/almighty/almighty-core'
-    def checkoutDir = "go/src/${PACKAGE_NAME}"
 
     stage 'Checkout from SCM'
 
-      print "Will checkout from SCM into ${checkoutDir}"
-      //checkout scm
-      checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "*/${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'WipeWorkspace'], [$class: 'RelativeTargetDirectory', relativeTargetDir: "go/src/${PACKAGE_NAME}"]], submoduleCfg: []]
-      //checkout([
-      //  $class: 'GitSCM',
-      //  // branches: [[
-      //  //   name: '*/' + env.BRANCH_NAME
-      //  // ]],
-      //  extensions: [
-      //    [$class: 'LocalBranch', localBranch: env.BRANCH_NAME],
-      //    // Delete the contents of the workspace before building,
-      //    // ensuring a fully fresh workspace.
-      //    [$class: 'WipeWorkspace'],
-      //    // Specify a local directory (relative to the workspace root) where
-      //    // the Git repository will be checked out.
-      //    // If left empty, the workspace root itself will be used.
-      //    [$class: 'RelativeTargetDirectory', relativeTargetDir: "${checkoutDir}"]
-      //  ]
-      //])
+      def checkoutDir = "go/src/${PACKAGE_NAME}"
+      sh "mkdir -pv ${checkoutDir}"
+
+      dir ("${checkoutDir}") {
+
+        checkout scm
+
+        //checkout([
+        //  $class: 'GitSCM',
+        //  // branches: [[
+        //  //   name: '*/' + env.BRANCH_NAME
+        //  // ]],
+        //  extensions: [
+        //    [$class: 'LocalBranch', localBranch: env.BRANCH_NAME],
+        //    // Delete the contents of the workspace before building,
+        //    // ensuring a fully fresh workspace.
+        //    [$class: 'WipeWorkspace'],
+        //    // Specify a local directory (relative to the workspace root) where
+        //    // the Git repository will be checked out.
+        //    // If left empty, the workspace root itself will be used.
+        //    [$class: 'RelativeTargetDirectory', relativeTargetDir: "${checkoutDir}"]
+        //  ]
+        //])
+      }
 
     stage 'Create builder image'
 
@@ -65,15 +69,17 @@ node {
         sh 'hg --version'
         sh 'glide --version'
 
-        sh 'make deps'
-        sh 'make generate'
-        sh 'make build'
-        sh 'make test-unit'
+        dir ("${PACKAGE_PATH}") {
+          sh 'make deps'
+          sh 'make generate'
+          sh 'make build'
+          sh 'make test-unit'
+        }
 
         // Add stage inside withRun {} and add a cleanup stage?
       }
 
-    currentBuild.result = "SUCCESS"
+    //currentBuild.result = "SUCCESS"
 
   //} catch (e) {
 
