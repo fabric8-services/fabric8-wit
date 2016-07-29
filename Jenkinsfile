@@ -26,9 +26,9 @@ node {
       checkout scm
       checkout([
         $class: 'GitSCM',
-        branches: [[
-          name: '*/' + env.BRANCH_NAME
-        ]],
+        // branches: [[
+        //   name: '*/' + env.BRANCH_NAME
+        // ]],
         extensions: [
           [$class: 'LocalBranch', localBranch: env.BRANCH_NAME],
           // Delete the contents of the workspace before building,
