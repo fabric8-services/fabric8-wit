@@ -18,10 +18,11 @@ node {
     }
 
     def PACKAGE_NAME = 'github.com/almighty/almighty-core'
+    def checkoutDir = "go/src/${PACKAGE_NAME}"
 
     stage 'Checkout from SCM'
 
-      print "Will checkout from SCM into ${PACKAGE_PATH}"
+      print "Will checkout from SCM into ${checkoutDir}"
       checkout scm
       checkout([
         $class: 'GitSCM',
@@ -36,7 +37,7 @@ node {
           // Specify a local directory (relative to the workspace root) where
           // the Git repository will be checked out.
           // If left empty, the workspace root itself will be used.
-          [$class: 'RelativeTargetDirectory', relativeTargetDir: "go/src/${PACKAGE_NAME}"]
+          [$class: 'RelativeTargetDirectory', relativeTargetDir: "${checkoutDir}"]
         ]
       ])
 
