@@ -57,11 +57,12 @@ node {
 
       builderImage.withRun {
         // Setup GOPATH
-        env.GOPATH = "${env.WORKSPACE}/go"
-        def PACKAGE_PATH = "${env.GOPATH}/src/${PACKAGE_NAME}"
+        def currentDir = pwd()
+        def GOPATH = "${currentDir}/go"
+        def PACKAGE_PATH = "${GOPATH}/src/${PACKAGE_NAME}"
         sh "mkdir -pv ${PACKAGE_PATH}"
-        sh "mkdir -pv ${env.GOPATH}/bin"
-        sh "mkdir -pv ${env.GOPATH}/pkg"
+        sh "mkdir -pv ${GOPATH}/bin"
+        sh "mkdir -pv ${GOPATH}/pkg"
 
         sh 'cat /etc/redhat-release'
         sh 'go version'
@@ -70,9 +71,19 @@ node {
         sh 'glide --version'
 
         dir ("${PACKAGE_PATH}") {
+
+          env.GOPATH = "${GOPATH}"
+
+          stage "fetch dependencies"
           sh 'make deps'
+
+          stage "generate code"
           sh 'make generate'
+
+          stage "build"
           sh 'make build'
+
+          stage "unit tests"
           sh 'make test-unit'
         }
 
