@@ -26,6 +26,23 @@ var _ = Resource("workitem", func() {
 		Response(NotFound)
 	})
 
+	Action("list", func() {
+		Routing(
+			GET(""),
+		)
+		Description("List work items.")
+		Params(func() {
+			Param("filter", String, "a query language expression restricting the set of found items")
+		})
+		Response(OK, func() {
+			Media(CollectionOf(WorkItem))
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+	})
+
 	Action("create", func() {
 		Routing(
 			POST(""),

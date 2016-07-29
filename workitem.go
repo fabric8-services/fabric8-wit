@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/goadesign/goa"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/transaction"
 )
 
@@ -40,6 +42,21 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			}
 		}
 		return ctx.OK(wi)
+	})
+}
+
+// List runs the list action
+func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
+	exp, err := query.Parse(ctx.Filter)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
+	}
+	return transaction.Do(c.ts, func() error {
+		result, err := c.wiRepository.List(ctx.Context, exp, 0, 100)
+		if err != nil {
+			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
+		}
+		return ctx.OK(result)
 	})
 }
 
