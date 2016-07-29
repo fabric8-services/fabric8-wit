@@ -7,10 +7,10 @@
 //node('unix && 64bit') {
 node {
 
-  def err = null
-  currentBuild.result = FAILURE
+  //def err = null
+  //currentBuild.result = FAILURE
 
-  try {
+  // try {
 
     // no longer needed if node ('linux && 64bit') was used...
     if (!isUnix()) {
@@ -74,19 +74,19 @@ node {
 
     currentBuild.result = "SUCCESS"
 
-  } catch (err) {
+  //} catch (e) {
 
-    def w = new StringWriter()
-    err.printStackTrace(new PrintWriter(w))
+  //  def w = new StringWriter()
+  //  err.printStackTrace(new PrintWriter(w))
 
-    mail body: "project build error: ${err}" ,
-    from: 'admin@your-jenkins.com',
-    replyTo: 'noreply@your-jenkins.com',
-    subject: 'project build failed',
-    to: 'kkleine@redhat.com'
+  //  mail body: "project build error: ${err}" ,
+  //  from: 'admin@your-jenkins.com',
+  //  replyTo: 'noreply@your-jenkins.com',
+  //  subject: 'project build failed',
+  //  to: 'kkleine@redhat.com'
 
-    throw err
-  }
+  //  throw err
+  //}
 }
 
 // Don't use "input" within a "node"
