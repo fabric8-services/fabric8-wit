@@ -24,7 +24,7 @@ node {
 
       print "Will checkout from SCM into ${checkoutDir}"
       //checkout scm
-      checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "*/${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'WipeWorkspace'], [$class: 'RelativeTargetDirectory', relativeTargetDir: "go/src/${PACKAGE_NAME}"]], submoduleCfg: [], userRemoteConfigs: [[]]]
+      checkout changelog: false, poll: false, scm: [$class: 'GitSCM', branches: [[name: "*/${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'WipeWorkspace'], [$class: 'RelativeTargetDirectory', relativeTargetDir: "go/src/${PACKAGE_NAME}"]], submoduleCfg: []]
       //checkout([
       //  $class: 'GitSCM',
       //  // branches: [[
