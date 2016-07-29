@@ -21,7 +21,7 @@ node {
 
       def GOPATH = '/tmp/go'
       def PACKAGE_NAME = 'github.com/almighty/almighty-core'
-      def PACKAGE_PATH = "${env.GOPATH}/src/${env.PACKAGE_NAME}"
+      def PACKAGE_PATH = "${GOPATH}/src/${PACKAGE_NAME}"
       sh "mkdir -pv ${PACKAGE_PATH}"
       sh "mkdir -pv ${GOPATH}/bin"
       sh "mkdir -pv ${GOPATH}/pkg"
