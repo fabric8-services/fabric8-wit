@@ -23,23 +23,23 @@ var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case String, URL, User:
+	case KindString, KindURL, KindUser:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
-	case Integer, Float, Duration:
+	case KindInteger, KindFloat, KindDuration:
 		// instant == milliseconds
 		if valueType.Kind() != reflect.Float64 {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
 		}
 		return value, nil
-	case Instant:
+	case KindInstant:
 		if !valueType.Implements(timeType) {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
 		return value.(time.Time).UnixNano(), nil
-	case WorkitemReference:
+	case KindWorkitemReference:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
@@ -55,11 +55,11 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case String, URL, User, Integer, Float, Duration:
+	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration:
 		return value, nil
-	case Instant:
+	case KindInstant:
 		return time.Unix(0, value.(int64)), nil
-	case WorkitemReference:
+	case KindWorkitemReference:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}

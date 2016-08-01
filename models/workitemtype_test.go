@@ -10,9 +10,9 @@ import (
 func TestJsonMarshalListType(t *testing.T) {
 	lt := ListType{
 		SimpleType: SimpleType{
-			List},
+			KindList},
 		ComponentType: SimpleType{
-			Integer},
+			KindInteger},
 	}
 
 	field := FieldDefinition{
@@ -42,7 +42,7 @@ func TestJsonMarshalListType(t *testing.T) {
 
 func TestMarshalEnumType(t *testing.T) {
 	et := EnumType{
-		SimpleType: SimpleType{Enum},
+		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
 	fd := FieldDefinition{
@@ -70,7 +70,7 @@ func TestMarshalEnumType(t *testing.T) {
 
 func TestMarshalFieldDef(t *testing.T) {
 	et := EnumType{
-		SimpleType: SimpleType{Enum},
+		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
 	fd := FieldDefinition{
@@ -92,7 +92,7 @@ func TestMarshalFieldDef(t *testing.T) {
 
 func TestMarshalRawEnum(t *testing.T) {
 	ret := rawEnumType{
-		BaseType: SimpleType{Kind: Integer},
+		BaseType: SimpleType{Kind: KindInteger},
 		Values:   []interface{}{float64(2), float64(4), float64(4)},
 	}
 

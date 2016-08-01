@@ -8,16 +8,16 @@ import (
 
 // constants for describing possible field types
 const (
-	String            Kind = 1
-	Integer           Kind = 2
-	Float             Kind = 3
-	Instant           Kind = 4
-	Duration          Kind = 5
-	URL               Kind = 6
-	WorkitemReference Kind = 7
-	User              Kind = 8
-	Enum              Kind = 9
-	List              Kind = 10
+	KindString            Kind = 1
+	KindInteger           Kind = 2
+	KindFloat             Kind = 3
+	KindInstant           Kind = 4
+	KindDuration          Kind = 5
+	KindURL               Kind = 6
+	KindWorkitemReference Kind = 7
+	KindUser              Kind = 8
+	KindEnum              Kind = 9
+	KindList              Kind = 10
 )
 
 // Kind is the kind of field type
@@ -92,7 +92,7 @@ func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	}
 
 	switch temp.Type.Kind {
-	case List:
+	case KindList:
 		var baseType SimpleType
 		err = json.Unmarshal(*temp.Type.Extra, &baseType)
 		if err != nil {
@@ -100,7 +100,7 @@ func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 		}
 		theType := ListType{SimpleType: SimpleType{Kind: temp.Type.Kind}, ComponentType: baseType}
 		*self = FieldDefinition{Type: theType, Required: temp.Required}
-	case Enum:
+	case KindEnum:
 		var extraInfo rawEnumType
 		err = json.Unmarshal(*temp.Type.Extra, &extraInfo)
 		if err != nil {
