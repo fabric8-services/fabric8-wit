@@ -13,7 +13,7 @@ make deps
 
 make generate 
 
-make 
+make build
 
 make test-unit 
 
