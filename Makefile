@@ -121,5 +121,4 @@ $(CHECK_GOPATH_BIN): .make/check-gopath.go
 ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
-	# Check that the code is located in $GOPATH/src/github.com/almighty/almighty-core
 	go build .make/check-gopath.go
