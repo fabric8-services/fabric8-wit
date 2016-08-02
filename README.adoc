@@ -7,7 +7,12 @@ image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link=
 
 === Prerequisites [[prerequisites]]
 
-You need to install `go` (>= v1.6) and `git` and `mercurial`.
+You need to install:
+
+* `go` (>= v1.6)
+* `git`
+* `mercurial`
+* `make`
 
 ==== Check your Go version [[check-go-version]]
 
