@@ -55,9 +55,6 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
-.PHONY: clean
-clean: $(CLEAN_TARGETS)
-
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
 clean-artifacts:
@@ -133,3 +130,7 @@ ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
 	go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
+
+# Keep this "clean" target here at the bottom
+.PHONY: clean
+clean: $(CLEAN_TARGETS)
