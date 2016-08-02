@@ -108,12 +108,12 @@ test-unit: prebuild-check
 test-integration: prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration
 
-$(INSTALL_DIR):
+$(INSTALL_PREFIX):
 # Build artifacts dir
-	mkdir -pv $(INSTALL_DIR)
+	mkdir -pv $(INSTALL_PREFIX)
 
 .PHONY: prebuild-check
-prebuild-check: $(INSTALL_DIR) $(CHECK_GOPATH_BIN)
+prebuild-check: $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
