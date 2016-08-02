@@ -1,7 +1,3 @@
-/alm
-/alm-cli
-/alm.exe
-/alm-cli.exe
 /tmp
 /.vscode
 /.project
@@ -22,9 +18,8 @@ client/
 swagger/
 tool/cli/
 
-# Ignore GOPATH sanity check program
-/check-gopath
-/check-gopath.exe
+# Ignore artifacts directory
+bin/
 
 # Ignore Go coverage files
 **/coverage-unit.out
