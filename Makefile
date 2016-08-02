@@ -51,8 +51,8 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
-$(GO_JUNIT_REPORT_BIN):
-	cd $(VENDOR)/github.com/jstemmer/go-junit-report && go build -v
+$(GO_JUNIT_REPORT_BIN): prebuild-check
+	cd $(VENDOR_DIR)/github.com/jstemmer/go-junit-report && go build -v
 
 .PHONY: clean
 clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache
@@ -104,11 +104,11 @@ test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
 test-unit: prebuild-check $(GO_JUNIT_REPORT_BIN)
-	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out | $(GO_JUNIT_REPORT_BIN) > coverage-unit.xml
+	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out | $(GO_JUNIT_REPORT_BIN) > junit-report-unit.xml
 
 .PHONY: test-integration
 test-integration: prebuild-check $(GO_JUNIT_REPORT_BIN)
-	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration | $(GO_JUNIT_REPORT_BIN) > coverage-integration.xml
+	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration | $(GO_JUNIT_REPORT_BIN) > junit-report-integration.xml
 
 $(INSTALL_PREFIX):
 # Build artifacts dir
