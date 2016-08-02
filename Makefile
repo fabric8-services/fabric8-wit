@@ -26,6 +26,9 @@ BUILD_TIME=`date -u '+%Y-%m-%d_%I:%M:%S%p'`
 
 PACKAGE_NAME:=github.com/almighty/almighty-core
 
+# For the global "clean" target all targets in this variable will be executed
+CLEAN_TARGETS =
+
 # Pass in build time variables to main
 LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
@@ -53,16 +56,19 @@ $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 .PHONY: clean
-clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache clean-test-artifacts-unit clean-test-artifacts-integration
+clean: $(CLEAN_TARGETS)
 
+CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
 clean-artifacts:
 	rm -rf $(INSTALL_PREFIX)
 
+CLEAN_TARGETS += clean-object-files
 .PHONY: clean-object-files
 clean-object-files:
 	go clean ./...
 
+CLEAN_TARGETS += clean-generated
 .PHONY: clean-generated
 clean-generated:
 	rm -rfv ./app
@@ -72,10 +78,12 @@ clean-generated:
 	rm -rfv ./tool/cli/
 	rm -fv ./bindata_assetfs.go
 
+CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
 clean-vendor:
 	rm -rf $(VENDOR_DIR)
 
+CLEAN_TARGETS += clean-glide-cache
 .PHONY: clean-glide-cache
 clean-glide-cache:
 	rm -rf ./.glide
