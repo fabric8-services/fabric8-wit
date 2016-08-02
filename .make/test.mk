@@ -96,7 +96,7 @@ show-coverage-unit-html: prebuild-check $(COVERAGE_UNIT_PATH)
 
 .PHONY: show-coverage-integration-func
 show-coverage-integration-func: prebuild-check $(COVERAGE_INTEGRATION_PATH)
-	go tool cover -func=$(COVERAGE_UNIT_PATH)
+	go tool cover -func=$(COVERAGE_INTEGRATION_PATH)
 
 .PHONY: show-coverage-integration-html
 show-coverage-integration-html: prebuild-check $(COVERAGE_INTEGRATION_PATH)
