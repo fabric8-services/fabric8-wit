@@ -22,5 +22,5 @@ tool/cli/
 bin/
 
 # Ignore Go coverage files
-**/coverage-unit.out
-**/coverage-integration.out
+**/coverage-*.out
+**/coverage-*.out
