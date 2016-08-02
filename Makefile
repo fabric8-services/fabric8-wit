@@ -24,17 +24,45 @@ CLIENT_DIR=tool/alm-cli
 COMMIT=`git rev-parse HEAD`
 BUILD_TIME=`date -u '+%Y-%m-%d_%I:%M:%S%p'`
 
-PACKAGE_NAME:=github.com/almighty/almighty-core
+PACKAGE_NAME := github.com/almighty/almighty-core
 
 # Pass in build time variables to main
 LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
+## Default target - fetch dependencies, generate code and build
 all: prebuild-check deps generate build
 
+.PHONY: help
+# Based on https://gist.github.com/rcmachado/af3db315e31383502660
+## Display this help text
+help:
+	$(info Available targets)
+	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
+		helpMessage = match(lastLine, /^## (.*)/); \
+		helpCommand = substr($$1, 0, index($$1, ":")-1); \
+		if (helpMessage) { \
+			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
+			gsub(/##/, "\n                    ", helpMessage); \
+		} else { \
+			helpMessage = "No documentation."; \
+		} \
+		printf "%-20s %s\n", helpCommand, helpMessage; \
+		lastLine = "" \
+	} \
+	{ hasComment = match(lastLine, /^## (.*)/); \
+          if(hasComment) { \
+            lastLine=lastLine$$0; \
+	  } \
+          else { \
+	    lastLine = $$0 \
+          } \
+        }' $(MAKEFILE_LIST)
+
 .PHONY: build
-build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN)
+## Build server and client
+build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
 
 $(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
 	go build -v ${LDFLAGS} -o ${BINARY_SERVER_BIN}
@@ -53,6 +81,7 @@ $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 .PHONY: clean
+## Removes all downloaded dependencies, all generated code and compiled artifacts.
 clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache
 
 .PHONY: clean-artifacts
@@ -80,12 +109,13 @@ clean-vendor:
 clean-glide-cache:
 	rm -rf ./.glide
 
-# This will download the dependencies
 .PHONY: deps
+## Download build dependencies
 deps: prebuild-check
 	$(GLIDE_BIN) install
 
 .PHONY: generate
+## Generate GOA sources. Only necessary after clean of if changed `design` folder.
 generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
@@ -98,13 +128,16 @@ dev: prebuild-check $(FRESH_BIN)
 	$(FRESH_BIN)
 
 .PHONY: test-all
+## Runs all unit and integration tests (requires database running)
 test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
+## Runs all unit-tests
 test-unit: prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out
 
 .PHONY: test-integration
+## Runs all integration tests (you need to have database runnig for this to work)
 test-integration: prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration
 
