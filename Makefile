@@ -1,3 +1,6 @@
+PROJECT_HOME := $(shell pwd)
+BIN_DIR := ${PROJECT_HOME}/bin
+
 VENDOR_DIR=vendor
 ifeq ($(OS),Windows_NT)
 include ./.make/Makefile.win
@@ -34,10 +37,10 @@ all: prebuild-check deps generate build
 build: prebuild-check $(BINARY_SERVER) $(BINARY_CLIENT)
 
 $(BINARY_SERVER): prebuild-check $(SOURCES)
-	go build -v ${LDFLAGS} -o ${BINARY_SERVER}
+	go build -v ${LDFLAGS} -o ${BIN_DIR}/${BINARY_SERVER}
 
 $(BINARY_CLIENT): prebuild-check $(SOURCES)
-	cd ${CLIENT_DIR} && go build -v -o ../../${BINARY_CLIENT}
+	cd ${CLIENT_DIR} && go build -v -o ${BIN_DIR}/${BINARY_CLIENT}
 
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): prebuild-check
@@ -55,8 +58,7 @@ clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
 
 .PHONY: clean-artifacts
 clean-artifacts:
-	rm -fv $(BINARY_SERVER)
-	rm -fv $(BINARY_CLIENT)
+	rm -rfv $(BIN_DIR)
 
 .PHONY: clean-generated
 clean-generated:
@@ -121,4 +123,4 @@ $(CHECK_GOPATH_BIN): .make/check-gopath.go
 ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
-	go build .make/check-gopath.go
+	go build -o ${BIN_DIR}/make/check-gopath .make/check-gopath.go

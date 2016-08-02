@@ -12,4 +12,4 @@ GLIDE_BIN_NAME := glide
 GO_BIN_NAME := go
 HG_BIN_NAME := hg
 
-CHECK_GOPATH_BIN := ./check-gopath
+CHECK_GOPATH_BIN := ${BIN_DIR}/make/check-gopath
