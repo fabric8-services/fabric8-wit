@@ -102,15 +102,38 @@ show-coverage-integration-func: prebuild-check $(COVERAGE_INTEGRATION_PATH)
 show-coverage-integration-html: prebuild-check $(COVERAGE_INTEGRATION_PATH)
 	go tool cover -html=$(COVERAGE_INTEGRATION_PATH)
 
+.PHONY: gocov-unit-annotate
+gocov-unit-annotate: prebuild-check $(GOCOV_BIN) $(COVERAGE_UNIT_PATH)
+	$(GOCOV_BIN) convert $(COVERAGE_UNIT_PATH) | $(GOCOV_BIN) annotate -
+
+.PHONY: gocov-unit-report
+gocov-unit-report: prebuild-check $(GOCOV_BIN) $(COVERAGE_UNIT_PATH)
+	$(GOCOV_BIN) convert $(COVERAGE_UNIT_PATH) | $(GOCOV_BIN) report
+
+.PHONY: gocov-integration-annotate
+gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COVERAGE_INTEGRATION_PATH)
+	$(GOCOV_BIN) convert $(COVERAGE_INTEGRATION_PATH) | $(GOCOV_BIN) annotate -
+
+.PHONY: gocov-integration-report
+gocov-integration-report: prebuild-check $(GOCOV_BIN) $(COVERAGE_INTEGRATION_PATH)
+	$(GOCOV_BIN) convert $(COVERAGE_INTEGRATION_PATH) | $(GOCOV_BIN) report
+
 #-------------------------------------------------------------------------------
 # Test artifacts are two coverage files for unit and integration tests.
 #-------------------------------------------------------------------------------
 
-$(COVERAGE_UNIT_PATH):
+$(COVERAGE_UNIT_PATH): prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -coverprofile $(COVERAGE_UNIT_PATH) -covermode=$(COVERAGE_MODE)
 
-$(COVERAGE_INTEGRATION_PATH):
+$(COVERAGE_INTEGRATION_PATH): prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile $(COVERAGE_INTEGRATION_PATH) -covermode=$(COVERAGE_MODE) -tags=integration
+
+#-------------------------------------------------------------------------------
+# Additional tools
+#-------------------------------------------------------------------------------
+
+$(GOCOV_BIN): prebuild-check
+	cd $(VENDOR_DIR)/github.com/axw/gocov/gocov/ && go build -v
 
 #-------------------------------------------------------------------------------
 # Clean targets
