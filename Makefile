@@ -41,13 +41,24 @@ help:
 	$(info Available targets)
 	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
 		helpMessage = match(lastLine, /^## (.*)/); \
+		helpCommand = substr($$1, 0, index($$1, ":")-1); \
 		if (helpMessage) { \
-			helpCommand = substr($$1, 0, index($$1, ":")-1); \
 			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
-			printf "%-15s %s\n", helpCommand, helpMessage; \
+			gsub(/##/, "\n                    ", helpMessage); \
+		} else { \
+			helpMessage = "No documentation."; \
 		} \
+		printf "%-20s %s\n", helpCommand, helpMessage; \
+		lastLine = "" \
 	} \
-	{ lastLine = $$0 }' $(MAKEFILE_LIST)
+	{ hasComment = match(lastLine, /^## (.*)/); \
+          if(hasComment) { \
+            lastLine=lastLine$$0; \
+	  } \
+          else { \
+	    lastLine = $$0 \
+          } \
+        }' $(MAKEFILE_LIST)
 
 .PHONY: build
 ## Build server and client
