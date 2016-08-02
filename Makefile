@@ -1,3 +1,5 @@
+CUR_DIR=$(shell pwd)
+INSTALL_PREFIX=$(CUR_DIR)/bin
 VENDOR_DIR=vendor
 ifeq ($(OS),Windows_NT)
 include ./.make/Makefile.win
@@ -8,6 +10,7 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -31,13 +34,13 @@ LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 all: prebuild-check deps generate build
 
 .PHONY: build
-build: prebuild-check $(BINARY_SERVER) $(BINARY_CLIENT)
+build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN)
 
-$(BINARY_SERVER): prebuild-check $(SOURCES)
-	go build -v ${LDFLAGS} -o ${BINARY_SERVER}
+$(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
+	go build -v ${LDFLAGS} -o ${BINARY_SERVER_BIN}
 
-$(BINARY_CLIENT): prebuild-check $(SOURCES)
-	cd ${CLIENT_DIR} && go build -v -o ../../${BINARY_CLIENT}
+$(BINARY_CLIENT_BIN): prebuild-check $(SOURCES)
+	cd ${CLIENT_DIR}/ && go build -v -o ${BINARY_CLIENT_BIN}
 
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): prebuild-check
@@ -50,13 +53,15 @@ $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 .PHONY: clean
-clean: clean-artifacts clean-generated clean-vendor clean-glide-cache
-	rm -fv check-gopath
+clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache
 
 .PHONY: clean-artifacts
 clean-artifacts:
-	rm -fv $(BINARY_SERVER)
-	rm -fv $(BINARY_CLIENT)
+	rm -rf $(INSTALL_PREFIX)
+
+.PHONY: clean-object-files
+clean-object-files:
+	go clean ./...
 
 .PHONY: clean-generated
 clean-generated:
@@ -103,8 +108,12 @@ test-unit: prebuild-check
 test-integration: prebuild-check
 	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration
 
+$(INSTALL_DIR):
+# Build artifacts dir
+	mkdir -pv $(INSTALL_DIR)
+
 .PHONY: prebuild-check
-prebuild-check: $(CHECK_GOPATH_BIN)
+prebuild-check: $(INSTALL_DIR) $(CHECK_GOPATH_BIN)
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
@@ -121,4 +130,4 @@ $(CHECK_GOPATH_BIN): .make/check-gopath.go
 ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
-	go build .make/check-gopath.go
+	go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
