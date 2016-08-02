@@ -11,7 +11,6 @@ SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
-
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
@@ -53,7 +52,7 @@ $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 .PHONY: clean
-clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache
+clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache clean-test-artifacts-unit clean-test-artifacts-integration
 
 .PHONY: clean-artifacts
 clean-artifacts:
@@ -97,16 +96,7 @@ dev: prebuild-check $(FRESH_BIN)
 	docker-compose up -d
 	$(FRESH_BIN)
 
-.PHONY: test-all
-test-all: prebuild-check test-unit test-integration
-
-.PHONY: test-unit
-test-unit: prebuild-check
-	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out
-
-.PHONY: test-integration
-test-integration: prebuild-check
-	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration
+include ./.make/test.mk
 
 $(INSTALL_PREFIX):
 # Build artifacts dir
