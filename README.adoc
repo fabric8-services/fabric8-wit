@@ -9,6 +9,13 @@ image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link=
 
 You need to install `go` (>= v1.6) and `git` and `mercurial`.
 
+NOTE: For those trying to build on Windows. This readme uses posix
+style paths (`/src/github`) and environment variable references
+(`$GOPATH`).  If using Windows shells please manually convert paths and
+variables to the right format, i.e. `\src\github\` and for environment variables on
+PowerShell use `$env:GOPATH` and cmd.exe use `%GOPATH%`). 
+
+
 ==== Check your Go version [[check-go-version]]
 
 Run the following command to find out your Go version.
