@@ -1,5 +1,5 @@
-hash: bf9c7ad1a0c9daf3e328bcb6f32551f31ef523f8040eff7ee2f7f094fd2b9fb0
-updated: 2016-07-15T16:28:35.5199922+02:00
+hash: e87f106a162122e39f0525366a5715553c3233b6524e3afe36a266850609c70f
+updated: 2016-08-02T11:12:18.028575125+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -16,7 +16,7 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/goadesign/goa
-  version: 5302bd3d37e5be39803f4cd2d814b548952f23ea
+  version: 90e6c399f49c4125bbadf91eaa60156b9aa2a65e
   vcs: git
   subpackages:
   - client
@@ -42,6 +42,8 @@ imports:
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
 - name: github.com/jinzhu/inflection
   version: 8f4d3a0d04ce0b7c0cf3126fb98524246d00d102
+- name: github.com/jstemmer/go-junit-report
+  version: 833f8ea2b99d36d5f018698333834f3df200a0c2
 - name: github.com/jteeuwen/go-bindata
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
   subpackages:
