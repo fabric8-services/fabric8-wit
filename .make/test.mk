@@ -140,10 +140,12 @@ $(GOCOV_BIN): prebuild-check
 # Clean targets
 #-------------------------------------------------------------------------------
 
+CLEAN_TARGETS += clean-test-artifacts-unit
 .PHONY: clean-test-artifacts-unit
 clean-test-artifacts-unit:
 	rm -f $(COVERAGE_UNIT_PATH)
 
+CLEAN_TARGETS += clean-test-artifacts-integration
 .PHONY: clean-test-artifacts-integration
 clean-test-artifacts-integration:
 	rm -f $(COVERAGE_INTEGRATION_PATH)
