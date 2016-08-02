@@ -104,11 +104,13 @@ test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
 test-unit: prebuild-check $(GO_JUNIT_REPORT_BIN)
-	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out | $(GO_JUNIT_REPORT_BIN) > junit-report-unit.xml
+	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out | tee test-results-unit.out
+	cat test-results-unit.out | $(GO_JUNIT_REPORT_BIN) > junit-report-unit.xml
 
 .PHONY: test-integration
 test-integration: prebuild-check $(GO_JUNIT_REPORT_BIN)
-	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration | $(GO_JUNIT_REPORT_BIN) > junit-report-integration.xml
+	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration | tee test-results-integration.out
+	cat test-results-integration.out | $(GO_JUNIT_REPORT_BIN) > junit-report-integration.xml
 
 $(INSTALL_PREFIX):
 # Build artifacts dir
