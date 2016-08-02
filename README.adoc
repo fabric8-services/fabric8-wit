@@ -57,10 +57,16 @@ Try to use at least version `0.11.0` as we haven't tested another version.
 Assuming you have Go installed and configured (have `$GOPATH` setup) here is
 how to build.
 
-Check out the code
+Check out the code. On Linux or Mac:
 
 ----
 $ git clone https://github.com/almighty/almighty-core $GOPATH/src/github.com/almighty/almighty-core
+----
+
+On Windows PowerShell:
+
+----
+$ git clone https://github.com/almighty/almighty-core $env:GOPATH\src\github.com\almighty\almighty-core
 ----
 
 === Build [[build]]
