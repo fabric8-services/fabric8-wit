@@ -1,5 +1,5 @@
-hash: 86187cd3848f5cb221d65bf00d29cda14fadbbd42407383ce3d4eb6d4bccc21a
-updated: 2016-08-02T12:37:31.749206663+02:00
+hash: 3b5f30fa361f5f7beda674444bef185f6cb28936afeacbc7ece69f533c239db9
+updated: 2016-08-02T12:42:21.983224768+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -16,7 +16,7 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/goadesign/goa
-  version: 5302bd3d37e5be39803f4cd2d814b548952f23ea
+  version: 90e6c399f49c4125bbadf91eaa60156b9aa2a65e
   vcs: git
   subpackages:
   - client

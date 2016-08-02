@@ -21,7 +21,7 @@ func main() {
 
 	// Create client struct
 	httpClient := newHTTPClient()
-	c := client.New(httpClient)
+	c := client.New(goaclient.HTTPClientDoer(httpClient))
 
 	// Register global flags
 	app.PersistentFlags().StringVarP(&c.Scheme, "scheme", "s", "", "Set the requests scheme")
