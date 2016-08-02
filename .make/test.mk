@@ -25,11 +25,11 @@
 #
 #     $ make test-all
 #
-# To show unit test coverage in a terminal, type
+# To output coverage profile information for each function, type
 #
 #     $ make show-coverage-unit-func
 #
-# To show unit test coverage in a browser, type
+# To generate HTML representation of coverage profile (opens a browser), type
 #
 #     $ make show-coverage-unit-html
 #
@@ -56,9 +56,10 @@
 #     $ COVERAGE_MODE=count make test-unit
 #===============================================================================
 
+# mode can be: set, count, or atomic
 COVERAGE_MODE ?= set
-COVERAGE_UNIT_PATH=coverage-unit-mode-$(COVERAGE_MODE).out
-COVERAGE_INTEGRATION_PATH=coverage-integration-mode-$(COVERAGE_MODE).out
+COVERAGE_UNIT_PATH=$(TMP_PATH)/coverage-unit-mode-$(COVERAGE_MODE).out
+COVERAGE_INTEGRATION_PATH=$(TMP_PATH)/coverage-integration-mode-$(COVERAGE_MODE).out
 
 #-------------------------------------------------------------------------------
 # Normal test targets
