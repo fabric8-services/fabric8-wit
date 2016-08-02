@@ -7,7 +7,6 @@ atlassian-ide-plugin.xml
 
 ### Eclipse ###
 .metadata
-bin/
 tmp/
 *.tmp
 *.bak
@@ -61,17 +60,15 @@ _testmain.go
 *.prof
 
 # ALMighty specific artifacts
-/alm
-/alm-cli
-/alm.exe
-/alm-cli.exe
 /debug
 **/debug.test
 
+# ALMighty binaries
+bin/
 
 # Glide package manager
 .glide
-vendor
+vendor/
 
 # Generated assets
 app/
@@ -80,10 +77,6 @@ bindata_assetfs.go
 client/
 swagger/
 tool/cli/
-
-# Ignore GOPATH sanity check program
-/check-gopath
-/check-gopath.exe
 
 # Ignore Go coverage files
 **/coverage-unit.out
