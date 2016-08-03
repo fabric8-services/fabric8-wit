@@ -97,6 +97,14 @@ dev: prebuild-check $(FRESH_BIN)
 	docker-compose up -d
 	$(FRESH_BIN)
 
+.PHONY: help
+# Shows all the commands and their description
+help:
+	@echo ""
+	@echo "Make file commands"
+	@echo "------------------"
+	@grep -Pzo "(?s)\.PHONY:(\N*)(.*)(^\1)" Makefile | grep -v Makefile | grep -o "\(.PHONY:.*\|^#.*\)" | sed -s 's/.PHONY:\s*/\n- /g' |sed -s 's/#/\t/g'
+
 .PHONY: test-all
 test-all: prebuild-check test-unit test-integration
 
