@@ -1,5 +1,6 @@
 package models
 
+// WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
 	// internal id of this work item type
 	ID uint64

@@ -11,6 +11,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -73,7 +74,9 @@ func main() {
 	app.MountVersionController(service, c2)
 
 	// Mount "workitem" controller
-	c3 := NewWorkitemController(service, db)
+	ts := models.NewGormTransactionSupport(db)
+	repo := models.NewRepository(ts)
+	c3 := NewWorkitemController(service, repo, ts)
 	app.MountWorkitemController(service, c3)
 
 	// Mount "workitemtype" controller
