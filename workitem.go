@@ -2,10 +2,8 @@ package main
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
@@ -14,176 +12,106 @@ import (
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
-	db *gorm.DB
+	wiRepository *models.WorkItemRepository
+	ts           models.TransactionSupport
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, db *gorm.DB) *WorkitemController {
-	ctrl := WorkitemController{Controller: service.NewController("WorkitemController"), db: db}
-	if ctrl.db == nil {
-		panic("nil db")
+func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRepository, ts models.TransactionSupport) *WorkitemController {
+	ctrl := WorkitemController{Controller: service.NewController("WorkitemController"), wiRepository: wiRepository, ts: ts}
+	if ctrl.wiRepository == nil {
+		panic("nil work item repository")
 	}
 	return &ctrl
 }
 
-// Show runs the show action.
-func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	res := models.WorkItem{}
-	id, err := strconv.ParseUint(ctx.ID, 10, 64)
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
+func (c *WorkitemController) doWithTransaction(todo func() error) error {
+	if err := c.ts.Begin(); err != nil {
+		return err
 	}
-
-	log.Printf("looking for id %d", id)
-	if c.db.First(&res, id).RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return ctx.NotFound()
+	if err := todo(); err != nil {
+		c.ts.Rollback()
+		return err
 	}
-	wiType, err := loadTypeFromDB(res.Type)
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
-	}
-	result, err := convertFromModel(*wiType, res)
-	if err != nil {
-		ctx.InternalServerError()
-	}
-	return ctx.OK(result)
+	return c.ts.Commit()
 }
 
-func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*app.WorkItem, error) {
-	result := app.WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Name:    workItem.Name,
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{}}
-
-	for name, field := range wiType.Fields {
-		var err error
-		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
-		if err != nil {
-			return nil, err
+// Show runs the show action.
+func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
+	return c.doWithTransaction(func() error {
+		wi, err := c.wiRepository.Load(ctx.ID)
+		if err == nil {
+			return ctx.OK(wi)
+		} else {
+			switch err.(type) {
+			case models.NotFoundError:
+				log.Printf("not found, id=%s", ctx.ID)
+				return goa.ErrNotFound(err.Error())
+			default:
+				return err
+			}
 		}
-	}
-
-	return &result, nil
+	})
 }
 
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	wiType, err := loadTypeFromDB(ctx.Payload.Type)
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
-	}
-	wi := models.WorkItem{
-		Name:   ctx.Payload.Name,
-		Type:   ctx.Payload.Type,
-		Fields: models.Fields{},
-	}
+	return c.doWithTransaction(func() error {
+		wi, err := c.wiRepository.Create(ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
 
-	for fieldName, fieldDef := range wiType.Fields {
-		fieldValue := ctx.Payload.Fields[fieldName]
-		var err error
-		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-		if err != nil {
-			return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
+		if err == nil {
+			ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi.ID))
+			return ctx.Created(wi)
+		} else {
+			switch err := err.(type) {
+			case models.BadParameterError, models.ConversionError:
+				return goa.ErrBadRequest(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
 		}
-	}
-	tx := c.db.Begin()
-
-	if tx.Create(&wi).Error != nil {
-		tx.Rollback()
-		return ctx.InternalServerError()
-	}
-	log.Printf("created item %v\n", wi)
-	result, err := convertFromModel(*wiType, wi)
-	if err != nil {
-		tx.Rollback()
-		return ctx.InternalServerError()
-	}
-	tx.Commit()
-	ctx.ResponseData.Header().Set("Location", app.WorkitemHref(result.ID))
-	return ctx.Created(result)
+	})
 }
 
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	var workItem = models.WorkItem{}
-	id, err := strconv.ParseUint(ctx.ID, 10, 64)
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
-	}
-	tx := c.db.Begin()
-
-	if tx.First(&workItem, id).RecordNotFound() {
-		log.Printf("not found, res=%v", workItem)
-		tx.Rollback()
-		return ctx.NotFound()
-	}
-	if tx.Delete(workItem).Error != nil {
-		tx.Rollback()
-		return ctx.InternalServerError()
-	}
-
-	tx.Commit()
-	return ctx.OK([]byte{})
+	return c.doWithTransaction(func() error {
+		err := c.wiRepository.Delete(ctx.ID)
+		if err == nil {
+			return ctx.OK([]byte{})
+		} else {
+			switch err.(type) {
+			case models.NotFoundError:
+				return goa.ErrNotFound(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+	})
 }
 
 // Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
-	res := models.WorkItem{}
-	id, err := strconv.ParseUint(ctx.Payload.ID, 10, 64)
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest("Could not parse id: %s", err.Error()))
-	}
+	return c.doWithTransaction(func() error {
 
-	log.Printf("looking for id %d", id)
-	tx := c.db.Begin()
-	if tx.First(&res, id).RecordNotFound() {
-		tx.Rollback()
-		log.Printf("not found, res=%v", res)
-		return ctx.NotFound()
-	}
-	if res.Version != ctx.Payload.Version {
-		tx.Rollback()
-		return ctx.BadRequest(goa.ErrBadRequest("version conflict: expected %d but got %d", res.Version, ctx.Payload.Version))
-	}
-
-	wiType, err := loadTypeFromDB(ctx.Payload.Type)
-	if err != nil {
-		tx.Rollback()
-		return ctx.BadRequest(goa.ErrBadRequest(err.Error()))
-	}
-
-	wi := models.WorkItem{
-		ID:      id,
-		Name:    ctx.Payload.Name,
-		Type:    ctx.Payload.Type,
-		Version: ctx.Payload.Version + 1,
-		Fields:  models.Fields{},
-	}
-
-	for fieldName, fieldDef := range wiType.Fields {
-		fieldValue := ctx.Payload.Fields[fieldName]
-		var err error
-		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-		if err != nil {
-			tx.Rollback()
-			return ctx.BadRequest(goa.ErrBadRequest("Could not convert field %s: %s", fieldName, err.Error()))
+		toSave := app.WorkItem{
+			ID:      ctx.Payload.ID,
+			Name:    ctx.Payload.Name,
+			Type:    ctx.Payload.Type,
+			Version: ctx.Payload.Version,
+			Fields:  ctx.Payload.Fields,
 		}
-	}
+		wi, err := c.wiRepository.Save(toSave)
 
-	if err := tx.Save(&wi).Error; err != nil {
-		tx.Rollback()
-		log.Print(err.Error())
-		return ctx.InternalServerError()
-	}
-	log.Printf("updated item to %v\n", wi)
-	result, err := convertFromModel(*wiType, wi)
-	if err != nil {
-		tx.Rollback()
-		return ctx.InternalServerError()
-	}
-	tx.Commit()
-	return ctx.OK(result)
+		if err == nil {
+			return ctx.OK(wi)
+		} else {
+			switch err := err.(type) {
+			case models.BadParameterError, models.ConversionError:
+				return goa.ErrBadRequest(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+	})
 }
