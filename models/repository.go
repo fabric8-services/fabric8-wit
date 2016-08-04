@@ -73,7 +73,7 @@ func (r *WorkItemRepository) Load(ID string) (*app.WorkItem, error) {
 
 	log.Printf("loading work item %d", id)
 	res := WorkItem{}
-	if r.ts.db.First(&res, id).RecordNotFound() {
+	if r.ts.tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item", ID}
 	}
@@ -105,7 +105,7 @@ func (r *WorkItemRepository) Delete(ID string) error {
 		return NotFoundError{entity: "work item", ID: ID}
 	}
 	workItem.ID = id
-	tx := r.ts.db
+	tx := r.ts.tx
 
 	if err = tx.Delete(workItem).Error; err != nil {
 		if tx.RecordNotFound() {
@@ -128,7 +128,7 @@ func (r *WorkItemRepository) Save(wi app.WorkItem) (*app.WorkItem, error) {
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.ts.db
+	tx := r.ts.tx
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "work item", ID: wi.ID}
@@ -192,7 +192,7 @@ func (r *WorkItemRepository) Create(typeID string, name string, fields map[strin
 			return nil, ConversionError{simpleError{err.Error()}}
 		}
 	}
-	tx := r.ts.db
+	tx := r.ts.tx
 
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
