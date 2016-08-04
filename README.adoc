@@ -5,6 +5,10 @@ image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link=
 
 == Building from source [[building]]
 
+The following guide is mainly targeted towards a Linux or Mac OSX development
+machine. If you are on Windows, we recommend to take a look at
+link:docs/development/getting-started-win.adoc[Getting started with almighty-core development on Windows].
+
 === Prerequisites [[prerequisites]]
 
 You need to install:
@@ -109,7 +113,7 @@ $ make deps
 For dependency management of `go` packages we use `glide`.
 The file `glide.yaml` contains all dependencies.
 It is not suggested that you edit the file by hand but if you want to
-understand the format for this file, look https://glide.readthedocs.io/en/latest/glide.yaml/[here]. 
+understand the format for this file, look link:https://glide.readthedocs.io/en/latest/glide.yaml/[here].
 
 ===== Generate GOA sources [[generate-code]]
 
