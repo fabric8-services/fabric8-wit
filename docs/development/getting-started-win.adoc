@@ -341,7 +341,7 @@ NOTE: In the Windows Command Prompt each environment variable is accessible by t
 
 NOTE: Unlike the Windows Command Prompt, Cygwin64 Terminal can only handle forward slashes in paths. This is why you will see us converting our environment variables using a path converting tool, namely `cygpath`.
 
-1. Hit the kbd:[Windows] key on your keyboard and type `cygwin` to start searching for the *Cygwin64 Termina*. Hit kbd:[Enter].
+1. Hit the kbd:[Windows] key on your keyboard and type `cygwin` to start searching for the *Cygwin64 Terminal*. Hit kbd:[Enter].
 1. Navigate to the source directory
 +
 [source,bash]
