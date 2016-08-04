@@ -38,7 +38,7 @@ To get the code and build it, look here:
 === Install Git
 
 1. Browse to the link:https://git-scm.com/download/win[Git download page].
-1. If your download doesn't start automatically click he **64-bit Git for Windows Setup.** link.
+1. If your download doesn't start automatically click the **64-bit Git for Windows Setup.** link.
   Windows prompts you to save the file to your machine. The exact location isn't important.
 1. Run the saved file.
 1. The system displays the Git Setup wizard.
