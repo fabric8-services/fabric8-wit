@@ -153,17 +153,17 @@ func (r *WorkItemRepository) Save(wi app.WorkItem) (*app.WorkItem, error) {
 	for fieldName, fieldDef := range wiType.Fields {
 		fieldValue := wi.Fields[fieldName]
 		var err error
-		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, BadParameterError{fieldName, fieldValue}
 		}
 	}
 
-	if err := tx.Save(&wi).Error; err != nil {
+	if err := tx.Save(&newWi).Error; err != nil {
 		log.Print(err.Error())
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	log.Printf("updated item to %v\n", wi)
+	log.Printf("updated item to %v\n", newWi)
 	result, err := convertFromModel(*wiType, newWi)
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}

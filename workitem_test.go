@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 
 	"github.com/jinzhu/gorm"
 )
@@ -36,7 +37,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetWorkItem(t *testing.T) {
-	controller := WorkitemController{db: db}
+	ts := models.NewGormTransactionSupport(db)
+	repo := models.NewRepository(ts)
+	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "foobar",
 		Type: "1",
@@ -80,7 +83,9 @@ func TestGetWorkItem(t *testing.T) {
 }
 
 func TestCreateWI(t *testing.T) {
-	controller := WorkitemController{db: db}
+	ts := models.NewGormTransactionSupport(db)
+	repo := models.NewRepository(ts)
+	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "some name",
 		Type: "1",
