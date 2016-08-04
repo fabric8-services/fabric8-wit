@@ -5,33 +5,26 @@ import (
 	"strings"
 )
 
+// Configuration describes authentication model for the issue tracker.
 type Configuration struct {
 	ApiKey   string
 	Token    string
 	UserName string
 }
 
-type TrelloIssueProvider struct {
-	Configuration
-	BoardId  string
-	ListName string
-}
-
-type GithubIssueProvider struct {
-	Query string
-}
-
+// Issue gives information of every single issue of the issue trackers.
 type Issue struct {
-	title       string
-	description string
+	Title       string
+	Description string
 }
 
 func PrintIssue(issue Issue) {
-	fmt.Println("title: ", issue.title)
-	fmt.Println("issue: ", issue.description)
+	fmt.Println("title: ", issue.Title)
+	fmt.Println("issue: ", issue.Description)
 	fmt.Println("")
 }
 
+// Interface to Fetch data from issue trackers.
 type IssueProvider interface {
 	FetchData(chan String) (chan Issue, chan error)
 }
