@@ -7,17 +7,18 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/transaction"
 )
 
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
 	wiRepository *models.WorkItemRepository
-	ts           models.TransactionSupport
+	ts           transaction.Support
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRepository, ts models.TransactionSupport) *WorkitemController {
+func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRepository, ts transaction.Support) *WorkitemController {
 	ctrl := WorkitemController{Controller: service.NewController("WorkitemController"), wiRepository: wiRepository, ts: ts}
 	if ctrl.wiRepository == nil {
 		panic("nil work item repository")
@@ -25,20 +26,9 @@ func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRe
 	return &ctrl
 }
 
-func (c *WorkitemController) doWithTransaction(todo func() error) error {
-	if err := c.ts.Begin(); err != nil {
-		return err
-	}
-	if err := todo(); err != nil {
-		c.ts.Rollback()
-		return err
-	}
-	return c.ts.Commit()
-}
-
 // Show runs the show action.
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	return c.doWithTransaction(func() error {
+	return transaction.Do(c.ts, func() error {
 		wi, err := c.wiRepository.Load(ctx.ID)
 		if err == nil {
 			return ctx.OK(wi)
@@ -56,7 +46,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	return c.doWithTransaction(func() error {
+	return transaction.Do(c.ts, func() error {
 		wi, err := c.wiRepository.Create(ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
 
 		if err == nil {
@@ -75,7 +65,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	return c.doWithTransaction(func() error {
+	return transaction.Do(c.ts, func() error {
 		err := c.wiRepository.Delete(ctx.ID)
 		if err == nil {
 			return ctx.OK([]byte{})
@@ -92,7 +82,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 // Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
-	return c.doWithTransaction(func() error {
+	return transaction.Do(c.ts, func() error {
 
 		toSave := app.WorkItem{
 			ID:      ctx.Payload.ID,

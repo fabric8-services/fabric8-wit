@@ -4,16 +4,6 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// TransactionSupport abstracts from concrete transaction implementation
-type TransactionSupport interface {
-	// Begin starts a transaction
-	Begin() error
-	// Commit commits a transaction
-	Commit() error
-	// Rollback rolls back the transaction
-	Rollback() error
-}
-
 // NewGormTransactionSupport constructs a new instance of GormTransactionSupport
 func NewGormTransactionSupport(db *gorm.DB) *GormTransactionSupport {
 	return &GormTransactionSupport{db: db}
