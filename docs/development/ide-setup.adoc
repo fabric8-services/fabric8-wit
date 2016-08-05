@@ -8,28 +8,16 @@ Download and install the appropriate distribution of Visual Studio Code from lin
 
 === Configuration [[vscodeconfiguration]] 
 
-* Launch Visual Studio Code.
-* Go to the "File" menu and click on  "Open Folder"
-* Select the directory `almightly-core` inside your cloned local repository directory path.
-* Configure your $GOPATH for the IDE by placing the file `.vscode/settings.json` inside `almighty-core`. Set your `go.gopath` according to your environment. The `go.goroot` should be the path of your Golang installation directory.
-```
-{
-    "go.buildOnSave": false,
-    "go.lintOnSave": true,
-    "go.vetOnSave": true,
-    "go.buildTags": "",
-    "go.buildFlags": [],
-    "go.lintFlags": [],
-    "go.vetFlags": [],
-    "go.coverOnSave": false,
-    "go.useCodeSnippetsOnFunctionSuggest": false,
-    "go.formatOnSave": true,
-    "go.formatTool": "goreturns",
-    "go.goroot": "/usr/lib/golang",
-    "go.gopath": "/path/to/checkedout/repo"
-    "go.gocodeAutoBuild": false
-}
-```
-* Restart Visual Studio Code.
-* Install the Golang plugin(s) for language support and go lint as recommended by Visual Studio Code on startup.
-* If your `go.goroot` and `go.gopath` is set incorrectly, then installation of plugins would fail. Please fix the paths and restart Visual Studio Codeto retry installation.
+. Ensure your `GOPATH` environment variable is correctly set.
+. Install `gometalinter`
+.. Run `go get -u github.com/alecthomas/gometalinter` in your terminal
+.. Run `gometalinter --install`
++
+[NOTE]
+====
+If you are on Windows, `gometalinter --install` may fail. with a lot of erros about `cannot find package`. If this happens, use the File Explorer to navigate to the `src/github.com/alecthomas/gometalinter/vendor`. Delete the `src` file, and create a new folder called `src`. Copy the other folders in the `vendor` folder in to the `src` folder. Rerun `gometalinter --install` in the terminal window.
+====
+. Launch Visual Studio Code from a location where your `GOPATH` is correctly set. We recommend changing to the `src\github.com\almighty\almighty-core` directory, and executing `code .` which will launch VS Code, with the ALMIGHTY-CORE project open.
+. Open any `.go` file by clicking on it. An info dialog box will open at the top of the screen. Click on _Show Recommendations_ and click on the green _Install_ button next to the _Go_ extension from `lukehoban`.
+. Click the blue _Enable_ button, and then ok to restart Visual Studio Code.
+. On restart, you will notice that a Yellow  _Analysis Tools Missing_ warning appears in the status bar. Click it, and then click /Install/ to install the Go tools that Visual Studio Code calls out to in order to provide actions such as refactoring, autocomplete etc.  
