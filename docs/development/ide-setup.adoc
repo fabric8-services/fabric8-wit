@@ -21,3 +21,5 @@ If you are on Windows, `gometalinter --install` may fail. with a lot of erros ab
 . Open any `.go` file by clicking on it. An info dialog box will open at the top of the screen. Click on _Show Recommendations_ and click on the green _Install_ button next to the _Go_ extension from `lukehoban`.
 . Click the blue _Enable_ button, and then ok to restart Visual Studio Code.
 . On restart, you will notice that a Yellow  _Analysis Tools Missing_ warning appears in the status bar. Click it, and then click /Install/ to install the Go tools that Visual Studio Code calls out to in order to provide actions such as refactoring, autocomplete etc.  
+
+If you want to read more about using Go with VS Code, check out the link:https://github.com/Microsoft/vscode-go[plugin README].
