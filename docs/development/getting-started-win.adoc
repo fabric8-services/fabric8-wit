@@ -307,7 +307,7 @@ Build:
 +
 [source]
 ----
-git clone https://github.com/almighty/almighty-core.git %HOMEDRIVE\%HOMEPATH%\go\src\github.com\almighty\almighty-core
+git clone https://github.com/almighty/almighty-core.git %HOMEDRIVE%\%HOMEPATH%\go\src\github.com\almighty\almighty-core
 ----
 
 [[fetch-dependencies]]
