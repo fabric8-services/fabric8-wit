@@ -13,12 +13,12 @@ import (
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
-	wiRepository *models.WorkItemRepository
+	wiRepository models.WorkItemRepository
 	ts           transaction.Support
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRepository, ts transaction.Support) *WorkitemController {
+func NewWorkitemController(service *goa.Service, wiRepository models.WorkItemRepository, ts transaction.Support) *WorkitemController {
 	ctrl := WorkitemController{Controller: service.NewController("WorkitemController"), wiRepository: wiRepository, ts: ts}
 	if ctrl.wiRepository == nil {
 		panic("nil work item repository")
@@ -29,7 +29,7 @@ func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRe
 // Show runs the show action.
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Load(ctx.ID)
+		wi, err := c.wiRepository.Load(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -46,7 +46,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Create(ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
+		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
 
 		if err != nil {
 			switch err := err.(type) {
@@ -64,7 +64,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
-		err := c.wiRepository.Delete(ctx.ID)
+		err := c.wiRepository.Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -88,7 +88,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			Version: ctx.Payload.Version,
 			Fields:  ctx.Payload.Fields,
 		}
-		wi, err := c.wiRepository.Save(toSave)
+		wi, err := c.wiRepository.Save(ctx.Context, toSave)
 
 		if err != nil {
 			switch err := err.(type) {
