@@ -30,9 +30,7 @@ func NewWorkitemController(service *goa.Service, wiRepository *models.WorkItemRe
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
 		wi, err := c.wiRepository.Load(ctx.ID)
-		if err == nil {
-			return ctx.OK(wi)
-		} else {
+		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
 				log.Printf("not found, id=%s", ctx.ID)
@@ -41,6 +39,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 				return err
 			}
 		}
+		return ctx.OK(wi)
 	})
 }
 
@@ -49,10 +48,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
 		wi, err := c.wiRepository.Create(ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
 
-		if err == nil {
-			ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi.ID))
-			return ctx.Created(wi)
-		} else {
+		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
 				return goa.ErrBadRequest(err.Error())
@@ -60,6 +56,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 				return goa.ErrInternal(err.Error())
 			}
 		}
+		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi.ID))
+		return ctx.Created(wi)
 	})
 }
 
@@ -67,9 +65,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
 		err := c.wiRepository.Delete(ctx.ID)
-		if err == nil {
-			return ctx.OK([]byte{})
-		} else {
+		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
 				return goa.ErrNotFound(err.Error())
@@ -77,6 +73,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 				return goa.ErrInternal(err.Error())
 			}
 		}
+		return ctx.OK([]byte{})
 	})
 }
 
@@ -93,9 +90,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		wi, err := c.wiRepository.Save(toSave)
 
-		if err == nil {
-			return ctx.OK(wi)
-		} else {
+		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
 				return goa.ErrBadRequest(err.Error())
@@ -103,5 +98,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 				return goa.ErrInternal(err.Error())
 			}
 		}
+		return ctx.OK(wi)
 	})
 }
