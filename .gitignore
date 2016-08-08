@@ -1,16 +1,77 @@
-/tmp
-/.vscode
-/.project
+### Intellij ###
+.idea/
+*.iws
+*.iml
+/out/
+.idea_modules/
+atlassian-ide-plugin.xml
+
+### Eclipse ###
+.metadata
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# Eclipse Core
+.project
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# Code Recommenders
+.recommenders/
+
+
+### VisualStudioCode ###
+.vscode
+
+### Go ###
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+*.o
+*.a
+*.so
+
+# Folders
+_obj
+_test
+
+# Architecture specific extensions/prefixes
+*.[568vq]
+[568vq].out
+
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+
+_testmain.go
+
+*.exe
+*.test
+*.prof
+
+# ALMighty specific artifacts
 /debug
 **/debug.test
-/.settings
 
+# ALMighty binaries
+bin/
 
-# Ignore some glide stuff
+# Glide package manager
 .glide
-vendor
+vendor/
 
-# Ignore generated stuff
+# Generated assets
 app/
 assets/js/
 bindata_assetfs.go

@@ -1,4 +1,4 @@
-== ALMighty Core
+= ALMighty Core
 
 image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"]
 image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
@@ -7,7 +7,12 @@ image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link=
 
 === Prerequisites [[prerequisites]]
 
-You need to install `go` (>= v1.5) and `git` and `mercurial`.
+You need to install:
+
+* `go` (>= v1.6)
+* `git`
+* `mercurial`
+* `make`
 
 ==== Check your Go version [[check-go-version]]
 
@@ -181,6 +186,20 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make dev
 ----
 
-== OpenShift setup
+The above steps start the API Server on port 8080. 
 
-TBD
+Test out the build by executing CLI commands in a different terminal. 
+
+NOTE: The CLI needs the API Server which was started on executing `make dev`  to be up and running. Please do not kill the process. Alternatively if you haven't run `make dev` you could just start the server by running `./bin/alm`.
+
+Create a work item.
+
+----
+$ ./bin/alm-cli create workitem --payload '{"type": "1" , "name": "some name", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+----
+
+Retrieve the work item.
+
+----
+$ ./bin/alm-cli show workitem --id 1 -H localhost:8080
+----
