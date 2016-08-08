@@ -1,4 +1,5 @@
 CUR_DIR=$(shell pwd)
+TMP_PATH=$(CUR_DIR)/tmp
 INSTALL_PREFIX=$(CUR_DIR)/bin
 VENDOR_DIR=vendor
 ifeq ($(OS),Windows_NT)
@@ -10,7 +11,6 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
-
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -26,29 +26,33 @@ BUILD_TIME=`date -u '+%Y-%m-%d_%I:%M:%S%p'`
 
 PACKAGE_NAME := github.com/almighty/almighty-core
 
+# For the global "clean" target all targets in this variable will be executed
+CLEAN_TARGETS =
+
 # Pass in build time variables to main
 LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
-## Default target - fetch dependencies, generate code and build
+## Default target - fetch dependencies, generate code and build.
 all: prebuild-check deps generate build
 
 .PHONY: help
 # Based on https://gist.github.com/rcmachado/af3db315e31383502660
-## Display this help text
-help:
+## Display this help text.
+help:/
 	$(info Available targets)
+	$(info -----------------)
 	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
 		helpMessage = match(lastLine, /^## (.*)/); \
 		helpCommand = substr($$1, 0, index($$1, ":")-1); \
 		if (helpMessage) { \
 			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
-			gsub(/##/, "\n                    ", helpMessage); \
+			gsub(/##/, "\n                                     ", helpMessage); \
 		} else { \
-			helpMessage = "No documentation."; \
+			helpMessage = "(No documentation)"; \
 		} \
-		printf "%-20s %s\n", helpCommand, helpMessage; \
+		printf "%-35s - %s\n", helpCommand, helpMessage; \
 		lastLine = "" \
 	} \
 	{ hasComment = match(lastLine, /^## (.*)/); \
@@ -61,7 +65,7 @@ help:
         }' $(MAKEFILE_LIST)
 
 .PHONY: build
-## Build server and client
+## Build server and client.
 build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
 
 $(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
@@ -88,19 +92,21 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
-.PHONY: clean
-## Removes all downloaded dependencies, all generated code and compiled artifacts.
-clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache
-
+CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
+## Removes the ./bin directory.
 clean-artifacts:
 	rm -rf $(INSTALL_PREFIX)
 
+CLEAN_TARGETS += clean-object-files
 .PHONY: clean-object-files
+## Runs go clean to remove any executables or other object files.
 clean-object-files:
 	go clean ./...
 
+CLEAN_TARGETS += clean-generated
 .PHONY: clean-generated
+## Removes all generated code.
 clean-generated:
 	rm -rfv ./app
 	rm -rfv ./assets/js
@@ -109,16 +115,20 @@ clean-generated:
 	rm -rfv ./tool/cli/
 	rm -fv ./bindata_assetfs.go
 
+CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
+## Removes the ./vendor directory.
 clean-vendor:
 	rm -rf $(VENDOR_DIR)
 
+CLEAN_TARGETS += clean-glide-cache
 .PHONY: clean-glide-cache
+## Removes the ./glide directory.
 clean-glide-cache:
 	rm -rf ./.glide
 
 .PHONY: deps
-## Download build dependencies
+## Download build dependencies.
 deps: prebuild-check
 	$(GLIDE_BIN) install
 
@@ -135,26 +145,17 @@ dev: prebuild-check $(FRESH_BIN)
 	docker-compose up -d
 	$(FRESH_BIN)
 
-.PHONY: test-all
-## Runs all unit and integration tests (requires database running)
-test-all: prebuild-check test-unit test-integration
-
-.PHONY: test-unit
-## Runs all unit-tests
-test-unit: prebuild-check
-	go test $(go list ./... | grep -v vendor) -v -coverprofile coverage-unit.out
-
-.PHONY: test-integration
-## Runs all integration tests (you need to have database runnig for this to work)
-test-integration: prebuild-check
-	go test $(go list ./... | grep -v vendor) -v -dbhost localhost -coverprofile coverage-integration.out -tags=integration
+include ./.make/test.mk
 
 $(INSTALL_PREFIX):
 # Build artifacts dir
 	mkdir -pv $(INSTALL_PREFIX)
 
+$(TMP_PATH):
+	mkdir -pv $(TMP_PATH)
+
 .PHONY: prebuild-check
-prebuild-check: $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
+prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
 # Check that all tools where found
 ifndef GIT_BIN
 	$(error The "$(GIT_BIN_NAME)" executable could not be found in your PATH)
@@ -176,3 +177,8 @@ ifeq ($(OS),Windows_NT)
 else
 	go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
 endif
+
+# Keep this "clean" target here at the bottom
+.PHONY: clean
+## Runs all clean-* targets.
+clean: $(CLEAN_TARGETS)

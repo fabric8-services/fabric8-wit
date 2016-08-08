@@ -1,10 +1,14 @@
-hash: 3b5f30fa361f5f7beda674444bef185f6cb28936afeacbc7ece69f533c239db9
-updated: 2016-08-02T12:42:21.983224768+02:00
+hash: 36c2204f43f77bbff3766ab60737169c9239f2ea903c2fd7e85f4309323cc820
+updated: 2016-08-02T14:48:37.043081154+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: github.com/armon/go-metrics
   version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
+- name: github.com/axw/gocov
+  version: 54b98cfcac0c63fb3f9bd8e7ad241b724d4e985b
+  subpackages:
+  - gocov
 - name: github.com/dgrijalva/jwt-go
   version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - name: github.com/dimfeld/httppath
