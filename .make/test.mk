@@ -27,7 +27,7 @@
 #
 # To output coverage profile information for each function, type
 #
-#     $ make show-coverage-unit-func
+#     $ make show-coverage-unit
 #
 # To generate HTML representation of coverage profile (opens a browser), type
 #
@@ -81,22 +81,22 @@ test-integration: prebuild-check clean-test-artifacts-integration $(COVERAGE_INT
 
 #-------------------------------------------------------------------------------
 # Inspect coverage of unit tests or integration tests in either pure
-# console mode (*-func) or in a browser (*-html).
+# console mode or in a browser (*-html).
 #
 # If the test coverage files to be evaluated already exist, then no new
 # tests are executed. If they don't exist, we first run the tests.
 #-------------------------------------------------------------------------------
 
-.PHONY: show-coverage-unit-func
-show-coverage-unit-func: prebuild-check $(COVERAGE_UNIT_PATH)
+.PHONY: show-coverage-unit
+show-coverage-unit: prebuild-check $(COVERAGE_UNIT_PATH)
 	go tool cover -func=$(COVERAGE_UNIT_PATH)
 
 .PHONY: show-coverage-unit-html
 show-coverage-unit-html: prebuild-check $(COVERAGE_UNIT_PATH)
 	go tool cover -html=$(COVERAGE_UNIT_PATH)
 
-.PHONY: show-coverage-integration-func
-show-coverage-integration-func: prebuild-check $(COVERAGE_INTEGRATION_PATH)
+.PHONY: show-coverage-integration
+show-coverage-integration: prebuild-check $(COVERAGE_INTEGRATION_PATH)
 	go tool cover -func=$(COVERAGE_INTEGRATION_PATH)
 
 .PHONY: show-coverage-integration-html
