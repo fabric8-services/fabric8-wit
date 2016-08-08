@@ -34,7 +34,7 @@ LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
-## Default target - fetch dependencies, generate code and build
+## Default target - fetch dependencies, generate code and build.
 all: prebuild-check deps generate build
 
 .PHONY: help

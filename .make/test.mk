@@ -71,15 +71,15 @@ COVERAGE_INTEGRATION_PATH=$(TMP_PATH)/coverage-integration-mode-$(COVERAGE_MODE)
 #-------------------------------------------------------------------------------
 
 .PHONY: test-all
-## Runs test-unit and test-integration targets
+## Runs test-unit and test-integration targets.
 test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
-## Runs the unit tests and produces a coverage file
+## Runs the unit tests and produces a coverage file.
 test-unit: prebuild-check clean-test-artifacts-unit $(COVERAGE_UNIT_PATH)
 
 .PHONY: test-integration
-## Runs the integration tests and produces a coverage file
+## Runs the integration tests and produces a coverage file.
 test-integration: prebuild-check clean-test-artifacts-integration $(COVERAGE_INTEGRATION_PATH)
 
 #-------------------------------------------------------------------------------
