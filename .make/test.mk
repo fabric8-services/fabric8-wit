@@ -71,12 +71,15 @@ COVERAGE_INTEGRATION_PATH=$(TMP_PATH)/coverage-integration-mode-$(COVERAGE_MODE)
 #-------------------------------------------------------------------------------
 
 .PHONY: test-all
+## Runs test-unit and test-integration targets
 test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
+## Runs the unit tests and produces a coverage file
 test-unit: prebuild-check clean-test-artifacts-unit $(COVERAGE_UNIT_PATH)
 
 .PHONY: test-integration
+## Runs the integration tests and produces a coverage file
 test-integration: prebuild-check clean-test-artifacts-integration $(COVERAGE_INTEGRATION_PATH)
 
 #-------------------------------------------------------------------------------
@@ -88,35 +91,47 @@ test-integration: prebuild-check clean-test-artifacts-integration $(COVERAGE_INT
 #-------------------------------------------------------------------------------
 
 .PHONY: show-coverage-unit
+## Output coverage profile information for each function (based on unit-tests).
+## This target only runs the tests if the coverage file does exist.
 show-coverage-unit: prebuild-check $(COVERAGE_UNIT_PATH)
 	go tool cover -func=$(COVERAGE_UNIT_PATH)
 
 .PHONY: show-coverage-unit-html
+## Generate HTML representation (and show in browser) of coverage profile (based on unit tests).
+## This target only runs the tests if the coverage file does exist.
 show-coverage-unit-html: prebuild-check $(COVERAGE_UNIT_PATH)
 	go tool cover -html=$(COVERAGE_UNIT_PATH)
 
 .PHONY: show-coverage-integration
+## Output coverage profile information for each function (based on integration tests).
+## This target only runs the tests if the coverage file does exist.
 show-coverage-integration: prebuild-check $(COVERAGE_INTEGRATION_PATH)
 	go tool cover -func=$(COVERAGE_INTEGRATION_PATH)
 
 .PHONY: show-coverage-integration-html
+## Generate HTML representation (and show in browser) of coverage profile (based on integration tests).
+## This target only runs the tests if the coverage file does exist.
 show-coverage-integration-html: prebuild-check $(COVERAGE_INTEGRATION_PATH)
 	go tool cover -html=$(COVERAGE_INTEGRATION_PATH)
 
 .PHONY: gocov-unit-annotate
+## (EXPERIMENTAL) Show actual code and how it is covered with unit tests.
+##                This target only runs the tests if the coverage file does exist.
 gocov-unit-annotate: prebuild-check $(GOCOV_BIN) $(COVERAGE_UNIT_PATH)
 	$(GOCOV_BIN) convert $(COVERAGE_UNIT_PATH) | $(GOCOV_BIN) annotate -
 
-.PHONY: gocov-unit-report
-gocov-unit-report: prebuild-check $(GOCOV_BIN) $(COVERAGE_UNIT_PATH)
+.PHONY: .gocov-unit-report
+.gocov-unit-report: prebuild-check $(GOCOV_BIN) $(COVERAGE_UNIT_PATH)
 	$(GOCOV_BIN) convert $(COVERAGE_UNIT_PATH) | $(GOCOV_BIN) report
 
 .PHONY: gocov-integration-annotate
+## (EXPERIMENTAL) Show actual code and how it is covered with integration tests.
+##                This target only runs the tests if the coverage file does exist.
 gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COVERAGE_INTEGRATION_PATH)
 	$(GOCOV_BIN) convert $(COVERAGE_INTEGRATION_PATH) | $(GOCOV_BIN) annotate -
 
-.PHONY: gocov-integration-report
-gocov-integration-report: prebuild-check $(GOCOV_BIN) $(COVERAGE_INTEGRATION_PATH)
+.PHONY: .gocov-integration-report
+.gocov-integration-report: prebuild-check $(GOCOV_BIN) $(COVERAGE_INTEGRATION_PATH)
 	$(GOCOV_BIN) convert $(COVERAGE_INTEGRATION_PATH) | $(GOCOV_BIN) report
 
 #-------------------------------------------------------------------------------
@@ -142,10 +157,12 @@ $(GOCOV_BIN): prebuild-check
 
 CLEAN_TARGETS += clean-test-artifacts-unit
 .PHONY: clean-test-artifacts-unit
+## Removes the coverage file for unit tests
 clean-test-artifacts-unit:
 	rm -f $(COVERAGE_UNIT_PATH)
 
 CLEAN_TARGETS += clean-test-artifacts-integration
 .PHONY: clean-test-artifacts-integration
+## Removes the coverage file for integration tests
 clean-test-artifacts-integration:
 	rm -f $(COVERAGE_INTEGRATION_PATH)

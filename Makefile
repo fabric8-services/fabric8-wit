@@ -39,19 +39,20 @@ all: prebuild-check deps generate build
 
 .PHONY: help
 # Based on https://gist.github.com/rcmachado/af3db315e31383502660
-## Display this help text
-help:
+## Display this help text.
+help:/
 	$(info Available targets)
+	$(info -----------------)
 	@awk '/^[a-zA-Z\-\_0-9]+:/ { \
 		helpMessage = match(lastLine, /^## (.*)/); \
 		helpCommand = substr($$1, 0, index($$1, ":")-1); \
 		if (helpMessage) { \
 			helpMessage = substr(lastLine, RSTART + 3, RLENGTH); \
-			gsub(/##/, "\n                    ", helpMessage); \
+			gsub(/##/, "\n                                     ", helpMessage); \
 		} else { \
-			helpMessage = "No documentation."; \
+			helpMessage = "(No documentation)"; \
 		} \
-		printf "%-20s %s\n", helpCommand, helpMessage; \
+		printf "%-35s - %s\n", helpCommand, helpMessage; \
 		lastLine = "" \
 	} \
 	{ hasComment = match(lastLine, /^## (.*)/); \
@@ -64,7 +65,7 @@ help:
         }' $(MAKEFILE_LIST)
 
 .PHONY: build
-## Build server and client
+## Build server and client.
 build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
 
 $(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
@@ -83,25 +84,21 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
-<<<<<<< HEAD
 CLEAN_TARGETS += clean-artifacts
-=======
-.PHONY: clean
-## Removes all downloaded dependencies, all generated code and compiled artifacts.
-clean: clean-artifacts clean-object-files clean-generated clean-vendor clean-glide-cache
-
->>>>>>> master
 .PHONY: clean-artifacts
+## Removes the ./bin directory.
 clean-artifacts:
 	rm -rf $(INSTALL_PREFIX)
 
 CLEAN_TARGETS += clean-object-files
 .PHONY: clean-object-files
+## Runs go clean to remove any executables or other object files.
 clean-object-files:
 	go clean ./...
 
 CLEAN_TARGETS += clean-generated
 .PHONY: clean-generated
+## Removes all generated code.
 clean-generated:
 	rm -rfv ./app
 	rm -rfv ./assets/js
@@ -112,16 +109,18 @@ clean-generated:
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
+## Removes the ./vendor directory.
 clean-vendor:
 	rm -rf $(VENDOR_DIR)
 
 CLEAN_TARGETS += clean-glide-cache
 .PHONY: clean-glide-cache
+## Removes the ./glide directory.
 clean-glide-cache:
 	rm -rf ./.glide
 
 .PHONY: deps
-## Download build dependencies
+## Download build dependencies.
 deps: prebuild-check
 	$(GLIDE_BIN) install
 
@@ -169,4 +168,5 @@ endif
 
 # Keep this "clean" target here at the bottom
 .PHONY: clean
+## Runs all clean-* targets.
 clean: $(CLEAN_TARGETS)
