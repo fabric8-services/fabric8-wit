@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"strings"
 )
 
 // Configuration describes authentication model for the issue tracker.
@@ -26,5 +25,5 @@ func PrintIssue(issue Issue) {
 
 // Interface to Fetch data from issue trackers.
 type IssueProvider interface {
-	FetchData(chan String) (chan Issue, chan error)
+	FetchData(chan string) (chan Issue, chan error)
 }
