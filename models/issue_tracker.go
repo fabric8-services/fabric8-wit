@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+	"golang.org/x/net/context"
 )
 
 // Configuration describes authentication model for the issue tracker.
@@ -25,5 +26,5 @@ func PrintIssue(issue Issue) {
 
 // Interface to Fetch data from issue trackers.
 type IssueProvider interface {
-	FetchData(chan string) (chan Issue, chan error)
+	FetchData(ctx context.Context) (chan Issue, chan error)
 }
