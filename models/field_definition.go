@@ -8,20 +8,20 @@ import (
 
 // constants for describing possible field types
 const (
-	KindString            Kind = 1
-	KindInteger           Kind = 2
-	KindFloat             Kind = 3
-	KindInstant           Kind = 4
-	KindDuration          Kind = 5
-	KindURL               Kind = 6
-	KindWorkitemReference Kind = 7
-	KindUser              Kind = 8
-	KindEnum              Kind = 9
-	KindList              Kind = 10
+	KindString            Kind = "string"
+	KindInteger           Kind = "integer"
+	KindFloat             Kind = "float"
+	KindInstant           Kind = "instant"
+	KindDuration          Kind = "duration"
+	KindURL               Kind = "url"
+	KindWorkitemReference Kind = "workitemreference"
+	KindUser              Kind = "user"
+	KindEnum              Kind = "enum"
+	KindList              Kind = "list"
 )
 
 // Kind is the kind of field type
-type Kind byte
+type Kind string
 
 /*
 FieldType describes the possible values of a FieldDefinition
