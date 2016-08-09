@@ -8,6 +8,7 @@ GO_BINDATA_ASSETFS_BIN=$(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bi
 FRESH_BIN=$(VENDOR_DIR)/github.com/pilu/fresh/fresh.exe
 EXTRA_PATH=$(shell cygpath --unix '$(GO_BINDATA_DIR)')
 GOCOV_BIN=$(VENDOR_DIR)/github.com/axw/gocov/gocov/gocov.exe
+GOCOVMERGE_BIN=$(VENDOR_DIR)/github.com/wadey/gocovmerge/gocovmerge.exe
 
 GIT_BIN_NAME := git.exe
 GLIDE_BIN_NAME := glide.exe
