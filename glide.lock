@@ -1,5 +1,5 @@
-hash: 36c2204f43f77bbff3766ab60737169c9239f2ea903c2fd7e85f4309323cc820
-updated: 2016-08-02T14:48:37.043081154+02:00
+hash: 1c0b00041b268b5529c3631942a7109dc11509bd4399fb32f5c6bcb81293ee94
+updated: 2016-08-10T16:44:38.639889685+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -75,7 +75,9 @@ imports:
 - name: github.com/spf13/cobra
   version: 6a8bd97bdb1fc0d08a83459940498ea49d3e8c93
 - name: github.com/spf13/pflag
-  version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
+  version: f676131e2660dc8cd88de99f7486d34aa8172635
+- name: github.com/wadey/gocovmerge
+  version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
 - name: golang.org/x/net
