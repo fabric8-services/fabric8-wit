@@ -69,10 +69,18 @@ help:/
 build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
 
 $(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
+ifeq ($(OS),Windows_NT)
+	go build -v ${LDFLAGS} -o "$(shell cygpath --windows '$(BINARY_SERVER_BIN)')"
+else
 	go build -v ${LDFLAGS} -o ${BINARY_SERVER_BIN}
+endif
 
 $(BINARY_CLIENT_BIN): prebuild-check $(SOURCES)
+ifeq ($(OS),Windows_NT)
+	cd ${CLIENT_DIR}/ && go build -v ${LDFLAGS} -o "$(shell cygpath --windows '$(BINARY_CLIENT_BIN)')"
+else
 	cd ${CLIENT_DIR}/ && go build -v -o ${BINARY_CLIENT_BIN}
+endif
 
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): prebuild-check
@@ -164,7 +172,11 @@ $(CHECK_GOPATH_BIN): .make/check-gopath.go
 ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
+ifeq ($(OS),Windows_NT)
+	go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check-gopath.go
+else
 	go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
+endif
 
 # Keep this "clean" target here at the bottom
 .PHONY: clean
