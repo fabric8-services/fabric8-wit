@@ -32,6 +32,11 @@ CLEAN_TARGETS =
 # Pass in build time variables to main
 LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
 
+# Call this function with $(call log-info,"Your message")
+define log-info =
+@echo "INFO: $(1)"
+endef
+
 # If nothing was specified, run all targets as if in a fresh clone
 .PHONY: all
 ## Default target - fetch dependencies, generate code and build.
@@ -96,7 +101,7 @@ CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
 ## Removes the ./bin directory.
 clean-artifacts:
-	rm -rf $(INSTALL_PREFIX)
+	-rm -rf $(INSTALL_PREFIX)
 
 CLEAN_TARGETS += clean-object-files
 .PHONY: clean-object-files
@@ -108,28 +113,31 @@ CLEAN_TARGETS += clean-generated
 .PHONY: clean-generated
 ## Removes all generated code.
 clean-generated:
-	rm -rfv ./app
-	rm -rfv ./assets/js
-	rm -rfv ./client/
-	rm -rfv ./swagger/
-	rm -rfv ./tool/cli/
-	rm -fv ./bindata_assetfs.go
+	-rm -rf ./app
+	-rm -rf ./assets/js
+	-rm -rf ./client/
+	-rm -rf ./swagger/
+	-rm -rf ./tool/cli/
+	-rm -f ./bindata_assetfs.go
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
 ## Removes the ./vendor directory.
 clean-vendor:
-	rm -rf $(VENDOR_DIR)
+	-rm -rf $(VENDOR_DIR)
 
 CLEAN_TARGETS += clean-glide-cache
 .PHONY: clean-glide-cache
 ## Removes the ./glide directory.
 clean-glide-cache:
-	rm -rf ./.glide
+	-rm -rf ./.glide
 
 .PHONY: deps
 ## Download build dependencies.
-deps: prebuild-check
+deps: prebuild-check $(VENDOR_DIR)
+
+# Fetch dependencied everytime the glide.lock or glide.yaml files change
+$(VENDOR_DIR): glide.lock glide.yaml
 	$(GLIDE_BIN) install
 
 .PHONY: generate
@@ -149,10 +157,10 @@ include ./.make/test.mk
 
 $(INSTALL_PREFIX):
 # Build artifacts dir
-	mkdir -pv $(INSTALL_PREFIX)
+	mkdir -p $(INSTALL_PREFIX)
 
 $(TMP_PATH):
-	mkdir -pv $(TMP_PATH)
+	mkdir -p $(TMP_PATH)
 
 .PHONY: prebuild-check
 prebuild-check: $(TMP_PATH) $(INSTALL_PREFIX) $(CHECK_GOPATH_BIN)
@@ -173,9 +181,9 @@ ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
 ifeq ($(OS),Windows_NT)
-	go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check-gopath.go
+	@go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check-gopath.go
 else
-	go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
+	@go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
 endif
 
 # Keep this "clean" target here at the bottom

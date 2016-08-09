@@ -3,7 +3,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"testing"
@@ -19,14 +18,12 @@ import (
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
-	var dbhost *string = flag.String("dbhost", "", "-dbhost <hostname>")
-	flag.Parse()
-	if "" == *dbhost {
-		flag.Usage()
-		os.Exit(-1)
+	dbhost := os.Getenv("ALMIGHTY_DB_HOST")
+	if "" == dbhost {
+		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
 	}
 	var err error
-	db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", *dbhost))
+	db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbhost))
 	if err != nil {
 		panic("failed to connect database: " + err.Error())
 	}
