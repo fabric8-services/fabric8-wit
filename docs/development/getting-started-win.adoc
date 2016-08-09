@@ -5,7 +5,7 @@
 :sectnums:
 :experimental:
 
-This page explains how to get the software you need to use a Windows 10 64 bit machine for almight-core development. In addition to that this page lists steps how to configure your development environment in terms of setting Windows environment variables.
+This page explains how to get the software you need to use a Windows 10 64 bit machine for almighty-core development. In addition to that this page lists steps how to configure your development environment in terms of setting Windows environment variables.
 
 NOTE: In this guide we assume that the drive where your home folder is located is `c:`. Please adjust this to your needs whenever your home folder is on another drive.
 
