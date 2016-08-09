@@ -176,7 +176,6 @@ These files and directory are generated:
  * `./app/`
  * `./assets/js/`
  * `./client/`
- * `./models/`
  * `./swagger/`
  * `./tool/cli/`
  * `./bindata_asstfs.go`
