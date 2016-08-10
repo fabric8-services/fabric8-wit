@@ -67,7 +67,6 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 
 	if err = tx.Delete(workItem).Error; err != nil {
 		if tx.RecordNotFound() {
-			// treat as not found: clients don't know it must be a number
 			return NotFoundError{entity: "work item", ID: ID}
 		}
 		return InternalError{simpleError{err.Error()}}
@@ -147,7 +146,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, name
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, ConversionError{simpleError{err.Error()}}
+			return nil, BadParameterError{fieldName, fieldValue}
 		}
 	}
 	tx := r.ts.tx
