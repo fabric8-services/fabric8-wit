@@ -50,3 +50,5 @@ import:
 - package: github.com/axw/gocov
   subpackages:
   - gocov
+- package: github.com/asaskevich/govalidator
+  version: v4
