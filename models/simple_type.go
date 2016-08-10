@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/asaskevich/govalidator"
 )
 
 // SimpleType is an unstructured FieldType
@@ -48,6 +50,20 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 
 	default:
 		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
+	}
+}
+
+func (fieldType SimpleType) Validate(value interface{}) error {
+	switch fieldType.GetKind() {
+	case KindURL:
+		if govalidator.IsURL(value.(string)) == false {
+			return fmt.Errorf("value %v should be a valid %s", value, "URL")
+		}
+		return nil
+	case KindUser:
+		return nil
+	default:
+		return fmt.Errorf("Type %s not supported", fieldType.GetKind())
 	}
 }
 

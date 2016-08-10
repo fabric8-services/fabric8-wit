@@ -36,6 +36,8 @@ type FieldType interface {
 		ConvertToModel converts a field value for storage in the db
 	*/
 	ConvertFromModel(value interface{}) (interface{}, error)
+
+	Validate(value interface{}) error
 }
 
 /*
@@ -53,7 +55,16 @@ func (field FieldDefinition) ConvertToModel(name string, value interface{}) (int
 	if field.Required && value == nil {
 		return nil, fmt.Errorf("Value %s is required", name)
 	}
-	return field.Type.ConvertToModel(value)
+
+	res, err := field.Type.ConvertToModel(value)
+	if err != nil {
+		return res, err
+	}
+
+	if e := field.Type.Validate(value); e != nil {
+		return nil, e
+	}
+	return res, err
 }
 
 /*
