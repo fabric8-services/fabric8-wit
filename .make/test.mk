@@ -77,6 +77,12 @@
 # mode can be: set, count, or atomic
 COVERAGE_MODE ?= set
 
+# By default use localhost or specify manually during make invocation:
+#
+# 	ALMIGHTY_DB_HOST=somehost make test-integration
+#
+ALMIGHTY_DB_HOST ?= localhost
+
 # Output directory for coverage information
 COV_DIR = $(TMP_PATH)/coverage
 
@@ -203,7 +209,7 @@ $(eval EXTRA_TEST_PARAMS := $(4))
 
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@ALMIGHTY_DB_HOST=localhost go test $(PACKAGE_NAME) -v -coverprofile $(COV_OUT_FILE) -covermode=$(COVERAGE_MODE) -timeout 10m $(EXTRA_TEST_PARAMS);
+@ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) go test $(PACKAGE_NAME) -v -coverprofile $(COV_OUT_FILE) -covermode=$(COVERAGE_MODE) -timeout 10m $(EXTRA_TEST_PARAMS);
 
 @if [ -e "$(COV_OUT_FILE)" ]; then \
 	tail -n +2 $(COV_OUT_FILE) >> $(COMBINED_OUT_FILE); \
