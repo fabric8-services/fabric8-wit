@@ -33,6 +33,7 @@ var _ = Resource("workitem", func() {
 		Description("List work items.")
 		Params(func() {
 			Param("filter", String, "a query language expression restricting the set of found items")
+			Param("page", String, "Paging in the format <start>,<limit>")
 		})
 		Response(OK, func() {
 			Media(CollectionOf(WorkItem))

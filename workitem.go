@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/goadesign/goa"
 
@@ -45,14 +47,49 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	})
 }
 
+func parseInts(s *string) ([]int, error) {
+	if s == nil || len(*s) == 0 {
+		return []int{}, nil
+	}
+	split := strings.Split(*s, ",")
+	result := make([]int, len(split))
+	for index, value := range split {
+		converted, err := strconv.Atoi(value)
+		if err != nil {
+			return nil, err
+		}
+		result[index] = converted
+	}
+	return result, nil
+}
+
+func parseLimit(pageParameter *string) (s *int, l int, e error) {
+	params, err := parseInts(pageParameter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if len(params) > 1 {
+		return &params[0], params[1], nil
+	}
+	if len(params) > 0 {
+		return nil, params[0], nil
+	}
+	return nil, 100, nil
+}
+
 // List runs the list action
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
 	}
+	start, limit, err := parseLimit(ctx.Page)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+	}
 	return transaction.Do(c.ts, func() error {
-		result, err := c.wiRepository.List(ctx.Context, exp, 0, 100)
+		result, err := c.wiRepository.List(ctx.Context, exp, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
 		}
