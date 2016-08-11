@@ -18,6 +18,9 @@ local.properties
 .loadpath
 .recommenders
 
+# Emacs backup
+*~
+
 # Eclipse Core
 .project
 
