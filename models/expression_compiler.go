@@ -4,22 +4,25 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/almighty/almighty-core/models/criteria"
+	"github.com/almighty/almighty-core/criteria"
 )
 
-func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, err []error) {
-	compiler := ExpressionCompiler{}
+// Compile takes a an expression and compiles it to a where clause for use with gorm.DB.Where()
+// Returns the number of expected parameters for the query and an array of errors if something goes wrong
+func Compile(where criteria.Expression) (whereClause string, parameterCount uint16, err []error) {
+	compiler := expressionCompiler{}
 	compiled := where.Accept(&compiler)
 
-	return compiled.(string), compiler.parameterValues, compiler.err
+	return compiled.(string), compiler.parameterCount, compiler.err
 }
 
-type ExpressionCompiler struct {
-	parameterValues []interface{}
-	err             []error
+type expressionCompiler struct {
+	parameterCount uint16
+	err            []error
 }
 
-func (c *ExpressionCompiler) Field(f criteria.FieldExpression) interface{} {
+// Field implements criteria.ExpressionVisitor
+func (c *expressionCompiler) Field(f criteria.FieldExpression) interface{} {
 	switch f.FieldName {
 	case "ID", "Name", "Type", "Version":
 		return f.FieldName
@@ -27,41 +30,55 @@ func (c *ExpressionCompiler) Field(f criteria.FieldExpression) interface{} {
 		return "Fields->'" + f.FieldName + "'"
 	}
 }
-func (c *ExpressionCompiler) And(a criteria.AndExpression) interface{} {
-	return c.Binary(a.BinaryExpression, "and")
+
+// And implements criteria.ExpressionVisitor
+func (c *expressionCompiler) And(a criteria.AndExpression) interface{} {
+	return c.binary(a.BinaryExpression, "and")
 }
 
-func (c *ExpressionCompiler) Binary(a criteria.BinaryExpression, op string) interface{} {
+func (c *expressionCompiler) binary(a criteria.BinaryExpression, op string) interface{} {
 	left := a.Left.Accept(c)
 	right := a.Right.Accept(c)
 	if left != nil && right != nil {
 		return "(" + left.(string) + " " + op + " " + right.(string) + ")"
 	}
 	// something went wrong in either compilation, errors have been accumulated
-	return nil
+	return ""
 }
 
-func (c *ExpressionCompiler) Or(a criteria.OrExpression) interface{} {
-	return c.Binary(a.BinaryExpression, "or")
-}
-func (c *ExpressionCompiler) Equals(e criteria.EqualsExpression) interface{} {
-	return c.Binary(e.BinaryExpression, "=")
+// Or implements criteria.ExpressionVisitor
+func (c *expressionCompiler) Or(a criteria.OrExpression) interface{} {
+	return c.binary(a.BinaryExpression, "or")
 }
 
-func (c *ExpressionCompiler) Value(v criteria.ValueExpression) interface{} {
-	c.parameterValues = append(c.parameterValues, v.Value)
+// Equals implements criteria.ExpressionVisitor
+func (c *expressionCompiler) Equals(e criteria.EqualsExpression) interface{} {
+	return c.binary(e.BinaryExpression, "=")
+}
+
+// Field implements criteria.ExpressionVisitor
+func (c *expressionCompiler) Parameter(v criteria.ParameterExpression) interface{} {
+	c.parameterCount++
 	return "?"
 }
 
-func (c *ExpressionCompiler) Constant(v criteria.ConstantExpression) interface{} {
+func (c *expressionCompiler) Value(v criteria.LiteralExpression) interface{} {
 	switch t := v.Value.(type) {
 	case float64:
 		return strconv.FormatFloat(t, 'f', -1, 64)
+	case int:
+		return strconv.FormatInt(int64(t), 10)
+	case int64:
+		return strconv.FormatInt(t, 10)
+	case uint:
+		return strconv.FormatUint(uint64(t), 10)
+	case uint64:
+		return strconv.FormatUint(t, 10)
 	case string:
-		return "'" + t + "'"
+		return "'\"" + t + "\"'"
 	case bool:
 		return strconv.FormatBool(t)
 	}
-	c.err = append(c.err, fmt.Errorf("unknonw value type of %v: %T", v.Value, v.Value))
-	return nil
+	c.err = append(c.err, fmt.Errorf("unknown value type of %v: %T", v.Value, v.Value))
+	return ""
 }

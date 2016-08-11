@@ -1,16 +1,18 @@
-// Package query This package implements a super basic parser for search expressions. To be replaced by something more complete when we get to that bridge
+// Package query This package implements a super basic parser that takes a string, converts it to json and
+// constructs an end expression of "key == value" expressions of all the fields in the json object
+// this is just a stand-in until we have defined a proper query language
 package query
 
 import (
 	"encoding/json"
 
-	. "github.com/almighty/almighty-core/models/criteria"
+	. "github.com/almighty/almighty-core/criteria"
 )
 
-// Parse parses strings of the form "attribute1:value1,attribute2:value2" into an expression of the form "true and attribute1=value1 and attribute2=value2"
+// Parse parses strings of the form { "attribute1":value1,"attribute2":value2} into an expression of the form "true and attribute1=value1 and attribute2=value2"
 func Parse(exp *string) (Expression, error) {
 	if exp == nil || len(*exp) == 0 {
-		return Constant(true), nil
+		return Literal(true), nil
 	}
 	var unmarshalled map[string]interface{}
 	err := json.Unmarshal([]byte(*exp), &unmarshalled)
@@ -20,7 +22,7 @@ func Parse(exp *string) (Expression, error) {
 	var result *Expression
 	if len(unmarshalled) > 0 {
 		for key, value := range unmarshalled {
-			current := Equals(Field(key), Value(value))
+			current := Equals(Field(key), Literal(value))
 			if result == nil {
 				result = &current
 			} else {
@@ -30,5 +32,5 @@ func Parse(exp *string) (Expression, error) {
 		}
 		return *result, nil
 	}
-	return Constant(true), nil
+	return Literal(true), nil
 }
