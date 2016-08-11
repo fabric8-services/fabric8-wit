@@ -137,3 +137,25 @@ var _ = Resource("login", func() {
 		Response(Unauthorized)
 	})
 })
+
+var _ = Resource("trackers", func() {
+	BasePath("/trackers")
+
+	Action("show", func() {
+		Routing(
+			GET("/:id"),
+		)
+		Description("Retrieve tracker instance with given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK, func() {
+			Media(TrackerItem)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+})

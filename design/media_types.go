@@ -93,3 +93,28 @@ var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {
 	})
 
 })
+
+var TrackerItem = MediaType("application/vnd.tracker+json", func() {
+	TypeName("TrackerItem")
+	Description("ALM Tracker Item Type")
+	Attribute("id", String, "unique id per installation")
+	Attribute("version", Integer, "Version for optimistic concurrency control")
+	Attribute("name", String, "User Readable Name of this item")
+	Attribute("fields", HashOf(String, FieldDefinition), "Definitions of fields in this work item")
+
+	Required("id")
+	Required("version")
+	Required("name")
+	Required("fields")
+
+	View("default", func() {
+		Attribute("id")
+		Attribute("version")
+		Attribute("name")
+		Attribute("fields")
+	})
+	View("link", func() {
+		Attribute("id")
+	})
+
+})
