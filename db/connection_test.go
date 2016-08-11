@@ -18,7 +18,7 @@ func TestGetDatabaseConnection(t *testing.T) {
 
 	if err != nil {
 		t.Error("Failed to connect to database " + err.Error())
+	} else {
+		defer connection.Close()
 	}
-	defer connection.Close()
-
 }
