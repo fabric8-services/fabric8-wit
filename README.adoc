@@ -169,7 +169,7 @@ $ make test-all
 
 ==== Development
 
-Only files `./*.go` and `./design/*.go` should be edited.
+Only files `+./*.go+`, `+./design/*.go+`, `+./models/*.go+` and `+./tool/alm-cli/main.go+` should be edited.
 
 These files and directory are generated:
 
