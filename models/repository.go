@@ -2,7 +2,7 @@ package models
 
 import (
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models/criteria"
+	"github.com/almighty/almighty-core/criteria"
 	"golang.org/x/net/context"
 )
 
