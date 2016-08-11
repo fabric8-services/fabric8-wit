@@ -17,6 +17,7 @@ GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
+DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
