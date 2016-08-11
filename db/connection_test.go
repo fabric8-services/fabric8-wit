@@ -1,6 +1,6 @@
 //+build integration
 
-package utils
+package db
 
 import (
 	"testing"
