@@ -18,8 +18,6 @@ type DatabaseConfiguration struct {
 func (databaseConfig DatabaseConfiguration) GetDatabaseConnection() (*gorm.DB, error) {
 
 	db, err := gorm.Open(databaseConfig.databaseName, fmt.Sprintf(databaseConfig.connectionString))
-
-	defer db.Close()
 	return db, err
 }
 
@@ -27,6 +25,7 @@ func (databaseConfig DatabaseConfiguration) GetDatabaseConnection() (*gorm.DB, e
 func DetectConnectionString() string {
 	host := detectDatabaseHost()
 	connectionString := fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", host)
+	return connectionString
 }
 
 // DetectDatabaseName fetches the database name from env variables.

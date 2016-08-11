@@ -14,10 +14,11 @@ func TestGetDatabaseConnection(t *testing.T) {
 	connectionString := DetectConnectionString()
 	databaseName := DetectDatabaseName()
 	dc := DatabaseConfiguration{databaseName, connectionString}
-	_, err := dc.GetDatabaseConnection()
+	connection, err := dc.GetDatabaseConnection()
 
 	if err != nil {
 		t.Error("Failed to connect to database " + err.Error())
 	}
+	defer connection.Close()
 
 }
