@@ -21,7 +21,11 @@ HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
 
-COMMIT=`git rev-parse HEAD`
+COMMIT=$(shell git rev-parse HEAD)
+GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
+ifneq ($(GITUNTRACKEDCHANGES),)
+COMMIT := $(COMMIT)-dirty
+endif
 BUILD_TIME=`date -u '+%Y-%m-%d_%I:%M:%S%p'`
 
 PACKAGE_NAME := github.com/almighty/almighty-core
