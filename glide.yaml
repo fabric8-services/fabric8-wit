@@ -51,4 +51,3 @@ import:
   subpackages:
   - gocov
 - package: github.com/wadey/gocovmerge
-- package: github.com/spf13/viper
