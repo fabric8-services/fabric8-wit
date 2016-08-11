@@ -114,6 +114,16 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 ## Runs the integration tests and produces coverage files for each package.
 test-integration: prebuild-check clean-coverage-integration $(COV_PATH_INTEGRATION)
 
+.PHONY: integration-test-env-prepare
+## Prepares all services needed to run the integration tests
+integration-test-env-prepare:
+	@docker-compose -f $(CUR_DIR)/.make/docker-compose.integration-test.yaml up -d
+
+.PHONY: integration-test-env-tear-down
+## Tears down all services needed to run the integration tests
+integration-test-env-tear-down:
+	@docker-compose -f $(CUR_DIR)/.make/docker-compose.integration-test.yaml down
+
 #-------------------------------------------------------------------------------
 # Inspect coverage of unit tests or integration tests in either pure
 # console mode or in a browser (*-html).
