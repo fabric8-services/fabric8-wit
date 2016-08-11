@@ -164,14 +164,24 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, name
 	return result, nil
 }
 
-func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start int, length int) ([]*app.WorkItem, error) {
+// List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
+func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, error) {
 	where, _, err := Compile(criteria)
 	if err != nil {
 		return nil, BadParameterError{"expression", criteria}
 	}
 
+	log.Printf("executing query: %s", where)
+
 	var rows []WorkItem
-	if err := r.ts.tx.Where(where).Offset(start).Limit(length).Find(&rows).Error; err != nil {
+	db := r.ts.tx.Where(where)
+	if start != nil {
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		db = db.Limit(*limit)
+	}
+	if err := db.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	result := make([]*app.WorkItem, len(rows))
