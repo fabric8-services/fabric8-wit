@@ -94,6 +94,26 @@ var _ = Resource("workitemtype", func() {
 	})
 })
 
+var _ = Resource("trackers", func() {
+
+	BasePath("/trackers")
+
+	Action("create", func() {
+
+		Routing(
+			POST(""),
+		)
+		Description("Retrieve work item type with given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK, func() {
+			Media(WorkItemType)
+		})
+		Response(NotFound)
+	})
+})
+
 var _ = Resource("version", func() {
 
 	DefaultMedia(ALMVersion)

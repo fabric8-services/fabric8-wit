@@ -1,6 +1,7 @@
 package models
 
-// TrackerItems represent a tracker item
+import ()
+
 type TrackerItems struct {
 	ID uint64 `gorm:"primary_key"`
 	// User Readable Name of this item
