@@ -53,14 +53,42 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 	}
 }
 
+// should validate SimpleType completely
+// returns nil if value is as expected else returns error.
 func (fieldType SimpleType) Validate(value interface{}) error {
+	// && govalidator.IsURL(value.(string)) == false
+	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case KindURL:
-		if govalidator.IsURL(value.(string)) == false {
-			return fmt.Errorf("value %v should be a valid %s", value, "URL")
+	case KindString:
+		if valueType.Kind() != reflect.String {
+			return fmt.Errorf("value %v should be a valid %s", value, KindString)
 		}
 		return nil
+	case KindInteger, KindFloat, KindDuration:
+		// have to group these together becasue valueType.Kind() gives `float` for above group
+		if valueType.Kind() != reflect.Float64 {
+			return fmt.Errorf("value %v should be a valid %s", value, KindInteger)
+		}
+		return nil
+	case KindURL:
+		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) == true {
+			return nil
+		} else {
+			return fmt.Errorf("value %v should be a valid %s", value, KindURL)
+		}
+	case KindWorkitemReference:
+		// need to add validation for this
+		return nil
 	case KindUser:
+		// need to add validation for this
+		return nil
+	case KindEnum:
+		// need to add validation for this
+		return nil
+	case KindList:
+		if valueType.Kind() != reflect.Array {
+			return fmt.Errorf("value %v should be a valid %s", value, KindList)
+		}
 		return nil
 	default:
 		return fmt.Errorf("Type %s not supported", fieldType.GetKind())
