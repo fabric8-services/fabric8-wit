@@ -1,0 +1,6 @@
+postgres_integration_test:
+  image: postgres:9.5
+  ports:
+    - "5432"
+  environment:
+    POSTGRES_PASSWORD: mysecretpassword
