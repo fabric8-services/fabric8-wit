@@ -12,8 +12,7 @@ func TestGetDatabaseConnection(t *testing.T) {
 
 	// more of a usage example as of now.
 	connectionString := DetectConnectionString()
-	databaseName := DetectDatabaseName()
-	dc := DatabaseConfiguration{databaseName, connectionString}
+	dc := DatabaseConfiguration{connectionString}
 	connection, err := dc.GetDatabaseConnection()
 
 	if err != nil {
