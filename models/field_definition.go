@@ -118,7 +118,7 @@ func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 func (self FieldDefinition) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	buf.WriteString("{ \"type\": {")
-	buf.WriteString(fmt.Sprintf("\"kind\": %d", self.Type.GetKind()))
+	buf.WriteString(fmt.Sprintf("\"kind\": \"%s\"", self.Type.GetKind()))
 	switch complexType := self.Type.(type) {
 	case ListType:
 		buf.WriteString(", \"extra\": ")
