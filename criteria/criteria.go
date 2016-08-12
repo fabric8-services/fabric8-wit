@@ -3,121 +3,185 @@ package criteria
 // Expression is used to express conditions for selecting an entity
 type Expression interface {
 	Accept(visitor ExpressionVisitor) interface{}
+	SetAnnotation(key string, value interface{})
+	Annotation(key string) interface{}
+	Parent() Expression
+	setParent(parent Expression)
+}
+
+func IterateParents(exp Expression, f func(Expression) bool) {
+	for exp != nil {
+		if !f(exp) {
+			return
+		}
+		exp = exp.Parent()
+	}
+}
+
+// BinaryExpression represents expressions with 2 children
+// This could be generalized to n-ary expressions, but that is not neccessary right now
+type BinaryExpression interface {
+	Expression
+	Left() Expression
+	Right() Expression
 }
 
 // ExpressionVisitor is an implementation of the visitor pattern for expressions
 type ExpressionVisitor interface {
-	Field(t FieldExpression) interface{}
-	And(a AndExpression) interface{}
-	Or(a OrExpression) interface{}
-	Equals(e EqualsExpression) interface{}
-	Parameter(v ParameterExpression) interface{}
-	Value(c LiteralExpression) interface{}
+	Field(t *FieldExpression) interface{}
+	And(a *AndExpression) interface{}
+	Or(a *OrExpression) interface{}
+	Equals(e *EqualsExpression) interface{}
+	Parameter(v *ParameterExpression) interface{}
+	Literal(c *LiteralExpression) interface{}
+}
+
+type expression struct {
+	parent      Expression
+	annotations map[string]interface{}
+}
+
+func (exp *expression) SetAnnotation(key string, value interface{}) {
+	if exp.annotations == nil {
+		exp.annotations = map[string]interface{}{}
+	}
+	exp.annotations[key] = value
+}
+
+func (exp *expression) Annotation(key string) interface{} {
+	return exp.annotations[key]
+}
+
+func (exp *expression) Parent() Expression {
+	result := exp.parent
+	return result
+}
+
+func (exp *expression) setParent(parent Expression) {
+	exp.parent = parent
 }
 
 // access Field
 
 // FieldExpression represents access to a field of the tested object
 type FieldExpression struct {
+	expression
 	FieldName string
 }
 
 // Accept implements ExpressionVisitor
-func (t FieldExpression) Accept(visitor ExpressionVisitor) interface{} {
+func (t *FieldExpression) Accept(visitor ExpressionVisitor) interface{} {
 	return visitor.Field(t)
 }
 
 // Field constructs a FieldExpression
 func Field(id string) Expression {
-	return FieldExpression{id}
+	return &FieldExpression{expression{}, id}
 }
 
 // Parameter (free variable of the expression)
 
 // A ParameterExpression represents a parameter to be passed upon evaluation of the expression
 type ParameterExpression struct {
+	expression
 }
 
 // Accept implements ExpressionVisitor
-func (t ParameterExpression) Accept(visitor ExpressionVisitor) interface{} {
+func (t *ParameterExpression) Accept(visitor ExpressionVisitor) interface{} {
 	return visitor.Parameter(t)
 }
 
 // Parameter constructs a value expression.
 func Parameter() Expression {
-	return ParameterExpression{}
+	return &ParameterExpression{}
 }
 
 // constant value
 
 // A LiteralExpression represents a single constant value in the expression, think "5" or "asdf"
 type LiteralExpression struct {
+	expression
 	Value interface{}
 }
 
 // Accept implements ExpressionVisitor
-func (t LiteralExpression) Accept(visitor ExpressionVisitor) interface{} {
-	return visitor.Value(t)
+func (t *LiteralExpression) Accept(visitor ExpressionVisitor) interface{} {
+	return visitor.Literal(t)
 }
 
 // Literal constructs a literal expression
 func Literal(value interface{}) Expression {
-	return LiteralExpression{value}
+	return &LiteralExpression{expression{}, value}
 }
 
-// BinaryExpression is an "abstract" type for binary expressions.
-type BinaryExpression struct {
-	Left  Expression
-	Right Expression
+// binaryExpression is an "abstract" type for binary expressions.
+type binaryExpression struct {
+	expression
+	left  Expression
+	right Expression
+}
+
+func (exp *binaryExpression) Left() Expression {
+	return exp.left
+}
+
+func (exp *binaryExpression) Right() Expression {
+	return exp.right
+}
+
+func reparent(parent BinaryExpression) Expression {
+	parent.Left().setParent(parent)
+	parent.Right().setParent(parent)
+	return parent
 }
 
 // And
 
 // AndExpression represents the conjunction operation of two terms
 type AndExpression struct {
-	BinaryExpression
+	binaryExpression
 }
 
 // Accept implements ExpressionVisitor
-func (t AndExpression) Accept(visitor ExpressionVisitor) interface{} {
+func (t *AndExpression) Accept(visitor ExpressionVisitor) interface{} {
 	return visitor.And(t)
 }
 
 // And constructs an AndExpression
 func And(left Expression, right Expression) Expression {
-	return AndExpression{BinaryExpression{left, right}}
+	return reparent(&AndExpression{binaryExpression{expression{}, left, right}})
 }
 
 // Or
 
 // OrExpression represents the disjunction operation of two terms
 type OrExpression struct {
-	BinaryExpression
+	binaryExpression
 }
 
 // Accept implements ExpressionVisitor
-func (t OrExpression) Accept(visitor ExpressionVisitor) interface{} {
+func (t *OrExpression) Accept(visitor ExpressionVisitor) interface{} {
 	return visitor.Or(t)
 }
 
 // Or constructs an OrExpression
 func Or(left Expression, right Expression) Expression {
-	return OrExpression{BinaryExpression{left, right}}
+	return reparent(&OrExpression{binaryExpression{expression{}, left, right}})
 }
 
 // ==
 
 // EqualsExpression represents the equality operator
 type EqualsExpression struct {
-	BinaryExpression
+	binaryExpression
 }
 
 // Accept implements ExpressionVisitor
-func (t EqualsExpression) Accept(visitor ExpressionVisitor) interface{} {
+func (t *EqualsExpression) Accept(visitor ExpressionVisitor) interface{} {
 	return visitor.Equals(t)
 }
 
 // Equals constructs an EqualsExpression
 func Equals(left Expression, right Expression) Expression {
-	return EqualsExpression{BinaryExpression{left, right}}
+	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
 }
