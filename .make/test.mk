@@ -77,7 +77,7 @@
 # mode can be: set, count, or atomic
 COVERAGE_MODE ?= set
 
-# By default use localhost or specify manually during make invocation:
+# By default use the "localhost" or specify manually during make invocation:
 #
 # 	ALMIGHTY_DB_HOST=somehost make test-integration
 #

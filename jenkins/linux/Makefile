@@ -4,7 +4,7 @@ DOCKER_IMAGE_CORE := almighty-core
 # If running in Jenkins we don't allow for interactively running the container
 ifneq ($(BUILD_TAG),)
 	DOCKER_RUN_INTERACTIVE_SWITCH :=
-else 
+else
 	DOCKER_RUN_INTERACTIVE_SWITCH := -i
 endif
 
@@ -20,6 +20,9 @@ DOCKER_CONTAINER_NAME := $(BUILD_TAG)
 # Where is the GOPATH inside the build container?
 GOPATH_IN_CONTAINER=/tmp/go
 PACKAGE_PATH=$(GOPATH_IN_CONTAINER)/src/github.com/almighty/almighty-core
+
+# Get the IP address of the postgres DB container started with docker-compose
+ALMIGHTY_DB_HOST=$(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1)
 
 .PHONY: all
 # Triggers the "build" target
@@ -49,7 +52,7 @@ build-dir:
 # Removes any existing container used to build the software (if any)
 clean-docker-container:
 	@echo "Removing container named \"$(DOCKER_CONTAINER_NAME)\" (if any)"
-ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)")),) 
+ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)")),)
 	docker rm -f $(DOCKER_CONTAINER_NAME)
 else
 	@echo "No container named \"$(DOCKER_CONTAINER_NAME)\" to remove"
@@ -66,9 +69,9 @@ clean-build-dir:
 #  - clean-docker-container and
 #  - clean-build-dir
 clean: clean-docker-container clean-build-dir
-	
+
 .PHONY: build
-# Triggers 
+# Triggers
 #  - build-dir and
 #  - docker-image-core
 # and then spawns a docker container to build the software
@@ -82,7 +85,7 @@ build: build-dir docker-image-core
 		-v $(SOURCE_DIR):$(PACKAGE_PATH):rw \
 		-u $(shell id -u $(USER)):$(shell id -g $(USER)) \
 		-e GOPATH=$(GOPATH_IN_CONTAINER) \
+		-e ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) \
 		-w $(PACKAGE_PATH) \
 		$(DOCKER_IMAGE_CORE) \
 		$(PACKAGE_PATH)/jenkins/linux/build.sh
-
