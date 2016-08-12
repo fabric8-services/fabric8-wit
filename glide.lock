@@ -1,10 +1,12 @@
-hash: 36c2204f43f77bbff3766ab60737169c9239f2ea903c2fd7e85f4309323cc820
-updated: 2016-08-02T14:48:37.043081154+02:00
+hash: 62c37b7f2fdfa1d53eec7f5c805018cf237bf16bd721487664f8ee13de505cf7
+updated: 2016-08-12T15:27:52.439580409+05:30
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: github.com/armon/go-metrics
   version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
+- name: github.com/asaskevich/govalidator
+  version: 593d64559f7600f29581a3ee42177f5dbded27a9
 - name: github.com/axw/gocov
   version: 54b98cfcac0c63fb3f9bd8e7ad241b724d4e985b
   subpackages:
@@ -87,6 +89,8 @@ imports:
   version: 527b253f588776e5f72a0a0d1e93195cd3f82707
   subpackages:
   - go/ast/astutil
+- name: gopkg.in/asaskevich/govalidator.v4
+  version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 testImports: []
