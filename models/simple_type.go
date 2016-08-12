@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/asaskevich/govalidator"
 )
 
 // SimpleType is an unstructured FieldType
@@ -23,15 +25,25 @@ var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case KindString, KindURL, KindUser:
+	case KindString, KindUser:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
-	case KindInteger, KindFloat, KindDuration:
+	case KindURL:
+		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) == true {
+			return value, nil
+		}
+		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
+	case KindFloat:
 		// instant == milliseconds
 		if valueType.Kind() != reflect.Float64 {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
+		}
+		return value, nil
+	case KindInteger, KindDuration:
+		if valueType.Kind() != reflect.Int {
+			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
 		}
 		return value, nil
 	case KindInstant:
