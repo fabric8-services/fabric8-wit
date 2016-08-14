@@ -7,14 +7,14 @@ set -x
 set -e
 
 export PATH=$PATH:${GOPATH}/bin
-export GO15VENDOREXPERIMENT=1 
+export GO15VENDOREXPERIMENT=1
 
-make deps 
+make deps
 
-make generate 
+make generate
 
 make build
 
-make test-unit 
+make test-unit
 
-
+make test-integration

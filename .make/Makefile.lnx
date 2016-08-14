@@ -7,6 +7,8 @@ GO_BINDATA_ASSETFS_BIN=$(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bi
 FRESH_BIN=$(VENDOR_DIR)/github.com/pilu/fresh/fresh
 EXTRA_PATH=$(shell dirname $(GO_BINDATA_BIN))
 GOCOV_BIN=$(VENDOR_DIR)/github.com/axw/gocov/gocov/gocov
+GOCOVMERGE_BIN=$(VENDOR_DIR)/github.com/wadey/gocovmerge/gocovmerge
+DOCKER_COMPOSE_BIN_NAME=docker-compose
 
 GIT_BIN_NAME := git
 GLIDE_BIN_NAME := glide
