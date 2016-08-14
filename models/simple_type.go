@@ -31,12 +31,11 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		}
 		return value, nil
 	case KindURL:
-		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) == true {
+		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
 			return value, nil
 		}
 		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
 	case KindFloat:
-		// instant == milliseconds
 		if valueType.Kind() != reflect.Float64 {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
 		}
@@ -47,6 +46,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		}
 		return value, nil
 	case KindInstant:
+		// instant == milliseconds
 		if !valueType.Implements(timeType) {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
@@ -57,7 +57,11 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		}
 		idValue, err := strconv.Atoi(value.(string))
 		return idValue, err
-
+	case KindList:
+		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
+			return nil, fmt.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
+		}
+		return value, nil
 	default:
 		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
 	}
