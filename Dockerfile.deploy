@@ -1,0 +1,7 @@
+FROM centos:7
+MAINTAINER "Konrad Kleine <kkleine@redhat.com>"
+ENV LANG=en_US.utf8
+
+COPY bin/alm /usr/bin/alm
+
+ENTRYPOINT ["/usr/bin/alm"]

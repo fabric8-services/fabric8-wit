@@ -93,6 +93,12 @@ COV_PATH_INTEGRATION = $(TMP_PATH)/coverage.integration.mode-$(COVERAGE_MODE)
 # File that stores overall coverge for all packages and unit- and integration-tests
 COV_PATH_OVERALL = $(TMP_PATH)/coverage.mode-$(COVERAGE_MODE)
 
+# Alternative path to docker-compose (if downloaded)
+DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
+
+# docker-compose file for integration tests
+DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -114,21 +120,46 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 ## Runs the integration tests and produces coverage files for each package.
 test-integration: prebuild-check clean-coverage-integration $(COV_PATH_INTEGRATION)
 
+# Downloads docker-compose to tmp/docker-compose if it does not already exist.
+define download-docker-compose
+	@if [ ! -f "$(DOCKER_COMPOSE_BIN_ALT)" ]; then \
+		echo "Downloading docker-compose to $(DOCKER_COMPOSE_BIN_ALT)"; \
+		UNAME_S=$(shell uname -s); \
+		UNAME_M=$(shell uname -m); \
+		URL="https://github.com/docker/compose/releases/download/1.8.0/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
+		curl --silent -L $${URL} > $(DOCKER_COMPOSE_BIN_ALT); \
+		chmod +x $(DOCKER_COMPOSE_BIN_ALT); \
+	fi
+endef
+
 .PHONY: integration-test-env-prepare
-## Prepares all services needed to run the integration tests
+## Prepares all services needed to run the integration tests.
+## If not already available, this target will download docker-compose (on Linux).
 integration-test-env-prepare:
-ifndef DOCKER_COMPOSE_BIN
+ifdef DOCKER_COMPOSE_BIN
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) up -d
+else
+ifneq ($(OS),Windows_NT)
+	$(call download-docker-compose)
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) up -d
+else
 	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
 endif
-	@$(DOCKER_COMPOSE_BIN) -f $(CUR_DIR)/.make/docker-compose.integration-test.yaml up -d
+endif
 
 .PHONY: integration-test-env-tear-down
 ## Tears down all services needed to run the integration tests
 integration-test-env-tear-down:
-ifndef DOCKER_COMPOSE_BIN
+ifdef DOCKER_COMPOSE_BIN
+	@$(DOCKER_COMPOSE_BIN) -f $(DOCKER_COMPOSE_FILE) down
+else
+ifneq ($(OS),Windows_NT)
+	$(call download-docker-compose)
+	@$(DOCKER_COMPOSE_BIN_ALT) -f $(DOCKER_COMPOSE_FILE) down
+else
 	$(error The "$(DOCKER_COMPOSE_BIN_NAME)" executable could not be found in your PATH)
 endif
-	@$(DOCKER_COMPOSE_BIN) -f $(CUR_DIR)/.make/docker-compose.integration-test.yaml down
+endif
 
 #-------------------------------------------------------------------------------
 # Inspect coverage of unit tests or integration tests in either pure

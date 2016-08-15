@@ -1,6 +1,21 @@
-postgres:
-  image: postgres:9.5
-  ports:
-    - "5432:5432"
-  environment:
-    POSTGRES_PASSWORD: mysecretpassword
+version: '2'
+
+services:
+  db:
+    image: postgres:9.5
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword
+    networks:
+      - default
+  core:
+    image: almightycore/almighty-core:demo
+    command: -dbhost db
+    ports:
+      - "8081:8080"
+    networks:
+      - default
+    depends_on:
+      - db
+
