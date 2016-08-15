@@ -1,15 +1,26 @@
+// Package criteria holds a representation of expression trees and code for their manipulation
+// This package serves to decouple the concrete query language from the execution of the queries against the database
 package criteria
 
 // Expression is used to express conditions for selecting an entity
 type Expression interface {
+	// Accept calls the visitor callback of the appropriate type
 	Accept(visitor ExpressionVisitor) interface{}
+	// SetAnnotation puts the given annotation on the expression
 	SetAnnotation(key string, value interface{})
+	// Annotation reads back values set with SetAnnotation
 	Annotation(key string) interface{}
+	// Returns the parent expression or nil
 	Parent() Expression
 	setParent(parent Expression)
 }
 
+// IterateParents calls f for every member of the parent chain
+// Stops iterating if f returns false
 func IterateParents(exp Expression, f func(Expression) bool) {
+	if exp != nil {
+		exp = exp.Parent()
+	}
 	for exp != nil {
 		if !f(exp) {
 			return
@@ -61,7 +72,7 @@ func (exp *expression) setParent(parent Expression) {
 	exp.parent = parent
 }
 
-// access Field
+// access a Field
 
 // FieldExpression represents access to a field of the tested object
 type FieldExpression struct {
@@ -96,9 +107,10 @@ func Parameter() Expression {
 	return &ParameterExpression{}
 }
 
-// constant value
+// literal value
 
 // A LiteralExpression represents a single constant value in the expression, think "5" or "asdf"
+// the type of literals is not restricted at this level, but compilers or interpreters will have limitations on what they handle
 type LiteralExpression struct {
 	expression
 	Value interface{}
@@ -121,14 +133,17 @@ type binaryExpression struct {
 	right Expression
 }
 
+// Left implements BinaryExpression
 func (exp *binaryExpression) Left() Expression {
 	return exp.left
 }
 
+// Right implements BinaryExpression
 func (exp *binaryExpression) Right() Expression {
 	return exp.right
 }
 
+// make sure the children have the correct parent
 func reparent(parent BinaryExpression) Expression {
 	parent.Left().setParent(parent)
 	parent.Right().setParent(parent)
