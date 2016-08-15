@@ -1,5 +1,5 @@
 // Package query This package implements a super basic parser that takes a string, converts it to json and
-// constructs an end expression of "key == value" expressions of all the fields in the json object
+// constructs an AndExpression of "key == value" expressions of all the fields in the json object
 // this is just a stand-in until we have defined a proper query language
 package query
 
