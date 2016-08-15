@@ -8,7 +8,7 @@ import (
 )
 
 func TestField(t *testing.T) {
-	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = 23)", 0)
+	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = '23')", 0)
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = 'abcd')", 0)
 }
 
@@ -19,8 +19,8 @@ func TestParameter(t *testing.T) {
 func TestAndOr(t *testing.T) {
 	expect(t, Or(Literal(true), Literal(false)), "(true or false)", 0)
 
-	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = 'abcd') and (true = false))", 0)
-	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = 'abcd') or (true = false))", 0)
+	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = '\"abcd\"') and (true = false))", 0)
+	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = '\"abcd\"') or (true = false))", 0)
 }
 
 func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters uint16) {
