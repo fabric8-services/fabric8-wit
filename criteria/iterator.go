@@ -1,5 +1,7 @@
 package criteria
 
+// IteratePostOrder walks the expression tree in depth-first, left to right order
+// The iteration stops if visitorFunction returns false
 func IteratePostOrder(exp Expression, visitorFunction func(exp Expression) bool) {
 	exp.Accept(&postOrderIterator{visitorFunction})
 }
