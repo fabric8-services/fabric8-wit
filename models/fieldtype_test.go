@@ -57,3 +57,39 @@ func TestSimpleTypeConversion(t *testing.T) {
 		}
 	}
 }
+
+var stEnum = SimpleType{KindEnum}
+var enum = EnumType{
+	BaseType: stEnum,
+	// ENUM with same type values
+	Values: []interface{}{"new", "triaged", "WIP", "QA", "done"},
+}
+
+var multipleTypeEnum = EnumType{
+	BaseType: stEnum,
+	// ENUM with different type values.
+	Values: []interface{}{100, 1.1, "hello"},
+}
+
+func TestEnumTypeConversion(t *testing.T) {
+	data := []input{
+		{enum, "string", nil, true},
+		{enum, "triaged", "triaged", false},
+		{enum, "done", "done", false},
+		{enum, "", nil, true},
+		{enum, 100, nil, true},
+
+		{multipleTypeEnum, "abcd", nil, true},
+		{multipleTypeEnum, 100, 100, false},
+		{multipleTypeEnum, "hello", "hello", false},
+	}
+	for _, inp := range data {
+		retVal, err := inp.t.ConvertToModel(inp.value)
+		if retVal == inp.expectedValue && (err != nil) == inp.errorExpected {
+			t.Log("test pass:", inp)
+		} else {
+			t.Error(retVal, err)
+			t.Fail()
+		}
+	}
+}
