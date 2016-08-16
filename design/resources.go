@@ -58,10 +58,13 @@ var _ = Resource("workitem", func() {
 	})
 	Action("update", func() {
 		Routing(
-			PUT(""),
+			PUT("/:id"),
 		)
-		Description("update the given work item.")
-		Payload(WorkItem)
+		Description("update the given work item with given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Payload(UpdateWorkItemPayload)
 		Response(OK, func() {
 			Media(WorkItem)
 		})
