@@ -62,6 +62,9 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 			return nil, fmt.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
 		}
 		return value, nil
+	case KindEnum:
+		// to be done yet | not sure what to write here as of now.
+		return value, nil
 	default:
 		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
 	}
