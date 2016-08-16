@@ -2,12 +2,14 @@ package models
 
 import "testing"
 
-var stString = SimpleType{KindString}
-var stInt = SimpleType{KindInteger}
-var stFloat = SimpleType{KindFloat}
-var stDuration = SimpleType{KindDuration}
-var stURL = SimpleType{KindURL}
-var stList = SimpleType{KindList}
+var (
+	stString   = SimpleType{KindString}
+	stInt      = SimpleType{KindInteger}
+	stFloat    = SimpleType{KindFloat}
+	stDuration = SimpleType{KindDuration}
+	stURL      = SimpleType{KindURL}
+	stList     = SimpleType{KindList}
+)
 
 type input struct {
 	t             FieldType
@@ -58,18 +60,20 @@ func TestSimpleTypeConversion(t *testing.T) {
 	}
 }
 
-var stEnum = SimpleType{KindEnum}
-var enum = EnumType{
-	BaseType: stEnum,
-	// ENUM with same type values
-	Values: []interface{}{"new", "triaged", "WIP", "QA", "done"},
-}
+var (
+	stEnum = SimpleType{KindEnum}
+	enum   = EnumType{
+		BaseType: stEnum,
+		// ENUM with same type values
+		Values: []interface{}{"new", "triaged", "WIP", "QA", "done"},
+	}
 
-var multipleTypeEnum = EnumType{
-	BaseType: stEnum,
-	// ENUM with different type values.
-	Values: []interface{}{100, 1.1, "hello"},
-}
+	multipleTypeEnum = EnumType{
+		BaseType: stEnum,
+		// ENUM with different type values.
+		Values: []interface{}{100, 1.1, "hello"},
+	}
+)
 
 func TestEnumTypeConversion(t *testing.T) {
 	data := []input{
