@@ -59,13 +59,11 @@ func TestGetWorkItem(t *testing.T) {
 
 	wi.Fields["system.owner"] = "thomas"
 	payload2 := app.UpdateWorkitemPayload{
-		ID:      wi.ID,
-		Name:    wi.Name,
-		Type:    wi.Type,
-		Version: wi.Version,
-		Fields:  wi.Fields,
+		Name:   wi.Name,
+		Type:   wi.Type,
+		Fields: wi.Fields,
 	}
-	_, updated := test.UpdateWorkitemOK(t, nil, nil, &controller, &payload2)
+	_, updated := test.UpdateWorkitemOK(t, nil, nil, &controller, wi.ID, &payload2)
 	if updated.Version != result.Version+1 {
 		t.Errorf("expected version %d, but got %d", result.Version+1, updated.Version)
 	}

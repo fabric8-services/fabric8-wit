@@ -82,11 +82,10 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
 
 		toSave := app.WorkItem{
-			ID:      ctx.Payload.ID,
-			Name:    ctx.Payload.Name,
-			Type:    ctx.Payload.Type,
-			Version: ctx.Payload.Version,
-			Fields:  ctx.Payload.Fields,
+			ID:     ctx.ID,
+			Name:   ctx.Payload.Name,
+			Type:   ctx.Payload.Type,
+			Fields: ctx.Payload.Fields,
 		}
 		wi, err := c.wiRepository.Save(ctx.Context, toSave)
 
