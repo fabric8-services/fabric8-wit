@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 
 func TestGetWorkItem(t *testing.T) {
 	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewRepository(ts)
+	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "foobar",
@@ -81,7 +81,7 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewRepository(ts)
+	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "some name",
