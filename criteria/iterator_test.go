@@ -6,6 +6,7 @@ import (
 )
 
 func TestIterator(t *testing.T) {
+	// test left-to-right, depth first iteration
 	visited := []Expression{}
 	l := Field("a")
 	r := Literal(5)
@@ -20,6 +21,7 @@ func TestIterator(t *testing.T) {
 		t.Errorf("Visited should be %v, but is %v", expected, visited)
 	}
 
+	// test early iteration cutoff with false return from iterator function
 	visited = []Expression{}
 	recorder = func(expr Expression) bool {
 		visited = append(visited, expr)
