@@ -12,7 +12,7 @@ const (
 )
 
 // Compile takes an expression and compiles it to a where clause for use with gorm.DB.Where()
-// Returns the number of expected parameters for the query and an array of errors if something goes wrong
+// Returns the number of expected parameters for the query and a slice of errors if something goes wrong
 func Compile(where criteria.Expression) (whereClause string, parameterCount uint16, err []error) {
 	criteria.IteratePostOrder(where, bubbleUpJSONContext)
 
