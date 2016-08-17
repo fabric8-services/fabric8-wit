@@ -9,7 +9,8 @@ import (
 	. "github.com/almighty/almighty-core/criteria"
 )
 
-// Parse parses strings of the form { "attribute1":value1,"attribute2":value2} into an expression of the form "true and attribute1=value1 and attribute2=value2"
+// Parse parses strings of the form { "attribute1":value1,"attribute2":value2} into an expression of the form "attribute1=value1 and attribute2=value2"
+// returns the expression "true" if empty
 func Parse(exp *string) (Expression, error) {
 	if exp == nil || len(*exp) == 0 {
 		return Literal(true), nil
