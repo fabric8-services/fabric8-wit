@@ -82,7 +82,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
 
 		toSave := app.WorkItem{
-			ID:      ctx.Payload.ID,
+			ID:      ctx.ID,
 			Name:    ctx.Payload.Name,
 			Type:    ctx.Payload.Type,
 			Version: ctx.Payload.Version,
