@@ -16,7 +16,7 @@ type GormWorkItemRepository struct {
 }
 
 // NewRepository constructs a WorkItemRepository
-func NewRepository(ts *GormTransactionSupport) *GormWorkItemRepository {
+func NewWorkItemRepository(ts *GormTransactionSupport) *GormWorkItemRepository {
 	return &GormWorkItemRepository{ts}
 }
 

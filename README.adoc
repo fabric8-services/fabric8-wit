@@ -1,5 +1,9 @@
 = ALMighty Core
 
+:toc:
+:sectnums:
+:experimental:
+
 image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"]
 image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
 
@@ -98,6 +102,7 @@ want to compile. That's why we offer special `make` targets for these topics:
  * <<build>>
  * <<clean>>
  * <<test>>
+ * <<coverage>>
 
 ===== Fetch dependencies [[fetch-dependencies]]
 
@@ -146,26 +151,86 @@ $ make clean
 
 ===== Tests [[test]]
 
-This runs all unit-tests
+Here's how to run all available tests. All tests will check all Go packages
+except those in the `vendor/` directory.
 
+[horizontal]
+unit-tests::
+Unit tests have the minimum requirement on time and environment setup.
++
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make test-unit
 ----
 
-This runs all integration tests (you need to have a postgres database running for this to work)
-
+integration-tests::
+Integration tests demand more setup (i.e. the PostgreSQL DB must be already
+running) and probably time.
++
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make test-integration
 ----
 
-To run all above tests you can run
-
+all::
+To run both, the unit and the integration tests you can run
++
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make test-all
 ----
+
+===== Coverage [[coverage]]
+
+To visualize the coverage of unit, integration, or all tests you can run these
+commands:
+
+ * `$ make coverage-unit`
+ * `$ make coverage-integration`
+ * `$ make coverage-all`
+
+NOTE: If the tests (see <<test>>) have not yet run, or if the sources have changed
+since the last time the tests ran, they will be re-run to produce up to date
+coverage profiles.
+
+Each of the above tests (see <<test>>) produces a coverage profile by default.
+Those coverage files are available under
+
+----
+tmp/coverage/<package>/coverage.<test>.mode-<mode>
+----
+
+Here's how the <placeholders> expand
+
+[horizontal]
+`<package>`::
+something like `github.com/almighty/almighty-core/models`
+
+`<test>`::
+`unit` or `integration`
+
+`<mode>`::
+Sets the mode for coverage analysis for the packages being tested.
+Possible values for `<mode>` are *set* (the default), *count*, or *atomic* and
+they directly relate to the output of `go test --help`.
+ * *set*: bool: does this statement run?
+ * *count*: int: how many times does this statement run?
+ * *atomic*: int: count, but correct in multithreaded tests; significantly more
+   expensive.
+
+In addition to all individual coverage information for each package, we also
+create three more files:
+
+[horizontal]
+`tmp/coverage.unit.mode-<mode>`::
+This file collects all the coverage profiles for all *unit* tests.
+
+`tmp/coverage.integration.mode-<mode>`::
+This file collects all the coverage profiles for all *integration* tests.
+
+`tmp/coverage.mode-<mode>`::
+This file is the merge result of the two afore mentioned files and thus gives
+coverage information for all tests.
 
 ==== Development
 
@@ -189,9 +254,9 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make dev
 ----
 
-The above steps start the API Server on port 8080. 
+The above steps start the API Server on port 8080.
 
-Test out the build by executing CLI commands in a different terminal. 
+Test out the build by executing CLI commands in a different terminal.
 
 NOTE: The CLI needs the API Server which was started on executing `make dev`  to be up and running. Please do not kill the process. Alternatively if you haven't run `make dev` you could just start the server by running `./bin/alm`.
 

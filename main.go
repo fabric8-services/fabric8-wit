@@ -75,7 +75,7 @@ func main() {
 
 	// Mount "workitem" controller
 	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewRepository(ts)
+	repo := models.NewWorkItemRepository(ts)
 	c3 := NewWorkitemController(service, repo, ts)
 	app.MountWorkitemController(service, c3)
 
