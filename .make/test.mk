@@ -38,7 +38,7 @@
 #
 # To output all coverage profile information for each function, type
 #
-#     $ make coverage
+#     $ make coverage-all
 #
 # Artifacts and coverage modes
 # ----------------------------
