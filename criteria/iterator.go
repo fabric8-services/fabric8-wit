@@ -6,6 +6,7 @@ func IteratePostOrder(exp Expression, visitorFunction func(exp Expression) bool)
 	exp.Accept(&postOrderIterator{visitorFunction})
 }
 
+// implements ExpressionVisitor
 type postOrderIterator struct {
 	visit func(exp Expression) bool
 }
