@@ -34,14 +34,15 @@ func convertList(converter converter, fieldType ListType, value interface{}) (in
 	// the assumption is that work item types do not change over time...only new ones can be created
 	valueType := reflect.TypeOf(value)
 
-	if valueType.Kind() != reflect.Array {
-		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "array", valueType.Name())
+	if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
+		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "array/slice", valueType.Name())
 	}
-	valueArray := value.([]interface{})
-	converted := make([]interface{}, len(valueArray))
+	valueArray := reflect.ValueOf(value)
+	converted := make([]interface{}, valueArray.Len())
 	for i := range converted {
 		var err error
-		converted[i], err = converter(fieldType, valueArray[i])
+		// valueArray index value must be converted to Interface else it has TYPE=Value
+		converted[i], err = converter(fieldType.ComponentType, valueArray.Index(i).Interface())
 		if err != nil {
 			return nil, fmt.Errorf("error converting list value: %s", err.Error())
 		}

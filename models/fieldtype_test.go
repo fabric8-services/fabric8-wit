@@ -52,7 +52,7 @@ func TestSimpleTypeConversion(t *testing.T) {
 	for _, inp := range test_data {
 		retVal, err := inp.t.ConvertToModel(inp.value)
 		if retVal == inp.expectedValue && (err != nil) == inp.errorExpected {
-			t.Log("test pass:", inp)
+			t.Log("test pass for input: ", inp)
 		} else {
 			t.Error(retVal, err)
 			t.Fail()
@@ -90,8 +90,43 @@ func TestEnumTypeConversion(t *testing.T) {
 	for _, inp := range data {
 		retVal, err := inp.t.ConvertToModel(inp.value)
 		if retVal == inp.expectedValue && (err != nil) == inp.errorExpected {
-			t.Log("test pass:", inp)
+			t.Log("test pass for input: ", inp)
 		} else {
+			t.Error(retVal, err)
+			t.Fail()
+		}
+	}
+}
+
+var (
+	intList = ListType{
+		SimpleType:    SimpleType{KindList},
+		ComponentType: SimpleType{KindInteger},
+	}
+	strList = ListType{
+		SimpleType:    SimpleType{KindList},
+		ComponentType: SimpleType{KindString},
+	}
+)
+
+func TestListTypeConversion(t *testing.T) {
+	data := []input{
+		{intList, [2]int{11, 2}, "array/slice", false},
+		{intList, [2]string{"11", "2"}, nil, true},
+
+		{strList, [2]string{"11", "2"}, "array/slice", false},
+		{strList, [2]int{11, 2}, nil, true},
+	}
+
+	for _, inp := range data {
+		// Ignore expectedValue for now.
+		// slices can be compared only with nil.
+		// Because we will need to iterate and match the output.
+		retVal, err := inp.t.ConvertToModel(inp.value)
+		if (err != nil) == inp.errorExpected {
+			t.Log("test pass for input: ", inp)
+		} else {
+			t.Error("failed for input=", inp)
 			t.Error(retVal, err)
 			t.Fail()
 		}
