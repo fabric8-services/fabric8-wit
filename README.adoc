@@ -1,5 +1,9 @@
 = ALMighty Core
 
+:toc:
+:sectnums:
+:experimental:
+
 image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"]
 image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
 
@@ -98,6 +102,7 @@ want to compile. That's why we offer special `make` targets for these topics:
  * <<build>>
  * <<clean>>
  * <<test>>
+ * <<coverage>>
 
 ===== Fetch dependencies [[fetch-dependencies]]
 
@@ -146,26 +151,86 @@ $ make clean
 
 ===== Tests [[test]]
 
-This runs all unit-tests
+Here's how to run all available tests. All tests will check all Go packages
+except those in the `vendor/` directory.
 
+[horizontal]
+unit-tests::
+Unit tests have the minimum requirement on time and environment setup.
++
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make test-unit
 ----
 
-This runs all integration tests (you need to have a postgres database running for this to work)
-
+integration-tests::
+Integration tests demand more setup (i.e. the PostgreSQL DB must be already
+running) and probably time.
++
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make test-integration
 ----
 
-To run all above tests you can run
-
+all::
+To run both, the unit and the integration tests you can run
++
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make test-all
 ----
+
+===== Coverage [[coverage]]
+
+To visualize the coverage of unit, integration, or all tests you can run these
+commands:
+
+ * `$ make coverage-unit`
+ * `$ make coverage-integration`
+ * `$ make coverage-all`
+
+NOTE: If the tests (see <<test>>) have not yet run, or if the sources have changed
+since the last time the tests ran, they will be re-run to produce up to date
+coverage profiles.
+
+Each of the above tests (see <<test>>) produces a coverage profile by default.
+Those coverage files are available under
+
+----
+tmp/coverage/<package>/coverage.<test>.mode-<mode>
+----
+
+Here's how the <placeholders> expand
+
+[horizontal]
+`<package>`::
+something like `github.com/almighty/almighty-core/models`
+
+`<test>`::
+`unit` or `integration`
+
+`<mode>`::
+Sets the mode for coverage analysis for the packages being tested.
+Possible values for `<mode>` are *set* (the default), *count*, or *atomic* and
+they directly relate to the output of `go test --help`.
+ * *set*: bool: does this statement run?
+ * *count*: int: how many times does this statement run?
+ * *atomic*: int: count, but correct in multithreaded tests; significantly more
+   expensive.
+
+In addition to all individual coverage information for each package, we also
+create three more files:
+
+[horizontal]
+`tmp/coverage.unit.mode-<mode>`::
+This file collects all the coverage profiles for all *unit* tests.
+
+`tmp/coverage.integration.mode-<mode>`::
+This file collects all the coverage profiles for all *integration* tests.
+
+`tmp/coverage.mode-<mode>`::
+This file is the merge result of the two afore mentioned files and thus gives
+coverage information for all tests.
 
 ==== Development
 
@@ -189,9 +254,9 @@ $ cd $GOPATH/src/github.com/almighty/almighty-core
 $ make dev
 ----
 
-The above steps start the API Server on port 8080. 
+The above steps start the API Server on port 8080.
 
-Test out the build by executing CLI commands in a different terminal. 
+Test out the build by executing CLI commands in a different terminal.
 
 NOTE: The CLI needs the API Server which was started on executing `make dev`  to be up and running. Please do not kill the process. Alternatively if you haven't run `make dev` you could just start the server by running `./bin/alm`.
 
@@ -206,3 +271,184 @@ Retrieve the work item.
 ----
 $ ./bin/alm-cli show workitem --id 1 -H localhost:8080
 ----
+
+== Debugging [[debug]]
+
+This section shows how to install a Go debugger
+(link:https://github.com/derekparker/delve:[delve]) and how to actually do some
+debugging from a terminal.
+
+For somebody coming from a C/C++ background this should feed very familiar as
+the GNU Debugger or GDB command line interface has similar commands.
+The following table illustrates just a few of the similarities.
+
+.Small comparison between GNU Debugger (gdb) and Go Debugger (dlv) commands
+|===
+|Function | GNU Debugger | Go debugger (dlv)
+
+|Connect to a running program
+|`gdb attach <PID>`
+|`dlv attach <PID>`
+
+|Set a breakpoint
+|`gdb break <function>`
+|`dlv break <package>.<function>`
+
+|Continue after hitting a breakpoint or attaching to a program
+|`gdb continue`
+|`dlv continue`
+
+|Show a backtrace for the current location
+|`gdb bt`
+|`dlv bt`
+
+|===
+
+More commands can be found in the
+link:https://github.com/derekparker/delve/tree/master/Documentation/cli#commands[Delve documentation].
+
+=== Install debugger
+
+Install the link:https://github.com/derekparker/delve:[delve] debugger by running:
+
+----
+$ go get github.com/derekparker/delve/cmd/dlv
+----
+
+This will create the file `$GOPATH/bin/dlv` so in order to run the `dlv`
+executable from anywhere, make sure you have `$GOPATH/bin` in your `$PATH`.
+
+link:https://github.com/derekparker/delve/tree/master/Documentation/installation:[Here]
+are instructions to install delve on different platforms.
+
+=== Example debugging
+
+In this example we'll debug a running ALM server using delve and set a breakpoint
+on the function `WorkitemController.Show`.
+
+NOTE: To see other ways to run `dlv`, see the link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv.md#dlv[usage page].
+
+Let's assume the binary `./bin/alm` is running.
+
+==== Attach to program
+
+To link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv_attach.md#dlv-attach[*attach*]
+the debugger to your running almight-core server,run:
+
+----
+$ dlv attach $(pidof ./bin/alm)
+----
+
+The will bring you into the delve shell which looks like this:
+
+----
+Type 'help' for list of commands.
+(dlv)
+----
+
+The `./bin/alm` program is *paused* right now. Once we've set a breakpoint we will
+let it run again.
+
+==== Set breakpoint
+
+Now, set the link:https://github.com/derekparker/delve/tree/master/Documentation/cli#break[*breakpoint*]
+on the on the `WorkitemController.Show` function that is defined in `workitem.go`:
+
+----
+(dlv) break WorkitemController.Show
+----
+
+As mentioned before the almighty-core server is paused and we need to bring it
+back into a *run* state. To do this, we let the program
+link:https://github.com/derekparker/delve/tree/master/Documentation/cli#continue[*continue*]:
+
+----
+(dlv) continue
+----
+
+==== Trigger breakpoint
+
+Open another shell and fetch an existing workitem using curl:
+
+----
+$ curl http://localhost:8080/api/workitem/1
+----
+
+(Replace the `1` with an existing workitem ID if needed)
+
+Now, your debugger shell show something like this:
+
+----
+> main.(*WorkitemController).Show() /tmp/go/src/github.com/almighty/almighty-core/workitem.go:30 (hits goroutine(11):1 total:3) (PC: 0x405633)
+(dlv)
+----
+
+The program is *paused* again for you to inspect it and the curl command
+has not returned yet.
+
+==== Backtrace
+
+To show a link:https://github.com/derekparker/delve/tree/master/Documentation/cli#stack[backtrace] of how we got here in terms of stack frames, run:
+
+----
+(dlv) bt
+----
+
+The output might look similar to this but it can change over time and as
+development goes on:
+
+----
+0  0x0000000000405633 in main.(*WorkitemController).Show
+   at /tmp/go/src/github.com/almighty/almighty-core/workitem.go:30
+1  0x0000000000520014 in github.com/almighty/almighty-core/app.MountWorkitemController.func3
+   at /tmp/go/src/github.com/almighty/almighty-core/app/controllers.go:222
+2  0x00000000005202fe in github.com/almighty/almighty-core/app.handleWorkitemOrigin.func1
+   at /tmp/go/src/github.com/almighty/almighty-core/app/controllers.go:257
+3  0x0000000000540868 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1.1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/service.go:250
+4  0x00000000005d6d3e in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.Recover.func1.1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/recover.go:37
+5  0x00000000005d3b9c in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.ErrorHandler.func1.1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/error_handler.go:19
+6  0x00000000005d5649 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.LogRequest.func1.1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/log_request.go:65
+7  0x00000000005d7229 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.RequestIDWithHeaderAndLengthLimit.func1.1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/request_id.go:63
+8  0x000000000054192c in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/service.go:283
+9  0x000000000053faf9 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*mux).Handle.func1
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/mux.go:57
+10  0x000000000076c3c2 in github.com/almighty/almighty-core/vendor/github.com/dimfeld/httptreemux.(*TreeMux).ServeHTTP
+   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/dimfeld/httptreemux/router.go:247
+----
+
+The first incrementing number on every second line stands for the number of the
+stackframe. Stackframe *0* is one where we set the breakpoint earlier.
+
+==== Continue with normal processing
+
+While there are many interesting ways to inspect your program using the *delve*
+debugger, we will instead let our program *continue* to run and thereby proceed
+with delivering the workitem to the curl command.
+
+----
+(dlv) continue
+----
+
+Check the shell in which you ran the curl command to see if you have go a result.
+
+==== Exit debugging
+
+To exit the debugger you can use the link:https://github.com/derekparker/delve/tree/master/Documentation/cli#exit[`exit`]
+command or press kbd:[Ctrl+d], just like you would exit any Bash for example:
+
+----
+(dlv) exit
+Would you like to kill the process? [Y/n] y
+----
+
+You are being asked if you want to kill the process and the answer to this
+question very much depends on the way you've started *delve*. If you've attached
+to a running process like we did, the answer to this question is probably *no*.
+And if you've just started the program under test for debugging purposes then
+you might as well answer y to stop it.
