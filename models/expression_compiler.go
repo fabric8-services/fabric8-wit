@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/almighty/almighty-core/criteria"
 )
@@ -13,13 +14,13 @@ const (
 
 // Compile takes an expression and compiles it to a where clause for use with gorm.DB.Where()
 // Returns the number of expected parameters for the query and a slice of errors if something goes wrong
-func Compile(where criteria.Expression) (whereClause string, parameterCount uint16, err []error) {
+func Compile(where criteria.Expression) (whereClause string, parameters []interface{}, err []error) {
 	criteria.IteratePostOrder(where, bubbleUpJSONContext)
 
-	compiler := expressionCompiler{}
+	compiler := newExpressionCompiler()
 	compiled := where.Accept(&compiler)
 
-	return compiled.(string), compiler.parameterCount, compiler.err
+	return compiled.(string), compiler.parameters, compiler.err
 }
 
 // mark expression tree nodes that reference json fields
@@ -46,11 +47,15 @@ func isJSONField(fieldName string) bool {
 	return true
 }
 
+func newExpressionCompiler() expressionCompiler {
+	return expressionCompiler{parameters: []interface{}{}}
+}
+
 // expressionCompiler takes an expression and compiles it to a where clause for our gorm models
 // implements criteria.ExpressionVisitor
 type expressionCompiler struct {
-	parameterCount uint16  // records the number of parameter expressions encountered
-	err            []error // record any errors found in the expression
+	parameters []interface{} // records the number of parameter expressions encountered
+	err        []error       // record any errors found in the expression
 }
 
 // visitor implementation
@@ -59,6 +64,11 @@ type expressionCompiler struct {
 func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	if !isJSONField(f.FieldName) {
 		return f.FieldName
+	}
+	if strings.Contains(f.FieldName, "'") {
+		// beware of injection, it's a reasonable restriction for field names, make sure it's not allowed when creating wi types
+		c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
+		return nil
 	}
 	return "Fields->'" + f.FieldName + "'"
 }
@@ -86,8 +96,8 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 }
 
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {
-	c.parameterCount++
-	return "?"
+	c.err = append(c.err, fmt.Errorf("Parameter expression not supported"))
+	return nil
 }
 
 // iterate the parent chain to see if this expression references json fields
@@ -108,27 +118,40 @@ func isInJSONContext(exp criteria.Expression) bool {
 // you can write "a->'foo' < '5'" and it will return true for the json object { "a": 40 }.
 func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} {
 	json := isInJSONContext(v)
-	switch t := v.Value.(type) {
-	case float64:
-		return wrapJSON(json, strconv.FormatFloat(t, 'f', -1, 64))
-	case int:
-		return wrapJSON(json, strconv.FormatInt(int64(t), 10))
-	case int64:
-		return wrapJSON(json, strconv.FormatInt(t, 10))
-	case uint:
-		return wrapJSON(json, strconv.FormatUint(uint64(t), 10))
-	case uint64:
-		return wrapJSON(json, strconv.FormatUint(t, 10))
-	case string:
-		if json {
-			return "'\"" + t + "\"'"
+	if json {
+		stringVal, err := c.convertToString(v.Value)
+		if err == nil {
+			c.parameters = append(c.parameters, stringVal)
+			return "?::jsonb"
 		}
-		return "'" + t + "'"
-	case bool:
-		return wrapJSON(json, strconv.FormatBool(t))
+		c.err = append(c.err, err)
+		return nil
 	}
-	c.err = append(c.err, fmt.Errorf("unknown value type of %v: %T", v.Value, v.Value))
-	return ""
+	c.parameters = append(c.parameters, v.Value)
+	return "?"
+}
+
+func (c *expressionCompiler) convertToString(value interface{}) (string, error) {
+	var result string
+	switch t := value.(type) {
+	case float64:
+		result = strconv.FormatFloat(t, 'f', -1, 64)
+	case int:
+		result = strconv.FormatInt(int64(t), 10)
+	case int64:
+		result = strconv.FormatInt(t, 10)
+	case uint:
+		result = strconv.FormatUint(uint64(t), 10)
+	case uint64:
+		result = strconv.FormatUint(t, 10)
+	case string:
+		result = "\"" + t + "\""
+	case bool:
+		result = strconv.FormatBool(t)
+	default:
+		return "", fmt.Errorf("unknown value type of %v: %T", value, value)
+	}
+	return result, nil
 }
 
 func wrapJSON(isJSON bool, value string) string {

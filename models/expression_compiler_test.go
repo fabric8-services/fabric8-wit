@@ -1,6 +1,7 @@
 package models
 
 import (
+	"reflect"
 	"runtime/debug"
 	"testing"
 
@@ -8,22 +9,18 @@ import (
 )
 
 func TestField(t *testing.T) {
-	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = '23')", 0)
-	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = 'abcd')", 0)
-}
-
-func TestParameter(t *testing.T) {
-	expect(t, And(Literal(true), Parameter()), "(true and ?)", 1)
+	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = ?::jsonb)", []interface{}{"23"})
+	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
-	expect(t, Or(Literal(true), Literal(false)), "(true or false)", 0)
+	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
-	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = '\"abcd\"') and (true = false))", 0)
-	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = '\"abcd\"') or (true = false))", 0)
+	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = ?::jsonb) and (? = ?))", []interface{}{"\"abcd\"", true, false})
+	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = ?::jsonb) or (? = ?))", []interface{}{"\"abcd\"", true, false})
 }
 
-func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters uint16) {
+func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters []interface{}) {
 	clause, parameters, err := Compile(expr)
 	if len(err) > 0 {
 		debug.PrintStack()
@@ -33,8 +30,9 @@ func expect(t *testing.T, expr Expression, expectedClause string, expectedParame
 		debug.PrintStack()
 		t.Fatalf("clause should be %s but is %s", expectedClause, clause)
 	}
-	if parameters != expectedParameters {
+
+	if !reflect.DeepEqual(expectedParameters, parameters) {
 		debug.PrintStack()
-		t.Fatalf("%d parameters instead of %d", parameters, expectedParameters)
+		t.Fatalf("parameters should be %v but is %v", expectedParameters, parameters)
 	}
 }

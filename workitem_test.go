@@ -96,3 +96,43 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 }
+
+func TestListByFields(t *testing.T) {
+	ts := models.NewGormTransactionSupport(db)
+	repo := models.NewWorkItemRepository(ts)
+	controller := WorkitemController{ts: ts, wiRepository: repo}
+	payload := app.CreateWorkitemPayload{
+		Name: "ListByName Name",
+		Type: "1",
+		Fields: map[string]interface{}{
+			"system.owner": "aslak",
+			"system.state": "done"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
+
+	filter := "{\"Name\":\"ListByName Name\"}"
+	page := "1,1"
+	_, result := test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
+
+	if result == nil {
+		t.Errorf("nil result")
+	}
+
+	if len(result) != 1 {
+		t.Errorf("unexpected length, is %d but should be %d", 1, len(result))
+	}
+
+	filter = "{\"system.owner\":\"aslak\"}"
+	_, result = test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
+
+	if result == nil {
+		t.Errorf("nil result")
+	}
+
+	if len(result) != 1 {
+		t.Errorf("unexpected length, is %d but should be %d", 1, len(result))
+	}
+
+	test.DeleteWorkitemOK(t, nil, nil, &controller, wi.ID)
+}
