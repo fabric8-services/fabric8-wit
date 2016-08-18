@@ -166,7 +166,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, name
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, error) {
-	where, _, err := Compile(criteria)
+	where, parameters, err := Compile(criteria)
 	if err != nil {
 		return nil, BadParameterError{"expression", criteria}
 	}
@@ -174,7 +174,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	log.Printf("executing query: %s", where)
 
 	var rows []WorkItem
-	db := r.ts.tx.Where(where)
+	db := r.ts.tx.Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}
