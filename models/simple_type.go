@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/asaskevich/govalidator"
 )
 
 // SimpleType is an unstructured FieldType
@@ -23,18 +25,28 @@ var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case KindString, KindURL, KindUser:
+	case KindString, KindUser:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
-	case KindInteger, KindFloat, KindDuration:
-		// instant == milliseconds
+	case KindURL:
+		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
+			return value, nil
+		}
+		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
+	case KindFloat:
 		if valueType.Kind() != reflect.Float64 {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
 		}
 		return value, nil
+	case KindInteger, KindDuration:
+		if valueType.Kind() != reflect.Int {
+			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
+		}
+		return value, nil
 	case KindInstant:
+		// instant == milliseconds
 		if !valueType.Implements(timeType) {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
@@ -45,7 +57,14 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		}
 		idValue, err := strconv.Atoi(value.(string))
 		return idValue, err
-
+	case KindList:
+		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
+			return nil, fmt.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
+		}
+		return value, nil
+	case KindEnum:
+		// to be done yet | not sure what to write here as of now.
+		return value, nil
 	default:
 		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
 	}

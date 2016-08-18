@@ -51,3 +51,4 @@ import:
   subpackages:
   - gocov
 - package: github.com/wadey/gocovmerge
+- package: gopkg.in/asaskevich/govalidator.v4
