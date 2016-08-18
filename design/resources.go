@@ -6,7 +6,7 @@ import (
 )
 
 var _ = Resource("workitem", func() {
-	BasePath("/workitem")
+	BasePath("/workitems")
 
 	Action("show", func() {
 		Routing(
@@ -32,7 +32,7 @@ var _ = Resource("workitem", func() {
 		)
 		Description("create work item with type and id.")
 		Payload(CreateWorkItemPayload)
-		Response(Created, "/workitem/.*", func() {
+		Response(Created, "/workitems/.*", func() {
 			Media(WorkItem)
 		})
 		Response(BadRequest, func() {
@@ -79,7 +79,7 @@ var _ = Resource("workitem", func() {
 
 var _ = Resource("workitemtype", func() {
 
-	BasePath("/workitemtype")
+	BasePath("/workitemtypes")
 
 	Action("show", func() {
 
