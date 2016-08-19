@@ -153,10 +153,3 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	}
 	return result, nil
 }
-
-func wrapJSON(isJSON bool, value string) string {
-	if isJSON {
-		return "'" + value + "'"
-	}
-	return value
-}
