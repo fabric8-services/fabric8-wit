@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/criteria"
 )
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
@@ -158,6 +159,43 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, name
 	result, err := convertFromModel(*wiType, wi)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
+	}
+
+	return result, nil
+}
+
+// List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
+func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, error) {
+	where, parameters, err := Compile(criteria)
+	if err != nil {
+		return nil, BadParameterError{"expression", criteria}
+	}
+
+	log.Printf("executing query: %s", where)
+
+	var rows []WorkItem
+	db := r.ts.tx.Where(where, parameters)
+	if start != nil {
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		db = db.Limit(*limit)
+	}
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make([]*app.WorkItem, len(rows))
+
+	for index, value := range rows {
+		var err error
+		wiType, err := loadTypeFromDB(value.Type)
+		if err != nil {
+			return nil, InternalError{simpleError{err.Error()}}
+		}
+		result[index], err = convertFromModel(*wiType, value)
+		if err != nil {
+			return nil, ConversionError{simpleError{err.Error()}}
+		}
 	}
 
 	return result, nil
