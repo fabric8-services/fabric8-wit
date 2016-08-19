@@ -371,7 +371,7 @@ link:https://github.com/derekparker/delve/tree/master/Documentation/cli#continue
 Open another shell and fetch an existing workitem using curl:
 
 ----
-$ curl http://localhost:8080/api/workitem/1
+$ curl http://localhost:8080/api/workitems/1
 ----
 
 (Replace the `1` with an existing workitem ID if needed)
