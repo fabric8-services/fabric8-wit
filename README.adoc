@@ -153,6 +153,11 @@ $ make clean
 
 Here's how to run all available tests. All tests will check all Go packages
 except those in the `vendor/` directory.
+Make sure you have docker and docker-compose available (Probably you may consider adding your user into `docker` group using `usermod -aG docker <your_user>`).
+
+Setting up test environment - `make integration-test-env-prepare`
+
+Tear test environment down - `make integration-test-env-tear-down`
 
 [horizontal]
 unit-tests::
@@ -165,8 +170,7 @@ $ make test-unit
 
 integration-tests::
 Integration tests demand more setup (i.e. the PostgreSQL DB must be already
-running) and probably time. Please make sure you have installed psql and
-it is running on 5432 or if you have docker compose just do `docker-compose up -d`
+running) and probably time. We recommend that you use `docker-compose up -d postgres`.
 +
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
