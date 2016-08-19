@@ -15,6 +15,10 @@ type GormTransactionSupport struct {
 	db *gorm.DB
 }
 
+func (g *GormTransactionSupport) TX() *gorm.DB {
+	return g.db
+}
+
 // Begin implements TransactionSupport
 func (g *GormTransactionSupport) Begin() error {
 	g.tx = g.db.Begin()
