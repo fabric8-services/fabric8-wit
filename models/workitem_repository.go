@@ -181,7 +181,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 
 	for index, value := range rows {
 		var err error
-		wiType, err := loadTypeFromDB(value.Type)
+		wiType, err := r.wir.loadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
 		}
@@ -193,15 +193,6 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 
 	return result, nil
 }
-
-var wellKnown = map[string]*WorkItemType{
-	"1": {
-		ID:   1,
-		Name: "system.workitem",
-		Fields: map[string]FieldDefinition{
-			"system.owner": FieldDefinition{Type: SimpleType{Kind: KindUser}, Required: true},
-			"system.state": FieldDefinition{Type: SimpleType{Kind: KindString}, Required: true},
-		}}}
 
 func convertFromModel(wiType WorkItemType, workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
