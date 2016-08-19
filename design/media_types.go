@@ -5,7 +5,7 @@ import (
 	. "github.com/goadesign/goa/design/apidsl"
 )
 
-// ALMVersion defines therunning ALM Version MediaType
+// ALMVersion defines the running ALM Version MediaType
 var ALMVersion = MediaType("application/vnd.version+json", func() {
 	Description("The current running version")
 	Attributes(func() {
@@ -32,14 +32,15 @@ var AuthToken = MediaType("application/vnd.authtoken+json", func() {
 	})
 })
 
-var WorkItem = MediaType("application/vnd.workitem+json", func() {
+// workItem is the media type for work items
+var workItem = MediaType("application/vnd.workitem+json", func() {
 	TypeName("WorkItem")
-	Description("ALM Work Item")
+	Description("A work item hold field values according to a given field type")
 	Attribute("id", String, "unique id per installation")
 	Attribute("version", Integer, "Version for optimistic concurrency control")
 	Attribute("name", String, "User Readable Name of this item")
-	Attribute("type", String, "Id of the type of this work item")
-	Attribute("fields", HashOf(String, Any))
+	Attribute("type", String, "Name of the type of this work item")
+	Attribute("fields", HashOf(String, Any), "The field values, according to the field type")
 
 	Required("id")
 	Required("version")
@@ -56,9 +57,11 @@ var WorkItem = MediaType("application/vnd.workitem+json", func() {
 	})
 })
 
-var FieldDefinition = Type("fieldDefinition", func() {
+// fieldDefinition defines the possible values for a field in a work item type
+var fieldDefinition = Type("fieldDefinition", func() {
+	Description("A fieldDescription aggregates a fieldType and additional field metadata")
 	Attribute("required", Boolean)
-	Attribute("type", Any)
+	Attribute("type", fieldType)
 
 	Required("required")
 	Required("type")
@@ -66,30 +69,38 @@ var FieldDefinition = Type("fieldDefinition", func() {
 	View("default", func() {
 		Attribute("kind")
 	})
-
 })
 
-var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {
-	TypeName("WorkItemType")
-	Description("ALM Work Item Type")
-	Attribute("id", String, "unique id per installation")
-	Attribute("version", Integer, "Version for optimistic concurrency control")
-	Attribute("name", String, "User Readable Name of this item")
-	Attribute("fields", HashOf(String, FieldDefinition), "Definitions of fields in this work item")
+// fieldType is the datatype of a single field in a work item tepy
+var fieldType = Type("fieldType", func() {
+	Description("A fieldType describes the values a particular field can hold")
+	Attribute("kind", String, "The constant indicating the kind of type, for example 'string' or 'enum' or 'instant'")
+	Attribute("componentType", String, "The kind of type of the individual elements for a list type. Required for list types. Must be a simple type, not  enum or list")
+	Attribute("baseType", String, "The kind of type of the enumeration values for an enum type. Required for enum types. Must be a simple type, not  enum or list")
+	Attribute("values", ArrayOf(Any), "The possible values for an enum type. The values must be of a type convertible to the base type")
 
-	Required("id")
+	Required("kind")
+})
+
+// workItemType is the media type representing a work item type.
+var workItemType = MediaType("application/vnd.workitemtype+json", func() {
+	TypeName("WorkItemType")
+	Description("A work item type describes the values a work item type instance can hold.")
+	Attribute("version", Integer, "Version for optimistic concurrency control")
+	Attribute("name", String, "User Readable Name of this item type")
+	Attribute("fields", HashOf(String, fieldDefinition), "Definitions of fields in this work item type")
+
 	Required("version")
 	Required("name")
 	Required("fields")
 
 	View("default", func() {
-		Attribute("id")
 		Attribute("version")
 		Attribute("name")
 		Attribute("fields")
 	})
 	View("link", func() {
-		Attribute("id")
+		Attribute("name")
 	})
 
 })

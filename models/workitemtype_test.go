@@ -15,7 +15,7 @@ func TestJsonMarshalListType(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	lt := ListType{
-		SimpleType: SimpleType{KindList},
+		SimpleType:    SimpleType{KindList},
 		ComponentType: SimpleType{KindInteger},
 	}
 
@@ -25,7 +25,6 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	expectedWIT := WorkItemType{
-		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": field},
@@ -57,7 +56,6 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 
 	expectedWIT := WorkItemType{
-		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": fd},
@@ -99,27 +97,6 @@ func TestMarshalFieldDef(t *testing.T) {
 	}
 }
 
-func TestMarshalRawEnum(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-
-	ret := rawEnumType{
-		BaseType: SimpleType{Kind: KindInteger},
-		Values:   []interface{}{float64(2), float64(4), float64(4)},
-	}
-
-	bytes, err := json.Marshal(ret)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var readField rawEnumType
-	json.Unmarshal(bytes, &readField)
-
-	if !reflect.DeepEqual(readField.Values, ret.Values) {
-		t.Error("values not equal\n")
-	}
-}
-
 func TestMarshalArray(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
@@ -134,4 +111,29 @@ func TestMarshalArray(t *testing.T) {
 		fmt.Printf("cap=[%d, %d], len=[%d, %d]\n", cap(original), cap(read), len(original), len(read))
 		t.Error("not equal")
 	}
+}
+
+func TestConvertFieldTypes(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	types := []FieldType{
+		SimpleType{KindInteger},
+		ListType{SimpleType{KindList}, SimpleType{KindString}},
+		EnumType{SimpleType{KindEnum}, SimpleType{KindString}, []interface{}{"foo", "bar"}},
+	}
+
+	for _, theType := range types {
+		t.Logf("testing type %v", theType)
+		if err := testConvertFieldType(theType); err != nil {
+			t.Error(err.Error())
+		}
+	}
+}
+
+func testConvertFieldType(original FieldType) error {
+	converted := convertFieldTypeFromModels(original)
+	reconverted, _ := convertFieldTypeToModels(converted)
+	if !reflect.DeepEqual(original, reconverted) {
+		return fmt.Errorf("reconverted should be %v, but is %v", original, reconverted)
+	}
+	return nil
 }

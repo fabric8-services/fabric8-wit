@@ -17,7 +17,7 @@ var _ = Resource("workitem", func() {
 			Param("id", String, "id")
 		})
 		Response(OK, func() {
-			Media(WorkItem)
+			Media(workItem)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -32,11 +32,11 @@ var _ = Resource("workitem", func() {
 		)
 		Description("List work items.")
 		Params(func() {
-			Param("filter", String, "a query language expression restricting the set of found items")
+			Param("filter", String, "a query language expression restricting the set of found work items")
 			Param("page", String, "Paging in the format <start>,<limit>")
 		})
 		Response(OK, func() {
-			Media(CollectionOf(WorkItem))
+			Media(CollectionOf(workItem))
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -51,13 +51,12 @@ var _ = Resource("workitem", func() {
 		Description("create work item with type and id.")
 		Payload(CreateWorkItemPayload)
 		Response(Created, "/workitems/.*", func() {
-			Media(WorkItem)
+			Media(workItem)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
 		})
 		Response(InternalServerError)
-		Response(NotFound)
 	})
 	Action("delete", func() {
 		Routing(
@@ -84,7 +83,7 @@ var _ = Resource("workitem", func() {
 		})
 		Payload(UpdateWorkItemPayload)
 		Response(OK, func() {
-			Media(WorkItem)
+			Media(workItem)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -102,16 +101,48 @@ var _ = Resource("workitemtype", func() {
 	Action("show", func() {
 
 		Routing(
-			GET("/:id"),
+			GET("/:name"),
 		)
-		Description("Retrieve work item type with given id.")
+		Description("Retrieve work item type with given name.")
 		Params(func() {
-			Param("id", String, "id")
+			Param("name", String, "name")
 		})
 		Response(OK, func() {
-			Media(WorkItemType)
+			Media(workItemType)
 		})
 		Response(NotFound)
+	})
+
+	Action("create", func() {
+		Routing(
+			POST(""),
+		)
+		Description("Create work item type.")
+		Payload(CreateWorkItemTypePayload)
+		Response(Created, "/workitemtypes/.*", func() {
+			Media(workItemType)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+	})
+
+	Action("list", func() {
+		Routing(
+			GET(""),
+		)
+		Description("List work item types.")
+		Params(func() {
+			Param("page", String, "Paging in the format <start>,<limit>")
+		})
+		Response(OK, func() {
+			Media(CollectionOf(workItemType))
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
 	})
 })
 

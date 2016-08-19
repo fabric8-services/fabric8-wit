@@ -32,7 +32,7 @@ func (fieldType ListType) ConvertToModel(value interface{}) (interface{}, error)
 	// the assumption is that work item types do not change over time...only new ones can be created
 	return convertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertToModel(value)
-	}, fieldType, value)
+	}, fieldType.ComponentType, value)
 
 }
 
@@ -41,12 +41,12 @@ func (fieldType ListType) ConvertFromModel(value interface{}) (interface{}, erro
 	// the assumption is that work item types do not change over time...only new ones can be created
 	return convertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertFromModel(value)
-	}, fieldType, value)
+	}, fieldType.ComponentType, value)
 }
 
 type converter func(FieldType, interface{}) (interface{}, error)
 
-func convertList(converter converter, fieldType ListType, value interface{}) (interface{}, error) {
+func convertList(converter converter, componentType SimpleType, value interface{}) ([]interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
 	valueType := reflect.TypeOf(value)
 
@@ -58,7 +58,7 @@ func convertList(converter converter, fieldType ListType, value interface{}) (in
 	for i := range converted {
 		var err error
 		// valueArray index value must be converted to Interface else it has TYPE=Value
-		converted[i], err = converter(fieldType.ComponentType, valueArray.Index(i).Interface())
+		converted[i], err = converter(componentType, valueArray.Index(i).Interface())
 		if err != nil {
 			return nil, fmt.Errorf("error converting list value: %s", err.Error())
 		}
