@@ -6,8 +6,13 @@ import (
 )
 
 // Perform executes the required migration of the database on startup
-func Perform(db *gorm.DB) {
-
+func Perform(db *gorm.DB) error {
 	db.AutoMigrate(
-		&models.WorkItem{})
+		&models.WorkItem{},
+		&models.WorkItemType{})
+	if db.Error != nil {
+		return db.Error
+	}
+
+	return db.Error
 }
