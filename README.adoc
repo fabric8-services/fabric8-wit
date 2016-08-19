@@ -167,7 +167,8 @@ $ make test-unit
 
 integration-tests::
 Integration tests demand more setup (i.e. the PostgreSQL DB must be already
-running) and probably time.
+running) and probably time. Please make sure you have installed psql and
+it is running on 5432 or if you have docker compose just do `docker-compose up -d`
 +
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
