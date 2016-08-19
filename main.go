@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"golang.org/x/net/context"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
@@ -51,9 +53,11 @@ func main() {
 
 	// Migrate the schema
 	ts := models.NewGormTransactionSupport(db)
+	witRepo := models.NewWorkItemTypeRepository(ts)
+	wiRepo := models.NewWorkItemRepository(ts, witRepo)
 
 	if err := transaction.Do(ts, func() error {
-		return migration.Perform(ts.TX())
+		return migration.Perform(context.Background(), ts.TX(), witRepo)
 	}); err != nil {
 		panic(err.Error())
 	}
@@ -81,13 +85,11 @@ func main() {
 	app.MountVersionController(service, c2)
 
 	// Mount "workitem" controller
-	witRepo := models.NewWorkItemTypeRepository(ts)
-	wiRepo := models.NewWorkItemRepository(ts, witRepo)
 	c3 := NewWorkitemController(service, wiRepo, ts)
 	app.MountWorkitemController(service, c3)
 
 	// Mount "workitemtype" controller
-	c4 := NewWorkitemtypeController(service, witRepo)
+	c4 := NewWorkitemtypeController(service, witRepo, ts)
 	app.MountWorkitemtypeController(service, c4)
 
 	fmt.Println("Git Commit SHA: ", Commit)
