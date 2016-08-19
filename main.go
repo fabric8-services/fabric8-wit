@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/transaction"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -49,7 +50,13 @@ func main() {
 	defer db.Close()
 
 	// Migrate the schema
-	migration.Perform(db)
+	ts := models.NewGormTransactionSupport(db)
+
+	if err := transaction.Do(ts, func() error {
+		return migration.Perform(ts.TX())
+	}); err != nil {
+		panic(err.Error())
+	}
 
 	// Create service
 	service := goa.New("alm")
@@ -74,13 +81,13 @@ func main() {
 	app.MountVersionController(service, c2)
 
 	// Mount "workitem" controller
-	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewWorkItemRepository(ts)
-	c3 := NewWorkitemController(service, repo, ts)
+	witRepo := models.NewWorkItemTypeRepository(ts)
+	wiRepo := models.NewWorkItemRepository(ts, witRepo)
+	c3 := NewWorkitemController(service, wiRepo, ts)
 	app.MountWorkitemController(service, c3)
 
 	// Mount "workitemtype" controller
-	c4 := NewWorkitemtypeController(service)
+	c4 := NewWorkitemtypeController(service, witRepo)
 	app.MountWorkitemtypeController(service, c4)
 
 	fmt.Println("Git Commit SHA: ", Commit)
