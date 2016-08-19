@@ -2,7 +2,6 @@ package models
 
 import (
 	"log"
-	"strconv"
 
 	"golang.org/x/net/context"
 
@@ -21,41 +20,23 @@ func NewWorkItemTypeRepository(ts *GormTransactionSupport) *GormWorkItemTypeRepo
 
 // Load returns the work item for the given id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) Load(ctx context.Context, ID string) (*app.WorkItemType, error) {
-	id, err := strconv.ParseUint(ID, 10, 64)
+func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
+	res, err := r.loadTypeFromDB(ctx, name)
 	if err != nil {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"work item", ID}
-	}
-
-	log.Printf("loading work item %d", id)
-	res := WorkItemType{}
-
-	if r.ts.tx.First(&res, id).RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item", ID}
-	}
-	if err := r.ts.tx.Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, err
 	}
 
 	result := convertTypeFromModels(res)
 	return &result, nil
 }
 
-func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, ID string) (*WorkItemType, error) {
-	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"work item", ID}
-	}
-
-	log.Printf("loading work item %d", id)
+func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
+	log.Printf("loading work item type %s", name)
 	res := WorkItemType{}
 
-	if r.ts.tx.First(&res, id).RecordNotFound() {
+	if r.ts.tx.Where("name=?", name).First(&res).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item", ID}
+		return nil, NotFoundError{"work item type", name}
 	}
 	if err := r.ts.tx.Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
@@ -66,19 +47,15 @@ func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, ID stri
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]FieldDefinition) (*app.WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
 	allFields := map[string]FieldDefinition{}
 	path := "/"
 
-	if extendedTypeID != nil {
-		id, err := strconv.ParseUint(*extendedTypeID, 10, 64)
-		if err != nil {
-			return nil, BadParameterError{parameter: "extendedTypeId", value: *extendedTypeID}
-		}
+	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
-		if r.ts.tx.First(&extendedType, id).RecordNotFound() {
+		if r.ts.tx.First(&extendedType, extendedTypeName).RecordNotFound() {
 			log.Printf("not found, res=%v", extendedType)
-			return nil, BadParameterError{parameter: "extendedTypeId", value: *extendedTypeID}
+			return nil, BadParameterError{parameter: "extendedTypeName", value: *extendedTypeName}
 		}
 		if err := r.ts.tx.Error; err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
@@ -87,7 +64,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID 
 		for key, value := range extendedType.Fields {
 			allFields[key] = value
 		}
-		path = extendedType.ParentPath + "/" + strconv.FormatUint(extendedType.ID, 10)
+		path = extendedType.ParentPath + "/" + extendedType.Name
 	}
 
 	// new process new fields, checking whether they are ok to add.
@@ -103,13 +80,12 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID 
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
-	result := convertTypeFromModels(created)
+	result := convertTypeFromModels(&created)
 	return &result, nil
 }
 
-func convertTypeFromModels(t WorkItemType) app.WorkItemType {
+func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
 	var converted = app.WorkItemType{
-		ID:      strconv.FormatUint(t.ID, 10),
 		Name:    t.Name,
 		Version: t.Version,
 		Fields:  map[string]*app.FieldDefinition{},
@@ -122,12 +98,3 @@ func convertTypeFromModels(t WorkItemType) app.WorkItemType {
 	}
 	return converted
 }
-
-var wellKnown = map[string]*WorkItemType{
-	"1": &WorkItemType{
-		ID:   1,
-		Name: "system.workitem",
-		Fields: map[string]FieldDefinition{
-			"system.owner": FieldDefinition{Type: SimpleType{Kind: KindUser}, Required: true},
-			"system.state": FieldDefinition{Type: SimpleType{Kind: KindString}, Required: true},
-		}}}
