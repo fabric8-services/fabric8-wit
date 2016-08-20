@@ -101,3 +101,25 @@ var workItemType = MediaType("application/vnd.workitemtype+json", func() {
 	})
 
 })
+
+// Tracker configuration
+var Tracker = MediaType("application/vnd.tracker+json", func() {
+	TypeName("Tracker")
+	Description("Tracker configuration")
+	Attribute("id", String, "unique id per tracker")
+	Attribute("url", String, "URL of the tracker")
+	Attribute("credentials", String, "Credential to access the tracker")
+	Attribute("type", String, "Type of the tracker")
+
+	Required("id")
+	Required("url")
+	Required("credentials")
+	Required("type")
+
+	View("default", func() {
+		Attribute("id")
+		Attribute("url")
+		Attribute("credentials")
+		Attribute("type")
+	})
+})

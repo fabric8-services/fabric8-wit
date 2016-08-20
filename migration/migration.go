@@ -11,7 +11,8 @@ import (
 func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepository) error {
 	db.AutoMigrate(
 		&models.WorkItem{},
-		&models.WorkItemType{})
+		&models.WorkItemType{},
+		&models.Tracker{})
 	if db.Error != nil {
 		return db.Error
 	}
