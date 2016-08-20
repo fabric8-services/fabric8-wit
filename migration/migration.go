@@ -3,6 +3,7 @@ package migration
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
@@ -11,7 +12,10 @@ import (
 func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepository) error {
 	db.AutoMigrate(
 		&models.WorkItem{},
-		&models.WorkItemType{})
+		&models.WorkItemType{},
+		&remoteworkitem.Tracker{},
+		&remoteworkitem.TrackerQuery{},
+		&remoteworkitem.TrackerItem{})
 	if db.Error != nil {
 		return db.Error
 	}
@@ -28,5 +32,8 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 			return err
 		}
 	}
+	// FIXME: Need to add this conditionally
+	// q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
+	// db.Exec(q)
 	return db.Error
 }
