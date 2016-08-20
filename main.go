@@ -83,6 +83,11 @@ func main() {
 	c4 := NewWorkitemtypeController(service)
 	app.MountWorkitemtypeController(service, c4)
 
+	// Mount "tracker" controller
+	repo2 := models.NewTrackerRepository(ts)
+	c5 := NewTrackerController(service, repo2, ts)
+	app.MountTrackerController(service, c5)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("Dev mode:       ", Development)
