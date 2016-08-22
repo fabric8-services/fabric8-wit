@@ -91,6 +91,11 @@ func main() {
 	c5 := NewTrackerController(service, repo2, ts)
 	app.MountTrackerController(service, c5)
 
+	// Mount "trackerquery" controller
+	repo3 := models.NewTrackerQueryRepository(ts)
+	c6 := NewTrackerqueryController(service, repo3, ts)
+	app.MountTrackerqueryController(service, c6)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("Dev mode:       ", Development)
