@@ -71,11 +71,24 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 
 // Update runs the update action.
 func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	// TrackerqueryController_Update: start_implement
+	return transaction.Do(c.ts, func() error {
 
-	// Put your logic here
+		toSave := app.TrackerQuery{
+			ID:      ctx.ID,
+			Query:    ctx.Payload.Query,
+			Version: ctx.Payload.Version,
+			Schedule:  ctx.Payload.Schedule,
+		}
+		tq, err := c.tqRepository.Save(ctx.Context, toSave)
 
-	// TrackerqueryController_Update: end_implement
-	res := &app.TrackerQuery{}
-	return ctx.OK(res)
+		if err != nil {
+			switch err := err.(type) {
+			case models.BadParameterError, models.ConversionError:
+				return goa.ErrBadRequest(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+		return ctx.OK(tq)
+	})
 }
