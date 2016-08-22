@@ -247,19 +247,36 @@ gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
 #  1. Test name (e.g. "unit" or "integration")
 #  2. package name "github.com/almighty/almighty-core/model"
 #  3. File in which to combine the output
-#  4. (optional) parameters for "go test" command
+#  4. Path to file in which to store names of packages that failed testing
+#  5. (optional) parameters for "go test" command
 define test-package
 $(eval TEST_NAME := $(1))
 $(eval PACKAGE_NAME := $(2))
 $(eval COMBINED_OUT_FILE := $(3))
-$(eval EXTRA_TEST_PARAMS := $(4))
+$(eval ERRORS_FILE := $(4))
+$(eval EXTRA_TEST_PARAMS := $(5))
 
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) go test $(PACKAGE_NAME) -v -coverprofile $(COV_OUT_FILE) -covermode=$(COVERAGE_MODE) -timeout 10m $(EXTRA_TEST_PARAMS);
+-@ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) go test $(PACKAGE_NAME) -v -coverprofile $(COV_OUT_FILE) -covermode=$(COVERAGE_MODE) -timeout 10m $(EXTRA_TEST_PARAMS) || echo $(PACKAGE_NAME) >> $(ERRORS_FILE)
 
 @if [ -e "$(COV_OUT_FILE)" ]; then \
 	tail -n +2 $(COV_OUT_FILE) >> $(COMBINED_OUT_FILE); \
+fi
+endef
+
+# Exits the makefile with an error if the file (first parameter) exists.
+# Before existing, the contents of the passed file is printed.
+define check-test-results
+$(eval ERRORS_FILE := $(1))
+@if [ -e "$(ERRORS_FILE)" ]; then \
+echo ""; \
+echo "ERROR: The following packages did not pass the tests:"; \
+echo "-----------------------------------------------------"; \
+cat $(ERRORS_FILE); \
+echo "-----------------------------------------------------"; \
+echo ""; \
+exit 1; \
 fi
 endef
 
@@ -267,21 +284,27 @@ endef
 #       the recipe to be always executed.
 $(COV_PATH_UNIT): $(SOURCES)
 	$(eval TEST_NAME := unit)
+	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
 	$(call log-info,"Running test: $(TEST_NAME)")
 	@mkdir -p $(COV_DIR)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_UNIT)
+	-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),-tags=unit))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),-tags=unit))
+	$(call check-test-results,$(ERRORS_FILE))
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
 $(COV_PATH_INTEGRATION): $(SOURCES)
 	$(eval TEST_NAME := integration)
+	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
 	$(call log-info,"Running test: $(TEST_NAME)")
 	@mkdir -p $(COV_DIR)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
+	-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),-tags=integration))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),-tags=integration))
+	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------
 # Additional tools to build
