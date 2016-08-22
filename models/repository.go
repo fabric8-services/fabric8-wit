@@ -28,4 +28,5 @@ type TrackerRepository interface {
 type TrackerQueryRepository interface {
 	//Save(ctx context.Context, t app.TrackerQuery) (*app.Tracker, error)
 	Create(ctx context.Context, query string, schedule string) (*app.TrackerQuery, error)
+	Save(ctx context.Context, t app.TrackerQuery) (*app.TrackerQuery, error)
 }
