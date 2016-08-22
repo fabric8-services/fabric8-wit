@@ -16,7 +16,7 @@ type GormTransactionSupport struct {
 }
 
 func (g *GormTransactionSupport) TX() *gorm.DB {
-	return g.db
+	return g.tx
 }
 
 // Begin implements TransactionSupport
