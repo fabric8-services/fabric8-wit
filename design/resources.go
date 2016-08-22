@@ -102,11 +102,11 @@ var _ = Resource("workitemtype", func() {
 	Action("show", func() {
 
 		Routing(
-			GET("/:id"),
+			GET("/:name"),
 		)
-		Description("Retrieve work item type with given id.")
+		Description("Retrieve work item type with given name.")
 		Params(func() {
-			Param("id", String, "id")
+			Param("name", String, "name")
 		})
 		Response(OK, func() {
 			Media(WorkItemType)

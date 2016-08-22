@@ -72,7 +72,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	// now process new fields, checking whether they are ok to add.
 	for field, definition := range fields {
 		existing, exists := allFields[field]
-		ct, err := convertFieldTypeToModels(definition.Type)
+		ct, err := convertFieldTypeToModels(*definition.Type)
 		if err != nil {
 			return nil, err
 		}
@@ -115,56 +115,81 @@ func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
 		ct := convertFieldTypeFromModels(def.Type)
 		converted.Fields[name] = &app.FieldDefinition{
 			Required: def.Required,
-			Type:     ct,
+			Type:     &ct,
 		}
 	}
 	return converted
 }
 
-func convertFieldTypeFromModels(t FieldType) map[string]interface{} {
-	result := map[string]interface{}{}
-	result["kind"] = string(t.GetKind())
+func convertFieldTypeFromModels(t FieldType) app.FieldType {
+	result := app.FieldType{}
+	result.Kind = string(t.GetKind())
 	switch t2 := t.(type) {
 	case ListType:
-		result["componentType"] = string(t2.ComponentType.GetKind())
+		kind := string(t2.ComponentType.GetKind())
+		result.ComponentType = &kind
 	case EnumType:
-		result["baseType"] = string(t2.BaseType.GetKind())
-		result["values"] = t2.Values
+		kind := string(t2.BaseType.GetKind())
+		result.BaseType = &kind
+		result.Values = t2.Values
 	}
 
 	return result
 }
 
-func convertFieldTypeToModels(t map[string]interface{}) (FieldType, error) {
-	k, ok := t["kind"].(string)
+func convertAnyToKind(any interface{}) (*Kind, error) {
+	k, ok := any.(string)
 	if !ok {
-		return nil, fmt.Errorf("Kind is not a string value")
+		return nil, fmt.Errorf("kind is not a string value %v", any)
 	}
 
+	return convertStringToKind(k)
+}
+
+func convertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
-	switch Kind(kind) {
+	switch kind {
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList:
+		return &kind, nil
+	}
+	return nil, fmt.Errorf("Not a simple type")
+}
+
+func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
+	kind, err := convertStringToKind(t.Kind)
+	if err != nil {
+		return nil, err
+	}
+	switch *kind {
 	case KindList:
-		componentType, ok := t["componentType"].(string)
-		if !ok {
-			return nil, fmt.Errorf("Component kind is not a Kind value")
-		}
-		return ListType{SimpleType{kind}, SimpleType{Kind(componentType)}}, nil
-	case KindEnum:
-		baseType, ok := t["baseType"].(string)
-		if !ok {
-			return nil, fmt.Errorf("BaseType kind is not a Kind value")
-		}
-		bt := SimpleType{Kind(baseType)}
-		values := t["values"]
-		converted, err := convertList(func(ft FieldType, element interface{}) (interface{}, error) {
-			return ft.ConvertToModel(element)
-		}, bt, values)
+		componentType, err := convertAnyToKind(t.ComponentType)
 		if err != nil {
 			return nil, err
 		}
-		return EnumType{SimpleType{kind}, bt, converted}, nil
-	default:
-		return SimpleType{kind}, nil
-	}
+		if !componentType.isSimpleType() {
+			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
+		}
 
+		return ListType{SimpleType{*kind}, SimpleType{*componentType}}, nil
+	case KindEnum:
+		bt, err := convertAnyToKind(t.BaseType)
+		if err != nil {
+			return nil, err
+		}
+		if !bt.isSimpleType() {
+			return nil, fmt.Errorf("baseType type is not list type: %s", bt)
+		}
+		baseType := SimpleType{*bt}
+
+		values := t.Values
+		converted, err := convertList(func(ft FieldType, element interface{}) (interface{}, error) {
+			return ft.ConvertToModel(element)
+		}, baseType, values)
+		if err != nil {
+			return nil, err
+		}
+		return EnumType{SimpleType{*kind}, baseType, converted}, nil
+	default:
+		return SimpleType{*kind}, nil
+	}
 }

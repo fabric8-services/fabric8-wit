@@ -22,6 +22,10 @@ const (
 // Kind is the kind of field type
 type Kind string
 
+func (k Kind) isSimpleType() bool {
+	return k != KindEnum && k != KindList
+}
+
 /*
 FieldType describes the possible values of a FieldDefinition
 */
