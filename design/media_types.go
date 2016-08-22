@@ -58,7 +58,7 @@ var WorkItem = MediaType("application/vnd.workitem+json", func() {
 
 var FieldDefinition = Type("fieldDefinition", func() {
 	Attribute("required", Boolean)
-	Attribute("type", HashOf(String, Any))
+	Attribute("type", FieldType)
 
 	Required("required")
 	Required("type")
@@ -66,7 +66,16 @@ var FieldDefinition = Type("fieldDefinition", func() {
 	View("default", func() {
 		Attribute("kind")
 	})
+})
 
+var FieldType = Type("fieldType", func() {
+
+	Attribute("kind", String)
+	Attribute("componentType", String)
+	Attribute("baseType", String)
+	Attribute("values", ArrayOf(Any))
+
+	Required("kind")
 })
 
 var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {

@@ -28,11 +28,11 @@ func NewWorkitemtypeController(service *goa.Service, witRepository models.WorkIt
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return transaction.Do(c.ts, func() error {
-		res, err := c.witRepository.Load(ctx.Context, ctx.ID)
+		res, err := c.witRepository.Load(ctx.Context, ctx.Name)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
-				log.Printf("not found, id=%s", ctx.ID)
+				log.Printf("not found, id=%s", ctx.Name)
 				return goa.ErrNotFound(err.Error())
 			default:
 				return err
