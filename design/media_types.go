@@ -5,7 +5,7 @@ import (
 	. "github.com/goadesign/goa/design/apidsl"
 )
 
-// ALMVersion defines therunning ALM Version MediaType
+// ALMVersion defines the running ALM Version MediaType
 var ALMVersion = MediaType("application/vnd.version+json", func() {
 	Description("The current running version")
 	Attributes(func() {
@@ -58,7 +58,7 @@ var WorkItem = MediaType("application/vnd.workitem+json", func() {
 
 var FieldDefinition = Type("fieldDefinition", func() {
 	Attribute("required", Boolean)
-	Attribute("type", Any)
+	Attribute("type", HashOf(String, Any))
 
 	Required("required")
 	Required("type")

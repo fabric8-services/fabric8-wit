@@ -1,5 +1,4 @@
 // +build unit
-
 package models
 
 import (
@@ -23,7 +22,6 @@ func TestJsonMarshalListType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": field},
@@ -53,7 +51,6 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 
 	wt := WorkItemType{
-		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": fd},
@@ -92,25 +89,6 @@ func TestMarshalFieldDef(t *testing.T) {
 	}
 }
 
-func TestMarshalRawEnum(t *testing.T) {
-	ret := rawEnumType{
-		BaseType: SimpleType{Kind: KindInteger},
-		Values:   []interface{}{float64(2), float64(4), float64(4)},
-	}
-
-	bytes, err := json.Marshal(ret)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var readField rawEnumType
-	json.Unmarshal(bytes, &readField)
-
-	if !reflect.DeepEqual(readField.Values, ret.Values) {
-		t.Error("values not equal\n")
-	}
-}
-
 func TestMarshalArray(t *testing.T) {
 	original := []interface{}{float64(1), float64(2), float64(3)}
 	bytes, err := json.Marshal(original)
@@ -123,4 +101,28 @@ func TestMarshalArray(t *testing.T) {
 		fmt.Printf("cap=[%d, %d], len=[%d, %d]\n", cap(original), cap(read), len(original), len(read))
 		t.Error("not equal")
 	}
+}
+
+func TestConvertFieldTypes(t *testing.T) {
+	types := []FieldType{
+		SimpleType{KindInteger},
+		ListType{SimpleType{KindList}, SimpleType{KindString}},
+		EnumType{SimpleType{KindEnum}, SimpleType{KindString}, []interface{}{"foo", "bar"}},
+	}
+
+	for _, theType := range types {
+		t.Logf("testing type %v", theType)
+		if err := testConvertFieldType(theType); err != nil {
+			t.Error(err.Error())
+		}
+	}
+}
+
+func testConvertFieldType(original FieldType) error {
+	converted := convertFieldTypeFromModels(original)
+	reconverted, _ := convertFieldTypeToModels(converted)
+	if !reflect.DeepEqual(original, reconverted) {
+		return fmt.Errorf("reconverted should be %v, but is %v", original, reconverted)
+	}
+	return nil
 }

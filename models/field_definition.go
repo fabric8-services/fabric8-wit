@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -47,107 +46,69 @@ type FieldDefinition struct {
 }
 
 /*
- Convert a field value for storage as json. As the system matures, add more checks (for example whether a user is in the system, etc.)
+ ConvertToModel converts a field value for storage as json. As the system matures, add more checks (for example whether a user is in the system, etc.)
 */
-func (field FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
-	if field.Required && value == nil {
+func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
+	if f.Required && value == nil {
 		return nil, fmt.Errorf("Value %s is required", name)
 	}
-	return field.Type.ConvertToModel(value)
+	return f.Type.ConvertToModel(value)
 }
 
 /*
- Convert from json storage to API form.
+ConvertFromModel converts from json storage to API form.
 */
-func (field FieldDefinition) ConvertFromModel(name string, value interface{}) (interface{}, error) {
-	if field.Required && value == nil {
+func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (interface{}, error) {
+	if f.Required && value == nil {
 		return nil, fmt.Errorf("Value %s is required", name)
 	}
-	return field.Type.ConvertFromModel(value)
+	return f.Type.ConvertFromModel(value)
 }
 
 type rawFieldDef struct {
-	Type     rawFieldType
 	Required bool
-}
-
-type rawEnumType struct {
-	BaseType SimpleType
-	Values   []interface{}
-}
-
-type rawFieldType struct {
-	Kind  Kind
-	Extra *json.RawMessage
+	Type     *json.RawMessage
 }
 
 // UnmarshalJSON implements encoding/json.Unmarshaler
-func (self *FieldDefinition) UnmarshalJSON(bytes []byte) error {
-
+func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	temp := rawFieldDef{}
 
+	fmt.Printf(string(bytes))
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
 		return err
 	}
+	rawType := map[string]interface{}{}
+	json.Unmarshal(*temp.Type, &rawType)
 
-	switch temp.Type.Kind {
-	case KindList:
-		var baseType SimpleType
-		err = json.Unmarshal(*temp.Type.Extra, &baseType)
+	kind, ok := rawType["Kind"].(string)
+	if !ok {
+		return fmt.Errorf("Kind is not a kind value")
+	}
+
+	switch {
+	case kind == string(KindList):
+		theType := ListType{}
+		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return err
 		}
-		theType := ListType{SimpleType: SimpleType{Kind: temp.Type.Kind}, ComponentType: baseType}
-		*self = FieldDefinition{Type: theType, Required: temp.Required}
-	case KindEnum:
-		var extraInfo rawEnumType
-		err = json.Unmarshal(*temp.Type.Extra, &extraInfo)
+		*f = FieldDefinition{Type: theType, Required: temp.Required}
+	case kind == string(KindEnum):
+		theType := EnumType{}
+		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return err
 		}
-		theType := EnumType{SimpleType: SimpleType{Kind: temp.Type.Kind}, BaseType: extraInfo.BaseType, Values: extraInfo.Values}
-		*self = FieldDefinition{Type: theType, Required: temp.Required}
+		*f = FieldDefinition{Type: theType, Required: temp.Required}
 	default:
-		*self = FieldDefinition{Type: SimpleType{Kind: temp.Type.Kind}, Required: temp.Required}
+		theType := SimpleType{}
+		err = json.Unmarshal(*temp.Type, &theType)
+		if err != nil {
+			return err
+		}
+		*f = FieldDefinition{Type: theType, Required: temp.Required}
 	}
 	return nil
-}
-
-// MarshalJSON implements encoding/json.Marshaler
-func (self FieldDefinition) MarshalJSON() ([]byte, error) {
-	var buf bytes.Buffer
-	buf.WriteString("{ \"type\": {")
-	buf.WriteString(fmt.Sprintf("\"kind\": \"%s\"", self.Type.GetKind()))
-	switch complexType := self.Type.(type) {
-	case ListType:
-		buf.WriteString(", \"extra\": ")
-		v, err := json.Marshal(complexType.ComponentType)
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(v)
-	case EnumType:
-		buf.WriteString(", \"extra\": ")
-		r := rawEnumType{
-			BaseType: complexType.BaseType,
-			Values:   complexType.Values,
-		}
-		v, err := json.Marshal(r)
-		if err != nil {
-			return nil, err
-		}
-		buf.Write(v)
-	}
-	buf.WriteString("}")
-
-	buf.WriteString(", \"required\": ")
-	if self.Required {
-		buf.WriteString("true")
-	} else {
-		buf.WriteString("false")
-	}
-
-	buf.WriteString(" }")
-	return buf.Bytes(), nil
 }
