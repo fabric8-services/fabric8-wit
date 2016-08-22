@@ -62,7 +62,6 @@ var fieldDefinition = Type("fieldDefinition", func() {
 	Description("A fieldDescription aggregates a fieldType and additional field metadata")
 	Attribute("required", Boolean)
 	Attribute("type", fieldType)
-
 	Required("required")
 	Required("type")
 
@@ -78,7 +77,6 @@ var fieldType = Type("fieldType", func() {
 	Attribute("componentType", String, "The kind of type of the individual elements for a list type. Required for list types. Must be a simple type, not  enum or list")
 	Attribute("baseType", String, "The kind of type of the enumeration values for an enum type. Required for enum types. Must be a simple type, not  enum or list")
 	Attribute("values", ArrayOf(Any), "The possible values for an enum type. The values must be of a type convertible to the base type")
-
 	Required("kind")
 })
 
