@@ -112,7 +112,7 @@ func TestListByFields(t *testing.T) {
 	_, wi := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
 
 	filter := "{\"Name\":\"ListByName Name\"}"
-	page := "1,1"
+	page := "0,1"
 	_, result := test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
 
 	if result == nil {
