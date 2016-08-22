@@ -26,7 +26,9 @@ func (k Kind) isSimpleType() bool {
 	return k != KindEnum && k != KindList
 }
 
-// FieldType describes the possible values of a FieldDefinition
+/*
+FieldType describes the possible values of a FieldDefinition
+*/
 type FieldType interface {
 	GetKind() Kind
 	/*
