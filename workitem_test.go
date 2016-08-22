@@ -7,10 +7,13 @@ import (
 	"os"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/transaction"
 
 	"github.com/jinzhu/gorm"
 )
@@ -29,17 +32,25 @@ func TestMain(m *testing.M) {
 	}
 	defer db.Close()
 	// Migrate the schema
-	migration.Perform(db)
+	ts := models.NewGormTransactionSupport(db)
+	witRepo := models.NewWorkItemTypeRepository(ts)
+
+	if err := transaction.Do(ts, func() error {
+		return migration.Perform(context.Background(), ts.TX(), witRepo)
+	}); err != nil {
+		panic(err.Error())
+	}
 	m.Run()
 }
 
 func TestGetWorkItem(t *testing.T) {
 	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewWorkItemRepository(ts)
+	wir := models.NewWorkItemTypeRepository(ts)
+	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "foobar",
-		Type: "1",
+		Type: "system.issue",
 		Fields: map[string]interface{}{
 			"system.owner": "aslak",
 			"system.state": "done"},
@@ -80,11 +91,12 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewWorkItemRepository(ts)
+	wir := models.NewWorkItemTypeRepository(ts)
+	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "some name",
-		Type: "1",
+		Type: "system.issue",
 		Fields: map[string]interface{}{
 			"system.owner": "tmaeder",
 			"system.state": "open",
@@ -99,11 +111,12 @@ func TestCreateWI(t *testing.T) {
 
 func TestListByFields(t *testing.T) {
 	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewWorkItemRepository(ts)
+	wir := models.NewWorkItemTypeRepository(ts)
+	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "ListByName Name",
-		Type: "1",
+		Type: "system.issue",
 		Fields: map[string]interface{}{
 			"system.owner": "aslak",
 			"system.state": "done"},

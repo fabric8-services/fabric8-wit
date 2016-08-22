@@ -20,8 +20,8 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 	switch err.(type) {
 	case models.NotFoundError:
 		_, err := witr.Create(ctx, nil, "system.issue", map[string]app.FieldDefinition{
-			"system.owner": app.FieldDefinition{Type: models.SimpleType{Kind: models.KindUser}, Required: true},
-			"system.state": app.FieldDefinition{Type: models.SimpleType{Kind: models.KindString}, Required: true},
+			"system.owner": app.FieldDefinition{Type: map[string]interface{}{"kind": "user"}, Required: true},
+			"system.state": app.FieldDefinition{Type: map[string]interface{}{"kind": "string"}, Required: true},
 		})
 		if err != nil {
 			return err
