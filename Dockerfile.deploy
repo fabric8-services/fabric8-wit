@@ -4,6 +4,13 @@ ENV LANG=en_US.utf8
 
 COPY bin/alm /usr/bin/alm
 
-EXPOSE 8080
+# This script waits for a port to be open before it continues to execute what's
+# behind the two dashes "--".
+ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /usr/local/bin/wait-for-it.sh
+RUN chmod +x /usr/local/bin/wait-for-it.sh
 
-ENTRYPOINT ["/usr/bin/alm"]
+# Wait until the postgres service ("db") from the docker-compose.yaml file is
+# ready to accept connections then then start the almighty-core.
+ENTRYPOINT [ "/usr/local/bin/wait-for-it.sh", "db:5432", "--", "/usr/bin/alm" ]
+
+EXPOSE 8080

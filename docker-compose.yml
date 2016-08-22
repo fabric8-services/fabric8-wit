@@ -13,9 +13,8 @@ services:
     image: almightycore/almighty-core:demo
     command: -dbhost db
     ports:
-      - "8081:8080"
+      - "8080:8080"
     networks:
       - default
     depends_on:
       - db
-
