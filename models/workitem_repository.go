@@ -164,7 +164,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		return nil, BadParameterError{"expression", criteria}
 	}
 
-	log.Printf("executing query: %s", where)
+	log.Printf("executing query: '%s' with params %v", where, parameters)
 
 	var rows []WorkItem
 	db := r.ts.tx.Where(where, parameters)

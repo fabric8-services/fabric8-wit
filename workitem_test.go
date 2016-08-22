@@ -1,5 +1,3 @@
-// +build integration
-
 package main
 
 import (
@@ -133,7 +131,7 @@ func TestListByFields(t *testing.T) {
 	}
 
 	if len(result) != 1 {
-		t.Errorf("unexpected length, is %d but should be %d", 1, len(result))
+		t.Errorf("unexpected length, should be %d but is %d", 1, len(result))
 	}
 
 	filter = "{\"system.owner\":\"aslak\"}"
@@ -144,7 +142,7 @@ func TestListByFields(t *testing.T) {
 	}
 
 	if len(result) != 1 {
-		t.Errorf("unexpected length, is %d but should be %d", 1, len(result))
+		t.Errorf("unexpected length, should be %d but is %d ", 1, len(result))
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, &controller, wi.ID)
