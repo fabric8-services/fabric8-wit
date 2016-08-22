@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 	defer db.Close()
 	// Migrate the schema
 	migration.Perform(db)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 func TestGetWorkItem(t *testing.T) {
