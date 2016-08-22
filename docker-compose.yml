@@ -11,6 +11,11 @@ services:
       - default
   core:
     image: almightycore/almighty-core:latest
+    entrypoint:
+      - /usr/local/bin/wait-for-it.sh
+      - db:5432
+      - --
+      - /usr/bin/alm
     command: -dbhost db
     ports:
       - "8080:8080"

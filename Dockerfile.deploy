@@ -11,6 +11,6 @@ RUN chmod +x /usr/local/bin/wait-for-it.sh
 
 # Wait until the postgres service ("db") from the docker-compose.yaml file is
 # ready to accept connections then then start the almighty-core.
-ENTRYPOINT [ "/usr/local/bin/wait-for-it.sh", "db:5432", "--", "/usr/bin/alm" ]
+ENTRYPOINT [ "/usr/bin/alm" ]
 
 EXPOSE 8080
