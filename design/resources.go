@@ -246,3 +246,91 @@ var _ = Resource("tracker", func() {
 	})
 
 })
+
+var _ = Resource("trackerquery", func() {
+	BasePath("/trackerqueries")
+
+	Action("list", func() {
+		Routing(
+			GET(""),
+		)
+		Description("List all tracker queries.")
+		Params(func() {
+			Param("filter", String, "a query language expression restricting the set of found items")
+			Param("page", String, "Paging in the format <start>,<limit>")
+		})
+		Response(OK, func() {
+			Media(CollectionOf(TrackerQuery))
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+
+	Action("show", func() {
+		Routing(
+			GET("/:id"),
+		)
+		Description("Retrieve tracker configuration for the given id.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK, func() {
+			Media(TrackerQuery)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+
+	Action("create", func() {
+		Routing(
+			POST(""),
+		)
+		Description("Add new tracker query.")
+		Payload(CreateTrackerQueryAlternatePayload)
+		Response(Created, "/trackerqueries/.*", func() {
+			Media(TrackerQuery)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+	Action("delete", func() {
+		Routing(
+			DELETE("/:id"),
+		)
+		Description("Delete tracker query.")
+		Params(func() {
+			Param("id", String, "id")
+		})
+		Response(OK)
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+	Action("update", func() {
+		Routing(
+			PUT("/:id"),
+		)
+		Description("Update tracker query.")
+		Payload(UpdateTrackerQueryAlternatePayload)
+		Response(OK, func() {
+			Media(TrackerQuery)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+
+})
