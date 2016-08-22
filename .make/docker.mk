@@ -28,9 +28,15 @@ docker-image-builder:
 	docker build -t $(DOCKER_IMAGE_CORE) -f $(CUR_DIR)/Dockerfile.builder $(CUR_DIR)
 
 .PHONY: docker-image-deploy
-## Creates a runnable container using the artifacts from the bin directory.
+## Creates a runnable image using the artifacts from the bin directory.
 docker-image-deploy:
 	docker build -t $(DOCKER_IMAGE_DEPLOY) -f $(CUR_DIR)/Dockerfile.deploy $(CUR_DIR)
+
+.PHONY: docker-publish-deploy
+## Tags the runnable image and pushes it to the docker hub.
+docker-publish-deploy:
+	docker tag $(DOCKER_IMAGE_DEPLOY) almightycore/almighty-core:latest
+	docker push almightycore/almighty-core:latest
 
 .PHONY: docker-build-dir
 ## Creates the docker build directory.

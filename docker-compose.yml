@@ -10,7 +10,7 @@ services:
     networks:
       - default
   core:
-    image: almightycore/almighty-core:demo
+    image: almightycore/almighty-core:latest
     command: -dbhost db
     ports:
       - "8080:8080"
