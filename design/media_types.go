@@ -93,3 +93,47 @@ var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {
 	})
 
 })
+
+// Tracker configuration
+var Tracker = MediaType("application/vnd.tracker+json", func() {
+	TypeName("Tracker")
+	Description("Tracker configuration")
+	Attribute("id", String, "unique id per tracker")
+	Attribute("url", String, "URL of the tracker")
+	Attribute("credentials", String, "Credential to access the tracker")
+	Attribute("type", String, "Type of the tracker")
+
+	Required("id")
+	Required("url")
+	Required("credentials")
+	Required("type")
+
+	View("default", func() {
+		Attribute("id")
+		Attribute("url")
+		Attribute("credentials")
+		Attribute("type")
+	})
+})
+
+// TrackerQuery represents the search query with schedule
+var TrackerQuery = MediaType("application/vnd.trackerquery+json", func() {
+	TypeName("TrackerQuery")
+	Description("Tracker query with schedule")
+	Attribute("id", String, "unique id per installation")
+	Attribute("version", Integer, "Version for optimistic concurrency control")
+	Attribute("query", String, "Search query")
+	Attribute("schedule", String, "Schedule for fetch and import")
+
+	Required("id")
+	Required("version")
+	Required("query")
+	Required("schedule")
+
+	View("default", func() {
+		Attribute("id")
+		Attribute("version")
+		Attribute("query")
+		Attribute("schedule")
+	})
+})

@@ -9,5 +9,7 @@ import (
 func Perform(db *gorm.DB) {
 
 	db.AutoMigrate(
-		&models.WorkItem{})
+		&models.WorkItem{},
+		&models.Tracker{},
+		&models.TrackerQuery{})
 }
