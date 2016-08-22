@@ -4,4 +4,6 @@ ENV LANG=en_US.utf8
 
 COPY bin/alm /usr/bin/alm
 
+EXPOSE 8080
+
 ENTRYPOINT ["/usr/bin/alm"]
