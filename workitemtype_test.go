@@ -7,13 +7,15 @@ import (
 	//"strings"
 
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/models"
 )
 
 func TestGetWorkItemType(t *testing.T) {
-	t.Skip("work in progress hence not testing now.")
-	typeController := WorkitemtypeController{}
-	_, resp2 := test.ShowWorkitemtypeOK(t, nil, nil, &typeController, "1")
+	ts := models.NewGormTransactionSupport(db)
+	witRepo := models.NewWorkItemTypeRepository(ts)
+	typeController := WorkitemtypeController{ts: ts, witRepository: witRepo}
+	_, resp2 := test.ShowWorkitemtypeOK(t, nil, nil, &typeController, "system.issue")
 	if resp2 == nil {
-		t.Error("Could not read type 1")
+		t.Error("Could not read type system.issue")
 	}
 }
