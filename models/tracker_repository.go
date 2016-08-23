@@ -27,25 +27,23 @@ var trackerTypes = map[string]string{
 
 // Create creates a new tracker configuration in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerRepository) Create(ctx context.Context, url string, credentials string, typeID string) (*app.Tracker, error) {
+func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID string) (*app.Tracker, error) {
 	_, present := trackerTypes[typeID]
 	if present != true {
 		return nil, BadParameterError{parameter: "type", value: typeID}
 	}
 	t := Tracker{
-		URL:         url,
-		Credentials: credentials,
-		Type:        typeID}
+		URL:  url,
+		Type: typeID}
 	tx := r.ts.tx
 	if err := tx.Create(&t).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("created tracker %v\n", t)
 	t2 := app.Tracker{
-		ID:          string(t.ID),
-		URL:         url,
-		Credentials: credentials,
-		Type:        typeID}
+		ID:   string(t.ID),
+		URL:  url,
+		Type: typeID}
 
 	return &t2, nil
 }
@@ -66,10 +64,9 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 		return nil, NotFoundError{"tracker", ID}
 	}
 	t := app.Tracker{
-		ID:          string(res.ID),
-		URL:         res.URL,
-		Credentials: res.Credentials,
-		Type:        res.Type}
+		ID:   string(res.ID),
+		URL:  res.URL,
+		Type: res.Type}
 
 	return &t, nil
 }
@@ -116,10 +113,9 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 
 	newT := Tracker{
-		ID:          id,
-		URL:         t.URL,
-		Credentials: t.Credentials,
-		Type:        t.Type}
+		ID:   id,
+		URL:  t.URL,
+		Type: t.Type}
 
 	if err := tx.Save(&newT).Error; err != nil {
 		log.Print(err.Error())
@@ -127,10 +123,9 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 	log.Printf("updated tracker to %v\n", newT)
 	t2 := app.Tracker{
-		ID:          string(id),
-		URL:         t.URL,
-		Credentials: t.Credentials,
-		Type:        t.Type}
+		ID:   string(id),
+		URL:  t.URL,
+		Type: t.Type}
 
 	return &t2, nil
 }
