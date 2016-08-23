@@ -39,25 +39,25 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 
 // Save updates the given tracker query in storage.
 // returns NotFoundError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Save(ctx context.Context, t app.TrackerQuery) (*app.TrackerQuery, error) {
+func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error) {
 	res := TrackerQuery{}
-	id, err := strconv.ParseUint(t.ID, 10, 64)
+	id, err := strconv.ParseUint(tq.ID, 10, 64)
 	if err != nil {
-		return nil, NotFoundError{entity: "trackerquery", ID: t.ID}
+		return nil, NotFoundError{entity: "trackerquery", ID: tq.ID}
 	}
 
 	log.Printf("looking for id %d", id)
 	tx := r.ts.tx
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{entity: "tracker", ID: t.ID}
+		return nil, NotFoundError{entity: "tracker", ID: tq.ID}
 	}
 
 	newTq := TrackerQuery{
-		ID:          id,
-		Version:         t.Version,
-		Schedule: t.Schedule,
-		Query:        t.Query}
+		ID:       id,
+		Version:  tq.Version + 1,
+		Schedule: tq.Schedule,
+		Query:    tq.Query}
 
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Print(err.Error())
@@ -65,10 +65,10 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, t app.TrackerQuer
 	}
 	log.Printf("updated tracker query to %v\n", newTq)
 	t2 := app.TrackerQuery{
-		ID:          string(id),
-		Version:         t.Version,
-		Schedule: t.Schedule,
-		Query:        t.Query}
+		ID:       string(id),
+		Version:  tq.Version + 1,
+		Schedule: tq.Schedule,
+		Query:    tq.Query}
 
 	return &t2, nil
 }
