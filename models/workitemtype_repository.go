@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/criteria"
 )
 
 // GormWorkItemTypeRepository implements WorkItemTypeRepository using gorm
@@ -100,6 +101,38 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	result := convertTypeFromModels(&created)
 	return &result, nil
 }
+
+
+// List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItemType, error) {
+	where, parameters, err := Compile(criteria)
+	if err != nil {
+		return nil, BadParameterError{"expression", criteria}
+	}
+
+	log.Printf("executing query: '%s' with params %v", where, parameters)
+
+	var rows []WorkItemType
+	db := r.ts.tx.Where(where, parameters)
+	if start != nil {
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		db = db.Limit(*limit)
+	}
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make([]*app.WorkItemType, len(rows))
+
+	for index, value := range rows {
+		wit := convertTypeFromModels(&value)
+		result[index] = &wit
+	}
+
+	return result, nil
+}
+
 
 func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 	return reflect.DeepEqual(existing, new)

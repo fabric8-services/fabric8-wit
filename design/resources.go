@@ -32,7 +32,7 @@ var _ = Resource("workitem", func() {
 		)
 		Description("List work items.")
 		Params(func() {
-			Param("filter", String, "a query language expression restricting the set of found items")
+			Param("filter", String, "a query language expression restricting the set of found work items")
 			Param("page", String, "Paging in the format <start>,<limit>")
 		})
 		Response(OK, func() {
@@ -112,6 +112,24 @@ var _ = Resource("workitemtype", func() {
 			Media(WorkItemType)
 		})
 		Response(NotFound)
+	})
+
+	Action("list", func() {
+		Routing(
+			GET(""),
+		)
+		Description("List work item types.")
+		Params(func() {
+			Param("filter", String, "a query language expression restricting the set of found work item types")
+			Param("page", String, "Paging in the format <start>,<limit>")
+		})
+		Response(OK, func() {
+			Media(CollectionOf(WorkItemType))
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
 	})
 })
 
