@@ -113,6 +113,22 @@ var _ = Resource("workitemtype", func() {
 		})
 		Response(NotFound)
 	})
+
+	Action("create", func() {
+		Routing(
+			POST(""),
+		)
+		Description("Create work item type.")
+		Payload(CreateWorkItemTypePayload)
+		Response(Created, "/workitemtypes/.*", func() {
+			Media(WorkItemType)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
 })
 
 var _ = Resource("version", func() {
