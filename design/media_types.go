@@ -83,16 +83,19 @@ var WorkItemType = MediaType("application/vnd.workitemtype+json", func() {
 	Description("ALM Work Item Type")
 	Attribute("version", Integer, "Version for optimistic concurrency control")
 	Attribute("name", String, "User Readable Name of this item")
+	Attribute("parentPath", String, "The ID's of the parents, separated with some separator")
 	Attribute("fields", HashOf(String, FieldDefinition), "Definitions of fields in this work item")
 
 	Required("version")
 	Required("name")
 	Required("fields")
+	Required("parentPath")
 
 	View("default", func() {
 		Attribute("version")
 		Attribute("name")
 		Attribute("fields")
+		Attribute("parentPath")
 	})
 	View("link", func() {
 		Attribute("name")
