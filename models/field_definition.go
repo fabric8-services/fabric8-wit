@@ -26,9 +26,7 @@ func (k Kind) isSimpleType() bool {
 	return k != KindEnum && k != KindList
 }
 
-/*
-FieldType describes the possible values of a FieldDefinition
-*/
+// FieldType describes the possible values of a FieldDefinition
 type FieldType interface {
 	GetKind() Kind
 	/*
@@ -41,17 +39,13 @@ type FieldType interface {
 	ConvertFromModel(value interface{}) (interface{}, error)
 }
 
-/*
-FieldDefintion describes type & other restrictions of a field
-*/
+// FieldDefintion describes type & other restrictions of a field
 type FieldDefinition struct {
 	Required bool
 	Type     FieldType
 }
 
-/*
- ConvertToModel converts a field value for storage as json. As the system matures, add more checks (for example whether a user is in the system, etc.)
-*/
+// ConvertToModel converts a field value for storage as json. As the system matures, add more checks (for example whether a user is in the system, etc.)
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
 	if f.Required && value == nil {
 		return nil, fmt.Errorf("Value %s is required", name)
@@ -59,9 +53,7 @@ func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interfa
 	return f.Type.ConvertToModel(value)
 }
 
-/*
-ConvertFromModel converts from json storage to API form.
-*/
+// ConvertFromModel converts from json storage to API form.
 func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (interface{}, error) {
 	if f.Required && value == nil {
 		return nil, fmt.Errorf("Value %s is required", name)
@@ -78,7 +70,6 @@ type rawFieldDef struct {
 func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	temp := rawFieldDef{}
 
-	fmt.Printf(string(bytes))
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
 		return err
@@ -86,20 +77,20 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	rawType := map[string]interface{}{}
 	json.Unmarshal(*temp.Type, &rawType)
 
-	kind, ok := rawType["Kind"].(string)
-	if !ok {
-		return fmt.Errorf("Kind is not a kind value")
-	}
+	kind, err := convertAnyToKind(rawType["Kind"])
 
-	switch {
-	case kind == string(KindList):
+	if err != nil {
+		return err
+	}
+	switch *kind {
+	case KindList:
 		theType := ListType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return err
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required}
-	case kind == string(KindEnum):
+	case KindEnum:
 		theType := EnumType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
