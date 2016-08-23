@@ -171,7 +171,6 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 		if !componentType.isSimpleType() {
 			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
 		}
-
 		return ListType{SimpleType{*kind}, SimpleType{*componentType}}, nil
 	case KindEnum:
 		bt, err := convertAnyToKind(*t.BaseType)
