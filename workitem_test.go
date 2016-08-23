@@ -63,7 +63,8 @@ func TestGetWorkItem(t *testing.T) {
 	}
 
 	_, result := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
-
+	t.Log("---------------------------")
+	t.Log(result.ID)
 	_, wi := test.ShowWorkitemOK(t, nil, nil, &controller, result.ID)
 
 	if wi == nil {
