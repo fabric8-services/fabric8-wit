@@ -105,6 +105,7 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 	return reflect.DeepEqual(existing, new)
 }
 
+// converts from models to app representation
 func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
 	var converted = app.WorkItemType{
 		Name:    t.Name,
@@ -121,6 +122,7 @@ func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
 	return converted
 }
 
+// converts the field type from modesl to app representation
 func convertFieldTypeFromModels(t FieldType) app.FieldType {
 	result := app.FieldType{}
 	result.Kind = string(t.GetKind())

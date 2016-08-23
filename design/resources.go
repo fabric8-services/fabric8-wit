@@ -17,7 +17,7 @@ var _ = Resource("workitem", func() {
 			Param("id", String, "id")
 		})
 		Response(OK, func() {
-			Media(WorkItem)
+			Media(workItem)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -36,7 +36,7 @@ var _ = Resource("workitem", func() {
 			Param("page", String, "Paging in the format <start>,<limit>")
 		})
 		Response(OK, func() {
-			Media(CollectionOf(WorkItem))
+			Media(CollectionOf(workItem))
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -51,7 +51,7 @@ var _ = Resource("workitem", func() {
 		Description("create work item with type and id.")
 		Payload(CreateWorkItemPayload)
 		Response(Created, "/workitems/.*", func() {
-			Media(WorkItem)
+			Media(workItem)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -84,7 +84,7 @@ var _ = Resource("workitem", func() {
 		})
 		Payload(UpdateWorkItemPayload)
 		Response(OK, func() {
-			Media(WorkItem)
+			Media(workItem)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
@@ -109,7 +109,7 @@ var _ = Resource("workitemtype", func() {
 			Param("name", String, "name")
 		})
 		Response(OK, func() {
-			Media(WorkItemType)
+			Media(workItemType)
 		})
 		Response(NotFound)
 	})
