@@ -3,15 +3,11 @@
 package main
 
 import (
-	//	"fmt"
-	//	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	//	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
-	//	"github.com/jinzhu/gorm"
 )
 
 func TestCreateTracker(t *testing.T) {
@@ -39,33 +35,30 @@ func TestGetTracker(t *testing.T) {
 	}
 
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	t.Log("IDDDDDDDDDDDDDDDDDDDDD", result.URL)
 	test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
-	//_, tr := test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
-	/*
-		if tr == nil {
-			t.Fatalf("Tracker '%s' not present", result.ID)
-		}
+	_, tr := test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
+	if tr == nil {
+		t.Fatalf("Tracker '%s' not present", result.ID)
+	}
 
-		if tr.ID != result.ID {
-			t.Errorf("Id should be %s, but is %s", result.ID, tr.ID)
-		}
+	if tr.ID != result.ID {
+		t.Errorf("Id should be %s, but is %s", result.ID, tr.ID)
+	}
 
-		payload2 := app.UpdateTrackerPayload{
-			URL:  tr.URL,
-			Type: tr.Type,
-		}
-		_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, tr.ID, &payload2)
-		if updated.ID != result.ID {
-			t.Errorf("Id has changed from %s to %s", result.ID, updated.ID)
-		}
-		if updated.URL != result.URL {
-			t.Errorf("URL has changed from %s to %s", result.URL, updated.URL)
-		}
-		if updated.Type != result.Type {
-			t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
-		}
+	payload2 := app.UpdateTrackerPayload{
+		URL:  tr.URL,
+		Type: tr.Type,
+	}
+	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, tr.ID, &payload2)
+	if updated.ID != result.ID {
+		t.Errorf("Id has changed from %s to %s", result.ID, updated.ID)
+	}
+	if updated.URL != result.URL {
+		t.Errorf("URL has changed from %s to %s", result.URL, updated.URL)
+	}
+	if updated.Type != result.Type {
+		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
+	}
 
-		test.DeleteTrackerOK(t, nil, nil, &controller, result.ID)
-	*/
+	test.DeleteTrackerOK(t, nil, nil, &controller, result.ID)
 }
