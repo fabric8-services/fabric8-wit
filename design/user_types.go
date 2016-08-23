@@ -42,17 +42,15 @@ var CreateWorkItemTypePayload = Type("CreateWorkItemTypePayload", func() {
 // CreateTrackerAlternatePayload defines the structure of tracker payload for create
 var CreateTrackerAlternatePayload = Type("CreateTrackerAlternatePayload", func() {
 	Attribute("url", String, "URL of the tracker")
-	Attribute("credentials", String, "Credential to access the tracker")
 	Attribute("type", String, "Type of the tracker")
-	Required("url", "credentials", "type")
+	Required("url", "type")
 })
 
 // UpdateTrackerAlternatePayload defines the structure of tracker payload for update
 var UpdateTrackerAlternatePayload = Type("UpdateTrackerAlternatePayload", func() {
 	Attribute("url", String, "URL of the tracker")
-	Attribute("credentials", String, "Credential to access the tracker")
 	Attribute("type", String, "Type of the tracker")
-	Required("url", "credentials", "type")
+	Required("url", "type")
 })
 
 // CreateTrackerQueryAlternatePayload defines the structure of tracker query payload for create

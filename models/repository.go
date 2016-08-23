@@ -26,7 +26,7 @@ type TrackerRepository interface {
 	Load(ctx context.Context, ID string) (*app.Tracker, error)
 	Save(ctx context.Context, t app.Tracker) (*app.Tracker, error)
 	Delete(ctx context.Context, ID string) error
-	Create(ctx context.Context, url string, credentials string, typeID string) (*app.Tracker, error)
+	Create(ctx context.Context, url string, typeID string) (*app.Tracker, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.Tracker, error)
 }
 
