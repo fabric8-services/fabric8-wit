@@ -41,3 +41,32 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		return ctx.OK(res)
 	})
 }
+
+// Create runs the create action.
+func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
+	return transaction.Do(c.ts, func() error {
+		var fields = map[string]app.FieldDefinition{}
+
+		// need to convert field value to app.FieldDefinition
+		for key, value := range ctx.Payload.Fields {
+			fd, _ := value.(map[string]interface{})
+			req := fd["required"].(bool)
+			fields[key] = app.FieldDefinition{
+				Required: req,
+				Type:     fd,
+			}
+		}
+		wit, err := c.witRepository.Create(ctx.Context, ctx.Payload.ExtendedTypeID, ctx.Payload.Name, fields)
+
+		if err != nil {
+			switch err := err.(type) {
+			case models.BadParameterError, models.ConversionError:
+				return goa.ErrBadRequest(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(wit.Name))
+		return ctx.Created(wit)
+	})
+}
