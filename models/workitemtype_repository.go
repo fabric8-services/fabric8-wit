@@ -162,17 +162,16 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 	}
 	switch *kind {
 	case KindList:
-		componentType, err := convertAnyToKind(t.ComponentType)
+		componentType, err := convertAnyToKind(*t.ComponentType)
 		if err != nil {
 			return nil, err
 		}
 		if !componentType.isSimpleType() {
 			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
 		}
-
 		return ListType{SimpleType{*kind}, SimpleType{*componentType}}, nil
 	case KindEnum:
-		bt, err := convertAnyToKind(t.BaseType)
+		bt, err := convertAnyToKind(*t.BaseType)
 		if err != nil {
 			return nil, err
 		}
