@@ -1,1 +1,13 @@
 {"name": "Epic","extendedTypeID": null,"fields": {"system.owner": {"required": true,"kind": "integer"},"system.state": {"required": true,"kind": "string"}}}
+
+./bin/alm-cli show workitemtype --name "Epic" -H localhost:8080 --pp
+
+./bin/alm-cli create workitemtype --payload '{"name": "Epic","extendedTypeID": null,"fields": {"system.owner": {"required": true,"kind": "integer"},"system.state": {"required": true,"kind": "string"}}}
+' -H localhost:8080 --pp
+
+./bin/alm-cli show workitemtype --name "Epic" -H localhost:8080 --pp
+
+./bin/alm-cli create workitemtype --payload '{"name": "Issue","extendedTypeID": null,"fields": {"system.owner": {"required": true,"kind": "integer"},"system.state": {"required": true,"kind": "string"}}}
+' -H localhost:8080 --pp
+
+./bin/alm-cli show workitemtype --name "Issue" -H localhost:8080 --pp
