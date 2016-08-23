@@ -27,7 +27,7 @@ func NewTrackerController(service *goa.Service, tRepository models.TrackerReposi
 func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 
 	return transaction.Do(c.ts, func() error {
-		t, err := c.tRepository.Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Credentials, ctx.Payload.Type)
+		t, err := c.tRepository.Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
@@ -100,10 +100,9 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	return transaction.Do(c.ts, func() error {
 
 		toSave := app.Tracker{
-			ID:          ctx.ID,
-			URL:         ctx.Payload.URL,
-			Credentials: ctx.Payload.Credentials,
-			Type:        ctx.Payload.Type,
+			ID:   ctx.ID,
+			URL:  ctx.Payload.URL,
+			Type: ctx.Payload.Type,
 		}
 		t, err := c.tRepository.Save(ctx.Context, toSave)
 
