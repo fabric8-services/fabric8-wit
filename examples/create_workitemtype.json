@@ -1,0 +1,1 @@
+{"name": "Epic","extendedTypeID": null,"fields": {"system.owner": {"required": true,"kind": "integer"},"system.state": {"required": true,"kind": "string"}}}
