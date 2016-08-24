@@ -11,5 +11,6 @@ func Perform(db *gorm.DB) {
 	db.AutoMigrate(
 		&models.WorkItem{},
 		&models.Tracker{},
-		&models.TrackerQuery{})
+		&models.TrackerQuery{},
+		&models.TrackerItem{})
 }
