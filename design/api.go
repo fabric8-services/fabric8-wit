@@ -21,6 +21,7 @@ var _ = API("alm", func() {
 	})
 	Origin("*", func() {
 		Methods("GET", "POST", "PUT", "PATCH", "DELETE")
+		Headers("X-Request-Id", "Content-Type")
 		MaxAge(600)
 		Credentials()
 	})
