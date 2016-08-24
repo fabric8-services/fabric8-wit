@@ -1,10 +1,10 @@
-FROM fedora:24
+FROM centos:7
 MAINTAINER "Konrad Kleine <kkleine@redhat.com>"
 ENV LANG=en_US.utf8
 
 # Some packages might seem weird but they are required by the
 # RVM installer
-RUN dnf install -y \
+RUN yum install -y \
       findutils \
       git \
       golang \
@@ -14,7 +14,7 @@ RUN dnf install -y \
       tar \
       wget \
       which \
-    && dnf clean all
+    && yum clean all
 
 # Get glide for Go package management
 RUN cd /tmp \
