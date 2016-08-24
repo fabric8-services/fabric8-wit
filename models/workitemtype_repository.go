@@ -101,6 +101,22 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	return &result, nil
 }
 
+// Delete deletes the work item with the given id
+// returns NotFoundError or InternalError
+func (r *GormWorkItemTypeRepository) Delete(ctx context.Context, name string) error {
+	var workItemType = WorkItemType{}
+	workItemType.Name = name
+	tx := r.ts.tx
+	if err := tx.Delete(workItemType).Error; err != nil {
+		if tx.RecordNotFound() {
+			return NotFoundError{entity: "work item type", ID: name}
+		}
+		return InternalError{simpleError{err.Error()}}
+	}
+
+	return nil
+}
+
 func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 	return reflect.DeepEqual(existing, new)
 }
