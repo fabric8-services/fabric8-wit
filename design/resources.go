@@ -57,7 +57,6 @@ var _ = Resource("workitem", func() {
 			Media(ErrorMedia)
 		})
 		Response(InternalServerError)
-		Response(NotFound)
 	})
 	Action("delete", func() {
 		Routing(
@@ -121,13 +120,12 @@ var _ = Resource("workitemtype", func() {
 		Description("Create work item type.")
 		Payload(CreateWorkItemTypePayload)
 		Response(Created, "/workitemtypes/.*", func() {
-			Media(WorkItemType)
+			Media(workItemType)
 		})
 		Response(BadRequest, func() {
 			Media(ErrorMedia)
 		})
 		Response(InternalServerError)
-		Response(NotFound)
 	})
 })
 
