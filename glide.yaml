@@ -52,3 +52,5 @@ import:
   - gocov
 - package: github.com/wadey/gocovmerge
 - package: gopkg.in/asaskevich/govalidator.v4
+- package: github.com/robfig/cron
+  version: ^1.0.0
