@@ -19,7 +19,6 @@ type WorkItemMap map[string]interface{}
 type RemoteWorkItemMapper interface {
 	Flatten()
 	GetWorkItemKeyMap()
-	MapRemote()
 }
 
 // GithubRemoteWorkItem is a derivative of RemoteWorkItem
