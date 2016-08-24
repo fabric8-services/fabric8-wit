@@ -47,20 +47,10 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 	return transaction.Do(c.ts, func() error {
 		var fields = map[string]app.FieldDefinition{}
 
-		// // need to convert field value to app.FieldDefinition
-		for key, value := range ctx.Payload.Fields {
-			fd, _ := value.(map[string]interface{})
-			req := fd["required"].(bool)
-			kind := fd["kind"].(string)
-			ft := app.FieldType{
-				Kind: kind,
-			}
-			fields[key] = app.FieldDefinition{
-				Required: req,
-				Type:     &ft,
-			}
+		for key, fd := range ctx.Payload.Fields {
+			fields[key] = *fd
 		}
-		wit, err := c.witRepository.Create(ctx.Context, ctx.Payload.ExtendedTypeID, ctx.Payload.Name, fields)
+		wit, err := c.witRepository.Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
 
 		if err != nil {
 			switch err := err.(type) {

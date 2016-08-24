@@ -39,7 +39,7 @@ var UpdateWorkItemPayload = Type("UpdateWorkItemPayload", func() {
 
 var CreateWorkItemTypePayload = Type("CreateWorkItemTypePayload", func() {
 	Attribute("name", String, "Readable name of the type like Task, Issue, Bug, Epic etc.")
-	Attribute("fields", HashOf(String, Any), "Type fields those must be followed by respective Work Items.")
-	Attribute("extendedTypeID", String, "If newly created type extends any existing type")
+	Attribute("fields", HashOf(String, fieldDefinition), "Type fields those must be followed by respective Work Items.")
+	Attribute("extendedTypeName", String, "If newly created type extends any existing type")
 	Required("name", "fields")
 })
