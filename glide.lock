@@ -72,6 +72,8 @@ imports:
   version: 3eb99e6c0b9a2dae0f56f05552c06ca5a643919b
 - name: github.com/pilu/fresh
   version: 7261a962d4340e348cda4f98bd43a327be23c93e
+- name: github.com/robfig/cron
+  version: b024fc5ea0e34bc3f83d9941c8d60b0622bfaca4
 - name: github.com/satori/go.uuid
   version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/spf13/cobra

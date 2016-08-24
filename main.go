@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remotetracker"
 	"github.com/almighty/almighty-core/transaction"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -80,6 +81,9 @@ func main() {
 	}); err != nil {
 		panic(err.Error())
 	}
+
+	// Schedule fetch and import of remote tracker items
+	remotetracker.Schedule(db)
 
 	// Create service
 	service := goa.New("alm")

@@ -13,7 +13,8 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 		&models.WorkItem{},
 		&models.WorkItemType{},
 		&models.Tracker{},
-		&models.TrackerQuery{})
+		&models.TrackerQuery{},
+		&models.TrackerItem{})
 	if db.Error != nil {
 		return db.Error
 	}
