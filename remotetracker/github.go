@@ -1,14 +1,18 @@
 package remotetracker
 
-// Github represents github remote issue tracker
-type Github struct{
+import "fmt"
 
+// Github represents github remote issue tracker
+type Github struct {
+	data []byte
 }
 
-func (g *Github) Fetch(query string) error {
-  return nil
+func (g *Github) Fetch(url string, query string) error {
+	fmt.Println("Hello Github")
+	return nil
 }
 
 func (g *Github) Import() error {
-  return nil
+	fmt.Println("Import Github")
+	return nil
 }
