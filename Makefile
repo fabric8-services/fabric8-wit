@@ -1,3 +1,4 @@
+PROJECT_NAME=almighty-core
 CUR_DIR=$(shell pwd)
 TMP_PATH=$(CUR_DIR)/tmp
 INSTALL_PREFIX=$(CUR_DIR)/bin
@@ -18,6 +19,14 @@ GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
 GO_BIN := $(shell command -v $(GO_BIN_NAME) 2> /dev/null)
 HG_BIN := $(shell command -v $(HG_BIN_NAME) 2> /dev/null)
 DOCKER_COMPOSE_BIN := $(shell command -v $(DOCKER_COMPOSE_BIN_NAME) 2> /dev/null)
+DOCKER_BIN := $(shell command -v $(DOCKER_BIN_NAME) 2> /dev/null)
+
+# This is a fix for a non-existing user in passwd file when running in a docker
+# container and trying to clone repos of dependencies
+GIT_COMMITTER_NAME ?= "user"
+GIT_COMMITTER_EMAIL ?= "user@example.com"
+export GIT_COMMITTER_NAME
+export GIT_COMMITTER_EMAIL
 
 # Used as target and binary output names... defined in includes
 CLIENT_DIR=tool/alm-cli
@@ -139,11 +148,8 @@ clean-glide-cache:
 
 .PHONY: deps
 ## Download build dependencies.
-deps: prebuild-check $(VENDOR_DIR)
-
-# Fetch dependencied everytime the glide.lock or glide.yaml files change
-$(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) install
+deps: prebuild-check
+	$(GLIDE_BIN) --verbose install
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
@@ -155,10 +161,16 @@ generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO
 
 .PHONY: dev
 dev: prebuild-check $(FRESH_BIN)
-	docker-compose up -d
+	docker-compose up -d db
 	$(FRESH_BIN)
 
 include ./.make/test.mk
+
+ifneq ($(OS),Windows_NT)
+ifdef DOCKER_BIN
+include ./.make/docker.mk
+endif
+endif
 
 $(INSTALL_PREFIX):
 # Build artifacts dir

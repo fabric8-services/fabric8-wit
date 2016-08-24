@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 	defer db.Close()
 	// Migrate the schema
 	migration.Perform(db)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 func TestGetWorkItem(t *testing.T) {
@@ -112,7 +112,7 @@ func TestListByFields(t *testing.T) {
 	_, wi := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
 
 	filter := "{\"Name\":\"ListByName Name\"}"
-	page := "1,1"
+	page := "0,1"
 	_, result := test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
 
 	if result == nil {
