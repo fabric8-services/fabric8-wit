@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remotetracker"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -50,6 +51,9 @@ func main() {
 
 	// Migrate the schema
 	migration.Perform(db)
+
+	// Schedule fetch and import of remote tracker items
+	remotetracker.Schedule(db)
 
 	// Create service
 	service := goa.New("alm")
