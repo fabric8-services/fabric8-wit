@@ -266,7 +266,7 @@ fi
 endef
 
 # Exits the makefile with an error if the file (first parameter) exists.
-# Before existing, the contents of the passed file is printed.
+# Before exiting, the contents of the passed file is printed.
 define check-test-results
 $(eval ERRORS_FILE := $(1))
 @if [ -e "$(ERRORS_FILE)" ]; then \
