@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# We need to disable selinux for now, XXX
 /usr/sbin/setenforce 0
-yum -y install docker make && service docker start
+
+# Get all the deps in
+yum -y install docker make \
+       git golang 
+service docker start
+
+# lets test
 make
