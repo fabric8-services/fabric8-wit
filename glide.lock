@@ -1,8 +1,10 @@
-hash: 723d5cf453d8d99ba5d82a70f4dde727cc52608b769b7bde3602be92403dbcdf
-updated: 2016-08-23T15:28:39.924213178+05:30
+hash: bcdcd48e8d2a6948f7bee61d6b45fc89cc4e1026293a4b505f5a7f4f78a53c55
+updated: 2016-08-25T10:17:15.037883801+05:30
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
+- name: github.com/andygrunwald/go-jira
+  version: 479f9df7afceef0cbd53c969f5ddfaf2073240e8
 - name: github.com/armon/go-metrics
   version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
 - name: github.com/asaskevich/govalidator
