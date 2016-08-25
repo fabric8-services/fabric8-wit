@@ -57,21 +57,13 @@ func TestMapGithub(t *testing.T) {
 
 	githubRemoteWorkItem := GithubRemoteWorkItem{
 		RemoteWorkItem{
-			Fields: make(map[string]interface{}),
+			Fields: responseJson,
 		},
 	}
-	githubRemoteWorkItem.Fields = responseJson
-
-	/*
-		            Create the map which would be used to map keys from Github to local WI
-
-					 * The key refers to the key in the Gitub issue json object
-				     * The Value refers to the key that must appear in the WorkItem.Fields
-	*/
-
-	workItemMap := githubRemoteWorkItem.GetWorkItemKeyMap()
 
 	workItemType := wellKnown["1"] // Will remove this and add an actual Type.
+
+	workItemMap := NewRemoteWorkItemRepository().GetWorkItemKeyMap(ProviderGithub, workItemType)
 
 	// If the data is not mappable as is : then this method will do it for you.
 	githubRemoteWorkItem.Flatten()

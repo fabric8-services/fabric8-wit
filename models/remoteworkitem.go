@@ -5,6 +5,10 @@ import (
 	"strconv"
 )
 
+const (
+	ProviderGithub string = "github"
+)
+
 // RemoteWorkItem represents a work item as it is stored in the database
 type RemoteWorkItem struct {
 	Fields map[string]interface{}
@@ -18,7 +22,33 @@ type WorkItemMap map[string]interface{}
 // good looking flat 1-level dictionary
 type RemoteWorkItemMapper interface {
 	Flatten()
-	GetWorkItemKeyMap()
+}
+
+// RemoteWorkItemRepository handles the stuff we need to persist w.r.t to RemoteWorkItems
+type RemoteWorkItemRepository struct {
+	mappings map[string]WorkItemMap
+}
+
+// GetWorkItemKeyMap returns a static map based on the provider & WorkItemType.
+// This code will be expanded to support different combinations of provider+WorkItemType
+func (repo *RemoteWorkItemRepository) GetWorkItemKeyMap(provider string, workItemType *WorkItemType) WorkItemMap {
+	return repo.mappings[provider]
+}
+
+func NewRemoteWorkItemRepository() *RemoteWorkItemRepository {
+	return &RemoteWorkItemRepository{
+		// Statically maintain mappings for now.
+		// In future, they should be moved to the database.
+		// for easier configurability and patching.
+		mappings: map[string]WorkItemMap{
+			ProviderGithub: WorkItemMap{
+				"id":    "system.remote_issue_id",
+				"body":  "system.description",
+				"title": "system.title",
+				"state": "system.status",
+			},
+		},
+	}
 }
 
 // GithubRemoteWorkItem is a derivative of RemoteWorkItem
@@ -50,17 +80,6 @@ Flatten sanitizes the api response from Github into a flat dict
 */
 func (rwi *GithubRemoteWorkItem) Flatten() {
 	fmt.Println("Flattening Github")
-}
-
-// GetWorkItemKeyMap returns the dictionary that would map a remote WorkItem to a local WorkItem
-func (rwi *GithubRemoteWorkItem) GetWorkItemKeyMap() WorkItemMap {
-	workItemMap := WorkItemMap{
-		"id":    "remote_issue_id",
-		"body":  "description",
-		"title": "title",
-		"state": "status",
-	}
-	return workItemMap
 }
 
 // MapRemote maps RemoteWorkItem to WorkItem
