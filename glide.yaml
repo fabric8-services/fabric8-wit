@@ -61,3 +61,6 @@ import:
 - package: github.com/robfig/cron
   version: ^1.0.0
 - package: github.com/andygrunwald/go-jira
+- package: github.com/google/go-github
+  subpackages:
+  - github

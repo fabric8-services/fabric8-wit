@@ -1,18 +1,31 @@
 package remotetracker
 
-import "fmt"
+import (
+	"encoding/json"
+
+	"github.com/google/go-github/github"
+)
 
 // Github represents github remote issue tracker
 type Github struct {
-	data []byte
+	items []Item
 }
 
-func (g *Github) Fetch(url string, query string) error {
-	fmt.Println("Hello Github")
+func (g *Github) Fetch(url, query string) error {
+	client := github.NewClient(nil)
+	result, _, _ := client.Search.Issues(query, nil)
+	issues := result.Issues
+
+	for l, _ := range issues {
+		id, _ := json.Marshal(issues[l].ID)
+		description, _ := json.Marshal(issues[l].URL)
+		title, _ := json.Marshal(issues[l].Title)
+		status, _ := json.Marshal(issues[l].State)
+		g.items = append(g.items, Item{ID: string(id), Title: string(title), Description: string(description), State: string(status)})
+	}
 	return nil
 }
 
 func (g *Github) Import() error {
-	fmt.Println("Import Github")
 	return nil
 }
