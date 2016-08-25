@@ -64,19 +64,3 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		return ctx.Created(wit)
 	})
 }
-
-// Delete runs the delete action.
-func (c *WorkitemtypeController) Delete(ctx *app.DeleteWorkitemtypeContext) error {
-	return transaction.Do(c.ts, func() error {
-		err := c.witRepository.Delete(ctx.Context, ctx.Name)
-		if err != nil {
-			switch err.(type) {
-			case models.NotFoundError:
-				return goa.ErrNotFound(err.Error())
-			default:
-				return goa.ErrInternal(err.Error())
-			}
-		}
-		return ctx.OK([]byte{})
-	})
-}
