@@ -52,7 +52,6 @@ func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name st
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
 	allFields := map[string]FieldDefinition{}
 	path := "/"
-
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
 		if r.ts.tx.First(&extendedType, extendedTypeName).RecordNotFound() {
@@ -99,26 +98,6 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 
 	result := convertTypeFromModels(&created)
 	return &result, nil
-}
-
-// Delete deletes the work item with the given id
-// returns NotFoundError or InternalError
-func (r *GormWorkItemTypeRepository) Delete(ctx context.Context, name string) error {
-	var workItemType = WorkItemType{}
-	workItemType.Name = name
-	tx := r.ts.tx
-	res := tx.Delete(workItemType)
-	if err := res.Error; err != nil {
-		if tx.RecordNotFound() {
-			return NotFoundError{entity: "work item type", ID: workItemType.Name}
-		}
-		return InternalError{simpleError{err.Error()}}
-	}
-	if rowsAffected := res.RowsAffected; rowsAffected == 0 {
-		return NotFoundError{entity: "work item type", ID: workItemType.Name}
-	}
-
-	return nil
 }
 
 func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {

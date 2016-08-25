@@ -127,21 +127,6 @@ var _ = Resource("workitemtype", func() {
 		})
 		Response(InternalServerError)
 	})
-	Action("delete", func() {
-		Routing(
-			DELETE("/:name"),
-		)
-		Description("Delete work item type with given name.")
-		Params(func() {
-			Param("name", String, "name")
-		})
-		Response(OK)
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
-	})
 })
 
 var _ = Resource("version", func() {
