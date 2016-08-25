@@ -13,6 +13,6 @@ func Perform(db *gorm.DB) {
 		&models.Tracker{},
 		&models.TrackerQuery{},
 		&models.TrackerItem{})
-	q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker_refer") REFERENCES "trackers" ON DELETE CASCADE`
+	q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
 	db.Exec(q)
 }
