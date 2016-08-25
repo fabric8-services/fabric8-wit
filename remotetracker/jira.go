@@ -1,13 +1,29 @@
 package remotetracker
 
+import (
+	"github.com/andygrunwald/go-jira"
+)
+
 // Jira represents Jira remote issue tracker
-type Jira struct{
+type Jira struct {
+	items []Item
 }
 
-func (g *Jira) Fetch(query string) error {
-  return nil
+func (j *Jira) Fetch(url, query string) error {
+	client, _ := jira.NewClient(nil, url)
+	issues, _, _ := client.Issue.Search(query, nil)
+
+	for l, _ := range issues {
+		id := issues[l].Key
+		i, _, _ := client.Issue.Get(issues[l].Key)
+		title := i.Fields.Summary
+		description := i.Fields.Description
+		status := i.Fields.Status.Name
+		j.items = append(j.items, Item{ID: id, Title: title, Description: description, State: status})
+	}
+	return nil
 }
 
-func (g *Jira) Import() error {
-  return nil
+func (j *Jira) Import() error {
+	return nil
 }

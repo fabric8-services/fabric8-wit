@@ -3,6 +3,8 @@ updated: 2016-08-26T15:43:46.715540044+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
+- name: github.com/andygrunwald/go-jira
+  version: 479f9df7afceef0cbd53c969f5ddfaf2073240e8
 - name: github.com/armon/go-metrics
   version: fbf75676ee9c0a3a23eb0a4d9220a3612cfbd1ed
 - name: github.com/asaskevich/govalidator
