@@ -59,3 +59,6 @@ import:
 - package: github.com/google/go-github
   subpackages:
   - github
+- package: github.com/google/go-querystring
+  subpackages:
+  - query

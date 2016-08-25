@@ -26,7 +26,7 @@ func Schedule(db *gorm.DB) {
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
-	err := db.Table("trackers").Select("trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker_refer = trackers.id").Scan(&tsList).Error
+	err := db.Table("trackers").Select("trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker_id = trackers.id").Scan(&tsList).Error
 	if err != nil {
 		fmt.Println("schedule")
 	}
@@ -42,6 +42,10 @@ func scheduleFetchAndImport(ts trackerSchedule, c *cron.Cron) {
 			g.Import()
 		})
 	case "jira":
-		fmt.Println("jira")
+		j := Jira{}
+		c.AddFunc(ts.Schedule, func() {
+			j.Fetch(ts.URL, ts.Query)
+			j.Import()
+		})
 	}
 }

@@ -1,6 +1,7 @@
 package remotetracker
 
 import (
+	"fmt"
 	"github.com/andygrunwald/go-jira"
 )
 
@@ -9,11 +10,13 @@ type Jira struct {
 	items []Item
 }
 
+// Fetch collects data from Jira
 func (j *Jira) Fetch(url, query string) error {
+	fmt.Println("hello--------------------------------")
 	client, _ := jira.NewClient(nil, url)
 	issues, _, _ := client.Issue.Search(query, nil)
 
-	for l, _ := range issues {
+	for l := range issues {
 		id := issues[l].Key
 		i, _, _ := client.Issue.Get(issues[l].Key)
 		title := i.Fields.Summary
@@ -24,6 +27,8 @@ func (j *Jira) Fetch(url, query string) error {
 	return nil
 }
 
+// Import imports the items into database
 func (j *Jira) Import() error {
+	fmt.Println("j.items")
 	return nil
 }

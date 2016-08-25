@@ -111,10 +111,6 @@ var Tracker = MediaType("application/vnd.tracker+json", func() {
 		Attribute("url")
 		Attribute("type")
 	})
-
-	View("link", func() {
-		Attribute("id")
-	})
 })
 
 // TrackerQuery represents the search query with schedule
@@ -125,23 +121,19 @@ var TrackerQuery = MediaType("application/vnd.trackerquery+json", func() {
 	Attribute("version", Integer, "Version for optimistic concurrency control")
 	Attribute("query", String, "Search query")
 	Attribute("schedule", String, "Schedule for fetch and import")
-	Attribute("trackerID", Tracker, "Tracker")
+	Attribute("tracker", Integer, "Tracker ID")
 
 	Required("id")
 	Required("version")
 	Required("query")
 	Required("schedule")
-	Required("trackerID")
-
-	Links(func() {
-		Link("trackerID")
-	})
+	Required("tracker")
 
 	View("default", func() {
 		Attribute("id")
 		Attribute("version")
 		Attribute("query")
 		Attribute("schedule")
-		Attribute("trackerID")
+		Attribute("tracker")
 	})
 })
