@@ -9,4 +9,8 @@ yum -y install docker make \
 service docker start
 
 # lets test
-make
+make docker-start && \
+  make docker-deps && \ 
+  make docker-generate && \
+  make docker-build && \
+  make docker-test-unit
