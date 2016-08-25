@@ -18,7 +18,7 @@ func (g *Github) Fetch(url, query string) error {
 
 	for l, _ := range issues {
 		id, _ := json.Marshal(issues[l].ID)
-		description, _ := json.Marshal(issues[l].URL)
+		description, _ := json.Marshal(issues[l].Body)
 		title, _ := json.Marshal(issues[l].Title)
 		status, _ := json.Marshal(issues[l].State)
 		g.items = append(g.items, Item{ID: string(id), Title: string(title), Description: string(description), State: string(status)})
