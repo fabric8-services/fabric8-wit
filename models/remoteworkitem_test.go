@@ -55,38 +55,33 @@ func TestMapGithub(t *testing.T) {
 
 	//t.Log(responseJson["title"], responseJson["body"], responseJson["state"])
 
-	githubRemoteWorkItem := GithubRemoteWorkItem{
-		RemoteWorkItem{
-			Fields: responseJson,
-		},
+	remoteWorkItem := RemoteWorkItem{
+		Fields: responseJson,
 	}
 
 	workItemType := wellKnown["1"] // Will remove this and add an actual Type.
 
 	workItemMap := NewRemoteWorkItemRepository().GetWorkItemKeyMap(ProviderGithub, workItemType)
 
-	// If the data is not mappable as is : then this method will do it for you.
-	githubRemoteWorkItem.Flatten()
-
 	// This is where the real action takes place.
 	// TODO: Improve Error handling.
-	workItem := githubRemoteWorkItem.MapRemote(workItemMap, workItemType)
+	workItem := remoteWorkItem.MapRemote(workItemMap, workItemType)
 
 	// For now, just printed the generated WorkItem.
 	// This has to be replaced with Table-driven tests and assert statement.
 	t.Log(workItem)
 
 	/*
-				       the output of the above logger :
+		the output of the above logger :
 
-					   {0  1 0
-		                   map[
-		                        status:open
-		                        remote_issue_id:1.71624394e+08
-		                        description:related https://trello.com/c/YNeXoM2R/103-create-remoteissue-to-workitemtype-mapping-model
-		                        title:As a user I should be able to Map the data in a Remote Issue into a WorkItem Type
-		                    ]
-		                }
+		{0  1 0
+		           map[
+		                   status:open
+		                   remote_issue_id:1.71624394e+08
+		                   description:related https://trello.com/c/YNeXoM2R/103-create-remoteissue-to-workitemtype-mapping-model
+		                   title:As a user I should be able to Map the data in a Remote Issue into a WorkItem Type
+		           ]
+		}
 
 	*/
 }

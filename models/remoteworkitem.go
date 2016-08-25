@@ -15,7 +15,7 @@ type RemoteWorkItem struct {
 }
 
 // WorkItemMap : holds the mapping between Remote key and local key in a WI
-type WorkItemMap map[string]interface{}
+type WorkItemMap map[string]string
 
 // RemoteWorkItemSanitizer makes sure that the
 // Response from Provider API is sanitized into a
@@ -29,7 +29,7 @@ type RemoteWorkItemRepository struct {
 	mappings map[string]WorkItemMap
 }
 
-// GetWorkItemKeyMap returns a static map based on the provider & WorkItemType.
+// GetWorkItemKeyMap returns a stahttps://gobyexample.com/methodstic map based on the provider & WorkItemType.
 // This code will be expanded to support different combinations of provider+WorkItemType
 func (repo *RemoteWorkItemRepository) GetWorkItemKeyMap(provider string, workItemType *WorkItemType) WorkItemMap {
 	return repo.mappings[provider]
@@ -49,11 +49,6 @@ func NewRemoteWorkItemRepository() *RemoteWorkItemRepository {
 			},
 		},
 	}
-}
-
-// GithubRemoteWorkItem is a derivative of RemoteWorkItem
-type GithubRemoteWorkItem struct {
-	RemoteWorkItem
 }
 
 /*
@@ -78,19 +73,26 @@ would be into
 Flatten sanitizes the api response from Github into a flat dict
 
 */
-func (rwi *GithubRemoteWorkItem) Flatten() {
-	fmt.Println("Flattening Github")
+func (rwi *RemoteWorkItem) Flatten() {
+	fmt.Println("Flattening..")
+	/*
+	 * This will have logic to convert rwi.Fields into a single level dict
+	 * As for now, nothing needs to be done since the required github
+	 * fields are already 1-level
+	 *
+	 */
 }
 
 // MapRemote maps RemoteWorkItem to WorkItem
 func (rwi *RemoteWorkItem) MapRemote(wiMap WorkItemMap, wiType *WorkItemType) WorkItem {
+	rwi.Flatten()
 	workItem := WorkItem{
 		Type:   strconv.FormatUint(wiType.ID, 10),
 		Fields: make(map[string]interface{}),
 	}
 
 	for fromKey, toKey := range wiMap {
-		workItem.Fields[toKey.(string)] = rwi.Fields[fromKey]
+		workItem.Fields[toKey] = rwi.Fields[fromKey]
 	}
 	return workItem
 }
