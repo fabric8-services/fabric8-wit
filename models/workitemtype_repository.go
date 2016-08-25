@@ -107,11 +107,15 @@ func (r *GormWorkItemTypeRepository) Delete(ctx context.Context, name string) er
 	var workItemType = WorkItemType{}
 	workItemType.Name = name
 	tx := r.ts.tx
-	if err := tx.Delete(workItemType).Error; err != nil {
+	res := tx.Delete(workItemType)
+	if err := res.Error; err != nil {
 		if tx.RecordNotFound() {
-			return NotFoundError{entity: "work item type", ID: name}
+			return NotFoundError{entity: "work item type", ID: workItemType.Name}
 		}
 		return InternalError{simpleError{err.Error()}}
+	}
+	if rowsAffected := res.RowsAffected; rowsAffected == 0 {
+		return NotFoundError{entity: "work item type", ID: workItemType.Name}
 	}
 
 	return nil
