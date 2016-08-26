@@ -4,7 +4,6 @@ package models
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"testing"
 )
@@ -43,15 +42,19 @@ func TestMapGithub(t *testing.T) {
 	response, err := http.Get(url)
 
 	if err != nil {
-		t.Error("Error fetching github api data ")
+		t.Error(err)
 	}
 
 	defer response.Body.Close()
-	responseData, err := ioutil.ReadAll(response.Body)
 
-	// Convert the json string to a json object
 	var responseJson map[string]interface{}
-	json.Unmarshal(responseData, &responseJson)
+
+	responseDecoder := json.NewDecoder(response.Body)
+	err = responseDecoder.Decode(&responseJson)
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	//t.Log(responseJson["title"], responseJson["body"], responseJson["state"])
 
