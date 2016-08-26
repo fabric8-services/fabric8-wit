@@ -1,9 +1,6 @@
 package remotetracker
 
-import (
-	"fmt"
-	"github.com/andygrunwald/go-jira"
-)
+import "github.com/andygrunwald/go-jira"
 
 // Jira represents Jira remote issue tracker
 type Jira struct {
@@ -12,7 +9,6 @@ type Jira struct {
 
 // Fetch collects data from Jira
 func (j *Jira) Fetch(url, query string) error {
-	fmt.Println("hello--------------------------------")
 	client, _ := jira.NewClient(nil, url)
 	issues, _, _ := client.Issue.Search(query, nil)
 
@@ -29,6 +25,5 @@ func (j *Jira) Fetch(url, query string) error {
 
 // Import imports the items into database
 func (j *Jira) Import() error {
-	fmt.Println("j.items")
 	return nil
 }

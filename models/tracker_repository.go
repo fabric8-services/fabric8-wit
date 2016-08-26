@@ -20,10 +20,10 @@ func NewTrackerRepository(ts *GormTransactionSupport) *GormTrackerRepository {
 }
 
 var trackerTypes = map[string]string{
-	"bugzilla": "Bugzilla",
-	"trello":   "Trello",
-	"github":   "Github",
-	"jira":     "Jira"}
+	//	"bugzilla": "Bugzilla",
+	//	"trello":   "Trello",
+	"github": "Github",
+	"jira":   "Jira"}
 
 // Create creates a new tracker configuration in the repository
 // returns BadParameterError, ConversionError or InternalError
