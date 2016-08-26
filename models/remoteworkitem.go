@@ -28,7 +28,7 @@ type AttributeExpression string
 
 // AttributeAccesor defines the interface between a RemoteWorkItem and the Mapper
 type AttributeAccesor interface {
-	// Get returns the value based on a commonly understood field expression
+	// Get returns the value based on a commonly understood attribute expression
 	Get(field AttributeExpression) interface{}
 }
 
@@ -43,7 +43,7 @@ type GitHubRemoteWorkItem struct {
 	issue map[string]interface{}
 }
 
-// NewGitHubRemoteWorkItem creates a new Decoded FieldAccessor for a GitHub Issue
+// NewGitHubRemoteWorkItem creates a new Decoded AttributeAccessor for a GitHub Issue
 func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
 	var j map[string]interface{}
 	err := json.Unmarshal(item.Content, &j)
