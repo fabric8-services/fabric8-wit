@@ -4,6 +4,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 )
@@ -26,15 +27,18 @@ func TestMap(t *testing.T) {
 		"description": "description",
 		"title":       "title",
 	}
-	t.Log("Test remoteWorkItem", remoteWorkItem)
-	t.Log("Test workItemMap ", workItemMap)
 
 	// TODO: Add error handling
 	workItem := remoteWorkItem.MapRemote(workItemMap, workItemType)
 
-	// TODO: compare the workItem fields with those of the remoteWorkItem
-
-	t.Log("Test workItem ", workItem)
+	// Asserting the mappingw.
+	for mapFrom, mapTo := range workItemMap {
+		valueInRemoteWorkItem := remoteWorkItem.Fields[mapFrom]
+		valueInLocalWorkItem := workItem.Fields[mapTo]
+		if valueInLocalWorkItem != valueInRemoteWorkItem {
+			t.Error(fmt.Sprintf("Incorrect mapping of %s in remote WI to %s in local WI. Expected \"%s\" but found \"%s\"", mapFrom, mapTo, valueInRemoteWorkItem, valueInLocalWorkItem))
+		}
+	}
 }
 
 func TestMapGithub(t *testing.T) {
@@ -70,21 +74,12 @@ func TestMapGithub(t *testing.T) {
 	// TODO: Improve Error handling.
 	workItem := remoteWorkItem.MapRemote(workItemMap, workItemType)
 
-	// For now, just printed the generated WorkItem.
-	// This has to be replaced with Table-driven tests and assert statement.
-	t.Log(workItem)
-
-	/*
-		the output of the above logger :
-
-		{0  1 0
-		           map[
-		                   status:open
-		                   remote_issue_id:1.71624394e+08
-		                   description:related https://trello.com/c/YNeXoM2R/103-create-remoteissue-to-workitemtype-mapping-model
-		                   title:As a user I should be able to Map the data in a Remote Issue into a WorkItem Type
-		           ]
+	// Asserting the mappingw.
+	for mapFrom, mapTo := range workItemMap {
+		valueInRemoteWorkItem := remoteWorkItem.Fields[mapFrom]
+		valueInLocalWorkItem := workItem.Fields[mapTo]
+		if valueInLocalWorkItem != valueInRemoteWorkItem {
+			t.Error(fmt.Sprintf("Incorrect mapping of %s in remote WI to %s in local WI. Expected \"%s\" but found \"%s\"", mapFrom, mapTo, valueInRemoteWorkItem, valueInLocalWorkItem))
 		}
-
-	*/
+	}
 }
