@@ -1,7 +1,7 @@
 package remotetracker
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron"
@@ -28,7 +28,7 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
 	err := db.Table("trackers").Select("trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker_id = trackers.id").Scan(&tsList).Error
 	if err != nil {
-		fmt.Println("schedule")
+		log.Printf("Fetch failed %v\n", err)
 	}
 	return tsList
 }
