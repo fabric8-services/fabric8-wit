@@ -1,98 +1,67 @@
 package models
 
 import (
-	"fmt"
-	"strconv"
+	"encoding/json"
 )
 
 const (
-	ProviderGithub string = "github"
+	SystemRemoteIssueId = "system.remote_issue_id"
+	SystemTitle         = "system.title"
+	SystemDescription   = "system.description"
+	SystemStatus        = "system.status"
+	ProviderGithub      = "github"
 )
 
-// RemoteWorkItem represents a work item as it is stored in the database
+var workItemKeyMaps = map[string]WorkItemMap{
+	ProviderGithub: WorkItemMap{
+		AttributeExpression("title"): SystemTitle,
+		AttributeExpression("body"):  SystemDescription,
+		AttributeExpression("state"): SystemStatus,
+		AttributeExpression("id"):    SystemRemoteIssueId,
+	},
+}
+
+type WorkItemMap map[AttributeExpression]string
+
+// AttributeExpression represents a commonly understood String format for a target path
+type AttributeExpression string
+
+// AttributeAccesor defines the interface between a RemoteWorkItem and the Mapper
+type AttributeAccesor interface {
+	// Get returns the value based on a commonly understood field expression
+	Get(field AttributeExpression) interface{}
+}
+
+// RemoteWorkItem is the Database stored TrackerItem
 type RemoteWorkItem struct {
-	Fields map[string]interface{}
+	ID      string
+	Content []byte
 }
 
-// WorkItemMap : holds the mapping between Remote key and local key in a WI
-type WorkItemMap map[string]string
-
-// RemoteWorkItemSanitizer makes sure that the
-// Response from Provider API is sanitized into a
-// good looking flat 1-level dictionary
-type RemoteWorkItemMapper interface {
-	Flatten()
+// GitHubRemoteWorkItem knows how to implement a FieldAccessor on a GitHub Issue JSON struct
+type GitHubRemoteWorkItem struct {
+	issue map[string]interface{}
 }
 
-// RemoteWorkItemRepository handles the stuff we need to persist w.r.t to RemoteWorkItems
-type RemoteWorkItemRepository struct {
-	mappings map[string]WorkItemMap
-}
-
-// GetWorkItemKeyMap returns a stahttps://gobyexample.com/methodstic map based on the provider & WorkItemType.
-// This code will be expanded to support different combinations of provider+WorkItemType
-func (repo *RemoteWorkItemRepository) GetWorkItemKeyMap(provider string, workItemType *WorkItemType) WorkItemMap {
-	return repo.mappings[provider]
-}
-
-func NewRemoteWorkItemRepository() *RemoteWorkItemRepository {
-	return &RemoteWorkItemRepository{
-		// Statically maintain mappings for now.
-		// In future, they should be moved to the database.
-		// for easier configurability and patching.
-		mappings: map[string]WorkItemMap{
-			ProviderGithub: WorkItemMap{
-				"id":    "system.remote_issue_id",
-				"body":  "system.description",
-				"title": "system.title",
-				"state": "system.status",
-			},
-		},
+// NewGitHubRemoteWorkItem creates a new Decoded FieldAccessor for a GitHub Issue
+func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
+	var j map[string]interface{}
+	err := json.Unmarshal(item.Content, &j)
+	if err != nil {
+		return nil, err
 	}
+	return GitHubRemoteWorkItem{issue: j}, nil
 }
 
-/*
-Response from Provider API is sanitized into a good looking flat 1-level
-dictionary, Example:
+func (gh GitHubRemoteWorkItem) Get(field AttributeExpression) interface{} {
+	return gh.issue[string(field)]
+}
 
-{
-	"meta":
-	{
-		"title":"Some title",
-		"description":"some description",
+// Map maps the remote WorkItem to a local WorkItem
+func Map(item AttributeAccesor, mapping WorkItemMap) (WorkItem, error) {
+	workItem := WorkItem{Fields: Fields{}}
+	for from, to := range mapping {
+		workItem.Fields[to] = item.Get(from)
 	}
-}
-
-would be into
-
-{
-	"meta.title":"some title",
-	"meta.description":"some description",
-}
-
-Flatten sanitizes the api response from Github into a flat dict
-
-*/
-func (rwi *RemoteWorkItem) Flatten() {
-	fmt.Println("Flattening..")
-	/*
-	 * This will have logic to convert rwi.Fields into a single level dict
-	 * As for now, nothing needs to be done since the required github
-	 * fields are already 1-level
-	 *
-	 */
-}
-
-// MapRemote maps RemoteWorkItem to WorkItem
-func (rwi *RemoteWorkItem) MapRemote(wiMap WorkItemMap, wiType *WorkItemType) WorkItem {
-	rwi.Flatten()
-	workItem := WorkItem{
-		Type:   strconv.FormatUint(wiType.ID, 10),
-		Fields: make(map[string]interface{}),
-	}
-
-	for fromKey, toKey := range wiMap {
-		workItem.Fields[toKey] = rwi.Fields[fromKey]
-	}
-	return workItem
+	return workItem, nil
 }
