@@ -57,3 +57,4 @@ import:
   version: ^1.1.3
   subpackages:
   - assert
+  - suite
