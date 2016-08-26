@@ -60,7 +60,6 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 
 	newTq := TrackerQuery{
 		ID:       id,
-		Version:  tq.Version + 1,
 		Schedule: tq.Schedule,
 		Query:    tq.Query}
 
@@ -71,7 +70,6 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	log.Printf("updated tracker query to %v\n", newTq)
 	t2 := app.TrackerQuery{
 		ID:       string(id),
-		Version:  tq.Version + 1,
 		Schedule: tq.Schedule,
 		Query:    tq.Query}
 
