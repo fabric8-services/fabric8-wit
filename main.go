@@ -13,6 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -103,6 +104,8 @@ func main() {
 	}
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 
+	ts := models.NewGormTransactionSupport(db)
+
 	// Mount "login" controller
 	loginCtrl := NewLoginController(service)
 	app.MountLoginController(service, loginCtrl)
@@ -129,6 +132,10 @@ func main() {
 	repo3 := remoteworkitem.NewTrackerQueryRepository(ts2)
 	c6 := NewTrackerqueryController(service, repo3, ts2, scheduler)
 	app.MountTrackerqueryController(service, c6)
+
+	// Mount "user" controller
+	c5 := NewUserController(service, account.NewIdentityRepository(db))
+	app.MountUserController(service, c5)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
