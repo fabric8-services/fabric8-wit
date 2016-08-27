@@ -146,6 +146,27 @@ var _ = Resource("workitemtype", func() {
 	})
 })
 
+var _ = Resource("user", func() {
+	BasePath("/user")
+
+	Action("show", func() {
+		Security("jwt")
+		Routing(
+			GET(""),
+		)
+		Description("Get the authenticated user")
+		Response(OK, func() {
+			Media(User)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(Unauthorized)
+	})
+
+})
+
 var _ = Resource("version", func() {
 
 	DefaultMedia(ALMVersion)

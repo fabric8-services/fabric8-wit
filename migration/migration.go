@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -15,7 +16,10 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 		&models.WorkItemType{},
 		&remoteworkitem.Tracker{},
 		&remoteworkitem.TrackerQuery{},
-		&remoteworkitem.TrackerItem{})
+		&remoteworkitem.TrackerItem{},
+		&account.Identity{},
+		&account.User{})
+
 	if db.Error != nil {
 		return db.Error
 	}

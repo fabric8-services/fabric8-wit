@@ -1,4 +1,4 @@
-package models
+package account
 
 import (
 	"time"
@@ -29,12 +29,12 @@ func (m User) TableName() string {
 
 // GormUserRepository is the implementation of the storage interface for User.
 type GormUserRepository struct {
-	ts *GormTransactionSupport
+	db *gorm.DB
 }
 
 // NewUserRepository creates a new storage type.
-func NewUserRepository(ts *GormTransactionSupport) UserRepository {
-	return &GormUserRepository{ts: ts}
+func NewUserRepository(db *gorm.DB) UserRepository {
+	return &GormUserRepository{db: db}
 }
 
 // UserRepository represents the storage interface.
@@ -43,7 +43,7 @@ type UserRepository interface {
 	Create(ctx context.Context, u *User) error
 	Save(ctx context.Context, u *User) error
 	Delete(ctx context.Context, ID uuid.UUID) error
-	List(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -60,7 +60,7 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 	defer goa.MeasureSince([]string{"goa", "db", "user", "load"}, time.Now())
 
 	var native User
-	err := m.ts.db.Table(m.TableName()).Where("id = ?", id).Find(&native).Error
+	err := m.db.Table(m.TableName()).Where("id = ?", id).Find(&native).Error
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
 	}
@@ -74,7 +74,7 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 
 	u.ID = uuid.NewV4()
 
-	err := m.ts.db.Create(u).Error
+	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding User", "error", err.Error())
 		return err
@@ -92,7 +92,7 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 		goa.LogError(ctx, "error updating User", "error", err.Error())
 		return err
 	}
-	err = m.ts.db.Model(obj).Updates(model).Error
+	err = m.db.Model(obj).Updates(model).Error
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	var obj User
 
-	err := m.ts.db.Delete(&obj, id).Error
+	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
 		goa.LogError(ctx, "error deleting User", "error", err.Error())
@@ -115,12 +115,12 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-// List expose an open ended Query model
-func (m *GormUserRepository) List(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error) {
+// Query expose an open ended Query model
+func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "query"}, time.Now())
 	var objs []*User
 
-	err := m.ts.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
+	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func UserFilterByIdentity(identityID uuid.UUID, originaldb *gorm.DB) func(db *go
 	}
 }
 
-// UserByEmails is a gorm filter for a Belongs To relationship.
+// UserByEmails is a gorm filter for emails.
 func UserByEmails(emails []string) func(db *gorm.DB) *gorm.DB {
 	if len(emails) > 0 {
 		return func(db *gorm.DB) *gorm.DB {
