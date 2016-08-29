@@ -3,73 +3,22 @@
 package main
 
 import (
-	"strconv"
 	"testing"
-	"time"
-	//"strings"
 
 	"fmt"
 	"net/http"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
+	"os"
 )
-
-func reandomUniqueString() string {
-	// generates random string using timestamp
-	now := time.Now().UnixNano() / 1000000
-	return strconv.FormatInt(now, 10)
-}
-
-func TestCreateShowWorkItemType(t *testing.T) {
-	// test-1
-	// create a WIT (using workitem_repo)
-	// try to create anohter WIT with same name - should Fail
-	// remove the WIT (using GORM raw query)
-
-	ts := models.NewGormTransactionSupport(db)
-	witr := models.NewWorkItemTypeRepository(ts)
-	controller := WorkitemtypeController{ts: ts, witRepository: witr}
-	name := reandomUniqueString()
-
-	st := app.FieldType{
-		Kind: "user",
-	}
-	fd := app.FieldDefinition{
-		Type:     &st,
-		Required: true,
-	}
-	fields := map[string]*app.FieldDefinition{
-		"system.owner": &fd,
-	}
-	payload := app.CreateWorkitemtypePayload{
-		ExtendedTypeName: nil,
-		Name:             name,
-		Fields:           fields,
-	}
-	t.Log("creating WIT now.")
-	_, created := test.CreateWorkitemtypeCreated(t, nil, nil, &controller, &payload)
-
-	if created.Name == "" {
-		t.Error("no Name")
-	}
-	t.Log("WIT created, Name=", created.Name)
-
-	t.Log("Fetch recently created WIT")
-	_, showWIT := test.ShowWorkitemtypeOK(t, nil, nil, &controller, name)
-
-	if showWIT == nil {
-		t.Error("Can not fetch WIT", name)
-	}
-
-	t.Log("Started cleanup for ", created.Name)
-	db.Table("work_item_types").Where("name=?", name).Delete(&models.WorkItemType{})
-	t.Log("Cleanup complete")
-}
 
 //-----------------------------------------------------------------------------
 // Test Suite setup
@@ -86,22 +35,40 @@ type WorkItemTypeSuite struct {
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
+// It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *WorkItemTypeSuite) SetupSuite() {
 	fmt.Println("--- Setting up test suite WorkItemTypeSuite ---")
 
-	// for cleaner setup, assign the global db handle to the suite
-	// TODO: (kwk) clean overall usage of globals in tests
-	s.db = db
+	dbHost := os.Getenv("ALMIGHTY_DB_HOST")
+	if "" == dbHost {
+		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
+	}
+
+	var err error
+	s.db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+	if err != nil {
+		panic("failed to connect database: " + err.Error())
+	}
 
 	s.ts = models.NewGormTransactionSupport(s.db)
 	s.witRepo = models.NewWorkItemTypeRepository(s.ts)
 	s.typeCtrl = WorkitemtypeController{ts: s.ts, witRepository: s.witRepo}
+
+	// Migrate the schema
+	if err := transaction.Do(s.ts, func() error {
+		return migration.Perform(context.Background(), s.ts.TX(), s.witRepo)
+	}); err != nil {
+		panic(err.Error())
+	}
 }
 
 // The TearDownSuite method will run after all the tests in the suite have been run
+// It tears down the database connection for all the tests in this suite.
 func (s *WorkItemTypeSuite) TearDownSuite() {
 	fmt.Println("--- Tearing down test suite WorkItemTypeSuite ---")
-	s.T().Log("--- Running TearDownSuite ---")
+	if s.db != nil {
+		s.db.Close()
+	}
 }
 
 // The SetupTest method will be run before every test in the suite.
@@ -174,7 +141,7 @@ func (s *WorkItemTypeSuite) TestCreateWorkItemType() {
 	assert.NotNil(s.T(), wit)
 }
 
-func (s *WorkItemTypeSuite) TestGetWorkItemType() {
+func (s *WorkItemTypeSuite) TestShowWorkItemType() {
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), wit)
@@ -184,6 +151,17 @@ func (s *WorkItemTypeSuite) TestGetWorkItemType() {
 	assert.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
 }
+
+/*func (s *WorkItemTypeSuite) TestListWorkItemType() {
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	assert.NotNil(s.T(), wit)
+
+	_, wit2 := test.ListWorkitemtypeOK(s.T(), nil, nil, &s.typeCtrl, wit.Name)
+
+	assert.NotNil(s.T(), wit2)
+	assert.EqualValues(s.T(), wit, wit2)
+}*/
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
