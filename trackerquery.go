@@ -22,7 +22,7 @@ func NewTrackerqueryController(service *goa.Service, tqRepository models.Tracker
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
 	return transaction.Do(c.ts, func() error {
-		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.Tracker)
+		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, uint64(ctx.Payload.Tracker))
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
