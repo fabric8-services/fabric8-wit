@@ -2,6 +2,8 @@ package models
 
 import (
 	"encoding/json"
+
+	"github.com/almighty/almighty-core/app"
 )
 
 const (
@@ -12,7 +14,7 @@ const (
 	ProviderGithub      = "github"
 )
 
-var workItemKeyMaps = map[string]WorkItemMap{
+var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
 		AttributeExpression("title"): SystemTitle,
 		AttributeExpression("body"):  SystemDescription,
@@ -38,6 +40,10 @@ type RemoteWorkItem struct {
 	Content []byte
 }
 
+var RemoteWorkItemImplRegistry = map[string]func(RemoteWorkItem) (AttributeAccesor, error){
+	ProviderGithub: NewGitHubRemoteWorkItem,
+}
+
 // GitHubRemoteWorkItem knows how to implement a FieldAccessor on a GitHub Issue JSON struct
 type GitHubRemoteWorkItem struct {
 	issue map[string]interface{}
@@ -58,8 +64,8 @@ func (gh GitHubRemoteWorkItem) Get(field AttributeExpression) interface{} {
 }
 
 // Map maps the remote WorkItem to a local WorkItem
-func Map(item AttributeAccesor, mapping WorkItemMap) (WorkItem, error) {
-	workItem := WorkItem{Fields: Fields{}}
+func Map(item AttributeAccesor, mapping WorkItemMap) (app.WorkItem, error) {
+	workItem := app.WorkItem{Fields: Fields{}}
 	for from, to := range mapping {
 		workItem.Fields[to] = item.Get(from)
 	}
