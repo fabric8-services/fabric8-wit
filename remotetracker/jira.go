@@ -27,7 +27,7 @@ func fetchJira(url, query string, item chan map[string]interface{}) {
 }
 
 // Import imports the items into database
-func uploadJira(db *gorm.DB, item map[string]interface{}) error {
+func uploadJira(db *gorm.DB, tqID int, item map[string]interface{}) error {
 	fmt.Println(item)
 	return nil
 }
