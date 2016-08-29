@@ -8,7 +8,6 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/criteria"
 )
 
 // GormWorkItemTypeRepository implements WorkItemTypeRepository using gorm
@@ -102,8 +101,9 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 }
 
 // List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit *int) ([]*app.WorkItemType, error) {
 	// Currently we don't implement filtering here, so leave this empty
+	// TODO: (kwk) implement criteria parsing just like for work items
 	var where string
 	var parameters []interface{}
 

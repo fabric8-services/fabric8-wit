@@ -134,7 +134,6 @@ var _ = Resource("workitemtype", func() {
 		)
 		Description("List work item types.")
 		Params(func() {
-			Param("filter", String, "a query language expression restricting the set of found work item types")
 			Param("page", String, "Paging in the format <start>,<limit>")
 		})
 		Response(OK, func() {

@@ -74,14 +74,17 @@ func (s *WorkItemTypeSuite) TearDownSuite() {
 // The SetupTest method will be run before every test in the suite.
 // SetupTest ensures that non of the work item types that we will create already exist.
 func (s *WorkItemTypeSuite) SetupTest() {
-	s.T().Log("--- Running SetupTest for ---")
+	s.T().Log("--- Running SetupTest ---")
 	// Remove all work item types from the db that will be created during these tests.
 	s.db.Where("name = ?", "animal").Delete(models.WorkItemType{})
+	s.db.Where("name = ?", "person").Delete(models.WorkItemType{})
 }
 
 // The TearDownTest method will be run after every test in the suite.
 func (s *WorkItemTypeSuite) TearDownTest() {
 	s.T().Log("--- Running TearDownTest ---")
+	s.db.Where("name = ?", "animal").Delete(models.WorkItemType{})
+	s.db.Where("name = ?", "person").Delete(models.WorkItemType{})
 }
 
 //-----------------------------------------------------------------------------
@@ -132,15 +135,45 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, &s.typeCtrl, &payload)
 }
 
+// createWorkItemTypePerson defines a work item type "person" that consists of
+// a required "name" field.
+func (s *WorkItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemType) {
+
+	// Create the type for the "color" field
+	nameFieldDef := app.FieldDefinition{
+		Required: true,
+		Type: &app.FieldType{
+			Kind: "string",
+		},
+	}
+
+	// Use the goa generated code to create a work item type
+	payload := app.CreateWorkitemtypePayload{
+		Fields: map[string]*app.FieldDefinition{
+			"name": &nameFieldDef,
+		},
+		Name: "person",
+	}
+
+	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, &s.typeCtrl, &payload)
+}
+
 //-----------------------------------------------------------------------------
 // Actual tests
 //-----------------------------------------------------------------------------
 
+// TestCreateWorkItemType tests if we can create two work item types: "animal" and "person"
 func (s *WorkItemTypeSuite) TestCreateWorkItemType() {
 	_, wit := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), wit)
+	assert.Equal(s.T(), "animal", wit.Name)
+
+	_, wit = s.createWorkItemTypePerson()
+	assert.NotNil(s.T(), wit)
+	assert.Equal(s.T(), "person", wit.Name)
 }
 
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
 func (s *WorkItemTypeSuite) TestShowWorkItemType() {
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
@@ -152,16 +185,38 @@ func (s *WorkItemTypeSuite) TestShowWorkItemType() {
 	assert.EqualValues(s.T(), wit, wit2)
 }
 
-/*func (s *WorkItemTypeSuite) TestListWorkItemType() {
+// TestListWorkItemType tests if we can find the work item types
+// "person" and "animal" in the list of work item types
+func (s *WorkItemTypeSuite) TestListWorkItemType() {
 	// Create the work item type first and try to read it back in
-	_, wit := s.createWorkItemTypeAnimal()
-	assert.NotNil(s.T(), wit)
+	_, witAnimal := s.createWorkItemTypeAnimal()
+	assert.NotNil(s.T(), witAnimal)
+	_, witPerson := s.createWorkItemTypePerson()
+	assert.NotNil(s.T(), witPerson)
 
-	_, wit2 := test.ListWorkitemtypeOK(s.T(), nil, nil, &s.typeCtrl, wit.Name)
+	// Fetch a single work item type
+	// Paging in the format <start>,<limit>"
+	page := "0,-1"
+	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, &s.typeCtrl, &page)
 
-	assert.NotNil(s.T(), wit2)
-	assert.EqualValues(s.T(), wit, wit2)
-}*/
+	assert.NotNil(s.T(), witCollection)
+	assert.Nil(s.T(), witCollection.Validate())
+
+	// Check the number of found work item types
+	assert.Condition(s.T(), func() bool {
+		return (len(witCollection) >= 2)
+	}, "At least two work item types must exist (animal and person), but only %d exist.", len(witCollection))
+
+	// Search for the work item types that must exist at minimum
+	toBeFound := 2
+	for i := 0; i < len(witCollection) && toBeFound > 0; i++ {
+		if witCollection[i].Name == "person" || witCollection[i].Name == "animal" {
+			s.T().Log("Found work item type in collection: ", witCollection[i].Name)
+			toBeFound--
+		}
+	}
+	assert.Exactly(s.T(), 0, toBeFound, "Not all required work item types (animal and person) where found.")
+}
 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run

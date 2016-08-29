@@ -7,7 +7,6 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
@@ -70,16 +69,12 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 
 // List runs the list action
 func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
-	exp, err := query.Parse(ctx.Filter)
-	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
-	}
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
 	return transaction.Do(c.ts, func() error {
-		result, err := c.witRepository.List(ctx.Context, exp, start, &limit)
+		result, err := c.witRepository.List(ctx.Context, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work item types: %s", err.Error()))
 		}
