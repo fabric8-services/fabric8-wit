@@ -62,13 +62,14 @@ func (s *Scheduler) ScheduleSingleQuery(ts TrackerSchedule) {
 				uploadGithub(s.db, i)
 			}
 		})
-		/*
-			case "jira":
-				cr.AddFunc(ts.Schedule, func() {
-					j.Fetch(ts.URL, ts.Query)
-					j.Import()
-				})
-		*/
+	case "jira":
+		cr.AddFunc(ts.Schedule, func() {
+			item := make(chan map[string]interface{})
+			go fetchJira(ts.URL, ts.Query, item)
+			for i := range item {
+				uploadJira(s.db, i)
+			}
+		})
 	}
 }
 
