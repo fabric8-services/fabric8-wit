@@ -1,0 +1,21 @@
+
+# following should fail as nothing is there yet
+./bin/alm-cli show workitemtype --name "Epic" -H localhost:8080 --pp
+
+# should create 1 WIT with name=Epic
+./bin/alm-cli create workitemtype --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
+
+# should show you newly created item type
+./bin/alm-cli show workitemtype --name "Epic" -H localhost:8080 --pp
+
+# create another item type
+./bin/alm-cli create workitemtype --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.duration":{"Type":{"Kind":"integer"},"Required":false}},"name":"Issue"}' -H localhost:8080 --pp
+
+# retrive newly create item type
+./bin/alm-cli show workitemtype --name "Issue" -H localhost:8080 --pp
+
+# Should fail - craete item type based on pre-existing item type becasue `system.state` does not match to parent item type
+./bin/alm-cli create workitemtype --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"float"},"Required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
+
+# should craete item type based on pre-existing item type
+./bin/alm-cli create workitemtype --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp

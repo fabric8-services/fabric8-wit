@@ -3,8 +3,11 @@ package main
 import (
 	"log"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
@@ -39,5 +42,47 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			}
 		}
 		return ctx.OK(res)
+	})
+}
+
+// Create runs the create action.
+func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
+	return transaction.Do(c.ts, func() error {
+		var fields = map[string]app.FieldDefinition{}
+
+		for key, fd := range ctx.Payload.Fields {
+			fields[key] = *fd
+		}
+		wit, err := c.witRepository.Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
+
+		if err != nil {
+			switch err := err.(type) {
+			case models.BadParameterError, models.ConversionError:
+				return goa.ErrBadRequest(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(wit.Name))
+		return ctx.Created(wit)
+	})
+}
+
+// List runs the list action
+func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
+	exp, err := query.Parse(ctx.Filter)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
+	}
+	start, limit, err := parseLimit(ctx.Page)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+	}
+	return transaction.Do(c.ts, func() error {
+		result, err := c.witRepository.List(ctx.Context, exp, start, &limit)
+		if err != nil {
+			return goa.ErrInternal(fmt.Sprintf("Error listing work item types: %s", err.Error()))
+		}
+		return ctx.OK(result)
 	})
 }
