@@ -2,8 +2,7 @@ package remotetracker
 
 import (
 	"encoding/json"
-	"fmt"
-
+	"github.com/almighty/almighty-core/models"
 	"github.com/andygrunwald/go-jira"
 	"github.com/jinzhu/gorm"
 )
@@ -28,6 +27,8 @@ func fetchJira(url, query string, item chan map[string]interface{}) {
 
 // Import imports the items into database
 func uploadJira(db *gorm.DB, tqID int, item map[string]interface{}) error {
-	fmt.Println(item)
-	return nil
+	i, _ := json.Marshal(item)
+	ti := models.TrackerItem{Item: string(i), BatchID: batchID(), TrackerQuery: uint64(tqID)}
+	err := db.Create(&ti).Error
+	return err
 }
