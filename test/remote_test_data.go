@@ -1,8 +1,10 @@
-package models
+package test
 
 import (
 	"io/ioutil"
 	"os"
+	"path"
+	"runtime"
 )
 
 // TestDataProvider defines the simple funcion for returning data from a remote provider
@@ -28,7 +30,14 @@ func LoadTestData(filename string, provider TestDataProvider) ([]byte, error) {
 		return content, nil
 	}
 
-	targetDir := "examples/test/"
+	// Get path to src/github.com/almighty/almighty-core/test/remote_test_data.go
+	_, packagefilename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("No caller information")
+	}
+
+	// The target dir would be src/github.com/almighty/almighty-core/examples/test
+	targetDir := path.Dir(packagefilename) + "/../examples/test/"
 	err := os.MkdirAll(targetDir, 0777)
 	if err != nil {
 		return nil, err

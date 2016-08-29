@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	"github.com/almighty/almighty-core/test"
 )
 
 func provideRemoteGithubData() ([]byte, error) {
@@ -48,7 +50,7 @@ func TestWorkItemMapping(t *testing.T) {
 
 func TestGitHubIssueMapping(t *testing.T) {
 
-	content, err := LoadTestData("github_issue_mapping.json", provideRemoteGithubData)
+	content, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubData)
 	if err != nil {
 		t.Fatal(err)
 	}
