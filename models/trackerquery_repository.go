@@ -21,7 +21,7 @@ func NewTrackerQueryRepository(ts *GormTransactionSupport) *GormTrackerQueryRepo
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker int) (*app.TrackerQuery, error) {
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker uint64) (*app.TrackerQuery, error) {
 	tid := tracker
 	fmt.Printf("tracker id: %v", tid)
 	tq := TrackerQuery{
@@ -37,7 +37,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		ID:       string(tq.ID),
 		Query:    query,
 		Schedule: schedule,
-		Tracker:  tid}
+		Tracker:  int(tid)}
 
 	return &tq2, nil
 }

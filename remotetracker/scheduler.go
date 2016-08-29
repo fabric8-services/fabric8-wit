@@ -9,10 +9,11 @@ import (
 
 // TrackerSchedule capture all configuration
 type TrackerSchedule struct {
-	URL         string
-	TrackerType string
-	Query       string
-	Schedule    string
+	TrackerQueryID int
+	URL            string
+	TrackerType    string
+	Query          string
+	Schedule       string
 }
 
 // Scheduler represents scheduler
@@ -44,7 +45,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 
 func fetchTrackerQueries(db *gorm.DB) []TrackerSchedule {
 	tsList := []TrackerSchedule{}
-	err := db.Table("trackers").Select("trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker = trackers.id").Scan(&tsList).Error
+	err := db.Table("trackers").Select("tracker_queries.id as tracker_query_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker = trackers.id").Scan(&tsList).Error
 	if err != nil {
 		log.Printf("Fetch failed %v\n", err)
 	}
@@ -59,7 +60,7 @@ func (s *Scheduler) ScheduleSingleQuery(ts TrackerSchedule) {
 			item := make(chan map[string]interface{})
 			go fetchGithub(ts.URL, ts.Query, item)
 			for i := range item {
-				uploadGithub(s.db, i)
+				uploadGithub(s.db, ts.TrackerQueryID, i)
 			}
 		})
 	case "jira":
@@ -67,7 +68,7 @@ func (s *Scheduler) ScheduleSingleQuery(ts TrackerSchedule) {
 			item := make(chan map[string]interface{})
 			go fetchJira(ts.URL, ts.Query, item)
 			for i := range item {
-				uploadJira(s.db, i)
+				uploadJira(s.db, ts.TrackerQueryID, i)
 			}
 		})
 	}
