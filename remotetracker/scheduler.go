@@ -7,45 +7,72 @@ import (
 	"github.com/robfig/cron"
 )
 
-type trackerSchedule struct {
+// TrackerSchedule capture all configuration
+type TrackerSchedule struct {
 	URL         string
 	TrackerType string
 	Query       string
 	Schedule    string
 }
 
-// Schedule fetch and import of remote tracker items
-func Schedule(db *gorm.DB) {
-	c := cron.New()
-	tq := fetchTrackerQueries(db)
-	for _, v := range tq {
-		scheduleFetchAndImport(v, c)
-	}
-	c.Start()
+// Scheduler represents scheduler
+type Scheduler struct {
+	db *gorm.DB
 }
 
-func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
-	tsList := []trackerSchedule{}
-	err := db.Table("trackers").Select("trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker_id = trackers.id").Scan(&tsList).Error
+var cr *cron.Cron
+
+// NewScheduler creates a new Scheduler
+func NewScheduler(db *gorm.DB) *Scheduler {
+	s := Scheduler{db: db}
+	return &s
+}
+
+// Stop scheduler
+// This should be called only from main
+func (s *Scheduler) Stop() {
+	cr.Stop()
+}
+
+// ScheduleAllQueries fetch and import of remote tracker items
+func (s *Scheduler) ScheduleAllQueries() {
+	tq := fetchTrackerQueries(s.db)
+	for _, v := range tq {
+		s.ScheduleSingleQuery(v)
+	}
+}
+
+func fetchTrackerQueries(db *gorm.DB) []TrackerSchedule {
+	tsList := []TrackerSchedule{}
+	err := db.Table("trackers").Select("trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker = trackers.id").Scan(&tsList).Error
 	if err != nil {
 		log.Printf("Fetch failed %v\n", err)
 	}
 	return tsList
 }
 
-func scheduleFetchAndImport(ts trackerSchedule, c *cron.Cron) {
+// ScheduleSingleQuery schedule fetch and import
+func (s *Scheduler) ScheduleSingleQuery(ts TrackerSchedule) {
 	switch ts.TrackerType {
 	case "github":
-		g := Github{}
-		c.AddFunc(ts.Schedule, func() {
-			g.Fetch(ts.URL, ts.Query)
-			g.Import()
+		cr.AddFunc(ts.Schedule, func() {
+			item := make(chan map[string]interface{})
+			go fetchGithub(ts.URL, ts.Query, item)
+			for i := range item {
+				uploadGithub(s.db, i)
+			}
 		})
-	case "jira":
-		j := Jira{}
-		c.AddFunc(ts.Schedule, func() {
-			j.Fetch(ts.URL, ts.Query)
-			j.Import()
-		})
+		/*
+			case "jira":
+				cr.AddFunc(ts.Schedule, func() {
+					j.Fetch(ts.URL, ts.Query)
+					j.Import()
+				})
+		*/
 	}
+}
+
+func init() {
+	cr = cron.New()
+	cr.Start()
 }
