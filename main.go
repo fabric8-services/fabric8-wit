@@ -55,8 +55,10 @@ func main() {
 	// Migrate the schema
 	migration.Perform(db)
 
-	// Schedule fetch and import of remote tracker items
-	remotetracker.Schedule(db)
+	// Scheduler to fetch and import remote tracker items
+	scheduler := remotetracker.NewScheduler(db)
+	defer scheduler.Stop()
+	scheduler.ScheduleAllQueries()
 
 	// Create service
 	service := goa.New("alm")
