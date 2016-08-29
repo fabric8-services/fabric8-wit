@@ -1,4 +1,4 @@
-package models
+package remoteworkitem
 
 import (
 	"encoding/json"
@@ -65,7 +65,7 @@ func (gh GitHubRemoteWorkItem) Get(field AttributeExpression) interface{} {
 
 // Map maps the remote WorkItem to a local WorkItem
 func Map(item AttributeAccesor, mapping WorkItemMap) (app.WorkItem, error) {
-	workItem := app.WorkItem{Fields: Fields{}}
+	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
 		workItem.Fields[to] = item.Get(from)
 	}

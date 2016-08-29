@@ -1,4 +1,6 @@
-package models
+// +build unit
+
+package remoteworkitem
 
 import (
 	"fmt"
@@ -60,7 +62,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteWorkItem)
-	//NewGitHubRemoteWorkItem(remoteWorkItem)
+
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,6 +72,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	for _, localWorkItemKey := range workItemMap {
+		fmt.Println("Mapped ", localWorkItemKey)
 		if workItem.Fields[localWorkItemKey] == nil {
 			t.Error(fmt.Sprintf("%s not mapped", localWorkItemKey))
 		}
