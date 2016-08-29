@@ -1,29 +1,33 @@
 package remotetracker
 
-import "github.com/andygrunwald/go-jira"
+import (
+	"encoding/json"
+	"fmt"
 
-// Jira represents Jira remote issue tracker
-type Jira struct {
-	items []Item
-}
+	"github.com/andygrunwald/go-jira"
+	"github.com/jinzhu/gorm"
+)
 
 // Fetch collects data from Jira
-func (j *Jira) Fetch(url, query string) error {
+func fetchJira(url, query string, item chan map[string]interface{}) {
 	client, _ := jira.NewClient(nil, url)
 	issues, _, _ := client.Issue.Search(query, nil)
 
 	for l := range issues {
-		id := issues[l].Key
-		i, _, _ := client.Issue.Get(issues[l].Key)
-		title := i.Fields.Summary
-		description := i.Fields.Description
-		status := i.Fields.Status.Name
-		j.items = append(j.items, Item{ID: id, Title: title, Description: description, State: status})
+		i := make(map[string]interface{})
+		id, _ := json.Marshal(issues[l].Key)
+		issue, _, _ := client.Issue.Get(issues[l].Key)
+		title, _ := json.Marshal(issue.Fields.Summary)
+		description, _ := json.Marshal(issue.Fields.Description)
+		status, _ := json.Marshal(issue.Fields.Status.Name)
+		i = map[string]interface{}{"id": string(id), "title": string(title), "description": string(description), "state": string(status)}
+		item <- i
 	}
-	return nil
+	close(item)
 }
 
 // Import imports the items into database
-func (j *Jira) Import() error {
+func uploadJira(db *gorm.DB, item map[string]interface{}) error {
+	fmt.Println(item)
 	return nil
 }
