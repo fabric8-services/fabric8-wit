@@ -8,5 +8,5 @@ type TrackerQuery struct {
 	// Schedule to fetch and import remote tracker items
 	Schedule string
 	// Tracker is a foreign key for a tracker
-	Tracker int `gorm:"ForeignKey:Tracker"`
+	Tracker uint64 `gorm:"ForeignKey:Tracker"`
 }

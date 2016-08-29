@@ -5,9 +5,9 @@ package models
 type TrackerItem struct {
 	ID uint64 `gorm:"primary_key"`
 	// the field values
-	Fields string
+	Item string
+	// Batch ID for earch running of tracker query (UUID V4)
+	BatchID string
 	// FK to trackey query
-	TrackerQuery TrackerQuery `gorm:"ForeignKey:TrackerQueryRefer"`
-
-	TrackerQueryRefer int
+	TrackerQuery uint64 `gorm:"ForeignKey:TrackerQuery"`
 }

@@ -2,8 +2,8 @@ package remotetracker
 
 import (
 	"encoding/json"
-	"fmt"
 
+	"github.com/almighty/almighty-core/models"
 	"github.com/google/go-github/github"
 	"github.com/jinzhu/gorm"
 )
@@ -25,8 +25,13 @@ func fetchGithub(url, query string, item chan map[string]interface{}) {
 	close(item)
 }
 
+func batchID() string {
+	return "uuid"
+}
+
 // upload imports the items into database
-func uploadGithub(db *gorm.DB, item map[string]interface{}) error {
-	fmt.Println(item)
-	return nil
+func uploadGithub(db *gorm.DB, tqID int, item map[string]interface{}) error {
+	ti := models.TrackerItem{Item: "hello", BatchID: batchID(), TrackerQuery: uint64(tqID)}
+	err := db.Create(&ti).Error
+	return err
 }
