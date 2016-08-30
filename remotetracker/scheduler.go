@@ -8,7 +8,7 @@ import (
 )
 
 // TrackerSchedule capture all configuration
-type TrackerSchedule struct {
+type trackerSchedule struct {
 	TrackerQueryID int
 	URL            string
 	TrackerType    string
@@ -37,14 +37,16 @@ func (s *Scheduler) Stop() {
 
 // ScheduleAllQueries fetch and import of remote tracker items
 func (s *Scheduler) ScheduleAllQueries() {
+	cr.Stop()
 	tq := fetchTrackerQueries(s.db)
 	for _, v := range tq {
-		s.ScheduleSingleQuery(v)
+		s.scheduleSingleQuery(v)
 	}
+	cr.Start()
 }
 
-func fetchTrackerQueries(db *gorm.DB) []TrackerSchedule {
-	tsList := []TrackerSchedule{}
+func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
+	tsList := []trackerSchedule{}
 	err := db.Table("trackers").Select("tracker_queries.id as tracker_query_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker = trackers.id").Scan(&tsList).Error
 	if err != nil {
 		log.Printf("Fetch failed %v\n", err)
@@ -53,7 +55,7 @@ func fetchTrackerQueries(db *gorm.DB) []TrackerSchedule {
 }
 
 // ScheduleSingleQuery schedule fetch and import
-func (s *Scheduler) ScheduleSingleQuery(ts TrackerSchedule) {
+func (s *Scheduler) scheduleSingleQuery(ts trackerSchedule) {
 	switch ts.TrackerType {
 	case "github":
 		cr.AddFunc(ts.Schedule, func() {
