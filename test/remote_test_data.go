@@ -38,7 +38,7 @@ func LoadTestData(filename string, provider TestDataProvider) ([]byte, error) {
 	}
 
 	// The target dir would be src/github.com/almighty/almighty-core/examples/test
-	targetDir := filepath.FromSlash(path.Dir(packagefilename) + "/../examples/test/")
+	targetDir := filepath.FromSlash(path.Dir(packagefilename) + "/../test/data/")
 	err := os.MkdirAll(targetDir, 0777)
 	if err != nil {
 		return nil, err
