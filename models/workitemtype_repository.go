@@ -100,6 +100,34 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	return &result, nil
 }
 
+// List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit *int) ([]*app.WorkItemType, error) {
+	// Currently we don't implement filtering here, so leave this empty
+	// TODO: (kwk) implement criteria parsing just like for work items
+	var where string
+	var parameters []interface{}
+
+	var rows []WorkItemType
+	db := r.ts.tx.Where(where, parameters)
+	if start != nil {
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		db = db.Limit(*limit)
+	}
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make([]*app.WorkItemType, len(rows))
+
+	for index, value := range rows {
+		wit := convertTypeFromModels(&value)
+		result[index] = &wit
+	}
+
+	return result, nil
+}
+
 func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 	return reflect.DeepEqual(existing, new)
 }

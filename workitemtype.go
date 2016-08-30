@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/transaction"
@@ -62,5 +64,20 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(wit.Name))
 		return ctx.Created(wit)
+	})
+}
+
+// List runs the list action
+func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
+	start, limit, err := parseLimit(ctx.Page)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+	}
+	return transaction.Do(c.ts, func() error {
+		result, err := c.witRepository.List(ctx.Context, start, &limit)
+		if err != nil {
+			return goa.ErrInternal(fmt.Sprintf("Error listing work item types: %s", err.Error()))
+		}
+		return ctx.OK(result)
 	})
 }

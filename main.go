@@ -78,19 +78,19 @@ func main() {
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 
 	// Mount "login" controller
-	c := NewLoginController(service)
-	app.MountLoginController(service, c)
+	loginCtrl := NewLoginController(service)
+	app.MountLoginController(service, loginCtrl)
 	// Mount "version" controller
-	c2 := NewVersionController(service)
-	app.MountVersionController(service, c2)
+	versionCtrl := NewVersionController(service)
+	app.MountVersionController(service, versionCtrl)
 
 	// Mount "workitem" controller
-	c3 := NewWorkitemController(service, wiRepo, ts)
-	app.MountWorkitemController(service, c3)
+	workitemCtrl := NewWorkitemController(service, wiRepo, ts)
+	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
-	c4 := NewWorkitemtypeController(service, witRepo, ts)
-	app.MountWorkitemtypeController(service, c4)
+	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
+	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

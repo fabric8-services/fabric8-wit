@@ -1,5 +1,5 @@
-hash: 62c37b7f2fdfa1d53eec7f5c805018cf237bf16bd721487664f8ee13de505cf7
-updated: 2016-08-12T15:27:52.439580409+05:30
+hash: 2a937eca83e682c8dbb47a00c5c5781caed9f9bc366bea57dd432cd662fadd78
+updated: 2016-08-26T15:43:46.715540044+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -78,6 +78,13 @@ imports:
   version: 6a8bd97bdb1fc0d08a83459940498ea49d3e8c93
 - name: github.com/spf13/pflag
   version: 367864438f1b1a3c7db4da06a2f55b144e6784e0
+- name: github.com/stretchr/testify
+  version: f390dcf405f7b83c997eac1b06768bb9f44dec18
+  subpackages:
+  - assert
+  - suite
+- name: github.com/wadey/gocovmerge
+  version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
   version: 795b5e3961ea1912fde60af417ad85e86acc0d6a
 - name: golang.org/x/net
@@ -93,4 +100,12 @@ imports:
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
-testImports: []
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 2df174808ee097f90d259e432cc04442cf60be21
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: d8ed2627bdf02c080bf22230dbb337003b7aba2d
+  subpackages:
+  - difflib
