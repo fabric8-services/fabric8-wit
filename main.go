@@ -28,11 +28,9 @@ var (
 	Development = false
 )
 
-//FIXME: after code refactoring, remove the global variable
-var scheduler *remotetracker.Scheduler
-
 func main() {
 	var dbHost string
+	var scheduler *remotetracker.Scheduler
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
 	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
@@ -58,7 +56,7 @@ func main() {
 	// Scheduler to fetch and import remote tracker items
 	scheduler = remotetracker.NewScheduler(db)
 	defer scheduler.Stop()
-	scheduler.ScheduleAllQueries()
+	//scheduler.ScheduleAllQueries()
 
 	// Create service
 	service := goa.New("alm")
@@ -99,7 +97,7 @@ func main() {
 
 	// Mount "trackerquery" controller
 	repo3 := models.NewTrackerQueryRepository(ts)
-	c6 := NewTrackerqueryController(service, repo3, ts)
+	c6 := NewTrackerqueryController(service, repo3, ts, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
 	fmt.Println("Git Commit SHA: ", Commit)
