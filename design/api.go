@@ -19,7 +19,7 @@ var _ = API("alm", func() {
 		Name("Apache License Version 2.0")
 		URL("http://www.apache.org/licenses/LICENSE-2.0")
 	})
-	Origin("*", func() {
+	Origin("/[.*almighty.io|localhost]/", func() {
 		Methods("GET", "POST", "PUT", "PATCH", "DELETE")
 		Headers("X-Request-Id", "Content-Type")
 		MaxAge(600)
