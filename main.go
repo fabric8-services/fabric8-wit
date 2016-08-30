@@ -29,6 +29,9 @@ var (
 	Development = false
 )
 
+//FIXME: after code refactoring, remove the global variable
+var scheduler *remotetracker.Scheduler
+
 func main() {
 	printUserInfo()
 
@@ -56,7 +59,7 @@ func main() {
 	migration.Perform(db)
 
 	// Scheduler to fetch and import remote tracker items
-	scheduler := remotetracker.NewScheduler(db)
+	scheduler = remotetracker.NewScheduler(db)
 	defer scheduler.Stop()
 	scheduler.ScheduleAllQueries()
 
