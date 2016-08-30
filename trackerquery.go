@@ -21,7 +21,7 @@ func NewTrackerqueryController(service *goa.Service, tqRepository models.Tracker
 
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
-	return transaction.Do(c.ts, func() error {
+	result := transaction.Do(c.ts, func() error {
 		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, uint64(ctx.Payload.Tracker))
 		if err != nil {
 			switch err := err.(type) {
@@ -34,7 +34,8 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(tq)
 	})
-
+	scheduler.ScheduleAllQueries()
+	return result
 }
 
 // Delete runs the delete action.
@@ -71,7 +72,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 
 // Update runs the update action.
 func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	return transaction.Do(c.ts, func() error {
+	result := transaction.Do(c.ts, func() error {
 
 		toSave := app.TrackerQuery{
 			ID:       ctx.ID,
@@ -90,4 +91,6 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		}
 		return ctx.OK(tq)
 	})
+	scheduler.ScheduleAllQueries()
+	return result
 }
