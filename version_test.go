@@ -1,14 +1,14 @@
-// +build unit
-
 package main
 
 import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app/test"
+	skipper "github.com/almighty/almighty-core/test"
 )
 
 func TestAuthorizeLoginOK(t *testing.T) {
+	skipper.SkiptTestIfNotUnitTest(t)
 	controller := LoginController{}
 	_, res := test.AuthorizeLoginOK(t, nil, nil, &controller)
 
@@ -18,6 +18,7 @@ func TestAuthorizeLoginOK(t *testing.T) {
 }
 
 func TestShowVersionOK(t *testing.T) {
+	skipper.SkiptTestIfNotUnitTest(t)
 	controller := VersionController{}
 	_, res := test.ShowVersionOK(t, nil, nil, &controller)
 
