@@ -4,8 +4,10 @@
 /usr/sbin/setenforce 0
 
 # Get all the deps in
-yum -y install docker make \
-       git golang 
+yum -y install \
+  docker \
+  make \
+  git 
 service docker start
 
 # lets test
