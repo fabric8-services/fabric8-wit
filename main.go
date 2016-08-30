@@ -10,11 +10,15 @@ import (
 
 	"golang.org/x/net/context"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -105,10 +109,19 @@ func main() {
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 
 	ts := models.NewGormTransactionSupport(db)
+	identityRepository := account.NewIdentityRepository(db)
 
 	// Mount "login" controller
+	oauth := &oauth2.Config{
+		ClientID:     "875da0d2113ba0a6951d",
+		ClientSecret: "2fe6736e90a9283036a37059d75ac0c82f4f5288",
+		Scopes:       []string{"user:email"},
+		Endpoint:     github.Endpoint,
+	}
+	loginService := login.NewGitHubOAuth(oauth, identityRepository)
 	loginCtrl := NewLoginController(service)
 	app.MountLoginController(service, loginCtrl)
+
 	// Mount "version" controller
 	versionCtrl := NewVersionController(service)
 	app.MountVersionController(service, versionCtrl)
@@ -134,7 +147,7 @@ func main() {
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "user" controller
-	c5 := NewUserController(service, account.NewIdentityRepository(db))
+	c5 := NewUserController(service, identityRepository)
 	app.MountUserController(service, c5)
 
 	fmt.Println("Git Commit SHA: ", Commit)
