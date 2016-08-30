@@ -1,5 +1,3 @@
-// +build integration
-
 package main
 
 import (
@@ -13,11 +11,17 @@ import (
 	"github.com/almighty/almighty-core/models"
 
 	"github.com/jinzhu/gorm"
+	"github.com/almighty/almighty-core/resource"
 )
 
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
+	if _, c := os.LookupEnv(resource.Database); c == false {
+		fmt.Printf(resource.StSkipReasonNotSet+"\n", resource.Database)
+		return
+	}
+
 	dbhost := os.Getenv("ALMIGHTY_DB_HOST")
 	if "" == dbhost {
 		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
@@ -34,6 +38,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetWorkItem(t *testing.T) {
+	resource.Require(t, resource.Database)
+
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
@@ -79,6 +85,7 @@ func TestGetWorkItem(t *testing.T) {
 }
 
 func TestCreateWI(t *testing.T) {
+	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
@@ -98,6 +105,7 @@ func TestCreateWI(t *testing.T) {
 }
 
 func TestListByFields(t *testing.T) {
+	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}

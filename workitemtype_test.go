@@ -1,5 +1,3 @@
-// +build unit
-
 package main
 
 import (
@@ -7,9 +5,11 @@ import (
 	//"strings"
 
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestGetWorkItemType(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 
 	typeController := WorkitemtypeController{}
 	_, resp2 := test.ShowWorkitemtypeOK(t, nil, nil, &typeController, "1")

@@ -1,13 +1,14 @@
-// +build unit
-
 package criteria
 
 import (
 	"reflect"
 	"testing"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestIterator(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	// test left-to-right, depth first iteration
 	visited := []Expression{}
 	l := Field("a")

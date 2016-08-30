@@ -1,5 +1,3 @@
-// +build unit
-
 package models
 
 import (
@@ -8,9 +6,13 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestJsonMarshalListType(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	lt := ListType{
 		SimpleType: SimpleType{
 			KindList},
@@ -45,11 +47,13 @@ func TestJsonMarshalListType(t *testing.T) {
 	json.Unmarshal(bytes, &readType)
 
 	if !reflect.DeepEqual(wt, readType) {
-		t.Errorf("not the same type %v, %v", wt, readType)
+		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", readType, wt)
 	}
 }
 
 func TestMarshalEnumType(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
@@ -79,11 +83,13 @@ func TestMarshalEnumType(t *testing.T) {
 	var readType WorkItemType
 	json.Unmarshal(bytes, &readType)
 	if !reflect.DeepEqual(wt, readType) {
-		t.Errorf("not the same type: %v, %v", readType, wt)
+		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", readType, wt)
 	}
 }
 
 func TestMarshalFieldDef(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
@@ -101,11 +107,13 @@ func TestMarshalFieldDef(t *testing.T) {
 	var readField FieldDefinition
 	json.Unmarshal(bytes, &readField)
 	if !reflect.DeepEqual(fd, readField) {
-		t.Errorf("not the same : %v, %v", readField, fd)
+		t.Errorf("Unmarshalled field definition: \n %v \n has not the same type as \"normal\" field definition: \n %v \n", readField, fd)
 	}
 }
 
 func TestMarshalRawEnum(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	ret := rawEnumType{
 		BaseType: SimpleType{Kind: KindInteger},
 		Values:   []interface{}{float64(2), float64(4), float64(4)},
@@ -125,6 +133,8 @@ func TestMarshalRawEnum(t *testing.T) {
 }
 
 func TestMarshalArray(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	original := []interface{}{float64(1), float64(2), float64(3)}
 	bytes, err := json.Marshal(original)
 	if err != nil {
