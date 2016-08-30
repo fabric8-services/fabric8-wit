@@ -1,5 +1,3 @@
-// +build integration
-
 package main
 
 import (
@@ -11,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	skipper "github.com/almighty/almighty-core/test"
 
 	"github.com/jinzhu/gorm"
 )
@@ -18,6 +17,10 @@ import (
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
+	if _, c := os.LookupEnv(skipper.EnvVarRunIntegrationTests); c == false {
+		return
+	}
+
 	dbhost := os.Getenv("ALMIGHTY_DB_HOST")
 	if "" == dbhost {
 		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
@@ -34,6 +37,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetWorkItem(t *testing.T) {
+	skipper.SkipTestIfNotIntegrationTest(t)
+
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
@@ -79,6 +84,7 @@ func TestGetWorkItem(t *testing.T) {
 }
 
 func TestCreateWI(t *testing.T) {
+	skipper.SkipTestIfNotIntegrationTest(t)
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
@@ -98,6 +104,7 @@ func TestCreateWI(t *testing.T) {
 }
 
 func TestListByFields(t *testing.T) {
+	skipper.SkipTestIfNotIntegrationTest(t)
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}

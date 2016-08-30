@@ -1,21 +1,21 @@
-// +build unit
-
 package models
 
 import (
+	"github.com/almighty/almighty-core/test"
+	. "github.com/almighty/almighty-core/criteria"
 	"reflect"
 	"runtime/debug"
 	"testing"
-
-	. "github.com/almighty/almighty-core/criteria"
 )
 
 func TestField(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
 	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = ?::jsonb)", []interface{}{"23"})
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
 	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = ?::jsonb) and (? = ?))", []interface{}{"\"abcd\"", true, false})

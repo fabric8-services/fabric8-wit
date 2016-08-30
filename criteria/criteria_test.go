@@ -1,10 +1,12 @@
-// +build unit
-
 package criteria
 
-import "testing"
+import (
+	"testing"
+	"github.com/almighty/almighty-core/test"
+)
 
 func TestGetParent(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
 	l := Field("a")
 	r := Literal(5)
 	expr := Equals(l, r)

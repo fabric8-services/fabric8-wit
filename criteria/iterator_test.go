@@ -1,13 +1,14 @@
-// +build unit
-
 package criteria
 
 import (
+	"github.com/almighty/almighty-core/test"
 	"reflect"
 	"testing"
 )
 
 func TestIterator(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
+
 	// test left-to-right, depth first iteration
 	visited := []Expression{}
 	l := Field("a")

@@ -1,16 +1,17 @@
-// +build unit
-
 package models
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/almighty/almighty-core/test"
 	"reflect"
 	"testing"
 	"time"
 )
 
 func TestJsonMarshalListType(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
+
 	lt := ListType{
 		SimpleType: SimpleType{
 			KindList},
@@ -50,6 +51,8 @@ func TestJsonMarshalListType(t *testing.T) {
 }
 
 func TestMarshalEnumType(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
+
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
@@ -84,6 +87,8 @@ func TestMarshalEnumType(t *testing.T) {
 }
 
 func TestMarshalFieldDef(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
+
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
@@ -106,6 +111,8 @@ func TestMarshalFieldDef(t *testing.T) {
 }
 
 func TestMarshalRawEnum(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
+
 	ret := rawEnumType{
 		BaseType: SimpleType{Kind: KindInteger},
 		Values:   []interface{}{float64(2), float64(4), float64(4)},
@@ -125,6 +132,8 @@ func TestMarshalRawEnum(t *testing.T) {
 }
 
 func TestMarshalArray(t *testing.T) {
+	test.SkiptTestIfNotUnitTest(t)
+
 	original := []interface{}{float64(1), float64(2), float64(3)}
 	bytes, err := json.Marshal(original)
 	if err != nil {
