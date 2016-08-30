@@ -47,7 +47,7 @@ func TestWorkItemMapping(t *testing.T) {
 		t.Error("system.title not mapped")
 	}
 
-	fmt.Println(workItem)
+	t.Log(workItem)
 }
 
 func TestGitHubIssueMapping(t *testing.T) {
@@ -72,7 +72,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	for _, localWorkItemKey := range workItemMap {
-		fmt.Println("Mapped ", localWorkItemKey)
+		t.Log("Mapped ", localWorkItemKey)
 		if workItem.Fields[localWorkItemKey] == nil {
 			t.Error(fmt.Sprintf("%s not mapped", localWorkItemKey))
 		}
