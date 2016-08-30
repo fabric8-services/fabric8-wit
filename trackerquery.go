@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remotetracker"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
@@ -12,11 +13,12 @@ type TrackerqueryController struct {
 	*goa.Controller
 	tqRepository models.TrackerQueryRepository
 	ts           transaction.Support
+	scheduler    *remotetracker.Scheduler
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, tqRepository models.TrackerQueryRepository, ts transaction.Support) *TrackerqueryController {
-	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), tqRepository: tqRepository, ts: ts}
+func NewTrackerqueryController(service *goa.Service, tqRepository models.TrackerQueryRepository, ts transaction.Support, scheduler *remotetracker.Scheduler) *TrackerqueryController {
+	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), tqRepository: tqRepository, ts: ts, scheduler: scheduler}
 }
 
 // Create runs the create action.
@@ -34,7 +36,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(tq)
 	})
-	scheduler.ScheduleAllQueries()
+	c.scheduler.ScheduleAllQueries()
 	return result
 }
 
@@ -91,6 +93,6 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		}
 		return ctx.OK(tq)
 	})
-	scheduler.ScheduleAllQueries()
+	c.scheduler.ScheduleAllQueries()
 	return result
 }
