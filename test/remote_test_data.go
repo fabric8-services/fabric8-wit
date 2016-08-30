@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 )
 
@@ -37,13 +38,13 @@ func LoadTestData(filename string, provider TestDataProvider) ([]byte, error) {
 	}
 
 	// The target dir would be src/github.com/almighty/almighty-core/examples/test
-	targetDir := path.Dir(packagefilename) + "/../examples/test/"
+	targetDir := filepath.FromSlash(path.Dir(packagefilename) + "/../examples/test/")
 	err := os.MkdirAll(targetDir, 0777)
 	if err != nil {
 		return nil, err
 	}
 
-	targetPath := targetDir + filename
+	targetPath := filepath.FromSlash(targetDir + filename)
 	if _, err := os.Stat(targetPath); os.IsNotExist(err) {
 		// Call refresher if data does not exist locally
 		return refreshLocalData(targetPath, provider)

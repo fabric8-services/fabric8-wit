@@ -7,11 +7,11 @@ import (
 )
 
 const (
-	SystemRemoteIssueId = "system.remote_issue_id"
-	SystemTitle         = "system.title"
-	SystemDescription   = "system.description"
-	SystemStatus        = "system.status"
-	ProviderGithub      = "github"
+	SystemRemoteItemId = "system.remote_item_id"
+	SystemTitle        = "system.title"
+	SystemDescription  = "system.description"
+	SystemStatus       = "system.status"
+	ProviderGithub     = "github"
 )
 
 var WorkItemKeyMaps = map[string]WorkItemMap{
@@ -19,7 +19,7 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 		AttributeExpression("title"): SystemTitle,
 		AttributeExpression("body"):  SystemDescription,
 		AttributeExpression("state"): SystemStatus,
-		AttributeExpression("id"):    SystemRemoteIssueId,
+		AttributeExpression("id"):    SystemRemoteItemId,
 	},
 }
 

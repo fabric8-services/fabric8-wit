@@ -31,7 +31,7 @@ func TestWorkItemMapping(t *testing.T) {
 	workItemMap := WorkItemMap{
 		AttributeExpression("title"): "system.title",
 	}
-	remoteWorkItem := RemoteWorkItem{ID: "xyz", Content: []byte("{\"title\":\"abc\"}")}
+	remoteWorkItem := RemoteWorkItem{ID: "xyz", Content: []byte(`{"title":"abc"}`)}
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteWorkItem)
