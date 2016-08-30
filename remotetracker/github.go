@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/google/go-github/github"
 	"github.com/jinzhu/gorm"
+	"github.com/satori/go.uuid"
 )
 
 // fetch collects data from Github
@@ -26,7 +27,8 @@ func fetchGithub(url, query string, item chan map[string]interface{}) {
 }
 
 func batchID() string {
-	return "uuid"
+	u1 := uuid.NewV4().String()
+	return u1
 }
 
 // upload imports the items into database
