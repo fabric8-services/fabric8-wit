@@ -194,6 +194,7 @@ var _ = Resource("login", func() {
 			Media(AuthToken)
 		})
 		Response(Unauthorized)
+		Response(TemporaryRedirect)
 	})
 
 	Action("generate", func() {
