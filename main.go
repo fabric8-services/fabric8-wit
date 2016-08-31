@@ -92,6 +92,13 @@ func main() {
 	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
+	c3 := NewWorkitemController(service, wiRepo, ts)
+	app.MountWorkitemController(service, c3)
+
+	// Mount "workitemtype" controller
+	c4 := NewWorkitemtypeController(service, witRepo, ts)
+	app.MountWorkitemtypeController(service, c4)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("Dev mode:       ", Development)
