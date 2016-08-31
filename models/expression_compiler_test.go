@@ -9,13 +9,13 @@ import (
 )
 
 func TestField(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = ?::jsonb)", []interface{}{"23"})
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
 	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = ?::jsonb) and (? = ?))", []interface{}{"\"abcd\"", true, false})

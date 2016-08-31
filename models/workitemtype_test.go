@@ -11,7 +11,7 @@ import (
 )
 
 func TestJsonMarshalListType(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	lt := ListType{
 		SimpleType: SimpleType{
@@ -52,7 +52,7 @@ func TestJsonMarshalListType(t *testing.T) {
 }
 
 func TestMarshalEnumType(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
@@ -88,7 +88,7 @@ func TestMarshalEnumType(t *testing.T) {
 }
 
 func TestMarshalFieldDef(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
@@ -112,7 +112,7 @@ func TestMarshalFieldDef(t *testing.T) {
 }
 
 func TestMarshalRawEnum(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	ret := rawEnumType{
 		BaseType: SimpleType{Kind: KindInteger},
@@ -133,7 +133,7 @@ func TestMarshalRawEnum(t *testing.T) {
 }
 
 func TestMarshalArray(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	original := []interface{}{float64(1), float64(2), float64(3)}
 	bytes, err := json.Marshal(original)

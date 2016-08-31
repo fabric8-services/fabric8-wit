@@ -7,7 +7,7 @@ import (
 )
 
 func TestIterator(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	// test left-to-right, depth first iteration
 	visited := []Expression{}

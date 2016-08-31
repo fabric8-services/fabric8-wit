@@ -22,7 +22,7 @@ type input struct {
 }
 
 func TestSimpleTypeConversion(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	test_data := []input{
 		{stString, "hello world", "hello world", false},
@@ -81,7 +81,7 @@ var (
 )
 
 func TestEnumTypeConversion(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	data := []input{
 		{enum, "string", nil, true},
@@ -117,7 +117,7 @@ var (
 )
 
 func TestListTypeConversion(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 
 	data := []input{
 		{intList, [2]int{11, 2}, "array/slice", false},

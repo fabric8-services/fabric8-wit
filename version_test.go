@@ -8,7 +8,7 @@ import (
 )
 
 func TestAuthorizeLoginOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 	controller := LoginController{}
 	_, res := test.AuthorizeLoginOK(t, nil, nil, &controller)
 
@@ -18,7 +18,7 @@ func TestAuthorizeLoginOK(t *testing.T) {
 }
 
 func TestShowVersionOK(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.None)
 	controller := VersionController{}
 	_, res := test.ShowVersionOK(t, nil, nil, &controller)
 
