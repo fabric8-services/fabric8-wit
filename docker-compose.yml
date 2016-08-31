@@ -2,19 +2,16 @@ version: '2'
 
 services:
   db:
-    image: postgres:9.5
+    image: centos/postgresql-95-centos7
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
     networks:
       - default
   core:
     image: almightycore/almighty-core:latest
     entrypoint:
-      - /usr/local/bin/wait-for-it.sh
-      - db:5432
-      - --
       - /usr/bin/alm
     command: -dbhost db
     ports:
