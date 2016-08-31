@@ -2,11 +2,11 @@ package criteria
 
 import (
 	"testing"
-	"github.com/almighty/almighty-core/test/providers"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestGetParent(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 	l := Field("a")
 	r := Literal(5)
 	expr := Equals(l, r)

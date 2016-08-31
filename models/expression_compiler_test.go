@@ -5,17 +5,17 @@ import (
 	"reflect"
 	"runtime/debug"
 	"testing"
-	"github.com/almighty/almighty-core/test/providers"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestField(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = ?::jsonb)", []interface{}{"23"})
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
 	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields->'foo' = ?::jsonb) and (? = ?))", []interface{}{"\"abcd\"", true, false})

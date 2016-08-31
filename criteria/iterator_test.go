@@ -3,11 +3,11 @@ package criteria
 import (
 	"reflect"
 	"testing"
-	"github.com/almighty/almighty-core/test/providers"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestIterator(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	// test left-to-right, depth first iteration
 	visited := []Expression{}

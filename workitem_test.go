@@ -9,16 +9,16 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/test/providers"
 
 	"github.com/jinzhu/gorm"
+	"github.com/almighty/almighty-core/resource"
 )
 
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
-	if _, c := os.LookupEnv(providers.Database); c == false {
-		fmt.Printf(providers.StSkipReason+"\n", providers.Database)
+	if _, c := os.LookupEnv(resource.Database); c == false {
+		fmt.Printf(resource.StSkipReason+"\n", resource.Database)
 		return
 	}
 
@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetWorkItem(t *testing.T) {
-	providers.Require(t, providers.Database)
+	resource.Require(t, resource.Database)
 
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
@@ -85,7 +85,7 @@ func TestGetWorkItem(t *testing.T) {
 }
 
 func TestCreateWI(t *testing.T) {
-	providers.Require(t, providers.Database)
+	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
@@ -105,7 +105,7 @@ func TestCreateWI(t *testing.T) {
 }
 
 func TestListByFields(t *testing.T) {
-	providers.Require(t, providers.Database)
+	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(db)
 	repo := models.NewWorkItemRepository(ts)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
