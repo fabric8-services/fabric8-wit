@@ -8,7 +8,7 @@ import (
 const (
 	UnitTest = "ALMIGHTY_RESOURCE_UNIT_TEST"
 	Database = "ALMIGHTY_RESOURCE_DATABASE"
-	StSkipReason = "Skipping unit test because environment variable %s is no set."
+	StSkipReason = "Skipping test because environment variable %s is no set."
 )
 
 // Require checks if all the given environment variables ("envVars") are set
