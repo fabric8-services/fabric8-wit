@@ -18,18 +18,21 @@ type Service interface {
 }
 
 // NewGitHubOAuth creates a new login.Service capable of using GitHub for authorization
-func NewGitHubOAuth(config *oauth2.Config, repository account.IdentityRepository) Service {
+func NewGitHubOAuth(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository) Service {
 	return &gitHubOAuth{
 		config:     config,
-		repository: repository,
+		identities: identities,
+		users:      users,
 	}
 }
 
 type gitHubOAuth struct {
 	config     *oauth2.Config
-	repository account.IdentityRepository
+	identities account.IdentityRepository
+	users      account.UserRepository
 }
 
+// TEMP: This will leak memory in the long run with many 'failed' redirect attemts
 var stateReferer = map[string]string{}
 
 func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
@@ -55,17 +58,45 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		}
 
 		emails, err := gh.getUserEmails(ctx, token)
-		// locate identity
-		user, err := gh.getUser(ctx, token)
-		// register emails in User table
-
 		fmt.Println(emails)
-		fmt.Println(user)
+
+		primaryEmail := filterPrimaryEmail(emails)
+		if primaryEmail == "" {
+			fmt.Println("No primary email found?! ", emails)
+			return ctx.Unauthorized()
+		}
+		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
+		if err != nil {
+			fmt.Println(err)
+			return ctx.Unauthorized()
+		}
+		var identity account.Identity
+		if len(users) == 0 {
+			// No User found, create new User and Identity
+			ghUser, err := gh.getUser(ctx, token)
+			if err != nil {
+				fmt.Println(err)
+				return ctx.Unauthorized()
+			}
+			fmt.Println(ghUser)
+
+			identity := account.Identity{
+				FullName: ghUser.Name,
+				ImageURL: ghUser.AvatarURL,
+			}
+			gh.identities.Create(ctx, &identity)
+			gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: identity})
+		} else {
+			identity = users[0].Identity
+		}
+
+		fmt.Println("Identity: ", identity)
+
+		// register emails in User table
 
 		// generate token
 
 		ctx.ResponseData.Header().Set("Location", referer)
-		fmt.Println("Redirect to referer: ", referer)
 		cookie := http.Cookie{Name: "almighty", Value: "weee", Domain: "localhost"}
 		http.SetCookie(ctx.ResponseWriter, &cookie)
 		return ctx.TemporaryRedirect()
@@ -73,7 +104,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 	// First time access, redirect to oauth provider
 
-	// store referer id to state to match later
+	// store referer id to state for redirect later
 	referer := ctx.RequestData.Header.Get("Referer")
 	fmt.Println("Got Request from: ", referer)
 	state = uuid.NewV4().String()
@@ -106,6 +137,15 @@ func (gh gitHubOAuth) getUser(ctx context.Context, token *oauth2.Token) (*ghUser
 	var user ghUser
 	json.NewDecoder(resp.Body).Decode(&user)
 	return &user, nil
+}
+
+func filterPrimaryEmail(emails []ghEmail) string {
+	for _, email := range emails {
+		if email.Primary {
+			return email.Email
+		}
+	}
+	return ""
 }
 
 // ghEmail represents the needed response from api.github.com/user/emails
