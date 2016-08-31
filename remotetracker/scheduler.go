@@ -82,11 +82,9 @@ func LookupProvider(ts trackerSchedule) TrackerProvider {
 	case "github":
 		item := make(chan map[string]string)
 		return &Github{URL: ts.URL, Query: ts.Query, Item: item}
-		/*
-			case "jira":
-				item := make(chan map[string]string)
-				return &Jira{URL: ts.URL, Query: ts.Query, Item: item}
-		*/
+	case "jira":
+		item := make(chan map[string]string)
+		return &Jira{URL: ts.URL, Query: ts.Query, Item: item}
 	}
 	return nil
 }
