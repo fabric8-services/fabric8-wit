@@ -3,6 +3,7 @@ package remotetracker
 import (
 	"log"
 
+	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron"
 )
@@ -38,9 +39,16 @@ func (s *Scheduler) Stop() {
 // ScheduleAllQueries fetch and import of remote tracker items
 func (s *Scheduler) ScheduleAllQueries() {
 	cr.Stop()
-	tq := fetchTrackerQueries(s.db)
-	for _, v := range tq {
-		s.scheduleSingleQuery(v)
+	trackerQueries := fetchTrackerQueries(s.db)
+	for _, tq := range trackerQueries {
+		cr.AddFunc(tq.Schedule, func() {
+			tr := LookupProvider(tq)
+			go tr.Fetch()
+
+			for i := range tr.NextItem() {
+				upload(s.db, tq.TrackerQueryID, i)
+			}
+		})
 	}
 	cr.Start()
 }
@@ -54,26 +62,46 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	return tsList
 }
 
-// ScheduleSingleQuery schedule fetch and import
-func (s *Scheduler) scheduleSingleQuery(ts trackerSchedule) {
+// Github represents the Github tracker provider
+type Github struct {
+	URL   string
+	Query string
+	Item  chan map[string]string
+}
+
+// Jira represents the Jira tracker provider
+type Jira struct {
+	URL   string
+	Query string
+	Item  chan map[string]string
+}
+
+// LookupProvider provides the respective tracker based on the type
+func LookupProvider(ts trackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
 	case "github":
-		cr.AddFunc(ts.Schedule, func() {
-			item := make(chan map[string]interface{})
-			go fetchGithub(ts.URL, ts.Query, item)
-			for i := range item {
-				uploadGithub(s.db, ts.TrackerQueryID, i)
-			}
-		})
-	case "jira":
-		cr.AddFunc(ts.Schedule, func() {
-			item := make(chan map[string]interface{})
-			go fetchJira(ts.URL, ts.Query, item)
-			for i := range item {
-				uploadJira(s.db, ts.TrackerQueryID, i)
-			}
-		})
+		item := make(chan map[string]string)
+		return &Github{URL: ts.URL, Query: ts.Query, Item: item}
+		/*
+			case "jira":
+				item := make(chan map[string]string)
+				return &Jira{URL: ts.URL, Query: ts.Query, Item: item}
+		*/
 	}
+	return nil
+}
+
+// TrackerProvider represents a remote tracker
+type TrackerProvider interface {
+	Fetch()
+	NextItem() chan map[string]string
+}
+
+// upload imports the items into database
+func upload(db *gorm.DB, tqID int, item map[string]string) error {
+	ti := models.TrackerItem{Item: item["content"], RemoteItemID: item["id"], BatchID: item["batch_id"], TrackerQuery: uint64(tqID)}
+	err := db.Create(&ti).Error
+	return err
 }
 
 func init() {
