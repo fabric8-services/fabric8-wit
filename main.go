@@ -59,7 +59,7 @@ func main() {
 	// Scheduler to fetch and import remote tracker items
 	scheduler = remotetracker.NewScheduler(db)
 	defer scheduler.Stop()
-	//scheduler.ScheduleAllQueries()
+	scheduler.ScheduleAllQueries()
 
 	// Create service
 	service := goa.New("alm")

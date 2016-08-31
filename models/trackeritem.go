@@ -4,6 +4,8 @@ package models
 // Staging area before pushing to work item
 type TrackerItem struct {
 	ID uint64 `gorm:"primary_key"`
+	// Remote item ID
+	RemoteItemID string
 	// the field values
 	Item string
 	// Batch ID for earch running of tracker query (UUID V4)
