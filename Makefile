@@ -106,8 +106,6 @@ $(GOAGEN_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
 $(GO_BINDATA_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
-$(GO_BINDATA_ASSETFS_BIN): prebuild-check
-	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
@@ -128,11 +126,10 @@ CLEAN_TARGETS += clean-generated
 ## Removes all generated code.
 clean-generated:
 	-rm -rf ./app
-	-rm -rf ./assets/js
 	-rm -rf ./client/
 	-rm -rf ./swagger/
 	-rm -rf ./tool/cli/
-	-rm -f ./bindata_assetfs.go
+	-rm -f ./bindata.go
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
@@ -153,10 +150,10 @@ deps: prebuild-check
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
+generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_BIN)
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=github.com/goadesign/gorma
-	PATH="$(PATH):$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) swagger/
+	PATH="$(PATH):$(EXTRA_PATH)" $(GO_BINDATA_BIN) -ignore .*yaml swagger
 
 .PHONY: dev
 dev: prebuild-check $(FRESH_BIN)
