@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/user"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -28,6 +29,8 @@ var (
 )
 
 func main() {
+	printUserInfo()
+
 	var dbHost string
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
@@ -96,4 +99,17 @@ func main() {
 		service.LogError("startup", "err", err)
 	}
 
+}
+
+func printUserInfo() {
+	u, err := user.Current()
+	if err != nil {
+		panic("Failed to get current user: " + err.Error())
+	}
+	fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
+	g, err := user.LookupGroupId(u.Gid)
+	if err != nil {
+		panic("Failed to lookup group: " + err.Error())
+	}
+	fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
 }
