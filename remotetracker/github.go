@@ -16,7 +16,8 @@ func (g *Github) Fetch() {
 	for l := range issues {
 		i := make(map[string]string)
 		id, _ := json.Marshal(issues[l].URL)
-		i = map[string]string{"id": string(id), "content": string(l), "batch_id": bID}
+		content, _ := json.Marshal(issues[l])
+		i = map[string]string{"id": string(id), "content": string(content), "batch_id": bID}
 		g.Item <- i
 	}
 	close(g.Item)
