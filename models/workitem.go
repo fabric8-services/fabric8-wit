@@ -2,6 +2,7 @@ package models
 
 // WorkItem represents a work item as it is stored in the database
 type WorkItem struct {
+	Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// User Readable Name of this item
 	Name string
