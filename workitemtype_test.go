@@ -5,11 +5,11 @@ import (
 	//"strings"
 
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/test/providers"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestGetWorkItemType(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	typeController := WorkitemtypeController{}
 	_, resp2 := test.ShowWorkitemtypeOK(t, nil, nil, &typeController, "1")

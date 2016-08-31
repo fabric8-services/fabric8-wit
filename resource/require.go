@@ -1,4 +1,4 @@
-package providers
+package resource
 
 import (
 	"testing"
@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	UnitTest = "ALMIGHTY_TEST_PROVIDER_UNIT_TEST"
-	Database = "ALMIGHTY_TEST_PROVIDER_DATABASE"
+	UnitTest = "ALMIGHTY_RESOURCE_UNIT_TEST"
+	Database = "ALMIGHTY_RESOURCE_DATABASE"
 	StSkipReason = "Skipping unit test because environment variable %s is no set."
 )
 

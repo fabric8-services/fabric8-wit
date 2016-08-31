@@ -4,11 +4,11 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/test/providers"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestAuthorizeLoginOK(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 	controller := LoginController{}
 	_, res := test.AuthorizeLoginOK(t, nil, nil, &controller)
 
@@ -18,7 +18,7 @@ func TestAuthorizeLoginOK(t *testing.T) {
 }
 
 func TestShowVersionOK(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 	controller := VersionController{}
 	_, res := test.ShowVersionOK(t, nil, nil, &controller)
 

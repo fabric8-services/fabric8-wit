@@ -290,7 +290,7 @@ $(COV_PATH_UNIT): $(SOURCES)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_UNIT)
 	-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),ALMIGHTY_TEST_PROVIDER_UNIT_TEST=1))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),ALMIGHTY_RESOURCE_UNIT_TEST=1))
 	$(call check-test-results,$(ERRORS_FILE))
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
@@ -304,7 +304,7 @@ $(COV_PATH_INTEGRATION): $(SOURCES)
 	-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
 	export ALMIGHTY_RUN_INTEGRATION_TESTS=1
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_TEST_PROVIDER_DATABASE=1))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1))
 	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------

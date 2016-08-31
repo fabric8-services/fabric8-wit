@@ -3,13 +3,13 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/almighty/almighty-core/test/providers"
 	"reflect"
 	"testing"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestJsonMarshalListType(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	lt := ListType{
 		SimpleType: SimpleType{
@@ -44,7 +44,7 @@ func TestJsonMarshalListType(t *testing.T) {
 }
 
 func TestMarshalEnumType(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
@@ -74,7 +74,7 @@ func TestMarshalEnumType(t *testing.T) {
 }
 
 func TestMarshalFieldDef(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	et := EnumType{
 		SimpleType: SimpleType{KindEnum},
@@ -98,7 +98,7 @@ func TestMarshalFieldDef(t *testing.T) {
 }
 
 func TestMarshalRawEnum(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	ret := rawEnumType{
 		BaseType: SimpleType{Kind: KindInteger},
@@ -119,7 +119,7 @@ func TestMarshalRawEnum(t *testing.T) {
 }
 
 func TestMarshalArray(t *testing.T) {
-	providers.Require(t, providers.UnitTest)
+	resource.Require(t, resource.UnitTest)
 
 	original := []interface{}{float64(1), float64(2), float64(3)}
 	bytes, err := json.Marshal(original)
