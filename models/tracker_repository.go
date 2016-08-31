@@ -137,7 +137,7 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 	id, err := strconv.ParseUint(ID, 10, 64)
 	if err != nil {
 		// treat as not found: clients don't know it must be a number
-		return NotFoundError{entity: "work item", ID: ID}
+		return NotFoundError{entity: "tracker", ID: ID}
 	}
 	t.ID = id
 	tx := r.ts.tx
