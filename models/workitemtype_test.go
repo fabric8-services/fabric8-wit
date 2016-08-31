@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestJsonMarshalListType(t *testing.T) {
@@ -22,7 +23,13 @@ func TestJsonMarshalListType(t *testing.T) {
 		Required: false,
 	}
 
+	timeNow := time.Now()
 	wt := WorkItemType{
+		Lifecycle: Lifecycle{
+			CreatedAt: timeNow,
+			UpdatedAt: timeNow,
+			DeletedAt: nil,
+		},
 		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
@@ -52,7 +59,13 @@ func TestMarshalEnumType(t *testing.T) {
 		Required: true,
 	}
 
+	timeNow := time.Now()
 	wt := WorkItemType{
+		Lifecycle: Lifecycle{
+			CreatedAt: timeNow,
+			UpdatedAt: timeNow,
+			DeletedAt: nil,
+		},
 		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
