@@ -110,6 +110,7 @@ func main() {
 
 	ts := models.NewGormTransactionSupport(db)
 	identityRepository := account.NewIdentityRepository(db)
+	userRepository := account.NewUserRepository(db)
 
 	// Mount "login" controller
 	oauth := &oauth2.Config{
@@ -118,7 +119,7 @@ func main() {
 		Scopes:       []string{"user:email"},
 		Endpoint:     github.Endpoint,
 	}
-	loginService := login.NewGitHubOAuth(oauth, identityRepository)
+	loginService := login.NewGitHubOAuth(oauth, identityRepository, userRepository)
 	loginCtrl := NewLoginController(service)
 	app.MountLoginController(service, loginCtrl)
 

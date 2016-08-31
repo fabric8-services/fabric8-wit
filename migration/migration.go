@@ -11,6 +11,9 @@ import (
 
 // Perform executes the required migration of the database on startup
 func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepository) error {
+
+	db.Exec("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+
 	db.AutoMigrate(
 		&models.WorkItem{},
 		&models.WorkItemType{},
