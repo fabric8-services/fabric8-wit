@@ -2,35 +2,28 @@ package remotetracker
 
 import (
 	"encoding/json"
-
-	"github.com/almighty/almighty-core/models"
-	"github.com/jinzhu/gorm"
+	"github.com/andygrunwald/go-jira"
+	"os"
 )
 
 // Fetch collects data from Jira
-func fetchJira(url, query string, item chan map[string]interface{}) {
-	/*
-		client, _ := jira.NewClient(nil, url)
-		issues, _, _ := client.Issue.Search(query, nil)
-
-		for l := range issues {
-			i := make(map[string]interface{})
-			id, _ := json.Marshal(issues[l].Key)
-			issue, _, _ := client.Issue.Get(issues[l].Key)
-			title, _ := json.Marshal(issue.Fields.Summary)
-			description, _ := json.Marshal(issue.Fields.Description)
-			status, _ := json.Marshal(issue.Fields.Status.Name)
-			i = map[string]interface{}{"id": string(id), "title": string(title), "description": string(description), "state": string(status)}
-			item <- i
-		}
-	*/
-	close(item)
+func (j *Jira) Fetch() {
+	client, _ := jira.NewClient(nil, j.URL)
+	issues, _, _ := client.Issue.Search(j.Query, nil)
+	bID := batchID()
+	for l := range issues {
+		i := make(map[string]string)
+		id, _ := json.Marshal(issues[l].Key)
+		issue, _, _ := client.Issue.Get(issues[l].Key)
+		rawData := json.NewEncoder(os.Stdout).Encode(issue)
+		data := rawData.Error()
+		i = map[string]string{"id": string(id), "content": data, "batch_id": bID}
+		j.Item <- i
+	}
+	close(j.Item)
 }
 
-// Import imports the items into database
-func uploadJira(db *gorm.DB, tqID int, item map[string]interface{}) error {
-	i, _ := json.Marshal(item)
-	ti := models.TrackerItem{Item: string(i), BatchID: batchID(), TrackerQuery: uint64(tqID)}
-	err := db.Create(&ti).Error
-	return err
+// NextItem imports the items into database
+func (j *Jira) NextItem() chan map[string]string {
+	return j.Item
 }
