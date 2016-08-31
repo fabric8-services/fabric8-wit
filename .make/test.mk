@@ -280,6 +280,8 @@ exit 1; \
 fi
 endef
 
+test_packages=$(patsubst %, github.com/almighty/almighty-core/%, $(patsubst ./,/, $(sort $(dir $(wildcard *_test.go) + $(wildcard **/*_test.go)))))
+
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
 $(COV_PATH_UNIT): $(SOURCES)
@@ -289,7 +291,7 @@ $(COV_PATH_UNIT): $(SOURCES)
 	@mkdir -p $(COV_DIR)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_UNIT)
 	-rm -f $(ERRORS_FILE)
-	$(eval TEST_PACKAGES:=$(shell find . -type f -name '*_test.go' | grep -v vendor | sed -r 's|/[^/]+$$||' |sort |uniq | sed -r 's|\.|github.com/almighty/almighty-core|'))
+	$(eval TEST_PACKAGES:=$(test_packages))
 	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),-tags=unit))
 	$(call check-test-results,$(ERRORS_FILE))
 
@@ -302,7 +304,7 @@ $(COV_PATH_INTEGRATION): $(SOURCES)
 	@mkdir -p $(COV_DIR)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
 	-rm -f $(ERRORS_FILE)
-	$(eval TEST_PACKAGES:=$(shell find . -type f -name '*_test.go' | grep -v vendor | sed -r 's|/[^/]+$$||' |sort |uniq | sed -r 's|\.|github.com/almighty/almighty-core|'))
+	$(eval TEST_PACKAGES:=$(test_packages))
 	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),-tags=integration))
 	$(call check-test-results,$(ERRORS_FILE))
 
