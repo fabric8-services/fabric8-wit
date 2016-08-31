@@ -25,7 +25,7 @@ func main() {
 
 	// Register global flags
 	app.PersistentFlags().StringVarP(&c.Scheme, "scheme", "s", "", "Set the requests scheme")
-	app.PersistentFlags().StringVarP(&c.Host, "host", "H", "almighty.io", "API hostname")
+	app.PersistentFlags().StringVarP(&c.Host, "host", "H", "demo.api.almighty.io", "API hostname")
 	app.PersistentFlags().DurationVarP(&httpClient.Timeout, "timeout", "t", time.Duration(20)*time.Second, "Set the request timeout")
 	app.PersistentFlags().BoolVar(&c.Dump, "dump", false, "Dump HTTP request and response.")
 

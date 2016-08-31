@@ -9,9 +9,9 @@ var _ = API("alm", func() {
 	Title("ALMighty: One to rule them all")
 	Description("The next big thing")
 	Version("1.0")
-	Host("almighty.io")
+	Host("demo.api.almighty.io")
 	Scheme("http")
-	BasePath("/api")
+	BasePath("/")
 	Consumes("application/json")
 	Produces("application/json")
 

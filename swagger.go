@@ -18,7 +18,7 @@ func NewSwaggerController() goa.MuxHandler {
 		}
 
 		s := string(b)
-		s = strings.Replace(s, `"host":"almighty.io"`, `"host":"`+req.Host+`"`, -1)
+		s = strings.Replace(s, `"host":"demo.api.almighty.io"`, `"host":"`+req.Host+`"`, -1)
 
 		res.Header().Set("Access-Control-Allow-Origin", "*")
 		res.Header().Set("Access-Control-Allow-Methods", "GET")

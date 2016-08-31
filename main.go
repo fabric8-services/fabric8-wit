@@ -105,17 +105,14 @@ func main() {
 	c4 := NewWorkitemtypeController(service)
 	app.MountWorkitemtypeController(service, c4)
 
-	if Development {
-		// Mount "swagger" rewriter
-		service.Mux.Handle("GET", "/api/swagger.json", NewSwaggerController())
-	}
+	// Mount "swagger" rewriter
+	service.Mux.Handle("GET", "/swagger.json", NewSwaggerController())
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("Dev mode:       ", Development)
 
-	http.Handle("/api/", service.Mux)
-	http.Handle("/", http.FileServer(assetFS()))
+	http.Handle("/", service.Mux)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 
 	// Start http
