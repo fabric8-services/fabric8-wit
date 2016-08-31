@@ -2,11 +2,11 @@ package criteria
 
 import (
 	"testing"
-	"github.com/almighty/almighty-core/test"
+	"github.com/almighty/almighty-core/test/providers"
 )
 
 func TestGetParent(t *testing.T) {
-	test.SkiptTestIfNotUnitTest(t)
+	providers.Require(t, providers.UnitTest)
 	l := Field("a")
 	r := Literal(5)
 	expr := Equals(l, r)

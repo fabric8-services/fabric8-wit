@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/almighty/almighty-core/test"
+	"github.com/almighty/almighty-core/test/providers"
 	"testing"
 )
 
@@ -22,7 +22,7 @@ type input struct {
 }
 
 func TestSimpleTypeConversion(t *testing.T) {
-	test.SkiptTestIfNotUnitTest(t)
+	providers.Require(t, providers.UnitTest)
 
 	test_data := []input{
 		{stString, "hello world", "hello world", false},
@@ -81,7 +81,7 @@ var (
 )
 
 func TestEnumTypeConversion(t *testing.T) {
-	test.SkiptTestIfNotUnitTest(t)
+	providers.Require(t, providers.UnitTest)
 
 	data := []input{
 		{enum, "string", nil, true},
@@ -117,7 +117,7 @@ var (
 )
 
 func TestListTypeConversion(t *testing.T) {
-	test.SkiptTestIfNotUnitTest(t)
+	providers.Require(t, providers.UnitTest)
 
 	data := []input{
 		{intList, [2]int{11, 2}, "array/slice", false},

@@ -1,13 +1,13 @@
 package criteria
 
 import (
-	"github.com/almighty/almighty-core/test"
 	"reflect"
 	"testing"
+	"github.com/almighty/almighty-core/test/providers"
 )
 
 func TestIterator(t *testing.T) {
-	test.SkiptTestIfNotUnitTest(t)
+	providers.Require(t, providers.UnitTest)
 
 	// test left-to-right, depth first iteration
 	visited := []Expression{}
