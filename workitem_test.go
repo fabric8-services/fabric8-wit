@@ -18,7 +18,7 @@ var db *gorm.DB
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c == false {
-		fmt.Printf(resource.StSkipReason+"\n", resource.Database)
+		fmt.Printf(resource.StSkipReasonNotSet+"\n", resource.Database)
 		return
 	}
 
