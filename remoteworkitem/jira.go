@@ -2,7 +2,6 @@ package remoteworkitem
 
 import (
 	"encoding/json"
-	"os"
 
 	"github.com/andygrunwald/go-jira"
 )
@@ -17,17 +16,11 @@ func (j *Jira) Fetch() chan map[string]string {
 			i := make(map[string]string)
 			id, _ := json.Marshal(issues[l].Key)
 			issue, _, _ := client.Issue.Get(issues[l].Key)
-			rawData := json.NewEncoder(os.Stdout).Encode(issue)
-			data := rawData.Error()
-			i = map[string]string{"id": string(id), "content": data, "batch_id": bID}
+			missue, _ := json.Marshal(issue)
+			i = map[string]string{"id": string(id), "content": string(missue), "batch_id": bID}
 			j.Item <- i
 		}
 		close(j.Item)
 	}()
-	return j.Item
-}
-
-// NextItem imports the items into database
-func (j *Jira) NextItem() chan map[string]string {
 	return j.Item
 }
