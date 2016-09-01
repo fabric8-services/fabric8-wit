@@ -43,9 +43,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 	for _, tq := range trackerQueries {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := LookupProvider(tq)
-			go tr.Fetch()
-
-			for i := range tr.NextItem() {
+			for i := range tr.Fetch() {
 				upload(s.db, tq.TrackerQueryID, i)
 			}
 		})
@@ -91,8 +89,7 @@ func LookupProvider(ts trackerSchedule) TrackerProvider {
 
 // TrackerProvider represents a remote tracker
 type TrackerProvider interface {
-	Fetch()
-	NextItem() chan map[string]string
+	Fetch() chan map[string]string
 }
 
 // upload imports the items into database
