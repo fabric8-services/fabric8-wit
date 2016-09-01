@@ -118,14 +118,16 @@ func main() {
 	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
+	ts2 := remoteworkitem.NewGormTransactionSupport(db)
+
 	// Mount "tracker" controller
-	repo2 := models.NewTrackerRepository(ts)
-	c5 := NewTrackerController(service, repo2, ts)
+	repo2 := remoteworkitem.NewTrackerRepository(ts2)
+	c5 := NewTrackerController(service, repo2, ts2)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
-	repo3 := models.NewTrackerQueryRepository(ts)
-	c6 := NewTrackerqueryController(service, repo3, ts, scheduler)
+	repo3 := remoteworkitem.NewTrackerQueryRepository(ts2)
+	c6 := NewTrackerqueryController(service, repo3, ts2, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
 	fmt.Println("Git Commit SHA: ", Commit)

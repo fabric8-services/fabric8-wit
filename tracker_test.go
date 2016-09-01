@@ -7,12 +7,11 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/models"
 )
 
 func TestCreateTracker(t *testing.T) {
-	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewTrackerRepository(ts)
+	ts := remoteworkitem.NewGormTransactionSupport(db)
+	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
@@ -26,8 +25,8 @@ func TestCreateTracker(t *testing.T) {
 }
 
 func TestGetTracker(t *testing.T) {
-	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewTrackerRepository(ts)
+	ts := remoteworkitem.NewGormTransactionSupport(db)
+	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",

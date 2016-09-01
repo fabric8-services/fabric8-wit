@@ -3,6 +3,7 @@ package migration
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
@@ -12,9 +13,9 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 	db.AutoMigrate(
 		&models.WorkItem{},
 		&models.WorkItemType{},
-		&models.Tracker{},
-		&models.TrackerQuery{},
-		&models.TrackerItem{})
+		&remoteworkitem.Tracker{},
+		&remoteworkitem.TrackerQuery{},
+		&remoteworkitem.TrackerItem{})
 	if db.Error != nil {
 		return db.Error
 	}

@@ -1,4 +1,4 @@
-package models
+package remoteworkitem
 
 import (
 	"log"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/models"
 	"golang.org/x/net/context"
 )
 
@@ -71,7 +72,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 
 // List returns tracker selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.Tracker, error) {
-	where, parameters, err := Compile(criteria)
+	where, parameters, err := models.Compile(criteria)
 	if err != nil {
 		return nil, BadParameterError{"expression", criteria}
 	}

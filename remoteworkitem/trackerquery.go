@@ -1,4 +1,4 @@
-package models
+package remoteworkitem
 
 // TrackerQuery represents tracker query
 type TrackerQuery struct {
