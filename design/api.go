@@ -11,7 +11,6 @@ var _ = API("alm", func() {
 	Version("1.0")
 	Host("demo.api.almighty.io")
 	Scheme("http")
-	BasePath("/")
 	Consumes("application/json")
 	Produces("application/json")
 
