@@ -43,12 +43,19 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 
 // Delete runs the delete action.
 func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
-	// TrackerController_Delete: start_implement
+	return transaction.Do(c.ts, func() error {
+		err := c.tRepository.Delete(ctx.Context, ctx.ID)
+		if err != nil {
+			switch err.(type) {
+			case models.NotFoundError:
+				return goa.ErrNotFound(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+		return ctx.OK([]byte{})
+	})
 
-	// Put your logic here
-
-	// TrackerController_Delete: end_implement
-	return nil
 }
 
 // Show runs the show action.
