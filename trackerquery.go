@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/remotetracker"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
@@ -13,11 +13,11 @@ type TrackerqueryController struct {
 	*goa.Controller
 	tqRepository models.TrackerQueryRepository
 	ts           transaction.Support
-	scheduler    *remotetracker.Scheduler
+	scheduler    *remoteworkitem.Scheduler
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, tqRepository models.TrackerQueryRepository, ts transaction.Support, scheduler *remotetracker.Scheduler) *TrackerqueryController {
+func NewTrackerqueryController(service *goa.Service, tqRepository models.TrackerQueryRepository, ts transaction.Support, scheduler *remoteworkitem.Scheduler) *TrackerqueryController {
 	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), tqRepository: tqRepository, ts: ts, scheduler: scheduler}
 }
 

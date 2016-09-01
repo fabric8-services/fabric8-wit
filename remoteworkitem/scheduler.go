@@ -1,4 +1,4 @@
-package remotetracker
+package remoteworkitem
 
 import (
 	"log"
