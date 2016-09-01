@@ -63,25 +63,21 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 type Github struct {
 	URL   string
 	Query string
-	Item  chan map[string]string
 }
 
 // Jira represents the Jira tracker provider
 type Jira struct {
 	URL   string
 	Query string
-	Item  chan map[string]string
 }
 
 // LookupProvider provides the respective tracker based on the type
 func LookupProvider(ts trackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
 	case "github":
-		item := make(chan map[string]string)
-		return &Github{URL: ts.URL, Query: ts.Query, Item: item}
+		return &Github{URL: ts.URL, Query: ts.Query}
 	case "jira":
-		item := make(chan map[string]string)
-		return &Jira{URL: ts.URL, Query: ts.Query, Item: item}
+		return &Jira{URL: ts.URL, Query: ts.Query}
 	}
 	return nil
 }

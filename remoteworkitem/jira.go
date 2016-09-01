@@ -8,6 +8,7 @@ import (
 
 // Fetch collects data from Jira
 func (j *Jira) Fetch() chan map[string]string {
+	item := make(chan map[string]string)
 	go func() {
 		client, _ := jira.NewClient(nil, j.URL)
 		issues, _, _ := client.Issue.Search(j.Query, nil)
@@ -18,9 +19,9 @@ func (j *Jira) Fetch() chan map[string]string {
 			issue, _, _ := client.Issue.Get(issues[l].Key)
 			content, _ := json.Marshal(issue)
 			i = map[string]string{"id": string(id), "content": string(content), "batch_id": bID}
-			j.Item <- i
+			item <- i
 		}
-		close(j.Item)
+		close(item)
 	}()
-	return j.Item
+	return item
 }
