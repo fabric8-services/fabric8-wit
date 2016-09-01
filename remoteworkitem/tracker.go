@@ -1,12 +1,10 @@
 package remoteworkitem
 
-import (
-	"github.com/jinzhu/gorm"
-)
+import "github.com/almighty/almighty-core/models"
 
 // Tracker represents tracker configuration
 type Tracker struct {
-	gorm.Model
+	models.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// URL of the tracker
 	URL string
