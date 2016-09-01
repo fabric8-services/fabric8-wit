@@ -1,9 +1,10 @@
-package remotetracker
+package remoteworkitem
 
 import (
 	"encoding/json"
-	"github.com/andygrunwald/go-jira"
 	"os"
+
+	"github.com/andygrunwald/go-jira"
 )
 
 // Fetch collects data from Jira

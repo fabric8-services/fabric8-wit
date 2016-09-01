@@ -13,7 +13,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/remotetracker"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -33,7 +33,7 @@ func main() {
 	printUserInfo()
 
 	var dbHost string
-	var scheduler *remotetracker.Scheduler
+	var scheduler *remoteworkitem.Scheduler
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
 	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
@@ -57,7 +57,7 @@ func main() {
 	migration.Perform(db)
 
 	// Scheduler to fetch and import remote tracker items
-	scheduler = remotetracker.NewScheduler(db)
+	scheduler = remoteworkitem.NewScheduler(db)
 	defer scheduler.Stop()
 	scheduler.ScheduleAllQueries()
 
