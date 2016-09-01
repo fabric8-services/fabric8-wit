@@ -10,6 +10,7 @@ import (
 
 // Fetch tracker items from Github
 func (g *Github) Fetch() chan map[string]string {
+	item := make(chan map[string]string)
 	go func() {
 		bID := batchID()
 		opts := &github.SearchOptions{
@@ -30,16 +31,16 @@ func (g *Github) Fetch() chan map[string]string {
 				id, _ := json.Marshal(l.URL)
 				content, _ := json.Marshal(l)
 				i = map[string]string{"id": string(id), "content": string(content), "batch_id": bID}
-				g.Item <- i
+				item <- i
 			}
 			if response.NextPage == 0 {
 				break
 			}
 			opts.ListOptions.Page = response.NextPage
 		}
-		close(g.Item)
+		close(item)
 	}()
-	return g.Item
+	return item
 }
 
 func batchID() string {
