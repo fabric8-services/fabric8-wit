@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
@@ -11,13 +10,13 @@ import (
 // TrackerqueryController implements the trackerquery resource.
 type TrackerqueryController struct {
 	*goa.Controller
-	tqRepository models.TrackerQueryRepository
+	tqRepository remoteworkitem.TrackerQueryRepository
 	ts           transaction.Support
 	scheduler    *remoteworkitem.Scheduler
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, tqRepository models.TrackerQueryRepository, ts transaction.Support, scheduler *remoteworkitem.Scheduler) *TrackerqueryController {
+func NewTrackerqueryController(service *goa.Service, tqRepository remoteworkitem.TrackerQueryRepository, ts transaction.Support, scheduler *remoteworkitem.Scheduler) *TrackerqueryController {
 	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), tqRepository: tqRepository, ts: ts, scheduler: scheduler}
 }
 
@@ -27,7 +26,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, uint64(ctx.Payload.Tracker))
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
+			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				return goa.ErrBadRequest(err.Error())
 			default:
 				return goa.ErrInternal(err.Error())
@@ -85,7 +84,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
+			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				return goa.ErrBadRequest(err.Error())
 			default:
 				return goa.ErrInternal(err.Error())

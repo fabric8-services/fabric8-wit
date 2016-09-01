@@ -3,7 +3,6 @@ package remoteworkitem
 import (
 	"log"
 
-	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron"
 )
@@ -94,7 +93,7 @@ type TrackerProvider interface {
 
 // upload imports the items into database
 func upload(db *gorm.DB, tqID int, item map[string]string) error {
-	ti := models.TrackerItem{Item: item["content"], RemoteItemID: item["id"], BatchID: item["batch_id"], TrackerQuery: uint64(tqID)}
+	ti := TrackerItem{Item: item["content"], RemoteItemID: item["id"], BatchID: item["batch_id"], TrackerQuery: uint64(tqID)}
 	err := db.Create(&ti).Error
 	return err
 }

@@ -2,6 +2,7 @@ package migration
 
 import (
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/jinzhu/gorm"
 )
 
@@ -10,9 +11,9 @@ func Perform(db *gorm.DB) {
 
 	db.AutoMigrate(
 		&models.WorkItem{},
-		&models.Tracker{},
-		&models.TrackerQuery{},
-		&models.TrackerItem{})
+		&remoteworkitem.Tracker{},
+		&remoteworkitem.TrackerQuery{},
+		&remoteworkitem.TrackerItem{})
 	q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
 	db.Exec(q)
 }

@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
 	query "github.com/almighty/almighty-core/query/simple"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
@@ -14,12 +14,12 @@ import (
 // TrackerController implements the tracker resource.
 type TrackerController struct {
 	*goa.Controller
-	tRepository models.TrackerRepository
+	tRepository remoteworkitem.TrackerRepository
 	ts          transaction.Support
 }
 
 // NewTrackerController creates a tracker controller.
-func NewTrackerController(service *goa.Service, tRepository models.TrackerRepository, ts transaction.Support) *TrackerController {
+func NewTrackerController(service *goa.Service, tRepository remoteworkitem.TrackerRepository, ts transaction.Support) *TrackerController {
 	return &TrackerController{Controller: service.NewController("TrackerController"), tRepository: tRepository, ts: ts}
 }
 
@@ -30,7 +30,7 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 		t, err := c.tRepository.Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
+			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				return goa.ErrBadRequest(err.Error())
 			default:
 				return goa.ErrInternal(err.Error())
@@ -47,7 +47,7 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 		err := c.tRepository.Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
-			case models.NotFoundError:
+			case remoteworkitem.NotFoundError:
 				return goa.ErrNotFound(err.Error())
 			default:
 				return goa.ErrInternal(err.Error())
@@ -64,7 +64,7 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 		t, err := c.tRepository.Load(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
-			case models.NotFoundError:
+			case remoteworkitem.NotFoundError:
 				log.Printf("not found, id=%s", ctx.ID)
 				return goa.ErrNotFound(err.Error())
 			default:
@@ -108,7 +108,7 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
+			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				return goa.ErrBadRequest(err.Error())
 			default:
 				return goa.ErrInternal(err.Error())

@@ -1,4 +1,4 @@
-package models
+package remoteworkitem
 
 // TrackerItem represents a remote tracker item
 // Staging area before pushing to work item
