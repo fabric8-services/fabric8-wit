@@ -88,7 +88,7 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 	return transaction.Do(c.ts, func() error {
 		result, err := c.tRepository.List(ctx.Context, exp, start, &limit)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
+			return goa.ErrInternal(fmt.Sprintf("Error listing trackers: %s", err.Error()))
 		}
 		return ctx.OK(result)
 	})
