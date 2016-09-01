@@ -1,8 +1,11 @@
 package remoteworkitem
 
+import "github.com/almighty/almighty-core/models"
+
 // TrackerItem represents a remote tracker item
 // Staging area before pushing to work item
 type TrackerItem struct {
+	models.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// Remote item ID
 	RemoteItemID string

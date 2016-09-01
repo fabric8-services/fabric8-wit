@@ -1,7 +1,10 @@
 package remoteworkitem
 
+import "github.com/almighty/almighty-core/models"
+
 // TrackerQuery represents tracker query
 type TrackerQuery struct {
+	models.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// Search query of the tracker
 	Query string
