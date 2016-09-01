@@ -4,8 +4,6 @@ package models
 type WorkItem struct {
 	Lifecycle
 	ID uint64 `gorm:"primary_key"`
-	// User Readable Name of this item
-	Name string
 	// Id of the type of this work item
 	Type string
 	// Version for optimistic concurrency control
@@ -20,14 +18,11 @@ var _ Equaler = (*WorkItem)(nil)
 
 // Equal returns true if two WorkItem objects are equal; otherwise false is returned.
 func (self WorkItem) Equal(u Equaler) bool {
-	other,ok := u.(WorkItem)
+	other, ok := u.(WorkItem)
 	if !ok {
 		return false
 	}
 	if !self.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
-	if self.Name != other.Name {
 		return false
 	}
 	if self.Type != other.Type {

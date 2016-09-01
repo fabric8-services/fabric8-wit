@@ -95,7 +95,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	newWi := WorkItem{
 		ID:      id,
-		Name:    wi.Name,
 		Type:    wi.Type,
 		Version: wi.Version + 1,
 		Fields:  Fields{},
@@ -124,13 +123,12 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, name string, fields map[string]interface{}) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}) (*app.WorkItem, error) {
 	wiType, err := r.wir.loadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, BadParameterError{parameter: "type", value: typeID}
 	}
 	wi := WorkItem{
-		Name:   name,
 		Type:   typeID,
 		Fields: Fields{},
 	}
@@ -197,7 +195,6 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 func convertFromModel(wiType WorkItemType, workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
-		Name:    workItem.Name,
 		Type:    workItem.Type,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{}}

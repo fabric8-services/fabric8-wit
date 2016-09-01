@@ -13,8 +13,8 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/transaction"
 
-	"github.com/jinzhu/gorm"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/jinzhu/gorm"
 )
 
 var db *gorm.DB
@@ -55,9 +55,9 @@ func TestGetWorkItem(t *testing.T) {
 	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
-		Name: "foobar",
 		Type: "system.issue",
 		Fields: map[string]interface{}{
+			"system.title": "Test WI",
 			"system.owner": "aslak",
 			"system.state": "done"},
 	}
@@ -76,7 +76,6 @@ func TestGetWorkItem(t *testing.T) {
 
 	wi.Fields["system.owner"] = "thomas"
 	payload2 := app.UpdateWorkitemPayload{
-		Name:    wi.Name,
 		Type:    wi.Type,
 		Version: wi.Version,
 		Fields:  wi.Fields,
@@ -102,9 +101,9 @@ func TestCreateWI(t *testing.T) {
 	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
-		Name: "some name",
 		Type: "system.issue",
 		Fields: map[string]interface{}{
+			"system.title": "Test WI",
 			"system.owner": "tmaeder",
 			"system.state": "open",
 		},
@@ -123,16 +122,16 @@ func TestListByFields(t *testing.T) {
 	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
-		Name: "ListByName Name",
 		Type: "system.issue",
 		Fields: map[string]interface{}{
+			"system.title": "run integration test",
 			"system.owner": "aslak",
 			"system.state": "done"},
 	}
 
 	_, wi := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
 
-	filter := "{\"Name\":\"ListByName Name\"}"
+	filter := "{\"system.title\":\"run integration test\"}"
 	page := "0,1"
 	_, result := test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
 

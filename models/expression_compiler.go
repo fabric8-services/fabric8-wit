@@ -41,7 +41,7 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 // does the field name reference a json field or a column?
 func isJSONField(fieldName string) bool {
 	switch fieldName {
-	case "ID", "Name", "Type", "Version":
+	case "ID", "Type", "Version":
 		return false
 	}
 	return true

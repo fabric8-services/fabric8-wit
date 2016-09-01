@@ -100,7 +100,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Name, ctx.Payload.Fields)
+		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields)
 
 		if err != nil {
 			switch err := err.(type) {
@@ -137,7 +137,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		toSave := app.WorkItem{
 			ID:      ctx.ID,
-			Name:    ctx.Payload.Name,
 			Type:    ctx.Payload.Type,
 			Version: ctx.Payload.Version,
 			Fields:  ctx.Payload.Fields,
