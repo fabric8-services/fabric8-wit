@@ -42,6 +42,30 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	return &tq2, nil
 }
 
+// Load returns the tracker query for the given id
+// returns NotFoundError, ConversionError or InternalError
+func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.TrackerQuery, error) {
+	id, err := strconv.ParseUint(ID, 10, 64)
+	if err != nil {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, NotFoundError{"tracker query", ID}
+	}
+
+	log.Printf("loading tracker query %d", id)
+	res := TrackerQuery{}
+	if r.ts.tx.First(&res, id).RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return nil, NotFoundError{"tracker query", ID}
+	}
+	tq := app.TrackerQuery{
+		ID:       string(res.ID),
+		Query:    res.Query,
+		Schedule: res.Schedule,
+		Tracker:  int(res.Tracker)}
+
+	return &tq, nil
+}
+
 // Save updates the given tracker query in storage.
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error) {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
@@ -41,13 +43,19 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 
 // Show runs the show action.
 func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
-	// TrackerqueryController_Show: start_implement
-
-	// Put your logic here
-
-	// TrackerqueryController_Show: end_implement
-	res := &app.TrackerQuery{}
-	return ctx.OK(res)
+	return transaction.Do(c.ts, func() error {
+		tq, err := c.tqRepository.Load(ctx.Context, ctx.ID)
+		if err != nil {
+			switch err.(type) {
+			case remoteworkitem.NotFoundError:
+				log.Printf("not found, id=%s", ctx.ID)
+				return goa.ErrNotFound(err.Error())
+			default:
+				return err
+			}
+		}
+		return ctx.OK(tq)
+	})
 }
 
 // Update runs the update action.
