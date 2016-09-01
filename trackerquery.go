@@ -39,27 +39,6 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	return result
 }
 
-// Delete runs the delete action.
-func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
-	// TrackerqueryController_Delete: start_implement
-
-	// Put your logic here
-
-	// TrackerqueryController_Delete: end_implement
-	return nil
-}
-
-// List runs the list action.
-func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
-	// TrackerqueryController_List: start_implement
-
-	// Put your logic here
-
-	// TrackerqueryController_List: end_implement
-	res := app.TrackerQueryCollection{}
-	return ctx.OK(res)
-}
-
 // Show runs the show action.
 func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 	// TrackerqueryController_Show: start_implement
