@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -28,6 +29,11 @@ var (
 	Development = false
 )
 
+const (
+	// DBMaxRetryAttempts is the number of times alm server will attempt to open a connection to the database before it gives up
+	DBMaxRetryAttempts int = 50
+)
+
 func main() {
 	printUserInfo()
 
@@ -44,12 +50,25 @@ func main() {
 	if len(dbHost) == 0 {
 		dbHost = "localhost"
 	}
-
-	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
-	if err != nil {
-		panic("failed to connect database: " + err.Error())
+	if _, found := os.LookupEnv("ALMIGHTY_DEV"); found {
+		Development = true
 	}
-	defer db.Close()
+
+	var db *gorm.DB
+	var err error
+	for i := 1; i <= DBMaxRetryAttempts; i++ {
+		fmt.Printf("Opening DB connection attempt %d of %d\n", i, DBMaxRetryAttempts)
+		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+		if err != nil {
+			time.Sleep(time.Second)
+		} else {
+			defer db.Close()
+			break
+		}
+	}
+	if err != nil {
+		panic("Could not open connection to database")
+	}
 
 	// Migrate the schema
 	migration.Perform(db)
@@ -86,12 +105,14 @@ func main() {
 	c4 := NewWorkitemtypeController(service)
 	app.MountWorkitemtypeController(service, c4)
 
+	// Mount "swagger" rewriter
+	service.Mux.Handle("GET", "/swagger.json", NewSwaggerController())
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("Dev mode:       ", Development)
 
-	http.Handle("/api/", service.Mux)
-	http.Handle("/", http.FileServer(assetFS()))
+	http.Handle("/", service.Mux)
 	http.Handle("/favicon.ico", http.NotFoundHandler())
 
 	// Start http

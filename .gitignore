@@ -73,8 +73,7 @@ vendor/
 
 # Generated assets
 app/
-assets/js/
-bindata_assetfs.go
+bindata.go
 client/
 swagger/
 tool/cli/

@@ -239,11 +239,10 @@ Only files `+./*.go+`, `+./design/*.go+`, `+./models/*.go+` and `+./tool/alm-cli
 These files and directory are generated:
 
  * `./app/`
- * `./assets/js/`
  * `./client/`
  * `./swagger/`
  * `./tool/cli/`
- * `./bindata_asstfs.go`
+ * `./bindata.go`
 
 == Developer setup
 
@@ -271,6 +270,8 @@ Retrieve the work item.
 ----
 $ ./bin/alm-cli show workitem --id 1 -H localhost:8080
 ----
+
+NOTE: You can see and interact with the whole API using Swagger UI. Go to link:http://generator.swagger.io/[generator.swagger.io] and add http://localhost:8080/api/swagger.json in the input box and press explore.
 
 == Debugging [[debug]]
 

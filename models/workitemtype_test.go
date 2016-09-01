@@ -44,8 +44,11 @@ func TestJsonMarshalListType(t *testing.T) {
 	var readType WorkItemType
 	json.Unmarshal(bytes, &readType)
 
-	if !reflect.DeepEqual(wt, readType) {
-		t.Errorf("not the same type %v, %v", wt, readType)
+	sWT := fmt.Sprint(wt)
+	sReadType := fmt.Sprint(readType)
+
+	if sWT != sReadType {
+		t.Errorf("not the same type %v, %v", sWT, sReadType)
 	}
 }
 
@@ -78,8 +81,12 @@ func TestMarshalEnumType(t *testing.T) {
 
 	var readType WorkItemType
 	json.Unmarshal(bytes, &readType)
-	if !reflect.DeepEqual(wt, readType) {
-		t.Errorf("not the same type: %v, %v", readType, wt)
+
+	sWT := fmt.Sprint(wt)
+	sReadType := fmt.Sprint(readType)
+
+	if sWT != sReadType {
+		t.Errorf("not the same type %v, %v", sWT, sReadType)
 	}
 }
 
