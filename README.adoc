@@ -172,7 +172,7 @@ $ make test-unit
 
 integration-tests::
 Integration tests demand more setup (i.e. the PostgreSQL DB must be already
-running) and probably time. We recommend that you use `docker-compose up -d postgres`.
+running) and probably time. We recommend that you use `docker-compose up -d db`.
 +
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
