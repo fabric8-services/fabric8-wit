@@ -16,8 +16,8 @@ func (j *Jira) Fetch() chan map[string]string {
 			i := make(map[string]string)
 			id, _ := json.Marshal(issues[l].Key)
 			issue, _, _ := client.Issue.Get(issues[l].Key)
-			missue, _ := json.Marshal(issue)
-			i = map[string]string{"id": string(id), "content": string(missue), "batch_id": bID}
+			content, _ := json.Marshal(issue)
+			i = map[string]string{"id": string(id), "content": string(content), "batch_id": bID}
 			j.Item <- i
 		}
 		close(j.Item)
