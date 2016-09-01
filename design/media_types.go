@@ -37,20 +37,17 @@ var WorkItem = MediaType("application/vnd.workitem+json", func() {
 	Description("ALM Work Item")
 	Attribute("id", String, "unique id per installation")
 	Attribute("version", Integer, "Version for optimistic concurrency control")
-	Attribute("name", String, "User Readable Name of this item")
 	Attribute("type", String, "Id of the type of this work item")
 	Attribute("fields", HashOf(String, Any))
 
 	Required("id")
 	Required("version")
-	Required("name")
 	Required("type")
 	Required("fields")
 
 	View("default", func() {
 		Attribute("id")
 		Attribute("version")
-		Attribute("name")
 		Attribute("type")
 		Attribute("fields")
 	})
