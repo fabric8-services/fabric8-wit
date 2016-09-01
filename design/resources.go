@@ -167,6 +167,10 @@ var _ = Resource("tracker", func() {
 			GET(""),
 		)
 		Description("List all tracker configurations.")
+		Params(func() {
+			Param("filter", String, "a query language expression restricting the set of found items")
+			Param("page", String, "Paging in the format <start>,<limit>")
+		})
 		Response(OK, func() {
 			Media(CollectionOf(Tracker))
 		})
@@ -251,6 +255,10 @@ var _ = Resource("trackerquery", func() {
 			GET(""),
 		)
 		Description("List all tracker queries.")
+		Params(func() {
+			Param("filter", String, "a query language expression restricting the set of found items")
+			Param("page", String, "Paging in the format <start>,<limit>")
+		})
 		Response(OK, func() {
 			Media(CollectionOf(TrackerQuery))
 		})
