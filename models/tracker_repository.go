@@ -20,8 +20,6 @@ func NewTrackerRepository(ts *GormTransactionSupport) *GormTrackerRepository {
 }
 
 var trackerTypes = map[string]string{
-	//	"bugzilla": "Bugzilla",
-	//	"trello":   "Trello",
 	"github": "Github",
 	"jira":   "Jira"}
 
