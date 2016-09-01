@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 // constants for describing possible field types
@@ -23,27 +24,37 @@ const (
 // Kind is the kind of field type
 type Kind string
 
-/*
-FieldType describes the possible values of a FieldDefinition
-*/
+// FieldType describes the possible values of a FieldDefinition
 type FieldType interface {
 	GetKind() Kind
-	/*
-	   ConvertToModel converts a field value for use in the REST API
-	*/
+	// ConvertToModel converts a field value for use in the REST API
 	ConvertToModel(value interface{}) (interface{}, error)
-	/*
-		ConvertToModel converts a field value for storage in the db
-	*/
+	// ConvertToModel converts a field value for storage in the db
 	ConvertFromModel(value interface{}) (interface{}, error)
+	// Implement the Equaler interface
+	Equal(u Equaler) bool
 }
 
-/*
-FieldDefintion describes type & other restrictions of a field
-*/
+// FieldDefintion describes type & other restrictions of a field
 type FieldDefinition struct {
 	Required bool
 	Type     FieldType
+}
+
+// Ensure FieldDefinition implements the Equaler interface
+var _ Equaler = FieldDefinition{}
+var _ Equaler = (*FieldDefinition)(nil)
+
+// Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
+func (self FieldDefinition) Equal(u Equaler) bool {
+	other, ok := u.(FieldDefinition)
+	if !ok {
+		return false
+	}
+	if self.Required != other.Required {
+		return false
+	}
+	return self.Type.Equal(other.Type)
 }
 
 /*
@@ -71,14 +82,68 @@ type rawFieldDef struct {
 	Required bool
 }
 
+// Ensure rawFieldDef implements the Equaler interface
+var _ Equaler = rawFieldDef{}
+var _ Equaler = (*rawFieldDef)(nil)
+
+// Equal returns true if two rawFieldDef objects are equal; otherwise false is returned.
+func (self rawFieldDef) Equal(u Equaler) bool {
+	other, ok := u.(rawFieldDef)
+	if !ok {
+		return false
+	}
+	if self.Required != other.Required {
+		return false
+	}
+	return self.Type.Equal(other.Type)
+}
+
 type rawEnumType struct {
 	BaseType SimpleType
 	Values   []interface{}
 }
 
+// Ensure rawEnumType implements the Equaler interface
+var _ Equaler = rawEnumType{}
+var _ Equaler = (*rawEnumType)(nil)
+
+// Equal returns true if two rawEnumType objects are equal; otherwise false is returned.
+func (self rawEnumType) Equal(u Equaler) bool {
+	other, ok := u.(rawEnumType)
+	if !ok {
+		return false
+	}
+	if !self.BaseType.Equal(other.BaseType) {
+		return false
+	}
+	return reflect.DeepEqual(self.Values, other.Values)
+}
+
 type rawFieldType struct {
 	Kind  Kind
 	Extra *json.RawMessage
+}
+
+// Ensure rawFieldType implements the Equaler interface
+var _ Equaler = rawFieldType{}
+var _ Equaler = (*rawFieldType)(nil)
+
+// Equal returns true if two rawFieldType objects are equal; otherwise false is returned.
+func (self rawFieldType) Equal(u Equaler) bool {
+	other, ok := u.(rawFieldType)
+	if !ok {
+		return false
+	}
+	if self.Kind != other.Kind {
+		return false
+	}
+	if self.Extra == nil && other.Extra == nil {
+		return true
+	}
+	if self.Extra != nil && other.Extra != nil {
+		return reflect.DeepEqual(self.Extra, other.Extra)
+	}
+	return false
 }
 
 // UnmarshalJSON implements encoding/json.Unmarshaler

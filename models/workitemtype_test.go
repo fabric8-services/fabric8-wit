@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/almighty/almighty-core/resource"
 )
 
+// TestJsonMarshalListType constructs a work item type, writes it to JSON (marshalling),
+// and converts it back from JSON into a work item type (unmarshalling)
 func TestJsonMarshalListType(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	lt := ListType{
-		SimpleType: SimpleType{
-			KindList},
-		ComponentType: SimpleType{
-			KindInteger},
+		SimpleType: SimpleType{KindList},
+		ComponentType: SimpleType{KindInteger},
 	}
 
 	field := FieldDefinition{
@@ -25,29 +24,23 @@ func TestJsonMarshalListType(t *testing.T) {
 		Required: false,
 	}
 
-	timeNow := time.Now()
-	wt := WorkItemType{
-		Lifecycle: Lifecycle{
-			CreatedAt: timeNow,
-			UpdatedAt: timeNow,
-			DeletedAt: nil,
-		},
+	expectedWIT := WorkItemType{
 		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": field},
 	}
 
-	bytes, err := json.Marshal(wt)
+	bytes, err := json.Marshal(expectedWIT)
 	if err != nil {
 		t.Error(err)
 	}
 
-	var readType WorkItemType
-	json.Unmarshal(bytes, &readType)
+	var parsedWIT WorkItemType
+	json.Unmarshal(bytes, &parsedWIT)
 
-	if !reflect.DeepEqual(wt, readType) {
-		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", readType, wt)
+	if !expectedWIT.Equal(parsedWIT) {
+		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
 	}
 }
 
@@ -63,27 +56,22 @@ func TestMarshalEnumType(t *testing.T) {
 		Required: true,
 	}
 
-	timeNow := time.Now()
-	wt := WorkItemType{
-		Lifecycle: Lifecycle{
-			CreatedAt: timeNow,
-			UpdatedAt: timeNow,
-			DeletedAt: nil,
-		},
+	expectedWIT := WorkItemType{
 		ID:   1,
 		Name: "first type",
 		Fields: map[string]FieldDefinition{
 			"aListType": fd},
 	}
-	bytes, err := json.Marshal(wt)
+	bytes, err := json.Marshal(expectedWIT)
 	if err != nil {
 		t.Error(err)
 	}
 
-	var readType WorkItemType
-	json.Unmarshal(bytes, &readType)
-	if !reflect.DeepEqual(wt, readType) {
-		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", readType, wt)
+	var parsedWIT WorkItemType
+	json.Unmarshal(bytes, &parsedWIT)
+
+	if !expectedWIT.Equal(parsedWIT) {
+		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
 	}
 }
 
@@ -94,20 +82,20 @@ func TestMarshalFieldDef(t *testing.T) {
 		SimpleType: SimpleType{KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
-	fd := FieldDefinition{
+	expectedFieldDef := FieldDefinition{
 		Type:     et,
 		Required: true,
 	}
 
-	bytes, err := json.Marshal(fd)
+	bytes, err := json.Marshal(expectedFieldDef)
 	if err != nil {
 		t.Error(err)
 	}
 
-	var readField FieldDefinition
-	json.Unmarshal(bytes, &readField)
-	if !reflect.DeepEqual(fd, readField) {
-		t.Errorf("Unmarshalled field definition: \n %v \n has not the same type as \"normal\" field definition: \n %v \n", readField, fd)
+	var parsedFieldDef FieldDefinition
+	json.Unmarshal(bytes, &parsedFieldDef)
+	if !expectedFieldDef.Equal(parsedFieldDef) {
+		t.Errorf("Unmarshalled field definition: \n %v \n has not the same type as \"normal\" field definition: \n %v \n", parsedFieldDef, expectedFieldDef)
 	}
 }
 

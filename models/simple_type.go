@@ -14,6 +14,19 @@ type SimpleType struct {
 	Kind Kind
 }
 
+// Ensure SimpleType implements the Equaler interface
+var _ Equaler = SimpleType{}
+var _ Equaler = (*SimpleType)(nil)
+
+// Equal returns true if two SimpleType objects are equal; otherwise false is returned.
+func (self SimpleType) Equal(u Equaler) bool {
+	other, ok := u.(SimpleType)
+	if !ok {
+		return false
+	}
+	return self.Kind == other.Kind
+}
+
 // GetKind implements FieldType
 func (self SimpleType) GetKind() Kind {
 	return self.Kind

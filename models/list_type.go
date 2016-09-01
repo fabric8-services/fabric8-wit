@@ -11,6 +11,22 @@ type ListType struct {
 	ComponentType SimpleType
 }
 
+// Ensure ListType implements the Equaler interface
+var _ Equaler = ListType{}
+var _ Equaler = (*ListType)(nil)
+
+// Equal returns true if two ListType objects are equal; otherwise false is returned.
+func (self ListType) Equal(u Equaler) bool {
+	other, ok := u.(ListType)
+	if !ok {
+		return false
+	}
+	if !self.SimpleType.Equal(other.SimpleType) {
+		return false
+	}
+	return self.ComponentType.Equal(other.ComponentType)
+}
+
 // ConvertToModel implements the FieldType interface
 func (fieldType ListType) ConvertToModel(value interface{}) (interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created

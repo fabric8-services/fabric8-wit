@@ -2,12 +2,32 @@ package models
 
 import (
 	"fmt"
+	"reflect"
 )
 
 type EnumType struct {
 	SimpleType
 	BaseType SimpleType
 	Values   []interface{}
+}
+
+// Ensure EnumType implements the Equaler interface
+var _ Equaler = EnumType{}
+var _ Equaler = (*EnumType)(nil)
+
+// Equal returns true if two EnumType objects are equal; otherwise false is returned.
+func (self EnumType) Equal(u Equaler) bool {
+	other, ok := u.(EnumType)
+	if !ok {
+		return false
+	}
+	if !self.SimpleType.Equal(other.SimpleType) {
+		return false
+	}
+	if !self.BaseType.Equal(other.BaseType) {
+		return false
+	}
+	return reflect.DeepEqual(self.Values, other.Values)
 }
 
 func (fieldType EnumType) ConvertToModel(value interface{}) (interface{}, error) {
