@@ -16,7 +16,10 @@ var _ Equaler = (*Fields)(nil)
 // Equal returns true if two Fields objects are equal; otherwise false is returned.
 // TODO: (kwk) think about a better comparison for Fields map.
 func (self Fields) Equal(u Equaler) bool {
-	other := u.(Fields)
+	other, ok := u.(Fields)
+	if !ok {
+		return false
+	}
 	return reflect.DeepEqual(self, other)
 }
 

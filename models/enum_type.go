@@ -17,7 +17,10 @@ var _ Equaler = (*EnumType)(nil)
 
 // Equal returns true if two EnumType objects are equal; otherwise false is returned.
 func (self EnumType) Equal(u Equaler) bool {
-	other := u.(EnumType)
+	other, ok := u.(EnumType)
+	if !ok {
+		return false
+	}
 	if !self.SimpleType.Equal(other.SimpleType) {
 		return false
 	}

@@ -18,7 +18,10 @@ var _ Equaler = (*Lifecycle)(nil)
 
 // Equal returns true if two Lifecycle objects are equal; otherwise false is returned.
 func (self Lifecycle) Equal(u Equaler) bool {
-	other := u.(Lifecycle)
+	other, ok := u.(Lifecycle)
+	if !ok {
+		return false
+	}
 	if !self.CreatedAt.Equal(other.CreatedAt) {
 		return false
 	}

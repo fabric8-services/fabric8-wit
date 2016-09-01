@@ -20,7 +20,10 @@ var _ Equaler = (*SimpleType)(nil)
 
 // Equal returns true if two SimpleType objects are equal; otherwise false is returned.
 func (self SimpleType) Equal(u Equaler) bool {
-	other := u.(SimpleType)
+	other, ok := u.(SimpleType)
+	if !ok {
+		return false
+	}
 	return self.Kind == other.Kind
 }
 

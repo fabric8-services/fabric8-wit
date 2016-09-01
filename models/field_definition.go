@@ -47,7 +47,10 @@ var _ Equaler = (*FieldDefinition)(nil)
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
 func (self FieldDefinition) Equal(u Equaler) bool {
-	other := u.(FieldDefinition)
+	other, ok := u.(FieldDefinition)
+	if !ok {
+		return false
+	}
 	if self.Required != other.Required {
 		return false
 	}
@@ -85,7 +88,10 @@ var _ Equaler = (*rawFieldDef)(nil)
 
 // Equal returns true if two rawFieldDef objects are equal; otherwise false is returned.
 func (self rawFieldDef) Equal(u Equaler) bool {
-	other := u.(rawFieldDef)
+	other, ok := u.(rawFieldDef)
+	if !ok {
+		return false
+	}
 	if self.Required != other.Required {
 		return false
 	}
@@ -103,7 +109,10 @@ var _ Equaler = (*rawEnumType)(nil)
 
 // Equal returns true if two rawEnumType objects are equal; otherwise false is returned.
 func (self rawEnumType) Equal(u Equaler) bool {
-	other := u.(rawEnumType)
+	other, ok := u.(rawEnumType)
+	if !ok {
+		return false
+	}
 	if !self.BaseType.Equal(other.BaseType) {
 		return false
 	}
@@ -121,7 +130,10 @@ var _ Equaler = (*rawFieldType)(nil)
 
 // Equal returns true if two rawFieldType objects are equal; otherwise false is returned.
 func (self rawFieldType) Equal(u Equaler) bool {
-	other := u.(rawFieldType)
+	other, ok := u.(rawFieldType)
+	if !ok {
+		return false
+	}
 	if self.Kind != other.Kind {
 		return false
 	}

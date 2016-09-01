@@ -17,7 +17,10 @@ var _ Equaler = (*WorkItemType)(nil)
 
 // Equal returns true if two WorkItemType objects are equal; otherwise false is returned.
 func (self WorkItemType) Equal(u Equaler) bool {
-	other := u.(WorkItemType)
+	other, ok := u.(WorkItemType)
+	if !ok {
+		return false
+	}
 	if !self.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
