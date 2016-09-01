@@ -8,6 +8,12 @@ import (
 	"github.com/satori/go.uuid"
 )
 
+// Github represents the Github tracker provider
+type Github struct {
+	URL   string
+	Query string
+}
+
 // Fetch tracker items from Github
 func (g *Github) Fetch() chan map[string]string {
 	item := make(chan map[string]string)

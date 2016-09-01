@@ -6,6 +6,12 @@ import (
 	"github.com/andygrunwald/go-jira"
 )
 
+// Jira represents the Jira tracker provider
+type Jira struct {
+	URL   string
+	Query string
+}
+
 // Fetch collects data from Jira
 func (j *Jira) Fetch() chan map[string]string {
 	item := make(chan map[string]string)
