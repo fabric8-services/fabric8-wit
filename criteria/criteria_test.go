@@ -6,7 +6,7 @@ import (
 )
 
 func TestGetParent(t *testing.T) {
-	resource.Require(t, resource.None)
+	resource.Require(t, resource.UnitTest)
 	l := Field("a")
 	r := Literal(5)
 	expr := Equals(l, r)

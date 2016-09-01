@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	None = ""
+	UnitTest = "ALMIGHTY_RESOURCE_UNIT_TEST"
 	Database = "ALMIGHTY_RESOURCE_DATABASE"
 	StSkipReason = "Skipping test because environment variable %s is no set."
 )
@@ -15,11 +15,9 @@ const (
 // and if one is not set it will skip the test ("t").
 func Require(t *testing.T, envVars ...string) {
 	for _, envVar := range envVars {
-		if len(envVar) > 0 {
-			if _, c := os.LookupEnv(envVar); c == false {
-				t.Skipf(StSkipReason, envVar)
-				return
-			}
+		if _, c := os.LookupEnv(envVar); c == false {
+			t.Skipf(StSkipReason, envVar)
+			return
 		}
 	}
 }

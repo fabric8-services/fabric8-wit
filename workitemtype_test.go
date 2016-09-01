@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetWorkItemType(t *testing.T) {
-	resource.Require(t, resource.None)
+	resource.Require(t, resource.UnitTest)
 
 	typeController := WorkitemtypeController{}
 	_, resp2 := test.ShowWorkitemtypeOK(t, nil, nil, &typeController, "1")
