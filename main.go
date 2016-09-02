@@ -109,6 +109,13 @@ func main() {
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request){
+		_ , error := db.DB().Exec("select 1")
+		if error != nil {
+			http.Error(w, error.Error(), http.StatusInternalServerError)
+		}
+        return
+	}) 
 
 	// Start http
 	if err := http.ListenAndServe(":8080", nil); err != nil {
