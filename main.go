@@ -120,14 +120,16 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		panic("Failed to get current user: " + err.Error())
-	}
-	fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
-	/*
+		fmt.Printf("Failed to get current user: %s", err.Error())
+	} else {
+		fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
+		/*
 		g, err := user.LookupGroupId(u.Gid)
 		if err != nil {
-			panic("Failed to lookup group: " + err.Error())
+			fmt.Printf("Failed to lookup group: %", err.Error())
+		} else {
+			fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
 		}
-		fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
-	*/
+		*/
+	}
 }
