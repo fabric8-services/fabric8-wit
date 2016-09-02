@@ -109,6 +109,13 @@ func main() {
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
+	http.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
+		_, err := db.DB().Exec("select 1")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	})
 
 	// Start http
 	if err := http.ListenAndServe(":8080", nil); err != nil {
@@ -124,12 +131,12 @@ func printUserInfo() {
 	} else {
 		fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
 		/*
-		g, err := user.LookupGroupId(u.Gid)
-		if err != nil {
-			fmt.Printf("Failed to lookup group: %", err.Error())
-		} else {
-			fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
-		}
+			g, err := user.LookupGroupId(u.Gid)
+			if err != nil {
+				fmt.Printf("Failed to lookup group: %", err.Error())
+			} else {
+				fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
+			}
 		*/
 	}
 }
