@@ -11,8 +11,6 @@ services:
       - default
   core:
     image: almightycore/almighty-core:latest
-    entrypoint:
-      - bin/alm
     command: -dbhost db
     ports:
       - "8080:8080"
