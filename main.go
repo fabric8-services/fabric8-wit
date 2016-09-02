@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"time"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -28,6 +29,11 @@ var (
 	Development = false
 )
 
+const (
+	// DBMaxRetryAttempts is the number of times alm server will attempt to open a connection to the database before it gives up
+	DBMaxRetryAttempts int = 50
+)
+
 func main() {
 	printUserInfo()
 
@@ -45,11 +51,21 @@ func main() {
 		dbHost = "localhost"
 	}
 
-	db, err := gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
-	if err != nil {
-		panic("failed to connect database: " + err.Error())
+	var db *gorm.DB
+	var err error
+	for i := 1; i <= DBMaxRetryAttempts; i++ {
+		fmt.Printf("Opening DB connection attempt %d of %d\n", i, DBMaxRetryAttempts)
+		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+		if err != nil {
+			time.Sleep(time.Second)
+		} else {
+			defer db.Close()
+			break
+		}
 	}
-	defer db.Close()
+	if err != nil {
+		panic("Could not open connection to database")
+	}
 
 	// Migrate the schema
 	migration.Perform(db)
