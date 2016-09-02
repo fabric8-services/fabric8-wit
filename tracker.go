@@ -16,17 +16,17 @@ type TrackerController struct {
 	*goa.Controller
 	tRepository remoteworkitem.TrackerRepository
 	ts          transaction.Support
+	scheduler   *remoteworkitem.Scheduler
 }
 
 // NewTrackerController creates a tracker controller.
-func NewTrackerController(service *goa.Service, tRepository remoteworkitem.TrackerRepository, ts transaction.Support) *TrackerController {
-	return &TrackerController{Controller: service.NewController("TrackerController"), tRepository: tRepository, ts: ts}
+func NewTrackerController(service *goa.Service, tRepository remoteworkitem.TrackerRepository, ts transaction.Support, scheduler *remoteworkitem.Scheduler) *TrackerController {
+	return &TrackerController{Controller: service.NewController("TrackerController"), tRepository: tRepository, ts: ts, scheduler: scheduler}
 }
 
 // Create runs the create action.
 func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
-
-	return transaction.Do(c.ts, func() error {
+	result := transaction.Do(c.ts, func() error {
 		t, err := c.tRepository.Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
 			switch err := err.(type) {
@@ -39,11 +39,13 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 		ctx.ResponseData.Header().Set("Location", app.TrackerHref(t.ID))
 		return ctx.Created(t)
 	})
+	c.scheduler.ScheduleAllQueries()
+	return result
 }
 
 // Delete runs the delete action.
 func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
-	return transaction.Do(c.ts, func() error {
+	result := transaction.Do(c.ts, func() error {
 		err := c.tRepository.Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
@@ -55,7 +57,8 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 		}
 		return ctx.OK([]byte{})
 	})
-
+	c.scheduler.ScheduleAllQueries()
+	return result
 }
 
 // Show runs the show action.
@@ -97,7 +100,7 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 
 // Update runs the update action.
 func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
-	return transaction.Do(c.ts, func() error {
+	result := transaction.Do(c.ts, func() error {
 
 		toSave := app.Tracker{
 			ID:   ctx.ID,
@@ -116,4 +119,6 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 		}
 		return ctx.OK(t)
 	})
+	c.scheduler.ScheduleAllQueries()
+	return result
 }

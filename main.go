@@ -122,7 +122,7 @@ func main() {
 
 	// Mount "tracker" controller
 	repo2 := remoteworkitem.NewTrackerRepository(ts2)
-	c5 := NewTrackerController(service, repo2, ts2)
+	c5 := NewTrackerController(service, repo2, ts2, scheduler)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
