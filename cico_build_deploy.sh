@@ -25,6 +25,7 @@ if [ $? -eq 0 ]; then
   else
     echo 'CICO: Image push to registry failed'
     exit 2
+  fi
 else
   echo 'CICO: app tests Failed'
   exit 1
