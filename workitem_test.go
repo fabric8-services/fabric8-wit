@@ -13,8 +13,8 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/transaction"
 
-	"github.com/jinzhu/gorm"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/jinzhu/gorm"
 )
 
 var db *gorm.DB
@@ -56,10 +56,10 @@ func TestGetWorkItem(t *testing.T) {
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "foobar",
-		Type: "system.issue",
+		Type: "system.bug",
 		Fields: map[string]interface{}{
-			"system.owner": "aslak",
-			"system.state": "done"},
+			"system.assignee": "aslak",
+			"system.state":    "closed"},
 	}
 
 	_, result := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
@@ -74,7 +74,7 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
-	wi.Fields["system.owner"] = "thomas"
+	wi.Fields["system.assignee"] = "thomas"
 	payload2 := app.UpdateWorkitemPayload{
 		Name:    wi.Name,
 		Type:    wi.Type,
@@ -103,10 +103,10 @@ func TestCreateWI(t *testing.T) {
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "some name",
-		Type: "system.issue",
+		Type: "system.bug",
 		Fields: map[string]interface{}{
-			"system.owner": "tmaeder",
-			"system.state": "open",
+			"system.assignee": "tmaeder",
+			"system.state":    "new",
 		},
 	}
 
@@ -124,10 +124,10 @@ func TestListByFields(t *testing.T) {
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
 		Name: "ListByName Name",
-		Type: "system.issue",
+		Type: "system.bug",
 		Fields: map[string]interface{}{
-			"system.owner": "aslak",
-			"system.state": "done"},
+			"system.assignee": "aslak",
+			"system.state":    "closed"},
 	}
 
 	_, wi := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
@@ -144,7 +144,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result))
 	}
 
-	filter = "{\"system.owner\":\"aslak\"}"
+	filter = "{\"system.assignee\":\"aslak\"}"
 	_, result = test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
 
 	if result == nil {
