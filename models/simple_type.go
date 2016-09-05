@@ -36,6 +36,9 @@ var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
 // ConvertToModel implements the FieldType interface
 func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, error) {
+	if value == nil {
+		return nil, nil
+	}
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
 	case KindString, KindUser:
