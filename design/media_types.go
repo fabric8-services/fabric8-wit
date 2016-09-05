@@ -128,17 +128,17 @@ var TrackerQuery = MediaType("application/vnd.trackerquery+json", func() {
 	Attribute("id", String, "unique id per installation")
 	Attribute("query", String, "Search query")
 	Attribute("schedule", String, "Schedule for fetch and import")
-	Attribute("tracker", Integer, "Tracker ID")
+	Attribute("trackerID", Integer, "Tracker ID")
 
 	Required("id")
 	Required("query")
 	Required("schedule")
-	Required("tracker")
+	Required("trackerID")
 
 	View("default", func() {
 		Attribute("id")
 		Attribute("query")
 		Attribute("schedule")
-		Attribute("tracker")
+		Attribute("trackerID")
 	})
 })

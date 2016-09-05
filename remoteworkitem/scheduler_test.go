@@ -33,10 +33,14 @@ func TestMain(m *testing.M) {
 		&Tracker{},
 		&TrackerQuery{},
 		&TrackerItem{})
-	q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
-	db.Exec(q)
+	db.DB()
+	db.Model(&TrackerQuery{}).AddForeignKey("tracker", "trackers(id)", "RESTRICT", "RESTRICT")
+	db.Commit()
+	//db.Exec(q)
 
-	os.Exit(m.Run())
+	ec := m.Run()
+	os.Exit(ec)
+
 }
 
 func TestNewScheduler(t *testing.T) {
@@ -46,4 +50,7 @@ func TestNewScheduler(t *testing.T) {
 	if s.db != db {
 		t.Error("DB not set as an attribute")
 	}
+}
+
+func TestScheduleAllQueries(t *testing.T) {
 }

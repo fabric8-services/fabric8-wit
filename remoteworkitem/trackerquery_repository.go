@@ -25,19 +25,19 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	tid := tracker
 	fmt.Printf("tracker id: %v", tid)
 	tq := TrackerQuery{
-		Query:    query,
-		Schedule: schedule,
-		Tracker:  tid}
+		Query:     query,
+		Schedule:  schedule,
+		TrackerID: tid}
 	tx := r.ts.tx
-	if err := tx.Debug().Create(&tq).Error; err != nil {
+	if err := tx.Create(&tq).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("created tracker query %v\n", tq)
 	tq2 := app.TrackerQuery{
-		ID:       string(tq.ID),
-		Query:    query,
-		Schedule: schedule,
-		Tracker:  int(tid)}
+		ID:        string(tq.ID),
+		Query:     query,
+		Schedule:  schedule,
+		TrackerID: int(tid)}
 
 	return &tq2, nil
 }
@@ -58,10 +58,10 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NotFoundError{"tracker query", ID}
 	}
 	tq := app.TrackerQuery{
-		ID:       string(res.ID),
-		Query:    res.Query,
-		Schedule: res.Schedule,
-		Tracker:  int(res.Tracker)}
+		ID:        string(res.ID),
+		Query:     res.Query,
+		Schedule:  res.Schedule,
+		TrackerID: int(res.TrackerID)}
 
 	return &tq, nil
 }
