@@ -20,8 +20,6 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 		return db.Error
 	}
 
-	db.Model(&remoteworkitem.TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
-
 	_, err := witr.Load(ctx, "system.issue")
 	switch err.(type) {
 	case models.NotFoundError:
@@ -34,5 +32,8 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 			return err
 		}
 	}
+	// FIXME: Need to add this conditionally
+	// q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
+	// db.Exec(q)
 	return db.Error
 }
