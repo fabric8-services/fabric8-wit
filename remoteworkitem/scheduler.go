@@ -52,7 +52,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
-	err := db.Table("trackers").Select("tracker_queries.id as tracker_query_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join tracker_queries on tracker_queries.tracker = trackers.id").Where("deleted_at is NULL").Scan(&tsList).Error
+	err := db.Table("tracker_queries").Select("tracker_queries.id as tracker_query_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
 		log.Printf("Fetch failed %v\n", err)
 	}
