@@ -23,11 +23,12 @@ make docker-generate
 make docker-build
 make docker-test-unit
 
+make integration-test-env-prepare
+
 function cleanup {
   make integration-test-env-tear-down
 }
 trap cleanup EXIT
 
-make integration-test-env-prepare
 make docker-test-integration
 
