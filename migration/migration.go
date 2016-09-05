@@ -20,6 +20,8 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 		return db.Error
 	}
 
+	db.Model(&remoteworkitem.TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
+
 	_, err := witr.Load(ctx, "system.issue")
 	switch err.(type) {
 	case models.NotFoundError:
@@ -32,6 +34,5 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 			return err
 		}
 	}
-	db.Model(&remoteworkitem.TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
 	return db.Error
 }

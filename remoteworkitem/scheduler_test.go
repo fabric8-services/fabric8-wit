@@ -48,13 +48,6 @@ func TestNewScheduler(t *testing.T) {
 	s.Stop()
 }
 
-func TestScheduleAllQueries(t *testing.T) {
-	db.Delete(&TrackerQuery{})
-	s := NewScheduler(db)
-	s.ScheduleAllQueries()
-	s.Stop()
-}
-
 func TestLookupProvider(t *testing.T) {
 	ts1 := trackerSchedule{TrackerType: "github"}
 	tp1 := LookupProvider(ts1)
