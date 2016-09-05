@@ -132,7 +132,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		Type:   typeID,
 		Fields: Fields{},
 	}
-
 	for fieldName, fieldDef := range wiType.Fields {
 		fieldValue := fields[fieldName]
 		var err error

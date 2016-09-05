@@ -55,11 +55,11 @@ func TestGetWorkItem(t *testing.T) {
 	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
-		Type: "system.issue",
+		Type: "system.bug",
 		Fields: map[string]interface{}{
-			"system.title": "Test WI",
-			"system.owner": "aslak",
-			"system.state": "done"},
+			"system.title":   "Test WI",
+			"system.creator": "aslak",
+			"system.state":   "closed"},
 	}
 
 	_, result := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
@@ -74,7 +74,7 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
-	wi.Fields["system.owner"] = "thomas"
+	wi.Fields["system.creator"] = "thomas"
 	payload2 := app.UpdateWorkitemPayload{
 		Type:    wi.Type,
 		Version: wi.Version,
@@ -87,8 +87,8 @@ func TestGetWorkItem(t *testing.T) {
 	if updated.ID != result.ID {
 		t.Errorf("id has changed from %s to %s", result.ID, updated.ID)
 	}
-	if updated.Fields["system.owner"] != "thomas" {
-		t.Errorf("expected owner %s, but got %s", "thomas", updated.Fields["system.owner"])
+	if updated.Fields["system.creator"] != "thomas" {
+		t.Errorf("expected creator %s, but got %s", "thomas", updated.Fields["system.creator"])
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, &controller, result.ID)
@@ -101,11 +101,11 @@ func TestCreateWI(t *testing.T) {
 	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
-		Type: "system.issue",
+		Type: "system.bug",
 		Fields: map[string]interface{}{
-			"system.title": "Test WI",
-			"system.owner": "tmaeder",
-			"system.state": "open",
+			"system.title":   "Test WI",
+			"system.creator": "tmaeder",
+			"system.state":   "new",
 		},
 	}
 
@@ -122,11 +122,11 @@ func TestListByFields(t *testing.T) {
 	repo := models.NewWorkItemRepository(ts, wir)
 	controller := WorkitemController{ts: ts, wiRepository: repo}
 	payload := app.CreateWorkitemPayload{
-		Type: "system.issue",
+		Type: "system.bug",
 		Fields: map[string]interface{}{
-			"system.title": "run integration test",
-			"system.owner": "aslak",
-			"system.state": "done"},
+			"system.title":   "run integration test",
+			"system.creator": "aslak",
+			"system.state":   "closed"},
 	}
 
 	_, wi := test.CreateWorkitemCreated(t, nil, nil, &controller, &payload)
@@ -143,7 +143,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result))
 	}
 
-	filter = "{\"system.owner\":\"aslak\"}"
+	filter = "{\"system.creator\":\"aslak\"}"
 	_, result = test.ListWorkitemOK(t, nil, nil, &controller, &filter, &page)
 
 	if result == nil {

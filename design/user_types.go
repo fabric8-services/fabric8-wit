@@ -8,12 +8,12 @@ import (
 // CreateWorkItemPayload defines the structure of work item payload
 var CreateWorkItemPayload = Type("CreateWorkItemPayload", func() {
 	Attribute("type", String, "The type of the newly created work item", func() {
-		Example("1")
+		Example("system.userstory")
 	})
 	Attribute("fields", HashOf(String, Any), "The field values, must conform to the type", func() {
-		Example(map[string]interface{}{"system.owner": "user-ref", "system.state": "open"})
+		Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
 	})
-	Required("type",  "fields")
+	Required("type", "fields")
 })
 
 // UpdateWorkItemPayload has been added because the design.WorkItem could
@@ -21,10 +21,10 @@ var CreateWorkItemPayload = Type("CreateWorkItemPayload", func() {
 // which ideally should be optional. The ID should be passed on to REST URL.
 var UpdateWorkItemPayload = Type("UpdateWorkItemPayload", func() {
 	Attribute("type", String, "The type of the newly created work item", func() {
-		Example("1")
+		Example("system.userstory")
 	})
 	Attribute("fields", HashOf(String, Any), "The field values, must conform to the type", func() {
-		Example(map[string]interface{}{"system.owner": "user-ref", "system.state": "open"})
+		Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
 	})
 	Attribute("version", Integer, "Version for optimistic concurrency control", func() {
 		Example(0)
