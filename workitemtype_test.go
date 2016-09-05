@@ -71,20 +71,26 @@ func (s *WorkItemTypeSuite) TearDownSuite() {
 	}
 }
 
+// removeWorkItemTypes removes all work item types from the db that will be created
+// during these tests. We need to remove them completely and not only set the
+// "deleted_at" field, which is why we need the Unscoped() function.
+func (s *WorkItemTypeSuite) removeWorkItemTypes() {
+
+	s.db.Unscoped().Delete(&models.WorkItemType{Name: "person"})
+	s.db.Unscoped().Delete(&models.WorkItemType{Name: "animal"})
+}
+
 // The SetupTest method will be run before every test in the suite.
 // SetupTest ensures that non of the work item types that we will create already exist.
 func (s *WorkItemTypeSuite) SetupTest() {
 	s.T().Log("--- Running SetupTest ---")
-	// Remove all work item types from the db that will be created during these tests.
-	s.db.Where("name = ?", "animal").Delete(models.WorkItemType{})
-	s.db.Where("name = ?", "person").Delete(models.WorkItemType{})
+	s.removeWorkItemTypes()
 }
 
 // The TearDownTest method will be run after every test in the suite.
 func (s *WorkItemTypeSuite) TearDownTest() {
 	s.T().Log("--- Running TearDownTest ---")
-	s.db.Where("name = ?", "animal").Delete(models.WorkItemType{})
-	s.db.Where("name = ?", "person").Delete(models.WorkItemType{})
+	s.removeWorkItemTypes()
 }
 
 //-----------------------------------------------------------------------------
