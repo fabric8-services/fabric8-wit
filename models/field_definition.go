@@ -82,24 +82,24 @@ type rawFieldDef struct {
 	Type     *json.RawMessage
 }
 
-// Ensure rawFieldType implements the Equaler interface
-var _ Equaler = rawFieldType{}
-var _ Equaler = (*rawFieldType)(nil)
+// Ensure rawFieldDef implements the Equaler interface
+var _ Equaler = rawFieldDef{}
+var _ Equaler = (*rawFieldDef)(nil)
 
-// Equal returns true if two rawFieldType objects are equal; otherwise false is returned.
-func (self rawFieldType) Equal(u Equaler) bool {
-	other, ok := u.(rawFieldType)
+// Equal returns true if two rawFieldDef objects are equal; otherwise false is returned.
+func (self rawFieldDef) Equal(u Equaler) bool {
+	other, ok := u.(rawFieldDef)
 	if !ok {
 		return false
 	}
-	if self.Kind != other.Kind {
+	if self.Required != other.Required {
 		return false
 	}
-	if self.Extra == nil && other.Extra == nil {
+	if self.Type == nil && other.Type == nil {
 		return true
 	}
-	if self.Extra != nil && other.Extra != nil {
-		return reflect.DeepEqual(self.Extra, other.Extra)
+	if self.Type != nil && other.Type != nil {
+		return reflect.DeepEqual(self.Type, other.Type)
 	}
 	return false
 }
