@@ -1,13 +1,31 @@
 package migration
 
 import (
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
+	"golang.org/x/net/context"
 )
 
 // Perform executes the required migration of the database on startup
-func Perform(db *gorm.DB) {
-
+func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepository) error {
 	db.AutoMigrate(
-		&models.WorkItem{})
+		&models.WorkItem{},
+		&models.WorkItemType{})
+	if db.Error != nil {
+		return db.Error
+	}
+
+	_, err := witr.Load(ctx, "system.issue")
+	switch err.(type) {
+	case models.NotFoundError:
+		_, err := witr.Create(ctx, nil, "system.issue", map[string]app.FieldDefinition{
+			"system.owner": app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
+			"system.state": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return db.Error
 }

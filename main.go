@@ -8,12 +8,15 @@ import (
 	"os/user"
 	"time"
 
+	"golang.org/x/net/context"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/transaction"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -68,7 +71,15 @@ func main() {
 	}
 
 	// Migrate the schema
-	migration.Perform(db)
+	ts := models.NewGormTransactionSupport(db)
+	witRepo := models.NewWorkItemTypeRepository(ts)
+	wiRepo := models.NewWorkItemRepository(ts, witRepo)
+
+	if err := transaction.Do(ts, func() error {
+		return migration.Perform(context.Background(), ts.TX(), witRepo)
+	}); err != nil {
+		panic(err.Error())
+	}
 
 	// Create service
 	service := goa.New("alm")
@@ -86,21 +97,19 @@ func main() {
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 
 	// Mount "login" controller
-	c := NewLoginController(service)
-	app.MountLoginController(service, c)
+	loginCtrl := NewLoginController(service)
+	app.MountLoginController(service, loginCtrl)
 	// Mount "version" controller
-	c2 := NewVersionController(service)
-	app.MountVersionController(service, c2)
+	versionCtrl := NewVersionController(service)
+	app.MountVersionController(service, versionCtrl)
 
 	// Mount "workitem" controller
-	ts := models.NewGormTransactionSupport(db)
-	repo := models.NewWorkItemRepository(ts)
-	c3 := NewWorkitemController(service, repo, ts)
-	app.MountWorkitemController(service, c3)
+	workitemCtrl := NewWorkitemController(service, wiRepo, ts)
+	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
-	c4 := NewWorkitemtypeController(service)
-	app.MountWorkitemtypeController(service, c4)
+	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
+	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
