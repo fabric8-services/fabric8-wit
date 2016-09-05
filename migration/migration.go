@@ -32,7 +32,6 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 			return err
 		}
 	}
-	q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
-	db.Exec(q)
+	db.Model(&remoteworkitem.TrackerQuery{}).AddForeignKey("tracker", "trackers(id)", "RESTRICT", "RESTRICT")
 	return db.Error
 }
