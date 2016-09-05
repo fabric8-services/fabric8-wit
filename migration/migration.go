@@ -32,6 +32,6 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 			return err
 		}
 	}
-	db.Model(&remoteworkitem.TrackerQuery{}).AddForeignKey("tracker", "trackers(id)", "RESTRICT", "RESTRICT")
+	db.Model(&remoteworkitem.TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
 	return db.Error
 }
