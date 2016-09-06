@@ -63,7 +63,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 		return nil, NotFoundError{"tracker", ID}
 	}
 	t := app.Tracker{
-		ID:   string(res.ID),
+		ID:   strconv.FormatUint(res.ID, 10),
 		URL:  res.URL,
 		Type: res.Type}
 
@@ -92,6 +92,13 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 	}
 	result := make([]*app.Tracker, len(rows))
 
+	for i, tracker := range rows {
+		t := app.Tracker{
+			ID:   strconv.FormatUint(tracker.ID, 10),
+			URL:  tracker.URL,
+			Type: tracker.Type}
+		result[i] = &t
+	}
 	return result, nil
 }
 
