@@ -1,6 +1,6 @@
 postgres_integration_test:
-  image: postgres:9.5
+  image: centos/postgresql-95-centos7
   ports:
     - "5432"
   environment:
-    POSTGRES_PASSWORD: mysecretpassword
+    POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
