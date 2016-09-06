@@ -32,3 +32,6 @@ trap cleanup EXIT
 
 make docker-test-integration
 
+# Output coverage
+make docker-coverage-all
+
