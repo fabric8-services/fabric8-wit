@@ -22,6 +22,10 @@ You need to install:
 * `mercurial`
 * `make`
 
+==== Optional dependencies
+
+We also have the ability to build everything inside of a docker container. For that to work you need to link:https://docs.docker.com/engine/getstarted/step_one/[install `docker`].
+
 ==== Check your Go version [[check-go-version]]
 
 Run the following command to find out your Go version.
