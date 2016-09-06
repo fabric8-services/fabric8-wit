@@ -152,9 +152,6 @@ var _ = Resource("version", func() {
 	BasePath("/version")
 
 	Action("show", func() {
-		Security("jwt", func() {
-			Scope("system")
-		})
 		Routing(
 			GET(""),
 		)
