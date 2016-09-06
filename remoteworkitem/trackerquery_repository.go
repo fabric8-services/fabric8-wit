@@ -37,7 +37,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		ID:        string(tq.ID),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: int(tid)}
+		TrackerID: string(tid)}
 
 	return &tq2, nil
 }
@@ -61,7 +61,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		ID:        string(res.ID),
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: int(res.TrackerID)}
+		TrackerID: string(res.TrackerID)}
 
 	return &tq, nil
 }
