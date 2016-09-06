@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -41,6 +42,7 @@ func main() {
 	printUserInfo()
 
 	var dbHost string
+	var scheduler *remoteworkitem.Scheduler
 
 	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
 	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
@@ -81,6 +83,11 @@ func main() {
 		panic(err.Error())
 	}
 
+	// Scheduler to fetch and import remote tracker items
+	scheduler = remoteworkitem.NewScheduler(db)
+	defer scheduler.Stop()
+	scheduler.ScheduleAllQueries()
+
 	// Create service
 	service := goa.New("alm")
 
@@ -110,6 +117,18 @@ func main() {
 	// Mount "workitemtype" controller
 	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
+
+	ts2 := remoteworkitem.NewGormTransactionSupport(db)
+
+	// Mount "tracker" controller
+	repo2 := remoteworkitem.NewTrackerRepository(ts2)
+	c5 := NewTrackerController(service, repo2, ts2, scheduler)
+	app.MountTrackerController(service, c5)
+
+	// Mount "trackerquery" controller
+	repo3 := remoteworkitem.NewTrackerQueryRepository(ts2)
+	c6 := NewTrackerqueryController(service, repo3, ts2, scheduler)
+	app.MountTrackerqueryController(service, c6)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
