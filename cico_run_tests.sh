@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Exit on error
-set -e
-
 # Output command before executing
 set -x
+
+# Exit on error
+set -e
 
 # We need to disable selinux for now, XXX
 /usr/sbin/setenforce 0
@@ -16,7 +16,7 @@ yum -y install \
   git 
 service docker start
 
-# lets test
+# Let's test
 make docker-start
 make docker-deps
 make docker-generate
