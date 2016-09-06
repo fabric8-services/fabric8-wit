@@ -30,6 +30,9 @@ trap cleanup EXIT
 make docker-test-integration
 echo 'CICO: app tests OK'
 
+# Output coverage
+make docker-coverage-all
+
 # Let's deploy
 make docker-image-deploy
 docker tag almighty-core-deploy registry.ci.centos.org:5000/almighty/almighty-core:latest 

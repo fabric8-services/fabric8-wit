@@ -126,6 +126,14 @@ endif
 	$(eval ALMIGHTY_DB_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -c 'export ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST); make test-integration'
 
+.PHONY: docker-coverage-all
+## Runs "make coverage-all" inside the already started docker build container (see "make coverage-all").
+docker-coverage-all:
+ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
+	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate && make docker-build && make docker-test-unit")
+endif
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make coverage-all
+
 .PHONY: docker-rm
 ## Removes the docker build container, if any (see "make docker-start").
 docker-rm:
