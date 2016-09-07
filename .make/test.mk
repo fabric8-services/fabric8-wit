@@ -175,22 +175,31 @@ $(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
 
 # Console coverage output:
 
+# First parameter: file to do in-place replacement with.
+# Delete the lines containing /bindata_assetfs.go 
+define cleanup-coverage-file
+@sed -i '/.*\/bindata_assetfs\.go.*/d' $(1)
+endef
+
 .PHONY: coverage-unit
 ## Output coverage profile information for each function (only based on unit-tests).
 ## Re-runs unit-tests if coverage information is outdated.
 coverage-unit: prebuild-check $(COV_PATH_UNIT)
+	$(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@go tool cover -func=$(COV_PATH_UNIT)
 
 .PHONY: coverage-integration
 ## Output coverage profile information for each function (only based on integration tests).
 ## Re-runs integration-tests if coverage information is outdated.
 coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
+	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@go tool cover -func=$(COV_PATH_INTEGRATION)
 
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
 ## Re-runs unit- and integration-tests if coverage information is outdated.
 coverage-all: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
+	$(call cleanup-coverage-file,$(COV_PATH_OVERALL))
 	@go tool cover -func=$(COV_PATH_OVERALL)
 
 # HTML coverage output:
@@ -199,18 +208,21 @@ coverage-all: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
 ## Generate HTML representation (and show in browser) of coverage profile (based on unit tests).
 ## Re-runs unit tests if coverage information is outdated.
 coverage-unit-html: prebuild-check $(COV_PATH_UNIT)
+	$(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@go tool cover -html=$(COV_PATH_UNIT)
 
 .PHONY: coverage-integration-html
 ## Generate HTML representation (and show in browser) of coverage profile (based on integration tests).
 ## Re-runs integration tests if coverage information is outdated.
 coverage-integration-html: prebuild-check $(COV_PATH_INTEGRATION)
+	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@go tool cover -html=$(COV_PATH_INTEGRATION)
 
 .PHONY: coverage-all-html
 ## Output coverage profile information for each function.
 ## Re-runs unit- and integration-tests if coverage information is outdated.
 coverage-all-html: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
+	$(call cleanup-coverage-file,$(COV_PATH_OVERALL))
 	@go tool cover -html=$(COV_PATH_OVERALL)
 
 # Experimental:
@@ -219,20 +231,24 @@ coverage-all-html: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
 ## (EXPERIMENTAL) Show actual code and how it is covered with unit tests.
 ##                This target only runs the tests if the coverage file does exist.
 gocov-unit-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_UNIT)
+	$(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@$(GOCOV_BIN) convert $(COV_PATH_UNIT) | $(GOCOV_BIN) annotate -
 
 .PHONY: .gocov-unit-report
 .gocov-unit-report: prebuild-check $(GOCOV_BIN) $(COV_PATH_UNIT)
+	$(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@$(GOCOV_BIN) convert $(COV_PATH_UNIT) | $(GOCOV_BIN) report
 
 .PHONY: gocov-integration-annotate
 ## (EXPERIMENTAL) Show actual code and how it is covered with integration tests.
 ##                This target only runs the tests if the coverage file does exist.
 gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
+	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@$(GOCOV_BIN) convert $(COV_PATH_INTEGRATION) | $(GOCOV_BIN) annotate -
 
 .PHONY: .gocov-integration-report
 .gocov-integration-report: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
+	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@$(GOCOV_BIN) convert $(COV_PATH_INTEGRATION) | $(GOCOV_BIN) report
 
 #-------------------------------------------------------------------------------
