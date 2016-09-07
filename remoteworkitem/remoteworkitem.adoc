@@ -18,54 +18,74 @@ Tracker Item:: Temporary staging storage from where remote work item gets create
 To create a new tracker configuration:
 
 [source, bash]
+----
 ./bin/alm-cli create tracker --payload '{"type": "github", "url": "https://api.github.com/"}' -H localhost:8080
+----
 
 To update an existing tracker configuration:
 
 [source, bash]
+----
 ./bin/alm-cli update tracker --id=1 --payload '{"type": "github", "url": "https://api.local.example.com/"}' -H localhost:8080
+----
 
 To list all tracker configurations:
 
 [source, bash]
+----
 ./bin/alm-cli list tracker -H localhost:8080
+----
 
 To show one tracker configuration:
 
 [source, bash]
+----
 ./bin/alm-cli show tracker --id=1 -H localhost:8080
+----
 
 To soft delete an existing tracker configuration:
 
 [source, bash]
+----
 ./bin/alm-cli delete tracker --id=1 -H localhost:8080
+----
 
 == Tracker Query
 
 To create a new tracker query:
 
 [source, bash]
+----
 ./bin/alm-cli create trackerquery --payload {"query": "is:open is:issue user:almighty", "schedule": "0 0/15 * * * *", "trackerID": 1} -H localhost:8080
+----
 
 To update an existing tracker query:
 
 [source, bash]
+----
 ./bin/alm-cli create trackerquery --id=1 --payload {"query": "is:closed is:issue user:almighty", "schedule": "0 0/15 * * * *", "trackerID": 1} -H localhost:8080
+----
 
 To list all tracker queries:
 
 [source, bash]
+----
 ./bin/alm-cli list trackerquery -H localhost:8080
+----
 
 To show one tracker query:
 
 [source, bash]
+----
 ./bin/alm-cli show trackerquery --id=1 -H localhost:8080
+----
 
 To soft delete an existing tracker query:
 
 [source, bash]
+----
 ./bin/alm-cli delete trackerquery --id=1 -H localhost:8080
+----
 
 == Tracker Item
 
