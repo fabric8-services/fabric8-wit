@@ -21,7 +21,7 @@ func NewTrackerQueryRepository(ts *GormTransactionSupport) *GormTrackerQueryRepo
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker uint64) (*app.TrackerQuery, error) {
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error) {
 	tid := tracker
 	fmt.Printf("tracker id: %v", tid)
 	tq := TrackerQuery{
@@ -34,10 +34,10 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 	log.Printf("created tracker query %v\n", tq)
 	tq2 := app.TrackerQuery{
-		ID:        string(tq.ID),
+		ID:        tq.ID,
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: string(tid)}
+		TrackerID: tid}
 
 	return &tq2, nil
 }
@@ -58,10 +58,10 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NotFoundError{"tracker query", ID}
 	}
 	tq := app.TrackerQuery{
-		ID:        string(res.ID),
+		ID:        res.ID,
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: string(res.TrackerID)}
+		TrackerID: res.TrackerID}
 
 	return &tq, nil
 }
@@ -70,10 +70,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error) {
 	res := TrackerQuery{}
-	id, err := strconv.ParseUint(tq.ID, 10, 64)
-	if err != nil {
-		return nil, NotFoundError{entity: "trackerquery", ID: tq.ID}
-	}
+	id := tq.ID
 
 	log.Printf("looking for id %d", id)
 	tx := r.ts.tx
@@ -93,7 +90,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 	log.Printf("updated tracker query to %v\n", newTq)
 	t2 := app.TrackerQuery{
-		ID:       string(id),
+		ID:       id,
 		Schedule: tq.Schedule,
 		Query:    tq.Query}
 

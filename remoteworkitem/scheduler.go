@@ -9,7 +9,7 @@ import (
 
 // TrackerSchedule capture all configuration
 type trackerSchedule struct {
-	TrackerQueryID int
+	TrackerQueryID string
 	URL            string
 	TrackerType    string
 	Query          string

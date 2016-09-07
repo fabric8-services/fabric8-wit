@@ -57,7 +57,7 @@ var UpdateTrackerAlternatePayload = Type("UpdateTrackerAlternatePayload", func()
 var CreateTrackerQueryAlternatePayload = Type("CreateTrackerQueryAlternatePayload", func() {
 	Attribute("query", String, "Search query")
 	Attribute("schedule", String, "Schedule for fetch and import")
-	Attribute("trackerID", Integer, "Tracker ID")
+	Attribute("trackerID", String, "Tracker ID")
 	Required("query", "schedule", "trackerID")
 })
 

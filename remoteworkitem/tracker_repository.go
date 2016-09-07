@@ -2,7 +2,6 @@ package remoteworkitem
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
@@ -50,11 +49,7 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 // Load returns the tracker configuration for the given id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Tracker, error) {
-	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"tracker", ID}
-	}
+	id := ID
 
 	log.Printf("loading tracker %d", id)
 	res := Tracker{}
@@ -63,7 +58,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 		return nil, NotFoundError{"tracker", ID}
 	}
 	t := app.Tracker{
-		ID:   string(res.ID),
+		ID:   res.ID,
 		URL:  res.URL,
 		Type: res.Type}
 
@@ -99,10 +94,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.Tracker, error) {
 	res := Tracker{}
-	id, err := strconv.ParseUint(t.ID, 10, 64)
-	if err != nil {
-		return nil, NotFoundError{entity: "tracker", ID: t.ID}
-	}
+	id := t.ID
 
 	log.Printf("looking for id %d", id)
 	tx := r.ts.tx
@@ -133,15 +125,11 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 // returns NotFoundError or InternalError
 func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 	var t = Tracker{}
-	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
-		// treat as not found: clients don't know it must be a number
-		return NotFoundError{entity: "tracker", ID: ID}
-	}
+	id := ID
 	t.ID = id
 	tx := r.ts.tx
 
-	if err = tx.Delete(t).Error; err != nil {
+	if err := tx.Delete(t).Error; err != nil {
 		if tx.RecordNotFound() {
 			return NotFoundError{entity: "tracker", ID: ID}
 		}

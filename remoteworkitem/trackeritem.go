@@ -14,5 +14,5 @@ type TrackerItem struct {
 	// Batch ID for earch running of tracker query (UUID V4)
 	BatchID string
 	// FK to trackey query
-	TrackerQueryID uint64 `gorm:"ForeignKey:TrackerQuery"`
+	TrackerQueryID string `gorm:"ForeignKey:TrackerQuery"`
 }
