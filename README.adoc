@@ -263,7 +263,7 @@ NOTE: The CLI needs the API Server which was started on executing `make dev`  to
 Create a work item.
 
 ----
-$ ./bin/alm-cli create workitem --payload '{"type": "1" , "name": "some name", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ ./bin/alm-cli create workitem --payload '{"type": "system.experience" , "fields": {"system.title": "some title", "system.description": "some description",  "system.creator": "tmaeder", "system.state": "new" }}' -H localhost:8080
 ----
 
 Retrieve the work item.
