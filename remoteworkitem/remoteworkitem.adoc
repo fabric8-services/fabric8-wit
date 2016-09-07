@@ -78,7 +78,7 @@ instance: https://github.com/golang/go/issues/7619
 The tracker creation taking place through the schedule which starts
 during the process startup.  There is a method part of the public API
 which can be called to re-schedule fetch and import.  This method is
-invoked when any modification (Create/Upodate/Delete) happens to
+invoked when any modification (Create/Update/Delete) happens to
 tracker and tracker query.
 
 == Mapping
