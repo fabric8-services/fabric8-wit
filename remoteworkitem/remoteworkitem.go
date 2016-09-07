@@ -12,6 +12,7 @@ const (
 	SystemDescription  = "system.description"
 	SystemStatus       = "system.status"
 	ProviderGithub     = "github"
+	ProviderJira       = "jira"
 )
 
 var WorkItemKeyMaps = map[string]WorkItemMap{
@@ -42,6 +43,7 @@ type RemoteWorkItem struct {
 
 var RemoteWorkItemImplRegistry = map[string]func(RemoteWorkItem) (AttributeAccesor, error){
 	ProviderGithub: NewGitHubRemoteWorkItem,
+	ProviderJira:   NewJiraRemoteWorkItem,
 }
 
 // GitHubRemoteWorkItem knows how to implement a FieldAccessor on a GitHub Issue JSON struct
@@ -61,6 +63,26 @@ func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
 
 func (gh GitHubRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return gh.issue[string(field)]
+}
+
+// JiraRemoteWorkItem knows how to implement a FieldAccessor on a Jira Issue JSON struct
+type JiraRemoteWorkItem struct {
+	issue map[string]interface{}
+}
+
+// NewJiraRemoteWorkItem creates a new Decoded AttributeAccessor for a GitHub Issue
+func NewJiraRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
+	var j map[string]interface{}
+	err := json.Unmarshal(item.Content, &j)
+	if err != nil {
+		return nil, err
+	}
+	// TODO for sbose: Flatten !
+	return JiraRemoteWorkItem{issue: j}, nil
+}
+
+func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
+	return jira.issue[string(field)]
 }
 
 // Map maps the remote WorkItem to a local WorkItem

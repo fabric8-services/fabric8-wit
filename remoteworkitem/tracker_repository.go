@@ -20,14 +20,11 @@ func NewTrackerRepository(ts *GormTransactionSupport) *GormTrackerRepository {
 	return &GormTrackerRepository{ts}
 }
 
-var trackerTypes = map[string]string{
-	"github": "Github",
-	"jira":   "Jira"}
-
 // Create creates a new tracker configuration in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID string) (*app.Tracker, error) {
-	_, present := trackerTypes[typeID]
+	_, present := RemoteWorkItemImplRegistry[typeID]
+	// Ensure we support this remote tracker.
 	if present != true {
 		return nil, BadParameterError{parameter: "type", value: typeID}
 	}

@@ -62,9 +62,9 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 // LookupProvider provides the respective tracker based on the type
 func LookupProvider(ts trackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
-	case "github":
+	case ProviderGithub:
 		return &Github{URL: ts.URL, Query: ts.Query}
-	case "jira":
+	case ProviderJira:
 		return &Jira{URL: ts.URL, Query: ts.Query}
 	}
 	return nil
