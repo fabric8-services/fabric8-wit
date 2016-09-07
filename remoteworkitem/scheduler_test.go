@@ -8,18 +8,22 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 )
 
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-		if "" == dbhost {
-			panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
-		}
 		var err error
-		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbhost))
+		db, err = gorm.Open("postgres",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+				viper.GetString("postgres.host"),
+				viper.GetInt64("postgres.port"),
+				viper.GetString("postgres.user"),
+				viper.GetString("postgres.password"),
+				viper.GetString("postgres.sslmode"),
+			))
 		if err != nil {
 			panic("failed to connect database: " + err.Error())
 		}

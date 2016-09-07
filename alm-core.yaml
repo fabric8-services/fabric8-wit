@@ -1,0 +1,8 @@
+postgres:
+  #host: hostFromConfigFile
+  port: 5432
+  user: postgres
+  password: mysecretpassword2
+http:
+  bind_address: 0.0.0.0
+  port: 8080

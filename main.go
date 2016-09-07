@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	"os"
 	"os/user"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -19,9 +19,11 @@ import (
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 	token "github.com/dgrijalva/jwt-go"
+	"github.com/fsnotify/fsnotify"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -29,40 +31,38 @@ var (
 	Commit = "0"
 	// BuildTime set by build script
 	BuildTime = "0"
-	// Development enables certain dev only features, like auto token generation
-	Development = false
-)
-
-const (
-	// DBMaxRetryAttempts is the number of times alm server will attempt to open a connection to the database before it gives up
-	DBMaxRetryAttempts int = 50
 )
 
 func main() {
 	printUserInfo()
 
-	var dbHost string
+	// --------------------------------------------------------------------
+	// Parse flags
+	// --------------------------------------------------------------------
+	var configFilePath string
 	var scheduler *remoteworkitem.Scheduler
-
-	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
-	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
+	flag.StringVar(&configFilePath, "config", "alm-core.yaml", "Path to the config file to read")
 	flag.Parse()
 
-	if len(dbHost) == 0 {
-		dbHost = os.Getenv("DBHOST")
-	}
-
-	if len(dbHost) == 0 {
-		dbHost = "localhost"
+	var err error
+	if err = setupConfiguration(configFilePath); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
 	var db *gorm.DB
-	var err error
-	for i := 1; i <= DBMaxRetryAttempts; i++ {
-		fmt.Printf("Opening DB connection attempt %d of %d\n", i, DBMaxRetryAttempts)
-		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+	//var err error
+	for i := 1; i <= viper.GetInt("postgres.connection.maxretries"); i++ {
+		fmt.Printf("Opening DB connection attempt %d of %d\n", i, viper.GetInt64("postgres.connection.maxretries"))
+		db, err = gorm.Open("postgres",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+				viper.GetString("postgres.host"),
+				viper.GetInt64("postgres.port"),
+				viper.GetString("postgres.user"),
+				viper.GetString("postgres.password"),
+				viper.GetString("postgres.sslmode"),
+			))
 		if err != nil {
-			time.Sleep(time.Second)
+			time.Sleep(time.Second * time.Duration(viper.GetInt64("postgres.connection.retrysleep")))
 		} else {
 			defer db.Close()
 			break
@@ -132,7 +132,7 @@ func main() {
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
-	fmt.Println("Dev mode:       ", Development)
+	fmt.Println("Dev mode:       ", viper.GetBool("developer.mode.enabled"))
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
@@ -146,7 +146,7 @@ func main() {
 	})
 
 	// Start http
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(viper.GetString("http.address"), nil); err != nil {
 		service.LogError("startup", "err", err)
 	}
 
@@ -167,4 +167,63 @@ func printUserInfo() {
 			}
 		*/
 	}
+}
+
+func setupConfiguration(configFilePath string) error {
+	viper.Reset()
+
+	// Explicitly specify which file to load config from
+	viper.SetConfigFile(configFilePath)
+	viper.SetConfigType("yaml")
+
+	// Expect environment variables to be prefix with "ALMIGHTY_".
+	viper.SetEnvPrefix("ALMIGHTY")
+
+	// Automatically map environment variables to viper values
+	viper.AutomaticEnv()
+
+	// To override nested variables through environment variables, we
+	// need to make sure that we don't have to use dots (".") inside the
+	// environment variable names.
+	// To override foo.bar you need to set ALM_FOO_BAR
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	setConfigDefaults()
+
+	// Read the config
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		return fmt.Errorf("Fatal error config file: %s \n", err)
+	}
+
+	// Watch for config changes
+	viper.WatchConfig()
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		fmt.Println("Config file changed:", e.Name)
+	})
+	viper.Debug()
+
+	return nil
+}
+
+func setConfigDefaults() {
+	//---------
+	// Postgres
+	//---------
+	viper.SetDefault("postgres.host", "localhost")
+	viper.SetDefault("postgres.port", 5432)
+	viper.SetDefault("postgres.password", "mysecretpassword")
+	viper.SetDefault("postgres.sslmode", "disable")
+	// The number of times alm server will attempt to open a connection to the database before it gives up
+	viper.SetDefault("postgres.connection.maxretries", 50)
+	// Number of seconds to wait before trying to connect again
+	viper.SetDefault("postgres.connection.retrysleep", 1)
+
+	//-----
+	// HTTP
+	//-----
+	viper.SetDefault("http.address", "0.0.0.0:8080")
+
+	// Enable development related features, e.g. token generation endpoint
+	viper.SetDefault("developer.mode.enabled", false)
 }
