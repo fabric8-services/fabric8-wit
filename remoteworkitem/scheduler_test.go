@@ -49,12 +49,12 @@ func TestNewScheduler(t *testing.T) {
 }
 
 func TestLookupProvider(t *testing.T) {
-	ts1 := trackerSchedule{TrackerType: "github"}
+	ts1 := trackerSchedule{TrackerType: ProviderGithub}
 	tp1 := LookupProvider(ts1)
 	if tp1 == nil {
 		t.Error("nil provider")
 	}
-	ts2 := trackerSchedule{TrackerType: "jira"}
+	ts2 := trackerSchedule{TrackerType: ProviderJira}
 	tp2 := LookupProvider(ts2)
 	if tp2 == nil {
 		t.Error("nil provider")
