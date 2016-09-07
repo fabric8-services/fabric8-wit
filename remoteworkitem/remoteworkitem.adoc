@@ -12,7 +12,8 @@ remote work item implemented using four major components:
 Tracker:: The basic configuration for a remote tracker (type, URL)
 Tracker Query:: The tracker specific query and schedule to fetch and import remote items
 Tracker Item:: Store the raw data with a remote item ID
-Remote Work Item Mapping:: Creates a remote work item from the tracker item and map it
+Remote Work Item Mapping:: Creates a remote work item from the tracker item and map the
+fields used in ALMighty and the remote tracker
 
 == Tracker
 
