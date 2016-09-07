@@ -3,10 +3,10 @@ package login
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/token"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -18,18 +18,20 @@ type Service interface {
 }
 
 // NewGitHubOAuth creates a new login.Service capable of using GitHub for authorization
-func NewGitHubOAuth(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository) Service {
+func NewGitHubOAuth(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager) Service {
 	return &gitHubOAuth{
-		config:     config,
-		identities: identities,
-		users:      users,
+		config:       config,
+		identities:   identities,
+		users:        users,
+		tokenManager: tokenManager,
 	}
 }
 
 type gitHubOAuth struct {
-	config     *oauth2.Config
-	identities account.IdentityRepository
-	users      account.UserRepository
+	config       *oauth2.Config
+	identities   account.IdentityRepository
+	users        account.UserRepository
+	tokenManager token.Manager
 }
 
 // TEMP: This will leak memory in the long run with many 'failed' redirect attemts
@@ -51,13 +53,13 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			return ctx.Unauthorized()
 		}
 
-		token, err := gh.config.Exchange(ctx, code)
+		ghtoken, err := gh.config.Exchange(ctx, code)
 		if err != nil {
 			fmt.Println(err)
 			return ctx.Unauthorized()
 		}
 
-		emails, err := gh.getUserEmails(ctx, token)
+		emails, err := gh.getUserEmails(ctx, ghtoken)
 		fmt.Println(emails)
 
 		primaryEmail := filterPrimaryEmail(emails)
@@ -73,7 +75,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		var identity account.Identity
 		if len(users) == 0 {
 			// No User found, create new User and Identity
-			ghUser, err := gh.getUser(ctx, token)
+			ghUser, err := gh.getUser(ctx, ghtoken)
 			if err != nil {
 				fmt.Println(err)
 				return ctx.Unauthorized()
@@ -92,13 +94,12 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		fmt.Println("Identity: ", identity)
 
-		// register emails in User table
+		// register other emails in User table?
 
 		// generate token
+		almtoken := gh.tokenManager.Generate(identity)
 
-		ctx.ResponseData.Header().Set("Location", referer)
-		cookie := http.Cookie{Name: "almighty", Value: "weee", Domain: "localhost"}
-		http.SetCookie(ctx.ResponseWriter, &cookie)
+		ctx.ResponseData.Header().Set("Location", referer+"?token="+almtoken)
 		return ctx.TemporaryRedirect()
 	}
 
