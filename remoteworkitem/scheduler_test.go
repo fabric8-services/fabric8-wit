@@ -33,7 +33,6 @@ func TestMain(m *testing.M) {
 		&Tracker{},
 		&TrackerQuery{},
 		&TrackerItem{})
-	db.Model(&TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
 	ec := m.Run()
 	os.Exit(ec)
 }
