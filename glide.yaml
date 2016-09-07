@@ -19,6 +19,8 @@ import:
   - goatest
   - middleware
   - middleware/security/jwt
+- package: github.com/dimfeld/httptreemux
+  version: ^3.1.0
 - package: github.com/lsegal/gucumber
 - package: github.com/spf13/cobra
 - package: golang.org/x/net

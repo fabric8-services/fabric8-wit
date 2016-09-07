@@ -16,8 +16,11 @@ type tokenManager struct {
 }
 
 // NewManager returns a new token Manager for handling creation of tokens
-func NewManager(privateKey, publicKey string) Manager {
-	return &tokenManager{}
+func NewManager(privateKey string, publicKey string) Manager {
+	return &tokenManager{
+		privateKey: privateKey,
+		publicKey:  publicKey,
+	}
 }
 
 func (mgm tokenManager) Generate(ident account.Identity) string {
