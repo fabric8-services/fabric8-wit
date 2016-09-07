@@ -7,12 +7,10 @@ import "github.com/almighty/almighty-core/models"
 type TrackerItem struct {
 	models.Lifecycle
 	ID uint64 `gorm:"primary_key"`
-	// Remote item ID
-	RemoteItemID string
+	// Remote item ID - unique across multiple trackers
+	RemoteItemID string `gorm:"not null;unique"`
 	// the field values
 	Item string
-	// Batch ID for earch running of tracker query (UUID V4)
-	BatchID string
-	// FK to trackey query
-	TrackerQueryID uint64 `gorm:"ForeignKey:TrackerQuery"`
+	// FK to tracker
+	TrackerID uint64 `gorm:"ForeignKey:Tracker"`
 }

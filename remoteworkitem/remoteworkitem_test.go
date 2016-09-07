@@ -56,7 +56,7 @@ func TestWorkItemMapping(t *testing.T) {
 		AttributeExpression("title"): "system.title",
 	}
 	jsonContent := `{"title":"abc"}`
-	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteTrackerItem)
@@ -80,7 +80,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	workItemMap := WorkItemKeyMaps[ProviderGithub]
-	remoteTrackerkItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+	remoteTrackerkItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteTrackerkItem)
@@ -108,7 +108,7 @@ func TestJiraIssueMapping(t *testing.T) {
 	}
 
 	workItemMap := WorkItemKeyMaps[ProviderJira]
-	remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+	remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderJira]
 	ji, err := remoteWorkItemImpl(remoteTrackerItem)
 
@@ -231,7 +231,7 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
-	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
 
 	githubRemoteWorkItem, ok := NewGitHubRemoteWorkItem(remoteTrackerItem)
 	assert.Nil(t, ok)
@@ -246,7 +246,7 @@ func TestNewJiraRemoteWorkItem(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
-	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
 
 	jiraRemoteWorkItem, ok := NewJiraRemoteWorkItem(remoteTrackerItem)
 	assert.Nil(t, ok)

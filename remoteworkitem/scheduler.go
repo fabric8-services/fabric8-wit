@@ -9,11 +9,11 @@ import (
 
 // TrackerSchedule capture all configuration
 type trackerSchedule struct {
-	TrackerQueryID int
-	URL            string
-	TrackerType    string
-	Query          string
-	Schedule       string
+	TrackerID   int
+	URL         string
+	TrackerType string
+	Query       string
+	Schedule    string
 }
 
 // Scheduler represents scheduler
@@ -43,7 +43,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := LookupProvider(tq)
 			for i := range tr.Fetch() {
-				upload(s.db, tq.TrackerQueryID, i)
+				upload(s.db, tq.TrackerID, i)
 			}
 		})
 	}
@@ -52,7 +52,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
-	err := db.Table("tracker_queries").Select("tracker_queries.id as tracker_query_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
+	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
 		log.Printf("Fetch failed %v\n", err)
 	}
