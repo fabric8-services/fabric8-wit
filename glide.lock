@@ -1,5 +1,5 @@
-hash: 2a937eca83e682c8dbb47a00c5c5781caed9f9bc366bea57dd432cd662fadd78
-updated: 2016-08-26T15:43:46.715540044+02:00
+hash: 1f24ea00810af4a4fc89e16acd6ddf324a5033ba2b7e89fe77c7f6bdf08f9e00
+updated: 2016-09-07T17:29:21.220520651+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -18,13 +18,13 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 612c3d8e47f5a166d9346b694cf2aeb68eff5369
+  version: 2b442cd17d33755a60a283b7e133ea51a94994a4
 - name: github.com/elazarl/go-bindata-assetfs
   version: 57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2
   subpackages:
   - go-bindata-assetfs
 - name: github.com/goadesign/goa
-  version: 90e6c399f49c4125bbadf91eaa60156b9aa2a65e
+  version: 114ecb88f11ee21dcb9130280b0a580ecf8f7569
   vcs: git
   subpackages:
   - client
@@ -42,6 +42,10 @@ imports:
   - dslengine
 - name: github.com/goadesign/gorma
   version: f7116846126a4cb17a0cddd6b3b429ad1592f260
+- name: github.com/golang/protobuf
+  version: 1f49d83d9aa00e6ce4fc8258c71cc7786aec968a
+  subpackages:
+  - proto
 - name: github.com/google/go-github
   version: a59a35745f99ad92d70d69a9f180767063aa4bf3
   subpackages:
@@ -95,6 +99,7 @@ imports:
   subpackages:
   - assert
   - suite
+  - require
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
@@ -104,10 +109,25 @@ imports:
   subpackages:
   - context
   - websocket
+- name: golang.org/x/oauth2
+  version: 4d549c893be7d4011bab739cc585d091a7188d27
+  subpackages:
+  - github
+  - internal
 - name: golang.org/x/tools
   version: 527b253f588776e5f72a0a0d1e93195cd3f82707
   subpackages:
   - go/ast/astutil
+- name: google.golang.org/appengine
+  version: 4f7eeb5305a4ba1966344836ba4af9996b7b4e05
+  subpackages:
+  - urlfetch
+  - internal
+  - internal/urlfetch
+  - internal/base
+  - internal/datastore
+  - internal/log
+  - internal/remote_api
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
