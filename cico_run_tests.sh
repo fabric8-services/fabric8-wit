@@ -6,6 +6,8 @@ set -x
 # Exit on error
 set -e
 
+env
+
 # We need to disable selinux for now, XXX
 /usr/sbin/setenforce 0
 
