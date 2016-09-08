@@ -374,7 +374,6 @@ $(COV_PATH_INTEGRATION): $(SOURCES)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
 	@-rm -f $(ERRORS_FILE)
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
-	export ALMIGHTY_RUN_INTEGRATION_TESTS=1
 	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0))
 	$(call check-test-results,$(ERRORS_FILE))
 
