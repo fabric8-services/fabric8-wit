@@ -11,16 +11,43 @@ const (
 	SystemTitle        = "system.title"
 	SystemDescription  = "system.description"
 	SystemStatus       = "system.status"
-	ProviderGithub     = "github"
-	ProviderJira       = "jira"
+	SystemAssignee     = "system.assignee"
+	SystemCreator      = "system.creator"
+
+	GithubTitle       = "title"
+	GithubDescription = "body"
+	GithubState       = "state"
+	GithubId          = "id"
+	GithubCreator     = "user.login"
+	GithubAssignee    = "assignee.login"
+
+	JiraTitle    = "fields.summary"
+	JiraBody     = "fields.description"
+	JiraState    = "fields.status.name"
+	JiraId       = "self"
+	JiraCreator  = "fields.creator.key"
+	JiraAssignee = "fields.assignee"
+
+	ProviderGithub = "github"
+	ProviderJira   = "jira"
 )
 
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
-		AttributeExpression("title"): SystemTitle,
-		AttributeExpression("body"):  SystemDescription,
-		AttributeExpression("state"): SystemStatus,
-		AttributeExpression("id"):    SystemRemoteItemId,
+		AttributeExpression(GithubTitle):       SystemTitle,
+		AttributeExpression(GithubDescription): SystemDescription,
+		AttributeExpression(GithubState):       SystemStatus,
+		AttributeExpression(GithubId):          SystemRemoteItemId,
+		AttributeExpression(GithubCreator):     SystemCreator,
+		AttributeExpression(GithubAssignee):    SystemAssignee,
+	},
+	ProviderJira: WorkItemMap{
+		AttributeExpression(JiraTitle):    SystemTitle,
+		AttributeExpression(JiraBody):     SystemDescription,
+		AttributeExpression(JiraState):    SystemStatus,
+		AttributeExpression(JiraId):       SystemRemoteItemId,
+		AttributeExpression(JiraCreator):  SystemCreator,
+		AttributeExpression(JiraAssignee): SystemAssignee,
 	},
 }
 
@@ -58,6 +85,7 @@ func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
 	if err != nil {
 		return nil, err
 	}
+	j = Flatten(j)
 	return GitHubRemoteWorkItem{issue: j}, nil
 }
 
@@ -78,6 +106,7 @@ func NewJiraRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
 		return nil, err
 	}
 	// TODO for sbose: Flatten !
+	j = Flatten(j)
 	return JiraRemoteWorkItem{issue: j}, nil
 }
 
