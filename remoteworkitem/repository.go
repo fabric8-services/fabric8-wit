@@ -17,7 +17,7 @@ type TrackerRepository interface {
 
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
 type TrackerQueryRepository interface {
-	Create(ctx context.Context, query string, schedule string, tracker uint64) (*app.TrackerQuery, error)
+	Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error)
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
 }

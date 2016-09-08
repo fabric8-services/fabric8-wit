@@ -21,8 +21,12 @@ func NewTrackerQueryRepository(ts *GormTransactionSupport) *GormTrackerQueryRepo
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker uint64) (*app.TrackerQuery, error) {
-	tid := tracker
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error) {
+	tid, err := strconv.ParseUint(tracker, 10, 64)
+	if err != nil {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, NotFoundError{"tracker query", tracker}
+	}
 	fmt.Printf("tracker id: %v", tid)
 	tq := TrackerQuery{
 		Query:     query,
@@ -34,10 +38,10 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 	log.Printf("created tracker query %v\n", tq)
 	tq2 := app.TrackerQuery{
-		ID:        string(tq.ID),
+		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: int(tid)}
+		TrackerID: strconv.FormatUint(tid, 10)}
 
 	return &tq2, nil
 }
@@ -58,10 +62,10 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NotFoundError{"tracker query", ID}
 	}
 	tq := app.TrackerQuery{
-		ID:        string(res.ID),
+		ID:        strconv.FormatUint(res.ID, 10),
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: int(res.TrackerID)}
+		TrackerID: strconv.FormatUint(res.TrackerID, 10)}
 
 	return &tq, nil
 }
