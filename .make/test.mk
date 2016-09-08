@@ -240,7 +240,7 @@ coverage-unit: prebuild-check $(COV_PATH_UNIT)
 coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
 	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@go tool cover -func=$(COV_PATH_INTEGRATION)
-	#$(call package-coverage,integration)
+	$(call package-coverage,integration)
 
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
