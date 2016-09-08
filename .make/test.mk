@@ -322,7 +322,14 @@ $(eval ENV_VAR := $(5))
 
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@$(ENV_VAR) ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) go test $(PACKAGE_NAME) -v -coverprofile $(COV_OUT_FILE) -covermode=$(COVERAGE_MODE) -timeout 10m $(EXTRA_TEST_PARAMS) || echo $(PACKAGE_NAME) >> $(ERRORS_FILE)
+@$(ENV_VAR) ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) \
+	go test $(PACKAGE_NAME) \
+		-v \
+		-coverprofile $(COV_OUT_FILE) \
+		-covermode=$(COVERAGE_MODE) \
+		-timeout 10m \
+		$(EXTRA_TEST_PARAMS) \
+	|| echo $(PACKAGE_NAME) >> $(ERRORS_FILE)
 
 @if [ -e "$(COV_OUT_FILE)" ]; then \
 	tail -n +2 $(COV_OUT_FILE) >> $(COMBINED_OUT_FILE); \
