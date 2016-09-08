@@ -38,10 +38,10 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 	log.Printf("created tracker query %v\n", tq)
 	tq2 := app.TrackerQuery{
-		ID:        string(tq.ID),
+		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: string(tid)}
+		TrackerID: strconv.FormatUint(tid, 10)}
 
 	return &tq2, nil
 }
@@ -62,10 +62,10 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NotFoundError{"tracker query", ID}
 	}
 	tq := app.TrackerQuery{
-		ID:        string(res.ID),
+		ID:        strconv.FormatUint(res.ID, 10),
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: string(res.TrackerID)}
+		TrackerID: strconv.FormatUint(res.TrackerID, 10)}
 
 	return &tq, nil
 }
