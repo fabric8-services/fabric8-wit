@@ -130,7 +130,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
-	payload := app.CreateWorkitemtypePayload{
+	payload := app.CreateWorkItemTypePayload{
 		Fields: map[string]*app.FieldDefinition{
 			"animal_type": &typeFieldDef,
 			"color":       &colorFieldDef,
@@ -154,7 +154,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
-	payload := app.CreateWorkitemtypePayload{
+	payload := app.CreateWorkItemTypePayload{
 		Fields: map[string]*app.FieldDefinition{
 			"name": &nameFieldDef,
 		},
