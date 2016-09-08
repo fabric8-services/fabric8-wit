@@ -263,7 +263,7 @@ NOTE: The CLI needs the API Server which was started on executing `make dev`  to
 
 Create a work item type.
 ----
-./bin/alm-cli create workitemtype --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
+./bin/alm-cli create workitemtype --payload '{"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
 ----
 Note: Work Item Type `Name` is unique. If one tries to create another work item type with same name, error will be trown.
 
@@ -278,10 +278,13 @@ List all available work item types.
 $ ./bin/alm-cli list workitemtype -H localhost:8080 --pp
 ----
 
-Create a work item. We need to use name of work item type in the `type` field below.
+Create a work item.
+
+Based on WorkItemType created above, we can create WorkItem.
+We need to use name of work item type in the `type` field below.
 
 ----
-$ ./bin/alm-cli create workitem --payload '{"type": "Epic" , "name": "some name", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ ./bin/alm-cli create workitem --payload '{"type": "Epic", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
 ----
 
 Retrieve the work item.
