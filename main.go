@@ -119,9 +119,9 @@ func main() {
 		Scopes:       []string{"user:email"},
 		Endpoint:     github.Endpoint,
 	}
-	tokenManager := token.NewManager(token.RSAPrivateKey, token.RSAPublicKey)
+	tokenManager := token.NewManager(token.RSAPrivateKey)
 	loginService := login.NewGitHubOAuth(oauth, identityRepository, userRepository, tokenManager)
-	loginCtrl := NewLoginController(service, loginService)
+	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 
 	// Mount "version" controller
@@ -149,7 +149,7 @@ func main() {
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "user" controller
-	userCtrl := NewUserController(service, identityRepository)
+	userCtrl := NewUserController(service, identityRepository, tokenManager)
 	app.MountUserController(service, userCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)

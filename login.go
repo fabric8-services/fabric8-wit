@@ -1,41 +1,28 @@
 package main
 
 import (
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // LoginController implements the login resource.
 type LoginController struct {
 	*goa.Controller
-	auth login.Service
+	auth         login.Service
+	tokenManager token.Manager
 }
 
 // NewLoginController creates a login controller.
-func NewLoginController(service *goa.Service, auth login.Service) *LoginController {
-	return &LoginController{Controller: service.NewController("login"), auth: auth}
+func NewLoginController(service *goa.Service, auth login.Service, tokenManager token.Manager) *LoginController {
+	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager}
 }
 
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
-	/*
-		token := jwt.New(jwt.SigningMethodRS256)
-		token.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(time.Hour * 72).Unix()
-		token.Claims.(jwt.MapClaims)["scopes"] = []string{"system"}
-
-		key, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSAPrivateKey)))
-		if err != nil {
-			panic(err)
-		}
-
-		tokenStr, err := token.SignedString(key)
-		if err != nil {
-			panic(err)
-		}
-		authToken := app.AuthToken{Token: tokenStr}
-		return ctx.OK(&authToken)
-	*/
 	return c.auth.Perform(ctx)
 }
 
@@ -45,41 +32,20 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		return ctx.Unauthorized()
 	}
 
-	type User struct {
-		Name   string
-		Scopes []string
+	var scopes []account.Identity
+	scopes = append(scopes, account.Identity{
+		ID:       uuid.NewV4(),
+		FullName: "Test Developer",
+	})
+	scopes = append(scopes, account.Identity{
+		ID:       uuid.NewV4(),
+		FullName: "Test Observer",
+	})
+
+	var tokens app.AuthTokenCollection
+	for _, user := range scopes {
+		tokenStr := c.tokenManager.Generate(user)
+		tokens = append(tokens, &app.AuthToken{Token: tokenStr})
 	}
-	/*
-		var scopes []User
-		scopes = append(scopes, User{
-			Name:   "Test Developer",
-			Scopes: Permissions.CRUDWotkItem(),
-		})
-		scopes = append(scopes, User{
-			Name:   "Test Observer",
-			Scopes: []string{Permissions.ReadWorkItem},
-		})
-
-		var tokens app.AuthTokenCollection
-		for _, user := range scopes {
-			token := jwt.New(jwt.SigningMethodRS256)
-
-			token.Claims.(jwt.MapClaims)["exp"] = time.Now().Add(time.Hour * 72).Unix()
-			token.Claims.(jwt.MapClaims)["scopes"] = user.Scopes
-			token.Claims.(jwt.MapClaims)["name"] = user.Name
-
-			key, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSAPrivateKey)))
-			if err != nil {
-				panic(err)
-			}
-
-			tokenStr, err := token.SignedString(key)
-			if err != nil {
-				panic(err)
-			}
-			tokens = append(tokens, &app.AuthToken{Token: tokenStr})
-
-		}
-	*/
-	return ctx.OK(app.AuthTokenCollection{})
+	return ctx.OK(tokens)
 }
