@@ -1,8 +1,7 @@
-// +build unit
-
 package remoteworkitem
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -77,4 +76,21 @@ func TestGitHubIssueMapping(t *testing.T) {
 			t.Error(fmt.Sprintf("%s not mapped", localWorkItemKey))
 		}
 	}
+}
+
+func TestFlattenGithubResponseMap(t *testing.T) {
+	testString, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubData)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var nestedMap map[string]interface{}
+	err = json.Unmarshal(testString, &nestedMap)
+
+	if err != nil {
+		t.Error("Incorrect dataset ", testString)
+	}
+
+	flattendedMap := Flatten(nestedMap)
+	t.Log("Initial multi level map : ", nestedMap)
+	t.Log("Flattened map : ", flattendedMap)
 }
