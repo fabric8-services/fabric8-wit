@@ -169,6 +169,51 @@ endif
 # tests are executed. If they don't exist, we first run the tests.
 #-------------------------------------------------------------------------------
 
+# Prints the total coverage of a given package.
+# The total coverage is printed as the last argument in the
+# output of "go tool cover". If the requested test name (first argument)
+# Is *, then unit and integration tests will be combined
+define print-package-coverage
+$(eval TEST_NAME:=$(1))
+$(eval PACKAGE_NAME:=$(2))
+$(eval COV_FILE:="$(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE)")
+ @if [ "$(TEST_NAME)" == "*" ]; then \
+  UNIT_FILE=`echo $(COV_FILE) | sed 's/*/unit/'`; \
+  INTEGRATON_FILE=`echo $(COV_FILE) | sed 's/*/integration/'`; \
+ 	COV_FILE=`echo $(COV_FILE) | sed 's/*/combined/'`; \
+	if [ ! -e $${UNIT_FILE} ]; then \
+		COV_FILE=$${INTEGRATON_FILE}; \
+  fi; \
+	if [ ! -e $${INTEGRATON_FILE} ]; then \
+		COV_FILE=$${UNIT_FILE}; \
+  fi; \
+  if [ -e $${INTEGRATON_FILE} ]; then \
+  	if [ -e $${UNIT_FILE} ]; then \
+			$(GOCOVMERGE_BIN) $${UNIT_FILE} $${INTEGRATION_FILE} > $${COV_FILE}; \
+		fi; \
+	fi; \
+else \
+	COV_FILE=$(COV_FILE); \
+fi; \
+if [ -e "$${COV_FILE}" ]; then \
+	VAL=`go tool cover -func=$${COV_FILE} \
+		| grep '^total:' \
+		| grep '\S\+$$' -o \
+		| sed 's/%//'`; \
+	printf "%-80s %2.2f%%\n" "$(PACKAGE_NAME)" "$${VAL}"; \
+else \
+	printf "%-80s %6s\n" "$(PACKAGE_NAME)" "n/a"; \
+fi
+endef
+
+# Iterates over every package and prints its test coverage
+# for a given test name ("unit" or "integration").
+define package-coverage
+$(eval TEST_NAME:=$(1))
+@printf "\n\nPackage coverage:\n"
+$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
+$(foreach package, $(TEST_PACKAGES), $(call print-package-coverage,$(TEST_NAME),$(package)))
+endef
 
 $(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
 	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) > $(COV_PATH_OVERALL)
@@ -187,6 +232,7 @@ endef
 coverage-unit: prebuild-check $(COV_PATH_UNIT)
 	$(call cleanup-coverage-file,$(COV_PATH_UNIT))
 	@go tool cover -func=$(COV_PATH_UNIT)
+	$(call package-coverage,unit)
 
 .PHONY: coverage-integration
 ## Output coverage profile information for each function (only based on integration tests).
@@ -194,6 +240,7 @@ coverage-unit: prebuild-check $(COV_PATH_UNIT)
 coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
 	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@go tool cover -func=$(COV_PATH_INTEGRATION)
+	#$(call package-coverage,integration)
 
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
@@ -201,6 +248,7 @@ coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
 coverage-all: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
 	$(call cleanup-coverage-file,$(COV_PATH_OVERALL))
 	@go tool cover -func=$(COV_PATH_OVERALL)
+	$(call package-coverage,*)
 
 # HTML coverage output:
 
