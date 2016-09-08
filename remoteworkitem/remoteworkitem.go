@@ -22,6 +22,12 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 		AttributeExpression("state"): SystemStatus,
 		AttributeExpression("id"):    SystemRemoteItemId,
 	},
+	ProviderJira: WorkItemMap{
+		AttributeExpression("fields.summary"):     SystemTitle,
+		AttributeExpression("fields.description"): SystemDescription,
+		AttributeExpression("fields.status.name"): SystemStatus,
+		AttributeExpression("self"):               SystemRemoteItemId,
+	},
 }
 
 type WorkItemMap map[AttributeExpression]string
