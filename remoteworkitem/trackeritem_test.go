@@ -51,5 +51,9 @@ func TestUpload(t *testing.T) {
 	if ti2.TrackerQueryID != tq.ID {
 		t.Errorf("Tracker query ID not saved: %s", tq.ID)
 	}
-
+	var count int
+	db.Model(&TrackerItem{}).Where("remote_item_id = ?", i["id"]).Count(&count)
+	if count > 1 {
+		t.Errorf("More records found: %d", count)
+	}
 }
