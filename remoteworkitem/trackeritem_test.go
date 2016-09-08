@@ -22,9 +22,34 @@ func TestUpload(t *testing.T) {
 	if err != nil {
 		t.Error("Create error:", err)
 	}
+	ti1 := TrackerItem{}
+	db.Where("remote_item_id = ?", i["id"]).Find(&ti1)
+	if ti1.Item != i["content"] {
+		t.Errorf("Content not saved: %s", i["content"])
+	}
+	if ti1.BatchID != i["batch_id"] {
+		t.Errorf("Batch ID not saved: %s", i["batch_id"])
+	}
+	if ti1.TrackerQueryID != tq.ID {
+		t.Errorf("Tracker query ID not saved: %s", tq.ID)
+	}
+
+	i = map[string]string{"content": "some text 2", "id": "https://github.com/golang/go/issues/124", "batch_id": "11"}
 	// update
 	err = upload(db, int(tq.ID), i)
 	if err != nil {
 		t.Error("Update error:", err)
 	}
+	ti2 := TrackerItem{}
+	db.Where("remote_item_id = ?", i["id"]).Find(&ti2)
+	if ti2.Item != i["content"] {
+		t.Errorf("Content not saved: %s", i["content"])
+	}
+	if ti2.BatchID != i["batch_id"] {
+		t.Errorf("Batch ID not saved: %s", i["batch_id"])
+	}
+	if ti2.TrackerQueryID != tq.ID {
+		t.Errorf("Tracker query ID not saved: %s", tq.ID)
+	}
+
 }
