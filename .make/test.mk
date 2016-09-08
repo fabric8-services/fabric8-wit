@@ -200,7 +200,7 @@ if [ -e "$${COV_FILE}" ]; then \
 		| grep '^total:' \
 		| grep '\S\+$$' -o \
 		| sed 's/%//'`; \
-	printf "%-80s %2.2f%%\n" "$(PACKAGE_NAME)" "$${VAL}"; \
+	printf "%-80s %#5.2f%%\n" "$(PACKAGE_NAME)" "$${VAL}"; \
 else \
 	printf "%-80s %6s\n" "$(PACKAGE_NAME)" "n/a"; \
 fi
