@@ -1,25 +1,29 @@
 package token
 
 import (
+	"errors"
+
 	"github.com/almighty/almighty-core/account"
 	jwt "github.com/dgrijalva/jwt-go"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	uuid "github.com/satori/go.uuid"
+	"golang.org/x/net/context"
 )
 
 // Manager generate and find auth token information
 type Manager interface {
 	Generate(account.Identity) string
+	Locate(ctx context.Context) (*uuid.UUID, error)
 }
 
 type tokenManager struct {
 	privateKey string
-	publicKey  string
 }
 
 // NewManager returns a new token Manager for handling creation of tokens
-func NewManager(privateKey string, publicKey string) Manager {
+func NewManager(privateKey string) Manager {
 	return &tokenManager{
 		privateKey: privateKey,
-		publicKey:  publicKey,
 	}
 }
 
@@ -38,6 +42,19 @@ func (mgm tokenManager) Generate(ident account.Identity) string {
 		panic(err)
 	}
 	return tokenStr
+}
+
+func (mgm tokenManager) Locate(ctx context.Context) (*uuid.UUID, error) {
+	token := goajwt.ContextJWT(ctx)
+	id := token.Claims.(jwt.MapClaims)["uuid"]
+	if id == nil {
+		return nil, errors.New("Missing uuid")
+	}
+	idTyped, err := uuid.FromString(id.(string))
+	if err != nil {
+		return nil, errors.New("uuid not of type string")
+	}
+	return &idTyped, nil
 }
 
 // RSAPrivateKey for signing JWT Tokens
