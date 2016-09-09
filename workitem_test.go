@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 
 	"github.com/almighty/almighty-core/resource"
@@ -44,6 +45,10 @@ func TestMain(m *testing.M) {
 	}); err != nil {
 		panic(err.Error())
 	}
+
+	scheduler = remoteworkitem.NewScheduler(db)
+	defer scheduler.Stop()
+
 	os.Exit(m.Run())
 }
 
