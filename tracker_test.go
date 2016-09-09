@@ -9,11 +9,14 @@ import (
 	"github.com/almighty/almighty-core/resource"
 )
 
+var scheduler *remoteworkitem.Scheduler
+
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
+
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: scheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -27,9 +30,10 @@ func TestCreateTracker(t *testing.T) {
 
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
+
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: scheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
