@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
 )
 
