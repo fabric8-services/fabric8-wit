@@ -1,5 +1,3 @@
-// +build integration
-
 package main
 
 import (
@@ -7,9 +5,11 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestCreateTracker(t *testing.T) {
+	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo}
@@ -25,6 +25,7 @@ func TestCreateTracker(t *testing.T) {
 }
 
 func TestGetTracker(t *testing.T) {
+	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo}
