@@ -33,7 +33,21 @@ func TestMain(m *testing.M) {
 		&Tracker{},
 		&TrackerQuery{},
 		&TrackerItem{})
-	db.Model(&TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
+	db.Exec(`CREATE OR REPLACE FUNCTION create_constraint_if_not_exists (t_name TEXT, c_name TEXT, constraint_sql TEXT)
+		RETURNS void AS
+		$func$
+		BEGIN
+		    IF NOT EXISTS (SELECT constraint_name
+		                   FROM information_schema.constraint_column_usage
+		                   WHERE table_name = t_name  AND constraint_name = c_name) THEN
+		        EXECUTE constraint_sql;
+		    END IF;
+		END;
+		$func$
+		LANGUAGE plpgsql`)
+
+	db.Exec(`SELECT create_constraint_if_not_exists('trackers', 'tracker_fk',
+		'ALTER TABLE tracker_queries ADD CONSTRAINT tracker_fk FOREIGN KEY (tracker_id) REFERENCES trackers(id) ON DELETE CASCADE')`)
 	ec := m.Run()
 	os.Exit(ec)
 }
