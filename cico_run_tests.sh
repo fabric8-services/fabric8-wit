@@ -45,3 +45,6 @@ make docker-test-integration
 # Output coverage
 make docker-coverage-all
 
+# Upload coverage to coveralls.io
+cp tmp/coverage.mode-* profile.cov
+vendor/github.com/mattn/goveralls/goveralls -coverprofile=profile.cov -repotoken=TcANY144GHGlWbepmrjNV4TAn9Hmsm23t -service=jenkins
