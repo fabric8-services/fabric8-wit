@@ -274,6 +274,12 @@ coverage-all-html: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
 	@go tool cover -html=$(COV_PATH_OVERALL)
 
 # Experimental:
+#
+.PHONY: coveralls
+## Uploads the coverage to coveralls.io
+coveralls: $(GOVERALLS_BIN)
+	cp $(TMP_PATH)/coverage.mode-* profile.cov
+	$(GOVERALLS_BIN) -coverprofile=profile.cov -repotoken=TcANY144GHGlWbepmrjNV4TAn9Hmsm23t -service=jenkins
 
 .PHONY: gocov-unit-annotate
 ## (EXPERIMENTAL) Show actual code and how it is covered with unit tests.
@@ -386,6 +392,9 @@ $(GOCOV_BIN): prebuild-check
 
 $(GOCOVMERGE_BIN): prebuild-check
 	@cd $(VENDOR_DIR)/github.com/wadey/gocovmerge && go build
+
+$(GOVERALLS_BIN): prebuild-check
+	cd $(VENDOR_DIR)/github.com/mattn/goveralls && go build -v
 
 #-------------------------------------------------------------------------------
 # Clean targets

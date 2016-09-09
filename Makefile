@@ -110,8 +110,6 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
-$(GOVERALLS_BIN): prebuild-check
-	cd $(VENDOR_DIR)/github.com/mattn/goveralls && go build -v
 
 CLEAN_TARGETS += clean-artifacts
 .PHONY: clean-artifacts
