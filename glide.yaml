@@ -68,3 +68,5 @@ import:
   subpackages:
   - query
 - package: github.com/mattn/goveralls
+- package: github.com/pborman/uuid
+  version: ^1.0.0

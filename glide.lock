@@ -1,5 +1,5 @@
-hash: 2531c657c9bd9fb5be6111cde29167d8595b88c44b14016ea5e3f0ace132903d
-updated: 2016-09-09T16:29:10.045245551+02:00
+hash: c384318f9532868432e1588c9ac6b60546f39677b0e9bff1162019cf7edc7210
+updated: 2016-09-09T16:42:26.070517512+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -80,6 +80,8 @@ imports:
   version: 3a115632dcd687f9c8cd01679c83a06a0e21c1f3
 - name: github.com/mattn/goveralls
   version: f4d273b02ce1b4e48acf3662b717aa987bfc4118
+- name: github.com/pborman/uuid
+  version: a97ce2ca70fa5a848076093f05e639a89ca34d06
 - name: github.com/pilu/config
   version: 3eb99e6c0b9a2dae0f56f05552c06ca5a643919b
 - name: github.com/pilu/fresh
