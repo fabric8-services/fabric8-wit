@@ -8,6 +8,19 @@ set -e
 
 env
 
+# Source environment variables of the jenkins slave
+# that might interest this worker.
+if [ -e "jenkins-env" ]; then
+  cat jenkins-env \
+    | grep -E "(JENKINS_URL|GIT_BRANCH|GIT_COMMIT|BUILD_NUMBER|ghprb)" \
+    | grep -v "ghprbPullLongDescription" \
+    | sed 's/^/export /g' \
+    > ~/.jenkins-env
+  source ~/.jenkins-env
+fi
+
+env
+
 # We need to disable selinux for now, XXX
 /usr/sbin/setenforce 0
 
