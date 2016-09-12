@@ -13,8 +13,7 @@ func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	sch := remoteworkitem.NewScheduler(db)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: sch}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -30,8 +29,7 @@ func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	sch := remoteworkitem.NewScheduler(db)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: sch}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -69,8 +67,7 @@ func TestListTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	sch := remoteworkitem.NewScheduler(db)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: sch}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
