@@ -12,7 +12,7 @@ type Equaler interface {
 type DummyEqualer struct {
 }
 
-// Ensure Fields implements the Equaler interface
+// Ensure DummyEqualer implements the Equaler interface
 var _ Equaler = DummyEqualer{}
 var _ Equaler = (*DummyEqualer)(nil)
 
