@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/resource"
+	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 // TestJsonMarshalListType constructs a work item type, writes it to JSON (marshalling),
@@ -71,6 +73,79 @@ func TestMarshalEnumType(t *testing.T) {
 	if !expectedWIT.Equal(parsedWIT) {
 		t.Errorf("Unmarshalled work item type: \n %v \n has not the same type as \"normal\" workitem type: \n %v \n", parsedWIT, expectedWIT)
 	}
+}
+
+func TestWorkItemTypeNotEqual(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	fd := FieldDefinition{
+		Type: EnumType{
+			SimpleType: SimpleType{KindEnum},
+			Values:     []interface{}{"open", "done", "closed"},
+		},
+		Required: true,
+	}
+
+	a := WorkItemType{
+		Name: "foo",
+		Fields: map[string]FieldDefinition{
+			"aListType": fd,
+		},
+	}
+
+	// Test types
+	b := DummyEqualer{}
+	assert.False(t, a.Equal(b))
+
+	// Test lifecycle
+	c := a
+	c.Lifecycle = Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
+	assert.False(t, a.Equal(c))
+
+	// Test version
+	d := a
+	d.Version += 1
+	assert.False(t, a.Equal(d))
+
+	// Test version
+	e := a
+	e.Name = "bar"
+	assert.False(t, a.Equal(e))
+
+	// Test parent path
+	f := a
+	f.ParentPath = "foobar"
+	assert.False(t, a.Equal(f))
+
+	// Test field array length
+	g := a
+	g.Fields = map[string]FieldDefinition{}
+	assert.False(t, a.Equal(g))
+
+	// Test field key existence
+	h := WorkItemType{
+		Name: "foo",
+		Fields: map[string]FieldDefinition{
+			"bar": fd,
+		},
+	}
+	assert.False(t, a.Equal(h))
+
+	// Test field difference
+	i := WorkItemType{
+		Name: "foo",
+		Fields: map[string]FieldDefinition{
+			"aListType": FieldDefinition{
+				Type: EnumType{
+					SimpleType: SimpleType{KindEnum},
+					Values:     []interface{}{"open", "done", "closed"},
+				},
+				Required: false,
+			},
+		},
+	}
+	assert.False(t, a.Equal(i))
+
 }
 
 func TestMarshalFieldDef(t *testing.T) {
