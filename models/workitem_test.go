@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestWorkItemNotEqual(t *testing.T) {
+func TestWorkItem_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	a := WorkItem{

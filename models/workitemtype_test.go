@@ -75,7 +75,7 @@ func TestMarshalEnumType(t *testing.T) {
 	}
 }
 
-func TestWorkItemTypeNotEqual(t *testing.T) {
+func TestWorkItemType_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	fd := FieldDefinition{
