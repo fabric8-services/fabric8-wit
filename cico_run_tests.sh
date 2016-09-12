@@ -45,3 +45,5 @@ make docker-test-integration
 # Output coverage
 make docker-coverage-all
 
+# Upload to coveralls.io
+make docker-coveralls

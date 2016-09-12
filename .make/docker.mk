@@ -134,6 +134,15 @@ ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/
 endif
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make coverage-all
 
+# Upload coverage to coveralls.io
+.PHONY: docker-coveralls
+## Runs "make coveralls" inside the already started docker build container (see "make coveralls").
+docker-coveralls:
+ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
+	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build.")
+endif
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make coveralls
+
 .PHONY: docker-rm
 ## Removes the docker build container, if any (see "make docker-start").
 docker-rm:

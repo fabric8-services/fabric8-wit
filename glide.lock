@@ -1,5 +1,5 @@
-hash: 2a937eca83e682c8dbb47a00c5c5781caed9f9bc366bea57dd432cd662fadd78
-updated: 2016-08-26T15:43:46.715540044+02:00
+hash: c384318f9532868432e1588c9ac6b60546f39677b0e9bff1162019cf7edc7210
+updated: 2016-09-09T16:42:26.070517512+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -78,6 +78,10 @@ imports:
   version: 9056b7a9f2d1f2d96498d6d146acd1f9d5ed3d59
 - name: github.com/mattn/go-isatty
   version: 3a115632dcd687f9c8cd01679c83a06a0e21c1f3
+- name: github.com/mattn/goveralls
+  version: f4d273b02ce1b4e48acf3662b717aa987bfc4118
+- name: github.com/pborman/uuid
+  version: a97ce2ca70fa5a848076093f05e639a89ca34d06
 - name: github.com/pilu/config
   version: 3eb99e6c0b9a2dae0f56f05552c06ca5a643919b
 - name: github.com/pilu/fresh
@@ -95,6 +99,7 @@ imports:
   subpackages:
   - assert
   - suite
+  - require
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
