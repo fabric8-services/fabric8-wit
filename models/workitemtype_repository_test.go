@@ -72,9 +72,9 @@ func TestConvertTypeFromModels(t *testing.T) {
 			"aListType": &app.FieldDefinition{
 				Required: true,
 				Type: &app.FieldType{
-					BaseType:      &stString,
-					Kind:          "enum",
-					Values:        typeEnum,
+					BaseType: &stString,
+					Kind:     "enum",
+					Values:   typeEnum,
 				},
 			},
 		},
@@ -86,4 +86,42 @@ func TestConvertTypeFromModels(t *testing.T) {
 	assert.Equal(t, expected.Version, result.Version)
 	assert.Len(t, result.Fields, len(expected.Fields))
 	assert.Equal(t, expected.Fields, result.Fields)
+}
+
+func TestConvertAnyToKind(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	_, err := convertAnyToKind(1234)
+	assert.NotNil(t, err)
+}
+
+func TestConvertStringToKind(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	_, err := convertStringToKind("DefinitivelyNotAKind")
+	assert.NotNil(t, err)
+}
+
+func TestConvertFieldTypeToModels(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	// Create an enumeration of animal names
+	typeStrings := []string{"open", "done", "closed"}
+
+	// Convert string slice to slice of interface{} in O(n) time.
+	typeEnum := make([]interface{}, len(typeStrings))
+	for i := range typeStrings {
+		typeEnum[i] = typeStrings[i]
+	}
+
+	// Create the type for "animal-type" field based on the enum above
+	stString := "string"
+
+	_ = &app.FieldType{
+		BaseType: &stString,
+		Kind:     "DefinitivelyNotAType",
+		Values:   typeEnum,
+	}
+	_, err := convertFieldTypeToModels(app.FieldType{Kind: "DefinitivelyNotAType"})
+	assert.NotNil(t, err)
 }
