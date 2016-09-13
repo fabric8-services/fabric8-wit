@@ -3,6 +3,7 @@ package account
 import (
 	"time"
 
+	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -11,13 +12,11 @@ import (
 
 // Identity ddenDescribes a unique Person with the ALM
 type Identity struct {
-	ID        uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	CreatedAt time.Time
-	DeletedAt *time.Time
-	Emails    []User // has many Users
-	FullName  string // The fullname of the Identity
-	ImageURL  string // The image URL for this Identity
-	UpdatedAt time.Time
+	models.Lifecycle
+	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	Emails   []User    // has many Users
+	FullName string    // The fullname of the Identity
+	ImageURL string    // The image URL for this Identity
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
