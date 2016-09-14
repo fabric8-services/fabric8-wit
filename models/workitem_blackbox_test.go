@@ -1,7 +1,8 @@
-package models
+package models_test
 
 import (
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/models"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -10,22 +11,22 @@ import (
 func TestWorkItem_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	a := WorkItem{
+	a := models.WorkItem{
 		ID:      0,
 		Type:    "foo",
 		Version: 0,
-		Fields: Fields{
+		Fields: models.Fields{
 			"foo": "bar",
 		},
 	}
 
 	// Test type difference
-	b := DummyEqualer{}
+	b := models.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test lifecycle difference
 	c := a
-	c.Lifecycle = Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
+	c.Lifecycle = models.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
 	assert.False(t, a.Equal(c))
 
 	// Test type difference
@@ -45,6 +46,6 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test fields difference
 	g := a
-	g.Fields = Fields{}
+	g.Fields = models.Fields{}
 	assert.False(t, a.Equal(g))
 }

@@ -1,4 +1,4 @@
-package models
+package models_test
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/models"
 	"github.com/stretchr/testify/assert"
 	"time"
 )
@@ -16,19 +17,19 @@ import (
 func TestJsonMarshalListType(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	lt := ListType{
-		SimpleType:    SimpleType{KindList},
-		ComponentType: SimpleType{KindInteger},
+	lt := models.ListType{
+		SimpleType:    models.SimpleType{Kind: models.KindList},
+		ComponentType: models.SimpleType{Kind: models.KindInteger},
 	}
 
-	field := FieldDefinition{
+	field := models.FieldDefinition{
 		Type:     lt,
 		Required: false,
 	}
 
-	expectedWIT := WorkItemType{
+	expectedWIT := models.WorkItemType{
 		Name: "first type",
-		Fields: map[string]FieldDefinition{
+		Fields: map[string]models.FieldDefinition{
 			"aListType": field},
 	}
 
@@ -37,7 +38,7 @@ func TestJsonMarshalListType(t *testing.T) {
 		t.Error(err)
 	}
 
-	var parsedWIT WorkItemType
+	var parsedWIT models.WorkItemType
 	json.Unmarshal(bytes, &parsedWIT)
 
 	if !expectedWIT.Equal(parsedWIT) {
@@ -48,18 +49,18 @@ func TestJsonMarshalListType(t *testing.T) {
 func TestMarshalEnumType(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	et := EnumType{
-		SimpleType: SimpleType{KindEnum},
+	et := models.EnumType{
+		SimpleType: models.SimpleType{Kind: models.KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
-	fd := FieldDefinition{
+	fd := models.FieldDefinition{
 		Type:     et,
 		Required: true,
 	}
 
-	expectedWIT := WorkItemType{
+	expectedWIT := models.WorkItemType{
 		Name: "first type",
-		Fields: map[string]FieldDefinition{
+		Fields: map[string]models.FieldDefinition{
 			"aListType": fd},
 	}
 	bytes, err := json.Marshal(expectedWIT)
@@ -67,7 +68,7 @@ func TestMarshalEnumType(t *testing.T) {
 		t.Error(err)
 	}
 
-	var parsedWIT WorkItemType
+	var parsedWIT models.WorkItemType
 	json.Unmarshal(bytes, &parsedWIT)
 
 	if !expectedWIT.Equal(parsedWIT) {
@@ -78,28 +79,28 @@ func TestMarshalEnumType(t *testing.T) {
 func TestWorkItemType_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	fd := FieldDefinition{
-		Type: EnumType{
-			SimpleType: SimpleType{KindEnum},
+	fd := models.FieldDefinition{
+		Type: models.EnumType{
+			SimpleType: models.SimpleType{Kind: models.KindEnum},
 			Values:     []interface{}{"open", "done", "closed"},
 		},
 		Required: true,
 	}
 
-	a := WorkItemType{
+	a := models.WorkItemType{
 		Name: "foo",
-		Fields: map[string]FieldDefinition{
+		Fields: map[string]models.FieldDefinition{
 			"aListType": fd,
 		},
 	}
 
 	// Test types
-	b := DummyEqualer{}
+	b := models.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test lifecycle
 	c := a
-	c.Lifecycle = Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
+	c.Lifecycle = models.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
 	assert.False(t, a.Equal(c))
 
 	// Test version
@@ -119,25 +120,25 @@ func TestWorkItemType_Equal(t *testing.T) {
 
 	// Test field array length
 	g := a
-	g.Fields = map[string]FieldDefinition{}
+	g.Fields = map[string]models.FieldDefinition{}
 	assert.False(t, a.Equal(g))
 
 	// Test field key existence
-	h := WorkItemType{
+	h := models.WorkItemType{
 		Name: "foo",
-		Fields: map[string]FieldDefinition{
+		Fields: map[string]models.FieldDefinition{
 			"bar": fd,
 		},
 	}
 	assert.False(t, a.Equal(h))
 
 	// Test field difference
-	i := WorkItemType{
+	i := models.WorkItemType{
 		Name: "foo",
-		Fields: map[string]FieldDefinition{
-			"aListType": FieldDefinition{
-				Type: EnumType{
-					SimpleType: SimpleType{KindEnum},
+		Fields: map[string]models.FieldDefinition{
+			"aListType": models.FieldDefinition{
+				Type: models.EnumType{
+					SimpleType: models.SimpleType{Kind: models.KindEnum},
 					Values:     []interface{}{"open", "done", "closed"},
 				},
 				Required: false,
@@ -151,11 +152,11 @@ func TestWorkItemType_Equal(t *testing.T) {
 func TestMarshalFieldDef(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	et := EnumType{
-		SimpleType: SimpleType{KindEnum},
+	et := models.EnumType{
+		SimpleType: models.SimpleType{models.KindEnum},
 		Values:     []interface{}{"open", "done", "closed"},
 	}
-	expectedFieldDef := FieldDefinition{
+	expectedFieldDef := models.FieldDefinition{
 		Type:     et,
 		Required: true,
 	}
@@ -165,7 +166,7 @@ func TestMarshalFieldDef(t *testing.T) {
 		t.Error(err)
 	}
 
-	var parsedFieldDef FieldDefinition
+	var parsedFieldDef models.FieldDefinition
 	json.Unmarshal(bytes, &parsedFieldDef)
 	if !expectedFieldDef.Equal(parsedFieldDef) {
 		t.Errorf("Unmarshalled field definition: \n %v \n has not the same type as \"normal\" field definition: \n %v \n", parsedFieldDef, expectedFieldDef)
@@ -186,29 +187,4 @@ func TestMarshalArray(t *testing.T) {
 		fmt.Printf("cap=[%d, %d], len=[%d, %d]\n", cap(original), cap(read), len(original), len(read))
 		t.Error("not equal")
 	}
-}
-
-func TestConvertFieldTypes(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	types := []FieldType{
-		SimpleType{KindInteger},
-		ListType{SimpleType{KindList}, SimpleType{KindString}},
-		EnumType{SimpleType{KindEnum}, SimpleType{KindString}, []interface{}{"foo", "bar"}},
-	}
-
-	for _, theType := range types {
-		t.Logf("testing type %v", theType)
-		if err := testConvertFieldType(theType); err != nil {
-			t.Error(err.Error())
-		}
-	}
-}
-
-func testConvertFieldType(original FieldType) error {
-	converted := convertFieldTypeFromModels(original)
-	reconverted, _ := convertFieldTypeToModels(converted)
-	if !reflect.DeepEqual(original, reconverted) {
-		return fmt.Errorf("reconverted should be %v, but is %v", original, reconverted)
-	}
-	return nil
 }
