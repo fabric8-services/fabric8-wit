@@ -1,23 +1,24 @@
 // +build unit
 
-package models
+package models_test
 
 import (
 	"testing"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/models"
 )
 
 var (
-	stString   = SimpleType{KindString}
-	stInt      = SimpleType{KindInteger}
-	stFloat    = SimpleType{KindFloat}
-	stDuration = SimpleType{KindDuration}
-	stURL      = SimpleType{KindURL}
-	stList     = SimpleType{KindList}
+	stString   = models.SimpleType{models.KindString}
+	stInt      = models.SimpleType{models.KindInteger}
+	stFloat    = models.SimpleType{models.KindFloat}
+	stDuration = models.SimpleType{models.KindDuration}
+	stURL      = models.SimpleType{models.KindURL}
+	stList     = models.SimpleType{models.KindList}
 )
 
 type input struct {
-	t             FieldType
+	t             models.FieldType
 	value         interface{}
 	expectedValue interface{}
 	errorExpected bool
@@ -68,14 +69,14 @@ func TestSimpleTypeConversion(t *testing.T) {
 }
 
 var (
-	stEnum = SimpleType{KindEnum}
-	enum   = EnumType{
+	stEnum = models.SimpleType{models.indEnum}
+	enum   = models.EnumType{
 		BaseType: stEnum,
 		// ENUM with same type values
 		Values: []interface{}{"new", "triaged", "WIP", "QA", "done"},
 	}
 
-	multipleTypeEnum = EnumType{
+	multipleTypeEnum = models.EnumType{
 		BaseType: stEnum,
 		// ENUM with different type values.
 		Values: []interface{}{100, 1.1, "hello"},
@@ -108,13 +109,13 @@ func TestEnumTypeConversion(t *testing.T) {
 }
 
 var (
-	intList = ListType{
-		SimpleType:    SimpleType{KindList},
-		ComponentType: SimpleType{KindInteger},
+	intList = models.ListType{
+		SimpleType:    models.SimpleType{models.KindList},
+		ComponentType: models.SimpleType{models.KindInteger},
 	}
-	strList = ListType{
-		SimpleType:    SimpleType{KindList},
-		ComponentType: SimpleType{KindString},
+	strList = models.ListType{
+		SimpleType:    models.SimpleType{models.KindList},
+		ComponentType: models.SimpleType{models.KindString},
 	}
 )
 

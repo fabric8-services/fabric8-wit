@@ -1,9 +1,10 @@
-package models
+package models_test
 
 import (
-	"testing"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
+	"testing"
 	"time"
 )
 
@@ -13,18 +14,18 @@ func TestLifecycle_Equal(t *testing.T) {
 	now := time.Now()
 	nowPlus := time.Now().Add(time.Duration(1000))
 
-	a := Lifecycle{
+	a := models.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: now,
 		DeletedAt: nil,
 	}
 
 	// Test for type difference
-	b := DummyEqualer{}
+	b := models.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test CreateAt difference
-	c := Lifecycle{
+	c := models.Lifecycle{
 		CreatedAt: nowPlus,
 		UpdatedAt: now,
 		DeletedAt: nil,
@@ -32,7 +33,7 @@ func TestLifecycle_Equal(t *testing.T) {
 	assert.False(t, a.Equal(c))
 
 	// Test UpdatedAt difference
-	d := Lifecycle{
+	d := models.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: nowPlus,
 		DeletedAt: nil,
@@ -40,7 +41,7 @@ func TestLifecycle_Equal(t *testing.T) {
 	assert.False(t, a.Equal(d))
 
 	// Test DeletedAt (one is not nil, the other is) difference
-	e := Lifecycle{
+	e := models.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: now,
 		DeletedAt: &now,
@@ -48,12 +49,12 @@ func TestLifecycle_Equal(t *testing.T) {
 	assert.False(t, a.Equal(e))
 
 	// Test DeletedAt (both are not nil) difference
-	g := Lifecycle{
+	g := models.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: nowPlus,
 		DeletedAt: &now,
 	}
-	h := Lifecycle{
+	h := models.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: nowPlus,
 		DeletedAt: &nowPlus,

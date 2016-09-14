@@ -14,14 +14,14 @@ func TestCompatibleFields(t *testing.T) {
 		Required: true,
 		Type: ListType{
 			SimpleType:    SimpleType{Kind: KindList},
-			ComponentType: SimpleType{KindString},
+			ComponentType: SimpleType{Kind: KindString},
 		},
 	}
 	b := FieldDefinition{
 		Required: true,
 		Type: ListType{
 			SimpleType:    SimpleType{Kind: KindList},
-			ComponentType: SimpleType{KindString},
+			ComponentType: SimpleType{Kind: KindString},
 		},
 	}
 	assert.True(t, compatibleFields(a, b))
