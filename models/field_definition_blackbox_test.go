@@ -3,13 +3,15 @@ package models_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/resource"
 	"reflect"
 	"testing"
+
+	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestListFieldDefMarshalling(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	def := models.FieldDefinition{
 		Required: true,

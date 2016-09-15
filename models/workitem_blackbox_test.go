@@ -1,14 +1,16 @@
 package models_test
 
 import (
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/models"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWorkItem_Equal(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	a := models.WorkItem{

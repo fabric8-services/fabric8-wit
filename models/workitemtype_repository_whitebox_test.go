@@ -9,6 +9,7 @@ import (
 )
 
 func TestCompatibleFields(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	a := FieldDefinition{
 		Required: true,
@@ -28,6 +29,7 @@ func TestCompatibleFields(t *testing.T) {
 }
 
 func TestConvertTypeFromModels(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	//------------------------------
@@ -89,6 +91,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 }
 
 func TestConvertAnyToKind(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	_, err := convertAnyToKind(1234)
@@ -96,6 +99,7 @@ func TestConvertAnyToKind(t *testing.T) {
 }
 
 func TestConvertStringToKind(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	_, err := convertStringToKind("DefinitivelyNotAKind")
@@ -103,6 +107,7 @@ func TestConvertStringToKind(t *testing.T) {
 }
 
 func TestConvertFieldTypeToModels(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	// Create an enumeration of animal names

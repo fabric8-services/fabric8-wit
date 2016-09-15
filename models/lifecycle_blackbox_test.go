@@ -1,14 +1,16 @@
 package models_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestLifecycle_Equal(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	now := time.Now()

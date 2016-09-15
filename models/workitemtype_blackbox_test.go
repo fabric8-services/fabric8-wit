@@ -6,15 +6,17 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/models"
-	"github.com/stretchr/testify/assert"
 	"time"
+
+	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestJsonMarshalListType constructs a work item type, writes it to JSON (marshalling),
 // and converts it back from JSON into a work item type (unmarshalling)
 func TestJsonMarshalListType(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	lt := models.ListType{
@@ -47,6 +49,7 @@ func TestJsonMarshalListType(t *testing.T) {
 }
 
 func TestMarshalEnumType(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	et := models.EnumType{
@@ -77,6 +80,7 @@ func TestMarshalEnumType(t *testing.T) {
 }
 
 func TestWorkItemType_Equal(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	fd := models.FieldDefinition{
@@ -150,6 +154,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 }
 
 func TestMarshalFieldDef(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	et := models.EnumType{
@@ -174,6 +179,7 @@ func TestMarshalFieldDef(t *testing.T) {
 }
 
 func TestMarshalArray(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	original := []interface{}{float64(1), float64(2), float64(3)}

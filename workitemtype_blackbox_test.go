@@ -1,12 +1,10 @@
-package main
+package main_test
 
 import (
-	"testing"
-
 	"fmt"
 	"net/http"
-
 	"os"
+	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"

@@ -1,11 +1,10 @@
-// +build unit
-
 package models_test
 
 import (
 	"testing"
-	"github.com/almighty/almighty-core/resource"
+
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/resource"
 )
 
 var (
@@ -25,6 +24,7 @@ type input struct {
 }
 
 func TestSimpleTypeConversion(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	test_data := []input{
@@ -84,6 +84,7 @@ var (
 )
 
 func TestEnumTypeConversion(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	data := []input{
@@ -110,16 +111,17 @@ func TestEnumTypeConversion(t *testing.T) {
 
 var (
 	intList = models.ListType{
-		SimpleType:    models.SimpleType{models.KindList},
-		ComponentType: models.SimpleType{models.KindInteger},
+		SimpleType:    models.SimpleType{Kind: models.KindList},
+		ComponentType: models.SimpleType{Kind: models.KindInteger},
 	}
 	strList = models.ListType{
-		SimpleType:    models.SimpleType{models.KindList},
-		ComponentType: models.SimpleType{models.KindString},
+		SimpleType:    models.SimpleType{Kind: models.KindList},
+		ComponentType: models.SimpleType{Kind: models.KindString},
 	}
 )
 
 func TestListTypeConversion(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	data := []input{

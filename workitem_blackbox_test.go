@@ -1,22 +1,19 @@
-package main
+package main_test
 
 import (
 	"fmt"
 	"os"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
-	"github.com/almighty/almighty-core/transaction"
-
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
-	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 var db *gorm.DB
@@ -157,48 +154,4 @@ func TestListByFields(t *testing.T) {
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, &controller, wi.ID)
-}
-
-func TestNewWorkitemController(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	assert.Panics(t, func() {
-		NewWorkitemController(nil, nil, nil)
-	})
-}
-
-func TestParseInts(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-
-	integers, err := parseInts(nil)
-	assert.Equal(t, nil, err)
-	assert.Equal(t, []int{}, integers)
-
-	str := "1, 2, foo"
-	_, err = parseInts(&str)
-	assert.NotNil(t, err)
-}
-
-func TestParseLimit(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-
-	// Test parsing error in parseInts
-	str := "1000, foo"
-	integers, length, err := parseLimit(&str)
-	assert.NotNil(t, err)
-	assert.Equal(t, 0, length)
-	assert.Nil(t, integers)
-
-	// Test length = 1
-	str = "1000"
-	integers, length, err = parseLimit(&str)
-	assert.Nil(t, err)
-	assert.Equal(t, 1000, length)
-	assert.Nil(t, integers)
-
-	// Test empty string
-	str = ""
-	integers, length, err = parseLimit(&str)
-	assert.Nil(t, err)
-	assert.Equal(t, 100, length)
-	assert.Nil(t, integers)
 }

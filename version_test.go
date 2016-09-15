@@ -10,6 +10,7 @@ import (
 )
 
 func TestAuthorizeLoginOK(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	controller := LoginController{}
 	_, res := test.AuthorizeLoginOK(t, nil, nil, &controller)
@@ -20,6 +21,7 @@ func TestAuthorizeLoginOK(t *testing.T) {
 }
 
 func TestShowVersionOK(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	controller := VersionController{}
 	_, res := test.ShowVersionOK(t, nil, nil, &controller)
@@ -30,6 +32,7 @@ func TestShowVersionOK(t *testing.T) {
 }
 
 func TestNewVersionController(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	svc := goa.New("TestNewVersionControllerService")
 	assert.NotNil(t, NewVersionController(svc))
