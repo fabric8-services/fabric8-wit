@@ -1,16 +1,18 @@
 package models_test
 
 import (
+	"testing"
+
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEnumType_Equal(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	stEnum := models.SimpleType{models.KindEnum}
+	stEnum := models.SimpleType{Kind: models.KindEnum}
 	a := models.EnumType{
 		BaseType: stEnum,
 		Values:   []interface{}{"foo", "bar"},
@@ -20,9 +22,9 @@ func TestEnumType_Equal(t *testing.T) {
 	assert.False(t, a.Equal(models.DummyEqualer{}))
 
 	// Test simple type difference
-	stInteger := models.SimpleType{models.KindInteger}
+	stInteger := models.SimpleType{Kind: models.KindInteger}
 	b := models.EnumType{
-		SimpleType: models.SimpleType{models.KindInteger},
+		SimpleType: models.SimpleType{Kind: models.KindInteger},
 		BaseType:   stInteger,
 	}
 	assert.False(t, a.Equal(b))

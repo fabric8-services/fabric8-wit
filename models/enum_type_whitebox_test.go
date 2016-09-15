@@ -1,12 +1,14 @@
 package models
 
 import (
+	"testing"
+
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestEnumTypeContains(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	haystack := []interface{}{1, 2, 3, 4}
 
