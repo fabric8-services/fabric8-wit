@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	stString   = models.SimpleType{models.KindString}
-	stInt      = models.SimpleType{models.KindInteger}
-	stFloat    = models.SimpleType{models.KindFloat}
-	stDuration = models.SimpleType{models.KindDuration}
-	stURL      = models.SimpleType{models.KindURL}
-	stList     = models.SimpleType{models.KindList}
+	stString   = models.SimpleType{Kind: models.KindString}
+	stInt      = models.SimpleType{Kind: models.KindInteger}
+	stFloat    = models.SimpleType{Kind: models.KindFloat}
+	stDuration = models.SimpleType{Kind: models.KindDuration}
+	stURL      = models.SimpleType{Kind: models.KindURL}
+	stList     = models.SimpleType{Kind: models.KindList}
 )
 
 type input struct {
