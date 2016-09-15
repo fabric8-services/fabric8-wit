@@ -17,7 +17,7 @@ func TestListFieldDefMarshalling(t *testing.T) {
 		Required: true,
 		Type: models.ListType{
 			SimpleType:    models.SimpleType{Kind: models.KindList},
-			ComponentType: models.SimpleType{models.KindString},
+			ComponentType: models.SimpleType{Kind: models.KindString},
 		},
 	}
 	bytes, err := json.Marshal(def)
