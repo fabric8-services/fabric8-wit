@@ -27,7 +27,6 @@ func TestAndOr(t *testing.T) {
 }
 
 func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters []interface{}) {
-	t.Parallel()
 	clause, parameters, err := models.Compile(expr)
 	if len(err) > 0 {
 		debug.PrintStack()
