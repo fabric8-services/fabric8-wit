@@ -27,6 +27,12 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 	if err := createSystemUserstory(ctx, witr); err != nil {
 		return err
 	}
+	if err := createSystemValueProposition(ctx, witr); err != nil {
+		return err
+	}
+	if err := createSystemFundamental(ctx, witr); err != nil {
+		return err
+	}
 	if err := createSystemExperience(ctx, witr); err != nil {
 		return err
 	}
@@ -40,89 +46,35 @@ func Perform(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepositor
 }
 
 func createSystemUserstory(ctx context.Context, witr models.WorkItemTypeRepository) error {
-	_, err := witr.Load(ctx, "system.userstory")
-	switch err.(type) {
-	case models.NotFoundError:
-		stString := "string"
-		_, err := witr.Create(ctx, nil, "system.userstory", map[string]app.FieldDefinition{
-			"system.title":       app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-			"system.description": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-			"system.creator":     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-			"system.assignee":    app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
-			"system.state": app.FieldDefinition{
-				Type: &app.FieldType{
-					BaseType: &stString,
-					Kind:     "enum",
-					Values:   []interface{}{"new", "in progress", "resolved", "closed"},
-				},
-				Required: true,
-			},
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return createCommon("system.userstory", ctx, witr)
+}
+
+func createSystemValueProposition(ctx context.Context, witr models.WorkItemTypeRepository) error {
+	return createCommon("system.valueproposition", ctx, witr)
+}
+
+func createSystemFundamental(ctx context.Context, witr models.WorkItemTypeRepository) error {
+	return createCommon("system.fundamental", ctx, witr)
 }
 
 func createSystemExperience(ctx context.Context, witr models.WorkItemTypeRepository) error {
-	_, err := witr.Load(ctx, "system.experience")
-	switch err.(type) {
-	case models.NotFoundError:
-		stString := "string"
-		_, err := witr.Create(ctx, nil, "system.experience", map[string]app.FieldDefinition{
-			"system.title":       app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-			"system.description": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-			"system.creator":     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-			"system.assignee":    app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
-			"system.state": app.FieldDefinition{
-				Type: &app.FieldType{
-					BaseType: &stString,
-					Kind:     "enum",
-					Values:   []interface{}{"new", "in progress", "resolved", "closed"},
-				},
-				Required: true,
-			},
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return createCommon("system.experience", ctx, witr)
 }
 
 func createSystemFeature(ctx context.Context, witr models.WorkItemTypeRepository) error {
-	_, err := witr.Load(ctx, "system.feature")
-	switch err.(type) {
-	case models.NotFoundError:
-		stString := "string"
-		_, err := witr.Create(ctx, nil, "system.feature", map[string]app.FieldDefinition{
-			"system.title":       app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-			"system.description": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-			"system.creator":     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-			"system.assignee":    app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
-			"system.state": app.FieldDefinition{
-				Type: &app.FieldType{
-					BaseType: &stString,
-					Kind:     "enum",
-					Values:   []interface{}{"new", "in progress", "resolved", "closed"},
-				},
-				Required: true,
-			},
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return createCommon("system.feature", ctx, witr)
 }
 
 func createSystemBug(ctx context.Context, witr models.WorkItemTypeRepository) error {
-	_, err := witr.Load(ctx, "system.bug")
+	return createCommon("system.bug", ctx, witr)
+}
+
+func createCommon(typeName string, ctx context.Context, witr models.WorkItemTypeRepository) error {
+	_, err := witr.Load(ctx, typeName)
 	switch err.(type) {
 	case models.NotFoundError:
 		stString := "string"
-		_, err := witr.Create(ctx, nil, "system.bug", map[string]app.FieldDefinition{
+		_, err := witr.Create(ctx, nil, typeName, map[string]app.FieldDefinition{
 			"system.title":       app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
 			"system.description": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 			"system.creator":     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
