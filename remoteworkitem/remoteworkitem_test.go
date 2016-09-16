@@ -1,5 +1,3 @@
-// +build unit
-
 package remoteworkitem
 
 import (
@@ -9,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/test"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func provideRemoteGithubData() ([]byte, error) {
@@ -27,7 +26,7 @@ func provideRemoteGithubData() ([]byte, error) {
 }
 
 func TestWorkItemMapping(t *testing.T) {
-
+	resource.Require(t, resource.UnitTest)
 	workItemMap := WorkItemMap{
 		AttributeExpression("title"): "system.title",
 	}
@@ -51,7 +50,7 @@ func TestWorkItemMapping(t *testing.T) {
 }
 
 func TestGitHubIssueMapping(t *testing.T) {
-
+	resource.Require(t, resource.UnitTest)
 	content, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubData)
 	if err != nil {
 		t.Fatal(err)
