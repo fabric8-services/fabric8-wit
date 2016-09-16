@@ -10,7 +10,7 @@ set -e
 /usr/sbin/setenforce 0
 
 # Get all the deps in
-yum -y install docker make git 
+yum -y install docker make git curl 
 sed -i '/OPTIONS=.*/c\OPTIONS="--selinux-enabled --log-driver=journald --insecure-registry registry.ci.centos.org:5000"' /etc/sysconfig/docker
 service docker start
 
@@ -32,6 +32,10 @@ echo 'CICO: app tests OK'
 
 # Output coverage
 make docker-coverage-all
+
+# Upload coverage to codecov.io
+cp tmp/coverage.mode* coverage.txt
+bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt 
 
 # Let's deploy
 make docker-image-deploy
