@@ -1,0 +1,104 @@
+= Test Guidelines
+
+:sectnums:
+:experimental:
+
+This documents contains various information on testing the codebase. Over time it might
+grow to include sections on other testing strategies than unit or integration tests. 
+
+[[how-to-write-unit-tests]]
+== How to write unit tests?
+
+Instead of writing down general rules for how to write tests, this section presents a
+step-by-step approach on how to write tests for a very simply library file called `lib.go`
+that lives inside the `foo/bar` package.
+The library contains three one-line functions which means that we have to test three functions
+in order to gain 100% test coverage. For simplicity, the functions under test don't have
+any dependency on an external resource like a database connection or something else.
+Nevertheless we will present mechanisms to handle this as well.
+
+[[lib-dot-go-source]]
+[source,go]
+.$GOPATH/src/foo/bar/lib.go
+----
+package bar // <1>
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Say returns the input string as is
+func Say(message string) string { // <2>
+	return fmt.Sprintf("%s", message)
+}
+
+// Shout returns the input string in upper case
+// letters with three exlamation marks.
+func Shout(message string) string { // <3>
+	return fmt.Sprintf("%s!!!", toUpper(message))
+}
+
+// toUpper returns the input string in upper case
+func toUpper(message string) string { // <4>
+	return strings.ToUpper(message)
+}
+----
+<1> The package name is `bar`. 
+<2> An exported function called `Say` that is unknown packages that import `bar`.
+<3> Another exported function called `Shout` that is unknown packages that import `bar`.
+<4> A function called `toUpper` that is unexported and unknown packages that import `bar`.
+
+=== Blackbox vs. Whitebox tests
+
+In a blackbox test, you test a package as if you **only have access to the
+exported symbols**. In our <<lib-dot-go-source>> example above we have two exported
+symbols: `Say` and `Shout`. The `toUpper` function is an unexported symbol due
+to its lowercase name. 
+
+A whitebox test has access to all symbols, and not only to the expored ones.
+
+In principle, all symbols in a file can be *seen* by all files in the same package.
+As a consequence, to have a blackbox test, we must write it in a different package
+than `bar`. But in order for `go test` to pick up a test we need to place it in the
+same directory as the <<lib-dot-go-source>> file.   
+
+[[why-no-build-tags]]
+== Why don't we use build tags?
+
+What we want is to compile all code in our codebase to find errors quickly.
+
+At runtime we may want to skip some tests for speed or missing dependency reasons. 
+
+There are people on the internet that propose the use of build tags to distinguish
+unit and integration tests. The way this works is as follows:
+
+ 1. You write a comment in the form of `// +build unit` or `// +build integration`
+    as the first line inside of a `*.go` file.
+ 2. As a consequence such a file will only be compiled by `go build` or `go test`
+    if a special tag (e.g. `unit` or `integration`) is specified on the command
+    line using the `-tags` parameter (see `go build --help`).
+
+This has dramatic side effects:
+
+Suppose all that you wanted was to distinguish *at runtime* if a test shall be run or not (skipped).
+With build tags though, your code will *not even be compiled* and *compile errors cannot be found*
+if a tag is missing.
+
+That is why we try to avoid build tags. We don't say that build tags are completely useless.
+In order to compile platform specific code, they come in handy for example.
+
+[[why-no-short-parameter]]
+== Why don't we use the -short parameter?
+
+The `go test` command offers a switch ( `-short` ) to skip long running tests,
+that have been marked as such.
+
+The downside of build tags (see <<why-no-build-tags>>) is eliminated because
+the decision whether a test is run, is made at runtime.
+
+The only reason why we still don't use the `-short` parameter is that we want to
+have the ability to define more test-skipping criteria than just the time
+consumed by a test.
+That is why we have the `resource.require(t, resource.Database)` syntax to
+specify what resource is required by a certain test.
