@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"golang.org/x/net/context"
-
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/remoteworkitem"
 )
