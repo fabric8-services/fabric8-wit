@@ -47,5 +47,4 @@ make docker-coverage-all
 
 # Upload coverage to codecov.io
 cp tmp/coverage.mode* coverage.txt
-#bash <(curl -s https://codecov.io/bash) -t 115c2092-86b3-4c78-8733-50eef40ac467 -X search -f coverage.txt 
 bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt 
