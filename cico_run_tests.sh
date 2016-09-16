@@ -45,3 +45,6 @@ make docker-test-integration
 # Output coverage
 make docker-coverage-all
 
+# Upload coverage to codecov.io
+cp tmp/coverage.mode* coverage.txt
+bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt 
