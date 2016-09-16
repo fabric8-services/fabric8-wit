@@ -6,7 +6,7 @@ import (
 
 // NewGormTransactionSupport constructs a new instance of GormTransactionSupport
 func NewGormTransactionSupport(db *gorm.DB) *GormTransactionSupport {
-	return &GormTransactionSupport{db: db}
+	return &GormTransactionSupport{tx: db, db: db}
 }
 
 // GormTransactionSupport implements TransactionSupport for gorm
