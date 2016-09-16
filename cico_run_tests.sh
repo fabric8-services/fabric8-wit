@@ -23,7 +23,8 @@ fi
 yum -y install \
   docker \
   make \
-  git 
+  git \
+  curl
 service docker start
 
 # Let's test
