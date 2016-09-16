@@ -32,6 +32,9 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 		URL:  url,
 		Type: typeID}
 	tx := r.ts.tx
+	if tx == nil {
+		return nil, InternalError{simpleError{"Create should be called within a transaction"}}
+	}
 	if err := tx.Create(&t).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -55,7 +58,11 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 
 	log.Printf("loading tracker %d", id)
 	res := Tracker{}
-	if r.ts.tx.First(&res, id).RecordNotFound() {
+	tx := r.ts.tx
+	if tx == nil {
+		return nil, InternalError{simpleError{"Load should be called within a transaction"}}
+	}
+	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker", ID}
 	}
@@ -77,7 +84,11 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 	log.Printf("executing query: %s", where)
 
 	var rows []Tracker
-	db := r.ts.tx.Where(where, parameters)
+	tx := r.ts.tx
+	if tx == nil {
+		return nil, InternalError{simpleError{"List should be called within a transaction"}}
+	}
+	db := tx.Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}
@@ -103,6 +114,9 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 
 	log.Printf("looking for id %d", id)
 	tx := r.ts.tx
+	if tx == nil {
+		return nil, InternalError{simpleError{"Save should be called within a transaction"}}
+	}
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
@@ -137,7 +151,9 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 	}
 	t.ID = id
 	tx := r.ts.tx
-
+	if tx == nil {
+		return InternalError{simpleError{"Delete should be called within a transaction"}}
+	}
 	if err = tx.Delete(t).Error; err != nil {
 		if tx.RecordNotFound() {
 			return NotFoundError{entity: "tracker", ID: ID}
