@@ -1,5 +1,3 @@
-// +build integration
-
 package main
 
 import (
@@ -7,12 +5,15 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/resource"
 )
 
 func TestCreateTracker(t *testing.T) {
+	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -25,9 +26,10 @@ func TestCreateTracker(t *testing.T) {
 }
 
 func TestGetTracker(t *testing.T) {
+	resource.Require(t, resource.Database)
 	ts := remoteworkitem.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo}
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -39,7 +41,6 @@ func TestGetTracker(t *testing.T) {
 	if tr == nil {
 		t.Fatalf("Tracker '%s' not present", result.ID)
 	}
-
 	if tr.ID != result.ID {
 		t.Errorf("Id should be %s, but is %s", result.ID, tr.ID)
 	}
@@ -60,4 +61,50 @@ func TestGetTracker(t *testing.T) {
 	}
 
 	test.DeleteTrackerOK(t, nil, nil, &controller, result.ID)
+}
+
+// This test ensures that List does not return NIL items.
+// refer : https://github.com/almighty/almighty-core/issues/191
+func TestTrackerListItemsNotNil(t *testing.T) {
+	resource.Require(t, resource.Database)
+	ts := remoteworkitem.NewGormTransactionSupport(db)
+	repo := remoteworkitem.NewTrackerRepository(ts)
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	payload := app.CreateTrackerPayload{
+		URL:  "http://issues.jboss.com",
+		Type: "jira",
+	}
+	_, item1 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+
+	_, item2 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+
+	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)
+
+	for _, tracker := range list {
+		if tracker == nil {
+			t.Error("Returned Tracker found nil")
+		}
+	}
+	test.DeleteTrackerOK(t, nil, nil, &controller, item1.ID)
+	test.DeleteTrackerOK(t, nil, nil, &controller, item2.ID)
+}
+
+// This test ensures that ID returned by Show is valid.
+// refer : https://github.com/almighty/almighty-core/issues/189
+func TestCreateTrackerValidId(t *testing.T) {
+	resource.Require(t, resource.Database)
+	ts := remoteworkitem.NewGormTransactionSupport(db)
+	repo := remoteworkitem.NewTrackerRepository(ts)
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	payload := app.CreateTrackerPayload{
+		URL:  "http://issues.jboss.com",
+		Type: "jira",
+	}
+	_, tracker := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+
+	_, created := test.ShowTrackerOK(t, nil, nil, &controller, tracker.ID)
+	if created != nil && created.ID != tracker.ID {
+		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
+	}
+	test.DeleteTrackerOK(t, nil, nil, &controller, tracker.ID)
 }
