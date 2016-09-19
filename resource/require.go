@@ -20,10 +20,14 @@ const (
 	UnitTest = "ALMIGHTY_RESOURCE_UNIT_TEST"
 	// Database refers to the name of the environment variable that is used to
 	// specify that test can be run that require a database.
-	Database               = "ALMIGHTY_RESOURCE_DATABASE"
-	stSkipReasonValueFalse = "Skipping test because environment variable %s evaluates to false: %s"
-	stSkipReasonNotSet     = "Skipping test because environment variable %s is no set."
-	stSkipReasonParseError = "Unable to parse value of environment variable %s as bool: %s"
+	Database = "ALMIGHTY_RESOURCE_DATABASE"
+	// StSkipReasonValueFalse is the skip message for tests when an environment variable is present but evaluates to false.
+	StSkipReasonValueFalse = "Skipping test because environment variable %s evaluates to false: %s"
+	// StSkipReasonNotSet is the skip message for tests when an environment is not present.
+	StSkipReasonNotSet = "Skipping test because environment variable %s is no set."
+	// StSkipReasonParseError is the error message for tests where we're unable to parse the required
+	// environment variable as a boolean value.
+	StSkipReasonParseError = "Unable to parse value of environment variable %s as bool: %s"
 )
 
 // Require checks if all the given environment variables ("envVars") are set
@@ -43,18 +47,18 @@ func Require(t *testing.T, envVars ...string) {
 
 		// Skip test if environment variable is not set.
 		if !isSet {
-			t.Skipf(stSkipReasonNotSet, envVar)
+			t.Skipf(StSkipReasonNotSet, envVar)
 			return
 		}
 		// Try to convert to boolean value
 		isTrue, err := strconv.ParseBool(v)
 		if err != nil {
-			t.Skipf(stSkipReasonParseError, envVar, v)
+			t.Skipf(StSkipReasonParseError, envVar, v)
 			return
 		}
 
 		if !isTrue {
-			t.Skipf(stSkipReasonValueFalse, envVar, v)
+			t.Skipf(StSkipReasonValueFalse, envVar, v)
 			return
 		}
 	}
