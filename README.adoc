@@ -1,12 +1,13 @@
 = ALMighty Core
-
 :toc:
+:toc-placement: preamble
 :sectnums:
 :experimental:
 
 image:https://ci.centos.org/buildStatus/icon?job=devtools-almighty-core-build-master[Jenkins,link="https://ci.centos.org/view/Devtools/job/devtools-almighty-core-build-master/lastBuild/"]
 image:https://goreportcard.com/badge/github.com/almighty/almighty-core[Go Report Card, link="https://goreportcard.com/report/github.com/almighty/almighty-core"]
 image:https://godoc.org/github.com/almighty/almighty-core?status.png[GoDoc,link="https://godoc.org/github.com/almighty/almighty-core"]
+image:https://codecov.io/gh/almighty/almighty-core/branch/master/graph/badge.svg[Codecov.io,link="https://codecov.io/gh/almighty/almighty-core"]
 
 == Building from source [[building]]
 

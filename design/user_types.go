@@ -41,30 +41,50 @@ var CreateWorkItemTypePayload = Type("CreateWorkItemTypePayload", func() {
 
 // CreateTrackerAlternatePayload defines the structure of tracker payload for create
 var CreateTrackerAlternatePayload = Type("CreateTrackerAlternatePayload", func() {
-	Attribute("url", String, "URL of the tracker")
-	Attribute("type", String, "Type of the tracker")
+	Attribute("url", String, "URL of the tracker", func() {
+		Example("https://api.github.com/")
+	})
+	Attribute("type", String, "Type of the tracker", func() {
+		Example("github")
+	})
 	Required("url", "type")
 })
 
 // UpdateTrackerAlternatePayload defines the structure of tracker payload for update
 var UpdateTrackerAlternatePayload = Type("UpdateTrackerAlternatePayload", func() {
-	Attribute("url", String, "URL of the tracker")
-	Attribute("type", String, "Type of the tracker")
+	Attribute("url", String, "URL of the tracker", func() {
+		Example("https://api.github.com/")
+	})
+	Attribute("type", String, "Type of the tracker", func() {
+		Example("github")
+	})
 	Required("url", "type")
 })
 
 // CreateTrackerQueryAlternatePayload defines the structure of tracker query payload for create
 var CreateTrackerQueryAlternatePayload = Type("CreateTrackerQueryAlternatePayload", func() {
-	Attribute("query", String, "Search query")
-	Attribute("schedule", String, "Schedule for fetch and import")
-	Attribute("trackerID", Integer, "Tracker ID")
+	Attribute("query", String, "Search query", func() {
+		Example("is:open is:issue user:almighty")
+	})
+	Attribute("schedule", String, "Schedule for fetch and import", func() {
+		Example("0 0/15 * * * *")
+	})
+	Attribute("trackerID", Integer, "Tracker ID", func() {
+		Example(1)
+	})
 	Required("query", "schedule", "trackerID")
 })
 
 // UpdateTrackerQueryAlternatePayload defines the structure of tracker query payload for update
 var UpdateTrackerQueryAlternatePayload = Type("UpdateTrackerQueryAlternatePayload", func() {
-	Attribute("query", String, "Search query")
-	Attribute("schedule", String, "Schedule for fetch and import")
-	Attribute("trackerID", Integer, "Tracker ID")
+	Attribute("query", String, "Search query", func() {
+		Example("is:open is:issue user:almighty")
+	})
+	Attribute("schedule", String, "Schedule for fetch and import", func() {
+		Example("0 0/15 * * * *")
+	})
+	Attribute("trackerID", Integer, "Tracker ID", func() {
+		Example(1)
+	})
 	Required("query", "schedule", "trackerID")
 })

@@ -1,7 +1,7 @@
 = Getting started with almighty-core development on Windows
 :author: Konrad Kleine
-
 :toc:
+:toc-placement!:
 :sectnums:
 :experimental:
 
@@ -10,6 +10,11 @@ This page explains how to get the software you need to use a Windows 10 64 bit m
 NOTE: In this guide we assume that the drive where your home folder is located is `c:`. Please adjust this to your needs whenever your home folder is on another drive.
 
 Whenever you have problems with this setup you might find an answer in the <<troubleshooting>> section.
+
+toc::[]
+
+[[introduction]]
+=== Introduction
 
 To start developing on Windows you must:
 

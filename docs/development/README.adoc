@@ -1,5 +1,6 @@
 = README
-
+:toc:
+:toc-placement: preamble
 :sectnums:
 :experimental:
 
