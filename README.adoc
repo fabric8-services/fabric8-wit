@@ -1,6 +1,6 @@
 = ALMighty Core
-
 :toc:
+:toc-placement: preamble
 :sectnums:
 :experimental:
 
