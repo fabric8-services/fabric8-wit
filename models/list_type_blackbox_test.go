@@ -9,6 +9,7 @@ import (
 )
 
 func TestListType_Equal(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	a := ListType{
