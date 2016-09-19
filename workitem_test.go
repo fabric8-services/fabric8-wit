@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 
 	"github.com/almighty/almighty-core/resource"
@@ -18,6 +19,7 @@ import (
 )
 
 var db *gorm.DB
+var rwiScheduler *remoteworkitem.Scheduler
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c == false {
@@ -44,6 +46,8 @@ func TestMain(m *testing.M) {
 	}); err != nil {
 		panic(err.Error())
 	}
+	// RemoteWorkItemScheduler now available for all other test cases
+	rwiScheduler = remoteworkitem.NewScheduler(db)
 	os.Exit(m.Run())
 }
 
