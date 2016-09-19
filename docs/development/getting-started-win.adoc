@@ -1,7 +1,7 @@
 = Getting started with almighty-core development on Windows
 :author: Konrad Kleine
-
 :toc:
+:toc-placement: preamble
 :sectnums:
 :experimental:
 
