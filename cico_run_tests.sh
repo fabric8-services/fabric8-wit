@@ -23,7 +23,8 @@ fi
 yum -y install \
   docker \
   make \
-  git 
+  git \
+  curl
 service docker start
 
 # Let's test
@@ -45,3 +46,6 @@ make docker-test-integration
 # Output coverage
 make docker-coverage-all
 
+# Upload coverage to codecov.io
+cp tmp/coverage.mode* coverage.txt
+bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt -t ad12dad7-ebdc-47bc-a016-8c05fa7356bc
