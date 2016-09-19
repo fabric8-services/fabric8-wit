@@ -79,14 +79,14 @@ import (
 )
 
 func TestSay(t *testing.T) { // <3>
-	t.Parallel()
+	t.Parallel() // <4>
 	if Say("heLLo") != "heLLo" { 
 		t.Errorf("Wrong say result")
 	}
 }
 
-func TestShout(t *testing.T) { // <4>
-	t.Parallel()
+func TestShout(t *testing.T) { // <5>
+	t.Parallel() // <6>
 	if Shout("heLLo") != "HELLO!!!" {
 		t.Errorf("Wrong shout result")
 	}
@@ -96,7 +96,9 @@ func TestShout(t *testing.T) { // <4>
 <2> One of the very few circumstances in which a dot-import is okay in Go. Here it simply
     allows for easier writing.
 <3> Testing the exported `Say` function.
-<4> Testing the exported `Shout` function.
+<4> Marking the test for the `Say` function test as: "executable in parallel".
+<5> Testing the exported `Shout` function.
+<6> Marking the test for the `Shout` function test as: "executable in parallel".
 
 A few things to notice in <<lib-blackbox-test-dot-go-source>> is the package name: `bar_test`.
 This is an exception to the Go compiler because normally only package names with the same name are
@@ -105,6 +107,13 @@ A nice side-effect of this exception is that it allows us to better determine th
 a package. If the test functions needed to live inside of a different directory, we would
 not have been able to collect coverage information because currently Go can only collect
 this for a single package or directory.
+
+NOTE: Have you noticed the `t.Parallel()` calls? This is a hint for `go test` so that it knows
+that the test `t` can be executed in parallel. Normally `go test` executes tests sequentially,
+but it also tries to executes as many tests in parallel as there are CPUs and as there are tests
+that have been marked to be executable in parallel. In this example, none of our tests
+has any side effects and so they can be executed in parallel.
+The number of parallel executable tests can be overwritten by the `-parallel` switch.
 
 Let's move on to our whitebox test file.
 
@@ -117,6 +126,7 @@ package bar // <1>
 import "testing"
 
 func TestToUpper(t *testing.T) { // <2>
+	t.Parallel() // <3>
 	if toUpper("hello") != "HELLO" {
 		t.Fail()
 	}
@@ -124,6 +134,7 @@ func TestToUpper(t *testing.T) { // <2>
 ----
 <1> Notice the package name is just `bar` so we have access to all symbols (exported and unexported ones).
 <2> Test the unexported symbol `toUpper`.
+<3> Marking the test for the `toUpper` function test as: "executable in parallel".
 
 The whitebox test <<lib-whitebox-test-dot-go-source>> uses the `bar` package name
 and thereby gets access to all the internal of a package. There is also no need
