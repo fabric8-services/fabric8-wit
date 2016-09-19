@@ -1,4 +1,8 @@
 = Setting up your IDE for ALMighty Development
+:toc:
+:toc-placement: preamble
+:sectnums:
+:experimental:
 
 == Visual Studio Code [[vscode]]
 
