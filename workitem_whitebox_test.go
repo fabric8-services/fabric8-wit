@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/resource"
+	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -11,7 +12,7 @@ func TestNewWorkitemController(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	assert.Panics(t, func() {
-		NewWorkitemController(nil, nil, nil)
+		NewWorkitemController(goa.New("Test service"), nil, nil)
 	})
 }
 
