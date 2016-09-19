@@ -1,4 +1,6 @@
 = Test Guidelines
+:toc:
+:toc-placement: preamble
 
 :sectnums:
 :experimental:
