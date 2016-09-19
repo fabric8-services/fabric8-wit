@@ -1,58 +1,21 @@
 package main_test
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
-
-var db *gorm.DB
-var rwiScheduler *remoteworkitem.Scheduler
-
-func TestMain(m *testing.M) {
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-		if "" == dbhost {
-			panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
-		}
-		var err error
-		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbhost))
-		if err != nil {
-			panic("failed to connect database: " + err.Error())
-		}
-		defer db.Close()
-		// Migrate the schema
-		ts := models.NewGormTransactionSupport(db)
-		witRepo := models.NewWorkItemTypeRepository(ts)
-
-		if err := transaction.Do(ts, func() error {
-			return migration.Perform(context.Background(), ts.TX(), witRepo)
-		}); err != nil {
-			panic(err.Error())
-		}
-		// RemoteWorkItemScheduler now available for all other test cases
-		rwiScheduler = remoteworkitem.NewScheduler(db)
-	}
-	os.Exit(m.Run())
-}
 
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	ts := models.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(DB)
 	wir := models.NewWorkItemTypeRepository(ts)
 	repo := models.NewWorkItemRepository(ts, wir)
 	svc := goa.New("TestGetWorkItem-Service")
@@ -101,7 +64,7 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(DB)
 	wir := models.NewWorkItemTypeRepository(ts)
 	repo := models.NewWorkItemRepository(ts, wir)
 	svc := goa.New("TestCreateWI-Service")
@@ -125,7 +88,7 @@ func TestCreateWI(t *testing.T) {
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(DB)
 	wir := models.NewWorkItemTypeRepository(ts)
 	repo := models.NewWorkItemRepository(ts, wir)
 	svc := goa.New("TestListByFields-Service")
