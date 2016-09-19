@@ -93,7 +93,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 	test.DeleteTrackerOK(t, nil, nil, &controller, item2.ID)
 }
 
-// This test ensures that ID returned by is valid.
+// This test ensures that ID returned by Show is valid.
 // refer : https://github.com/almighty/almighty-core/issues/189
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
