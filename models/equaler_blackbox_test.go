@@ -31,8 +31,7 @@ func TestDummyEqualerEqual(t *testing.T) {
 	b := DummyEqualer{}
 
 	// Test for type difference
-	f := foo{}
-	assert.False(t, a.Equal(foo))
+	assert.False(t, a.Equal(foo{}))
 
 	// Test for equality
 	assert.True(t, a.Equal(b))

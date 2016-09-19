@@ -3,21 +3,21 @@ package models_test
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/models"
+	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 )
 
 var (
-	stString   = models.SimpleType{Kind: models.KindString}
-	stInt      = models.SimpleType{Kind: models.KindInteger}
-	stFloat    = models.SimpleType{Kind: models.KindFloat}
-	stDuration = models.SimpleType{Kind: models.KindDuration}
-	stURL      = models.SimpleType{Kind: models.KindURL}
-	stList     = models.SimpleType{Kind: models.KindList}
+	stString   = SimpleType{Kind: KindString}
+	stInt      = SimpleType{Kind: KindInteger}
+	stFloat    = SimpleType{Kind: KindFloat}
+	stDuration = SimpleType{Kind: KindDuration}
+	stURL      = SimpleType{Kind: KindURL}
+	stList     = SimpleType{Kind: KindList}
 )
 
 type input struct {
-	t             models.FieldType
+	t             FieldType
 	value         interface{}
 	expectedValue interface{}
 	errorExpected bool
@@ -69,14 +69,14 @@ func TestSimpleTypeConversion(t *testing.T) {
 }
 
 var (
-	stEnum = models.SimpleType{models.KindEnum}
-	enum   = models.EnumType{
+	stEnum = SimpleType{KindEnum}
+	enum   = EnumType{
 		BaseType: stEnum,
 		// ENUM with same type values
 		Values: []interface{}{"new", "triaged", "WIP", "QA", "done"},
 	}
 
-	multipleTypeEnum = models.EnumType{
+	multipleTypeEnum = EnumType{
 		BaseType: stEnum,
 		// ENUM with different type values.
 		Values: []interface{}{100, 1.1, "hello"},
@@ -110,13 +110,13 @@ func TestEnumTypeConversion(t *testing.T) {
 }
 
 var (
-	intList = models.ListType{
-		SimpleType:    models.SimpleType{Kind: models.KindList},
-		ComponentType: models.SimpleType{Kind: models.KindInteger},
+	intList = ListType{
+		SimpleType:    SimpleType{Kind: KindList},
+		ComponentType: SimpleType{Kind: KindInteger},
 	}
-	strList = models.ListType{
-		SimpleType:    models.SimpleType{Kind: models.KindList},
-		ComponentType: models.SimpleType{Kind: models.KindString},
+	strList = ListType{
+		SimpleType:    SimpleType{Kind: KindList},
+		ComponentType: SimpleType{Kind: KindString},
 	}
 )
 

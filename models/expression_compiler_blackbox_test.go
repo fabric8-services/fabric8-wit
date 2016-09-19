@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	. "github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/models"
+	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 )
 
@@ -27,7 +27,7 @@ func TestAndOr(t *testing.T) {
 }
 
 func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters []interface{}) {
-	clause, parameters, err := models.Compile(expr)
+	clause, parameters, err := Compile(expr)
 	if len(err) > 0 {
 		debug.PrintStack()
 		t.Fatal(err[0].Error())

@@ -6,18 +6,18 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/almighty/almighty-core/models"
+	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 )
 
 func TestListFieldDefMarshalling(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	def := models.FieldDefinition{
+	def := FieldDefinition{
 		Required: true,
-		Type: models.ListType{
-			SimpleType:    models.SimpleType{Kind: models.KindList},
-			ComponentType: models.SimpleType{Kind: models.KindString},
+		Type: ListType{
+			SimpleType:    SimpleType{Kind: KindList},
+			ComponentType: SimpleType{Kind: KindString},
 		},
 	}
 	bytes, err := json.Marshal(def)
@@ -27,7 +27,7 @@ func TestListFieldDefMarshalling(t *testing.T) {
 	}
 
 	fmt.Printf("bytes are " + string(bytes))
-	unmarshalled := models.FieldDefinition{}
+	unmarshalled := FieldDefinition{}
 	json.Unmarshal(bytes, &unmarshalled)
 
 	if !reflect.DeepEqual(def, unmarshalled) {
