@@ -25,7 +25,7 @@ func NewTrackerqueryController(service *goa.Service, tqRepository remoteworkitem
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
 	result := transaction.Do(c.ts, func() error {
-		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, uint64(ctx.Payload.TrackerID))
+		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, string(ctx.Payload.TrackerID))
 		if err != nil {
 			switch err := err.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
