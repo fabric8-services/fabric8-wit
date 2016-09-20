@@ -61,18 +61,12 @@ type WorkItemMap map[AttributeExpression]string
 type AttributeExpression string
 
 // AttributeAccesor defines the interface between a RemoteWorkItem and the Mapper
-type AttributeAccesor interface {
+type AttributeAccessor interface {
 	// Get returns the value based on a commonly understood attribute expression
 	Get(field AttributeExpression) interface{}
 }
 
-// RemoteWorkItem is the Database stored TrackerItem
-type RemoteWorkItem struct {
-	ID      string
-	Content []byte
-}
-
-var RemoteWorkItemImplRegistry = map[string]func(RemoteWorkItem) (AttributeAccesor, error){
+var RemoteWorkItemImplRegistry = map[string]func(TrackerItem) (AttributeAccessor, error){
 	ProviderGithub: NewGitHubRemoteWorkItem,
 	ProviderJira:   NewJiraRemoteWorkItem,
 }
@@ -83,9 +77,9 @@ type GitHubRemoteWorkItem struct {
 }
 
 // NewGitHubRemoteWorkItem creates a new Decoded AttributeAccessor for a GitHub Issue
-func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
+func NewGitHubRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	var j map[string]interface{}
-	err := json.Unmarshal(item.Content, &j)
+	err := json.Unmarshal([]byte(item.Item), &j)
 	if err != nil {
 		return nil, err
 	}
@@ -103,9 +97,9 @@ type JiraRemoteWorkItem struct {
 }
 
 // NewJiraRemoteWorkItem creates a new Decoded AttributeAccessor for a GitHub Issue
-func NewJiraRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
+func NewJiraRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	var j map[string]interface{}
-	err := json.Unmarshal(item.Content, &j)
+	err := json.Unmarshal([]byte(item.Item), &j)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +112,7 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 }
 
 // Map maps the remote WorkItem to a local WorkItem
-func Map(item AttributeAccesor, mapping WorkItemMap) (app.WorkItem, error) {
+func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
 		workItem.Fields[to] = item.Get(from)
