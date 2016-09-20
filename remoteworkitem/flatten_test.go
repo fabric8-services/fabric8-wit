@@ -11,7 +11,7 @@ import (
 
 func TestFlattenMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	testString := []byte(`{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`)
+	testString := []byte(`{"admins":[{"name":"aslak"}], "contact":{"email": null}, "name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`)
 	var nestedMap map[string]interface{}
 	err := json.Unmarshal(testString, &nestedMap)
 
@@ -31,6 +31,9 @@ func TestFlattenMap(t *testing.T) {
 
 	// test for boolean
 	assert.Equal(t, OneLevelMap["assignee.complete"], true)
+
+	// test for NULL
+	assert.Equal(t, nil, OneLevelMap["contact.email"])
 
 	// test for array of object(s)
 	assert.Equal(t, OneLevelMap["admins.0.name"], "aslak")

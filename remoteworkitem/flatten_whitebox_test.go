@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFlattenMapWhitebox(t *testing.T) {
+func TestFlattenMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	testString := []byte(`{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`)
 	var nestedMap map[string]interface{}
@@ -38,10 +38,14 @@ func TestFlattenMapWhitebox(t *testing.T) {
 }
 
 func TestConvertArrayToMap(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
 	testArray := []interface{}{1, 2, 3, 4}
 	testMap := convertArrayToMap(testArray)
 
 	assert.Equal(t, testMap["0"], 1)
+	assert.Equal(t, testMap["1"], 2)
+	assert.Equal(t, testMap["2"], 3)
 	assert.Equal(t, testMap["3"], 4)
 
 }
