@@ -31,10 +31,9 @@ func TestConvertNewWorkItem(t *testing.T) {
 	transaction.Do(ts, func() error {
 		t.Log("Scenario 1 : Scenario 1: Adding a work item which wasn't present.")
 
-		remoteItemData := map[string]string{
-			"content":  `{"title":"linking","url":"http://github.com/sbose/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`,
-			"id":       "http://github.com/sbose/api/testonly/1",
-			"batch_id": "1",
+		remoteItemData := TrackerItemContent{
+			Content: []byte(`{"title":"linking","url":"http://github.com/sbose/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`),
+			ID:      "http://github.com/sbose/api/testonly/1",
 		}
 
 		workItem, err := convert(ts, int(tq.ID), remoteItemData, ProviderGithub)
@@ -72,10 +71,9 @@ func TestConvertExistingWorkItem(t *testing.T) {
 	transaction.Do(ts, func() error {
 		t.Log("Adding a work item which wasn't present.")
 
-		remoteItemData := map[string]string{
-			"content":  `{"title":"linking","url":"http://github.com/sbose/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`,
-			"id":       "http://github.com/sbose/api/testonly/1",
-			"batch_id": "1",
+		remoteItemData := TrackerItemContent{
+			Content: []byte(`{"title":"linking","url":"http://github.com/sbose/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`),
+			ID:      "http://github.com/sbose/api/testonly/1",
 		}
 
 		workItem, err := convert(ts, int(tq.ID), remoteItemData, ProviderGithub)
@@ -91,10 +89,9 @@ func TestConvertExistingWorkItem(t *testing.T) {
 	t.Log("Updating the existing work item when it's reimported.")
 
 	transaction.Do(ts, func() error {
-		remoteItemDataUpdated := map[string]string{
-			"content":  `{"title":"linking-updated","url":"http://github.com/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`,
-			"id":       "http://github.com/sbose/api/testonly/1",
-			"batch_id": "2",
+		remoteItemDataUpdated := TrackerItemContent{
+			Content: []byte(`{"title":"linking-updated","url":"http://github.com/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`),
+			ID:      "http://github.com/sbose/api/testonly/1",
 		}
 		workItemUpdated, err := convert(ts, int(tq.ID), remoteItemDataUpdated, ProviderGithub)
 
@@ -134,10 +131,9 @@ func TestConvertGithubIssue(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		remoteItemDataGithub := map[string]string{
-			"content":  string(content[:]),
-			"id":       GithubIssueWithAssignee, // GH issue url
-			"batch_id": "2",
+		remoteItemDataGithub := TrackerItemContent{
+			Content: content[:],
+			ID:      GithubIssueWithAssignee, // GH issue url
 		}
 
 		workItemGithub, err := convert(ts, int(tq.ID), remoteItemDataGithub, ProviderGithub)
