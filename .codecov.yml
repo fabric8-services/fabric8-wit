@@ -1,0 +1,37 @@
+codecov:
+  notify:
+    require_ci_to_pass: yes
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project: yes
+    patch: yes
+    changes: no
+    
+  # See http://docs.codecov.io/docs/notifications#section-hipchat
+  notify:
+    hipchat:
+      default:
+        url: "https://redhat-developers.hipchat.com/chat/room/2973746"
+        # allow coverage to drop by 2% without posting a notification
+        threshold: 1%
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+# See http://docs.codecov.io/docs/pull-request-comments-1
+comment:
+  layout: "header, diff, tree"
+  # Delete old comment and create nee oneor
+  behavior: new
+  # if true: only post the comment if coverage changes
+  require_changes: no
