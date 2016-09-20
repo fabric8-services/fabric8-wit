@@ -6,7 +6,7 @@ import (
 
 // NewGormTransactionSupport constructs a new instance of GormTransactionSupport
 func NewGormTransactionSupport(db *gorm.DB) *GormTransactionSupport {
-	return &GormTransactionSupport{db: db}
+	return &GormTransactionSupport{db: db, tx: nil}
 }
 
 // GormTransactionSupport implements TransactionSupport for gorm
@@ -15,6 +15,7 @@ type GormTransactionSupport struct {
 	db *gorm.DB
 }
 
+// TX provides the current transactional gorm DB connection
 func (g *GormTransactionSupport) TX() *gorm.DB {
 	return g.tx
 }
