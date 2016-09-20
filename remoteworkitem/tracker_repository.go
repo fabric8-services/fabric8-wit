@@ -12,11 +12,11 @@ import (
 
 // GormTrackerRepository implements TrackerRepository using gorm
 type GormTrackerRepository struct {
-	ts *GormTransactionSupport
+	ts *models.GormTransactionSupport
 }
 
 // NewTrackerRepository constructs a TrackerRepository
-func NewTrackerRepository(ts *GormTransactionSupport) *GormTrackerRepository {
+func NewTrackerRepository(ts *models.GormTransactionSupport) *GormTrackerRepository {
 	return &GormTrackerRepository{ts}
 }
 
@@ -31,7 +31,7 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 	t := Tracker{
 		URL:  url,
 		Type: typeID}
-	tx := r.ts.tx
+	tx := r.ts.TX()
 	if err := tx.Create(&t).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -55,7 +55,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 
 	log.Printf("loading tracker %d", id)
 	res := Tracker{}
-	if r.ts.tx.First(&res, id).RecordNotFound() {
+	if r.ts.TX().First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker", ID}
 	}
@@ -77,7 +77,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 	log.Printf("executing query: %s", where)
 
 	var rows []Tracker
-	db := r.ts.tx.Where(where, parameters)
+	db := r.ts.TX().Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}
@@ -109,7 +109,7 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.ts.tx
+	tx := r.ts.TX()
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
@@ -143,7 +143,7 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 		return NotFoundError{entity: "tracker", ID: ID}
 	}
 	t.ID = id
-	tx := r.ts.tx
+	tx := r.ts.TX()
 
 	if err = tx.Delete(t).Error; err != nil {
 		if tx.RecordNotFound() {

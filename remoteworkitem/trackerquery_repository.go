@@ -6,16 +6,17 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/models"
 	"golang.org/x/net/context"
 )
 
 // GormTrackerQueryRepository implements TrackerRepository using gorm
 type GormTrackerQueryRepository struct {
-	ts *GormTransactionSupport
+	ts *models.GormTransactionSupport
 }
 
 // NewTrackerQueryRepository constructs a TrackerQueryRepository
-func NewTrackerQueryRepository(ts *GormTransactionSupport) *GormTrackerQueryRepository {
+func NewTrackerQueryRepository(ts *models.GormTransactionSupport) *GormTrackerQueryRepository {
 	return &GormTrackerQueryRepository{ts}
 }
 
@@ -32,7 +33,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		Query:     query,
 		Schedule:  schedule,
 		TrackerID: tid}
-	tx := r.ts.tx
+	tx := r.ts.TX()
 	if err := tx.Create(&tq).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -41,7 +42,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: strconv.FormatUint(tid, 10)}
+		TrackerID: int(tid)}
 
 	return &tq2, nil
 }
@@ -57,7 +58,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 
 	log.Printf("loading tracker query %d", id)
 	res := TrackerQuery{}
-	if r.ts.tx.First(&res, id).RecordNotFound() {
+	if r.ts.TX().First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker query", ID}
 	}
@@ -65,7 +66,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		ID:        strconv.FormatUint(res.ID, 10),
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: strconv.FormatUint(res.TrackerID, 10)}
+		TrackerID: int(res.TrackerID)}
 
 	return &tq, nil
 }
@@ -80,7 +81,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.ts.tx
+	tx := r.ts.TX()
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "tracker", ID: tq.ID}
