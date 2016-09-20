@@ -114,6 +114,11 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
 	}
+	_, present := RemoteWorkItemImplRegistry[t.Type]
+	// Ensure we support this remote tracker.
+	if present != true {
+		return nil, BadParameterError{parameter: "type", value: t.Type}
+	}
 
 	newT := Tracker{
 		ID:   id,
