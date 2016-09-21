@@ -60,6 +60,16 @@ func TestTrackerQuerySave(t *testing.T) {
 	})
 }
 
+func TestTrackerQueryDelete(t *testing.T) {
+	doWithTrackerRepositories(t, func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository) {
+		_, err := queryRepo.Load(context.Background(), "asdf")
+		assert.IsType(t, NotFoundError{}, err)
+
+		_, err = queryRepo.Load(context.Background(), "100000")
+		assert.IsType(t, NotFoundError{}, err)
+	})
+}
+
 func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository)) {
 	doWithTransaction(t, func(ts *models.GormTransactionSupport) {
 		trackerRepo := NewTrackerRepository(ts)
