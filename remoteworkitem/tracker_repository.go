@@ -149,13 +149,12 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 	}
 	t.ID = id
 	tx := r.ts.TX()
-
-	if err = tx.Delete(t).Error; err != nil {
-		if tx.RecordNotFound() {
-			return NotFoundError{entity: "tracker", ID: ID}
-		}
+	tx = tx.Delete(t)
+	if err = tx.Error; err != nil {
 		return InternalError{simpleError{err.Error()}}
 	}
-
+	if tx.RowsAffected == 0 {
+		return NotFoundError{entity: "tracker", ID: ID}
+	}
 	return nil
 }
