@@ -164,7 +164,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	log.Printf("executing query: '%s' with params %v", where, parameters)
 
 	var rows []WorkItem
-	db := r.ts.tx.Where(where, parameters)
+	db := r.ts.TX().Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}

@@ -11,7 +11,7 @@ const (
 	SystemRemoteItemID = "system.remote_item_id"
 	SystemTitle        = "system.title"
 	SystemDescription  = "system.description"
-	SystemStatus       = "system.status"
+	SystemState        = "system.state"
 	SystemAssignee     = "system.assignee"
 	SystemCreator      = "system.creator"
 
@@ -20,7 +20,7 @@ const (
 	GithubTitle       = "title"
 	GithubDescription = "body"
 	GithubState       = "state"
-	GithubID          = "id"
+	GithubID          = "url"
 	GithubCreator     = "user.login"
 	GithubAssignee    = "assignee.login"
 
@@ -42,7 +42,7 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
 		AttributeExpression(GithubTitle):       SystemTitle,
 		AttributeExpression(GithubDescription): SystemDescription,
-		AttributeExpression(GithubState):       SystemStatus,
+		AttributeExpression(GithubState):       SystemState,
 		AttributeExpression(GithubID):          SystemRemoteItemID,
 		AttributeExpression(GithubCreator):     SystemCreator,
 		AttributeExpression(GithubAssignee):    SystemAssignee,
@@ -50,7 +50,7 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderJira: WorkItemMap{
 		AttributeExpression(JiraTitle):    SystemTitle,
 		AttributeExpression(JiraBody):     SystemDescription,
-		AttributeExpression(JiraState):    SystemStatus,
+		AttributeExpression(JiraState):    SystemState,
 		AttributeExpression(JiraID):       SystemRemoteItemID,
 		AttributeExpression(JiraCreator):  SystemCreator,
 		AttributeExpression(JiraAssignee): SystemAssignee,
