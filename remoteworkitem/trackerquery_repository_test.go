@@ -2,7 +2,6 @@ package remoteworkitem
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/almighty/almighty-core/models"
@@ -43,7 +42,7 @@ func TestTrackerQuerySave(t *testing.T) {
 
 		query.Query = "after"
 		query.Schedule = "the"
-		query.TrackerID, err = strconv.Atoi(tracker2.ID)
+		query.TrackerID = tracker2.ID
 		if err != nil {
 			t.Errorf("could not convert id: %s", tracker2.ID)
 		}
@@ -54,7 +53,10 @@ func TestTrackerQuerySave(t *testing.T) {
 
 		trackerRepo.Delete(context.Background(), "10000")
 
-		query.TrackerID = 10000
+		query.TrackerID = "10000"
+		query2, err = queryRepo.Save(context.Background(), *query)
+		assert.IsType(t, NotFoundError{}, err)
+		assert.Nil(t, query2)
 	})
 }
 
