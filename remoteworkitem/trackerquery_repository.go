@@ -84,13 +84,14 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	tx := r.ts.TX()
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{entity: "tracker", ID: tq.ID}
+		return nil, NotFoundError{entity: "TrackerQuery", ID: tq.ID}
 	}
 
 	newTq := TrackerQuery{
-		ID:       id,
-		Schedule: tq.Schedule,
-		Query:    tq.Query}
+		ID:        id,
+		Schedule:  tq.Schedule,
+		Query:     tq.Query,
+		TrackerID: uint64(tq.TrackerID)}
 
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Print(err.Error())
@@ -98,9 +99,10 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 	log.Printf("updated tracker query to %v\n", newTq)
 	t2 := app.TrackerQuery{
-		ID:       string(id),
-		Schedule: tq.Schedule,
-		Query:    tq.Query}
+		ID:        tq.ID,
+		Schedule:  tq.Schedule,
+		Query:     tq.Query,
+		TrackerID: tq.TrackerID}
 
 	return &t2, nil
 }

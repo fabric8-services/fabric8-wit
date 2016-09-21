@@ -64,12 +64,19 @@ func testTrackerDelete(t *testing.T) {
 }
 
 func doWithTrackerRepository(t *testing.T, todo func(repo TrackerRepository)) {
+	doWithTransaction(t, func(ts *models.GormTransactionSupport) {
+		trackerRepo := NewTrackerRepository(ts)
+		todo(trackerRepo)
+	})
+
+}
+
+func doWithTransaction(t *testing.T, todo func(ts *models.GormTransactionSupport)) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(db)
-	trackerRepo := NewTrackerRepository(ts)
 	if err := ts.Begin(); err != nil {
 		panic(err.Error())
 	}
 	defer ts.Rollback()
-	todo(trackerRepo)
+	todo(ts)
 }
