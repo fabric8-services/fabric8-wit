@@ -1,10 +1,6 @@
-codecov:
-  notify:
-    require_ci_to_pass: yes
-
 # See http://docs.codecov.io/docs/coverage-configuration
 coverage:
-  precision: 2
+  precision: 2 # 2 = xx.xx%, 0 = xx%
   round: down
   # For example: 20...60 would result in any coverage less than 20%
   # would have a red background. The color would gradually change to
@@ -22,31 +18,20 @@ coverage:
     # which were not changed by the diff
     changes: yes
     
-  # See http://docs.codecov.io/docs/notifications#section-hipchat
-  notify:
-    hipchat:
-      default:
-        url: "https://redhat-developers.hipchat.com/chat/room/2973746"
-        # allow coverage to drop by 1% without posting a notification
-        threshold: 1%
-  
   # See http://docs.codecov.io/docs/ignoring-paths
   ignore:
    - "*/bindata_assetfs.go"
    - "vendor/*"
-
-parsers:
-  gcov:
-    branch_detection:
-      conditional: yes
-      loop: yes
-      method: no
-      macro: no
+   - "app/*"
+   - "assets/js/*"
+   - "client/*"
+   - "swagger/*"
+   - "tool/cli/*"
 
 # See http://docs.codecov.io/docs/pull-request-comments-1
 comment:
   layout: "header, diff, tree"
-  # Delete old comment and create nee oneor
-  behavior: new
-  # if true: only post the comment if coverage changes
-  require_changes: no
+  behavior: # defualt = posts once then update, posts new if delete
+            # once = post once then updates
+            # new = delete old, post new
+            # spammy = post new
