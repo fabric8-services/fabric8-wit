@@ -118,7 +118,7 @@ func main() {
 	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
-	ts2 := remoteworkitem.NewGormTransactionSupport(db)
+	ts2 := models.NewGormTransactionSupport(db)
 
 	// Mount "tracker" controller
 	repo2 := remoteworkitem.NewTrackerRepository(ts2)
