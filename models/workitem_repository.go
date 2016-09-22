@@ -176,11 +176,16 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	}
 	result := make([]*app.WorkItem, len(rows))
 
+	types := make(map[string]*WorkItemType)
 	for index, value := range rows {
+		wiType := types[value.Type]
 		var err error
-		wiType, err := r.wir.loadTypeFromDB(ctx, value.Type)
-		if err != nil {
-			return nil, InternalError{simpleError{err.Error()}}
+		if wiType == nil {
+			wiType, err = r.wir.loadTypeFromDB(ctx, value.Type)
+			if err != nil {
+				return nil, InternalError{simpleError{err.Error()}}
+			}
+			types[value.Type] = wiType
 		}
 		result[index], err = convertFromModel(*wiType, value)
 		if err != nil {
