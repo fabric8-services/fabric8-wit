@@ -6,8 +6,9 @@ import (
 	"github.com/almighty/almighty-core/app"
 )
 
+// List of supported attributes
 const (
-	SystemRemoteItemId = "system.remote_item_id"
+	SystemRemoteItemID = "system.remote_item_id"
 	SystemTitle        = "system.title"
 	SystemDescription  = "system.description"
 	SystemStatus       = "system.status"
@@ -19,7 +20,7 @@ const (
 	GithubTitle       = "title"
 	GithubDescription = "body"
 	GithubState       = "state"
-	GithubId          = "id"
+	GithubID          = "id"
 	GithubCreator     = "user.login"
 	GithubAssignee    = "assignee.login"
 
@@ -28,7 +29,7 @@ const (
 	JiraTitle    = "fields.summary"
 	JiraBody     = "fields.description"
 	JiraState    = "fields.status.name"
-	JiraId       = "self"
+	JiraID       = "self"
 	JiraCreator  = "fields.creator.key"
 	JiraAssignee = "fields.assignee"
 
@@ -36,12 +37,13 @@ const (
 	ProviderJira   = "jira"
 )
 
+// WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
 		AttributeExpression(GithubTitle):       SystemTitle,
 		AttributeExpression(GithubDescription): SystemDescription,
 		AttributeExpression(GithubState):       SystemStatus,
-		AttributeExpression(GithubId):          SystemRemoteItemId,
+		AttributeExpression(GithubID):          SystemRemoteItemID,
 		AttributeExpression(GithubCreator):     SystemCreator,
 		AttributeExpression(GithubAssignee):    SystemAssignee,
 	},
@@ -49,23 +51,25 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 		AttributeExpression(JiraTitle):    SystemTitle,
 		AttributeExpression(JiraBody):     SystemDescription,
 		AttributeExpression(JiraState):    SystemStatus,
-		AttributeExpression(JiraId):       SystemRemoteItemId,
+		AttributeExpression(JiraID):       SystemRemoteItemID,
 		AttributeExpression(JiraCreator):  SystemCreator,
 		AttributeExpression(JiraAssignee): SystemAssignee,
 	},
 }
 
+// WorkItemMap will define mappings between remote<->internal attribute
 type WorkItemMap map[AttributeExpression]string
 
 // AttributeExpression represents a commonly understood String format for a target path
 type AttributeExpression string
 
-// AttributeAccesor defines the interface between a RemoteWorkItem and the Mapper
+// AttributeAccessor defines the interface between a RemoteWorkItem and the Mapper
 type AttributeAccessor interface {
 	// Get returns the value based on a commonly understood attribute expression
 	Get(field AttributeExpression) interface{}
 }
 
+// RemoteWorkItemImplRegistry contains all possible providers
 var RemoteWorkItemImplRegistry = map[string]func(TrackerItem) (AttributeAccessor, error){
 	ProviderGithub: NewGitHubRemoteWorkItem,
 	ProviderJira:   NewJiraRemoteWorkItem,
@@ -87,6 +91,7 @@ func NewGitHubRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	return GitHubRemoteWorkItem{issue: j}, nil
 }
 
+// Get attribute from issue map
 func (gh GitHubRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return gh.issue[string(field)]
 }
@@ -107,6 +112,7 @@ func NewJiraRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	return JiraRemoteWorkItem{issue: j}, nil
 }
 
+// Get attribute from issue map
 func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return jira.issue[string(field)]
 }
