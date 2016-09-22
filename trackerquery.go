@@ -63,9 +63,10 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 	result := transaction.Do(c.ts, func() error {
 
 		toSave := app.TrackerQuery{
-			ID:       ctx.ID,
-			Query:    ctx.Payload.Query,
-			Schedule: ctx.Payload.Schedule,
+			ID:        ctx.ID,
+			Query:     ctx.Payload.Query,
+			Schedule:  ctx.Payload.Schedule,
+			TrackerID: ctx.Payload.TrackerID,
 		}
 		tq, err := c.tqRepository.Save(ctx.Context, toSave)
 
