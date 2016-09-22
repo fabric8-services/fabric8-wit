@@ -62,8 +62,6 @@ func TestGetTrackerQuery(t *testing.T) {
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 
-	fmt.Println("-----------tqr-------", tqr.ID)
-
 	if tqr == nil {
 		t.Fatalf("Tracker Query '%s' not present", tqresult.ID)
 	}
