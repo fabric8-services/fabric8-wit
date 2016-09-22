@@ -30,7 +30,6 @@ func TestCreateTrackerQuery(t *testing.T) {
 		Schedule:  "15 * * * * *",
 		TrackerID: result.ID,
 	}
-	fmt.Printf("tq payload %#v", tqpayload)
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	t.Log(tqresult)
@@ -49,10 +48,9 @@ func TestGetTrackerQuery(t *testing.T) {
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	fmt.Println("========result id==========", result.ID)
-	tqts := remoteworkitem.NewGormTransactionSupport(db)
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
-	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+
+	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
+	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerqueryPayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
@@ -72,24 +70,6 @@ func TestGetTrackerQuery(t *testing.T) {
 	if tqr.ID != tqresult.ID {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
-
-	// payload2 := app.UpdateTrackerqueryPayload{
-	// 	Query:     tqr.Query,
-	// 	Schedule:  tqr.Schedule,
-	// 	TrackerID: result.ID,
-	// }
-	// _, updated := test.UpdateTrackerqueryOK(t, nil, nil, &tqController, tqr.ID, &payload2)
-	// fmt.Println("======UPDATED=============", updated)
-	// if updated.ID != tqresult.ID {
-	// 	t.Errorf("Id has changed from %s to %s", tqresult.ID, updated.ID)
-	// }
-	// if updated.Query != tqresult.Query {
-	// 	t.Errorf("Query has changed from %s to %s", tqresult.Query, updated.Query)
-	// }
-	// if updated.Schedule != tqresult.Schedule {
-	// 	t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
-	// }
-
 }
 
 func TestUpdateTrackerQuery(t *testing.T) {
@@ -102,22 +82,19 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	fmt.Println("========result id==========", result.ID)
-	tqts := remoteworkitem.NewGormTransactionSupport(db)
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
-	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+
+	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
+	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerqueryPayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
 		TrackerID: result.ID,
 	}
-	fmt.Printf("tq payload %#v", tqpayload)
+
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
-
-	fmt.Println("-----------tqr-------", tqr.ID)
 
 	if tqr == nil {
 		t.Fatalf("Tracker Query '%s' not present", tqresult.ID)
@@ -132,7 +109,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		TrackerID: result.ID,
 	}
 	_, updated := test.UpdateTrackerqueryOK(t, nil, nil, &tqController, tqr.ID, &payload2)
-	fmt.Println("======UPDATED=============", updated)
+
 	if updated.ID != tqresult.ID {
 		t.Errorf("Id has changed from %s to %s", tqresult.ID, updated.ID)
 	}
