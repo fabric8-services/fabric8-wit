@@ -1,8 +1,9 @@
 package remoteworkitem
 
 import (
-	"context"
 	"testing"
+
+	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/models"
 	"github.com/stretchr/testify/assert"
