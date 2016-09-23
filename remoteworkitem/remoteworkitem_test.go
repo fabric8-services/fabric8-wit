@@ -19,9 +19,8 @@ const (
 	JiraIssueWithoutAssignee   = "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"
 )
 
-func provideRemoteData(dataUrl string) ([]byte, error) {
-	url := dataUrl
-	response, err := http.Get(url)
+func provideRemoteData(dataURL string) ([]byte, error) {
+	response, err := http.Get(dataURL)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +197,7 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 	// Verifying if the newly converted map is usable.
 	for k := range jiraKeyMap {
 		_, ok := OneLevelMap[string(k)]
-		assert.Equal(t, ok, true, fmt.Sprint("Could not access %s from the flattened map ", k))
+		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 	}
 }
 
@@ -224,7 +223,7 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 		if k == JiraAssignee {
 			continue
 		}
-		assert.Equal(t, ok, true, fmt.Sprint("Could not access %s from the flattened map ", k))
+		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 	}
 }
 
