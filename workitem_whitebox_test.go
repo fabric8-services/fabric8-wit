@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
@@ -21,12 +22,16 @@ var rwiScheduler *remoteworkitem.Scheduler
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-		if "" == dbhost {
-			panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
-		}
 		var err error
-		DB, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbhost))
+		DB, err = gorm.Open("postgres",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+				viper.GetString("postgres.host"),
+				viper.GetInt64("postgres.port"),
+				viper.GetString("postgres.user"),
+				viper.GetString("postgres.password"),
+				viper.GetString("postgres.sslmode"),
+			))
+
 		if err != nil {
 			panic("failed to connect database: " + err.Error())
 		}
