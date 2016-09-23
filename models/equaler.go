@@ -6,3 +6,21 @@ type Equaler interface {
 	// You need to convert the Equaler object using type assertions: https://golang.org/ref/spec#Type_assertions
 	Equal(Equaler) bool
 }
+
+// DummyEqualer implements the Equaler interface and can be used by tests.
+// Other than that it has not meaning.
+type DummyEqualer struct {
+}
+
+// Ensure DummyEqualer implements the Equaler interface
+var _ Equaler = DummyEqualer{}
+var _ Equaler = (*DummyEqualer)(nil)
+
+// Equal returns true if the argument is also an DummyEqualer; otherwise false is returned.
+func (d DummyEqualer) Equal(u Equaler) bool {
+	_, ok := u.(DummyEqualer)
+	if !ok {
+		return false
+	}
+	return true
+}

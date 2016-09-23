@@ -1,19 +1,19 @@
-package main
+package main_test
 
 import (
-	"testing"
-
 	"fmt"
 	"net/http"
-
 	"os"
+	"testing"
 
+	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/transaction"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -31,7 +31,7 @@ type WorkItemTypeSuite struct {
 	db       *gorm.DB
 	ts       *models.GormTransactionSupport
 	witRepo  *models.GormWorkItemTypeRepository
-	typeCtrl WorkitemtypeController
+	typeCtrl *WorkitemtypeController
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
@@ -52,7 +52,10 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 
 	s.ts = models.NewGormTransactionSupport(s.db)
 	s.witRepo = models.NewWorkItemTypeRepository(s.ts)
-	s.typeCtrl = WorkitemtypeController{ts: s.ts, witRepository: s.witRepo}
+	svc := goa.New("WorkItemTypeSuite-Service")
+	assert.NotNil(s.T(), svc)
+	s.typeCtrl = NewWorkitemtypeController(svc, s.witRepo, s.ts)
+	assert.NotNil(s.T(), s.typeCtrl)
 
 	// Migrate the schema
 	if err := transaction.Do(s.ts, func() error {
@@ -138,7 +141,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 		Name: "animal",
 	}
 
-	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, &s.typeCtrl, &payload)
+	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
 }
 
 // createWorkItemTypePerson defines a work item type "person" that consists of
@@ -161,7 +164,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		Name: "person",
 	}
 
-	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, &s.typeCtrl, &payload)
+	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
 }
 
 //-----------------------------------------------------------------------------
@@ -185,7 +188,7 @@ func (s *WorkItemTypeSuite) TestShowWorkItemType() {
 	_, wit := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), wit)
 
-	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, &s.typeCtrl, wit.Name)
+	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, wit.Name)
 
 	assert.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
@@ -203,7 +206,7 @@ func (s *WorkItemTypeSuite) TestListWorkItemType() {
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
 	page := "0,-1"
-	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, &s.typeCtrl, &page)
+	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page)
 
 	assert.NotNil(s.T(), witCollection)
 	assert.Nil(s.T(), witCollection.Validate())
