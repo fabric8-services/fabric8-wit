@@ -6,16 +6,17 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/models"
 	"golang.org/x/net/context"
 )
 
 // GormTrackerQueryRepository implements TrackerRepository using gorm
 type GormTrackerQueryRepository struct {
-	ts *GormTransactionSupport
+	ts *models.GormTransactionSupport
 }
 
 // NewTrackerQueryRepository constructs a TrackerQueryRepository
-func NewTrackerQueryRepository(ts *GormTransactionSupport) *GormTrackerQueryRepository {
+func NewTrackerQueryRepository(ts *models.GormTransactionSupport) *GormTrackerQueryRepository {
 	return &GormTrackerQueryRepository{ts}
 }
 
@@ -25,14 +26,14 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	tid, err := strconv.ParseUint(tracker, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"tracker query", tracker}
+		return nil, NotFoundError{"tracker", tracker}
 	}
 	fmt.Printf("tracker id: %v", tid)
 	tq := TrackerQuery{
 		Query:     query,
 		Schedule:  schedule,
 		TrackerID: tid}
-	tx := r.ts.tx
+	tx := r.ts.TX()
 	if err := tx.Create(&tq).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -41,7 +42,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: strconv.FormatUint(tid, 10)}
+		TrackerID: tracker}
 
 	return &tq2, nil
 }
@@ -57,7 +58,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 
 	log.Printf("loading tracker query %d", id)
 	res := TrackerQuery{}
-	if r.ts.tx.First(&res, id).RecordNotFound() {
+	if r.ts.TX().First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker query", ID}
 	}
@@ -79,17 +80,29 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		return nil, NotFoundError{entity: "trackerquery", ID: tq.ID}
 	}
 
+	tid, err := strconv.ParseUint(tq.TrackerID, 10, 64)
+	if err != nil {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, NotFoundError{"tracker", tq.TrackerID}
+	}
+
 	log.Printf("looking for id %d", id)
-	tx := r.ts.tx
+	tx := r.ts.TX()
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{entity: "tracker", ID: tq.ID}
+		return nil, NotFoundError{entity: "TrackerQuery", ID: tq.ID}
+	}
+
+	if tx.First(&Tracker{}, tid).RecordNotFound() {
+		log.Printf("not found, id=%d", id)
+		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID}
 	}
 
 	newTq := TrackerQuery{
-		ID:       id,
-		Schedule: tq.Schedule,
-		Query:    tq.Query}
+		ID:        id,
+		Schedule:  tq.Schedule,
+		Query:     tq.Query,
+		TrackerID: tid}
 
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Print(err.Error())
@@ -97,9 +110,10 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 	log.Printf("updated tracker query to %v\n", newTq)
 	t2 := app.TrackerQuery{
-		ID:       string(id),
-		Schedule: tq.Schedule,
-		Query:    tq.Query}
+		ID:        tq.ID,
+		Schedule:  tq.Schedule,
+		Query:     tq.Query,
+		TrackerID: tq.TrackerID}
 
 	return &t2, nil
 }
