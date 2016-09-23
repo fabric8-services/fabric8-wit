@@ -42,7 +42,7 @@ func main() {
 	var configFilePath string
 	var printConfig bool
 	var scheduler *remoteworkitem.Scheduler
-	flag.StringVar(&configFilePath, "config", "alm-core.yaml", "Path to the config file to read")
+	flag.StringVar(&configFilePath, "config", "config.yaml", "Path to the config file to read")
 	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.Parse()
 

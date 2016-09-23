@@ -234,6 +234,19 @@ This file collects all the coverage profiles for all *integration* tests.
 This file is the merge result of the two afore mentioned files and thus gives
 coverage information for all tests.
 
+== Configuration file
+
+If no configuration file is specified when the core is started, these are the defaults.
+
+:sourcedir: .
+[source,yaml]
+.config.yaml
+----
+include::{sourcedir}/config.yaml[]
+----
+
+Although this is a YAML file, we highly suggest to stick to this rather lenghty notation instead of nesting structs.
+
 ==== Development
 
 Only files `+./*.go+`, `+./design/*.go+`, `+./models/*.go+` and `+./tool/alm-cli/main.go+` should be edited.
