@@ -33,4 +33,12 @@ func TestListType_Equal(t *testing.T) {
 		ComponentType: SimpleType{Kind: KindInteger},
 	}
 	assert.False(t, a.Equal(c))
+
+	// Test equality
+	d := ListType{
+		SimpleType:    SimpleType{Kind: KindList},
+		ComponentType: SimpleType{Kind: KindString},
+	}
+	assert.True(t, d.Equal(a))
+	assert.True(t, a.Equal(d)) // test the inverse
 }
