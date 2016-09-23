@@ -238,11 +238,9 @@ coverage information for all tests.
 
 If no configuration file is specified when the core is started, these are the defaults.
 
-:sourcedir: .
 [source,yaml]
-.config.yaml
 ----
-include::{sourcedir}/config.yaml[]
+include::config.yaml[]
 ----
 
 Although this is a YAML file, we highly suggest to stick to this rather lenghty notation instead of nesting structs.
