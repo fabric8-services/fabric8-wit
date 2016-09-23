@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"os/user"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ import (
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/spf13/viper"
+	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -34,14 +36,14 @@ var (
 )
 
 func main() {
-	printUserInfo()
-
 	// --------------------------------------------------------------------
 	// Parse flags
 	// --------------------------------------------------------------------
 	var configFilePath string
+	var printConfig bool
 	var scheduler *remoteworkitem.Scheduler
 	flag.StringVar(&configFilePath, "config", "alm-core.yaml", "Path to the config file to read")
+	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.Parse()
 
 	var err error
@@ -49,10 +51,22 @@ func main() {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
+	if printConfig {
+		allSettings := viper.AllSettings()
+		var y []byte
+		y, err = yaml.Marshal(&allSettings)
+		if err != nil {
+			panic(fmt.Errorf("Failed to marshall config to string: %s", err.Error()))
+		}
+		fmt.Printf("%s\n", y)
+		os.Exit(0)
+	}
+
+	printUserInfo()
+
 	var db *gorm.DB
-	//var err error
 	for i := 1; i <= viper.GetInt("postgres.connection.maxretries"); i++ {
-		fmt.Printf("Opening DB connection attempt %d of %d\n", i, viper.GetInt64("postgres.connection.maxretries"))
+		fmt.Printf("Opening DB connection attempt %d of %d\n", i, viper.GetInt("postgres.connection.maxretries"))
 		db, err = gorm.Open("postgres",
 			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
 				viper.GetString("postgres.host"),
@@ -62,7 +76,7 @@ func main() {
 				viper.GetString("postgres.sslmode"),
 			))
 		if err != nil {
-			time.Sleep(time.Second * time.Duration(viper.GetInt64("postgres.connection.retrysleep")))
+			time.Sleep(viper.GetDuration("postgres.connection.retrysleep"))
 		} else {
 			defer db.Close()
 			break
@@ -188,6 +202,7 @@ func setupConfiguration(configFilePath string) error {
 	// To override foo.bar you need to set ALM_FOO_BAR
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
+	viper.SetTypeByDefaultValue(true)
 	setConfigDefaults()
 
 	// Read the config
@@ -201,7 +216,6 @@ func setupConfiguration(configFilePath string) error {
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		fmt.Println("Config file changed:", e.Name)
 	})
-	viper.Debug()
 
 	return nil
 }
@@ -210,6 +224,7 @@ func setConfigDefaults() {
 	//---------
 	// Postgres
 	//---------
+	viper.SetTypeByDefaultValue(true)
 	viper.SetDefault("postgres.host", "localhost")
 	viper.SetDefault("postgres.port", 5432)
 	viper.SetDefault("postgres.password", "mysecretpassword")
@@ -217,7 +232,7 @@ func setConfigDefaults() {
 	// The number of times alm server will attempt to open a connection to the database before it gives up
 	viper.SetDefault("postgres.connection.maxretries", 50)
 	// Number of seconds to wait before trying to connect again
-	viper.SetDefault("postgres.connection.retrysleep", 1)
+	viper.SetDefault("postgres.connection.retrysleep", time.Duration(time.Second))
 
 	//-----
 	// HTTP
