@@ -6,13 +6,14 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
 )
 
 func TestCreateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := remoteworkitem.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
@@ -21,7 +22,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
-	tqts := remoteworkitem.NewGormTransactionSupport(db)
+	tqts := models.NewGormTransactionSupport(db)
 	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
 	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerqueryPayload{
@@ -40,7 +41,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 
 func TestGetTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := remoteworkitem.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
@@ -72,7 +73,7 @@ func TestGetTrackerQuery(t *testing.T) {
 
 func TestUpdateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := remoteworkitem.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(db)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
