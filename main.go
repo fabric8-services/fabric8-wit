@@ -55,7 +55,7 @@ func main() {
 	}
 
 	if printConfig {
-		fmt.Printf("%s\n", GetConfiguration())
+		fmt.Printf("%s\n", configuration.GetConfiguration())
 		os.Exit(0)
 	}
 

@@ -17,7 +17,7 @@ var db *gorm.DB
 func TestMain(m *testing.M) {
 	var err error
 
-	if err = configuration.SetupConfiguration(configuration.DefaultConfigFilePath); err != nil {
+	if err = configuration.SetupConfiguration("../config.yaml"); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
