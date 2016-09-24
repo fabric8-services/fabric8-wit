@@ -15,6 +15,7 @@ import (
 func GetConfiguration() string {
 	allSettings := viper.AllSettings()
 	var y []byte
+	var err error
 	y, err = yaml.Marshal(&allSettings)
 	if err != nil {
 		panic(fmt.Errorf("Failed to marshall config to string: %s", err.Error()))
