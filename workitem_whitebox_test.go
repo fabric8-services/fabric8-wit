@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -23,7 +24,7 @@ var rwiScheduler *remoteworkitem.Scheduler
 func TestMain(m *testing.M) {
 	var err error
 
-	if err = SetupConfiguration(DefaultConfigFilePath); err != nil {
+	if err = configuration.SetupConfiguration(configuration.DefaultConfigFilePath); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -16,7 +17,7 @@ var db *gorm.DB
 func TestMain(m *testing.M) {
 	var err error
 
-	if err = SetupConfiguration(DefaultConfigFilePath); err != nil {
+	if err = configuration.SetupConfiguration(configuration.DefaultConfigFilePath); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

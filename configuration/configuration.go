@@ -1,4 +1,4 @@
-package main
+package configuration
 
 import (
 	"fmt"
@@ -9,6 +9,13 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
+)
+
+const (
+	// DefaultConfigFilePath is the path to the configuration file that is used if no other
+	// file is specified via the -config switch or via the ALMIGHTY_CONFIG_FILE_PATH environment
+	// variable.
+	DefaultConfigFilePath = "config.yaml"
 )
 
 // GetConfiguration returns the current configuration as a string

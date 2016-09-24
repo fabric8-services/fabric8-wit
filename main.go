@@ -14,6 +14,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -32,13 +33,6 @@ var (
 	BuildTime = "0"
 )
 
-const (
-	// DefaultConfigFilePath is the path to the configuration file that is used if no other
-	// file is specified via the -config switch or via the ALMIGHTY_CONFIG_FILE_PATH environment
-	// variable.
-	DefaultConfigFilePath = "config.yaml"
-)
-
 func main() {
 	// --------------------------------------------------------------------
 	// Parse flags
@@ -46,7 +40,7 @@ func main() {
 	var configFilePath string
 	var printConfig bool
 	var scheduler *remoteworkitem.Scheduler
-	flag.StringVar(&configFilePath, "config", DefaultConfigFilePath, "Path to the config file to read")
+	flag.StringVar(&configFilePath, "config", configuration.DefaultConfigFilePath, "Path to the config file to read")
 	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.Parse()
 
@@ -56,7 +50,7 @@ func main() {
 	}
 
 	var err error
-	if err = SetupConfiguration(configFilePath); err != nil {
+	if err = configuration.SetupConfiguration(configFilePath); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
