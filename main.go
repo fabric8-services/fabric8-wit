@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/user"
-	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -20,12 +19,10 @@ import (
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
 	token "github.com/dgrijalva/jwt-go"
-	"github.com/fsnotify/fsnotify"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/spf13/viper"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var (
@@ -35,6 +32,13 @@ var (
 	BuildTime = "0"
 )
 
+const (
+	// DefaultConfigFilePath is the path to the configuration file that is used if no other
+	// file is specified via the -config switch or via the ALMIGHTY_CONFIG_FILE_PATH environment
+	// variable.
+	DefaultConfigFilePath = "config.yaml"
+)
+
 func main() {
 	// --------------------------------------------------------------------
 	// Parse flags
@@ -42,23 +46,22 @@ func main() {
 	var configFilePath string
 	var printConfig bool
 	var scheduler *remoteworkitem.Scheduler
-	flag.StringVar(&configFilePath, "config", "config.yaml", "Path to the config file to read")
+	flag.StringVar(&configFilePath, "config", DefaultConfigFilePath, "Path to the config file to read")
 	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.Parse()
 
+	// Override -config switch with environment variable if provided.
+	if envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH"); ok {
+		configFilePath = envConfigPath
+	}
+
 	var err error
-	if err = setupConfiguration(configFilePath); err != nil {
+	if err = SetupConfiguration(configFilePath); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
 	if printConfig {
-		allSettings := viper.AllSettings()
-		var y []byte
-		y, err = yaml.Marshal(&allSettings)
-		if err != nil {
-			panic(fmt.Errorf("Failed to marshall config to string: %s", err.Error()))
-		}
-		fmt.Printf("%s\n", y)
+		fmt.Printf("%s\n", GetConfiguration())
 		os.Exit(0)
 	}
 
@@ -181,64 +184,4 @@ func printUserInfo() {
 			}
 		*/
 	}
-}
-
-func setupConfiguration(configFilePath string) error {
-	viper.Reset()
-
-	// Explicitly specify which file to load config from
-	viper.SetConfigFile(configFilePath)
-	viper.SetConfigType("yaml")
-
-	// Expect environment variables to be prefix with "ALMIGHTY_".
-	viper.SetEnvPrefix("ALMIGHTY")
-
-	// Automatically map environment variables to viper values
-	viper.AutomaticEnv()
-
-	// To override nested variables through environment variables, we
-	// need to make sure that we don't have to use dots (".") inside the
-	// environment variable names.
-	// To override foo.bar you need to set ALM_FOO_BAR
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	viper.SetTypeByDefaultValue(true)
-	setConfigDefaults()
-
-	// Read the config
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {             // Handle errors reading the config file
-		return fmt.Errorf("Fatal error config file: %s \n", err)
-	}
-
-	// Watch for config changes
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println("Config file changed:", e.Name)
-	})
-
-	return nil
-}
-
-func setConfigDefaults() {
-	//---------
-	// Postgres
-	//---------
-	viper.SetTypeByDefaultValue(true)
-	viper.SetDefault("postgres.host", "localhost")
-	viper.SetDefault("postgres.port", 5432)
-	viper.SetDefault("postgres.password", "mysecretpassword")
-	viper.SetDefault("postgres.sslmode", "disable")
-	// The number of times alm server will attempt to open a connection to the database before it gives up
-	viper.SetDefault("postgres.connection.maxretries", 50)
-	// Number of seconds to wait before trying to connect again
-	viper.SetDefault("postgres.connection.retrysleep", time.Duration(time.Second))
-
-	//-----
-	// HTTP
-	//-----
-	viper.SetDefault("http.address", "0.0.0.0:8080")
-
-	// Enable development related features, e.g. token generation endpoint
-	viper.SetDefault("developer.mode.enabled", false)
 }

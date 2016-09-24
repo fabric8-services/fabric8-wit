@@ -14,8 +14,13 @@ import (
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
+	var err error
+
+	if err = SetupConfiguration(DefaultConfigFilePath); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		var err error
 		db, err = gorm.Open("postgres",
 			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
 				viper.GetString("postgres.host"),
