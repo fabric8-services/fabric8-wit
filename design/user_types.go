@@ -69,8 +69,8 @@ var CreateTrackerQueryAlternatePayload = Type("CreateTrackerQueryAlternatePayloa
 	Attribute("schedule", String, "Schedule for fetch and import", func() {
 		Example("0 0/15 * * * *")
 	})
-	Attribute("trackerID", Integer, "Tracker ID", func() {
-		Example(1)
+	Attribute("trackerID", String, "Tracker ID", func() {
+		Example("1")
 	})
 	Required("query", "schedule", "trackerID")
 })
@@ -83,8 +83,8 @@ var UpdateTrackerQueryAlternatePayload = Type("UpdateTrackerQueryAlternatePayloa
 	Attribute("schedule", String, "Schedule for fetch and import", func() {
 		Example("0 0/15 * * * *")
 	})
-	Attribute("trackerID", Integer, "Tracker ID", func() {
-		Example(1)
+	Attribute("trackerID", String, "Tracker ID", func() {
+		Example("1")
 	})
 	Required("query", "schedule", "trackerID")
 })
