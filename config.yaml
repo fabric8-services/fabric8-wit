@@ -6,6 +6,7 @@ postgres.host: localhost
 postgres.port: 5432
 postgres.user: postgres
 postgres.password: mysecretpassword
+postgres.database: postgres
 postgres.sslmode: disable
 # The number of times alm server will attempt to open a connection to the database before it gives up
 postgres.connection.maxretries: 50
@@ -24,3 +25,6 @@ http.address: 0.0.0.0:8080
 
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
+
+# Whether you want to create the common work item types such as system.bug, system.feature, ...
+populate.commontypes: true

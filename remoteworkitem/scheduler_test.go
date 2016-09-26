@@ -20,25 +20,20 @@ func TestMain(m *testing.M) {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
-	if _, c := os.LookupEnv(resource.Database); c != false {
+	if _, c := os.LookupEnv(resource.Database); c {
 		db, err = gorm.Open("postgres",
-			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
 				configuration.GetPostgresHost(),
 				configuration.GetPostgresPort(),
 				configuration.GetPostgresUser(),
 				configuration.GetPostgresPassword(),
+				configuration.GetPostgresDatabase(),
 				configuration.GetPostgresSSLMode(),
 			))
 		if err != nil {
 			panic("Failed to connect database: " + err.Error())
 		}
 		defer db.Close()
-		// Migrate the schema
-		db.AutoMigrate(
-			&Tracker{},
-			&TrackerQuery{},
-			&TrackerItem{})
-		db.Model(&TrackerQuery{}).AddForeignKey("tracker_id", "trackers(id)", "RESTRICT", "RESTRICT")
 	}
 	os.Exit(m.Run())
 }

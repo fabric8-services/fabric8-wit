@@ -114,12 +114,12 @@ test-all: prebuild-check test-unit test-integration
 
 .PHONY: test-unit
 ## Runs the unit tests and produces coverage files for each package.
-test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
+test-unit: prebuild-check clean-coverage-unit migration/sqlbindata.go $(COV_PATH_UNIT)
 
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
-test-integration: prebuild-check clean-coverage-integration $(COV_PATH_INTEGRATION)
+test-integration: prebuild-check clean-coverage-integration migrate-database migration/sqlbindata.go $(COV_PATH_INTEGRATION)
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose

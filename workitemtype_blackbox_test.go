@@ -46,11 +46,12 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 	}
 
 	s.db, err = gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+		fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
 			configuration.GetPostgresHost(),
 			configuration.GetPostgresPort(),
 			configuration.GetPostgresUser(),
 			configuration.GetPostgresPassword(),
+			configuration.GetPostgresDatabase(),
 			configuration.GetPostgresSSLMode(),
 		))
 
@@ -65,11 +66,13 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 	s.typeCtrl = NewWorkitemtypeController(svc, s.witRepo, s.ts)
 	assert.NotNil(s.T(), s.typeCtrl)
 
-	// Migrate the schema
-	if err := transaction.Do(s.ts, func() error {
-		return migration.Perform(context.Background(), s.ts.TX(), s.witRepo)
-	}); err != nil {
-		panic(err.Error())
+	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	if configuration.GetPopulateCommonTypes() {
+		if err := transaction.Do(s.ts, func() error {
+			return migration.PopulateCommonTypes(context.Background(), s.ts.TX(), s.witRepo)
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
 }
 

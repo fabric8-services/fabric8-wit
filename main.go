@@ -41,9 +41,11 @@ func main() {
 	// --------------------------------------------------------------------
 	var configFilePath string
 	var printConfig bool
+	var migrateDB bool
 	var scheduler *remoteworkitem.Scheduler
 	flag.StringVar(&configFilePath, "config", "", "Path to the config file to read")
 	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
+	flag.BoolVar(&migrateDB, "migrateDatabase", false, "Migrates the database to the newest version and exits.")
 	flag.Parse()
 
 	// Override default -config switch with environment variable only if -config switch was
@@ -76,11 +78,12 @@ func main() {
 	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
 		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
 		db, err = gorm.Open("postgres",
-			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
 				configuration.GetPostgresHost(),
 				configuration.GetPostgresPort(),
 				configuration.GetPostgresUser(),
 				configuration.GetPostgresPassword(),
+				configuration.GetPostgresDatabase(),
 				configuration.GetPostgresSSLMode(),
 			))
 		if err != nil {
@@ -95,14 +98,27 @@ func main() {
 	}
 
 	// Migrate the schema
+	err = migration.Migrate(db)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	// Nothing to here except exit, since the migration is already performed.
+	if migrateDB {
+		os.Exit(0)
+	}
+
 	ts := models.NewGormTransactionSupport(db)
 	witRepo := models.NewWorkItemTypeRepository(ts)
 	wiRepo := models.NewWorkItemRepository(ts, witRepo)
 
-	if err := transaction.Do(ts, func() error {
-		return migration.Perform(context.Background(), ts.TX(), witRepo)
-	}); err != nil {
-		panic(err.Error())
+	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	if configuration.GetPopulateCommonTypes() {
+		if err := transaction.Do(ts, func() error {
+			return migration.PopulateCommonTypes(context.Background(), ts.TX(), witRepo)
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
 
 	// Scheduler to fetch and import remote tracker items
