@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -63,7 +64,7 @@ func main() {
 
 	var db *gorm.DB
 	for i := 1; i <= viper.GetInt("postgres.connection.maxretries"); i++ {
-		fmt.Printf("Opening DB connection attempt %d of %d\n", i, viper.GetInt("postgres.connection.maxretries"))
+		log.Printf("Opening DB connection attempt %d of %d\n", i, viper.GetInt("postgres.connection.maxretries"))
 		db, err = gorm.Open("postgres",
 			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
 				viper.GetString("postgres.host"),
@@ -166,9 +167,9 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		fmt.Printf("Failed to get current user: %s", err.Error())
+		log.Printf("Failed to get current user: %s", err.Error())
 	} else {
-		fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
+		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
 		/*
 			g, err := user.LookupGroupId(u.Gid)
 			if err != nil {

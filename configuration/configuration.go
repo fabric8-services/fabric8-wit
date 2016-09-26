@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -21,9 +22,7 @@ const (
 // GetConfiguration returns the current configuration as a string
 func GetConfiguration() string {
 	allSettings := viper.AllSettings()
-	var y []byte
-	var err error
-	y, err = yaml.Marshal(&allSettings)
+	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
 		panic(fmt.Errorf("Failed to marshall config to string: %s", err.Error()))
 	}
@@ -66,7 +65,7 @@ func SetupConfiguration(configFilePath string) error {
 	// Watch for config changes
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
-		fmt.Println("Config file changed:", e.Name)
+		log.Println("Config file changed:", e.Name)
 	})
 
 	return nil
