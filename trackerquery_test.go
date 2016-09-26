@@ -13,7 +13,7 @@ import (
 
 func TestCreateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(DB)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
@@ -22,7 +22,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
-	tqts := models.NewGormTransactionSupport(db)
+	tqts := models.NewGormTransactionSupport(DB)
 	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
 	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerqueryPayload{
@@ -41,7 +41,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 
 func TestGetTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(DB)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
@@ -73,7 +73,7 @@ func TestGetTrackerQuery(t *testing.T) {
 
 func TestUpdateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
+	ts := models.NewGormTransactionSupport(DB)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerPayload{
