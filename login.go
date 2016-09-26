@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 )
@@ -39,7 +40,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 // Generate runs the authorize action.
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
-	if !Development {
+	if !configuration.IsPostgresDeveloperModeEnabled() {
 		return ctx.Unauthorized()
 	}
 

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -14,6 +15,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -29,40 +31,58 @@ var (
 	Commit = "0"
 	// BuildTime set by build script
 	BuildTime = "0"
-	// Development enables certain dev only features, like auto token generation
-	Development = false
-)
-
-const (
-	// DBMaxRetryAttempts is the number of times alm server will attempt to open a connection to the database before it gives up
-	DBMaxRetryAttempts int = 50
 )
 
 func main() {
-	printUserInfo()
-
-	var dbHost string
+	// --------------------------------------------------------------------
+	// Parse flags
+	// --------------------------------------------------------------------
+	var configFilePath string
+	var printConfig bool
 	var scheduler *remoteworkitem.Scheduler
-
-	flag.BoolVar(&Development, "dev", false, "Enable development related features, e.g. token generation endpoint")
-	flag.StringVar(&dbHost, "dbhost", "", "The hostname of the db server")
+	flag.StringVar(&configFilePath, "config", configuration.DefaultConfigFilePath, "Path to the config file to read")
+	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.Parse()
 
-	if len(dbHost) == 0 {
-		dbHost = os.Getenv("DBHOST")
+	// Override default -config switch with environment variable only if -config switch was
+	// not explicitly given via the command line.
+	configSwitchIsSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configSwitchIsSet = true
+		}
+	})
+	if !configSwitchIsSet {
+		if envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH"); ok {
+			configFilePath = envConfigPath
+		}
 	}
 
-	if len(dbHost) == 0 {
-		dbHost = "localhost"
+	var err error
+	if err = configuration.Setup(configFilePath); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
+
+	if printConfig {
+		fmt.Printf("%s\n", configuration.String())
+		os.Exit(0)
+	}
+
+	printUserInfo()
 
 	var db *gorm.DB
-	var err error
-	for i := 1; i <= DBMaxRetryAttempts; i++ {
-		fmt.Printf("Opening DB connection attempt %d of %d\n", i, DBMaxRetryAttempts)
-		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
+		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
+		db, err = gorm.Open("postgres",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+				configuration.GetPostgresHost(),
+				configuration.GetPostgresPort(),
+				configuration.GetPostgresUser(),
+				configuration.GetPostgresPassword(),
+				configuration.GetPostgresSSLMode(),
+			))
 		if err != nil {
-			time.Sleep(time.Second)
+			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
 			break
@@ -132,7 +152,7 @@ func main() {
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
-	fmt.Println("Dev mode:       ", Development)
+	fmt.Println("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
@@ -146,7 +166,7 @@ func main() {
 	})
 
 	// Start http
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
 		service.LogError("startup", "err", err)
 	}
 
@@ -155,9 +175,9 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		fmt.Printf("Failed to get current user: %s", err.Error())
+		log.Printf("Failed to get current user: %s", err.Error())
 	} else {
-		fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
+		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
 		/*
 			g, err := user.LookupGroupId(u.Gid)
 			if err != nil {

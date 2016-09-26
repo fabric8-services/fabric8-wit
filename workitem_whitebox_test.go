@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -20,15 +21,25 @@ var DB *gorm.DB
 var rwiScheduler *remoteworkitem.Scheduler
 
 func TestMain(m *testing.M) {
+	var err error
+
+	if err = configuration.Setup(configuration.DefaultConfigFilePath); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-		if "" == dbhost {
-			panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
-		}
-		var err error
-		DB, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbhost))
+
+		DB, err = gorm.Open("postgres",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+				configuration.GetPostgresHost(),
+				configuration.GetPostgresPort(),
+				configuration.GetPostgresUser(),
+				configuration.GetPostgresPassword(),
+				configuration.GetPostgresSSLMode(),
+			))
+
 		if err != nil {
-			panic("failed to connect database: " + err.Error())
+			panic("Failed to connect database: " + err.Error())
 		}
 		defer DB.Close()
 		// Migrate the schema

@@ -3,12 +3,12 @@ package main_test
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -39,15 +39,23 @@ type WorkItemTypeSuite struct {
 func (s *WorkItemTypeSuite) SetupSuite() {
 	fmt.Println("--- Setting up test suite WorkItemTypeSuite ---")
 
-	dbHost := os.Getenv("ALMIGHTY_DB_HOST")
-	if "" == dbHost {
-		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
+	var err error
+
+	if err = configuration.Setup(configuration.DefaultConfigFilePath); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
-	var err error
-	s.db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+	s.db, err = gorm.Open("postgres",
+		fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+			configuration.GetPostgresHost(),
+			configuration.GetPostgresPort(),
+			configuration.GetPostgresUser(),
+			configuration.GetPostgresPassword(),
+			configuration.GetPostgresSSLMode(),
+		))
+
 	if err != nil {
-		panic("failed to connect database: " + err.Error())
+		panic("Failed to connect database: " + err.Error())
 	}
 
 	s.ts = models.NewGormTransactionSupport(s.db)
