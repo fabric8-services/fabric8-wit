@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -13,15 +14,23 @@ import (
 var db *gorm.DB
 
 func TestMain(m *testing.M) {
+	var err error
+
+	if err = configuration.Setup("../config.yaml"); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-		if "" == dbhost {
-			panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
-		}
-		var err error
-		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbhost))
+		db, err = gorm.Open("postgres",
+			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+				configuration.GetPostgresHost(),
+				configuration.GetPostgresPort(),
+				configuration.GetPostgresUser(),
+				configuration.GetPostgresPassword(),
+				configuration.GetPostgresSSLMode(),
+			))
 		if err != nil {
-			panic("failed to connect database: " + err.Error())
+			panic("Failed to connect database: " + err.Error())
 		}
 		defer db.Close()
 		// Migrate the schema

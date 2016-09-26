@@ -6,8 +6,9 @@ import (
 	"github.com/almighty/almighty-core/app"
 )
 
+// List of supported attributes
 const (
-	SystemRemoteItemId = "system.remote_item_id"
+	SystemRemoteItemID = "system.remote_item_id"
 	SystemTitle        = "system.title"
 	SystemDescription  = "system.description"
 	SystemStatus       = "system.status"
@@ -19,7 +20,7 @@ const (
 	GithubTitle       = "title"
 	GithubDescription = "body"
 	GithubState       = "state"
-	GithubId          = "id"
+	GithubID          = "id"
 	GithubCreator     = "user.login"
 	GithubAssignee    = "assignee.login"
 
@@ -28,7 +29,7 @@ const (
 	JiraTitle    = "fields.summary"
 	JiraBody     = "fields.description"
 	JiraState    = "fields.status.name"
-	JiraId       = "self"
+	JiraID       = "self"
 	JiraCreator  = "fields.creator.key"
 	JiraAssignee = "fields.assignee"
 
@@ -36,12 +37,13 @@ const (
 	ProviderJira   = "jira"
 )
 
+// WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
 		AttributeExpression(GithubTitle):       SystemTitle,
 		AttributeExpression(GithubDescription): SystemDescription,
 		AttributeExpression(GithubState):       SystemStatus,
-		AttributeExpression(GithubId):          SystemRemoteItemId,
+		AttributeExpression(GithubID):          SystemRemoteItemID,
 		AttributeExpression(GithubCreator):     SystemCreator,
 		AttributeExpression(GithubAssignee):    SystemAssignee,
 	},
@@ -49,30 +51,26 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 		AttributeExpression(JiraTitle):    SystemTitle,
 		AttributeExpression(JiraBody):     SystemDescription,
 		AttributeExpression(JiraState):    SystemStatus,
-		AttributeExpression(JiraId):       SystemRemoteItemId,
+		AttributeExpression(JiraID):       SystemRemoteItemID,
 		AttributeExpression(JiraCreator):  SystemCreator,
 		AttributeExpression(JiraAssignee): SystemAssignee,
 	},
 }
 
+// WorkItemMap will define mappings between remote<->internal attribute
 type WorkItemMap map[AttributeExpression]string
 
 // AttributeExpression represents a commonly understood String format for a target path
 type AttributeExpression string
 
-// AttributeAccesor defines the interface between a RemoteWorkItem and the Mapper
-type AttributeAccesor interface {
+// AttributeAccessor defines the interface between a RemoteWorkItem and the Mapper
+type AttributeAccessor interface {
 	// Get returns the value based on a commonly understood attribute expression
 	Get(field AttributeExpression) interface{}
 }
 
-// RemoteWorkItem is the Database stored TrackerItem
-type RemoteWorkItem struct {
-	ID      string
-	Content []byte
-}
-
-var RemoteWorkItemImplRegistry = map[string]func(RemoteWorkItem) (AttributeAccesor, error){
+// RemoteWorkItemImplRegistry contains all possible providers
+var RemoteWorkItemImplRegistry = map[string]func(TrackerItem) (AttributeAccessor, error){
 	ProviderGithub: NewGitHubRemoteWorkItem,
 	ProviderJira:   NewJiraRemoteWorkItem,
 }
@@ -83,9 +81,9 @@ type GitHubRemoteWorkItem struct {
 }
 
 // NewGitHubRemoteWorkItem creates a new Decoded AttributeAccessor for a GitHub Issue
-func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
+func NewGitHubRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	var j map[string]interface{}
-	err := json.Unmarshal(item.Content, &j)
+	err := json.Unmarshal([]byte(item.Item), &j)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +91,7 @@ func NewGitHubRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
 	return GitHubRemoteWorkItem{issue: j}, nil
 }
 
+// Get attribute from issue map
 func (gh GitHubRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return gh.issue[string(field)]
 }
@@ -103,9 +102,9 @@ type JiraRemoteWorkItem struct {
 }
 
 // NewJiraRemoteWorkItem creates a new Decoded AttributeAccessor for a GitHub Issue
-func NewJiraRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
+func NewJiraRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	var j map[string]interface{}
-	err := json.Unmarshal(item.Content, &j)
+	err := json.Unmarshal([]byte(item.Item), &j)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +112,13 @@ func NewJiraRemoteWorkItem(item RemoteWorkItem) (AttributeAccesor, error) {
 	return JiraRemoteWorkItem{issue: j}, nil
 }
 
+// Get attribute from issue map
 func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return jira.issue[string(field)]
 }
 
 // Map maps the remote WorkItem to a local WorkItem
-func Map(item AttributeAccesor, mapping WorkItemMap) (app.WorkItem, error) {
+func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
 		workItem.Fields[to] = item.Get(from)

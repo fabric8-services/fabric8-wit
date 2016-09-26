@@ -46,12 +46,17 @@ func (fieldType ListType) ConvertFromModel(value interface{}) (interface{}, erro
 
 type converter func(FieldType, interface{}) (interface{}, error)
 
+const (
+	stErrorNotArrayOrSlice = "value %v should be array/slice, but is %s"
+	stErrorConvertingList  = "error converting list value: %s"
+)
+
 func convertList(converter converter, componentType SimpleType, value interface{}) ([]interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
 	valueType := reflect.TypeOf(value)
 
 	if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
-		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "array/slice", valueType.Name())
+		return nil, fmt.Errorf(stErrorNotArrayOrSlice, value, valueType.Name())
 	}
 	valueArray := reflect.ValueOf(value)
 	converted := make([]interface{}, valueArray.Len())
@@ -60,7 +65,7 @@ func convertList(converter converter, componentType SimpleType, value interface{
 		// valueArray index value must be converted to Interface else it has TYPE=Value
 		converted[i], err = converter(componentType, valueArray.Index(i).Interface())
 		if err != nil {
-			return nil, fmt.Errorf("error converting list value: %s", err.Error())
+			return nil, fmt.Errorf(stErrorConvertingList, err.Error())
 		}
 	}
 	return converted, nil

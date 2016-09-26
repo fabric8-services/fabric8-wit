@@ -123,8 +123,8 @@ endif
 ifeq ($(strip $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null)),)
 	$(error Failed to find PostgreSQL container. Try running "make integration-test-env-prepare && make docker-test-integration")
 endif
-	$(eval ALMIGHTY_DB_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -c 'export ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST); make test-integration'
+	$(eval ALMIGHTY_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -c 'export ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST); make test-integration'
 
 .PHONY: docker-coverage-all
 ## Runs "make coverage-all" inside the already started docker build container (see "make coverage-all").

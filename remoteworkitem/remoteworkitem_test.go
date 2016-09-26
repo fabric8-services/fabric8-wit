@@ -19,9 +19,8 @@ const (
 	JiraIssueWithoutAssignee   = "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"
 )
 
-func provideRemoteData(dataUrl string) ([]byte, error) {
-	url := dataUrl
-	response, err := http.Get(url)
+func provideRemoteData(dataURL string) ([]byte, error) {
+	response, err := http.Get(dataURL)
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +55,11 @@ func TestWorkItemMapping(t *testing.T) {
 	workItemMap := WorkItemMap{
 		AttributeExpression("title"): "system.title",
 	}
-	remoteWorkItem := RemoteWorkItem{ID: "xyz", Content: []byte(`{"title":"abc"}`)}
+	jsonContent := `{"title":"abc"}`
+	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
-	gh, err := remoteWorkItemImpl(remoteWorkItem)
+	gh, err := remoteWorkItemImpl(remoteTrackerItem)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,10 +80,10 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	workItemMap := WorkItemKeyMaps[ProviderGithub]
-	remoteWorkItem := RemoteWorkItem{ID: "xyz", Content: []byte(content)}
+	remoteTrackerkItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
-	gh, err := remoteWorkItemImpl(remoteWorkItem)
+	gh, err := remoteWorkItemImpl(remoteTrackerkItem)
 
 	if err != nil {
 		t.Fatal(err)
@@ -108,10 +108,9 @@ func TestJiraIssueMapping(t *testing.T) {
 	}
 
 	workItemMap := WorkItemKeyMaps[ProviderJira]
-	remoteWorkItem := RemoteWorkItem{ID: "xyz", Content: []byte(content)}
-
+	remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderJira]
-	ji, err := remoteWorkItemImpl(remoteWorkItem)
+	ji, err := remoteWorkItemImpl(remoteTrackerItem)
 
 	if err != nil {
 		t.Fatal(err)
@@ -198,7 +197,7 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 	// Verifying if the newly converted map is usable.
 	for k := range jiraKeyMap {
 		_, ok := OneLevelMap[string(k)]
-		assert.Equal(t, ok, true, fmt.Sprint("Could not access %s from the flattened map ", k))
+		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 	}
 }
 
@@ -224,17 +223,17 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 		if k == JiraAssignee {
 			continue
 		}
-		assert.Equal(t, ok, true, fmt.Sprint("Could not access %s from the flattened map ", k))
+		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 	}
 }
 
 func TestNewGitHubRemoteWorkItem(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	remoteWorkItem := RemoteWorkItem{
-		Content: []byte(`{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`),
-		ID:      "http://www.example.com",
-	}
-	githubRemoteWorkItem, ok := NewGitHubRemoteWorkItem(remoteWorkItem)
+
+	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
+	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+
+	githubRemoteWorkItem, ok := NewGitHubRemoteWorkItem(remoteTrackerItem)
 	assert.Nil(t, ok)
 	assert.Equal(t, githubRemoteWorkItem.Get("admins.0.name"), "aslak")
 	assert.Equal(t, githubRemoteWorkItem.Get("name"), "shoubhik")
@@ -245,11 +244,11 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 
 func TestNewJiraRemoteWorkItem(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	remoteWorkItem := RemoteWorkItem{
-		Content: []byte(`{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`),
-		ID:      "http://www.example.com",
-	}
-	jiraRemoteWorkItem, ok := NewJiraRemoteWorkItem(remoteWorkItem)
+
+	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
+	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", BatchID: "bxyz", TrackerQueryID: uint64(0)}
+
+	jiraRemoteWorkItem, ok := NewJiraRemoteWorkItem(remoteTrackerItem)
 	assert.Nil(t, ok)
 	assert.Equal(t, jiraRemoteWorkItem.Get("admins.0.name"), "aslak")
 	assert.Equal(t, jiraRemoteWorkItem.Get("name"), "shoubhik")

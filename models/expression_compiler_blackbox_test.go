@@ -1,20 +1,24 @@
-package models
+package models_test
 
 import (
-	. "github.com/almighty/almighty-core/criteria"
 	"reflect"
 	"runtime/debug"
 	"testing"
+
+	. "github.com/almighty/almighty-core/criteria"
+	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 )
 
 func TestField(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	expect(t, Equals(Field("foo"), Literal(23)), "(Fields->'foo' = ?::jsonb)", []interface{}{"23"})
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 

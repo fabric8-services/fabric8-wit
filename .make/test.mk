@@ -79,9 +79,9 @@ COVERAGE_MODE ?= set
 
 # By default use the "localhost" or specify manually during make invocation:
 #
-# 	ALMIGHTY_DB_HOST=somehost make test-integration
+# 	ALMIGHTY_POSTGRES_HOST=somehost make test-integration
 #
-ALMIGHTY_DB_HOST ?= localhost
+ALMIGHTY_POSTGRES_HOST ?= localhost
 
 # Output directory for coverage information
 COV_DIR = $(TMP_PATH)/coverage
@@ -322,7 +322,7 @@ $(eval ENV_VAR := $(5))
 
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@$(ENV_VAR) ALMIGHTY_DB_HOST=$(ALMIGHTY_DB_HOST) \
+@$(ENV_VAR) ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
 	go test $(PACKAGE_NAME) \
 		-v \
 		-coverprofile $(COV_OUT_FILE) \

@@ -1,19 +1,19 @@
-// +build unit
-
-package models
+package models_test
 
 import (
 	"testing"
+
+	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 )
 
 var (
-	stString   = SimpleType{KindString}
-	stInt      = SimpleType{KindInteger}
-	stFloat    = SimpleType{KindFloat}
-	stDuration = SimpleType{KindDuration}
-	stURL      = SimpleType{KindURL}
-	stList     = SimpleType{KindList}
+	stString   = SimpleType{Kind: KindString}
+	stInt      = SimpleType{Kind: KindInteger}
+	stFloat    = SimpleType{Kind: KindFloat}
+	stDuration = SimpleType{Kind: KindDuration}
+	stURL      = SimpleType{Kind: KindURL}
+	stList     = SimpleType{Kind: KindList}
 )
 
 type input struct {
@@ -24,6 +24,7 @@ type input struct {
 }
 
 func TestSimpleTypeConversion(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	test_data := []input{
@@ -83,6 +84,7 @@ var (
 )
 
 func TestEnumTypeConversion(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	data := []input{
@@ -109,16 +111,17 @@ func TestEnumTypeConversion(t *testing.T) {
 
 var (
 	intList = ListType{
-		SimpleType:    SimpleType{KindList},
-		ComponentType: SimpleType{KindInteger},
+		SimpleType:    SimpleType{Kind: KindList},
+		ComponentType: SimpleType{Kind: KindInteger},
 	}
 	strList = ListType{
-		SimpleType:    SimpleType{KindList},
-		ComponentType: SimpleType{KindString},
+		SimpleType:    SimpleType{Kind: KindList},
+		ComponentType: SimpleType{Kind: KindString},
 	}
 )
 
 func TestListTypeConversion(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
 	data := []input{

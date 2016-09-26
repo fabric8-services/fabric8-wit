@@ -2,6 +2,11 @@ package models
 
 import "fmt"
 
+const(
+	stBadParameterErrorMsg = "Bad value for parameter '%s': '%v'"
+	stNotFoundErrorMsg = "%s with id '%s' not found"
+)
+
 type simpleError struct {
 	message string
 }
@@ -28,7 +33,7 @@ type BadParameterError struct {
 
 // Error implements the error interface
 func (err BadParameterError) Error() string {
-	return fmt.Sprintf("Bad value for parameter '%s': '%v'", err.parameter, err.value)
+	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
 }
 
 // ConversionError error means something went wrong converting between different representations
@@ -43,5 +48,5 @@ type NotFoundError struct {
 }
 
 func (err NotFoundError) Error() string {
-	return fmt.Sprintf("%s with id '%s' not found", err.entity, err.ID)
+	return fmt.Sprintf(stNotFoundErrorMsg, err.entity, err.ID)
 }
