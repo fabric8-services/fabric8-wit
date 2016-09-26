@@ -2,13 +2,11 @@ package configuration
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 )
 
@@ -61,12 +59,6 @@ func SetupConfiguration(configFilePath string) error {
 			return fmt.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
-
-	// Watch for config changes
-	viper.WatchConfig()
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		log.Println("Config file changed:", e.Name)
-	})
 
 	return nil
 }
