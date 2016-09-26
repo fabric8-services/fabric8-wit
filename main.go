@@ -45,9 +45,18 @@ func main() {
 	flag.BoolVar(&printConfig, "printConfig", false, "Prints the config (including merged environment variables) and exits")
 	flag.Parse()
 
-	// Override -config switch with environment variable if provided.
-	if envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH"); ok {
-		configFilePath = envConfigPath
+	// Override default -config switch with environment variable only if -config switch was
+	// not explicitly given via the command line.
+	configSwitchIsSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "config" {
+			configSwitchIsSet = true
+		}
+	})
+	if !configSwitchIsSet {
+		if envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH"); ok {
+			configFilePath = envConfigPath
+		}
 	}
 
 	var err error
