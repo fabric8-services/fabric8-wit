@@ -24,7 +24,6 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -72,18 +71,18 @@ func main() {
 	printUserInfo()
 
 	var db *gorm.DB
-	for i := 1; i <= viper.GetInt("postgres.connection.maxretries"); i++ {
-		log.Printf("Opening DB connection attempt %d of %d\n", i, viper.GetInt("postgres.connection.maxretries"))
+	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
+		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
 		db, err = gorm.Open("postgres",
 			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
-				viper.GetString("postgres.host"),
-				viper.GetInt64("postgres.port"),
-				viper.GetString("postgres.user"),
-				viper.GetString("postgres.password"),
-				viper.GetString("postgres.sslmode"),
+				configuration.GetPostgresHost(),
+				configuration.GetPostgresPort(),
+				configuration.GetPostgresUser(),
+				configuration.GetPostgresPassword(),
+				configuration.GetPostgresSSLMode(),
 			))
 		if err != nil {
-			time.Sleep(viper.GetDuration("postgres.connection.retrysleep"))
+			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
 			break
@@ -153,7 +152,7 @@ func main() {
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
-	fmt.Println("Dev mode:       ", viper.GetBool("developer.mode.enabled"))
+	fmt.Println("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
@@ -167,7 +166,7 @@ func main() {
 	})
 
 	// Start http
-	if err := http.ListenAndServe(viper.GetString("http.address"), nil); err != nil {
+	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
 		service.LogError("startup", "err", err)
 	}
 

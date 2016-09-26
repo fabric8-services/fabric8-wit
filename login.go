@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/spf13/viper"
 )
 
 // LoginController implements the login resource.
@@ -40,7 +40,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 // Generate runs the authorize action.
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
-	if !viper.GetBool("developer.mode.enabled") {
+	if !configuration.IsPostgresDeveloperModeEnabled() {
 		return ctx.Unauthorized()
 	}
 

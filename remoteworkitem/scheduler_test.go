@@ -9,7 +9,6 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/spf13/viper"
 )
 
 var db *gorm.DB
@@ -24,11 +23,11 @@ func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		db, err = gorm.Open("postgres",
 			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
-				viper.GetString("postgres.host"),
-				viper.GetInt64("postgres.port"),
-				viper.GetString("postgres.user"),
-				viper.GetString("postgres.password"),
-				viper.GetString("postgres.sslmode"),
+				configuration.GetPostgresHost(),
+				configuration.GetPostgresPort(),
+				configuration.GetPostgresUser(),
+				configuration.GetPostgresPassword(),
+				configuration.GetPostgresSSLMode(),
 			))
 		if err != nil {
 			panic("Failed to connect database: " + err.Error())

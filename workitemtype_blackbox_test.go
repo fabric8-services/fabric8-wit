@@ -15,7 +15,6 @@ import (
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
@@ -48,11 +47,11 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 
 	s.db, err = gorm.Open("postgres",
 		fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
-			viper.GetString("postgres.host"),
-			viper.GetInt64("postgres.port"),
-			viper.GetString("postgres.user"),
-			viper.GetString("postgres.password"),
-			viper.GetString("postgres.sslmode"),
+			configuration.GetPostgresHost(),
+			configuration.GetPostgresPort(),
+			configuration.GetPostgresUser(),
+			configuration.GetPostgresPassword(),
+			configuration.GetPostgresSSLMode(),
 		))
 
 	if err != nil {
