@@ -42,7 +42,7 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 
 	var err error
 
-	if err = configuration.SetupConfiguration(configuration.DefaultConfigFilePath); err != nil {
+	if err = configuration.Setup(configuration.DefaultConfigFilePath); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

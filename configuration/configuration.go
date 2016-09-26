@@ -17,8 +17,8 @@ const (
 	DefaultConfigFilePath = "config.yaml"
 )
 
-// GetConfiguration returns the current configuration as a string
-func GetConfiguration() string {
+// String returns the current configuration as a string
+func String() string {
 	allSettings := viper.AllSettings()
 	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
@@ -27,11 +27,11 @@ func GetConfiguration() string {
 	return fmt.Sprintf("%s\n", y)
 }
 
-// SetupConfiguration sets up defaults for viper configuration options and
+// Setup sets up defaults for viper configuration options and
 // overrides these values with the values from the given configuration file
 // if it is not empty. Those values again are overwritten by environment
 // variables.
-func SetupConfiguration(configFilePath string) error {
+func Setup(configFilePath string) error {
 	viper.Reset()
 
 	// Expect environment variables to be prefix with "ALMIGHTY_".

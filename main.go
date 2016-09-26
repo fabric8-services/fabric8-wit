@@ -51,12 +51,12 @@ func main() {
 	}
 
 	var err error
-	if err = configuration.SetupConfiguration(configFilePath); err != nil {
+	if err = configuration.Setup(configFilePath); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
 	if printConfig {
-		fmt.Printf("%s\n", configuration.GetConfiguration())
+		fmt.Printf("%s\n", configuration.String())
 		os.Exit(0)
 	}
 
