@@ -3,18 +3,19 @@ package main_test
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
@@ -39,15 +40,23 @@ type WorkItemTypeSuite struct {
 func (s *WorkItemTypeSuite) SetupSuite() {
 	fmt.Println("--- Setting up test suite WorkItemTypeSuite ---")
 
-	dbHost := os.Getenv("ALMIGHTY_DB_HOST")
-	if "" == dbHost {
-		panic("The environment variable ALMIGHTY_DB_HOST is not specified or empty.")
+	var err error
+
+	if err = configuration.SetupConfiguration(configuration.DefaultConfigFilePath); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
-	var err error
-	s.db, err = gorm.Open("postgres", fmt.Sprintf("host=%s user=postgres password=mysecretpassword sslmode=disable", dbHost))
+	s.db, err = gorm.Open("postgres",
+		fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+			viper.GetString("postgres.host"),
+			viper.GetInt64("postgres.port"),
+			viper.GetString("postgres.user"),
+			viper.GetString("postgres.password"),
+			viper.GetString("postgres.sslmode"),
+		))
+
 	if err != nil {
-		panic("failed to connect database: " + err.Error())
+		panic("Failed to connect database: " + err.Error())
 	}
 
 	s.ts = models.NewGormTransactionSupport(s.db)

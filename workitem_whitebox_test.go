@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 			))
 
 		if err != nil {
-			panic("failed to connect database: " + err.Error())
+			panic("Failed to connect database: " + err.Error())
 		}
 		defer DB.Close()
 		// Migrate the schema

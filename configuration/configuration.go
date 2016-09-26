@@ -79,6 +79,7 @@ func setConfigDefaults() {
 	viper.SetTypeByDefaultValue(true)
 	viper.SetDefault("postgres.host", "localhost")
 	viper.SetDefault("postgres.port", 5432)
+	viper.SetDefault("postgres.user", "postgres")
 	viper.SetDefault("postgres.password", "mysecretpassword")
 	viper.SetDefault("postgres.sslmode", "disable")
 	// The number of times alm server will attempt to open a connection to the database before it gives up

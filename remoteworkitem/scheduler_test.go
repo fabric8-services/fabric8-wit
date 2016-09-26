@@ -31,7 +31,7 @@ func TestMain(m *testing.M) {
 				viper.GetString("postgres.sslmode"),
 			))
 		if err != nil {
-			panic("failed to connect database: " + err.Error())
+			panic("Failed to connect database: " + err.Error())
 		}
 		defer db.Close()
 		// Migrate the schema

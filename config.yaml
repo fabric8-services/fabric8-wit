@@ -3,8 +3,9 @@
 #------------------------
 
 postgres.host: localhost
-postgres.password: mysecretpassword
 postgres.port: 5432
+postgres.user: postgres
+postgres.password: mysecretpassword
 postgres.sslmode: disable
 # The number of times alm server will attempt to open a connection to the database before it gives up
 postgres.connection.maxretries: 50
