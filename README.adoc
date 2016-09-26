@@ -239,8 +239,34 @@ coverage information for all tests.
 If no configuration file is specified when the core is started, these are the defaults.
 
 [source,yaml]
+.config.yaml
 ----
-include::config.yaml[]
+#------------------------
+# Postgres configuration
+#------------------------
+
+postgres.host: localhost
+postgres.port: 5432
+postgres.user: postgres
+postgres.password: mysecretpassword
+postgres.sslmode: disable
+# The number of times alm server will attempt to open a connection to the database before it gives up
+postgres.connection.maxretries: 50
+# Duration to wait before trying to connect again
+postgres.connection.retrysleep: 1s
+
+#------------------------
+# HTTP configuration
+#------------------------
+
+http.address: 0.0.0.0:8080
+
+#------------------------
+# Misc.
+#------------------------
+
+# Enable development related features, e.g. token generation endpoint
+developer.mode.enabled: false
 ----
 
 Although this is a YAML file, we highly suggest to stick to this rather lenghty notation instead of nesting structs.
