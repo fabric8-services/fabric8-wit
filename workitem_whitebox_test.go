@@ -23,7 +23,7 @@ var rwiScheduler *remoteworkitem.Scheduler
 func TestMain(m *testing.M) {
 	var err error
 
-	if err = configuration.Setup(configuration.DefaultConfigFilePath); err != nil {
+	if err = configuration.Setup(""); err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
