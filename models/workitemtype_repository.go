@@ -57,6 +57,12 @@ func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name st
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
+	existing, _ := r.loadTypeFromDB(ctx, name)
+	if existing != nil {
+		log.Printf("creating type %s again", name)
+		return nil, BadParameterError{parameter: "name", value: name}
+	}
+
 	allFields := map[string]FieldDefinition{}
 	path := "/"
 	if extendedTypeName != nil {
