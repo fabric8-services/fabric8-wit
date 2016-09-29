@@ -1,5 +1,5 @@
-hash: f40749f8fd3afc7446ab7779cb67618a9d03682fbf883534cb6a40bdc8f97372
-updated: 2016-09-07T11:31:53.570191805+02:00
+hash: 4ae782d4a4c0e9d893413e33398188828e569c50bb05192c6b93ed04ea63ac63
+updated: 2016-09-29T01:11:14.714797901+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -44,6 +44,10 @@ imports:
   - dslengine
 - name: github.com/goadesign/gorma
   version: f7116846126a4cb17a0cddd6b3b429ad1592f260
+- name: github.com/golang/lint
+  version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
+  subpackages:
+  - golint
 - name: github.com/google/go-github
   version: a59a35745f99ad92d70d69a9f180767063aa4bf3
   subpackages:
@@ -129,11 +133,10 @@ imports:
 - name: github.com/spf13/viper
   version: 16990631d4aa7e38f73dbbbf37fa13e67c648531
 - name: github.com/stretchr/testify
-  version: f390dcf405f7b83c997eac1b06768bb9f44dec18
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
   - suite
-  - require
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
@@ -163,13 +166,14 @@ imports:
   version: 527b253f588776e5f72a0a0d1e93195cd3f82707
   subpackages:
   - go/ast/astutil
+  - cmd/goimports
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 2df174808ee097f90d259e432cc04442cf60be21
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib

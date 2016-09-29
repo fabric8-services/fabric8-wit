@@ -1,0 +1,3 @@
+bindata_assetfs.go
+/design/.*should not use dot import
+.*exported .*should have comment

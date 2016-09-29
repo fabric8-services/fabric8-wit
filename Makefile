@@ -12,6 +12,8 @@ SOURCE_DIR ?= .
 SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
+CHECK_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
+CHECK_TMP_FILE=tmp/check_error
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -110,8 +112,13 @@ $(GO_BINDATA_ASSETFS_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
 $(FRESH_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
+$(GOIMPORTS_BIN):
+	cd $(VENDOR_DIR)/golang.org/x/tools/cmd/goimports && go build -v
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
 
 CLEAN_TARGETS += clean-artifacts
+
 .PHONY: clean-artifacts
 ## Removes the ./bin directory.
 clean-artifacts:
@@ -145,6 +152,12 @@ CLEAN_TARGETS += clean-glide-cache
 ## Removes the ./glide directory.
 clean-glide-cache:
 	-rm -rf ./.glide
+
+CLEAN_TARGETS += clean-check
+.PHONY: clean-check
+## Removes the $(CHECK_TMP_FILE)
+clean-check:
+	rm -f $(CHECK_TMP_FILE)
 
 .PHONY: deps
 ## Download build dependencies.
@@ -202,6 +215,25 @@ ifeq ($(OS),Windows_NT)
 else
 	@go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
 endif
+
+.PHONY: check
+.ONESHELL: check
+## Run different static code analysis
+check: clean-check $(GOIMPORTS_BIN) $(GOLINT_BIN)
+	for d in $(CHECK_DIRS) ; do \
+		$(GOIMPORTS_BIN) -l $$d/*.go | grep -vEf .golint_exclude >> $(CHECK_TMP_FILE); \
+	done
+	for d in $(CHECK_DIRS) ; do \
+		$(GOLINT_BIN) $$d | grep -vEf .golint_exclude >> $(CHECK_TMP_FILE); \
+	done
+	for d in $(CHECK_DIRS) ; do \
+		go tool vet --all $$d/*.go 2>&1 >> $(CHECK_TMP_FILE); \
+	done
+	if [ -a $(CHECK_TMP_FILE) ]; then \
+		if [ "`cat $(CHECK_TMP_FILE)`" ]; then \
+			cat $(CHECK_TMP_FILE) && exit 1; \
+		fi
+	fi
 
 # Keep this "clean" target here at the bottom
 .PHONY: clean
