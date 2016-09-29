@@ -8,7 +8,7 @@ documentation etc.
 If you have any questions, you can ask in the
 [public mailing list](https://www.redhat.com/mailman/listinfo/almighty-public)
 or
-[IRC channel](http://webchat.freenode.net/?randomnick=1&channels=smc-project).
+[IRC channel](http://webchat.freenode.net/?randomnick=1&channels=almighty).
 
 ## Reporting Issues
 
