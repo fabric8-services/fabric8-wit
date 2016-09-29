@@ -22,7 +22,7 @@ func TestGetWorkItem(t *testing.T) {
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, repo, ts)
 	assert.NotNil(t, controller)
-	payload := app.CreateWorkitemPayload{
+	payload := app.CreateWorkItemPayload{
 		Type: "system.bug",
 		Fields: map[string]interface{}{
 			"system.title":   "Test WI",
@@ -43,7 +43,7 @@ func TestGetWorkItem(t *testing.T) {
 	}
 
 	wi.Fields["system.creator"] = "thomas"
-	payload2 := app.UpdateWorkitemPayload{
+	payload2 := app.UpdateWorkItemPayload{
 		Type:    wi.Type,
 		Version: wi.Version,
 		Fields:  wi.Fields,
@@ -71,7 +71,7 @@ func TestCreateWI(t *testing.T) {
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, repo, ts)
 	assert.NotNil(t, controller)
-	payload := app.CreateWorkitemPayload{
+	payload := app.CreateWorkItemPayload{
 		Type: "system.bug",
 		Fields: map[string]interface{}{
 			"system.title":   "Test WI",
@@ -95,7 +95,7 @@ func TestListByFields(t *testing.T) {
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, repo, ts)
 	assert.NotNil(t, controller)
-	payload := app.CreateWorkitemPayload{
+	payload := app.CreateWorkItemPayload{
 		Type: "system.bug",
 		Fields: map[string]interface{}{
 			"system.title":   "run integration test",
