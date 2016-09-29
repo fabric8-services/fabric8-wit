@@ -52,7 +52,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	var scopes []User
 	scopes = append(scopes, User{
 		Name:   "Test Developer",
-		Scopes: Permissions.CRUDWotkItem(),
+		Scopes: Permissions.CRUDWorkItem(),
 	})
 	scopes = append(scopes, User{
 		Name:   "Test Observer",
