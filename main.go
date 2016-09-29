@@ -129,8 +129,8 @@ func main() {
 	loginCtrl := NewLoginController(service)
 	app.MountLoginController(service, loginCtrl)
 	// Mount "status" controller
-	versionCtrl := NewStatusController(service)
-	app.MountStatusController(service, versionCtrl)
+	statusCtrl := NewStatusController(service, db)
+	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
 	workitemCtrl := NewWorkitemController(service, wiRepo, ts)
@@ -160,13 +160,6 @@ func main() {
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
 	http.Handle("/favicon.ico", http.NotFoundHandler())
-	http.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-		_, err := db.DB().Exec("select 1")
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		return
-	})
 
 	// Start http
 	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {

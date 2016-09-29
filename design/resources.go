@@ -157,6 +157,9 @@ var _ = Resource("status", func() {
 		)
 		Description("Show the status of the current running instance")
 		Response(OK)
+		Response(ServiceUnavailable, func() {
+			Media(ErrorMedia)
+		})
 	})
 })
 
