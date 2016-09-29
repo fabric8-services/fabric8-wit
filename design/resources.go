@@ -146,16 +146,16 @@ var _ = Resource("workitemtype", func() {
 	})
 })
 
-var _ = Resource("version", func() {
+var _ = Resource("status", func() {
 
-	DefaultMedia(ALMVersion)
-	BasePath("/version")
+	DefaultMedia(ALMStatus)
+	BasePath("/status")
 
 	Action("show", func() {
 		Routing(
 			GET(""),
 		)
-		Description("Show current running version")
+		Description("Show the status of the current running instance")
 		Response(OK)
 	})
 })

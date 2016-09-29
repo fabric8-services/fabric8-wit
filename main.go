@@ -31,6 +31,8 @@ var (
 	Commit = "0"
 	// BuildTime set by build script
 	BuildTime = "0"
+	// UTC StartTime
+	StartTime = time.Now().UTC().Format("2006-01-02_03:04:05PM")
 )
 
 func main() {
@@ -126,9 +128,9 @@ func main() {
 	// Mount "login" controller
 	loginCtrl := NewLoginController(service)
 	app.MountLoginController(service, loginCtrl)
-	// Mount "version" controller
-	versionCtrl := NewVersionController(service)
-	app.MountVersionController(service, versionCtrl)
+	// Mount "status" controller
+	versionCtrl := NewStatusController(service)
+	app.MountStatusController(service, versionCtrl)
 
 	// Mount "workitem" controller
 	workitemCtrl := NewWorkitemController(service, wiRepo, ts)
@@ -152,6 +154,7 @@ func main() {
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
+	fmt.Println("UTC Start Time: ", StartTime)
 	fmt.Println("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
 
 	http.Handle("/api/", service.Mux)

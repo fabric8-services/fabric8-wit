@@ -5,17 +5,19 @@ import (
 	. "github.com/goadesign/goa/design/apidsl"
 )
 
-// ALMVersion defines the running ALM Version MediaType
-var ALMVersion = MediaType("application/vnd.version+json", func() {
+// ALMStatus defines the running ALM Status MediaType
+var ALMStatus = MediaType("application/vnd.status+json", func() {
 	Description("The current running version")
 	Attributes(func() {
 		Attribute("commit", String, "Commit SHA this build is based on")
-		Attribute("build_time", String, "The date when build")
-		Required("commit", "build_time")
+		Attribute("build_time", String, "The time when build")
+		Attribute("start_time", String, "The time when started")
+		Required("commit", "build_time", "start_time")
 	})
 	View("default", func() {
 		Attribute("commit")
 		Attribute("build_time")
+		Attribute("start_time")
 	})
 })
 
