@@ -8,8 +8,8 @@ type PermissionDefinition struct {
 	DeleteWorkItem string
 }
 
-// CRUDWotkItem returns all CRUD permissions for a WorkItem
-func (p *PermissionDefinition) CRUDWotkItem() []string {
+// CRUDWorkItem returns all CRUD permissions for a WorkItem
+func (p *PermissionDefinition) CRUDWorkItem() []string {
 	return []string{p.CreateWorkItem, p.ReadWorkItem, p.UpdateWorkItem, p.DeleteWorkItem}
 }
 

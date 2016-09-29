@@ -11,7 +11,9 @@ services:
       - default
   core:
     image: almightycore/almighty-core:latest
-    command: -dbhost db
+    command: -config /usr/local/alm/etc/config.yaml
+    environment:
+      ALMIGHTY_POSTGRES_HOST: db
     ports:
       - "8080:8080"
     networks:

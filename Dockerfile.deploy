@@ -8,6 +8,7 @@ ENV ALMIGHTY_USER_NAME=almighty
 RUN useradd --no-create-home -s /bin/bash ${ALMIGHTY_USER_NAME}
 
 COPY bin/alm ${ALMIGHTY_INSTALL_PREFIX}/bin/alm
+COPY config.yaml ${ALMIGHTY_INSTALL_PREFIX}/etc/config.yaml
 
 # From here onwards, any RUN, CMD, or ENTRYPOINT will be run under the following user
 USER ${ALMIGHTY_USER_NAME}
