@@ -155,7 +155,7 @@ $ make clean
 
 Here's how to run all available tests. All tests will check all Go packages
 except those in the `vendor/` directory.
-Make sure you have docker and docker-compose available (Probably you may consider adding your user into `docker` group using `usermod -aG docker $USER`).
+Make sure you have docker and docker-compose available.
 
 Setting up test environment - `make integration-test-env-prepare`
 
