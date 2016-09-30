@@ -29,7 +29,10 @@ func (c *StatusController) Show(ctx *app.ShowStatusContext) error {
 
 	_, err := c.db.DB().Exec("select 1")
 	if err != nil {
-		return ctx.ServiceUnavailable(err);
+		var message string
+		message = err.Error()
+		res.Error = &message
+		return ctx.ServiceUnavailable(res);
 	}
 	return ctx.OK(res)
 }
