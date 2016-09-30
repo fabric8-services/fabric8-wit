@@ -106,7 +106,7 @@ endif
 	$(eval ALMIGHTY_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -c 'export ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST); make test-integration'
 
-# This is a wildcard target to lets you call any make target from the normal makefile
+# This is a wildcard target to let you call any make target from the normal makefile
 # but it will run inside the docker container. This target will only get executed if
 # there's no specialized form available. For example if you call "make docker-start"
 # not this target gets executed but the "docker-start" target. 
