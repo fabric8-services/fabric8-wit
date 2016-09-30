@@ -64,6 +64,11 @@ clean-docker-build-dir:
 
 .PHONY: docker-start
 ## Starts the docker build container in the background (detached mode).
+## After calling this command you can invoke all the make targets from the
+## normal Makefile (e.g. deps, generate, build) inside the build container
+## by prefixing them with "docker-". For example to execute "make deps"
+## inside the build container, just run "make docker-deps".  
+## To remove the container when no longer needed, call "make docker-rm".
 docker-start: docker-build-dir docker-image-builder
 ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
 	@echo "Docker container \"$(DOCKER_CONTAINER_NAME)\" already exists. To recreate, run \"make docker-rm\"."
@@ -81,41 +86,16 @@ else
 		@echo "Docker container \"$(DOCKER_CONTAINER_NAME)\" created. Continue with \"make docker-deps\"."
 endif
 
-.PHONY: docker-deps
-## Runs "make deps" inside the already started docker build container (see "make docker-start").
-docker-deps:
-ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps")
+.PHONY: docker-rm
+## Removes the docker build container, if any (see "make docker-start").
+docker-rm:
+ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
+	docker rm -f "$(DOCKER_CONTAINER_NAME)"
+else
+	@echo "No container named \"$(DOCKER_CONTAINER_NAME)\" to remove."
 endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make deps
-
-.PHONY: docker-generate
-## Runs "make generate" inside the already started docker build container (see "make docker-start").
-docker-generate:
-ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate")
-endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make generate
-
-.PHONY: docker-build
-## Runs "make build" inside the already started docker build container (see "make docker-start").
-docker-build:
-ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate && make docker-build")
-endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make build
-
-.PHONY: docker-test-unit
-## Runs "make test-unit" inside the already started docker build container (see "make docker-start").
-docker-test-unit:
-ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate && make docker-build && make docker-test-unit")
-endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make test-unit
 
 .PHONY: docker-test-integration
-## Runs "make test-unit" inside the already started docker build container (see "make docker-start").
-## Make sure you ran "make integration-test-env-prepare" before you run this target.
 docker-test-integration:
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
 	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate && make docker-build && make docker-test-unit")
@@ -126,19 +106,13 @@ endif
 	$(eval ALMIGHTY_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -c 'export ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST); make test-integration'
 
-.PHONY: docker-coverage-all
-## Runs "make coverage-all" inside the already started docker build container (see "make coverage-all").
-docker-coverage-all:
+# This is a wildcard target to lets you call any make target from the normal makefile
+# but it will run inside the docker container. This target will only get executed if
+# there's no specialized form available. For example if you call "make docker-start"
+# not this target gets executed but the "docker-start" target. 
+docker-%:
+	$(eval makecommand:=$(subst docker-,,$@))
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate && make docker-build && make docker-test-unit")
+	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the command "make $(makecommand)")
 endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make coverage-all
-
-.PHONY: docker-rm
-## Removes the docker build container, if any (see "make docker-start").
-docker-rm:
-ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	docker rm -f "$(DOCKER_CONTAINER_NAME)"
-else
-	@echo "No container named \"$(DOCKER_CONTAINER_NAME)\" to remove."
-endif
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make $(makecommand)
