@@ -32,10 +32,24 @@ var UpdateWorkItemPayload = Type("UpdateWorkItemPayload", func() {
 	Required("type", "fields", "version")
 })
 
+// CreateWorkItemTypePayload explains how input payload should look like
 var CreateWorkItemTypePayload = Type("CreateWorkItemTypePayload", func() {
-	Attribute("name", String, "Readable name of the type like Task, Issue, Bug, Epic etc.")
-	Attribute("fields", HashOf(String, fieldDefinition), "Type fields those must be followed by respective Work Items.")
-	Attribute("extendedTypeName", String, "If newly created type extends any existing type")
+	Attribute("name", String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
+		Example("Epic")
+	})
+	Attribute("fields", HashOf(String, fieldDefinition), "Type fields those must be followed by respective Work Items.", func() {
+		Example(map[string]interface{}{
+			"system.administrator": map[string]interface{}{
+				"Type": map[string]interface{}{
+					"Kind": "string",
+				},
+				"Required": true,
+			},
+		})
+	})
+	Attribute("extendedTypeName", String, "If newly created type extends any existing type", func() {
+		Example("(optional field)Parent type name")
+	})
 	Required("name", "fields")
 })
 
