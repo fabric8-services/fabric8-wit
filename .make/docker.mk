@@ -17,7 +17,7 @@ DOCKER_BUILD_DIR := $(WORKSPACE)/$(PROJECT_NAME)-build
 BUILD_TAG ?= $(PROJECT_NAME)-local-build
 DOCKER_CONTAINER_NAME := $(BUILD_TAG)
 
-## Where is the GOPATH inside the build container?
+# Where is the GOPATH inside the build container?
 GOPATH_IN_CONTAINER=/tmp/go
 PACKAGE_PATH=$(GOPATH_IN_CONTAINER)/src/$(PACKAGE_NAME)
 
@@ -95,16 +95,18 @@ else
 	@echo "No container named \"$(DOCKER_CONTAINER_NAME)\" to remove."
 endif
 
-.PHONY: docker-test-integration
-docker-test-integration:
+# Make sure you ran "make integration-test-env-prepare" before you run this target.
+SPECIAL_DOCKER_TARGETS = docker-test-integration docker-coverage-all
+$(SPECIAL_DOCKER_TARGETS):
+	$(eval makecommand:=$(subst docker-,,$@))
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start && make docker-deps && make docker-generate && make docker-build && make docker-test-unit")
+	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start")
 endif
 ifeq ($(strip $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null)),)
-	$(error Failed to find PostgreSQL container. Try running "make integration-test-env-prepare && make docker-test-integration")
+	$(error Failed to find PostgreSQL container. Try running "make integration-test-env-prepare")
 endif
 	$(eval ALMIGHTY_POSTGRES_HOST := $(shell docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1 2>/dev/null))
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -c 'export ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST); make test-integration'
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'export ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST); make $(makecommand)'
 
 # This is a wildcard target to let you call any make target from the normal makefile
 # but it will run inside the docker container. This target will only get executed if
@@ -115,4 +117,4 @@ docker-%:
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
 	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the command "make $(makecommand)")
 endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make $(makecommand)
+	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'make $(makecommand)'
