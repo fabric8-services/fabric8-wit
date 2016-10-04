@@ -1,5 +1,5 @@
-hash: f40749f8fd3afc7446ab7779cb67618a9d03682fbf883534cb6a40bdc8f97372
-updated: 2016-09-07T11:31:53.570191805+02:00
+hash: f69d42148a4455c288f4f350f4e07ec00daf9ace5b51863b0726745333839690
+updated: 2016-09-29T10:03:44.437242317+05:30
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -18,7 +18,7 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 612c3d8e47f5a166d9346b694cf2aeb68eff5369
+  version: 96acf0909c0b45ebf4a25a816cedc6d317e63679
 - name: github.com/elazarl/go-bindata-assetfs
   version: 57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2
   subpackages:
@@ -26,13 +26,14 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb
 - name: github.com/goadesign/goa
-  version: 90e6c399f49c4125bbadf91eaa60156b9aa2a65e
+  version: b1b4f4d827a3b63b05d978ca82305c45451103b3
   vcs: git
   subpackages:
   - client
   - cors
   - design
   - design/apidsl
+  - dslengine
   - goagen
   - goagen/codegen
   - goagen/gen_app
@@ -41,7 +42,6 @@ imports:
   - middleware
   - middleware/security/jwt
   - uuid
-  - dslengine
 - name: github.com/goadesign/gorma
   version: f7116846126a4cb17a0cddd6b3b429ad1592f260
 - name: github.com/google/go-github
@@ -57,10 +57,10 @@ imports:
   subpackages:
   - hcl/ast
   - hcl/parser
-  - hcl/token
-  - json/parser
   - hcl/scanner
   - hcl/strconv
+  - hcl/token
+  - json/parser
   - json/scanner
   - json/token
 - name: github.com/howeyc/fsnotify
@@ -129,11 +129,11 @@ imports:
 - name: github.com/spf13/viper
   version: 16990631d4aa7e38f73dbbbf37fa13e67c648531
 - name: github.com/stretchr/testify
-  version: f390dcf405f7b83c997eac1b06768bb9f44dec18
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-  - suite
   - require
+  - suite
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
 - name: github.com/zach-klippenstein/goregen
@@ -141,10 +141,10 @@ imports:
 - name: golang.org/x/crypto
   version: 9e590154d2353f3f5e1b24da7275686040dcf491
   subpackages:
-  - ssh
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
+  - ssh
 - name: golang.org/x/net
   version: f841c39de738b1d0df95b5a7187744f0e03d8112
   subpackages:
@@ -169,7 +169,7 @@ imports:
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 2df174808ee097f90d259e432cc04442cf60be21
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib

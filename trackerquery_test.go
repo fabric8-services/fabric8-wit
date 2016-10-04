@@ -16,7 +16,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	ts := models.NewGormTransactionSupport(DB)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
-	payload := app.CreateTrackerPayload{
+	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
@@ -25,7 +25,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	tqts := models.NewGormTransactionSupport(DB)
 	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
 	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
-	tqpayload := app.CreateTrackerqueryPayload{
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
@@ -44,7 +44,7 @@ func TestGetTrackerQuery(t *testing.T) {
 	ts := models.NewGormTransactionSupport(DB)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
-	payload := app.CreateTrackerPayload{
+	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
@@ -52,7 +52,7 @@ func TestGetTrackerQuery(t *testing.T) {
 
 	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
 	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
-	tqpayload := app.CreateTrackerqueryPayload{
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
@@ -76,7 +76,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	ts := models.NewGormTransactionSupport(DB)
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
-	payload := app.CreateTrackerPayload{
+	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
@@ -84,7 +84,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 
 	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
 	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
-	tqpayload := app.CreateTrackerqueryPayload{
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
 		Schedule:  "15 * * * * *",
@@ -102,7 +102,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
 
-	payload2 := app.UpdateTrackerqueryPayload{
+	payload2 := app.UpdateTrackerQueryAlternatePayload{
 		Query:     tqr.Query,
 		Schedule:  tqr.Schedule,
 		TrackerID: result.ID,
