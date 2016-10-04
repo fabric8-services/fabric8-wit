@@ -1,14 +1,24 @@
 package main_test
 
 import (
+	"bytes"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
+
+	"encoding/json"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
+	"github.com/goadesign/goa/middleware"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -131,3 +141,303 @@ func TestListByFields(t *testing.T) {
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, wi.ID)
 }
+
+func getExpiredAuthHeader(t *testing.T, key interface{}) string {
+	token := jwt.New(jwt.SigningMethodRS256)
+	token.Claims = jwt.MapClaims{"exp": float64(time.Now().Unix() - 100)}
+	tokenStr, err := token.SignedString(key)
+	if err != nil {
+		t.Fatal("Could not sign the token ", err)
+	}
+	return fmt.Sprintf("Bearer %s", tokenStr)
+}
+
+func getMalformedAuthHeader(t *testing.T, key interface{}) string {
+	token := jwt.New(jwt.SigningMethodRS256)
+	tokenStr, err := token.SignedString(key)
+	if err != nil {
+		t.Fatal("Could not sign the token ", err)
+	}
+	return fmt.Sprintf("Malformed Bearer %s", tokenStr)
+}
+
+func getValidAuthHeader(t *testing.T, key interface{}) string {
+	token := jwt.New(jwt.SigningMethodRS256)
+	tokenStr, err := token.SignedString(key)
+	if err != nil {
+		t.Fatal("Could not sign the token ", err)
+	}
+	return fmt.Sprintf("Bearer %s", tokenStr)
+}
+
+// Expected strcture of 401 error response
+type errorResponseStruct struct {
+	Id     string
+	Code   string
+	Status int
+	Detail string
+}
+
+// testSecureAPI defines how a Test object is.
+type testSecureAPI struct {
+	method             string
+	url                string
+	expectedStatusCode int    // this will be tested against responseRecorder.Code
+	expectedErrorCode  string // this will be tested only if response body gets unmarshelled into errorResponseStruct
+	payload            *bytes.Buffer
+	jwtToken           string
+}
+
+func getWorkItemTestData(t *testing.T) []testSecureAPI {
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSAPrivateKeyTest)))
+	if err != nil {
+		t.Fatal("Could not parse Key ", err)
+	}
+	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+
+	createWIPayloadString := bytes.NewBuffer([]byte(`{"type": "system.userstory" ,"fields": { "system.creator": "tmaeder", "system.state": "new", "system.title": "My special story", "system.description": "description" }}`))
+
+	return []testSecureAPI{
+		// Create Work Item API with different parameters
+		{
+			method:             "POST",
+			url:                "/api/workitems",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getExpiredAuthHeader(t, privatekey),
+		}, {
+			method:             "POST",
+			url:                "/api/workitems",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getMalformedAuthHeader(t, privatekey),
+		}, {
+			method:             "POST",
+			url:                "/api/workitems",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+		}, {
+			method:             "POST",
+			url:                "/api/workitems",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           "",
+		},
+		// Update Work Item API with different parameters
+		{
+			method:             "PUT",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getExpiredAuthHeader(t, privatekey),
+		}, {
+			method:             "PUT",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getMalformedAuthHeader(t, privatekey),
+		}, {
+			method:             "PUT",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+		}, {
+			method:             "PUT",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           "",
+		},
+		// Delete Work Item API with different parameters
+		{
+			method:             "DELETE",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getExpiredAuthHeader(t, privatekey),
+		}, {
+			method:             "DELETE",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getMalformedAuthHeader(t, privatekey),
+		}, {
+			method:             "DELETE",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+		}, {
+			method:             "DELETE",
+			url:                "/api/workitems/12345",
+			expectedStatusCode: 401,
+			expectedErrorCode:  "jwt_security_error",
+			payload:            createWIPayloadString,
+			jwtToken:           "",
+		},
+		// Try fetching a random work Item
+		// We do not have security on GET hence this should return 404 not found
+		{
+			method:             "GET",
+			url:                "/api/workitems/088481764871",
+			expectedStatusCode: 404,
+			expectedErrorCode:  "not_found",
+			payload:            nil,
+			jwtToken:           "",
+		},
+	}
+}
+
+// This test case will check authorized access to Create/Update/Delete APIs
+func TestUnauthorizeWorkItemCUD(t *testing.T) {
+	resource.Require(t, resource.Database)
+
+	// This will be modified after merge PR for "Viper Environment configurations"
+	publickey, err := jwt.ParseRSAPublicKeyFromPEM(([]byte(RSAPublicKeyTest)))
+	if err != nil {
+		t.Fatal("Could not parse Key ", err)
+	}
+	tokenTests := getWorkItemTestData(t)
+
+	for _, testObject := range tokenTests {
+		// Build a request
+		var req *http.Request
+		var err error
+		if testObject.payload == nil {
+			req, err = http.NewRequest(testObject.method, testObject.url, nil)
+		} else {
+			req, err = http.NewRequest(testObject.method, testObject.url, testObject.payload)
+		}
+		// req, err := http.NewRequest(testObject.method, testObject.url, testObject.payload)
+		if err != nil {
+			t.Fatal("could not create a HTTP request")
+		}
+		// Add Authorization Header
+		req.Header.Add("Authorization", testObject.jwtToken)
+
+		rr := httptest.NewRecorder()
+		ts := models.NewGormTransactionSupport(DB)
+		wir := models.NewWorkItemTypeRepository(ts)
+		repo := models.NewWorkItemRepository(ts, wir)
+
+		// temperory service for testing the middleware
+		service := goa.New("TestUnauthorizedCreateWI-Service")
+		assert.NotNil(t, service)
+
+		// if error is thrown during request processing, it will be caught by ErrorHandler middleware
+		// this will put error code, status, details in recorder object.
+		// e.g> {"id":"AL6spYb2","code":"jwt_security_error","status":401,"detail":"JWT validation failed: crypto/rsa: verification error"}
+		service.Use(middleware.ErrorHandler(service, true))
+
+		// append a middleware to service. Use appropriate RSA keys
+		jwtMiddleware := goajwt.New(publickey, nil, app.NewJWTSecurity())
+		// Adding middleware via "app" is important
+		// Because it will check the design and accordingly apply the middleware if mentioned in design
+		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
+		app.UseJWTMiddleware(service, jwtMiddleware)
+
+		controller := NewWorkitemController(service, repo, ts)
+		app.MountWorkitemController(service, controller)
+
+		// Hit the service with own request
+		service.Mux.ServeHTTP(rr, req)
+
+		assert.Equal(t, testObject.expectedStatusCode, rr.Code)
+
+		// Below code tries to open Body response which is expected to be a JSON
+		// If could not parse it correctly into errorResponseStruct
+		// Then it gets logged and continue the test loop
+		content := new(errorResponseStruct)
+		err = json.Unmarshal(rr.Body.Bytes(), content)
+		if err != nil {
+			t.Log("Could not parse JSON response: ", rr.Body)
+			// safe to continue because we alread checked rr.Code=required_value
+			continue
+		}
+		// Additional checks for 'more' confirmation
+		assert.Equal(t, testObject.expectedErrorCode, content.Code)
+		assert.Equal(t, testObject.expectedStatusCode, content.Status)
+	}
+}
+
+var RSAPublicKeyTest = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnwrjH5iTSErw9xUptp6Q
+SFoUfpHUXZ+PaslYSUrpLjw1q27ODSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nw
+xBobS723okFaIkshRrf6qgtD6coTHlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3
+bwTIFlLlVMiZf7XVE7P3yuOCpqkk2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpj
+O5QnY+Exx98E30iEdPHZpsfNhsjh9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbv
+enbR9Q59d88lbnEeHKgSMe2RQpFR3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWm
+PwIDAQAB
+-----END PUBLIC KEY-----`
+
+var RSAPrivateKeyTest = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
+DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
+HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
+2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpjO5QnY+Exx98E30iEdPHZpsfNhsjh
+9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbvenbR9Q59d88lbnEeHKgSMe2RQpFR
+3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWmPwIDAQABAoIBAQCBCl5ZpnvprhRx
+BVTA/Upnyd7TCxNZmzrME+10Gjmz79pD7DV25ejsu/taBYUxP6TZbliF3pggJOv6
+UxomTB4znlMDUz0JgyjUpkyril7xVQ6XRAPbGrS1f1Def+54MepWAn3oGeqASb3Q
+bAj0Yl12UFTf+AZmkhQpUKk/wUeN718EIY4GRHHQ6ykMSqCKvdnVbMyb9sIzbSTl
+v+l1nQFnB/neyJq6P0Q7cxlhVj03IhYj/AxveNlKqZd2Ih3m/CJo0Abtwhx+qHZp
+cCBrYj7VelEaGARTmfoIVoGxFGKZNCcNzn7R2ic7safxXqeEnxugsAYX/UmMoq1b
+vMYLcaLRAoGBAMqMbbgejbD8Cy6wa5yg7XquqOP5gPdIYYS88TkQTp+razDqKPIU
+hPKetnTDJ7PZleOLE6eJ+dQJ8gl6D/dtOsl4lVRy/BU74dk0fYMiEfiJMYEYuAU0
+MCramo3HAeySTP8pxSLFYqJVhcTpL9+NQgbpJBUlx5bLDlJPl7auY077AoGBAMkD
+UpJRIv/0gYSz5btVheEyDzcqzOMZUVsngabH7aoQ49VjKrfLzJ9WznzJS5gZF58P
+vB7RLuIA8m8Y4FUwxOr4w9WOevzlFh0gyzgNY4gCwrzEryOZqYYqCN+8QLWfq/hL
++gYFYpEW5pJ/lAy2i8kPanC3DyoqiZCsUmlg6JKNAoGBAIdCkf6zgKGhHwKV07cs
+DIqx2p0rQEFid6UB3ADkb+zWt2VZ6fAHXeT7shJ1RK0o75ydgomObWR5I8XKWqE7
+s1dZjDdx9f9kFuVK1Upd1SxoycNRM4peGJB1nWJydEl8RajcRwZ6U+zeOc+OfWbH
+WUFuLadlrEx5212CQ2k+OZlDAoGAdsH2w6kZ83xCFOOv41ioqx5HLQGlYLpxfVg+
+2gkeWa523HglIcdPEghYIBNRDQAuG3RRYSeW+kEy+f4Jc2tHu8bS9FWkRcsWoIji
+ZzBJ0G5JHPtaub6sEC6/ZWe0F1nJYP2KLop57FxKRt0G2+fxeA0ahpMwa2oMMiQM
+4GM3pHUCgYEAj2ZjjsF2MXYA6kuPUG1vyY9pvj1n4fyEEoV/zxY1k56UKboVOtYr
+BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
+OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
+-----END RSA PRIVATE KEY-----`
+
+// this key will be used to sign the token but verification should
+// fail as this is not the key used by server security layer
+// ssh-keygen -f test-alm
+var RSADifferentPrivateKeyTest = `-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEAsIT76Mr3p8VvtSrzCVcXEcyvalUp50mm4yvfqvZ1fZfbqAzJ
+c4GNJEkpBGoXF+WgjLNkPnwS+k1YuqvPeGG4vFPtErF7nxNCHpzU+cXScOOl3WrM
+S5fj928sBSJiDIDBwc98mQbIKaCrpLSsFe/kapV5mHmmWGAx6dqnObbqtIte4M7w
+arE/c8xW1Fww2YZ4e4Xwknm+Rs2kQmg0SJPpgRih05y3snEQjXz1kR9bGTEBUPmX
+HBTySgA93gmimQUlSAT0+hz9hcYrwCgjbnXUHlcBP2VbB4omJ7L1zJc/XMPwINR/
+PtkGRhL/DXXA4v/0MLkYDXXmZGku/X1+du2ypQIDAQABAoIBAFi0m3si9E2FNFvQ
+l42sDFXPjJ9c6M/n/UvP8niRnf1dYO8Ube/zvJ/tfAVR4wUJSiMqy0dzRn4ufFZi
+nMIcKZ/KdSqdskgAf4uuuIBEXzqHzAR29O9QBymC3pY97xPlaHki8bRc6h2xNlBw
+0sG7agf90btD9soWnT6tuLeSKmRLh5aHUQv3aGwzPyNfKHQ8J/KwKdPudP+tVBsi
+eNd7DZDgSEw6pRaSCKS3ChrsQQ2XPjGo+OI6HjZ/LAFhFXMq2cRGELGF766a6phK
+aCTB619AXiRHdKE98zEY3GMDtXSgeA0yzxcbvr224rEkHGDfkZ0BJwOCqCiaw4tZ
+F/lFDMkCgYEA36Uqyj0cML5rMwC/W4b6ihuK/DujBBFYPQ8eVYt5yUSyLNJn5RLt
+33eBUvgGB/FyAio5aCp49mcPtfFv5GKXpzTSYo/bWV1iy+oVwgPF7UA5gvtRw90w
+NScLNsZ/7fOEpPJvlsKq/PQoMIoAjkegoj95cqM1yzC3aZpaAjx6188CgYEAyg58
+5e5WK3zXICMpE8q+1AB+kJ/3UhQ71kpK4Xml0PtTJ7Bzqn0hiU4ThfpKj1n9PtpU
+9Op3PqcfVjf11SA1tI5LRHQvgUSNppvf2hPgW8QrqRs5YFgNg0DkVXs3OxWIA4QA
+Ko6oZu2ZpvK3TdYXRmcRUXXNyCDoSmJvH339N0sCgYB0g1kCmcm4/0tb+/S1m2Gl
+V+oVtIAeG2csEFdOW+ar27Uzsr5b0nvI4zql3f9OXhR2WkckJJR2UoUV1d3kTxUR
+EGzW2nl9WjChaafCNzMDgmUz/vi/INn/pwKpm8qETkz5njBSi8KHHDBf8VWOynQ+
+cvEzryHUZOH5C2f/KEEbcwKBgQCGzVGgaPjOPJSdWTfPf4T+lXHa9Q4gkWU2WwxI
+D0uD+BiLMxqH1MGqBA/cY5aYutXMuAbT+xUhFIhAkkcNMFcEJaarfcQvvteuHvIi
+YP5e2qqyQHpv/27McV+kc/buEThT+B3QRqqtOLk4+1c1s66Fhr+0FB789I9lCPTQ
+EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
+/A4rWPqfpmiKcmrd7K4DQFlYhoq+MALEDmQm+/8G6j2inF53fRGgJVzaZhSvnO9X
+CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
+-----END RSA PRIVATE KEY-----`
