@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestAuthorizeLoginOK(t *testing.T) {
@@ -31,6 +32,10 @@ func TestShowStatusOK(t *testing.T) {
 	}
 	if res.StartTime != StartTime {
 		t.Error("StartTime is not correct")
+	}
+	_, err := time.Parse("2006-01-02T15:04:05Z", res.StartTime)
+	if err != nil {
+		t.Error("Incorrect layout of StartTime: ", err.Error())
 	}
 }
 
