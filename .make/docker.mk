@@ -95,9 +95,11 @@ else
 	@echo "No container named \"$(DOCKER_CONTAINER_NAME)\" to remove."
 endif
 
-# Make sure you ran "make integration-test-env-prepare" before you run this target.
-SPECIAL_DOCKER_TARGETS = docker-test-integration docker-coverage-all
-$(SPECIAL_DOCKER_TARGETS):
+# The targets in the following list all depend on a running database container.
+# Make sure you run "make integration-test-env-prepare" before you run any of these targets.
+DB_DEPENDENT_DOCKER_TARGETS = docker-test-integration docker-coverage-all
+
+$(DB_DEPENDENT_DOCKER_TARGETS):
 	$(eval makecommand:=$(subst docker-,,$@))
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
 	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the build. Try running "make docker-start")
