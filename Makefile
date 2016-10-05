@@ -36,7 +36,7 @@ GITUNTRACKEDCHANGES := $(shell git status --porcelain --untracked-files=no)
 ifneq ($(GITUNTRACKEDCHANGES),)
 COMMIT := $(COMMIT)-dirty
 endif
-BUILD_TIME=`date -u '+%Y-%m-%d_%I:%M:%S%p'`
+BUILD_TIME=`date -u '+%Y-%m-%dT%H:%M:%SZ'`
 
 PACKAGE_NAME := github.com/almighty/almighty-core
 
