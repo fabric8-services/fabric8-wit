@@ -13,7 +13,7 @@ import (
 )
 
 func TestConcurrentMigrations(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.MigrationTest)
 
 	var err error
 	if err = configuration.Setup(""); err != nil {

@@ -86,9 +86,10 @@ ALMIGHTY_POSTGRES_HOST ?= localhost
 # Output directory for coverage information
 COV_DIR = $(TMP_PATH)/coverage
 
-# Files that combine package coverages for unit- and integration-tests separately
+# Files that combine package coverages for unit-, integration-, and migration-tests separately
 COV_PATH_UNIT = $(TMP_PATH)/coverage.unit.mode-$(COVERAGE_MODE)
 COV_PATH_INTEGRATION = $(TMP_PATH)/coverage.integration.mode-$(COVERAGE_MODE)
+COV_PATH_MIGRATION = $(TMP_PATH)/coverage.migration.mode-$(COVERAGE_MODE)
 
 # File that stores overall coverge for all packages and unit- and integration-tests
 COV_PATH_OVERALL = $(TMP_PATH)/coverage.mode-$(COVERAGE_MODE)
@@ -109,8 +110,8 @@ DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 #-------------------------------------------------------------------------------
 
 .PHONY: test-all
-## Runs test-unit and test-integration targets.
-test-all: prebuild-check test-unit test-integration
+## Runs test-unit, test-migration, and test-integration targets.
+test-all: prebuild-check test-unit test-integration test-migration
 
 .PHONY: test-unit
 ## Runs the unit tests and produces coverage files for each package.
@@ -120,6 +121,11 @@ test-unit: prebuild-check clean-coverage-unit migration/sqlbindata.go $(COV_PATH
 ## Runs the integration tests and produces coverage files for each package.
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
 test-integration: prebuild-check clean-coverage-integration migrate-database migration/sqlbindata.go $(COV_PATH_INTEGRATION)
+
+.PHONY: test-migration
+## Runs the database migration tests and produces coverage files for each package.
+## Make sure you ran "make integration-test-env-prepare" before you run this target.
+test-migration: prebuild-check clean-coverage-migration migration/sqlbindata.go $(COV_PATH_MIGRATION)
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose
@@ -243,6 +249,14 @@ coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
 	@go tool cover -func=$(COV_PATH_INTEGRATION)
 	$(call package-coverage,integration)
 
+.PHONY: coverage-migration
+## Output coverage profile information for each function (only based on migration tests).
+## Re-runs migration-tests if coverage information is outdated.
+coverage-migration: prebuild-check $(COV_PATH_MIGRATION)
+	$(call cleanup-coverage-file,$(COV_PATH_MIGRATION))
+	@go tool cover -func=$(COV_PATH_MIGRATION)
+	$(call package-coverage,migration)
+
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
 ## Re-runs unit- and integration-tests if coverage information is outdated.
@@ -266,6 +280,13 @@ coverage-unit-html: prebuild-check $(COV_PATH_UNIT)
 coverage-integration-html: prebuild-check $(COV_PATH_INTEGRATION)
 	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@go tool cover -html=$(COV_PATH_INTEGRATION)
+
+.PHONY: coverage-migration-html
+## Generate HTML representation (and show in browser) of coverage profile (based on migration tests).
+## Re-runs migration tests if coverage information is outdated.
+coverage-migration-html: prebuild-check $(COV_PATH_MIGRATION)
+	$(call cleanup-coverage-file,$(COV_PATH_MIGRATION))
+	@go tool cover -html=$(COV_PATH_MIGRATION)
 
 .PHONY: coverage-all-html
 ## Output coverage profile information for each function.
@@ -378,6 +399,19 @@ $(COV_PATH_INTEGRATION): $(SOURCES)
 	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0))
 	$(call check-test-results,$(ERRORS_FILE))
 
+# NOTE: We don't have prebuild-check as a dependency here because it would cause
+#       the recipe to be always executed.
+$(COV_PATH_MIGRATION): $(SOURCES)
+	$(eval TEST_NAME := migration)
+	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
+	$(call log-info,"Running test: $(TEST_NAME)")
+	@mkdir -p $(COV_DIR)
+	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_MIGRATION)
+	@-rm -f $(ERRORS_FILE)
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_MIGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_MIGRATION_TEST=1 ALMIGHTY_RESOURCE_UNIT_TEST=0))
+	$(call check-test-results,$(ERRORS_FILE))
+
 #-------------------------------------------------------------------------------
 # Additional tools to build
 #-------------------------------------------------------------------------------
@@ -395,7 +429,7 @@ $(GOCOVMERGE_BIN): prebuild-check
 CLEAN_TARGETS += clean-coverage
 .PHONY: clean-coverage
 ## Removes all coverage files
-clean-coverage: clean-coverage-unit clean-coverage-integration clean-coverage-overall
+clean-coverage: clean-coverage-unit clean-coverage-integration clean-coverage-migration clean-coverage-overall
 	-@rm -rf $(COV_DIR)
 
 CLEAN_TARGETS += clean-coverage-overall
@@ -412,6 +446,12 @@ clean-coverage-unit:
 
 CLEAN_TARGETS += clean-coverage-integration
 .PHONY: clean-coverage-integration
-## Removes integreation test coverage file
+## Removes integration test coverage file
 clean-coverage-integration:
 	-@rm -f $(COV_PATH_INTEGRATION)
+
+CLEAN_TARGETS += clean-coverage-migration
+.PHONY: clean-coverage-migration
+## Removes integration test coverage file
+clean-coverage-migration:
+	-@rm -f $(COV_PATH_MIGRATION)

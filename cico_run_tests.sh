@@ -41,6 +41,7 @@ function cleanup {
 }
 trap cleanup EXIT
 
+make docker-test-migration
 make docker-test-integration
 
 # Output coverage
