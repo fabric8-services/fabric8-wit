@@ -1,6 +1,7 @@
 package remoteworkitem
 
 import (
+	"log"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -19,10 +20,10 @@ func TestTrackerCreate(t *testing.T) {
 		assert.IsType(t, BadParameterError{}, err)
 		assert.Nil(t, tracker)
 
-		tracker, err = trackerRepo.Create(context.Background(), "gugus", ProviderGithub)
+		tracker, err = trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		assert.Nil(t, err)
 		assert.NotNil(t, tracker)
-		assert.Equal(t, "gugus", tracker.URL)
+		assert.Equal(t, "http://api.github.com", tracker.URL)
 		assert.Equal(t, ProviderGithub, tracker.Type)
 
 		tracker2, err := trackerRepo.Load(context.Background(), tracker.ID)
@@ -37,9 +38,10 @@ func TestTrackerSave(t *testing.T) {
 		assert.IsType(t, NotFoundError{}, err)
 		assert.Nil(t, tracker)
 
-		tracker, _ = trackerRepo.Create(context.Background(), "gugus", ProviderGithub)
+		tracker, _ = trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		tracker.Type = "blabla"
 		tracker2, err := trackerRepo.Save(context.Background(), *tracker)
+		log.Println("--------", tracker2)
 		assert.IsType(t, BadParameterError{}, err)
 		assert.Nil(t, tracker2)
 
@@ -73,7 +75,7 @@ func TestTrackerDelete(t *testing.T) {
 		err = trackerRepo.Delete(context.Background(), "10000")
 		assert.IsType(t, NotFoundError{}, err)
 
-		tracker, _ := trackerRepo.Create(context.Background(), "gugus", ProviderGithub)
+		tracker, _ := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		err = trackerRepo.Delete(context.Background(), tracker.ID)
 		assert.Nil(t, err)
 
@@ -91,10 +93,10 @@ func TestTrackerList(t *testing.T) {
 	doWithTrackerRepository(t, func(trackerRepo application.TrackerRepository) {
 		trackers, _ := trackerRepo.List(context.Background(), criteria.Literal(true), nil, nil)
 
-		trackerRepo.Create(context.Background(), "gugus", ProviderGithub)
-		trackerRepo.Create(context.Background(), "dada", ProviderJira)
-		trackerRepo.Create(context.Background(), "blabla", ProviderJira)
-		trackerRepo.Create(context.Background(), "xoxo", ProviderGithub)
+		trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
+		trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
+		trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
+		trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 
 		trackers2, _ := trackerRepo.List(context.Background(), criteria.Literal(true), nil, nil)
 

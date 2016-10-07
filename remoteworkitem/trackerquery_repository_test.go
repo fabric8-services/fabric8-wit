@@ -16,7 +16,7 @@ func TestTrackerQueryCreate(t *testing.T) {
 		assert.IsType(t, NotFoundError{}, err)
 		assert.Nil(t, query)
 
-		tracker, err := trackerRepo.Create(context.Background(), "gugus", ProviderJira)
+		tracker, err := trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
 		query, err = queryRepo.Create(context.Background(), "abc", "xyz", tracker.ID)
 		assert.Nil(t, err)
 		assert.Equal(t, "abc", query.Query)
@@ -35,8 +35,8 @@ func TestTrackerQuerySave(t *testing.T) {
 		assert.IsType(t, NotFoundError{}, err)
 		assert.Nil(t, query)
 
-		tracker, err := trackerRepo.Create(context.Background(), "gugus", ProviderJira)
-		tracker2, err := trackerRepo.Create(context.Background(), "theother", ProviderGithub)
+		tracker, err := trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
+		tracker2, err := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		query, err = queryRepo.Create(context.Background(), "abc", "xyz", tracker.ID)
 		query2, err := queryRepo.Load(context.Background(), query.ID)
 		assert.Nil(t, err)

@@ -9,9 +9,12 @@ import (
 var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 	a.Attribute("type", d.String, "The type of the newly created work item", func() {
 		a.Example("system.userstory")
+		a.MinLength(1)
+		a.Pattern("^[\\p{L}.]+$")
 	})
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
 		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
+		a.MinLength(1)
 	})
 	a.Required("type", "fields")
 })
@@ -22,9 +25,12 @@ var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("type", d.String, "The type of the newly created work item", func() {
 		a.Example("system.userstory")
+		a.MinLength(1)
+		a.Pattern("^[\\p{L}.]+$")
 	})
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
 		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
+		a.MinLength(1)
 	})
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {
 		a.Example(0)
@@ -36,6 +42,8 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 	a.Attribute("name", d.String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
 		a.Example("Epic")
+		a.Pattern("^[\\p{L}.]+$")
+		a.MinLength(1)
 	})
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Type fields those must be followed by respective Work Items.", func() {
 		a.Example(map[string]interface{}{
@@ -46,9 +54,12 @@ var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 				"Required": true,
 			},
 		})
+		a.MinLength(1)
 	})
 	a.Attribute("extendedTypeName", d.String, "If newly created type extends any existing type", func() {
 		a.Example("(optional field)Parent type name")
+		a.MinLength(1)
+		a.Pattern("^[\\p{L}.]+$")
 	})
 	a.Required("name", "fields")
 })
@@ -57,9 +68,12 @@ var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 var CreateTrackerAlternatePayload = a.Type("CreateTrackerAlternatePayload", func() {
 	a.Attribute("url", d.String, "URL of the tracker", func() {
 		a.Example("https://api.github.com/")
+		a.MinLength(1)
 	})
 	a.Attribute("type", d.String, "Type of the tracker", func() {
 		a.Example("github")
+		a.Pattern("^[\\p{L}]+$")
+		a.MinLength(1)
 	})
 	a.Required("url", "type")
 })
@@ -68,9 +82,12 @@ var CreateTrackerAlternatePayload = a.Type("CreateTrackerAlternatePayload", func
 var UpdateTrackerAlternatePayload = a.Type("UpdateTrackerAlternatePayload", func() {
 	a.Attribute("url", d.String, "URL of the tracker", func() {
 		a.Example("https://api.github.com/")
+		a.MinLength(1)
 	})
 	a.Attribute("type", d.String, "Type of the tracker", func() {
 		a.Example("github")
+		a.MinLength(1)
+		a.Pattern("^[\\p{L}]+$")
 	})
 	a.Required("url", "type")
 })
@@ -79,12 +96,17 @@ var UpdateTrackerAlternatePayload = a.Type("UpdateTrackerAlternatePayload", func
 var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayload", func() {
 	a.Attribute("query", d.String, "Search query", func() {
 		a.Example("is:open is:issue user:almighty")
+		a.MinLength(1)
 	})
 	a.Attribute("schedule", d.String, "Schedule for fetch and import", func() {
 		a.Example("0 0/15 * * * *")
+		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
+		a.MinLength(1)
 	})
 	a.Attribute("trackerID", d.String, "Tracker ID", func() {
 		a.Example("1")
+		a.MinLength(1)
+		a.Pattern("^[\\p{N}]+$")
 	})
 	a.Required("query", "schedule", "trackerID")
 })
@@ -93,12 +115,17 @@ var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayl
 var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayload", func() {
 	a.Attribute("query", d.String, "Search query", func() {
 		a.Example("is:open is:issue user:almighty")
+		a.MinLength(1)
 	})
 	a.Attribute("schedule", d.String, "Schedule for fetch and import", func() {
 		a.Example("0 0/15 * * * *")
+		a.Pattern("^[\\d]+|[\\d]+[\\/][\\d]+|\\*|\\-|\\?\\s{0,6}$")
+		a.MinLength(1)
 	})
 	a.Attribute("trackerID", d.String, "Tracker ID", func() {
 		a.Example("1")
+		a.MinLength(1)
+		a.Pattern("[\\p{N}]+")
 	})
 	a.Required("query", "schedule", "trackerID")
 })

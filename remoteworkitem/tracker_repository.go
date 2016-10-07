@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
+	govalidator "gopkg.in/asaskevich/govalidator.v4"
 )
 
 // GormTrackerRepository implements TrackerRepository using gorm
@@ -24,6 +25,12 @@ func NewTrackerRepository(db *gorm.DB) *GormTrackerRepository {
 // Create creates a new tracker configuration in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID string) (*app.Tracker, error) {
+	//URL Validation
+	isValid := govalidator.IsURL(url)
+	if isValid != true {
+		return nil, BadParameterError{parameter: "url", value: url}
+	}
+
 	_, present := RemoteWorkItemImplRegistry[typeID]
 	// Ensure we support this remote tracker.
 	if present != true {
