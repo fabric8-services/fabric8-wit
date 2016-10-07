@@ -177,12 +177,12 @@ func main() {
 	ts2 := models.NewGormTransactionSupport(db)
 
 	// Mount "tracker" controller
-	repo2 := remoteworkitem.NewTrackerRepository(ts2)
+	repo2 := remoteworkitem.NewTrackerRepository()
 	c5 := NewTrackerController(service, repo2, ts2, scheduler)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
-	repo3 := remoteworkitem.NewTrackerQueryRepository(ts2)
+	repo3 := remoteworkitem.NewTrackerQueryRepository()
 	c6 := NewTrackerqueryController(service, repo3, ts2, scheduler)
 	app.MountTrackerqueryController(service, c6)
 

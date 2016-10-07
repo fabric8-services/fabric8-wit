@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"golang.org/x/net/context"
+
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
@@ -29,8 +31,8 @@ func NewWorkitemtypeController(service *goa.Service, witRepository models.WorkIt
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	return transaction.Do(c.ts, func() error {
-		res, err := c.witRepository.Load(ctx.Context, ctx.Name)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		res, err := c.witRepository.Load(context, ctx.Name)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -46,13 +48,13 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 
 // Create runs the create action.
 func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
-	return transaction.Do(c.ts, func() error {
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
 		var fields = map[string]app.FieldDefinition{}
 
 		for key, fd := range ctx.Payload.Fields {
 			fields[key] = *fd
 		}
-		wit, err := c.witRepository.Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
+		wit, err := c.witRepository.Create(context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
 
 		if err != nil {
 			switch err := err.(type) {
@@ -73,8 +75,8 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
-	return transaction.Do(c.ts, func() error {
-		result, err := c.witRepository.List(ctx.Context, start, &limit)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		result, err := c.witRepository.List(context, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work item types: %s", err.Error()))
 		}

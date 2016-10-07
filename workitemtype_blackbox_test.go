@@ -65,6 +65,7 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 		}); err != nil {
 			panic(err.Error())
 		}
+
 	}
 }
 

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"golang.org/x/net/context"
+
+	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
 )
 
@@ -77,18 +80,22 @@ func (g *GormTransactionSupport) Begin() error {
 		return db.Error
 	}
 	return nil
+
 }
 
 // Commit implements TransactionSupport
-func (g *GormTransactionSupport) Commit() error {
-	err := g.tx.Commit().Error
-	g.tx = nil
+func (g *GormTransactionSupport) Commit(tx transaction.Transaction) error {
+	err := tx.(*gorm.DB).Commit().Error
 	return err
 }
 
 // Rollback implements TransactionSupport
-func (g *GormTransactionSupport) Rollback() error {
-	err := g.tx.Rollback().Error
-	g.tx = nil
+func (g *GormTransactionSupport) Rollback(tx transaction.Transaction) error {
+	err := tx.(*gorm.DB).Rollback().Error
 	return err
+}
+
+// CurrentTX returns the current gorm transaction or nil
+func CurrentTX(ctx context.Context) *gorm.DB {
+	return transaction.Current(ctx).(*gorm.DB)
 }

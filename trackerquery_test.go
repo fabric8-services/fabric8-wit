@@ -14,7 +14,7 @@ import (
 func TestCreateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -23,7 +23,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
 	tqts := models.NewGormTransactionSupport(DB)
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
+	tqrepo := remoteworkitem.NewTrackerQueryRepository()
 	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
@@ -42,7 +42,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 func TestGetTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -50,7 +50,7 @@ func TestGetTrackerQuery(t *testing.T) {
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
+	tqrepo := remoteworkitem.NewTrackerQueryRepository()
 	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
@@ -74,7 +74,7 @@ func TestGetTrackerQuery(t *testing.T) {
 func TestUpdateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -82,7 +82,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
+	tqrepo := remoteworkitem.NewTrackerQueryRepository()
 	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
