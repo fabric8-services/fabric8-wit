@@ -23,6 +23,7 @@ import (
 	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
+	"github.com/goadesign/goa/middleware/gzip"
 	"github.com/goadesign/goa/middleware/security/jwt"
 )
 
@@ -116,6 +117,7 @@ func main() {
 	// Mount middleware
 	service.Use(middleware.RequestID())
 	service.Use(middleware.LogRequest(true))
+	service.Use(gzip.Middleware(9))
 	service.Use(middleware.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
