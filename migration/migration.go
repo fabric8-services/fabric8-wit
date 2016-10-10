@@ -1,18 +1,18 @@
 package migration
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
-	"github.com/lib/pq"
 	"golang.org/x/net/context"
 )
 
-const versionTableName string = "version"
+const versionTableName = "version"
+const advisoryLogId = 42
 
 // getCurrentVersion returns the highest version from the version
 // table or -1 if that table does not exist.
@@ -20,47 +20,62 @@ const versionTableName string = "version"
 // Returning -1 simplifies the logic of the migration process because
 // the next version is always the current version + 1 which results
 // in -1 + 1 = 0 which is exactly what we want as the first version.
-func getCurrentVersion(db *gorm.DB) (int64, error) {
-	if !db.HasTable(versionTableName) {
+func getCurrentVersion(db *sql.Tx) (int64, error) {
+	row := db.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_catalog='postgres' AND table_name='version')")
+
+	var exists bool
+	if err := row.Scan(&exists); err != nil {
+		return -1, fmt.Errorf("Failed to scan if table \"version\" exists: %s\n", err)
+	}
+
+	if !exists {
+		// table doesn't exist
 		return -1, nil
 	}
 
-	rows, err := db.Table(versionTableName).Select("max(version) as current").Rows()
-	if err != nil {
-		return -1, err
-	}
-	defer rows.Close()
+	row = db.QueryRow("SELECT max(version) as current FROM version")
 
 	var current int64 = -1
-
-	if rows.Next() {
-		if err = rows.Scan(&current); err != nil {
-			return -1, err
-		}
+	if err := row.Scan(&current); err != nil {
+		return -1, fmt.Errorf("Failed to scan max version in table \"version\": %s\n", err)
 	}
 
 	return current, nil
 }
 
 // fn defines the type of function that can be part of a migration sequence
-type fn func(tx *gorm.DB) error
+type fn func(tx *sql.Tx) error
 
 // executeSQLFile loads the given filename from the packaged SQL files and
 // executes it on the given database
 func executeSQLFile(filename string) fn {
-	return func(db *gorm.DB) error {
+	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
 			return err
 		}
-		return db.Exec(string(data)).Error
+		_, err = db.Exec(string(data))
+		if err != nil {
+			log.Fatal(err)
+		}
+		return err
 	}
 }
 
-// Migrate executes the required migration of the database on startup
-func Migrate(db *gorm.DB) error {
+// Migrate executes the required migration of the database on startup.
+// For each successful migration, an entry will be written into the "version"
+// table, that states when a certain version was reached.
+func Migrate(db *sql.DB) error {
+
+	var err error
+
+	if db == nil {
+		return fmt.Errorf("Database handle is nil\n")
+	}
 
 	migrations := [][]fn{}
+
+	// IMPORTANT: ALWAYS APPEND AT THE END AND DON'T CHANGE THE ORDER OF MIGRATIONS
 
 	// Version 0
 	migrations = append(migrations, []fn{executeSQLFile("000-bootstrap.sql")})
@@ -80,51 +95,47 @@ func Migrate(db *gorm.DB) error {
 
 	/*
 		migrations = append(migrations, []Func{
-			func(db *gorm.DB) error {
+			func(db *sql.Tx) error {
 				// Execute random go code
 				return nil
 			},
 			executeSQLFile("YOUR_OWN_FILE.sql"),
-			func(db *gorm.DB) error {
+			func(db *sql.Tx) error {
 				// Execute random go code
 				return nil
 			},
 		})
 	*/
 
-	var err error
-	ts := models.NewGormTransactionSupport(db)
-
-	// Ensure that every new transaction that gets created, will be serializable
-	if err = ts.SetTransactionIsolationLevel(models.TXIsoLevelSerializable); err != nil {
-		return err
-	}
-
+	var tx *sql.Tx
+	var currentVersion int64
 	for nextVersion := int64(0); nextVersion < int64(len(migrations)) && err == nil; nextVersion++ {
 
-		err = transaction.Do(ts, func() error {
-			// Try to get a lock on the version table.
-			// But it has to exist in order to create a lock.
-			if db.HasTable(versionTableName) {
-				// Extract from the documentation:
-				// "LOCK TABLE obtains a table-level lock, waiting if necessary for any conflicting locks to be released. [...]
-				// Once obtained, the lock is held for the remainder of the current transaction.
-				// (There is no UNLOCK TABLE command; locks are always released at transaction end.)""
-				err = ts.TX().Exec(fmt.Sprintf("LOCK TABLE %s IN ACCESS EXCLUSIVE MODE", versionTableName)).Error
-				if err != nil {
-					return err
-				}
+		tx, err = db.Begin()
+		if err != nil {
+			return fmt.Errorf("Failed to start transaction: %s\n", err)
+		}
+
+		err = func() error {
+
+			// Obtain exclusive transaction level advisory that doesn't depend on any table.
+			// Once obtained, the lock is held for the remainder of the current transaction.
+			// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
+			_, err = tx.Exec("SELECT pg_advisory_xact_lock($1)", advisoryLogId)
+			if err != nil {
+				return fmt.Errorf("Failed to acquire lock: %s\n", err)
 			}
 
 			// Determine current version and adjust the outmost loop
 			// iterator variable "version"
-			currentVersion, err := getCurrentVersion(ts.TX())
+			currentVersion, err = getCurrentVersion(tx)
 			if err != nil {
 				return err
 			}
 			nextVersion = currentVersion + 1
 			if nextVersion >= int64(len(migrations)) {
 				// No further updates to apply (this is NOT an error)
+				log.Printf("Current version %d. Nothing to update.", currentVersion)
 				return nil
 			}
 
@@ -132,35 +143,34 @@ func Migrate(db *gorm.DB) error {
 
 			// Apply all the updates of the next version
 			for j := range migrations[nextVersion] {
-				if err = migrations[nextVersion][j](ts.TX().Debug()); err != nil {
-					return err
+				if err = migrations[nextVersion][j](tx); err != nil {
+					return fmt.Errorf("Failed to execute migration of step %d of version %d: %s\n", j, nextVersion, err)
 				}
 			}
 
-			// Finalize the update by inserting the new version into the version table
-			err = ts.TX().Debug().Exec("insert into version (version) values(?)", nextVersion).Error
-			if err != nil {
-				log.Printf("Failed to update DB to version %d: %s\n", nextVersion, err)
-			} else {
-				log.Printf("Successfully updated DB to version %d\n", nextVersion)
+			if _, err = tx.Exec("INSERT INTO version(version) VALUES($1)", nextVersion); err != nil {
+				return fmt.Errorf("Failed to update DB to version %d: %s\n", nextVersion, err)
 			}
-			return err
-		})
+			log.Printf("Successfully updated DB to version %d\n", nextVersion)
+			return nil
+		}()
 
-		// If two concurrent transactions have been started and one results in a serialization_failure
-		// we will ignore this error.
-		// See https://www.postgresql.org/docs/9.3/static/sql-set-transaction.html
-		if pqErr, ok := err.(*pq.Error); ok {
-			if pqErr.Code.Name() == "serialization_failure" {
-				log.Printf("Ignoring %s: %s", pqErr.Code.Name(), err.Error())
-				// Reset to nil to continue the loop
-				err = nil
+		if err != nil {
+			log.Printf("Rolling back transaction due to: %s\n", err)
+			if err = tx.Rollback(); err != nil {
+				return fmt.Errorf("Error while rolling back transaction: %s\n", err)
 			}
 		}
-
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("Error during transaction commit: %s\n", err)
+		}
 	}
 
-	return err
+	if err != nil {
+		return fmt.Errorf("Migration failed with error: %s\n", err)
+	}
+
+	return nil
 }
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)

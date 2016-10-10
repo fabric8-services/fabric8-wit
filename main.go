@@ -90,7 +90,7 @@ func main() {
 	}
 
 	// Migrate the schema
-	err = migration.Migrate(db)
+	err = migration.Migrate(db.DB())
 	if err != nil {
 		panic(err.Error())
 	}
