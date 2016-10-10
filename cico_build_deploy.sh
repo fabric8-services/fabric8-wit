@@ -37,7 +37,6 @@ function cleanup {
   echo 'CICO: Exiting with $EXIT_CODE'
 }
 trap cleanup EXIT
-make docker-test-migration
 make docker-test-integration
 echo 'CICO: app tests OK'
 
