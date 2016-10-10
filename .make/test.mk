@@ -121,6 +121,12 @@ test-unit: prebuild-check clean-coverage-unit migration/sqlbindata.go $(COV_PATH
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
 test-integration: prebuild-check clean-coverage-integration migrate-database migration/sqlbindata.go $(COV_PATH_INTEGRATION)
 
+.PHONY: test-migration
+## Runs the migration tests and should be executed before running the integration tests
+## in order to have a clean database
+test-migration: prebuild-check migration/sqlbindata.go
+	ALMIGHTY_RESOURCE_DATABASE=1 go test github.com/almighty/almighty-core/migration -v
+
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose
 	@if [ ! -f "$(DOCKER_COMPOSE_BIN_ALT)" ]; then \

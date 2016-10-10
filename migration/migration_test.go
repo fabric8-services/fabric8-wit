@@ -12,9 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// Test with
-// docker-compose -f ./.make/docker-compose.integration-test.yaml stop -t 0 && docker-compose -f ./.make/docker-compose.integration-test.yaml rm -v --all -f && make integration-test-env-prepare && export ALMIGHTY_POSTGRES_HOST=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' make_postgres_integration_test_1); export ALMIGHTY_RESOURCE_DATABASE=1; go test github.com/almighty/almighty-core/migration -v
-
 func TestConcurrentMigrations(t *testing.T) {
 	resource.Require(t, resource.Database)
 
