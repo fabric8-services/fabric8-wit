@@ -45,15 +45,7 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
-	s.db, err = gorm.Open("postgres",
-		fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
-			configuration.GetPostgresHost(),
-			configuration.GetPostgresPort(),
-			configuration.GetPostgresUser(),
-			configuration.GetPostgresPassword(),
-			configuration.GetPostgresDatabase(),
-			configuration.GetPostgresSSLMode(),
-		))
+	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())

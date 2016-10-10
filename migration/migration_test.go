@@ -24,24 +24,17 @@ func TestConcurrentMigrations(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
-		db, err := gorm.Open("postgres",
-			fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
-				configuration.GetPostgresHost(),
-				configuration.GetPostgresPort(),
-				configuration.GetPostgresUser(),
-				configuration.GetPostgresPassword(),
-				configuration.GetPostgresDatabase(),
-				configuration.GetPostgresSSLMode(),
-			))
-		if err != nil {
-			t.Fatal("Cannot connect to DB", err)
-		}
 
-		go func(db *gorm.DB) {
+		go func() {
 			defer wg.Done()
-			err = Migrate(db)
+			db, err := sql.Open("postgres", configuration.GetPostgresConfigString())
+			if err != nil {
+				t.Fatal("Cannot connect to DB", err)
+			}
+			//		db.DB().SetMaxIdleConns(0)
+			err = Migrate1(db)
 			assert.Nil(t, err)
-		}(db)
+		}()
 
 	}
 	wg.Wait()

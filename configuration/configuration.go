@@ -145,6 +145,18 @@ func GetPostgresConnectionRetrySleep() time.Duration {
 	return viper.GetDuration(varPostgresConnectionRetrySleep)
 }
 
+// GetPostgresConfigString returns a ready to use string for usage in sql.Open()
+func GetPostgresConfigString() string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
+		GetPostgresHost(),
+		GetPostgresPort(),
+		GetPostgresUser(),
+		GetPostgresPassword(),
+		GetPostgresDatabase(),
+		GetPostgresSSLMode(),
+	)
+}
+
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
 // the common work item types such as system.bug or system.feature shall be created.
 func GetPopulateCommonTypes() bool {
