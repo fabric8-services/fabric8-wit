@@ -5,7 +5,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: b1b4f4d827a3b63b05d978ca82305c45451103b3
+  version: 114ecb88f11ee21dcb9130280b0a580ecf8f7569
   vcs: git
   subpackages:
   - client
@@ -19,6 +19,8 @@ import:
   - goatest
   - middleware
   - middleware/security/jwt
+- package: github.com/dimfeld/httptreemux
+  version: ^3.1.0
 - package: github.com/lsegal/gucumber
 - package: github.com/spf13/cobra
 - package: golang.org/x/net
@@ -80,3 +82,4 @@ import:
 - package: github.com/spf13/jwalterweatherman
 - package: github.com/dimfeld/httptreemux
   version: ^3.1.0
+- package: golang.org/x/oauth2
