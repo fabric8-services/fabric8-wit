@@ -87,7 +87,7 @@ help:/
 ## Build server and client.
 build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
 
-$(BINARY_SERVER_BIN): prebuild-check $(SOURCES) migration/sqlbindata.go
+$(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
 ifeq ($(OS),Windows_NT)
 	go build -v ${LDFLAGS} -o "$(shell cygpath --windows '$(BINARY_SERVER_BIN)')"
 else
@@ -101,8 +101,8 @@ else
 	cd ${CLIENT_DIR}/ && go build -v -o ${BINARY_CLIENT_BIN}
 endif
 
-# Pack all SQL files into a compilable Go file
-migration/sqlbindata.go: prebuild-check $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
+# Pack all migration SQL files into a compilable Go file
+migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
 	$(GO_BINDATA_BIN) \
 		-o migration/sqlbindata.go \
 		-pkg migration \
@@ -163,7 +163,7 @@ deps: prebuild-check
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
+generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) migration/sqlbindata.go
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=github.com/goadesign/gorma
@@ -171,7 +171,7 @@ generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO
 
 .PHONY: migrate-database
 ## Compiles the server and runs the database migration with it
-migrate-database: $(BINARY_SERVER_BIN)
+migrate-database: $(BINARY_SERVER_BIN) migration/sqlbindata.go
 	$(BINARY_SERVER_BIN) -migrateDatabase
 
 .PHONY: dev
