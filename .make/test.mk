@@ -222,7 +222,8 @@ $(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
 $(foreach package, $(TEST_PACKAGES), $(call print-package-coverage,$(TEST_NAME),$(package)))
 endef
 
-$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
+#$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
+$(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
 	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) > $(COV_PATH_OVERALL)
 
 # Console coverage output:
@@ -231,6 +232,7 @@ $(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
 # Delete the lines containing /bindata_assetfs.go 
 define cleanup-coverage-file
 @sed -i '/.*\/bindata_assetfs\.go.*/d' $(1)
+@sed -i '/.*\/sqlbindata\.go.*/d' $(1)
 endef
 
 .PHONY: coverage-unit

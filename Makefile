@@ -171,7 +171,7 @@ generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO
 
 .PHONY: migrate-database
 ## Compiles the server and runs the database migration with it
-migrate-database: $(BINARY_SERVER_BIN) migration/sqlbindata.go
+migrate-database: $(BINARY_SERVER_BIN)
 	$(BINARY_SERVER_BIN) -migrateDatabase
 
 .PHONY: dev
