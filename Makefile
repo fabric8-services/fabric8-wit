@@ -101,6 +101,15 @@ else
 	cd ${CLIENT_DIR}/ && go build -v -o ${BINARY_CLIENT_BIN}
 endif
 
+# Pack all migration SQL files into a compilable Go file
+migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
+	$(GO_BINDATA_BIN) \
+		-o migration/sqlbindata.go \
+		-pkg migration \
+		-prefix migration/sql-files \
+		-nocompress \
+		migration/sql-files
+
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): prebuild-check
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
@@ -133,6 +142,7 @@ clean-generated:
 	-rm -rf ./swagger/
 	-rm -rf ./tool/cli/
 	-rm -f ./bindata_assetfs.go
+	-rm -f ./migration/sqlbindata.go
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
@@ -153,11 +163,16 @@ deps: prebuild-check
 
 .PHONY: generate
 ## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN)
+generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) migration/sqlbindata.go
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=github.com/goadesign/gorma
 	PATH="$$PATH:$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
+
+.PHONY: migrate-database
+## Compiles the server and runs the database migration with it
+migrate-database: $(BINARY_SERVER_BIN)
+	$(BINARY_SERVER_BIN) -migrateDatabase
 
 .PHONY: dev
 dev: prebuild-check $(FRESH_BIN)
