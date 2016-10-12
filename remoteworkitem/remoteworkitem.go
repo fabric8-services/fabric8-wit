@@ -54,6 +54,9 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 // WorkItemMap will define mappings between remote<->internal attribute
 type WorkItemMap map[AttributeExpression]string
 
+// IssueStateMap will define mapping between issue state and workitem state
+type IssueStateMap map[string]string
+
 // AttributeExpression represents a commonly understood String format for a target path
 type AttributeExpression string
 
@@ -111,11 +114,32 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return jira.issue[string(field)]
 }
 
+var issueStateMaps = map[string]string{
+	"open":   "open",
+	"closed": "closed",
+	"merged": "resolved",
+}
+
+//Mapping of workitem state
+func mapIssueStates(WorkItem app.WorkItem, issuemap IssueStateMap) (app.WorkItem, error) {
+	var currentstate string
+	for _, _ = range WorkItem.Fields {
+		for from, to := range issuemap {
+			if from == WorkItem.Fields["system.state"] {
+				currentstate = to
+			}
+		}
+		WorkItem.Fields["system.state"] = currentstate
+	}
+	return WorkItem, nil
+}
+
 // Map maps the remote WorkItem to a local WorkItem
 func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
 		workItem.Fields[to] = item.Get(from)
 	}
-	return workItem, nil
+	mappedWorkItem, _ := mapIssueStates(workItem, issueStateMaps)
+	return mappedWorkItem, nil
 }
