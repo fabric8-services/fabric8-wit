@@ -54,7 +54,7 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 // WorkItemMap will define mappings between remote<->internal attribute
 type WorkItemMap map[AttributeExpression]string
 
-// IssueStateMap will define mapping between issue state and workitem state
+// IssueStateMap will define mapping between tracker item issue state and workitem state
 type IssueStateMap map[string]string
 
 // AttributeExpression represents a commonly understood String format for a target path
