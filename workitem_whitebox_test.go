@@ -29,28 +29,25 @@ func TestMain(m *testing.M) {
 
 	if _, c := os.LookupEnv(resource.Database); c != false {
 
-		DB, err = gorm.Open("postgres",
-			fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
-				configuration.GetPostgresHost(),
-				configuration.GetPostgresPort(),
-				configuration.GetPostgresUser(),
-				configuration.GetPostgresPassword(),
-				configuration.GetPostgresSSLMode(),
-			))
+		DB, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 
 		if err != nil {
 			panic("Failed to connect database: " + err.Error())
 		}
 		defer DB.Close()
-		// Migrate the schema
-		ts := models.NewGormTransactionSupport(DB)
-		witRepo := models.NewWorkItemTypeRepository(ts)
 
-		if err := transaction.Do(ts, func() error {
-			return migration.Perform(context.Background(), ts.TX(), witRepo)
-		}); err != nil {
-			panic(err.Error())
+		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+		if configuration.GetPopulateCommonTypes() {
+			ts := models.NewGormTransactionSupport(DB)
+			witRepo := models.NewWorkItemTypeRepository(ts)
+
+			if err := transaction.Do(ts, func() error {
+				return migration.PopulateCommonTypes(context.Background(), ts.TX(), witRepo)
+			}); err != nil {
+				panic(err.Error())
+			}
 		}
+
 		// RemoteWorkItemScheduler now available for all other test cases
 		rwiScheduler = remoteworkitem.NewScheduler(DB)
 	}

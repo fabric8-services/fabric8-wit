@@ -78,6 +78,7 @@ bindata_assetfs.go
 client/
 swagger/
 tool/cli/
+migration/sqlbindata.go
 
 # Ignore artifacts directory
 bin/

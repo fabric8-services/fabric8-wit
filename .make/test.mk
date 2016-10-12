@@ -119,7 +119,13 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
-test-integration: prebuild-check clean-coverage-integration $(COV_PATH_INTEGRATION)
+test-integration: prebuild-check clean-coverage-integration migrate-database $(COV_PATH_INTEGRATION)
+
+.PHONY: test-migration
+## Runs the migration tests and should be executed before running the integration tests
+## in order to have a clean database
+test-migration: prebuild-check
+	ALMIGHTY_RESOURCE_DATABASE=1 go test github.com/almighty/almighty-core/migration -v
 
 # Downloads docker-compose to tmp/docker-compose if it does not already exist.
 define download-docker-compose
@@ -216,7 +222,8 @@ $(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
 $(foreach package, $(TEST_PACKAGES), $(call print-package-coverage,$(TEST_NAME),$(package)))
 endef
 
-$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
+#$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
+$(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
 	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) > $(COV_PATH_OVERALL)
 
 # Console coverage output:
@@ -225,6 +232,7 @@ $(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
 # Delete the lines containing /bindata_assetfs.go 
 define cleanup-coverage-file
 @sed -i '/.*\/bindata_assetfs\.go.*/d' $(1)
+@sed -i '/.*\/sqlbindata\.go.*/d' $(1)
 endef
 
 .PHONY: coverage-unit
