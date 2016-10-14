@@ -191,13 +191,13 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		columnValues[index] = &ignore
 	}
 	columnValues[0] = &count
-	first := false
+	first := true
 
 	for rows.Next() {
 		db.ScanRows(rows, &value)
 		if first {
 			first = false
-			if err = rows.Scan(&columnValues); err != nil {
+			if err = rows.Scan(columnValues...); err != nil {
 				return nil, 0, InternalError{simpleError{err.Error()}}
 			}
 		}
