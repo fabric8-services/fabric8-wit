@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
 )
@@ -81,4 +83,42 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 	})
 	c.scheduler.ScheduleAllQueries()
 	return result
+}
+
+// Delete runs the delete action.
+func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
+	result := transaction.Do(c.ts, func() error {
+		err := c.tqRepository.Delete(ctx.Context, ctx.ID)
+		if err != nil {
+			switch err.(type) {
+			case remoteworkitem.NotFoundError:
+				return goa.ErrNotFound(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+		return ctx.OK([]byte{})
+	})
+	c.scheduler.ScheduleAllQueries()
+	return result
+}
+
+// List runs the list action.
+func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
+	exp, err := query.Parse(ctx.Filter)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
+	}
+	start, limit, err := parseLimit(ctx.Page)
+	if err != nil {
+		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+	}
+	return transaction.Do(c.ts, func() error {
+		result, err := c.tqRepository.List(ctx.Context, exp, start, &limit)
+		if err != nil {
+			return goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error()))
+		}
+		return ctx.OK(result)
+	})
+
 }

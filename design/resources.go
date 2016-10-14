@@ -346,7 +346,6 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
 	})
-
 	a.Action("create", func() {
 		a.Routing(
 			a.POST(""),
@@ -377,7 +376,39 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
 	})
-
+	a.Action("delete", func() {
+		a.Routing(
+			a.DELETE("/:id"),
+		)
+		a.Description("Delete tracker query")
+		a.Params(func() {
+			a.Param("id", String, "id")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List all tracker queries.")
+		a.Params(func() {
+			a.Param("filter", String, "a query language expression restricting the set of found items")
+			a.Param("page", String, "Paging in the format <start>,<limit>")
+		})
+		a.Response(OK, func() {
+			a.Media(a.CollectionOf(TrackerQuery))
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
 })
 
 var _ = a.Resource("search", func() {

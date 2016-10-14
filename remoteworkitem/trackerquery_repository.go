@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
@@ -116,4 +118,58 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		TrackerID: tq.TrackerID}
 
 	return &t2, nil
+}
+
+// Delete deletes the tracker query with the given id
+// returns NotFoundError or InternalError
+func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID string) error {
+	var tq = TrackerQuery{}
+	id, err := strconv.ParseUint(ID, 10, 64)
+	if err != nil {
+		// treat as not found: clients don't know it must be a number
+		return NotFoundError{entity: "trackerquery", ID: ID}
+	}
+	tq.ID = id
+	tx := r.ts.TX()
+	tx = tx.Delete(tq)
+	if err = tx.Error; err != nil {
+		return InternalError{simpleError{err.Error()}}
+	}
+	if tx.RowsAffected == 0 {
+		return NotFoundError{entity: "trackerquery", ID: ID}
+	}
+	return nil
+}
+
+// List returns tracker query selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
+func (r *GormTrackerQueryRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.TrackerQuery, error) {
+	where, parameters, err := models.Compile(criteria)
+	if err != nil {
+		return nil, BadParameterError{"expression", criteria}
+	}
+
+	log.Printf("executing query: %s", where)
+
+	var rows []TrackerQuery
+	db := r.ts.TX().Where(where, parameters)
+	if start != nil {
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		db = db.Limit(*limit)
+	}
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	result := make([]*app.TrackerQuery, len(rows))
+
+	for i, tq := range rows {
+		t := app.TrackerQuery{
+			ID:        strconv.FormatUint(tq.ID, 10),
+			Schedule:  tq.Schedule,
+			Query:     tq.Query,
+			TrackerID: strconv.FormatUint(tq.TrackerID, 10)}
+		result[i] = &t
+	}
+	return result, nil
 }
