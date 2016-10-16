@@ -13,6 +13,7 @@ SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
+
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
@@ -85,16 +86,16 @@ help:/
 
 .PHONY: build
 ## Build server and client.
-build: prebuild-check $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
+build: prebuild-check deps generate $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
 
-$(BINARY_SERVER_BIN): prebuild-check $(SOURCES)
+$(BINARY_SERVER_BIN): $(SOURCES)
 ifeq ($(OS),Windows_NT)
 	go build -v ${LDFLAGS} -o "$(shell cygpath --windows '$(BINARY_SERVER_BIN)')"
 else
 	go build -v ${LDFLAGS} -o ${BINARY_SERVER_BIN}
 endif
 
-$(BINARY_CLIENT_BIN): prebuild-check $(SOURCES)
+$(BINARY_CLIENT_BIN): $(SOURCES)
 ifeq ($(OS),Windows_NT)
 	cd ${CLIENT_DIR}/ && go build -v ${LDFLAGS} -o "$(shell cygpath --windows '$(BINARY_CLIENT_BIN)')"
 else
@@ -111,13 +112,13 @@ migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
 		migration/sql-files
 
 # These are binary tools from our vendored packages
-$(GOAGEN_BIN): prebuild-check
+$(GOAGEN_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/goadesign/goa/goagen && go build -v
-$(GO_BINDATA_BIN): prebuild-check
+$(GO_BINDATA_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/jteeuwen/go-bindata/go-bindata && go build -v
-$(GO_BINDATA_ASSETFS_BIN): prebuild-check
+$(GO_BINDATA_ASSETFS_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/elazarl/go-bindata-assetfs/go-bindata-assetfs && go build -v
-$(FRESH_BIN): prebuild-check
+$(FRESH_BIN): $(VENDOR_DIR)
 	cd $(VENDOR_DIR)/github.com/pilu/fresh && go build -v
 
 CLEAN_TARGETS += clean-artifacts
@@ -156,17 +157,21 @@ CLEAN_TARGETS += clean-glide-cache
 clean-glide-cache:
 	-rm -rf ./.glide
 
+$(VENDOR_DIR): glide.lock glide.yaml
+	$(GLIDE_BIN) --verbose install
+	touch $(VENDOR_DIR)
+
 .PHONY: deps
 ## Download build dependencies.
-deps: prebuild-check
-	$(GLIDE_BIN) --verbose install
+deps: $(VENDOR_DIR)
 
-.PHONY: generate
-## Generate GOA sources. Only necessary after clean of if changed `design` folder.
-generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) migration/sqlbindata.go
+app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
+
+assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample
-	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=github.com/goadesign/gorma
+
+bindata_assetfs.go: $(DESIGNS) $(GO_BINDATA_ASSETFS_BIN) $(GO_BINDATA_BIN) $(VENDOR_DIR)
 	PATH="$$PATH:$(EXTRA_PATH)" $(GO_BINDATA_ASSETFS_BIN) -debug assets/...
 
 .PHONY: migrate-database
@@ -174,8 +179,12 @@ generate: prebuild-check $(DESIGNS) $(GOAGEN_BIN) $(GO_BINDATA_ASSETFS_BIN) $(GO
 migrate-database: $(BINARY_SERVER_BIN)
 	$(BINARY_SERVER_BIN) -migrateDatabase
 
+.PHONY: generate
+## Generate GOA sources. Only necessary after clean of if changed `design` folder.
+generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sqlbindata.go
+
 .PHONY: dev
-dev: prebuild-check $(FRESH_BIN)
+dev: prebuild-check deps generate $(FRESH_BIN)
 	docker-compose up -d db
 	$(FRESH_BIN)
 
