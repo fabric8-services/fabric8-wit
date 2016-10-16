@@ -1,5 +1,5 @@
-hash: f69d42148a4455c288f4f350f4e07ec00daf9ace5b51863b0726745333839690
-updated: 2016-09-29T10:03:44.437242317+05:30
+hash: 3dcbd02b7f3bde0555d31d70aea8ea0ae93cb0a0b07b4d95a76a2a3e671fe31d
+updated: 2016-10-16T21:00:01.947411842+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -18,13 +18,13 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 96acf0909c0b45ebf4a25a816cedc6d317e63679
+  version: 4f42e68bc5bbcb4b4af4a7d811a1d5f4111be063
 - name: github.com/elazarl/go-bindata-assetfs
   version: 57eb5e1fc594ad4b0b1dbea7b286d299e0cb43c2
   subpackages:
   - go-bindata-assetfs
 - name: github.com/fsnotify/fsnotify
-  version: a8a77c9133d2d6fd8334f3260d06f60e8d80a5fb
+  version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
   version: b1b4f4d827a3b63b05d978ca82305c45451103b3
   vcs: git
@@ -33,7 +33,6 @@ imports:
   - cors
   - design
   - design/apidsl
-  - dslengine
   - goagen
   - goagen/codegen
   - goagen/gen_app
@@ -41,9 +40,9 @@ imports:
   - goatest
   - middleware
   - middleware/security/jwt
+  - middleware/gzip
   - uuid
-- name: github.com/goadesign/gorma
-  version: f7116846126a4cb17a0cddd6b3b429ad1592f260
+  - dslengine
 - name: github.com/google/go-github
   version: a59a35745f99ad92d70d69a9f180767063aa4bf3
   subpackages:
@@ -57,10 +56,10 @@ imports:
   subpackages:
   - hcl/ast
   - hcl/parser
-  - hcl/scanner
-  - hcl/strconv
   - hcl/token
   - json/parser
+  - hcl/scanner
+  - hcl/strconv
   - json/scanner
   - json/token
 - name: github.com/howeyc/fsnotify
@@ -132,7 +131,6 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-  - require
   - suite
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
@@ -141,10 +139,10 @@ imports:
 - name: golang.org/x/crypto
   version: 9e590154d2353f3f5e1b24da7275686040dcf491
   subpackages:
+  - ssh
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
-  - ssh
 - name: golang.org/x/net
   version: f841c39de738b1d0df95b5a7187744f0e03d8112
   subpackages:
