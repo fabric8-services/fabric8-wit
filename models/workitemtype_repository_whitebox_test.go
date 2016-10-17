@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
@@ -129,4 +130,39 @@ func TestConvertFieldTypeToModels(t *testing.T) {
 	}
 	_, err := convertFieldTypeToModels(app.FieldType{Kind: "DefinitivelyNotAType"})
 	assert.NotNil(t, err)
+}
+
+// TestTempConvertFieldsToModels is a temporary function to workaround the access
+// issue from migrations.go  - hence keeping it in *_whitebox_test.go
+
+func TestTempConvertFieldsToModels(t *testing.T) {
+
+	resource.Require(t, resource.UnitTest)
+	stString := "string"
+
+	newFields := map[string]app.FieldDefinition{
+		"system.title":          app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
+		"system.description":    app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		"system.creator":        app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
+		"system.assignee":       app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
+		"system.remote_item_id": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		"system.state": app.FieldDefinition{
+			Type: &app.FieldType{
+				BaseType: &stString,
+				Kind:     "enum",
+				Values:   []interface{}{"new", "open", "in progress", "resolved", "closed"},
+			},
+			Required: true,
+		},
+	}
+
+	expectedJSON := `{"system.assignee":{"Required":false,"Type":{"Kind":"user"}},"system.creator":{"Required":true,"Type":{"Kind":"user"}},"system.description":{"Required":false,"Type":{"Kind":"string"}},"system.remote_item_id":{"Required":false,"Type":{"Kind":"string"}},"system.state":{"Required":true,"Type":{"Kind":"enum","BaseType":{"Kind":"string"},"Values":["new","open","in progress","resolved","closed"]}},"system.title":{"Required":true,"Type":{"Kind":"string"}}}`
+
+	convertedFields, err := TEMPConvertFieldTypesToModel(newFields)
+	jsonArray, err := json.Marshal(convertedFields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actualJSON := string(jsonArray[:])
+	assert.Equal(t, expectedJSON, actualJSON)
 }

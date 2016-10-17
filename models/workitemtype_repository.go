@@ -221,3 +221,20 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 		return SimpleType{*kind}, nil
 	}
 }
+
+func TEMPConvertFieldTypesToModel(fields map[string]app.FieldDefinition) (map[string]FieldDefinition, error) {
+
+	allFields := map[string]FieldDefinition{}
+	for field, definition := range fields {
+		ct, err := convertFieldTypeToModels(*definition.Type)
+		if err != nil {
+			return nil, err
+		}
+		converted := FieldDefinition{
+			Required: definition.Required,
+			Type:     ct,
+		}
+		allFields[field] = converted
+	}
+	return allFields, nil
+}
