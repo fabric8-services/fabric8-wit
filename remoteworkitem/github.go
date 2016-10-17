@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/google/go-github/github"
-	"github.com/satori/go.uuid"
 )
 
 // Github represents the Github tracker provider
@@ -18,7 +17,6 @@ type Github struct {
 func (g *Github) Fetch() chan map[string]string {
 	item := make(chan map[string]string)
 	go func() {
-		bID := batchID()
 		opts := &github.SearchOptions{
 			ListOptions: github.ListOptions{
 				PerPage: 20,
@@ -36,7 +34,7 @@ func (g *Github) Fetch() chan map[string]string {
 				i := make(map[string]string)
 				id, _ := json.Marshal(l.URL)
 				content, _ := json.Marshal(l)
-				i = map[string]string{"id": string(id), "content": string(content), "batch_id": bID}
+				i = map[string]string{"id": string(id), "content": string(content)}
 				item <- i
 			}
 			if response.NextPage == 0 {
@@ -47,9 +45,4 @@ func (g *Github) Fetch() chan map[string]string {
 		close(item)
 	}()
 	return item
-}
-
-func batchID() string {
-	u1 := uuid.NewV4().String()
-	return u1
 }
