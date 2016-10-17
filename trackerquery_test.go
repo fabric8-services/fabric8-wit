@@ -108,3 +108,37 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
 	}
 }
+
+// This test ensures that List does not return NIL items.
+func TestTrackerQueryListItemsNotNil(t *testing.T) {
+	resource.Require(t, resource.Database)
+	ts := models.NewGormTransactionSupport(DB)
+	repo := remoteworkitem.NewTrackerRepository(ts)
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	payload := app.CreateTrackerAlternatePayload{
+		URL:  "http://issues.jboss.com",
+		Type: "jira",
+	}
+	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	t.Log(result.ID)
+	tqts := models.NewGormTransactionSupport(DB)
+	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
+	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
+
+		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:  "15 * * * * *",
+		TrackerID: result.ID,
+	}
+	_, item1 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	_, item2 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+
+	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController, nil, nil)
+	for _, tq := range list {
+		if tq == nil {
+			t.Error("Returned Tracker Query found nil")
+		}
+	}
+	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item1.ID)
+	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item2.ID)
+}
