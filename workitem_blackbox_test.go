@@ -1,15 +1,12 @@
 package main_test
 
 import (
-<<<<<<< ea08fa62a65620274558d45fb01211dd9277f71f
 	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-=======
-	"fmt"
 	"strings"
->>>>>>> Add paging links for workitem list action
+
 	"testing"
 	"time"
 
@@ -24,11 +21,8 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
-<<<<<<< ea08fa62a65620274558d45fb01211dd9277f71f
-	jwt "github.com/dgrijalva/jwt-go"
-=======
 	testsupport "github.com/almighty/almighty-core/test"
->>>>>>> Add paging links for workitem list action
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -404,6 +398,7 @@ EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
 /A4rWPqfpmiKcmrd7K4DQFlYhoq+MALEDmQm+/8G6j2inF53fRGgJVzaZhSvnO9X
 CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
+
 func TestPaging(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := testsupport.NoTransactionSupport{}

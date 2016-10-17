@@ -6,7 +6,6 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 	query "github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
 
