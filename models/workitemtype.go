@@ -1,5 +1,28 @@
 package models
 
+// String constants for the local work item types.
+const (
+	SystemRemoteItemID = "system.remote_item_id"
+	SystemTitle        = "system.title"
+	SystemDescription  = "system.description"
+	SystemState        = "system.state"
+	SystemAssignee     = "system.assignee"
+	SystemCreator      = "system.creator"
+
+	SystemUserStory        = "system.userstory"
+	SystemValueProposition = "system.valueproposition"
+	SystemFundamental      = "system.fundamental"
+	SystemExperience       = "system.experience"
+	SystemFeature          = "system.feature"
+	SystemBug              = "system.bug"
+
+	SystemStateOpen       = "open"
+	SystemStateNew        = "new"
+	SystemStateInProgress = "in progress"
+	SystemStateResolved   = "resolved"
+	SystemStateClosed     = "closed"
+)
+
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
 	Lifecycle

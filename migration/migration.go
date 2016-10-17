@@ -222,42 +222,48 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr models.WorkItemT
 }
 
 func createOrUpdateSystemUserstory(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon("system.userstory", ctx, witr, db)
+	return createOrUpdateCommon(models.SystemUserStory, ctx, witr, db)
 }
 
 func createOrUpdateSystemValueProposition(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon("system.valueproposition", ctx, witr, db)
+	return createOrUpdateCommon(models.SystemValueProposition, ctx, witr, db)
 }
 
 func createOrUpdateSystemFundamental(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon("system.fundamental", ctx, witr, db)
+	return createOrUpdateCommon(models.SystemFundamental, ctx, witr, db)
 }
 
 func createOrUpdateSystemExperience(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon("system.experience", ctx, witr, db)
+	return createOrUpdateCommon(models.SystemExperience, ctx, witr, db)
 }
 
 func createOrUpdateSystemFeature(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon("system.feature", ctx, witr, db)
+	return createOrUpdateCommon(models.SystemFeature, ctx, witr, db)
 }
 
 func createOrUpdateSystemBug(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon("system.bug", ctx, witr, db)
+	return createOrUpdateCommon(models.SystemBug, ctx, witr, db)
 }
 
 func createOrUpdateCommon(typeName string, ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
 	stString := "string"
 	workItemTypeFields := map[string]app.FieldDefinition{
-		"system.title":          app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-		"system.description":    app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		"system.creator":        app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-		"system.assignee":       app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
-		"system.remote_item_id": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		"system.state": app.FieldDefinition{
+		models.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
+		models.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		models.SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
+		models.SystemAssignee:     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
+		models.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		models.SystemState: app.FieldDefinition{
 			Type: &app.FieldType{
 				BaseType: &stString,
 				Kind:     "enum",
-				Values:   []interface{}{"new", "open", "in progress", "resolved", "closed"},
+				Values: []interface{}{
+					models.SystemStateNew,
+					models.SystemStateOpen,
+					models.SystemStateInProgress,
+					models.SystemStateResolved,
+					models.SystemStateClosed,
+				},
 			},
 			Required: true,
 		},

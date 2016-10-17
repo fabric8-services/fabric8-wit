@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/test"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +54,7 @@ func TestWorkItemMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	workItemMap := WorkItemMap{
-		AttributeExpression("title"): "system.title",
+		AttributeExpression("title"): models.SystemTitle,
 	}
 	jsonContent := `{"title":"abc"}`
 	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
@@ -68,7 +69,7 @@ func TestWorkItemMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assert.NotNil(t, workItem.Fields["system.title"], "system.title not mapped")
+	assert.NotNil(t, workItem.Fields[models.SystemTitle], fmt.Sprintf("%s not mapped", models.SystemTitle))
 }
 
 func TestGitHubIssueMapping(t *testing.T) {
