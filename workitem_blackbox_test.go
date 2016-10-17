@@ -400,7 +400,7 @@ CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
 
 func TestPaging(t *testing.T) {
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
 	ts := testsupport.NoTransactionSupport{}
 	repo := &testsupport.WorkItemRepository{}
 	svc := goa.New("TestListByFields-Service")
@@ -417,6 +417,7 @@ func TestPaging(t *testing.T) {
 	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=0,2"), *response.Links.Prev)
 	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=7,5"), *response.Links.Next)
 	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
+	assert.Equal(t, float64(13), response.Meta.TotalCount)
 
 	repo.ListReturns(makeWorkItems(3), 13, nil)
 	page = "10,3"

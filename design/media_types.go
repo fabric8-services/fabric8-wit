@@ -64,13 +64,23 @@ var pagingLinks = Type("pagingLinks", func() {
 	Attribute("last", String)
 })
 
+var meta = Type("workItemListResponseMeta", func() {
+	Attribute("totalCount", Number)
+
+	Required("totalCount")
+})
+
 // workItemListResponse contains paged results for listing work items and paging links
 var workItemListResponse = MediaType("application/vnd.workitemlist+json", func() {
 	TypeName("WorkItemListResponse")
 	Description("Holds the paginated response to a work item list request")
 	Attribute("links", pagingLinks)
-	Attribute("totalCount", Number)
+	Attribute("meta", meta)
 	Attribute("data", CollectionOf(workItem))
+
+	Required("links")
+	Required("meta")
+	Required("data")
 
 	View("default", func() {
 		Attribute("links", func() {
@@ -78,7 +88,9 @@ var workItemListResponse = MediaType("application/vnd.workitemlist+json", func()
 			Attribute("next", String)
 			Attribute("last", String)
 		})
-		Attribute("totalCount")
+		Attribute("meta", func() {
+			Attribute("totalCount", Number)
+		})
 		Attribute("data")
 	})
 })

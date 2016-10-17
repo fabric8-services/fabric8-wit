@@ -47,6 +47,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		}
 		response := app.WorkItemListResponse{
 			Links: &app.PagingLinks{},
+			Meta:  &app.WorkItemListResponseMeta{TotalCount: float64(count)},
 			Data:  result,
 		}
 
