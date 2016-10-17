@@ -38,7 +38,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	}
 	return transaction.Do(c.ts, func() error {
 		result, c, err := c.wiRepository.List(ctx.Context, exp, start, &limit)
-		var count int = int(c)
+		count := int(c)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
 		}
