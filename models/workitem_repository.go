@@ -161,6 +161,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	log.Printf("executing query: '%s' with params %v", where, parameters)
 
 	db := r.db.Model(&WorkItem{}).Where(where, parameters)
+	orgDB := db
 	if start != nil {
 		db = db.Offset(*start)
 	}
@@ -203,6 +204,18 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		result = append(result, value)
 
+	}
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		orgDB := orgDB.Select("count(*)")
+		rows2, err := orgDB.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, err
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
 	}
 	return result, count, nil
 }
