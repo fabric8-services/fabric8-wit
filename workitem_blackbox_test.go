@@ -1,14 +1,21 @@
 package main_test
 
 import (
+<<<<<<< ea08fa62a65620274558d45fb01211dd9277f71f
 	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+=======
+	"fmt"
+	"strings"
+>>>>>>> Add paging links for workitem list action
 	"testing"
 	"time"
 
 	"encoding/json"
+
+	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
@@ -17,7 +24,11 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+<<<<<<< ea08fa62a65620274558d45fb01211dd9277f71f
 	jwt "github.com/dgrijalva/jwt-go"
+=======
+	testsupport "github.com/almighty/almighty-core/test"
+>>>>>>> Add paging links for workitem list action
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -393,3 +404,54 @@ EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
 /A4rWPqfpmiKcmrd7K4DQFlYhoq+MALEDmQm+/8G6j2inF53fRGgJVzaZhSvnO9X
 CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
+func TestPaging(t *testing.T) {
+	resource.Require(t, resource.Database)
+	ts := testsupport.NoTransactionSupport{}
+	repo := &testsupport.WorkItemRepository{}
+	svc := goa.New("TestListByFields-Service")
+	assert.NotNil(t, svc)
+	controller := NewWorkitem2Controller(svc, repo, ts)
+
+	repo.ListReturns(makeWorkItems(5), 13, nil)
+	page := "2,5"
+	_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
+	assert.NotNil(t, response)
+	assert.NotNil(t, response.Links.Prev)
+	assert.NotNil(t, response.Links.Next)
+	assert.NotNil(t, response.Links.Last)
+	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=0,2"), *response.Links.Prev)
+	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=7,5"), *response.Links.Next)
+	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
+
+	repo.ListReturns(makeWorkItems(3), 13, nil)
+	page = "10,3"
+	_, response = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
+	assert.NotNil(t, response.Links.Prev)
+	assert.Nil(t, response.Links.Next)
+	assert.NotNil(t, response.Links.Last)
+
+	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=7,3"), *response.Links.Prev)
+	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=10,3"), *response.Links.Last)
+
+	repo.ListReturns(makeWorkItems(4), 13, nil)
+	page = "0,4"
+	_, response = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
+
+	assert.Nil(t, response.Links.Prev)
+	assert.NotNil(t, response.Links.Next)
+	assert.NotNil(t, response.Links.Last)
+	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=4,4"), *response.Links.Next)
+	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
+}
+
+func makeWorkItems(count int) []*app.WorkItem {
+	res := make([]*app.WorkItem, count)
+	for index := range res {
+		res[index] = &app.WorkItem{
+			ID:     fmt.Sprintf("id%d", index),
+			Type:   "foobar",
+			Fields: map[string]interface{}{},
+		}
+	}
+	return res
+}

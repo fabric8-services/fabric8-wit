@@ -58,6 +58,31 @@ var workItem = MediaType("application/vnd.workitem+json", func() {
 	})
 })
 
+var pagingLinks = Type("pagingLinks", func() {
+	Attribute("prev", String)
+	Attribute("next", String)
+	Attribute("last", String)
+})
+
+// workItemListResponse contains paged results for listing work items and paging links
+var workItemListResponse = MediaType("application/vnd.workitemlist+json", func() {
+	TypeName("WorkItemListResponse")
+	Description("Holds the paginated response to a work item list request")
+	Attribute("links", pagingLinks)
+	Attribute("totalCount", Number)
+	Attribute("data", CollectionOf(workItem))
+
+	View("default", func() {
+		Attribute("links", func() {
+			Attribute("prev", String)
+			Attribute("next", String)
+			Attribute("last", String)
+		})
+		Attribute("totalCount")
+		Attribute("data")
+	})
+})
+
 // fieldDefinition defines the possible values for a field in a work item type
 var fieldDefinition = Type("fieldDefinition", func() {
 	Description("A fieldDescription aggregates a fieldType and additional field metadata")
