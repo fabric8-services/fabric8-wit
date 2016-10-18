@@ -129,7 +129,7 @@ func main() {
 	service.Use(middleware.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	publicKey, err := token.ParseRSAPublicKeyFromPEM([]byte(RSAPublicKey))
+	publicKey, err := token.ParseRSAPublicKeyFromPEM(configuration.GetTokenPublicKey())
 	if err != nil {
 		panic(err)
 	}
