@@ -84,6 +84,9 @@ func getMigrations() migrations {
 	// Version 2
 	m = append(m, steps{executeSQLFile("002-tracker-items.sql")})
 
+	// Version 3
+	m = append(m, steps{executeSQLFile("003-login.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
