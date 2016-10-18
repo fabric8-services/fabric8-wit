@@ -85,7 +85,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		}
 		var firstEnd int
 		if offset > 0 {
-			firstEnd = offset - ((offset / limit) * limit)
+			firstEnd = offset - (((offset - 1) / limit) * limit)
 		} else {
 			firstEnd = limit
 			if count < limit {
