@@ -116,8 +116,8 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	repo := remoteworkitem.NewTrackerRepository(ts)
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
-		URL:  "http://issues.jboss.com",
-		Type: "jira",
+		URL:  "http://api.github.com",
+		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
@@ -141,4 +141,34 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	}
 	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item1.ID)
 	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item2.ID)
+}
+
+// This test ensures that ID returned by Show is valid.
+// refer : https://github.com/almighty/almighty-core/issues/189
+func TestCreateTrackerQueryValidId(t *testing.T) {
+	resource.Require(t, resource.Database)
+	ts := models.NewGormTransactionSupport(DB)
+	repo := remoteworkitem.NewTrackerRepository(ts)
+	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	payload := app.CreateTrackerAlternatePayload{
+		URL:  "http://api.github.com",
+		Type: "github",
+	}
+	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	t.Log(result.ID)
+	tqts := models.NewGormTransactionSupport(DB)
+	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
+	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
+
+		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:  "15 * * * * *",
+		TrackerID: result.ID,
+	}
+	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	_, created := test.ShowTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
+	if created != nil && created.ID != trackerquery.ID {
+		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
+	}
+	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
 }
