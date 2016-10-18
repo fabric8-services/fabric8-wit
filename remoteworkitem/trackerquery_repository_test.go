@@ -64,11 +64,21 @@ func TestTrackerQuerySave(t *testing.T) {
 
 func TestTrackerQueryDelete(t *testing.T) {
 	doWithTrackerRepositories(t, func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository) {
-		_, err := queryRepo.Load(context.Background(), "asdf")
+		err := queryRepo.Delete(context.Background(), "asdf")
 		assert.IsType(t, NotFoundError{}, err)
 
-		_, err = queryRepo.Load(context.Background(), "100000")
+		tracker, _ := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
+		tq, _ := queryRepo.Create(context.Background(), "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker.ID)
+		err = queryRepo.Delete(context.Background(), tq.ID)
+		assert.Nil(t, err)
+
+		tq, err = queryRepo.Load(context.Background(), tq.ID)
 		assert.IsType(t, NotFoundError{}, err)
+		assert.Nil(t, tq)
+
+		tq, err = queryRepo.Load(context.Background(), "100000")
+		assert.IsType(t, NotFoundError{}, err)
+		assert.Nil(t, tq)
 	})
 }
 
