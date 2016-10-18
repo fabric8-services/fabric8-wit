@@ -414,6 +414,7 @@ func TestPaging(t *testing.T) {
 	assert.NotNil(t, response.Links.Prev)
 	assert.NotNil(t, response.Links.Next)
 	assert.NotNil(t, response.Links.Last)
+	assert.True(t, strings.HasSuffix(*response.Links.First, "page=0,2"), *response.Links.First)
 	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=0,2"), *response.Links.Prev)
 	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=7,5"), *response.Links.Next)
 	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
@@ -426,6 +427,7 @@ func TestPaging(t *testing.T) {
 	assert.Nil(t, response.Links.Next)
 	assert.NotNil(t, response.Links.Last)
 
+	assert.True(t, strings.HasSuffix(*response.Links.First, "page=0,1"), *response.Links.First)
 	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=7,3"), *response.Links.Prev)
 	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=10,3"), *response.Links.Last)
 
@@ -438,6 +440,12 @@ func TestPaging(t *testing.T) {
 	assert.NotNil(t, response.Links.Last)
 	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=4,4"), *response.Links.Next)
 	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
+
+	repo.ListReturns(makeWorkItems(4), 13, nil)
+	page = "4,8"
+	_, response = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
+
+	assert.True(t, strings.HasSuffix(*response.Links.First, "page=0,4"), *response.Links.First)
 }
 
 func makeWorkItems(count int) []*app.WorkItem {

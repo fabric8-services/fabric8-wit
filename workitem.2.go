@@ -83,6 +83,9 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			last := fmt.Sprintf("%s?page=%d,%d", ctx.Request.URL.Path, offset, len(result))
 			response.Links.Last = &last
 		}
+		firstEnd := offset - ((offset / limit) * limit)
+		first := fmt.Sprintf("%s?page=%d,%d", ctx.Request.URL.Path, 0, firstEnd)
+		response.Links.First = &first
 
 		return ctx.OK(&response)
 	})

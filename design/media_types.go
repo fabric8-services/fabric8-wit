@@ -61,6 +61,7 @@ var workItem = MediaType("application/vnd.workitem+json", func() {
 var pagingLinks = Type("pagingLinks", func() {
 	Attribute("prev", String)
 	Attribute("next", String)
+	Attribute("first", String)
 	Attribute("last", String)
 })
 
@@ -86,6 +87,7 @@ var workItemListResponse = MediaType("application/vnd.workitemlist+json", func()
 		Attribute("links", func() {
 			Attribute("prev", String)
 			Attribute("next", String)
+			Attribute("first", String)
 			Attribute("last", String)
 		})
 		Attribute("meta", func() {
