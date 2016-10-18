@@ -163,9 +163,15 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	db := r.db.Model(&WorkItem{}).Where(where, parameters)
 	orgDB := db
 	if start != nil {
+		if *start < 0 {
+			return nil, 0, BadParameterError{"start", *start}
+		}
 		db = db.Offset(*start)
 	}
 	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, BadParameterError{"limit", *limit}
+		}
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *")

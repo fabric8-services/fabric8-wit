@@ -39,7 +39,12 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		result, c, err := c.wiRepository.List(ctx.Context, exp, start, &limit)
 		count := int(c)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
+			switch err := err.(type) {
+			case models.BadParameterError:
+				return goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error()))
+			default:
+				return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
+			}
 		}
 		var offset int
 		if start != nil {
