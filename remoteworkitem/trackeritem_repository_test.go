@@ -40,10 +40,10 @@ func TestConvertNewWorkItem(t *testing.T) {
 		workItem, err := convert(ts, int(tq.ID), remoteItemData, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "linking", workItem.Fields[SystemTitle])
-		assert.Equal(t, "sbose78", workItem.Fields[SystemCreator])
-		assert.Equal(t, "pranav", workItem.Fields[SystemAssignee])
-		assert.Equal(t, "closed", workItem.Fields[SystemState])
+		assert.Equal(t, "linking", workItem.Fields[models.SystemTitle])
+		assert.Equal(t, "sbose78", workItem.Fields[models.SystemCreator])
+		assert.Equal(t, "pranav", workItem.Fields[models.SystemAssignee])
+		assert.Equal(t, "closed", workItem.Fields[models.SystemState])
 
 		witr := models.NewWorkItemTypeRepository(ts)
 		wir := models.NewWorkItemRepository(ts, witr)
@@ -81,10 +81,10 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		workItem, err := convert(ts, int(tq.ID), remoteItemData, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "linking", workItem.Fields[SystemTitle])
-		assert.Equal(t, "sbose78", workItem.Fields[SystemCreator])
-		assert.Equal(t, "pranav", workItem.Fields[SystemAssignee])
-		assert.Equal(t, "closed", workItem.Fields[SystemState])
+		assert.Equal(t, "linking", workItem.Fields[models.SystemTitle])
+		assert.Equal(t, "sbose78", workItem.Fields[models.SystemCreator])
+		assert.Equal(t, "pranav", workItem.Fields[models.SystemAssignee])
+		assert.Equal(t, "closed", workItem.Fields[models.SystemState])
 		return err
 	})
 
@@ -99,10 +99,10 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		workItemUpdated, err := convert(ts, int(tq.ID), remoteItemDataUpdated, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "linking-updated", workItemUpdated.Fields[SystemTitle])
-		assert.Equal(t, "sbose78", workItemUpdated.Fields[SystemCreator])
-		assert.Equal(t, "pranav", workItemUpdated.Fields[SystemAssignee])
-		assert.Equal(t, "closed", workItemUpdated.Fields[SystemState])
+		assert.Equal(t, "linking-updated", workItemUpdated.Fields[models.SystemTitle])
+		assert.Equal(t, "sbose78", workItemUpdated.Fields[models.SystemCreator])
+		assert.Equal(t, "pranav", workItemUpdated.Fields[models.SystemAssignee])
+		assert.Equal(t, "closed", workItemUpdated.Fields[models.SystemState])
 
 		witr := models.NewWorkItemTypeRepository(ts)
 		wir := models.NewWorkItemRepository(ts, witr)
@@ -143,10 +143,10 @@ func TestConvertGithubIssue(t *testing.T) {
 		workItemGithub, err := convert(ts, int(tq.ID), remoteItemDataGithub, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[SystemTitle])
-		assert.Equal(t, "sbose78", workItemGithub.Fields[SystemCreator])
-		assert.Equal(t, "sbose78", workItemGithub.Fields[SystemAssignee])
-		assert.Equal(t, "open", workItemGithub.Fields[SystemState])
+		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[models.SystemTitle])
+		assert.Equal(t, "sbose78", workItemGithub.Fields[models.SystemCreator])
+		assert.Equal(t, "sbose78", workItemGithub.Fields[models.SystemAssignee])
+		assert.Equal(t, "open", workItemGithub.Fields[models.SystemState])
 
 		return err
 	})

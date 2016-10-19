@@ -49,9 +49,9 @@ func convert(ts *models.GormTransactionSupport, tqID int, item map[string]string
 	}
 
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
-	workItemRemoteID := workItem.Fields[SystemRemoteItemID]
+	workItemRemoteID := workItem.Fields[models.SystemRemoteItemID]
 
-	sqlExpression := Equals(Field(SystemRemoteItemID), Literal(workItemRemoteID))
+	sqlExpression := Equals(Field(models.SystemRemoteItemID), Literal(workItemRemoteID))
 
 	var newWorkItem *app.WorkItem
 
@@ -71,7 +71,7 @@ func convert(ts *models.GormTransactionSupport, tqID int, item map[string]string
 	} else {
 		fmt.Println("Work item not found , will now create new work item")
 
-		newWorkItem, err = wir.Create(context.Background(), "system.bug", workItem.Fields)
+		newWorkItem, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields)
 		if err != nil {
 			fmt.Println("Error creating work item : ", err)
 		}

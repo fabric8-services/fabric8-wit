@@ -4,17 +4,11 @@ import (
 	"encoding/json"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/models"
 )
 
 // List of supported attributes
 const (
-	SystemRemoteItemID = "system.remote_item_id"
-	SystemTitle        = "system.title"
-	SystemDescription  = "system.description"
-	SystemState        = "system.state"
-	SystemAssignee     = "system.assignee"
-	SystemCreator      = "system.creator"
-
 	// The keys in the flattened response JSON of a typical Github issue.
 
 	GithubTitle       = "title"
@@ -40,20 +34,20 @@ const (
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
-		AttributeExpression(GithubTitle):       SystemTitle,
-		AttributeExpression(GithubDescription): SystemDescription,
-		AttributeExpression(GithubState):       SystemState,
-		AttributeExpression(GithubID):          SystemRemoteItemID,
-		AttributeExpression(GithubCreator):     SystemCreator,
-		AttributeExpression(GithubAssignee):    SystemAssignee,
+		AttributeExpression(GithubTitle):       models.SystemTitle,
+		AttributeExpression(GithubDescription): models.SystemDescription,
+		AttributeExpression(GithubState):       models.SystemState,
+		AttributeExpression(GithubID):          models.SystemRemoteItemID,
+		AttributeExpression(GithubCreator):     models.SystemCreator,
+		AttributeExpression(GithubAssignee):    models.SystemAssignee,
 	},
 	ProviderJira: WorkItemMap{
-		AttributeExpression(JiraTitle):    SystemTitle,
-		AttributeExpression(JiraBody):     SystemDescription,
-		AttributeExpression(JiraState):    SystemState,
-		AttributeExpression(JiraID):       SystemRemoteItemID,
-		AttributeExpression(JiraCreator):  SystemCreator,
-		AttributeExpression(JiraAssignee): SystemAssignee,
+		AttributeExpression(JiraTitle):    models.SystemTitle,
+		AttributeExpression(JiraBody):     models.SystemDescription,
+		AttributeExpression(JiraState):    models.SystemState,
+		AttributeExpression(JiraID):       models.SystemRemoteItemID,
+		AttributeExpression(JiraCreator):  models.SystemCreator,
+		AttributeExpression(JiraAssignee): models.SystemAssignee,
 	},
 }
 

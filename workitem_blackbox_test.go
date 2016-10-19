@@ -23,11 +23,11 @@ func TestGetWorkItem(t *testing.T) {
 	controller := NewWorkitemController(svc, repo, ts)
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: "system.bug",
+		Type: models.SystemBug,
 		Fields: map[string]interface{}{
-			"system.title":   "Test WI",
-			"system.creator": "aslak",
-			"system.state":   "closed"},
+			models.SystemTitle:   "Test WI",
+			models.SystemCreator: "aslak",
+			models.SystemState:   "closed"},
 	}
 
 	_, result := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
@@ -42,7 +42,7 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
-	wi.Fields["system.creator"] = "thomas"
+	wi.Fields[models.SystemCreator] = "thomas"
 	payload2 := app.UpdateWorkItemPayload{
 		Type:    wi.Type,
 		Version: wi.Version,
@@ -55,8 +55,8 @@ func TestGetWorkItem(t *testing.T) {
 	if updated.ID != result.ID {
 		t.Errorf("id has changed from %s to %s", result.ID, updated.ID)
 	}
-	if updated.Fields["system.creator"] != "thomas" {
-		t.Errorf("expected creator %s, but got %s", "thomas", updated.Fields["system.creator"])
+	if updated.Fields[models.SystemCreator] != "thomas" {
+		t.Errorf("expected creator %s, but got %s", "thomas", updated.Fields[models.SystemCreator])
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, result.ID)
@@ -72,11 +72,11 @@ func TestCreateWI(t *testing.T) {
 	controller := NewWorkitemController(svc, repo, ts)
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: "system.bug",
+		Type: models.SystemBug,
 		Fields: map[string]interface{}{
-			"system.title":   "Test WI",
-			"system.creator": "tmaeder",
-			"system.state":   "new",
+			models.SystemTitle:   "Test WI",
+			models.SystemCreator: "tmaeder",
+			models.SystemState:   models.SystemStateNew,
 		},
 	}
 
@@ -96,11 +96,12 @@ func TestListByFields(t *testing.T) {
 	controller := NewWorkitemController(svc, repo, ts)
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: "system.bug",
+		Type: models.SystemBug,
 		Fields: map[string]interface{}{
-			"system.title":   "run integration test",
-			"system.creator": "aslak",
-			"system.state":   "closed"},
+			models.SystemTitle:   "run integration test",
+			models.SystemCreator: "aslak",
+			models.SystemState:   models.SystemStateClosed,
+		},
 	}
 
 	_, wi := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)

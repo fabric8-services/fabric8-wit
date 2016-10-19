@@ -141,16 +141,22 @@ func TestTempConvertFieldsToModels(t *testing.T) {
 	stString := "string"
 
 	newFields := map[string]app.FieldDefinition{
-		"system.title":          app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-		"system.description":    app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		"system.creator":        app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-		"system.assignee":       app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
-		"system.remote_item_id": app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		"system.state": app.FieldDefinition{
+		SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
+		SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
+		SystemAssignee:     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
+		SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		SystemState: app.FieldDefinition{
 			Type: &app.FieldType{
 				BaseType: &stString,
 				Kind:     "enum",
-				Values:   []interface{}{"new", "open", "in progress", "resolved", "closed"},
+				Values: []interface{}{
+					SystemStateNew,
+					SystemStateOpen,
+					SystemStateInProgress,
+					SystemStateResolved,
+					SystemStateClosed,
+				},
 			},
 			Required: true,
 		},
