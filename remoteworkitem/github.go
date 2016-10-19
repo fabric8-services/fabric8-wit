@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
+	"golang.org/x/oauth2"
+
 	"github.com/google/go-github/github"
 )
 
@@ -43,6 +45,12 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 				PerPage: 20,
 			},
 		}
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: configuration.ActualToken},
+		)
+		tc := oauth2.NewClient(oauth2.NoContext, ts)
+
+		client := github.NewClient(tc)
 		for {
 			result, response, err := f.listIssues(g.Query, opts)
 			if _, ok := err.(*github.RateLimitError); ok {
