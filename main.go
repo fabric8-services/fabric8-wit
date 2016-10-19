@@ -11,16 +11,21 @@ import (
 
 	"golang.org/x/net/context"
 
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/github"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/transaction"
-	token "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
@@ -129,15 +134,34 @@ func main() {
 	service.Use(middleware.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	publicKey, err := token.ParseRSAPublicKeyFromPEM([]byte(RSAPublicKey))
+	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
 	if err != nil {
 		panic(err)
 	}
+	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
+	if err != nil {
+		panic(err)
+	}
+
+	// Setup Account/Login/Security
+	identityRepository := account.NewIdentityRepository(db)
+	userRepository := account.NewUserRepository(db)
+
+	tokenManager := token.NewManager(publicKey, privateKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 
 	// Mount "login" controller
-	loginCtrl := NewLoginController(service)
+	oauth := &oauth2.Config{
+		ClientID:     configuration.GetGithubClientID(),
+		ClientSecret: configuration.GetGithubSecret(),
+		Scopes:       []string{"user:email"},
+		Endpoint:     github.Endpoint,
+	}
+
+	loginService := login.NewGitHubOAuth(oauth, identityRepository, userRepository, tokenManager)
+	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
+
 	// Mount "status" controller
 	statusCtrl := NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
@@ -161,6 +185,10 @@ func main() {
 	repo3 := remoteworkitem.NewTrackerQueryRepository(ts2)
 	c6 := NewTrackerqueryController(service, repo3, ts2, scheduler)
 	app.MountTrackerqueryController(service, c6)
+
+	// Mount "user" controller
+	userCtrl := NewUserController(service, identityRepository, tokenManager)
+	app.MountUserController(service, userCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

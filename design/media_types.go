@@ -146,3 +146,15 @@ var TrackerQuery = MediaType("application/vnd.trackerquery+json", func() {
 		Attribute("trackerID")
 	})
 })
+
+var User = MediaType("application/vnd.user+json", func() {
+	TypeName("User")
+	Description("ALM User")
+	Attribute("fullName", String, "The users full name")
+	Attribute("imageURL", String, "The avatar image for the user")
+
+	View("default", func() {
+		Attribute("fullName")
+		Attribute("imageURL")
+	})
+})
