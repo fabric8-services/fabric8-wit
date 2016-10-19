@@ -244,7 +244,7 @@ func TestSuiteWorkItemType(t *testing.T) {
 }
 
 func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSAPrivateKeyTest)))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -301,7 +301,7 @@ func TestUnauthorizeWorkItemTypeCreate(t *testing.T) {
 	resource.Require(t, resource.Database)
 
 	// This will be modified after merge PR for "Viper Environment configurations"
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM(([]byte(RSAPublicKeyTest)))
+	publickey, err := jwt.ParseRSAPublicKeyFromPEM((configuration.GetTokenPublicKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
