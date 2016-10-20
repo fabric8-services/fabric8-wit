@@ -3,6 +3,7 @@ package models_test
 import (
 	"testing"
 
+	"github.com/almighty/almighty-core/convert"
 	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +15,7 @@ func TestSimpleTypeEqual(t *testing.T) {
 
 	// Test type difference
 	a := SimpleType{Kind: KindString}
-	assert.False(t, a.Equal(DummyEqualer{}))
+	assert.False(t, a.Equal(convert.DummyEqualer{}))
 
 	// Test kind difference
 	b := SimpleType{Kind: KindInteger}

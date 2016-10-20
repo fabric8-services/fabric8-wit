@@ -3,6 +3,7 @@ package models_test
 import (
 	"testing"
 
+	"github.com/almighty/almighty-core/convert"
 	. "github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +19,7 @@ func TestListType_Equal(t *testing.T) {
 	}
 
 	// Test type incompatibility
-	assert.False(t, a.Equal(DummyEqualer{}))
+	assert.False(t, a.Equal(convert.DummyEqualer{}))
 
 	// Test simple type difference
 	b := ListType{

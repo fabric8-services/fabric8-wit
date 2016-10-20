@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
@@ -23,12 +25,12 @@ func TestWorkItem_Equal(t *testing.T) {
 	}
 
 	// Test type difference
-	b := models.DummyEqualer{}
+	b := convert.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test lifecycle difference
 	c := a
-	c.Lifecycle = models.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
+	c.Lifecycle = gormsupport.Lifecycle{CreatedAt: time.Now().Add(time.Duration(1000))}
 	assert.False(t, a.Equal(c))
 
 	// Test type difference

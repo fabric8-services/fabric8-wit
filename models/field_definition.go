@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+
+	"github.com/almighty/almighty-core/convert"
 )
 
 // constants for describing possible field types
@@ -36,7 +38,7 @@ type FieldType interface {
 	// ConvertToModel converts a field value for storage in the db
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
-	Equal(u Equaler) bool
+	Equal(u convert.Equaler) bool
 }
 
 // FieldDefintion describes type & other restrictions of a field
@@ -46,11 +48,11 @@ type FieldDefinition struct {
 }
 
 // Ensure FieldDefinition implements the Equaler interface
-var _ Equaler = FieldDefinition{}
-var _ Equaler = (*FieldDefinition)(nil)
+var _ convert.Equaler = FieldDefinition{}
+var _ convert.Equaler = (*FieldDefinition)(nil)
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
-func (self FieldDefinition) Equal(u Equaler) bool {
+func (self FieldDefinition) Equal(u convert.Equaler) bool {
 	other, ok := u.(FieldDefinition)
 	if !ok {
 		return false
@@ -83,11 +85,11 @@ type rawFieldDef struct {
 }
 
 // Ensure rawFieldDef implements the Equaler interface
-var _ Equaler = rawFieldDef{}
-var _ Equaler = (*rawFieldDef)(nil)
+var _ convert.Equaler = rawFieldDef{}
+var _ convert.Equaler = (*rawFieldDef)(nil)
 
 // Equal returns true if two rawFieldDef objects are equal; otherwise false is returned.
-func (self rawFieldDef) Equal(u Equaler) bool {
+func (self rawFieldDef) Equal(u convert.Equaler) bool {
 	other, ok := u.(rawFieldDef)
 	if !ok {
 		return false

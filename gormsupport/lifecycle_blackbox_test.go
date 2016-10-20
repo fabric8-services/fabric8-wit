@@ -1,10 +1,11 @@
-package models_test
+package gormsupport_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,18 +17,18 @@ func TestLifecycle_Equal(t *testing.T) {
 	now := time.Now()
 	nowPlus := time.Now().Add(time.Duration(1000))
 
-	a := models.Lifecycle{
+	a := gormsupport.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: now,
 		DeletedAt: nil,
 	}
 
 	// Test for type difference
-	b := models.DummyEqualer{}
+	b := convert.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test CreateAt difference
-	c := models.Lifecycle{
+	c := gormsupport.Lifecycle{
 		CreatedAt: nowPlus,
 		UpdatedAt: now,
 		DeletedAt: nil,
@@ -35,7 +36,7 @@ func TestLifecycle_Equal(t *testing.T) {
 	assert.False(t, a.Equal(c))
 
 	// Test UpdatedAt difference
-	d := models.Lifecycle{
+	d := gormsupport.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: nowPlus,
 		DeletedAt: nil,
@@ -43,7 +44,7 @@ func TestLifecycle_Equal(t *testing.T) {
 	assert.False(t, a.Equal(d))
 
 	// Test DeletedAt (one is not nil, the other is) difference
-	e := models.Lifecycle{
+	e := gormsupport.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: now,
 		DeletedAt: &now,
@@ -51,12 +52,12 @@ func TestLifecycle_Equal(t *testing.T) {
 	assert.False(t, a.Equal(e))
 
 	// Test DeletedAt (both are not nil) difference
-	g := models.Lifecycle{
+	g := gormsupport.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: nowPlus,
 		DeletedAt: &now,
 	}
-	h := models.Lifecycle{
+	h := gormsupport.Lifecycle{
 		CreatedAt: now,
 		UpdatedAt: nowPlus,
 		DeletedAt: &nowPlus,

@@ -3,7 +3,7 @@ package account
 import (
 	"time"
 
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -12,7 +12,7 @@ import (
 
 // User describes a User(single email) in any system
 type User struct {
-	models.Lifecycle
+	gormsupport.Lifecycle
 	ID         uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	Email      string    `sql:"unique_index"`                                            // This is the unique email field
 	IdentityID uuid.UUID `sql:"type:uuid"`                                               // Belongs To Identity
