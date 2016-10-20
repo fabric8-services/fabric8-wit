@@ -399,12 +399,12 @@ EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
 CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
 
-func createPagingTest(t *testing.T, controller *Workitem2Controller, repo *testsupport.WorkItemRepository, totalCount int64) func(start int, limit int, first string, last string, prev string, next string) {
-	return func(start int, limit int, first string, last string, prev string, next string) {
-		count := computeCount(totalCount, start, limit)
+func createPagingTest(t *testing.T, controller *Workitem2Controller, repo *testsupport.WorkItemRepository, totalCount int64) func(start float64, limit float64, first string, last string, prev string, next string) {
+	return func(start float64, limit float64, first string, last string, prev string, next string) {
+		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
-		page := fmt.Sprintf("%d,%d", start, limit)
-		_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
+
+		_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &start)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -458,19 +458,19 @@ func TestPagingLinks(t *testing.T) {
 	controller := NewWorkitem2Controller(svc, repo, ts)
 
 	pagingTest := createPagingTest(t, controller, repo, 13)
-	pagingTest(2, 5, "page=0,2", "page=12,5", "page=0,2", "page=7,5")
-	pagingTest(10, 3, "page=0,1", "page=10,3", "7,3", "")
-	pagingTest(0, 4, "page=0,4", "page=12,4", "", "page=4,4")
-	pagingTest(4, 8, "page=0,4", "page=12,8", "page=0,4", "page=12,8")
+	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=12,page[limit]=5", "page[offset]=0,page[limit]=2", "page[offset]=7,page[limit]=5")
+	pagingTest(10, 3, "page[offset]=0,page[limit]=1", "page[offset]=10,page[limit]=3", "page[offset]=7,page[limit]=3", "")
+	pagingTest(0, 4, "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=4", "", "page[offset]=4,page[limit]=4")
+	pagingTest(4, 8, "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=8", "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=8")
 
-	pagingTest(16, 14, "page=0,2", "page=2,14", "page=2,14", "")
-	pagingTest(16, 18, "page=0,16", "page=0,16", "0,16", "")
+	pagingTest(16, 14, "page[offset]=0,page[limit]=2", "page[offset]=2,page[limit]=14", "page[offset]=2,page[limit]=14", "")
+	pagingTest(16, 18, "page[offset]=0,page[limit]=16", "page[offset]=0,page[limit]=16", "page[offset]=0,page[limit]=16", "")
 
-	pagingTest(3, 50, "page=0,3", "page=3,50", "page=0,3", "")
-	pagingTest(0, 50, "page=0,50", "page=0,50", "", "")
+	pagingTest(3, 50, "page[offset]=0,page[limit]=3", "page[offset]=3,page[limit]=50", "page[offset]=0,page[limit]=3", "")
+	pagingTest(0, 50, "page[offset]=0,page[limit]=50", "page[offset]=0,page[limit]=50", "", "")
 
 	pagingTest = createPagingTest(t, controller, repo, 0)
-	pagingTest(2, 5, "page=0,2", "page=0,2", "", "")
+	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=0,page[limit]=2", "", "")
 }
 
 func TestPagingErrors(t *testing.T) {
@@ -480,11 +480,15 @@ func TestPagingErrors(t *testing.T) {
 	svc := goa.New("TestPaginErrors-Service")
 	controller := NewWorkitem2Controller(svc, repo, ts)
 
-	page := "page=-1, 2"
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &page)
+	var offset float64 = -1
+	var limit float64 = 2
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
 
-	page = "page=0, 0"
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &page)
-	page = "page=0, -1"
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &page)
+	offset = 0
+	limit = 0
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+
+	offset = 3
+	limit = -1
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
 }

@@ -32,12 +32,36 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	if err != nil {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
 	}
-	start, limit, err := parseLimit(ctx.Page)
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error())))
+	var offset int
+	var limit int
+
+	if ctx.PageOffset == nil {
+		offset = 0
+	} else {
+		offset = int(*ctx.PageOffset)
 	}
+	if err != nil {
+		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse page offset: %s", err.Error())))
+	}
+
+	if ctx.PageLimit == nil {
+		limit = 100
+	} else {
+		limit = int(*ctx.PageLimit)
+	}
+	if err != nil {
+		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse page limit: %s", err.Error())))
+	}
+	if offset < 0 {
+		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+	}
+
+	if limit <= 0 {
+		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("limit must be > 0, but is: %d", limit)))
+	}
+
 	return transaction.Do(c.ts, func() error {
-		result, c, err := c.wiRepository.List(ctx.Context, exp, start, &limit)
+		result, c, err := c.wiRepository.List(ctx.Context, exp, &offset, &limit)
 		count := int(c)
 		if err != nil {
 			switch err := err.(type) {
@@ -48,10 +72,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 				return ctx.InternalServerError()
 			}
 		}
-		var offset int
-		if start != nil {
-			offset = *start
-		}
+
 		response := app.WorkItemListResponse{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: float64(count)},
@@ -74,7 +95,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 				realLimit = limit + prevStart
 				prevStart = 0
 			}
-			prev := fmt.Sprintf("%s?page=%d,%d", ctx.Request.URL.Path, prevStart, realLimit)
+			prev := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, prevStart, realLimit)
 			response.Links.Prev = &prev
 		}
 
@@ -82,7 +103,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		nextStart := offset + len(result)
 		if nextStart < count {
 			// we have a next link
-			next := fmt.Sprintf("%s?page=%d,%d", ctx.Request.URL.Path, nextStart, limit)
+			next := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, nextStart, limit)
 			response.Links.Next = &next
 		}
 
@@ -94,7 +115,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			// offset == 0, first == current
 			firstEnd = limit
 		}
-		first := fmt.Sprintf("%s?page=%d,%d", ctx.Request.URL.Path, 0, firstEnd)
+		first := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, 0, firstEnd)
 		response.Links.First = &first
 
 		// last link
@@ -112,7 +133,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			realLimit = limit + lastStart
 			lastStart = 0
 		}
-		last := fmt.Sprintf("%s?page=%d,%d", ctx.Request.URL.Path, lastStart, realLimit)
+		last := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, lastStart, realLimit)
 		response.Links.Last = &last
 
 		return ctx.OK(&response)
