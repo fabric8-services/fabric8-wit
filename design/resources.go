@@ -355,3 +355,25 @@ var _ = Resource("trackerquery", func() {
 	})
 
 })
+
+var _ = Resource("search", func() {
+	BasePath("/search")
+
+	Action("show", func() {
+		Routing(
+			GET("/:q"),
+		)
+		Description("Search work items using the given query")
+		Params(func() {
+			Param("q", String, "q")
+		})
+		Response(OK, func() {
+			Media(CollectionOf(workItem))
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+		Response(NotFound)
+	})
+})
