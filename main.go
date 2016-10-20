@@ -19,12 +19,11 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
-
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -147,6 +146,7 @@ func main() {
 
 	tokenManager := token.NewManager(publicKey, privateKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
+	service.Use(login.ConfigureExtractUser(tokenManager))
 
 	// Mount "login" controller
 	oauth := &oauth2.Config{

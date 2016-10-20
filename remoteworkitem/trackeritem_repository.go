@@ -72,8 +72,12 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 	} else {
 		fmt.Println("Work item not found , will now create new work item")
-
-		newWorkItem, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields)
+		c := workItem.Fields[models.SystemCreator]
+		var creator string
+		if c != nil {
+			creator = c.(string)
+		}
+		newWorkItem, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields, creator)
 		if err != nil {
 			fmt.Println("Error creating work item : ", err)
 		}

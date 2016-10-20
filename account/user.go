@@ -151,3 +151,15 @@ func UserWithIdentity() func(db *gorm.DB) *gorm.DB {
 
 	}
 }
+
+// TestIdentity only creates in memory obj for testing purposes
+var TestIdentity = Identity{
+	FullName: "Test Developer",
+}
+
+// TestUser only creates in memory obj for testing purposes
+var TestUser = User{
+	ID:       uuid.UUID{},
+	Email:    "testdeveloper@testalm.io",
+	Identity: TestIdentity,
+}

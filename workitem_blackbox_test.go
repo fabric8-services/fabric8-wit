@@ -16,6 +16,7 @@ import (
 	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
@@ -32,8 +33,7 @@ import (
 
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	svc := goa.New("TestGetWorkItem-Service")
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", account.TestUser)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -45,7 +45,7 @@ func TestGetWorkItem(t *testing.T) {
 			models.SystemState:   "closed"},
 	}
 
-	_, result := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
+	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, result.ID)
 
@@ -79,7 +79,7 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := goa.New("TestCreateWI-Service")
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", account.TestUser)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -92,15 +92,17 @@ func TestCreateWI(t *testing.T) {
 		},
 	}
 
-	_, created := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
+	_, created := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	if created.ID == "" {
 		t.Error("no id")
 	}
+	assert.NotNil(t, created.Fields[models.SystemCreator])
+	assert.Equal(t, created.Fields[models.SystemCreator], account.TestUser.ID.String())
 }
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := goa.New("TestListByFields-Service")
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", account.TestUser)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -113,7 +115,7 @@ func TestListByFields(t *testing.T) {
 		},
 	}
 
-	_, wi := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
 	filter := "{\"system.title\":\"run integration test\"}"
 	page := "0,1"
@@ -127,7 +129,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result))
 	}
 
-	filter = "{\"system.creator\":\"aslak\"}"
+	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestUser.ID.String())
 	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, &page)
 
 	if result == nil {

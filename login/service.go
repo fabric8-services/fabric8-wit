@@ -3,11 +3,13 @@ package login
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/token"
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -200,4 +202,44 @@ type ghUser struct {
 	Name      string `json:"name"`
 	Login     string `json:"login"`
 	AvatarURL string `json:"avatar_url"`
+}
+
+type contextKey int
+
+const (
+	//currentUserInContextKey is a key that will be used to put and to get `currentUser` from goa.context
+	currentUserInContextKey contextKey = iota + 1
+)
+
+// WithIdentity fills the context with input id string
+func WithIdentity(ctx context.Context, id string) context.Context {
+	return context.WithValue(ctx, currentUserInContextKey, id)
+}
+
+// ContextIdentity reads the input context then extracts and returns logged in user from that
+func ContextIdentity(ctx context.Context) string {
+	val := ctx.Value(currentUserInContextKey)
+	if val != nil {
+		return val.(string)
+	}
+	return ""
+}
+
+// ConfigureExtractUser is a configuration for middleware,
+// Accepts PublicKey and PrivateKey to create a token manager
+// Using token manager, it is responsible for extracting the token from context if present
+// Update the context with uuid found in token
+func ConfigureExtractUser(manager token.Manager) goa.Middleware {
+	return func(h goa.Handler) goa.Handler {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+			// for now ignore the error becasue still test for logged in user is not done.
+			uuid, err := manager.Locate(ctx)
+			if err != nil {
+				// TODO : need a way to define user as Guest
+				fmt.Println("Geust User")
+			}
+			ctxWithUser := WithIdentity(ctx, uuid.String())
+			return h(ctxWithUser, rw, req)
+		}
+	}
 }
