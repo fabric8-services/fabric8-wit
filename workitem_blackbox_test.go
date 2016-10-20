@@ -399,53 +399,42 @@ EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
 CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
 
-func TestPaging(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	ts := testsupport.NoTransactionSupport{}
-	repo := &testsupport.WorkItemRepository{}
-	svc := goa.New("TestListByFields-Service")
-	assert.NotNil(t, svc)
-	controller := NewWorkitem2Controller(svc, repo, ts)
+func createPagingTest(t *testing.T, controller *Workitem2Controller, repo *testsupport.WorkItemRepository, totalCount int64) func(start int, limit int, first string, last string, prev string, next string) {
+	return func(start int, limit int, first string, last string, prev string, next string) {
+		count := computeCount(totalCount, start, limit)
+		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
+		page := fmt.Sprintf("%d,%d", start, limit)
+		_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
+		assertLink(t, "first", first, response.Links.First)
+		assertLink(t, "last", last, response.Links.Last)
+		assertLink(t, "prev", prev, response.Links.Prev)
+		assertLink(t, "next", next, response.Links.Next)
+		assert.Equal(t, float64(totalCount), response.Meta.TotalCount)
+	}
+}
 
-	repo.ListReturns(makeWorkItems(5), 13, nil)
-	page := "2,5"
-	_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
-	assert.NotNil(t, response)
-	assert.NotNil(t, response.Links.Prev)
-	assert.NotNil(t, response.Links.Next)
-	assert.NotNil(t, response.Links.Last)
-	assert.True(t, strings.HasSuffix(*response.Links.First, "page=0,2"), *response.Links.First)
-	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=0,2"), *response.Links.Prev)
-	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=7,5"), *response.Links.Next)
-	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
-	assert.Equal(t, float64(13), response.Meta.TotalCount)
+func assertLink(t *testing.T, l string, expected string, actual *string) {
+	if expected == "" {
+		if actual != nil {
+			assert.Fail(t, fmt.Sprintf("link %s should be nil but is %s", l, *actual))
+		}
+	} else {
+		if actual == nil {
+			assert.Fail(t, "link %s should be %s, but is nil", l, expected)
+		} else {
+			assert.True(t, strings.HasSuffix(*actual, expected), "link %s should be %s, but is %s", l, expected, *actual)
+		}
+	}
+}
 
-	repo.ListReturns(makeWorkItems(3), 13, nil)
-	page = "10,3"
-	_, response = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
-	assert.NotNil(t, response.Links.Prev)
-	assert.Nil(t, response.Links.Next)
-	assert.NotNil(t, response.Links.Last)
-
-	assert.True(t, strings.HasSuffix(*response.Links.First, "page=0,1"), *response.Links.First)
-	assert.True(t, strings.HasSuffix(*response.Links.Prev, "page=7,3"), *response.Links.Prev)
-	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=10,3"), *response.Links.Last)
-
-	repo.ListReturns(makeWorkItems(4), 13, nil)
-	page = "0,4"
-	_, response = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
-
-	assert.Nil(t, response.Links.Prev)
-	assert.NotNil(t, response.Links.Next)
-	assert.NotNil(t, response.Links.Last)
-	assert.True(t, strings.HasSuffix(*response.Links.Next, "page=4,4"), *response.Links.Next)
-	assert.True(t, strings.HasSuffix(*response.Links.Last, "page=12,1"), *response.Links.Last)
-
-	repo.ListReturns(makeWorkItems(4), 13, nil)
-	page = "4,8"
-	_, response = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &page)
-
-	assert.True(t, strings.HasSuffix(*response.Links.First, "page=0,4"), *response.Links.First)
+func computeCount(totalCount int64, start int, limit int) int {
+	if start < 0 || int64(start) >= totalCount {
+		return 0
+	}
+	if int64(start+limit) > totalCount {
+		return int(totalCount - int64(start))
+	}
+	return limit
 }
 
 func makeWorkItems(count int) []*app.WorkItem {
@@ -458,4 +447,44 @@ func makeWorkItems(count int) []*app.WorkItem {
 		}
 	}
 	return res
+}
+
+func TestPagingLinks(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	ts := testsupport.NoTransactionSupport{}
+	repo := &testsupport.WorkItemRepository{}
+	svc := goa.New("TestPaginLinks-Service")
+	assert.NotNil(t, svc)
+	controller := NewWorkitem2Controller(svc, repo, ts)
+
+	pagingTest := createPagingTest(t, controller, repo, 13)
+	pagingTest(2, 5, "page=0,2", "page=12,5", "page=0,2", "page=7,5")
+	pagingTest(10, 3, "page=0,1", "page=10,3", "7,3", "")
+	pagingTest(0, 4, "page=0,4", "page=12,4", "", "page=4,4")
+	pagingTest(4, 8, "page=0,4", "page=12,8", "page=0,4", "page=12,8")
+
+	pagingTest(16, 14, "page=0,2", "page=2,14", "page=2,14", "")
+	pagingTest(16, 18, "page=0,16", "page=0,16", "0,16", "")
+
+	pagingTest(3, 50, "page=0,3", "page=3,50", "page=0,3", "")
+	pagingTest(0, 50, "page=0,50", "page=0,50", "", "")
+
+	pagingTest = createPagingTest(t, controller, repo, 0)
+	pagingTest(2, 5, "page=0,2", "page=0,2", "", "")
+}
+
+func TestPagingErrors(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	ts := testsupport.NoTransactionSupport{}
+	repo := &testsupport.WorkItemRepository{}
+	svc := goa.New("TestPaginErrors-Service")
+	controller := NewWorkitem2Controller(svc, repo, ts)
+
+	page := "page=-1, 2"
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &page)
+
+	page = "page=0, 0"
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &page)
+	page = "page=0, -1"
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &page)
 }
