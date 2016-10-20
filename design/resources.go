@@ -361,7 +361,7 @@ var _ = Resource("search", func() {
 
 	Action("show", func() {
 		Routing(
-			GET("/:q"),
+			GET(""),
 		)
 		Description("Search work items using the given query")
 		Params(func() {
