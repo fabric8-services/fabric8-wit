@@ -45,6 +45,7 @@ var _ = Resource("workitem", func() {
 	})
 
 	Action("create", func() {
+		Security("jwt")
 		Routing(
 			POST(""),
 		)
@@ -57,8 +58,10 @@ var _ = Resource("workitem", func() {
 			Media(ErrorMedia)
 		})
 		Response(InternalServerError)
+		Response(Unauthorized)
 	})
 	Action("delete", func() {
+		Security("jwt")
 		Routing(
 			DELETE("/:id"),
 		)
@@ -72,8 +75,10 @@ var _ = Resource("workitem", func() {
 		})
 		Response(InternalServerError)
 		Response(NotFound)
+		Response(Unauthorized)
 	})
 	Action("update", func() {
+		Security("jwt")
 		Routing(
 			PUT("/:id"),
 		)
@@ -90,6 +95,7 @@ var _ = Resource("workitem", func() {
 		})
 		Response(InternalServerError)
 		Response(NotFound)
+		Response(Unauthorized)
 	})
 
 })
@@ -114,6 +120,7 @@ var _ = Resource("workitemtype", func() {
 	})
 
 	Action("create", func() {
+		Security("jwt")
 		Routing(
 			POST(""),
 		)
@@ -126,6 +133,7 @@ var _ = Resource("workitemtype", func() {
 			Media(ErrorMedia)
 		})
 		Response(InternalServerError)
+		Response(Unauthorized)
 	})
 
 	Action("list", func() {
