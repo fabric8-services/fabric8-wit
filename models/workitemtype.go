@@ -1,5 +1,10 @@
 package models
 
+import (
+	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/gormsupport"
+)
+
 // String constants for the local work item types.
 const (
 	SystemRemoteItemID = "system.remote_item_id"
@@ -25,7 +30,7 @@ const (
 
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
-	Lifecycle
+	gormsupport.Lifecycle
 	// the unique name of this work item type.
 	Name string `gorm:"primary_key"`
 	// Version for optimistic concurrency control
@@ -37,11 +42,11 @@ type WorkItemType struct {
 }
 
 // Ensure Fields implements the Equaler interface
-var _ Equaler = WorkItemType{}
-var _ Equaler = (*WorkItemType)(nil)
+var _ convert.Equaler = WorkItemType{}
+var _ convert.Equaler = (*WorkItemType)(nil)
 
 // Equal returns true if two WorkItemType objects are equal; otherwise false is returned.
-func (self WorkItemType) Equal(u Equaler) bool {
+func (self WorkItemType) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemType)
 	if !ok {
 		return false

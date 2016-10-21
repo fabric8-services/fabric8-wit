@@ -1,7 +1,9 @@
-package models
+package gormsupport
 
 import (
 	"time"
+
+	"github.com/almighty/almighty-core/convert"
 )
 
 // The Lifecycle struct contains all the items from gorm.Model except the ID field,
@@ -13,27 +15,27 @@ type Lifecycle struct {
 }
 
 // Ensure Lifecyle implements the Equaler interface
-var _ Equaler = Lifecycle{}
-var _ Equaler = (*Lifecycle)(nil)
+var _ convert.Equaler = Lifecycle{}
+var _ convert.Equaler = (*Lifecycle)(nil)
 
 // Equal returns true if two Lifecycle objects are equal; otherwise false is returned.
-func (self Lifecycle) Equal(u Equaler) bool {
+func (lc Lifecycle) Equal(u convert.Equaler) bool {
 	other, ok := u.(Lifecycle)
 	if !ok {
 		return false
 	}
-	if !self.CreatedAt.Equal(other.CreatedAt) {
+	if !lc.CreatedAt.Equal(other.CreatedAt) {
 		return false
 	}
-	if !self.UpdatedAt.Equal(other.UpdatedAt) {
+	if !lc.UpdatedAt.Equal(other.UpdatedAt) {
 		return false
 	}
 	// DeletedAt can be nil so we need to do a special check here.
-	if self.DeletedAt == nil && other.DeletedAt == nil {
+	if lc.DeletedAt == nil && other.DeletedAt == nil {
 		return true
 	}
-	if self.DeletedAt != nil && other.DeletedAt != nil {
-		return self.DeletedAt.Equal(*other.DeletedAt)
+	if lc.DeletedAt != nil && other.DeletedAt != nil {
+		return lc.DeletedAt.Equal(*other.DeletedAt)
 	}
 	return false
 }

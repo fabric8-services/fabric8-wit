@@ -1,9 +1,9 @@
-package models_test
+package convert_test
 
 import (
 	"testing"
 
-	. "github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,10 +12,10 @@ import (
 type foo struct{}
 
 // Ensure foo implements the Equaler interface
-var _ Equaler = foo{}
-var _ Equaler = (*foo)(nil)
+var _ convert.Equaler = foo{}
+var _ convert.Equaler = (*foo)(nil)
 
-func (f foo) Equal(u Equaler) bool {
+func (f foo) Equal(u convert.Equaler) bool {
 	_, ok := u.(foo)
 	if !ok {
 		return false
@@ -27,8 +27,8 @@ func TestDummyEqualerEqual(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	a := DummyEqualer{}
-	b := DummyEqualer{}
+	a := convert.DummyEqualer{}
+	b := convert.DummyEqualer{}
 
 	// Test for type difference
 	assert.False(t, a.Equal(foo{}))

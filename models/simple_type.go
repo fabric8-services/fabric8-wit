@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/convert"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -15,11 +16,11 @@ type SimpleType struct {
 }
 
 // Ensure SimpleType implements the Equaler interface
-var _ Equaler = SimpleType{}
-var _ Equaler = (*SimpleType)(nil)
+var _ convert.Equaler = SimpleType{}
+var _ convert.Equaler = (*SimpleType)(nil)
 
 // Equal returns true if two SimpleType objects are equal; otherwise false is returned.
-func (self SimpleType) Equal(u Equaler) bool {
+func (self SimpleType) Equal(u convert.Equaler) bool {
 	other, ok := u.(SimpleType)
 	if !ok {
 		return false

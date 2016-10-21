@@ -3,6 +3,8 @@ package models
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/almighty/almighty-core/convert"
 )
 
 //ListType describes a list of SimpleType values
@@ -12,11 +14,11 @@ type ListType struct {
 }
 
 // Ensure ListType implements the Equaler interface
-var _ Equaler = ListType{}
-var _ Equaler = (*ListType)(nil)
+var _ convert.Equaler = ListType{}
+var _ convert.Equaler = (*ListType)(nil)
 
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
-func (self ListType) Equal(u Equaler) bool {
+func (self ListType) Equal(u convert.Equaler) bool {
 	other, ok := u.(ListType)
 	if !ok {
 		return false

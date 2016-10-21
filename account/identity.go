@@ -3,7 +3,7 @@ package account
 import (
 	"time"
 
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -12,7 +12,7 @@ import (
 
 // Identity ddenDescribes a unique Person with the ALM
 type Identity struct {
-	models.Lifecycle
+	gormsupport.Lifecycle
 	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	Emails   []User    // has many Users
 	FullName string    // The fullname of the Identity

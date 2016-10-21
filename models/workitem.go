@@ -1,8 +1,13 @@
 package models
 
+import (
+	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/gormsupport"
+)
+
 // WorkItem represents a work item as it is stored in the database
 type WorkItem struct {
-	Lifecycle
+	gormsupport.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// Id of the type of this work item
 	Type string
@@ -13,11 +18,11 @@ type WorkItem struct {
 }
 
 // Ensure WorkItem implements the Equaler interface
-var _ Equaler = WorkItem{}
-var _ Equaler = (*WorkItem)(nil)
+var _ convert.Equaler = WorkItem{}
+var _ convert.Equaler = (*WorkItem)(nil)
 
 // Equal returns true if two WorkItem objects are equal; otherwise false is returned.
-func (self WorkItem) Equal(u Equaler) bool {
+func (self WorkItem) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItem)
 	if !ok {
 		return false
