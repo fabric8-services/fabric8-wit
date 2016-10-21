@@ -41,7 +41,6 @@ func NewGormTransactionSupport(db *gorm.DB) *GormTransactionSupport {
 
 // GormTransactionSupport implements TransactionSupport for gorm
 type GormTransactionSupport struct {
-	tx         *gorm.DB
 	db         *gorm.DB
 	txIsoLevel string
 }
@@ -64,22 +63,17 @@ func (g *GormTransactionSupport) SetTransactionIsolationLevel(level TXIsoLevel) 
 	return nil
 }
 
-// TX returns the transaction object
-func (g *GormTransactionSupport) TX() *gorm.DB {
-	return g.tx
-}
-
 // Begin implements TransactionSupport
-func (g *GormTransactionSupport) Begin() error {
-	g.tx = g.db.Begin()
-	if g.db.Error != nil {
-		return g.db.Error
+func (g *GormTransactionSupport) Begin() (transaction.Transaction, error) {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
 	}
 	if len(g.txIsoLevel) != 0 {
-		db := g.tx.Exec(fmt.Sprintf("set transaction isolation level %s", g.txIsoLevel))
-		return db.Error
+		tx = tx.Exec(fmt.Sprintf("set transaction isolation level %s", g.txIsoLevel))
+		return tx, tx.Error
 	}
-	return nil
+	return tx, nil
 
 }
 

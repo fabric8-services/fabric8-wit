@@ -29,7 +29,7 @@ func upload(db *gorm.DB, tID int, item map[string]string) error {
 }
 
 // Map a remote work item into an ALM work item and persist it into the database.
-func convert(ts *models.GormTransactionSupport, tqID int, item map[string]string, provider string) (*app.WorkItem, error) {
+func convert(ts *models.GormTransactionSupport, ctx context.Context, tqID int, item map[string]string, provider string) (*app.WorkItem, error) {
 	witr := models.NewWorkItemTypeRepository(ts)
 	wir := models.NewWorkItemRepository(ts, witr)
 	ti := TrackerItem{Item: item["content"], RemoteItemID: item["id"], TrackerID: uint64(tqID)}
@@ -56,7 +56,7 @@ func convert(ts *models.GormTransactionSupport, tqID int, item map[string]string
 	var newWorkItem *app.WorkItem
 
 	// Querying the database
-	existingWorkItems, err := wir.List(context.Background(), sqlExpression, nil, nil)
+	existingWorkItems, err := wir.List(ctx, sqlExpression, nil, nil)
 
 	if len(existingWorkItems) != 0 {
 		fmt.Println("Workitem exists, will be updated")
@@ -64,14 +64,14 @@ func convert(ts *models.GormTransactionSupport, tqID int, item map[string]string
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
-		newWorkItem, err = wir.Save(context.Background(), *existingWorkItem)
+		newWorkItem, err = wir.Save(ctx, *existingWorkItem)
 		if err != nil {
 			fmt.Println("Error updating work item : ", err)
 		}
 	} else {
 		fmt.Println("Work item not found , will now create new work item")
 
-		newWorkItem, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields)
+		newWorkItem, err = wir.Create(ctx, models.SystemBug, workItem.Fields)
 		if err != nil {
 			fmt.Println("Error creating work item : ", err)
 		}
