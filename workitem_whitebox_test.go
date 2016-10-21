@@ -41,8 +41,8 @@ func TestMain(m *testing.M) {
 			ts := models.NewGormTransactionSupport(DB)
 			witRepo := models.NewWorkItemTypeRepository(ts)
 
-			if err := transaction.Do(ts, func() error {
-				return migration.PopulateCommonTypes(context.Background(), ts.TX(), witRepo)
+			if err := transaction.Do(ts, context.Background(), func(ctx context.Context) error {
+				return migration.PopulateCommonTypes(ctx, models.CurrentTX(ctx), witRepo)
 			}); err != nil {
 				panic(err.Error())
 			}

@@ -60,11 +60,12 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
-		if err := transaction.Do(s.ts, func() error {
-			return migration.PopulateCommonTypes(context.Background(), s.ts.TX(), s.witRepo)
+		if err := transaction.Do(s.ts, context.Background(), func(ctx context.Context) error {
+			return migration.PopulateCommonTypes(ctx, models.CurrentTX(ctx), s.witRepo)
 		}); err != nil {
 			panic(err.Error())
 		}
+
 	}
 }
 

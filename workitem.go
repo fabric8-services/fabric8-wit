@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"golang.org/x/net/context"
+
 	"github.com/goadesign/goa"
 
 	"github.com/almighty/almighty-core/app"
@@ -32,8 +34,8 @@ func NewWorkitemController(service *goa.Service, wiRepository models.WorkItemRep
 
 // Show runs the show action.
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Load(ctx.Context, ctx.ID)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		wi, err := c.wiRepository.Load(context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -88,8 +90,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
-	return transaction.Do(c.ts, func() error {
-		result, err := c.wiRepository.List(ctx.Context, exp, start, &limit)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		result, err := c.wiRepository.List(context, exp, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
 		}
@@ -99,8 +101,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		wi, err := c.wiRepository.Create(context, ctx.Payload.Type, ctx.Payload.Fields)
 
 		if err != nil {
 			switch err := err.(type) {
@@ -117,8 +119,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
-		err := c.wiRepository.Delete(ctx.Context, ctx.ID)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		err := c.wiRepository.Delete(context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -133,7 +135,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 // Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
 
 		toSave := app.WorkItem{
 			ID:      ctx.ID,
@@ -141,7 +143,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			Version: ctx.Payload.Version,
 			Fields:  ctx.Payload.Fields,
 		}
-		wi, err := c.wiRepository.Save(ctx.Context, toSave)
+		wi, err := c.wiRepository.Save(context, toSave)
 
 		if err != nil {
 			switch err := err.(type) {

@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/transaction"
@@ -24,8 +26,8 @@ func NewTrackerqueryController(service *goa.Service, tqRepository remoteworkitem
 
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
-	result := transaction.Do(c.ts, func() error {
-		tq, err := c.tqRepository.Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID)
+	result := transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		tq, err := c.tqRepository.Create(context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID)
 		if err != nil {
 			switch err := err.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
@@ -43,8 +45,8 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 
 // Show runs the show action.
 func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
-	return transaction.Do(c.ts, func() error {
-		tq, err := c.tqRepository.Load(ctx.Context, ctx.ID)
+	return transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
+		tq, err := c.tqRepository.Load(context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case remoteworkitem.NotFoundError:
@@ -60,7 +62,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 
 // Update runs the update action.
 func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
-	result := transaction.Do(c.ts, func() error {
+	result := transaction.Do(c.ts, ctx.Context, func(context context.Context) error {
 
 		toSave := app.TrackerQuery{
 			ID:        ctx.ID,
@@ -68,7 +70,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 			Schedule:  ctx.Payload.Schedule,
 			TrackerID: ctx.Payload.TrackerID,
 		}
-		tq, err := c.tqRepository.Save(ctx.Context, toSave)
+		tq, err := c.tqRepository.Save(context, toSave)
 
 		if err != nil {
 			switch err := err.(type) {

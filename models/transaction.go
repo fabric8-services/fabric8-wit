@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strconv"
 
+	"golang.org/x/net/context"
+
+	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
 )
 
@@ -38,7 +41,6 @@ func NewGormTransactionSupport(db *gorm.DB) *GormTransactionSupport {
 
 // GormTransactionSupport implements TransactionSupport for gorm
 type GormTransactionSupport struct {
-	tx         *gorm.DB
 	db         *gorm.DB
 	txIsoLevel string
 }
@@ -61,34 +63,33 @@ func (g *GormTransactionSupport) SetTransactionIsolationLevel(level TXIsoLevel) 
 	return nil
 }
 
-// TX returns the transaction object
-func (g *GormTransactionSupport) TX() *gorm.DB {
-	return g.tx
-}
-
 // Begin implements TransactionSupport
-func (g *GormTransactionSupport) Begin() error {
-	g.tx = g.db.Begin()
-	if g.db.Error != nil {
-		return g.db.Error
+func (g *GormTransactionSupport) Begin() (transaction.Transaction, error) {
+	tx := g.db.Begin()
+	if tx.Error != nil {
+		return nil, tx.Error
 	}
 	if len(g.txIsoLevel) != 0 {
-		db := g.tx.Exec(fmt.Sprintf("set transaction isolation level %s", g.txIsoLevel))
-		return db.Error
+		tx = tx.Exec(fmt.Sprintf("set transaction isolation level %s", g.txIsoLevel))
+		return tx, tx.Error
 	}
-	return nil
+	return tx, nil
+
 }
 
 // Commit implements TransactionSupport
-func (g *GormTransactionSupport) Commit() error {
-	err := g.tx.Commit().Error
-	g.tx = nil
+func (g *GormTransactionSupport) Commit(tx transaction.Transaction) error {
+	err := tx.(*gorm.DB).Commit().Error
 	return err
 }
 
 // Rollback implements TransactionSupport
-func (g *GormTransactionSupport) Rollback() error {
-	err := g.tx.Rollback().Error
-	g.tx = nil
+func (g *GormTransactionSupport) Rollback(tx transaction.Transaction) error {
+	err := tx.(*gorm.DB).Rollback().Error
 	return err
+}
+
+// CurrentTX returns the current gorm transaction or nil
+func CurrentTX(ctx context.Context) *gorm.DB {
+	return transaction.Current(ctx).(*gorm.DB)
 }

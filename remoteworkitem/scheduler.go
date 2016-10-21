@@ -3,6 +3,8 @@ package remoteworkitem
 import (
 	"log"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
@@ -47,16 +49,16 @@ func (s *Scheduler) ScheduleAllQueries() {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := LookupProvider(tq)
 			for i := range tr.Fetch() {
-				transaction.Do(ts, func() error {
+				transaction.Do(ts, context.Background(), func(ctx context.Context) error {
 
 					// Save the remote items in a 'temporary' table.
-					err := upload(ts.TX(), tq.TrackerID, i)
+					err := upload(models.CurrentTX(ctx), tq.TrackerID, i)
 					if err != nil {
 						return err
 					}
 
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(ts, tq.TrackerID, i, tq.TrackerType)
+					_, err = convert(ts, ctx, tq.TrackerID, i, tq.TrackerType)
 					return err
 
 				})

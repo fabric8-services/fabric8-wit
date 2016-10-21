@@ -36,11 +36,11 @@ func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name st
 	log.Printf("loading work item type %s", name)
 	res := WorkItemType{}
 
-	if r.ts.tx.Where("name=?", name).First(&res).RecordNotFound() {
+	if CurrentTX(ctx).Where("name=?", name).First(&res).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item type", name}
 	}
-	if err := r.ts.tx.Error; err != nil {
+	if err := CurrentTX(ctx).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
@@ -54,11 +54,11 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	path := "/"
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
-		if r.ts.tx.First(&extendedType, extendedTypeName).RecordNotFound() {
+		if CurrentTX(ctx).First(&extendedType, extendedTypeName).RecordNotFound() {
 			log.Printf("not found, res=%v", extendedType)
 			return nil, BadParameterError{parameter: "extendedTypeName", value: *extendedTypeName}
 		}
-		if err := r.ts.tx.Error; err != nil {
+		if err := CurrentTX(ctx).Error; err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
 		}
 		// copy fields from extended type
@@ -92,7 +92,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		Fields:     allFields,
 	}
 
-	if err := r.ts.tx.Create(&created).Error; err != nil {
+	if err := CurrentTX(ctx).Create(&created).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
@@ -108,7 +108,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	var parameters []interface{}
 
 	var rows []WorkItemType
-	db := r.ts.tx.Where(where, parameters)
+	db := CurrentTX(ctx).Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}

@@ -13,7 +13,7 @@ import (
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -29,7 +29,7 @@ func TestCreateTracker(t *testing.T) {
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -69,7 +69,7 @@ func TestGetTracker(t *testing.T) {
 func TestTrackerListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -95,7 +95,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
+	repo := remoteworkitem.NewTrackerRepository()
 	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
