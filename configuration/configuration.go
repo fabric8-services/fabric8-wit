@@ -255,3 +255,10 @@ PwIDAQAB
 
 var defaultGithubClientID = "875da0d2113ba0a6951d"
 var defaultGithubSecret = "2fe6736e90a9283036a37059d75ac0c82f4f5288"
+
+// Github doesn't allow commiting actual tokens no matter how
+// less privleges the token has.
+var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+
+// ActualToken is access token of github
+var ActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]

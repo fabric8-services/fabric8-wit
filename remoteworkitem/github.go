@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/almighty/almighty-core/configuration"
+	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 
 	"github.com/google/go-github/github"

@@ -2,7 +2,6 @@ package login
 
 import (
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -20,11 +19,6 @@ import (
 
 var db *gorm.DB
 var loginService *gitHubOAuth
-
-// Github doesn't allow commiting actual tokens no matter how
-// less privleges the token has.
-var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
-var actualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
 
 func setup() {
 
@@ -81,7 +75,7 @@ func TestValidOAuthAccessToken(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: actualToken,
+		AccessToken: configuration.ActualToken,
 		TokenType:   "Bearer",
 	}
 
@@ -118,7 +112,7 @@ func TestGetUserEmails(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: actualToken,
+		AccessToken: configuration.ActualToken,
 		TokenType:   "Bearer",
 	}
 
@@ -135,7 +129,7 @@ func TestGetUser(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: actualToken,
+		AccessToken: configuration.ActualToken,
 		TokenType:   "Bearer",
 	}
 
