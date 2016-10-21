@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron"
+	uuid "github.com/satori/go.uuid"
 )
 
 // TrackerSchedule capture all configuration
@@ -37,6 +38,11 @@ func (s *Scheduler) Stop() {
 	cr.Stop()
 }
 
+func batchID() string {
+	u1 := uuid.NewV4().String()
+	return u1
+}
+
 // ScheduleAllQueries fetch and import of remote tracker items
 func (s *Scheduler) ScheduleAllQueries() {
 	cr.Stop()
@@ -45,7 +51,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 	trackerQueries := fetchTrackerQueries(s.db)
 	for _, tq := range trackerQueries {
 		cr.AddFunc(tq.Schedule, func() {
-			tr := LookupProvider(tq)
+			tr := lookupProvider(tq)
 			for i := range tr.Fetch() {
 				transaction.Do(ts, func() error {
 
@@ -75,20 +81,26 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	return tsList
 }
 
-// LookupProvider provides the respective tracker based on the type
-func LookupProvider(ts trackerSchedule) TrackerProvider {
+// lookupProvider provides the respective tracker based on the type
+func lookupProvider(ts trackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
 	case ProviderGithub:
-		return &Github{URL: ts.URL, Query: ts.Query}
+		return &GithubTracker{URL: ts.URL, Query: ts.Query}
 	case ProviderJira:
-		return &Jira{URL: ts.URL, Query: ts.Query}
+		return &JiraTracker{URL: ts.URL, Query: ts.Query}
 	}
 	return nil
 }
 
+// TrackerItemContent represents a remote tracker item with it's content and unique ID
+type TrackerItemContent struct {
+	ID      string
+	Content []byte
+}
+
 // TrackerProvider represents a remote tracker
 type TrackerProvider interface {
-	Fetch() chan map[string]string
+	Fetch() chan TrackerItemContent // TODO: Change to an interface to enforce the contract
 }
 
 func init() {

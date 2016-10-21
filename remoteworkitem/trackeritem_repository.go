@@ -12,9 +12,9 @@ import (
 )
 
 // upload imports the items into database
-func upload(db *gorm.DB, tID int, item map[string]string) error {
-	remoteID := item["id"]
-	content := item["content"]
+func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
+	remoteID := item.ID
+	content := string(item.Content)
 
 	var ti TrackerItem
 	if db.Where("remote_item_id = ? AND tracker_id = ?", remoteID, tID).Find(&ti).RecordNotFound() {
@@ -29,10 +29,13 @@ func upload(db *gorm.DB, tID int, item map[string]string) error {
 }
 
 // Map a remote work item into an ALM work item and persist it into the database.
-func convert(ts *models.GormTransactionSupport, tqID int, item map[string]string, provider string) (*app.WorkItem, error) {
+func convert(ts *models.GormTransactionSupport, tID int, item TrackerItemContent, provider string) (*app.WorkItem, error) {
+	remoteID := item.ID
+	content := string(item.Content)
+
 	witr := models.NewWorkItemTypeRepository(ts)
 	wir := models.NewWorkItemRepository(ts, witr)
-	ti := TrackerItem{Item: item["content"], RemoteItemID: item["id"], TrackerID: uint64(tqID)}
+	ti := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: uint64(tID)}
 
 	// Converting the remote item to a local work item
 	remoteTrackerItemMethodRef, ok := RemoteWorkItemImplRegistry[provider]
