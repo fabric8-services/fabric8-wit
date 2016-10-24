@@ -24,6 +24,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
@@ -190,6 +191,13 @@ func main() {
 	// Mount "user" controller
 	userCtrl := NewUserController(service, identityRepository, tokenManager)
 	app.MountUserController(service, userCtrl)
+
+	ts3 := models.NewGormTransactionSupport(db)
+	repo4 := search.NewGormSearchRepository(ts3)
+
+	// Mount "search" controller
+	searchCtrl := NewSearchController(service, repo4, ts3)
+	app.MountSearchController(service, searchCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
