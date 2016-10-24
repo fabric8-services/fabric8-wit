@@ -22,6 +22,9 @@ type WorkitemController struct {
 
 // NewWorkitemController creates a workitem controller.
 func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemController {
+	if db == nil {
+		panic("db must not be nil")
+	}
 	return &WorkitemController{Controller: service.NewController("WorkitemController"), db: db}
 }
 
