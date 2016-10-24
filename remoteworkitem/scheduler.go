@@ -3,6 +3,7 @@ package remoteworkitem
 import (
 	"log"
 
+	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
@@ -50,19 +51,16 @@ func (s *Scheduler) ScheduleAllQueries() {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := lookupProvider(tq)
 			for i := range tr.Fetch() {
-				tx := s.db.Begin()
-				if tx.Error != nil {
-					log.Printf(tx.Error.Error())
-				} else {
+				models.Transactional(s.db, func(tx *gorm.DB) error {
 					// Save the remote items in a 'temporary' table.
 					err := upload(tx, tq.TrackerID, i)
 					if err != nil {
-					} else {
-						// Convert the remote item into a local work item and persist in the DB.
-						_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
+						return err
 					}
-
-				}
+					// Convert the remote item into a local work item and persist in the DB.
+					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
+					return err
+				})
 			}
 		})
 	}

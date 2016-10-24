@@ -22,7 +22,7 @@ var _ convert.Equaler = WorkItem{}
 var _ convert.Equaler = (*WorkItem)(nil)
 
 // Equal returns true if two WorkItem objects are equal; otherwise false is returned.
-func (self WorkItem) Equal(u convert.Equaler) bool {
+func (wi WorkItem) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItem)
 	if !ok {
 		return false

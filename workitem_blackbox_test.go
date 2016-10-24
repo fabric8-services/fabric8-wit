@@ -322,9 +322,6 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		req.Header.Add("Authorization", testObject.jwtToken)
 
 		rr := httptest.NewRecorder()
-		ts := models.NewGormTransactionSupport(DB)
-		wir := models.NewWorkItemTypeRepository(ts)
-		repo := models.NewWorkItemRepository(ts, wir)
 
 		// temperory service for testing the middleware
 		service := goa.New("TestUnauthorizedCreateWI-Service")
@@ -342,7 +339,7 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
 		app.UseJWTMiddleware(service, jwtMiddleware)
 
-		controller := NewWorkitemController(service, repo, ts)
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 		app.MountWorkitemController(service, controller)
 
 		// Hit the service with own request
