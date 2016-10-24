@@ -27,14 +27,14 @@ func (self WorkItem) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !self.Lifecycle.Equal(other.Lifecycle) {
+	if !wi.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if self.Type != other.Type {
+	if wi.Type != other.Type {
 		return false
 	}
-	if self.Version != other.Version {
+	if wi.Version != other.Version {
 		return false
 	}
-	return self.Fields.Equal(other.Fields)
+	return wi.Fields.Equal(other.Fields)
 }

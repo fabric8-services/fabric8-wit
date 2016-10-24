@@ -10,7 +10,6 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -38,14 +37,12 @@ func TestMain(m *testing.M) {
 
 		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 		if configuration.GetPopulateCommonTypes() {
-			ts := models.NewGormTransactionSupport(DB)
-			witRepo := models.NewWorkItemTypeRepository(ts)
-
-			if err := transaction.Do(ts, func() error {
-				return migration.PopulateCommonTypes(context.Background(), ts.TX(), witRepo)
+			if err := models.Transactional(DB, func(tx *gorm.DB) error {
+				return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
 			}); err != nil {
 				panic(err.Error())
 			}
+
 		}
 
 		// RemoteWorkItemScheduler now available for all other test cases
@@ -58,7 +55,7 @@ func TestNewWorkitemController(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	assert.Panics(t, func() {
-		NewWorkitemController(goa.New("Test service"), nil, nil)
+		NewWorkitemController(goa.New("Test service"), nil)
 	})
 }
 

@@ -7,17 +7,18 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/models"
+	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
 
 // GormTrackerRepository implements TrackerRepository using gorm
 type GormTrackerRepository struct {
-	ts *models.GormTransactionSupport
+	db *gorm.DB
 }
 
 // NewTrackerRepository constructs a TrackerRepository
-func NewTrackerRepository(ts *models.GormTransactionSupport) *GormTrackerRepository {
-	return &GormTrackerRepository{ts}
+func NewTrackerRepository(db *gorm.DB) *GormTrackerRepository {
+	return &GormTrackerRepository{db}
 }
 
 // Create creates a new tracker configuration in the repository
@@ -31,7 +32,7 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 	t := Tracker{
 		URL:  url,
 		Type: typeID}
-	tx := r.ts.TX()
+	tx := r.db
 	if err := tx.Create(&t).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -55,7 +56,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 
 	log.Printf("loading tracker %d", id)
 	res := Tracker{}
-	if r.ts.TX().First(&res, id).RecordNotFound() {
+	if r.db.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker", ID}
 	}
@@ -77,7 +78,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 	log.Printf("executing query: %s", where)
 
 	var rows []Tracker
-	db := r.ts.TX().Where(where, parameters)
+	db := r.db.Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}
@@ -109,7 +110,7 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.ts.TX()
+	tx := r.db
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
@@ -148,7 +149,7 @@ func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 		return NotFoundError{entity: "tracker", ID: ID}
 	}
 	t.ID = id
-	tx := r.ts.TX()
+	tx := r.db
 	tx = tx.Delete(t)
 	if err = tx.Error; err != nil {
 		return InternalError{simpleError{err.Error()}}
