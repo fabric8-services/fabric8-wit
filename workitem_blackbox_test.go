@@ -491,4 +491,8 @@ func TestPagingErrors(t *testing.T) {
 	offset = 3
 	limit = -1
 	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+
+	offset = -3
+	limit = -1
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
 }
