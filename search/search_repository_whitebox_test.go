@@ -17,11 +17,6 @@ import (
 	"golang.org/x/net/context"
 )
 
-// const (
-// 	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery($1) and deleted_at is NULL`
-// 	testID   = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery($1) and deleted_at is NULL`
-// )
-
 var db *gorm.DB
 
 func TestMain(m *testing.M) {

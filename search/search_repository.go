@@ -13,8 +13,19 @@ import (
 )
 
 const (
-	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery($1) and deleted_at is NULL`
-	testID   = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery($1) and deleted_at is NULL`
+	/*
+		- The SQL queries do a case-insensitive search.
+		- English words are normalized during search which means words like qualifying === qualify
+		- To disable the above normalization change "to_tsquery('english',$1)" to "to_tsquery($1)"
+		- Create GIN indexes : https://www.postgresql.org/docs/9.5/static/textsearch-tables.html#TEXTSEARCH-TABLES-INDEX
+
+	*/
+
+	// This SQL query is used when search is performed across workitem fields and workitem ID
+	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery('english',$1) and deleted_at is NULL`
+
+	// This SQL query is used when search is performed across workitem ID ONLY.
+	testID = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1) and deleted_at is NULL`
 )
 
 // GormSearchRepository provides a Gorm based repository
