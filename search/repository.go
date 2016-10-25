@@ -1,9 +1,10 @@
 package search
 
 import (
-	"context"
 
 	"github.com/almighty/almighty-core/app"
+	"golang.org/x/net/context"
+
 )
 
 // Repository encapsulates searching of woritems,users,etc
