@@ -17,10 +17,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-const (
-	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery($1) and deleted_at is NULL`
-	testID   = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery($1) and deleted_at is NULL`
-)
+// const (
+// 	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery($1) and deleted_at is NULL`
+// 	testID   = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery($1) and deleted_at is NULL`
+// )
 
 var db *gorm.DB
 
@@ -60,7 +60,7 @@ func TestSearchByText(t *testing.T) {
 			models.SystemState:       "closed",
 		}
 
-		searchString := "Sbose & deScription"
+		searchString := "Sbose deScription"
 		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
 		defer wir.Delete(context.Background(), createdWorkItem.ID)
 
@@ -71,12 +71,12 @@ func TestSearchByText(t *testing.T) {
 		t.Log(createdWorkItem.ID)
 
 		sr := NewGormSearchRepository(ts, witr)
-		workItemList, err := sr.SearchFullText(context.Background(), testText, searchString)
+		workItemList, err := sr.SearchFullText(context.Background(), searchString)
 		if err != nil {
 			t.Fatal("Error getting search result ", err)
 		}
 
-		mandatoryKeyWords := strings.Split(searchString, " & ")
+		mandatoryKeyWords := strings.Split(searchString, " ")
 		for _, workItemValue := range workItemList {
 			t.Log("Found search result  ", workItemValue.ID)
 
@@ -133,7 +133,7 @@ func TestSearchByID(t *testing.T) {
 
 		sr := NewGormSearchRepository(ts, witr)
 
-		workItemList, err := sr.SearchFullText(context.Background(), testID, createdWorkItem.ID)
+		workItemList, err := sr.SearchFullText(context.Background(), "id:"+createdWorkItem.ID)
 		if err != nil {
 			t.Fatal("Error gettig search result ", err)
 		}
@@ -151,4 +151,25 @@ func TestSearchByID(t *testing.T) {
 		}
 		return err
 	})
+}
+
+func TestGenerateSQLSearchString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	input := searchKeyword{
+		id:    []string{"10", "99"},
+		words: []string{"username title_substr desc_substr"},
+	}
+	expected := strings.Join(input.id, " & ") + strings.Join(input.words, " & ")
+	assert.Equal(t, expected, generateSQLSearchString(input))
+}
+
+func TestParseSearchString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	input := "user input for search string with some ids like id:99 and id:400 but this is not id like 800"
+	op := parseSearchString(input)
+	expectedSearchRes := searchKeyword{
+		id:    []string{"99", "400"},
+		words: []string{"user", "input", "for", "search", "string", "with", "some", "ids", "like", "and", "but", "this", "is", "not", "id", "like", "800"},
+	}
+	assert.ObjectsAreEqualValues(expectedSearchRes, op)
 }

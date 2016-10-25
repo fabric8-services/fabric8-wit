@@ -6,12 +6,15 @@ import (
 	"log"
 	"strconv"
 
+	"strings"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 )
 
 const (
-	fulltextPsqlQuery = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery($1)`
+	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery($1) and deleted_at is NULL`
+	testID   = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery($1) and deleted_at is NULL`
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -62,10 +65,47 @@ func (r *GormSearchRepository) loadTypeFromDB(ctx context.Context, name string) 
 	return &res, nil
 }
 
-// Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, sqlQueryString string, sqlQuerytParameter string) ([]*app.WorkItem, error) {
+//searchKeyword defines how a decomposed raw search query will look like
+type searchKeyword struct {
+	id    []string
+	words []string
+}
+
+// parseSearchString accepts a raw string and generates a searchKeyword object
+func parseSearchString(rawSearchString string) searchKeyword {
+	// TODO remove special characters and exclaimations if any
+	rawSearchString = strings.ToLower(rawSearchString)
+	parts := strings.Split(rawSearchString, " ")
+	var res searchKeyword
+	for _, part := range parts {
+		if strings.HasPrefix(part, "id:") {
+			res.id = append(res.id, strings.Trim(part, "id:"))
+		} else {
+			res.words = append(res.words, part)
+		}
+	}
+	return res
+}
+
+func generateSQLSearchString(keywords searchKeyword) string {
+	idStr := strings.Join(keywords.id, " & ")
+	wordStr := strings.Join(keywords.words, " & ")
+	return idStr + wordStr
+}
+
+// SearchFullText Search returns work items for the given query
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string) ([]*app.WorkItem, error) {
+	// parse
+	// generateSearchQuery
+	// ....
+	parsedSearchDict := parseSearchString(rawSearchString)
+	searchQuery := testText
+	if len(parsedSearchDict.id) > 0 {
+		searchQuery = testID
+	}
+	sqlSearchStringParameter := generateSQLSearchString(parsedSearchDict)
 	var rows []models.WorkItem
-	db := r.ts.TX().Raw(sqlQueryString, sqlQuerytParameter)
+	db := r.ts.TX().Raw(searchQuery, sqlSearchStringParameter)
 	if err := db.Scan(&rows).Error; err != nil {
 		return nil, err
 	}
