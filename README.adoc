@@ -359,6 +359,7 @@ Start up dependent docker services using `docker-compose` and runs auto reload o
 
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
+$ export ALMIGHTY_DEVELOPER_MODE_ENABLED=true
 $ make dev
 ----
 
@@ -368,9 +369,16 @@ Test out the build by executing CLI commands in a different terminal.
 
 NOTE: The CLI needs the API Server which was started on executing `make dev`  to be up and running. Please do not kill the process. Alternatively if you haven't run `make dev` you could just start the server by running `./bin/alm`.
 
-Create a work item type.
+Generate a token for future use.
 ----
-./bin/alm-cli create workitemtype --payload '{"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
+./bin/alm-cli generate login -H localhost:8080 --pp
+----
+
+You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls  
+
+Create a work item type (using above token).
+----
+./bin/alm-cli create workitemtype --key "<GENERATED TOKEN>" --payload '{"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
 ----
 Note: Work Item Type `Name` is unique. If one tries to create another work item type with same name, error will be trown.
 
@@ -391,7 +399,7 @@ Based on WorkItemType created above, we can create WorkItem.
 We need to use name of work item type in the `type` field below.
 
 ----
-$ ./bin/alm-cli create workitem --payload '{"type": "Epic", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "Epic", "fields": { "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
 ----
 
 Retrieve the work item.
