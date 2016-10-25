@@ -8,6 +8,9 @@ type Application interface {
 	TrackerQueries() TrackerQueryRepository
 	SearchItems() SearchRepository
 	Identities() IdentityRepository
+	WorkItemLinkCategories() WorkItemLinkCategoryRepository
+	WorkItemLinkTypes() WorkItemLinkTypeRepository
+	WorkItemLinks() WorkItemLinkRepository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction

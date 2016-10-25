@@ -2,10 +2,8 @@ package main_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
@@ -13,13 +11,12 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/middleware"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -41,8 +38,6 @@ type WorkItemTypeSuite struct {
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *WorkItemTypeSuite) SetupSuite() {
-	fmt.Println("--- Setting up test suite WorkItemTypeSuite ---")
-
 	var err error
 
 	if err = configuration.Setup(""); err != nil {
@@ -57,10 +52,9 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 
 	svc := goa.New("WorkItemTypeSuite-Service")
 	assert.NotNil(s.T(), svc)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB))
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db))
 	assert.NotNil(s.T(), s.typeCtrl)
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
@@ -74,7 +68,6 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
 func (s *WorkItemTypeSuite) TearDownSuite() {
-	fmt.Println("--- Tearing down test suite WorkItemTypeSuite ---")
 	if s.db != nil {
 		s.db.Close()
 	}
@@ -84,7 +77,6 @@ func (s *WorkItemTypeSuite) TearDownSuite() {
 // during these tests. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *WorkItemTypeSuite) removeWorkItemTypes() {
-
 	s.db.Unscoped().Delete(&models.WorkItemType{Name: "person"})
 	s.db.Unscoped().Delete(&models.WorkItemType{Name: "animal"})
 }
@@ -92,13 +84,11 @@ func (s *WorkItemTypeSuite) removeWorkItemTypes() {
 // The SetupTest method will be run before every test in the suite.
 // SetupTest ensures that non of the work item types that we will create already exist.
 func (s *WorkItemTypeSuite) SetupTest() {
-	s.T().Log("--- Running SetupTest ---")
 	s.removeWorkItemTypes()
 }
 
 // The TearDownTest method will be run after every test in the suite.
 func (s *WorkItemTypeSuite) TearDownTest() {
-	s.T().Log("--- Running TearDownTest ---")
 	s.removeWorkItemTypes()
 }
 
@@ -252,41 +242,41 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 	return []testSecureAPI{
 		// Create Work Item API with different parameters
 		{
-			method:             "POST",
-			url:                "/api/workitemtypes",
-			expectedStatusCode: 401,
-			expectedErrorCode:  "jwt_security_error",
+			method:             http.MethodPost,
+			url:                endpointWorkItemTypes,
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
-			method:             "POST",
-			url:                "/api/workitemtypes",
-			expectedStatusCode: 401,
-			expectedErrorCode:  "jwt_security_error",
+			method:             http.MethodPost,
+			url:                endpointWorkItemTypes,
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
-			method:             "POST",
-			url:                "/api/workitemtypes",
-			expectedStatusCode: 401,
-			expectedErrorCode:  "jwt_security_error",
+			method:             http.MethodPost,
+			url:                endpointWorkItemTypes,
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
-			method:             "POST",
-			url:                "/api/workitemtypes",
-			expectedStatusCode: 401,
-			expectedErrorCode:  "jwt_security_error",
+			method:             http.MethodPost,
+			url:                endpointWorkItemTypes,
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           "",
 		},
 		// Try fetching a random work Item Type
 		// We do not have security on GET hence this should return 404 not found
 		{
-			method:             "GET",
-			url:                "/api/workitems/someRandomTestWIT8712",
-			expectedStatusCode: 404,
-			expectedErrorCode:  "not_found",
+			method:             http.MethodGet,
+			url:                endpointWorkItemTypes + "/someRandomTestWIT8712",
+			expectedStatusCode: http.StatusNotFound,
+			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
 			jwtToken:           "",
 		},
@@ -295,69 +285,11 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 
 // This test case will check authorized access to Create/Update/Delete APIs
 func TestUnauthorizeWorkItemTypeCreate(t *testing.T) {
-	resource.Require(t, resource.Database)
-
-	// This will be modified after merge PR for "Viper Environment configurations"
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM((configuration.GetTokenPublicKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	tokenTests := getWorkItemTypeTestData(t)
-
-	for _, testObject := range tokenTests {
-		// Build a request
-		var req *http.Request
-		var err error
-		if testObject.payload == nil {
-			req, err = http.NewRequest(testObject.method, testObject.url, nil)
-		} else {
-			req, err = http.NewRequest(testObject.method, testObject.url, testObject.payload)
-		}
-		// req, err := http.NewRequest(testObject.method, testObject.url, testObject.payload)
-		if err != nil {
-			t.Fatal("could not create a HTTP request")
-		}
-		// Add Authorization Header
-		req.Header.Add("Authorization", testObject.jwtToken)
-
-		rr := httptest.NewRecorder()
-
-		// temperory service for testing the middleware
-		service := goa.New("TestUnauthorizedCreateWI-Service")
-		assert.NotNil(t, service)
-
-		// if error is thrown during request processing, it will be caught by ErrorHandler middleware
-		// this will put error code, status, details in recorder object.
-		// e.g> {"id":"AL6spYb2","code":"jwt_security_error","status":401,"detail":"JWT validation failed: crypto/rsa: verification error"}
-		service.Use(middleware.ErrorHandler(service, true))
-
-		// append a middleware to service. Use appropriate RSA keys
-		jwtMiddleware := goajwt.New(publickey, nil, app.NewJWTSecurity())
-		// Adding middleware via "app" is important
-		// Because it will check the design and accordingly apply the middleware if mentioned in design
-		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
-		app.UseJWTMiddleware(service, jwtMiddleware)
-
+	UnauthorizeCreateUpdateDeleteTest(t, getWorkItemTypeTestData, func() *goa.Service {
+		return goa.New("TestUnauthorizedCreateWIT-Service")
+	}, func(service *goa.Service) error {
 		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(DB))
 		app.MountWorkitemtypeController(service, controller)
-
-		// Hit the service with own request
-		service.Mux.ServeHTTP(rr, req)
-
-		assert.Equal(t, testObject.expectedStatusCode, rr.Code)
-
-		// Below code tries to open Body response which is expected to be a JSON
-		// If could not parse it correctly into errorResponseStruct
-		// Then it gets logged and continue the test loop
-		content := new(errorResponseStruct)
-		err = json.Unmarshal(rr.Body.Bytes(), content)
-		if err != nil {
-			t.Log("Could not parse JSON response: ", rr.Body)
-			// safe to continue because we alread checked rr.Code=required_value
-			continue
-		}
-		// Additional checks for 'more' confirmation
-		assert.Equal(t, testObject.expectedErrorCode, content.Code)
-		assert.Equal(t, testObject.expectedStatusCode, content.Status)
-	}
+		return nil
+	})
 }
