@@ -9,6 +9,13 @@ import (
 
 // List of supported attributes
 const (
+	SystemRemoteItemID = "system.remote_item_id"
+	SystemTitle        = "system.title"
+	SystemDescription  = "system.description"
+	SystemState        = "system.state"
+	SystemAssignee     = "system.assignee"
+	SystemCreator      = "system.creator"
+
 	// The keys in the flattened response JSON of a typical Github issue.
 
 	GithubTitle       = "title"
@@ -34,28 +41,54 @@ const (
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
-		AttributeExpression(GithubTitle):       models.SystemTitle,
-		AttributeExpression(GithubDescription): models.SystemDescription,
-		AttributeExpression(GithubState):       models.SystemState,
-		AttributeExpression(GithubID):          models.SystemRemoteItemID,
-		AttributeExpression(GithubCreator):     models.SystemCreator,
-		AttributeExpression(GithubAssignee):    models.SystemAssignee,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:       models.SystemTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), StringConverter{}}: models.SystemDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:  models.SystemState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:          models.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:     models.SystemCreator,
+		AttributeMapper{AttributeExpression(GithubAssignee), StringConverter{}}:    models.SystemAssignee,
 	},
 	ProviderJira: WorkItemMap{
-		AttributeExpression(JiraTitle):    models.SystemTitle,
-		AttributeExpression(JiraBody):     models.SystemDescription,
-		AttributeExpression(JiraState):    models.SystemState,
-		AttributeExpression(JiraID):       models.SystemRemoteItemID,
-		AttributeExpression(JiraCreator):  models.SystemCreator,
-		AttributeExpression(JiraAssignee): models.SystemAssignee,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:      models.SystemTitle,
+		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:       models.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraState), GithubStateConverter{}}: models.SystemState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:         models.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:    models.SystemCreator,
+		AttributeMapper{AttributeExpression(JiraAssignee), StringConverter{}}:   models.SystemAssignee,
 	},
 }
 
-// WorkItemMap will define mappings between remote<->internal attribute
-type WorkItemMap map[AttributeExpression]string
+type AttributeConverter interface {
+	Convert(interface{}) (interface{}, error)
+}
 
-// IssueStateMap will define mapping between tracker item issue state and workitem state
-type IssueStateMap map[string]string
+type StateConverter interface{}
+
+type StringConverter struct{}
+
+type GithubStateConverter struct{}
+
+// Convert method map the external tracker item to ALM WorkItem
+func (sc StringConverter) Convert(value interface{}) (interface{}, error) {
+	return value, nil
+}
+
+func (ghc GithubStateConverter) Convert(value interface{}) (interface{}, error) {
+	if value.(string) == "closed" {
+		value = "closed"
+	} else if value.(string) == "open" {
+		value = "open"
+	}
+	return value, nil
+}
+
+type AttributeMapper struct {
+	expresion          AttributeExpression
+	attributeConverter AttributeConverter
+}
+
+// WorkItemMap will define mappings between remote<->internal attribute
+type WorkItemMap map[AttributeMapper]string
 
 // AttributeExpression represents a commonly understood String format for a target path
 type AttributeExpression string
@@ -73,6 +106,7 @@ var RemoteWorkItemImplRegistry = map[string]func(TrackerItem) (AttributeAccessor
 }
 
 // GitHubRemoteWorkItem knows how to implement a FieldAccessor on a GitHub Issue JSON struct
+// and it should also know how to convert a value in remote work item for use in local WI
 type GitHubRemoteWorkItem struct {
 	issue map[string]interface{}
 }
@@ -114,32 +148,15 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return jira.issue[string(field)]
 }
 
-var issueStateMaps = map[string]string{
-	"open":   "open",
-	"closed": "closed",
-	"merged": "resolved",
-}
-
-//Mapping of workitem state
-func mapIssueStates(WorkItem app.WorkItem, issuemap IssueStateMap) (app.WorkItem, error) {
-	var currentstate string
-	for _, _ = range WorkItem.Fields {
-		for from, to := range issuemap {
-			if from == WorkItem.Fields["system.state"] {
-				currentstate = to
-			}
-		}
-		WorkItem.Fields["system.state"] = currentstate
-	}
-	return WorkItem, nil
-}
-
 // Map maps the remote WorkItem to a local WorkItem
 func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
-		workItem.Fields[to] = item.Get(from)
+		originalValue := item.Get(from.expresion)
+		convertedValue, err := from.attributeConverter.Convert(originalValue)
+		if err != nil {
+			workItem.Fields[to] = convertedValue
+		}
 	}
-	mappedWorkItem, _ := mapIssueStates(workItem, issueStateMaps)
-	return mappedWorkItem, nil
+	return workItem, nil
 }
