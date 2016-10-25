@@ -379,3 +379,25 @@ var _ = a.Resource("trackerquery", func() {
 	})
 
 })
+
+var _ = Resource("search", func() {
+	BasePath("/search")
+
+	Action("show", func() {
+		Routing(
+			GET("/:q"),
+		)
+		Params(func() {
+			Param("q", String, "Search Query")
+		})
+		Response(OK, func() {
+			Media(CollectionOf(workItem))
+		})
+
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+
+		Response(InternalServerError)
+	})
+})
