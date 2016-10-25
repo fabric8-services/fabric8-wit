@@ -6,7 +6,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 )
 
-// Repository encapsulate storage & retrieval of tracker configuration
+// Repository encapsulates searching of woritems,users,etc
 type Repository interface {
-	Search(ctx context.Context, q string) ([]*app.WorkItem, error)
+	SearchFullText(ctx context.Context, q string) ([]*app.WorkItem, error)
 }
