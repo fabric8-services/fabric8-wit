@@ -8,4 +8,5 @@ import (
 // Repository encapsulates searching of woritems,users,etc
 type Repository interface {
 	SearchFullText(ctx context.Context, searchStr string) ([]*app.WorkItem, error)
+	Validate(ctx context.Context, searchStr string) error
 }

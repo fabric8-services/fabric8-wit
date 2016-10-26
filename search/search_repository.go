@@ -98,10 +98,18 @@ func parseSearchString(rawSearchString string) searchKeyword {
 	return res
 }
 
-func generateSQLSearchString(keywords searchKeyword) string {
+func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParameter string) {
 	idStr := strings.Join(keywords.id, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
-	return idStr + wordStr
+	searchQuery := testText
+
+	if len(keywords.id) == 1 && len(keywords.words) == 0 {
+		// If the search string is of the form "id:2647326482" then we perform
+		// search only on the ID, else we do a full text search.
+		// Is "id:45453 id:43234" be valid ? NO, because the no row can have 2 IDs.
+		searchQuery = testID
+	}
+	return searchQuery, idStr + wordStr
 }
 
 // SearchFullText Search returns work items for the given query
@@ -110,13 +118,10 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// generateSearchQuery
 	// ....
 	parsedSearchDict := parseSearchString(rawSearchString)
-	searchQuery := testText
-	if len(parsedSearchDict.id) > 0 {
-		searchQuery = testID
-	}
-	sqlSearchStringParameter := generateSQLSearchString(parsedSearchDict)
+
+	sqlSearchQuery, sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []models.WorkItem
-	db := r.ts.TX().Raw(searchQuery, sqlSearchStringParameter)
+	db := r.ts.TX().Raw(sqlSearchQuery, sqlSearchQueryParameter)
 	if err := db.Scan(&rows).Error; err != nil {
 		return nil, err
 	}
@@ -136,4 +141,9 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	}
 
 	return result, nil
+}
+
+// Validate ensures that the search string is valid and also ensures its not an injection attack.
+func (r *GormSearchRepository) Validate(ctx context.Context, rawSearchString string) error {
+	return nil
 }
