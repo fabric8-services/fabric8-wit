@@ -105,10 +105,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			}
 			fmt.Println(ghUser)
 
-			identity = account.Identity{
-				FullName: ghUser.Name,
-				ImageURL: ghUser.AvatarURL,
-			}
+			identity = createIdentity(*ghUser)
 			gh.identities.Create(ctx, &identity)
 			gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: identity})
 		} else {
@@ -170,6 +167,18 @@ func (gh gitHubOAuth) getUser(ctx context.Context, token *oauth2.Token) (*ghUser
 	return &user, nil
 }
 
+func createIdentity(ghUser ghUser) account.Identity {
+	// Use login as name if 'name' is not set #391
+	name := ghUser.Name
+	if name == "" {
+		name = ghUser.Login
+	}
+	return account.Identity{
+		FullName: name,
+		ImageURL: ghUser.AvatarURL,
+	}
+}
+
 func filterPrimaryEmail(emails []ghEmail) string {
 	for _, email := range emails {
 		if email.Primary {
@@ -189,5 +198,6 @@ type ghEmail struct {
 // ghUser represents the needed response from api.github.com/user
 type ghUser struct {
 	Name      string `json:"name"`
+	Login     string `json:"login"`
 	AvatarURL string `json:"avatar_url"`
 }
