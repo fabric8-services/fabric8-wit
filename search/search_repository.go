@@ -22,7 +22,9 @@ const (
 	*/
 
 	// This SQL query is used when search is performed across workitem fields and workitem ID
-	testText = `select * from work_items WHERE to_tsvector('english', id::text || ' ' || fields::text) @@ to_tsquery('english',$1) and deleted_at is NULL`
+	testText = `select * from work_items WHERE
+		setweight(to_tsvector('english', id::text), 'A') ||
+		setweight(to_tsvector('english', fields::text), 'B') @@ to_tsquery('english',$1) and deleted_at is NULL`
 
 	// This SQL query is used when search is performed across workitem ID ONLY.
 	testID = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1) and deleted_at is NULL`
