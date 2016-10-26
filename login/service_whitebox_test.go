@@ -1,12 +1,12 @@
 package login
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
 	"github.com/jinzhu/gorm"
@@ -32,8 +32,7 @@ func setup() {
 
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		var err error
-		dbhost := os.Getenv("ALMIGHTY_DB_HOST")
-		db, err = gorm.Open("postgres", fmt.Sprintf("host=%s database=postgres user=postgres password=mysecretpassword sslmode=disable", dbhost))
+		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 
 		if err != nil {
 			panic("Failed to connect database: " + err.Error())
