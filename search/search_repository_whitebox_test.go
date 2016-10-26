@@ -154,12 +154,12 @@ func TestGenerateSQLSearchString(t *testing.T) {
 		id:    []string{"10", "99"},
 		words: []string{"username title_substr desc_substr"},
 	}
-	expectedSqlParameter := strings.Join(input.id, " & ") + strings.Join(input.words, " & ")
-	expectedSqlQuery := testText
+	expectedSQLParameter := strings.Join(input.id, " & ") + strings.Join(input.words, " & ")
+	expectedSQLQuery := testText
 
-	actualSqlQuery, actualSqlParameter := generateSQLSearchInfo(input)
-	assert.Equal(t, expectedSqlParameter, actualSqlParameter)
-	assert.Equal(t, expectedSqlQuery, actualSqlQuery)
+	actualSQLQuery, actualSQLParameter := generateSQLSearchInfo(input)
+	assert.Equal(t, expectedSQLParameter, actualSQLParameter)
+	assert.Equal(t, expectedSQLQuery, actualSQLQuery)
 }
 
 func TestParseSearchString(t *testing.T) {
