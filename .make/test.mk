@@ -99,6 +99,9 @@ DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
 # docker-compose file for integration tests
 DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 
+# This pattern excludes some folders from the coverage calculation (see grep -v)
+ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\|design\|client\|resource\|test'
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -218,7 +221,7 @@ endef
 define package-coverage
 $(eval TEST_NAME:=$(1))
 @printf "\n\nPackage coverage:\n"
-$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
+$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 $(foreach package, $(TEST_PACKAGES), $(call print-package-coverage,$(TEST_NAME),$(package)))
 endef
 
@@ -328,6 +331,7 @@ $(eval PACKAGE_NAME := $(2))
 $(eval COMBINED_OUT_FILE := $(3))
 $(eval ERRORS_FILE := $(4))
 $(eval ENV_VAR := $(5))
+$(eval ALL_PKGS_COMMA_SEPARATED := $(6))
 
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
@@ -335,13 +339,19 @@ $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(C
 	go test $(PACKAGE_NAME) \
 		-v \
 		-coverprofile $(COV_OUT_FILE) \
+		-coverpkg $(ALL_PKGS_COMMA_SEPARATED) \
 		-covermode=$(COVERAGE_MODE) \
 		-timeout 10m \
 		$(EXTRA_TEST_PARAMS) \
 	|| echo $(PACKAGE_NAME) >> $(ERRORS_FILE)
 
 @if [ -e "$(COV_OUT_FILE)" ]; then \
-	tail -n +2 $(COV_OUT_FILE) >> $(COMBINED_OUT_FILE); \
+	if [ ! -e "$(COMBINED_OUT_FILE)" ]; then \
+		cp $(COV_OUT_FILE) $(COMBINED_OUT_FILE); \
+	else \
+		cp $(COMBINED_OUT_FILE) $(COMBINED_OUT_FILE).tmp; \
+		$(GOCOVMERGE_BIN) $(COV_OUT_FILE) $(COMBINED_OUT_FILE).tmp > $(COMBINED_OUT_FILE); \
+	fi \
 fi
 endef
 
@@ -362,28 +372,30 @@ endef
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
-$(COV_PATH_UNIT): $(SOURCES)
+$(COV_PATH_UNIT): $(SOURCES) $(GOCOVMERGE_BIN)
 	$(eval TEST_NAME := unit)
 	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
 	$(call log-info,"Running test: $(TEST_NAME)")
 	@mkdir -p $(COV_DIR)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_UNIT)
 	@-rm -f $(ERRORS_FILE)
-	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),))
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_UNIT),$(ERRORS_FILE),,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
-$(COV_PATH_INTEGRATION): $(SOURCES)
+$(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
 	$(eval TEST_NAME := integration)
 	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
 	$(call log-info,"Running test: $(TEST_NAME)")
 	@mkdir -p $(COV_DIR)
 	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_INTEGRATION)
 	@-rm -f $(ERRORS_FILE)
-	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v vendor))
-	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0))
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
 #-------------------------------------------------------------------------------
