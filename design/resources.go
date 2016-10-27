@@ -387,6 +387,7 @@ var _ = Resource("search", func() {
 		Routing(
 			GET("/:q"),
 		)
+		Description("Search by ID, URL, full text capability")
 		Params(func() {
 			Param("q", String, "Search Query")
 		})
