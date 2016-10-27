@@ -8,8 +8,11 @@ import (
 
 	"strings"
 
+	"regexp"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
+	"github.com/asaskevich/govalidator"
 )
 
 const (
@@ -18,6 +21,7 @@ const (
 		- English words are normalized during search which means words like qualifying === qualify
 		- To disable the above normalization change "to_tsquery('english',$1)" to "to_tsquery($1)"
 		- Create GIN indexes : https://www.postgresql.org/docs/9.5/static/textsearch-tables.html#TEXTSEARCH-TABLES-INDEX
+		- To perform "LIKE" query we are appending ":*" to the search token
 
 	*/
 
@@ -84,6 +88,30 @@ type searchKeyword struct {
 	words []string
 }
 
+// RegexWorkItemDetailClientURL tells us how URL for WI details on front end looks like
+const RegexWorkItemDetailClientURL = `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/#/detail/)(?P<id>\d*)`
+
+// Use following compiled form in future use
+var compiledWIURL = regexp.MustCompile(RegexWorkItemDetailClientURL)
+
+// First index is ignored because of behaviour of "SubexpNames"
+var groupsWIURL = compiledWIURL.SubexpNames()[:1]
+
+//mapURLGroupWithValues accepts slice of group names and slice of values.
+//If both slices have different lenghts, empty value will be put for group name.
+func mapURLGroupWithValues(groupNames []string, stringToMatch string) map[string]string {
+	match := compiledWIURL.FindStringSubmatch(stringToMatch)
+	result := make(map[string]string)
+	for i, name := range groupNames {
+		if i > len(match)-1 {
+			result[name] = ""
+		} else {
+			result[name] = match[i]
+		}
+	}
+	return result
+}
+
 // parseSearchString accepts a raw string and generates a searchKeyword object
 func parseSearchString(rawSearchString string) searchKeyword {
 	// TODO remove special characters and exclaimations if any
@@ -93,6 +121,12 @@ func parseSearchString(rawSearchString string) searchKeyword {
 	for _, part := range parts {
 		if strings.HasPrefix(part, "id:") {
 			res.id = append(res.id, strings.Trim(part, "id:"))
+		} else if govalidator.IsURL(part) {
+			values := mapURLGroupWithValues(groupsWIURL, part)
+			if values["id"] != "" {
+				res.words = append(res.words, values["id"]+":*")
+			}
+			res.words = append(res.words, part+":*")
 		} else {
 			res.words = append(res.words, part)
 		}
