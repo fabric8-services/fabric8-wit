@@ -172,3 +172,26 @@ func TestParseSearchString(t *testing.T) {
 	}
 	assert.ObjectsAreEqualValues(expectedSearchRes, op)
 }
+
+func TestParseSearchStringURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	input := "http://demo.almighty.io/#/detail/100"
+	op := parseSearchString(input)
+
+	expectedSearchRes := searchKeyword{
+		id:    []string{},
+		words: []string{"100:*", "http://demo.almighty.io/#/detail/100:*"},
+	}
+	assert.ObjectsAreEqualValues(expectedSearchRes, op)
+}
+
+func TestParseSearchStringDifferentURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	input := "http://demo.redhat.io"
+	op := parseSearchString(input)
+	expectedSearchRes := searchKeyword{
+		id:    []string{},
+		words: []string{"http://demo.almighty.io/#/detail/100:*"},
+	}
+	assert.ObjectsAreEqualValues(expectedSearchRes, op)
+}
