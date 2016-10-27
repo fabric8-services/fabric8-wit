@@ -40,7 +40,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	result, err := convertFromModel(*wiType, res)
+	result, err := ConvertFromModel(*wiType, res)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
 	}
@@ -114,7 +114,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("updated item to %v\n", newWi)
-	result, err := convertFromModel(*wiType, newWi)
+	result, err := ConvertFromModel(*wiType, newWi)
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -146,7 +146,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("created item %v\n", wi)
-	result, err := convertFromModel(*wiType, wi)
+	result, err := ConvertFromModel(*wiType, wi)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
 	}
@@ -182,7 +182,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		if err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
 		}
-		result[index], err = convertFromModel(*wiType, value)
+		result[index], err = ConvertFromModel(*wiType, value)
 		if err != nil {
 			return nil, ConversionError{simpleError{err.Error()}}
 		}
@@ -191,7 +191,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	return result, nil
 }
 
-func convertFromModel(wiType WorkItemType, workItem WorkItem) (*app.WorkItem, error) {
+func ConvertFromModel(wiType WorkItemType, workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
