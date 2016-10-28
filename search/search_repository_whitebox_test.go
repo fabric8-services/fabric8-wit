@@ -170,19 +170,35 @@ func TestParseSearchString(t *testing.T) {
 		id:    []string{"99", "400"},
 		words: []string{"user", "input", "for", "search", "string", "with", "some", "ids", "like", "and", "but", "this", "is", "not", "id", "like", "800"},
 	}
-	assert.ObjectsAreEqualValues(expectedSearchRes, op)
+	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringURL(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/#/detail/100"
+	input := "http://demo.almighty.io/detail/100"
 	op := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
-		id:    []string{},
-		words: []string{"100:*", "http://demo.almighty.io/#/detail/100:*"},
+		id:    nil,
+		words: []string{"100:* | demo.almighty.io/detail/100:*"},
 	}
-	assert.ObjectsAreEqualValues(expectedSearchRes, op)
+	fmt.Printf("\n%#v\n%#v", op, expectedSearchRes)
+
+	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
+}
+
+func TestParseSearchStringURLWithouID(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	input := "http://demo.almighty.io/detail/"
+	op := parseSearchString(input)
+
+	expectedSearchRes := searchKeyword{
+		id:    nil,
+		words: []string{"demo.almighty.io/detail:*"},
+	}
+	fmt.Printf("\n%#v\n%#v", op, expectedSearchRes)
+
+	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringDifferentURL(t *testing.T) {
@@ -190,8 +206,28 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 	input := "http://demo.redhat.io"
 	op := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
-		id:    []string{},
-		words: []string{"http://demo.almighty.io/#/detail/100:*"},
+		id:    nil,
+		words: []string{"demo.redhat.io:*"},
 	}
-	assert.ObjectsAreEqualValues(expectedSearchRes, op)
+	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
+}
+
+func TestRegisterAsKnownURL(t *testing.T) {
+	// build 2 fake urls and cross check against RegisterAsKnownURL
+}
+
+func TestIsKnownURL(t *testing.T) {
+	// register few URLs and cross check is knwon or not one by one
+}
+
+func TestGetSearchQueryFromURLPattern(t *testing.T) {
+	// getSearchQueryFromURLPattern
+	// register urls
+	// select pattern and pass search string
+	// validate output with different scenarios like ID present not present
+}
+
+func TestGetSearchQueryFromURLString(t *testing.T) {
+	// register few urls
+	// call getSearchQueryFromURLString with different urls - both registered and non-registered
 }
