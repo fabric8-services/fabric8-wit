@@ -100,7 +100,7 @@ DOCKER_COMPOSE_BIN_ALT = $(TMP_PATH)/docker-compose
 DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 
 # This pattern excludes some folders from the coverage calculation (see grep -v)
-ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\|design\|client\|test'
+ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
 #-------------------------------------------------------------------------------
 # Normal test targets
