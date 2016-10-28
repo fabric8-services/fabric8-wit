@@ -1,6 +1,8 @@
 package search
 
 import (
+	"fmt"
+
 	"golang.org/x/net/context"
 
 	"log"
@@ -9,6 +11,8 @@ import (
 	"strings"
 
 	"regexp"
+
+	"net/url"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
@@ -88,28 +92,101 @@ type searchKeyword struct {
 	words []string
 }
 
-// RegexWorkItemDetailClientURL tells us how URL for WI details on front end looks like
-const RegexWorkItemDetailClientURL = `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/#/detail/)(?P<id>\d*)`
+// KnownURL has a regex string format URL and compiled regex for the same
+type KnownURL struct {
+	urlRegex          string         // regex for URL
+	compiledRegex     *regexp.Regexp // valid output of regexp.MustCompile()
+	groupNamesInRegex []string       // Valid output of SubexpNames called on compliedRegex
+}
 
-// Use following compiled form in future use
-var compiledWIURL = regexp.MustCompile(RegexWorkItemDetailClientURL)
+// KnownURLs is set of KnownURLs will be used while searching on a URL
+// "Known" means that, our system understands the format of URLs
+// URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
+// e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
+// knownURLs["work-item-details"] = KnownURL{
+// 	urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`,
+// 	compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`),
+//  groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
+// }
+// above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
+var knownURLs = make(map[string]KnownURL)
 
-// First index is ignored because of behaviour of "SubexpNames"
-var groupsWIURL = compiledWIURL.SubexpNames()[:1]
+// RegisterAsKnownURL appends to KnownURLs
+func RegisterAsKnownURL(name, urlRegex string) {
+	compiledRegex := regexp.MustCompile(urlRegex)
+	groupNames := compiledRegex.SubexpNames()
+	knownURLs[name] = KnownURL{
+		urlRegex:          urlRegex,
+		compiledRegex:     regexp.MustCompile(urlRegex),
+		groupNamesInRegex: groupNames,
+	}
+}
 
-//mapURLGroupWithValues accepts slice of group names and slice of values.
-//If both slices have different lenghts, empty value will be put for group name.
-func mapURLGroupWithValues(groupNames []string, stringToMatch string) map[string]string {
-	match := compiledWIURL.FindStringSubmatch(stringToMatch)
+// isKnownURL compares with registered URLs in our system.
+// Iterates over knownURLs and finds out most relevent matching pattern.
+// If found, it returns true along with "name" of the KnownURL
+func isKnownURL(url string) (bool, string) {
+	// should check on all system's known URLs
+	var mostReleventMatchCount int
+	var mostReleventMatchName string
+	for name, known := range knownURLs {
+		match := known.compiledRegex.FindStringSubmatch(url)
+		if len(match) > mostReleventMatchCount {
+			mostReleventMatchCount = len(match)
+			mostReleventMatchName = name
+		}
+	}
+	if mostReleventMatchName == "" {
+		return false, ""
+	}
+	return true, mostReleventMatchName
+}
+
+//getSearchQueryFromURLPattern takes
+// patternName - name of the KnownURL
+// stringToMatch - search string
+// Finds all string match for given pattern
+// Iterates over pattern's groupNames and loads respective values into result
+func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
+	pattern := knownURLs[patternName]
+	match := pattern.compiledRegex.FindStringSubmatch(stringToMatch)
 	result := make(map[string]string)
-	for i, name := range groupNames {
+	// result will hold key-value for groupName to its value
+	// e.g> "domain": "demo.almighty.io", "id": 200
+	for i, name := range pattern.groupNamesInRegex {
+		if i == 0 {
+			continue
+		}
 		if i > len(match)-1 {
 			result[name] = ""
 		} else {
 			result[name] = match[i]
 		}
 	}
-	return result
+	// first value from FindStringSubmatch is always full input itself, hence ignored
+	// Join rest of the tokens to make query like "demo.almighty.io/details/100"
+	searchQueryString := strings.Join(match[1:], "") + ":*"
+	if result["id"] != "" {
+		// Look for pattern's ID field, if exists update searchQueryString
+		searchQueryString = result["id"] + ":*" + " | " + searchQueryString
+	}
+	return searchQueryString
+}
+
+// getSearchQueryFromURLString gets a url string and checks if that matches with any of known urls.
+// Respectively it will return a string that can be directly used in search query
+// e.g>
+// Unknown url : www.google.com then response = "www.google.com:*"
+// Known url : almighty.io/detail/500 then response = "500:* | almighty.io/detail/500"
+func getSearchQueryFromURLString(url string) string {
+	known, patternName := isKnownURL(url)
+	if known {
+		// this url is known to system
+		return getSearchQueryFromURLPattern(patternName, url)
+	}
+	// any URL other than our system's
+	// return url without protocol
+	return strings.Trim(url, `http[s]://`) + ":*"
 }
 
 // parseSearchString accepts a raw string and generates a searchKeyword object
@@ -119,14 +196,23 @@ func parseSearchString(rawSearchString string) searchKeyword {
 	parts := strings.Split(rawSearchString, " ")
 	var res searchKeyword
 	for _, part := range parts {
+		// QueryUnescape is required in case of encoded url strings.
+		// And does not harm regular search strings
+		// but this processing is required becasue at this moment, we do not know if
+		// search input is a regular string or a URL
+		part, err := url.QueryUnescape(part)
+		fmt.Println(part)
+		if err != nil {
+			fmt.Println("Could not escape url", err)
+		}
+		// IF part is for search with id:1234
+		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
 			res.id = append(res.id, strings.Trim(part, "id:"))
 		} else if govalidator.IsURL(part) {
-			values := mapURLGroupWithValues(groupsWIURL, part)
-			if values["id"] != "" {
-				res.words = append(res.words, values["id"]+":*")
-			}
-			res.words = append(res.words, part+":*")
+			part := strings.Trim(part, `http[s]://`)
+			searchQueryFromURL := getSearchQueryFromURLString(part)
+			res.words = append(res.words, searchQueryFromURL)
 		} else {
 			res.words = append(res.words, part)
 		}
@@ -134,6 +220,7 @@ func parseSearchString(rawSearchString string) searchKeyword {
 	return res
 }
 
+// generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
 func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParameter string) {
 	idStr := strings.Join(keywords.id, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
@@ -182,4 +269,9 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 // Validate ensures that the search string is valid and also ensures its not an injection attack.
 func (r *GormSearchRepository) Validate(ctx context.Context, rawSearchString string) error {
 	return nil
+}
+
+func init() {
+	// While registering URLs do not include protocol becasue it will be removed before scanning starts
+	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`)
 }
