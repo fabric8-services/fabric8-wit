@@ -91,6 +91,9 @@ func getMigrations() migrations {
 	// Version 4
 	m = append(m, steps{executeSQLFile("004-drop-tracker-query-id.sql")})
 
+	// Version 5
+	m = append(m, steps{executeSQLFile("005-add-search-index.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
