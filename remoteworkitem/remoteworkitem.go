@@ -83,7 +83,7 @@ func (ghc GithubStateConverter) Convert(value interface{}) (interface{}, error) 
 }
 
 type AttributeMapper struct {
-	expresion          AttributeExpression
+	expression         AttributeExpression
 	attributeConverter AttributeConverter
 }
 
@@ -152,9 +152,9 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
-		originalValue := item.Get(from.expresion)
+		originalValue := item.Get(from.expression)
 		convertedValue, err := from.attributeConverter.Convert(originalValue)
-		if err != nil {
+		if err == nil {
 			workItem.Fields[to] = convertedValue
 		}
 	}

@@ -147,7 +147,7 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 
 	// Verifying if the new map is usable.
 	for k := range githubKeyMap {
-		_, ok := OneLevelMap[githubKeyMap[k]]
+		_, ok := OneLevelMap[string(k.expression)]
 		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 	}
 }
@@ -169,8 +169,8 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	githubKeyMap := WorkItemKeyMaps[ProviderGithub]
 	// Verifying if the new map is usable.
 	for k := range githubKeyMap {
-		_, ok := OneLevelMap[string(githubKeyMap[k])]
-		if githubKeyMap[k] == GithubAssignee {
+		_, ok := OneLevelMap[string(k.expression)]
+		if k.expression == GithubAssignee {
 			continue
 		}
 		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
@@ -195,7 +195,7 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 
 	// Verifying if the newly converted map is usable.
 	for k := range jiraKeyMap {
-		_, ok := OneLevelMap[string(jiraKeyMap[k])]
+		_, ok := OneLevelMap[string(k.expression)]
 		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 	}
 }
@@ -218,8 +218,8 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 
 	// Verifying if the newly converted map is usable.
 	for k := range jiraKeyMap {
-		_, ok := OneLevelMap[string(jiraKeyMap[k])]
-		if jiraKeyMap[k] == JiraAssignee {
+		_, ok := OneLevelMap[string(k.expression)]
+		if k.expression == JiraAssignee {
 			continue
 		}
 		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
