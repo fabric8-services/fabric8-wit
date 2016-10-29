@@ -385,14 +385,16 @@ var _ = Resource("search", func() {
 
 	Action("show", func() {
 		Routing(
-			GET("/:q"),
+			GET(""),
 		)
 		Description("Search by ID, URL, full text capability")
 		Params(func() {
 			Param("q", String, "Search Query")
+			Param("page[offset]", Number, "Paging in the format <start>,<limit>")
+			Param("page[limit]", Number, "Paging in the format <start>,<limit>")
 		})
 		Response(OK, func() {
-			Media(CollectionOf(workItem))
+			Media(searchResponse)
 		})
 
 		Response(BadRequest, func() {
