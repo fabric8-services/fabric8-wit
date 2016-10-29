@@ -198,3 +198,41 @@ var User = a.MediaType("application/vnd.user+json", func() {
 		a.Attribute("imageURL")
 	})
 })
+
+var searchPagingLinks = Type("searchPagingLinks", func() {
+	Attribute("prev", String)
+	Attribute("next", String)
+	Attribute("first", String)
+	Attribute("last", String)
+})
+
+var searchMeta = Type("searchResponseMeta", func() {
+	Attribute("totalCount", Number)
+
+	Required("totalCount")
+})
+
+var searchResponse = MediaType("application/vnd.search+json", func() {
+	TypeName("SearchResponse")
+	Description("Holds the paginated response to a search request")
+	Attribute("links", searchPagingLinks)
+	Attribute("meta", searchMeta)
+	Attribute("data", CollectionOf(workItem))
+
+	Required("links")
+	Required("meta")
+	Required("data")
+
+	View("default", func() {
+		Attribute("links", func() {
+			Attribute("prev", String)
+			Attribute("next", String)
+			Attribute("first", String)
+			Attribute("last", String)
+		})
+		Attribute("meta", func() {
+			Attribute("totalCount", Number)
+		})
+		Attribute("data")
+	})
+})

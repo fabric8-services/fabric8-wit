@@ -30,14 +30,13 @@ const (
 	*/
 
 	// This SQL query is used when search is performed across workitem fields and workitem ID
-	testText = `select * from work_items where 
-				setweight(to_tsvector('english',fields->>'system.title'),'B')||
+	testText = `setweight(to_tsvector('english',fields->>'system.title'),'B')||
 				setweight(to_tsvector('english',fields->>'system.description'),'C')|| 
 				setweight(to_tsvector('english', id::text),'A')
-				@@ to_tsquery('english',$1) and deleted_at is NULL`
+				@@ to_tsquery('english',$1)`
 
 	// This SQL query is used when search is performed across workitem ID ONLY.
-	testID = `select * from work_items WHERE to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1) and deleted_at is NULL`
+	testID = `to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1)`
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -237,8 +236,79 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParamete
 	return searchQuery, idStr + wordStr
 }
 
+// extracted this function from List() in order to close the rows object with "defer" for more readability
+// workaround for https://github.com/lib/pq/issues/81
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQuery string, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
+
+	db := r.ts.TX().Model(&models.WorkItem{}).Where(sqlSearchQuery, sqlSearchQueryParameter)
+	orgDB := db
+	if start != nil {
+		if *start < 0 {
+			return nil, 0, BadParameterError{"start", *start}
+		}
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, BadParameterError{"limit", *limit}
+		}
+		db = db.Limit(*limit)
+	}
+	db = db.Select("count(*) over () as cnt2 , *")
+
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	result := []models.WorkItem{}
+	value := models.WorkItem{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, InternalError{simpleError{err.Error()}}
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count uint64
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
+
+	for rows.Next() {
+		db.ScanRows(rows, &value)
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, InternalError{simpleError{err.Error()}}
+			}
+		}
+		result = append(result, value)
+
+	}
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		orgDB := orgDB.Select("count(*)")
+		rows2, err := orgDB.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, err
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
+	}
+	return result, count, nil
+	//*/
+}
+
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string) ([]*app.WorkItem, error) {
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -246,9 +316,9 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 
 	sqlSearchQuery, sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []models.WorkItem
-	db := r.ts.TX().Raw(sqlSearchQuery, sqlSearchQueryParameter)
-	if err := db.Scan(&rows).Error; err != nil {
-		return nil, err
+	rows, count, err := r.search(ctx, sqlSearchQuery, sqlSearchQueryParameter, start, limit)
+	if err != nil {
+		return nil, 0, err
 	}
 	result := make([]*app.WorkItem, len(rows))
 
@@ -257,15 +327,15 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
 		wiType, err := r.loadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, InternalError{simpleError{err.Error()}}
+			return nil, 0, InternalError{simpleError{err.Error()}}
 		}
 		result[index], err = convertFromModel(*wiType, value)
 		if err != nil {
-			return nil, ConversionError{simpleError{err.Error()}}
+			return nil, 0, ConversionError{simpleError{err.Error()}}
 		}
 	}
 
-	return result, nil
+	return result, count, nil
 }
 
 // Validate ensures that the search string is valid and also ensures its not an injection attack.

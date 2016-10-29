@@ -66,7 +66,8 @@ func TestSearchByText(t *testing.T) {
 		t.Log(createdWorkItem.ID)
 
 		sr := NewGormSearchRepository(ts, witr)
-		workItemList, err := sr.SearchFullText(context.Background(), searchString)
+		var start, limit int = 0, 100
+		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 		if err != nil {
 			t.Fatal("Error getting search result ", err)
 		}
@@ -128,7 +129,8 @@ func TestSearchByID(t *testing.T) {
 
 		sr := NewGormSearchRepository(ts, witr)
 
-		workItemList, err := sr.SearchFullText(context.Background(), "id:"+createdWorkItem.ID)
+		var start, limit int = 0, 100
+		workItemList, _, err := sr.SearchFullText(context.Background(), "id:"+createdWorkItem.ID, &start, &limit)
 		if err != nil {
 			t.Fatal("Error gettig search result ", err)
 		}
