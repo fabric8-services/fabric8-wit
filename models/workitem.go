@@ -22,19 +22,19 @@ var _ convert.Equaler = WorkItem{}
 var _ convert.Equaler = (*WorkItem)(nil)
 
 // Equal returns true if two WorkItem objects are equal; otherwise false is returned.
-func (self WorkItem) Equal(u convert.Equaler) bool {
+func (wi WorkItem) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItem)
 	if !ok {
 		return false
 	}
-	if !self.Lifecycle.Equal(other.Lifecycle) {
+	if !wi.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if self.Type != other.Type {
+	if wi.Type != other.Type {
 		return false
 	}
-	if self.Version != other.Version {
+	if wi.Version != other.Version {
 		return false
 	}
-	return self.Fields.Equal(other.Fields)
+	return wi.Fields.Equal(other.Fields)
 }

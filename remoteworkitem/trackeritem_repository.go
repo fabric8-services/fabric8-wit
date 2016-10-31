@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
-	. "github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 )
@@ -29,12 +29,11 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 }
 
 // Map a remote work item into an ALM work item and persist it into the database.
-func convert(ts *models.GormTransactionSupport, tID int, item TrackerItemContent, provider string) (*app.WorkItem, error) {
+func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*app.WorkItem, error) {
 	remoteID := item.ID
 	content := string(item.Content)
 
-	witr := models.NewWorkItemTypeRepository(ts)
-	wir := models.NewWorkItemRepository(ts, witr)
+	wir := models.NewWorkItemRepository(db)
 	ti := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: uint64(tID)}
 
 	// Converting the remote item to a local work item
@@ -54,7 +53,7 @@ func convert(ts *models.GormTransactionSupport, tID int, item TrackerItemContent
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
 	workItemRemoteID := workItem.Fields[models.SystemRemoteItemID]
 
-	sqlExpression := Equals(Field(models.SystemRemoteItemID), Literal(workItemRemoteID))
+	sqlExpression := criteria.Equals(criteria.Field(models.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
 
 	var newWorkItem *app.WorkItem
 

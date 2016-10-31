@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
@@ -46,25 +45,21 @@ func batchID() string {
 // ScheduleAllQueries fetch and import of remote tracker items
 func (s *Scheduler) ScheduleAllQueries() {
 	cr.Stop()
-	ts := models.NewGormTransactionSupport(s.db)
 
 	trackerQueries := fetchTrackerQueries(s.db)
 	for _, tq := range trackerQueries {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := lookupProvider(tq)
 			for i := range tr.Fetch() {
-				transaction.Do(ts, func() error {
-
+				models.Transactional(s.db, func(tx *gorm.DB) error {
 					// Save the remote items in a 'temporary' table.
-					err := upload(ts.TX(), tq.TrackerID, i)
+					err := upload(tx, tq.TrackerID, i)
 					if err != nil {
 						return err
 					}
-
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(ts, tq.TrackerID, i, tq.TrackerType)
+					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
 					return err
-
 				})
 			}
 		})

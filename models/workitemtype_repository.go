@@ -8,16 +8,22 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/jinzhu/gorm"
 )
+
+// NewWorkItemRepository creates a wi repository based on gorm
+func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
+	return &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}}
+}
+
+// NewWorkItemTypeRepository creates a wi type repository based on gorm
+func NewWorkItemTypeRepository(db *gorm.DB) *GormWorkItemTypeRepository {
+	return &GormWorkItemTypeRepository{db}
+}
 
 // GormWorkItemTypeRepository implements WorkItemTypeRepository using gorm
 type GormWorkItemTypeRepository struct {
-	ts *GormTransactionSupport
-}
-
-// NewWorkItemTypeRepository constructs a WorkItemTypeRepository
-func NewWorkItemTypeRepository(ts *GormTransactionSupport) *GormWorkItemTypeRepository {
-	return &GormWorkItemTypeRepository{ts}
+	db *gorm.DB
 }
 
 // Load returns the work item for the given id
@@ -36,11 +42,11 @@ func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name st
 	log.Printf("loading work item type %s", name)
 	res := WorkItemType{}
 
-	if r.ts.tx.Where("name=?", name).First(&res).RecordNotFound() {
+	if r.db.Where("name=?", name).First(&res).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item type", name}
 	}
-	if err := r.ts.tx.Error; err != nil {
+	if err := r.db.Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
@@ -54,11 +60,11 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	path := "/"
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
-		if r.ts.tx.First(&extendedType, extendedTypeName).RecordNotFound() {
+		if r.db.First(&extendedType, extendedTypeName).RecordNotFound() {
 			log.Printf("not found, res=%v", extendedType)
 			return nil, BadParameterError{parameter: "extendedTypeName", value: *extendedTypeName}
 		}
-		if err := r.ts.tx.Error; err != nil {
+		if err := r.db.Error; err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
 		}
 		// copy fields from extended type
@@ -92,7 +98,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		Fields:     allFields,
 	}
 
-	if err := r.ts.tx.Create(&created).Error; err != nil {
+	if err := r.db.Create(&created).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
@@ -108,7 +114,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	var parameters []interface{}
 
 	var rows []WorkItemType
-	db := r.ts.tx.Where(where, parameters)
+	db := r.db.Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}

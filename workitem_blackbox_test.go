@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -26,12 +27,9 @@ import (
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	ts := models.NewGormTransactionSupport(DB)
-	wir := models.NewWorkItemTypeRepository(ts)
-	repo := models.NewWorkItemRepository(ts, wir)
 	svc := goa.New("TestGetWorkItem-Service")
 	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, repo, ts)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -75,12 +73,9 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	wir := models.NewWorkItemTypeRepository(ts)
-	repo := models.NewWorkItemRepository(ts, wir)
 	svc := goa.New("TestCreateWI-Service")
 	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, repo, ts)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -99,12 +94,9 @@ func TestCreateWI(t *testing.T) {
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	wir := models.NewWorkItemTypeRepository(ts)
-	repo := models.NewWorkItemRepository(ts, wir)
 	svc := goa.New("TestListByFields-Service")
 	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, repo, ts)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -330,9 +322,6 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		req.Header.Add("Authorization", testObject.jwtToken)
 
 		rr := httptest.NewRecorder()
-		ts := models.NewGormTransactionSupport(DB)
-		wir := models.NewWorkItemTypeRepository(ts)
-		repo := models.NewWorkItemRepository(ts, wir)
 
 		// temperory service for testing the middleware
 		service := goa.New("TestUnauthorizedCreateWI-Service")
@@ -350,7 +339,7 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
 		app.UseJWTMiddleware(service, jwtMiddleware)
 
-		controller := NewWorkitemController(service, repo, ts)
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 		app.MountWorkitemController(service, controller)
 
 		// Hit the service with own request
