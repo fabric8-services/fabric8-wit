@@ -4,6 +4,8 @@
 :sectnums:
 :experimental:
 
+*Requirements:* Need token to use following API. Please go through link:https://github.com/almighty/almighty-core/#3-developer-setup[README] to generate a token to use.
+
 == Create an "Epic" Work Item Type
 
 The following should fail as nothing is there (yet):
@@ -15,7 +17,7 @@ The following should fail as nothing is there (yet):
 Should create 1 WIT with `name=Epic`:
 
 ----
-./bin/alm-cli create workitemtype --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
+./bin/alm-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"Epic"}' -H localhost:8080 --pp
 ----
 
 == Show newly created "Epic"
@@ -31,7 +33,7 @@ Should show you newly created item type:
 Create another item type:
 
 ----
-./bin/alm-cli create workitemtype --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.duration":{"Type":{"Kind":"integer"},"Required":false}},"name":"Issue"}' -H localhost:8080 --pp
+./bin/alm-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":null,"fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.duration":{"Type":{"Kind":"integer"},"Required":false}},"name":"Issue"}' -H localhost:8080 --pp
 ----
 
 Retrieve newly created `Issue` work item type:
@@ -45,7 +47,7 @@ Should fail - create item type based on pre-existing item type because `system.s
 (The `system.state` must not be of type `float` but of type `string`.)
 
 ----
-./bin/alm-cli create workitemtype --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"float"},"Required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
+./bin/alm-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"float"},"Required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
 ----
 
 Should create item type based on pre-existing item type:
@@ -53,7 +55,7 @@ Should create item type based on pre-existing item type:
 (Now `system.state` has the correct type of `string`.)
 
 ----
-./bin/alm-cli create workitemtype --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
+./bin/alm-cli create workitemtype --key "GENERATED_TOKEN" --payload '{"extendedTypeName":"Epic","fields":{"system.owner":{"Type":{"Kind":"user"},"Required":true},"system.state":{"Type":{"Kind":"string"},"Required":false}},"name":"anotherEpic"}' -H localhost:8080 --pp
 ----
 
 == List all work item types that we created

@@ -32,7 +32,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
-				log.Printf("not found, id=%s", ctx.Name)
+				log.Printf("not found, name=%s", ctx.Name)
 				return goa.ErrNotFound(err.Error())
 			default:
 				return err
