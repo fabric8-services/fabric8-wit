@@ -451,12 +451,12 @@ func makeWorkItems(count int) []*app.WorkItem {
 
 func TestPagingLinks(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	ts := testsupport.NoTransactionSupport{}
-	repo := &testsupport.WorkItemRepository{}
 	svc := goa.New("TestPaginLinks-Service")
 	assert.NotNil(t, svc)
-	controller := NewWorkitem2Controller(svc, repo, ts)
+	db := testsupport.NewMockDB()
+	controller := NewWorkitem2Controller(svc, db)
 
+	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	pagingTest := createPagingTest(t, controller, repo, 13)
 	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=12,page[limit]=5", "page[offset]=0,page[limit]=2", "page[offset]=7,page[limit]=5")
 	pagingTest(10, 3, "page[offset]=0,page[limit]=1", "page[offset]=10,page[limit]=3", "page[offset]=7,page[limit]=3", "")
@@ -475,10 +475,9 @@ func TestPagingLinks(t *testing.T) {
 
 func TestPagingErrors(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	ts := testsupport.NoTransactionSupport{}
-	repo := &testsupport.WorkItemRepository{}
 	svc := goa.New("TestPaginErrors-Service")
-	controller := NewWorkitem2Controller(svc, repo, ts)
+	db := testsupport.NewMockDB()
+	controller := NewWorkitem2Controller(svc, db)
 
 	var offset float64 = -1
 	var limit float64 = 2

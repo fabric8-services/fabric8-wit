@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/goadesign/goa"
@@ -13,13 +14,12 @@ import (
 // Workitem2Controller implements the workitem.2 resource.
 type Workitem2Controller struct {
 	*goa.Controller
-	wiRepository models.WorkItemRepository
-	ts           transaction.Support
+	db application.DB
 }
 
 // NewWorkitem2Controller creates a workitem.2 controller.
-func NewWorkitem2Controller(service *goa.Service, wiRepository models.WorkItemRepository, ts transaction.Support) *Workitem2Controller {
-	return &Workitem2Controller{Controller: service.NewController("WorkitemController"), wiRepository: wiRepository, ts: ts}
+func NewWorkitem2Controller(service *goa.Service, db application.DB) *Workitem2Controller {
+	return &Workitem2Controller{Controller: service.NewController("WorkitemController"), db: db}
 }
 
 // List runs the list action.
@@ -60,8 +60,8 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("limit must be > 0, but is: %d", limit)))
 	}
 
-	return transaction.Do(c.ts, func() error {
-		result, c, err := c.wiRepository.List(ctx.Context, exp, &offset, &limit)
+	return application.Transactional(c.db, func(tx application.Application) error {
+		result, c, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
 		count := int(c)
 		if err != nil {
 			switch err := err.(type) {
