@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
@@ -201,7 +202,7 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 }
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
-func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr models.WorkItemTypeRepository) error {
+func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr application.WorkItemTypeRepository) error {
 	// FIXME: Need to add this conditionally
 	// q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
 	// db.Exec(q)
@@ -227,31 +228,31 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr models.WorkItemT
 	return nil
 }
 
-func createOrUpdateSystemUserstory(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemUserstory(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	return createOrUpdateCommon(models.SystemUserStory, ctx, witr, db)
 }
 
-func createOrUpdateSystemValueProposition(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemValueProposition(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	return createOrUpdateCommon(models.SystemValueProposition, ctx, witr, db)
 }
 
-func createOrUpdateSystemFundamental(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemFundamental(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	return createOrUpdateCommon(models.SystemFundamental, ctx, witr, db)
 }
 
-func createOrUpdateSystemExperience(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemExperience(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	return createOrUpdateCommon(models.SystemExperience, ctx, witr, db)
 }
 
-func createOrUpdateSystemFeature(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemFeature(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	return createOrUpdateCommon(models.SystemFeature, ctx, witr, db)
 }
 
-func createOrUpdateSystemBug(ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemBug(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	return createOrUpdateCommon(models.SystemBug, ctx, witr, db)
 }
 
-func createOrUpdateCommon(typeName string, ctx context.Context, witr models.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateCommon(typeName string, ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
 	stString := "string"
 	workItemTypeFields := map[string]app.FieldDefinition{
 		models.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},

@@ -9,31 +9,29 @@ import (
 	"github.com/goadesign/goa"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/transaction"
 )
 
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
-	wiRepository models.WorkItemRepository
-	ts           transaction.Support
+	db application.DB
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, wiRepository models.WorkItemRepository, ts transaction.Support) *WorkitemController {
-	ctrl := WorkitemController{Controller: service.NewController("WorkitemController"), wiRepository: wiRepository, ts: ts}
-	if ctrl.wiRepository == nil {
-		panic("nil work item repository")
+func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemController {
+	if db == nil {
+		panic("db must not be nil")
 	}
-	return &ctrl
+	return &WorkitemController{Controller: service.NewController("WorkitemController"), db: db}
 }
 
 // Show runs the show action.
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Load(ctx.Context, ctx.ID)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		wi, err := appl.WorkItems().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -88,8 +86,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
-	return transaction.Do(c.ts, func() error {
-		result, err := c.wiRepository.List(ctx.Context, exp, start, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.WorkItems().List(ctx.Context, exp, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
 		}
@@ -99,8 +97,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
-		wi, err := c.wiRepository.Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		wi, err := appl.WorkItems().Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields)
 
 		if err != nil {
 			switch err := err.(type) {
@@ -117,8 +115,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 // Delete runs the delete action.
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
-		err := c.wiRepository.Delete(ctx.Context, ctx.ID)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		err := appl.WorkItems().Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
@@ -133,7 +131,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 // Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
-	return transaction.Do(c.ts, func() error {
+	return application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.WorkItem{
 			ID:      ctx.ID,
@@ -141,7 +139,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			Version: ctx.Payload.Version,
 			Fields:  ctx.Payload.Fields,
 		}
-		wi, err := c.wiRepository.Save(ctx.Context, toSave)
+		wi, err := appl.WorkItems().Save(ctx.Context, toSave)
 
 		if err != nil {
 			switch err := err.(type) {

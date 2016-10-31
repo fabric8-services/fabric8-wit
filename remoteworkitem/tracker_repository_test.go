@@ -6,14 +6,15 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTrackerCreate(t *testing.T) {
-	doWithTrackerRepository(t, func(trackerRepo TrackerRepository) {
+	doWithTrackerRepository(t, func(trackerRepo application.TrackerRepository) {
 		tracker, err := trackerRepo.Create(context.Background(), "gugus", "dada")
 		assert.IsType(t, BadParameterError{}, err)
 		assert.Nil(t, tracker)
@@ -31,7 +32,7 @@ func TestTrackerCreate(t *testing.T) {
 }
 
 func TestTrackerSave(t *testing.T) {
-	doWithTrackerRepository(t, func(trackerRepo TrackerRepository) {
+	doWithTrackerRepository(t, func(trackerRepo application.TrackerRepository) {
 		tracker, err := trackerRepo.Save(context.Background(), app.Tracker{})
 		assert.IsType(t, NotFoundError{}, err)
 		assert.Nil(t, tracker)
@@ -62,7 +63,7 @@ func TestTrackerSave(t *testing.T) {
 }
 
 func TestTrackerDelete(t *testing.T) {
-	doWithTrackerRepository(t, func(trackerRepo TrackerRepository) {
+	doWithTrackerRepository(t, func(trackerRepo application.TrackerRepository) {
 		err := trackerRepo.Delete(context.Background(), "asdf")
 		assert.IsType(t, NotFoundError{}, err)
 
@@ -87,7 +88,7 @@ func TestTrackerDelete(t *testing.T) {
 }
 
 func TestTrackerList(t *testing.T) {
-	doWithTrackerRepository(t, func(trackerRepo TrackerRepository) {
+	doWithTrackerRepository(t, func(trackerRepo application.TrackerRepository) {
 		trackers, _ := trackerRepo.List(context.Background(), criteria.Literal(true), nil, nil)
 
 		trackerRepo.Create(context.Background(), "gugus", ProviderGithub)
@@ -106,20 +107,20 @@ func TestTrackerList(t *testing.T) {
 	})
 }
 
-func doWithTrackerRepository(t *testing.T, todo func(repo TrackerRepository)) {
-	doWithTransaction(t, func(ts *models.GormTransactionSupport) {
-		trackerRepo := NewTrackerRepository(ts)
+func doWithTrackerRepository(t *testing.T, todo func(repo application.TrackerRepository)) {
+	doWithTransaction(t, func(db *gorm.DB) {
+		trackerRepo := NewTrackerRepository(db)
 		todo(trackerRepo)
 	})
 
 }
 
-func doWithTransaction(t *testing.T, todo func(ts *models.GormTransactionSupport)) {
+func doWithTransaction(t *testing.T, todo func(db *gorm.DB)) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
-	if err := ts.Begin(); err != nil {
-		panic(err.Error())
+	tx := db.Begin()
+	if tx.Error != nil {
+		panic(tx.Error.Error())
 	}
-	defer ts.Rollback()
-	todo(ts)
+	defer tx.Rollback()
+	todo(tx)
 }

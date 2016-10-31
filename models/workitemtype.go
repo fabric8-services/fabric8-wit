@@ -46,32 +46,32 @@ var _ convert.Equaler = WorkItemType{}
 var _ convert.Equaler = (*WorkItemType)(nil)
 
 // Equal returns true if two WorkItemType objects are equal; otherwise false is returned.
-func (self WorkItemType) Equal(u convert.Equaler) bool {
+func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemType)
 	if !ok {
 		return false
 	}
-	if !self.Lifecycle.Equal(other.Lifecycle) {
+	if !wit.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if self.Version != other.Version {
+	if wit.Version != other.Version {
 		return false
 	}
-	if self.Name != other.Name {
+	if wit.Name != other.Name {
 		return false
 	}
-	if self.ParentPath != other.ParentPath {
+	if wit.ParentPath != other.ParentPath {
 		return false
 	}
-	if len(self.Fields) != len(other.Fields) {
+	if len(wit.Fields) != len(other.Fields) {
 		return false
 	}
-	for selfKey, selfVal := range self.Fields {
-		otherVal, keyFound := other.Fields[selfKey]
+	for witKey, witVal := range wit.Fields {
+		otherVal, keyFound := other.Fields[witKey]
 		if !keyFound {
 			return false
 		}
-		if !selfVal.Equal(otherVal) {
+		if !witVal.Equal(otherVal) {
 			return false
 		}
 	}

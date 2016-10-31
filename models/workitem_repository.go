@@ -8,17 +8,13 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/jinzhu/gorm"
 )
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
 type GormWorkItemRepository struct {
-	ts  *GormTransactionSupport
+	db  *gorm.DB
 	wir *GormWorkItemTypeRepository
-}
-
-// NewRepository constructs a WorkItemRepository
-func NewWorkItemRepository(ts *GormTransactionSupport, wir *GormWorkItemTypeRepository) *GormWorkItemRepository {
-	return &GormWorkItemRepository{ts, wir}
 }
 
 // Load returns the work item for the given id
@@ -32,7 +28,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 
 	log.Printf("loading work item %d", id)
 	res := WorkItem{}
-	if r.ts.tx.First(&res, id).RecordNotFound() {
+	if r.db.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item", ID}
 	}
@@ -57,7 +53,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 		return NotFoundError{entity: "work item", ID: ID}
 	}
 	workItem.ID = id
-	tx := r.ts.tx
+	tx := r.db
 
 	if err = tx.Delete(workItem).Error; err != nil {
 		if tx.RecordNotFound() {
@@ -79,7 +75,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.ts.tx
+	tx := r.db
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "work item", ID: wi.ID}
@@ -140,7 +136,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 			return nil, BadParameterError{fieldName, fieldValue}
 		}
 	}
-	tx := r.ts.tx
+	tx := r.db
 
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
@@ -164,7 +160,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	log.Printf("executing query: '%s' with params %v", where, parameters)
 
 	var rows []WorkItem
-	db := r.ts.TX().Where(where, parameters)
+	db := r.db.Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}
