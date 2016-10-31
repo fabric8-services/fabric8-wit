@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+
 	"testing"
 	"time"
 
 	"encoding/json"
+
+	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
@@ -17,6 +21,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -393,3 +398,100 @@ EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
 /A4rWPqfpmiKcmrd7K4DQFlYhoq+MALEDmQm+/8G6j2inF53fRGgJVzaZhSvnO9X
 CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
+
+func createPagingTest(t *testing.T, controller *Workitem2Controller, repo *testsupport.WorkItemRepository, totalCount int64) func(start float64, limit float64, first string, last string, prev string, next string) {
+	return func(start float64, limit float64, first string, last string, prev string, next string) {
+		count := computeCount(totalCount, int(start), int(limit))
+		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
+
+		_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &start)
+		assertLink(t, "first", first, response.Links.First)
+		assertLink(t, "last", last, response.Links.Last)
+		assertLink(t, "prev", prev, response.Links.Prev)
+		assertLink(t, "next", next, response.Links.Next)
+		assert.Equal(t, float64(totalCount), response.Meta.TotalCount)
+	}
+}
+
+func assertLink(t *testing.T, l string, expected string, actual *string) {
+	if expected == "" {
+		if actual != nil {
+			assert.Fail(t, fmt.Sprintf("link %s should be nil but is %s", l, *actual))
+		}
+	} else {
+		if actual == nil {
+			assert.Fail(t, "link %s should be %s, but is nil", l, expected)
+		} else {
+			assert.True(t, strings.HasSuffix(*actual, expected), "link %s should be %s, but is %s", l, expected, *actual)
+		}
+	}
+}
+
+func computeCount(totalCount int64, start int, limit int) int {
+	if start < 0 || int64(start) >= totalCount {
+		return 0
+	}
+	if int64(start+limit) > totalCount {
+		return int(totalCount - int64(start))
+	}
+	return limit
+}
+
+func makeWorkItems(count int) []*app.WorkItem {
+	res := make([]*app.WorkItem, count)
+	for index := range res {
+		res[index] = &app.WorkItem{
+			ID:     fmt.Sprintf("id%d", index),
+			Type:   "foobar",
+			Fields: map[string]interface{}{},
+		}
+	}
+	return res
+}
+
+func TestPagingLinks(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	svc := goa.New("TestPaginLinks-Service")
+	assert.NotNil(t, svc)
+	db := testsupport.NewMockDB()
+	controller := NewWorkitem2Controller(svc, db)
+
+	repo := db.WorkItems().(*testsupport.WorkItemRepository)
+	pagingTest := createPagingTest(t, controller, repo, 13)
+	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=12,page[limit]=5", "page[offset]=0,page[limit]=2", "page[offset]=7,page[limit]=5")
+	pagingTest(10, 3, "page[offset]=0,page[limit]=1", "page[offset]=10,page[limit]=3", "page[offset]=7,page[limit]=3", "")
+	pagingTest(0, 4, "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=4", "", "page[offset]=4,page[limit]=4")
+	pagingTest(4, 8, "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=8", "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=8")
+
+	pagingTest(16, 14, "page[offset]=0,page[limit]=2", "page[offset]=2,page[limit]=14", "page[offset]=2,page[limit]=14", "")
+	pagingTest(16, 18, "page[offset]=0,page[limit]=16", "page[offset]=0,page[limit]=16", "page[offset]=0,page[limit]=16", "")
+
+	pagingTest(3, 50, "page[offset]=0,page[limit]=3", "page[offset]=3,page[limit]=50", "page[offset]=0,page[limit]=3", "")
+	pagingTest(0, 50, "page[offset]=0,page[limit]=50", "page[offset]=0,page[limit]=50", "", "")
+
+	pagingTest = createPagingTest(t, controller, repo, 0)
+	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=0,page[limit]=2", "", "")
+}
+
+func TestPagingErrors(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	svc := goa.New("TestPaginErrors-Service")
+	db := testsupport.NewMockDB()
+	controller := NewWorkitem2Controller(svc, db)
+
+	var offset float64 = -1
+	var limit float64 = 2
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+
+	offset = 0
+	limit = 0
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+
+	offset = 3
+	limit = -1
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+
+	offset = -3
+	limit = -1
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+}

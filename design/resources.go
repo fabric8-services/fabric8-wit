@@ -100,6 +100,30 @@ var _ = Resource("workitem", func() {
 
 })
 
+// new version of "list" for migration
+var _ = Resource("workitem.2", func() {
+	BasePath("/workitems.2")
+	Action("list", func() {
+		Routing(
+			GET(""),
+		)
+		Description("List work items.")
+		Params(func() {
+			Param("filter", String, "a query language expression restricting the set of found work items")
+			Param("page[offset]", Number, "Paging in the format <start>,<limit>")
+			Param("page[limit]", Number, "Paging in the format <start>,<limit>")
+		})
+		Response(OK, func() {
+			Media(workItemListResponse)
+		})
+		Response(BadRequest, func() {
+			Media(ErrorMedia)
+		})
+		Response(InternalServerError)
+	})
+
+})
+
 var _ = Resource("workitemtype", func() {
 
 	BasePath("/workitemtypes")

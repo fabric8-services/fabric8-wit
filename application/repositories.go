@@ -12,7 +12,7 @@ type WorkItemRepository interface {
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}) (*app.WorkItem, error)
-	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, error)
+	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 }
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types

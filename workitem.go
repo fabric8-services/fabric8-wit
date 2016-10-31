@@ -87,7 +87,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.WorkItems().List(ctx.Context, exp, start, &limit)
+		result, _, err := appl.WorkItems().List(ctx.Context, exp, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
 		}

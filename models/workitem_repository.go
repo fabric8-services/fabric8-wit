@@ -150,41 +150,103 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	return result, nil
 }
 
-// List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, error) {
-	where, parameters, err := Compile(criteria)
-	if err != nil {
-		return nil, BadParameterError{"expression", criteria}
+// extracted this function from List() in order to close the rows object with "defer" for more readability
+// workaround for https://github.com/lib/pq/issues/81
+func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
+	where, parameters, compileError := Compile(criteria)
+	if compileError != nil {
+		return nil, 0, BadParameterError{"expression", criteria}
 	}
 
 	log.Printf("executing query: '%s' with params %v", where, parameters)
 
-	var rows []WorkItem
-	db := r.db.Where(where, parameters)
+	db := r.db.Model(&WorkItem{}).Where(where, parameters)
+	orgDB := db
 	if start != nil {
+		if *start < 0 {
+			return nil, 0, BadParameterError{"start", *start}
+		}
 		db = db.Offset(*start)
 	}
 	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, BadParameterError{"limit", *limit}
+		}
 		db = db.Limit(*limit)
 	}
-	if err := db.Find(&rows).Error; err != nil {
-		return nil, err
-	}
-	result := make([]*app.WorkItem, len(rows))
+	db = db.Select("count(*) over () as cnt2 , *")
 
-	for index, value := range rows {
-		var err error
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	result := []WorkItem{}
+	value := WorkItem{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, InternalError{simpleError{err.Error()}}
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count uint64
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
+
+	for rows.Next() {
+		db.ScanRows(rows, &value)
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, InternalError{simpleError{err.Error()}}
+			}
+		}
+		result = append(result, value)
+
+	}
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		orgDB := orgDB.Select("count(*)")
+		rows2, err := orgDB.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, err
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
+	}
+	return result, count, nil
+}
+
+// List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
+func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
+	result, count, err := r.listItemsFromDB(ctx, criteria, start, limit)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	res := make([]*app.WorkItem, len(result))
+
+	for index, value := range result {
 		wiType, err := r.wir.loadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			return nil, InternalError{simpleError{err.Error()}}
+			return nil, 0, InternalError{simpleError{err.Error()}}
 		}
-		result[index], err = convertFromModel(*wiType, value)
+		res[index], err = convertFromModel(*wiType, result[index])
 		if err != nil {
-			return nil, ConversionError{simpleError{err.Error()}}
+			return nil, 0, ConversionError{simpleError{err.Error()}}
 		}
 	}
 
-	return result, nil
+	return res, count, nil
 }
 
 func convertFromModel(wiType WorkItemType, workItem WorkItem) (*app.WorkItem, error) {

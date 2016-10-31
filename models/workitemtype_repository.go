@@ -42,11 +42,12 @@ func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name st
 	log.Printf("loading work item type %s", name)
 	res := WorkItemType{}
 
-	if r.db.Where("name=?", name).First(&res).RecordNotFound() {
+	db := r.db.Model(&res).Where("name=?", name).First(&res)
+	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item type", name}
 	}
-	if err := r.db.Error; err != nil {
+	if err := db.Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
