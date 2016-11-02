@@ -199,40 +199,40 @@ var User = a.MediaType("application/vnd.user+json", func() {
 	})
 })
 
-var searchPagingLinks = Type("searchPagingLinks", func() {
-	Attribute("prev", String)
-	Attribute("next", String)
-	Attribute("first", String)
-	Attribute("last", String)
+var searchPagingLinks = a.Type("searchPagingLinks", func() {
+	a.Attribute("prev", d.String)
+	a.Attribute("next", d.String)
+	a.Attribute("first", d.String)
+	a.Attribute("last", d.String)
 })
 
-var searchMeta = Type("searchResponseMeta", func() {
-	Attribute("totalCount", Number)
+var searchMeta = a.Type("searchResponseMeta", func() {
+	a.Attribute("totalCount", d.Number)
 
-	Required("totalCount")
+	a.Required("totalCount")
 })
 
-var searchResponse = MediaType("application/vnd.search+json", func() {
-	TypeName("SearchResponse")
-	Description("Holds the paginated response to a search request")
-	Attribute("links", searchPagingLinks)
-	Attribute("meta", searchMeta)
-	Attribute("data", CollectionOf(workItem))
+var searchResponse = a.MediaType("application/vnd.search+json", func() {
+	a.TypeName("SearchResponse")
+	a.Description("Holds the paginated response to a search request")
+	a.Attribute("links", searchPagingLinks)
+	a.Attribute("meta", searchMeta)
+	a.Attribute("data", a.CollectionOf(workItem))
 
-	Required("links")
-	Required("meta")
-	Required("data")
+	a.Required("links")
+	a.Required("meta")
+	a.Required("data")
 
-	View("default", func() {
-		Attribute("links", func() {
-			Attribute("prev", String)
-			Attribute("next", String)
-			Attribute("first", String)
-			Attribute("last", String)
+	a.View("default", func() {
+		a.Attribute("links", func() {
+			a.Attribute("prev", d.String)
+			a.Attribute("next", d.String)
+			a.Attribute("first", d.String)
+			a.Attribute("last", d.String)
 		})
-		Attribute("meta", func() {
-			Attribute("totalCount", Number)
+		a.Attribute("meta", func() {
+			a.Attribute("totalCount", d.Number)
 		})
-		Attribute("data")
+		a.Attribute("data")
 	})
 })

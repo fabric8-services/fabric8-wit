@@ -380,27 +380,27 @@ var _ = a.Resource("trackerquery", func() {
 
 })
 
-var _ = Resource("search", func() {
-	BasePath("/search")
+var _ = a.Resource("search", func() {
+	a.BasePath("/search")
 
-	Action("show", func() {
-		Routing(
-			GET(""),
+	a.Action("show", func() {
+		a.Routing(
+			a.GET(""),
 		)
-		Description("Search by ID, URL, full text capability")
-		Params(func() {
-			Param("q", String, "Search Query")
-			Param("page[offset]", Number, "Paging in the format <start>,<limit>")
-			Param("page[limit]", Number, "Paging in the format <start>,<limit>")
+		a.Description("Search by ID, URL, full text capability")
+		a.Params(func() {
+			a.Param("q", d.String, "Search Query")
+			a.Param("page[offset]", d.Number, "Paging in the format <start>,<limit>")
+			a.Param("page[limit]", d.Number, "Paging in the format <start>,<limit>")
 		})
-		Response(OK, func() {
-			Media(searchResponse)
-		})
-
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.OK, func() {
+			a.Media(searchResponse)
 		})
 
-		Response(InternalServerError)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+
+		a.Response(d.InternalServerError)
 	})
 })
