@@ -115,7 +115,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	var parameters []interface{}
 
 	var rows []WorkItemType
-	db := r.db.Where(where, parameters)
+	db := r.db.Where(where, parameters...)
 	if start != nil {
 		db = db.Offset(*start)
 	}
