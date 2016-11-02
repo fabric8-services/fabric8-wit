@@ -10,7 +10,6 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
@@ -38,11 +37,10 @@ func TestMain(m *testing.M) {
 
 func TestSearchByText(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
-	witr := models.NewWorkItemTypeRepository(ts)
-	wir := models.NewWorkItemRepository(ts, witr)
 
-	transaction.Do(ts, func() error {
+	wir := models.NewWorkItemRepository(db)
+
+	models.Transactional(db, func(tx *gorm.DB) error {
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
 		createdWorkItems := make([]string, 0, 3)
@@ -65,7 +63,7 @@ func TestSearchByText(t *testing.T) {
 		createdWorkItems = append(createdWorkItems, createdWorkItem.ID)
 		t.Log(createdWorkItem.ID)
 
-		sr := NewGormSearchRepository(ts, witr)
+		sr := NewGormSearchRepository(db)
 		var start, limit int = 0, 100
 		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 		if err != nil {
@@ -97,11 +95,9 @@ func TestSearchByText(t *testing.T) {
 
 func TestSearchByID(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(db)
-	witr := models.NewWorkItemTypeRepository(ts)
-	wir := models.NewWorkItemRepository(ts, witr)
+	wir := models.NewWorkItemRepository(db)
 
-	transaction.Do(ts, func() error {
+	models.Transactional(db, func(tx *gorm.DB) error {
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
 
@@ -127,7 +123,7 @@ func TestSearchByID(t *testing.T) {
 			t.Fatal("Couldnt create test data")
 		}
 
-		sr := NewGormSearchRepository(ts, witr)
+		sr := NewGormSearchRepository(db)
 
 		var start, limit int = 0, 100
 		workItemList, _, err := sr.SearchFullText(context.Background(), "id:"+createdWorkItem.ID, &start, &limit)

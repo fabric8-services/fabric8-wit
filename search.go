@@ -5,22 +5,23 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/search"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
 
 // SearchController implements the search resource.
 type SearchController struct {
 	*goa.Controller
-	sRepository search.Repository
-	ts          transaction.Support
+	db application.DB
 }
 
 // NewSearchController creates a search controller.
-func NewSearchController(service *goa.Service, sRepository search.Repository, ts transaction.Support) *SearchController {
-	return &SearchController{Controller: service.NewController("SearchController"), sRepository: sRepository, ts: ts}
+func NewSearchController(service *goa.Service, db application.DB) *SearchController {
+	if db == nil {
+		panic("db must not be nil")
+	}
+	return &SearchController{Controller: service.NewController("SearchController"), db: db}
 }
 
 // Show runs the show action.
@@ -43,8 +44,9 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
 	}
 
-	return transaction.Do(c.ts, func() error {
-		result, c, err := c.sRepository.SearchFullText(ctx.Context, *ctx.Q, &offset, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		//return transaction.Do(c.ts, func() error {
+		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, *ctx.Q, &offset, &limit)
 		count := int(c)
 		if err != nil {
 			switch err := err.(type) {

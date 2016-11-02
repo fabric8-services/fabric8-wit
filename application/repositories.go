@@ -37,3 +37,9 @@ type TrackerQueryRepository interface {
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
 }
+
+// SearchRepository encapsulates searching of woritems,users,etc
+type SearchRepository interface {
+	SearchFullText(ctx context.Context, searchStr string, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	Validate(ctx context.Context, searchStr string) error
+}
