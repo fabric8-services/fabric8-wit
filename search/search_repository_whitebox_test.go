@@ -150,9 +150,9 @@ func TestGenerateSQLSearchString(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	input := searchKeyword{
 		id:    []string{"10", "99"},
-		words: []string{"username title_substr desc_substr"},
+		words: []string{"username", "title_substr", "desc_substr"},
 	}
-	expectedSQLParameter := strings.Join(input.id, " & ") + strings.Join(input.words, " & ")
+	expectedSQLParameter := "10 & 99 & username & title_substr & desc_substr"
 	expectedSQLQuery := WhereClauseForSearchByText
 
 	actualSQLQuery, actualSQLParameter := generateSQLSearchInfo(input)

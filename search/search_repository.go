@@ -236,7 +236,12 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParamete
 		// Is "id:45453 id:43234" be valid ? NO, because the no row can have 2 IDs.
 		searchQuery = WhereClauseForSearchById
 	}
-	return searchQuery, idStr + wordStr
+
+	searchStr := idStr + wordStr
+	if len(wordStr) != 0 && len(idStr) != 0 {
+		searchStr = idStr + " & " + wordStr
+	}
+	return searchQuery, searchStr
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
