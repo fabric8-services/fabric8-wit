@@ -8,11 +8,14 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateLoadDeleteListWI(t *testing.T) {
+	resource.Require(t, resource.Database)
+
 	witRepo := models.NewWorkItemTypeRepository(db)
 	repo := models.NewWorkItemRepository(db)
 
