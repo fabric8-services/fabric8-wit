@@ -159,8 +159,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	}
 
 	log.Printf("executing query: '%s' with params %v", where, parameters)
-
-	db := r.db.Model(&WorkItem{}).Where(where, parameters)
+ 
+	db := r.db.Model(&WorkItem{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
 		if *start < 0 {

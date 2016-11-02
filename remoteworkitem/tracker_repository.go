@@ -78,7 +78,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 	log.Printf("executing query: %s", where)
 
 	var rows []Tracker
-	db := r.db.Where(where, parameters)
+	db := r.db.Where(where, parameters...)
 	if start != nil {
 		db = db.Offset(*start)
 	}
