@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/models"
 	"github.com/asaskevich/govalidator"
+	"github.com/jinzhu/gorm"
 )
 
 const (
@@ -41,13 +42,13 @@ const (
 
 // GormSearchRepository provides a Gorm based repository
 type GormSearchRepository struct {
-	ts  *models.GormTransactionSupport
+	db  *gorm.DB
 	wir *models.GormWorkItemTypeRepository
 }
 
 // NewGormSearchRepository creates a new search repository
-func NewGormSearchRepository(ts *models.GormTransactionSupport, wir *models.GormWorkItemTypeRepository) *GormSearchRepository {
-	return &GormSearchRepository{ts, wir}
+func NewGormSearchRepository(db *gorm.DB) *GormSearchRepository {
+	return &GormSearchRepository{db, models.NewWorkItemTypeRepository(db)}
 }
 
 func generateSearchQuery(q string) (string, error) {
@@ -73,14 +74,16 @@ func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*ap
 }
 
 func (r *GormSearchRepository) loadTypeFromDB(ctx context.Context, name string) (*models.WorkItemType, error) {
+
 	log.Printf("loading work item type %s", name)
 	res := models.WorkItemType{}
 
-	if r.ts.TX().Where("name=?", name).First(&res).RecordNotFound() {
+	db := r.db.Model(&res).Where("name=?", name).First(&res)
+	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item type", name}
 	}
-	if err := r.ts.TX().Error; err != nil {
+	if err := db.Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
@@ -240,7 +243,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParamete
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQuery string, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
 
-	db := r.ts.TX().Model(&models.WorkItem{}).Where(sqlSearchQuery, sqlSearchQueryParameter)
+	db := r.db.Model(&models.WorkItem{}).Where(sqlSearchQuery, sqlSearchQueryParameter)
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
