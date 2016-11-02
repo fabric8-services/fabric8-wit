@@ -31,13 +31,13 @@ const (
 	*/
 
 	// This SQL query is used when search is performed across workitem fields and workitem ID
-	testText = `setweight(to_tsvector('english',fields->>'system.title'),'B')||
+	WhereClauseForSearchByText = `setweight(to_tsvector('english',fields->>'system.title'),'B')||
 				setweight(to_tsvector('english',fields->>'system.description'),'C')|| 
 				setweight(to_tsvector('english', id::text),'A')
 				@@ to_tsquery('english',$1)`
 
 	// This SQL query is used when search is performed across workitem ID ONLY.
-	testID = `to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1)`
+	WhereClauseForSearchById = `to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1)`
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -228,13 +228,13 @@ func parseSearchString(rawSearchString string) searchKeyword {
 func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParameter string) {
 	idStr := strings.Join(keywords.id, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
-	searchQuery := testText
+	searchQuery := WhereClauseForSearchByText
 
 	if len(keywords.id) == 1 && len(keywords.words) == 0 {
 		// If the search string is of the form "id:2647326482" then we perform
 		// search only on the ID, else we do a full text search.
 		// Is "id:45453 id:43234" be valid ? NO, because the no row can have 2 IDs.
-		searchQuery = testID
+		searchQuery = WhereClauseForSearchById
 	}
 	return searchQuery, idStr + wordStr
 }
