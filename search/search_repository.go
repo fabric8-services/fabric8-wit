@@ -201,7 +201,7 @@ func getSearchQueryFromURLString(url string) string {
 func parseSearchString(rawSearchString string) searchKeyword {
 	// TODO remove special characters and exclaimations if any
 	rawSearchString = strings.ToLower(rawSearchString)
-	parts := strings.Split(rawSearchString, " ")
+	parts := strings.Fields(rawSearchString)
 	var res searchKeyword
 	for _, part := range parts {
 		// QueryUnescape is required in case of encoded url strings.
