@@ -88,6 +88,32 @@ func TestSearchByText(t *testing.T) {
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
 			minimumResults: 1,
 		},
+		{
+			wi: app.WorkItem{
+				// will test behaviour when null fields are present. In this case, "system.description" is nil
+				Fields: map[string]interface{}{
+					models.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
+					models.SystemCreator:  "sbose78",
+					models.SystemAssignee: "pranav",
+					models.SystemState:    "closed",
+				},
+			},
+			searchString:   `sbose nofield `,
+			minimumResults: 1,
+		},
+		{
+			wi: app.WorkItem{
+				// will test behaviour when null fields are present. In this case, "system.description" is nil
+				Fields: map[string]interface{}{
+					models.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
+					models.SystemCreator:  "sbose78",
+					models.SystemAssignee: "pranav",
+					models.SystemState:    "closed",
+				},
+			},
+			searchString:   `negative case `,
+			minimumResults: 0,
+		},
 	}
 
 	models.Transactional(db, func(tx *gorm.DB) error {
@@ -121,7 +147,10 @@ func TestSearchByText(t *testing.T) {
 
 			// Since this test adds test data, whether or not other workitems exist
 			// there must be at least 1 search result returned.
-			if len(workItemList) < minimumResults {
+			if len(workItemList) == minimumResults && minimumResults == 0 {
+				// no point checking further, we got what we wanted.
+				continue
+			} else if len(workItemList) < minimumResults {
 				t.Fatalf("At least %d search results was expected ", minimumResults)
 			}
 
@@ -141,8 +170,14 @@ func TestSearchByText(t *testing.T) {
 
 				for _, keyWord := range allKeywords {
 
-					workItemTitle := strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
-					workItemDescription := strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
+					workItemTitle := ""
+					if workItemValue.Fields[models.SystemTitle] != nil {
+						workItemTitle = strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
+					}
+					workItemDescription := ""
+					if workItemValue.Fields[models.SystemDescription] != nil {
+						workItemDescription = strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
+					}
 					keyWord = strings.ToLower(keyWord)
 
 					if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
@@ -152,7 +187,7 @@ func TestSearchByText(t *testing.T) {
 						// If not present in title/description then it should be a URL or ID
 						t.Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
 					} else {
-						t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemValue.Fields[models.SystemTitle], workItemValue.Fields[models.SystemDescription])
+						t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemTitle, workItemDescription)
 					}
 				}
 				//defer wir.Delete(context.Background(), workItemValue.ID)

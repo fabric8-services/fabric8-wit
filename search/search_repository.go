@@ -32,8 +32,8 @@ const (
 	*/
 
 	// This SQL query is used when search is performed across workitem fields and workitem ID
-	WhereClauseForSearchByText = `setweight(to_tsvector('english',fields->>'system.title'),'B')||
-				setweight(to_tsvector('english',fields->>'system.description'),'C')|| 
+	WhereClauseForSearchByText = `setweight(to_tsvector('english',coalesce(fields->>'system.title','')),'B')||
+				setweight(to_tsvector('english',coalesce(fields->>'system.description','')),'C')|| 
 				setweight(to_tsvector('english', id::text),'A')
 				@@ to_tsquery('english',$1)`
 
