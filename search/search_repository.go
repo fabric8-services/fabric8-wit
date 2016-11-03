@@ -174,7 +174,8 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 		searchQueryString := strings.Join(match[1:], "") + ":*"
 		if result["id"] != "" {
 			// Look for pattern's ID field, if exists update searchQueryString
-			searchQueryString = result["id"] + ":*" + " | " + searchQueryString
+			searchQueryString = fmt.Sprintf("(%v:* | %v)", result["id"], searchQueryString)
+			// searchQueryString = "(" + result["id"] + ":*" + " | " + searchQueryString + ")"
 		}
 		return searchQueryString
 	}

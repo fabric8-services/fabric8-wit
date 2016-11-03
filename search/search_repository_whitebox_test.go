@@ -43,6 +43,7 @@ type SearchTestDescriptor struct {
 }
 
 func TestSearchByText(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.Database)
 
 	wir := models.NewWorkItemRepository(db)
@@ -176,6 +177,7 @@ func stringInSlice(str string, list []string) bool {
 }
 
 func TestSearchByID(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.Database)
 	wir := models.NewWorkItemRepository(db)
 
@@ -229,6 +231,7 @@ func TestSearchByID(t *testing.T) {
 }
 
 func TestGenerateSQLSearchString(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := searchKeyword{
 		id:    []string{"10", "99"},
@@ -243,6 +246,7 @@ func TestGenerateSQLSearchString(t *testing.T) {
 }
 
 func TestParseSearchString(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "user input for search string with some ids like id:99 and id:400 but this is not id like 800"
 	op := parseSearchString(input)
@@ -254,20 +258,21 @@ func TestParseSearchString(t *testing.T) {
 }
 
 func TestParseSearchStringURL(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "http://demo.almighty.io/detail/100"
 	op := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
 		id:    nil,
-		words: []string{"100:* | demo.almighty.io/detail/100:*"},
+		words: []string{"(100:* | demo.almighty.io/detail/100:*)"},
 	}
-	fmt.Printf("\n%#v\n%#v", op, expectedSearchRes)
 
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringURLWithouID(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "http://demo.almighty.io/detail/"
 	op := parseSearchString(input)
@@ -276,12 +281,12 @@ func TestParseSearchStringURLWithouID(t *testing.T) {
 		id:    nil,
 		words: []string{"demo.almighty.io/detail:*"},
 	}
-	fmt.Printf("\n%#v\n%#v", op, expectedSearchRes)
 
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringDifferentURL(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "http://demo.redhat.io"
 	op := parseSearchString(input)
@@ -293,19 +298,21 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 }
 
 func TestParseSearchStringCombination(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://demo.redhat.io id:300 golang book and           id:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/detail/100 id:300 golang book and           id:900 \t \n unwanted"
 	op := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300", "900"},
-		words: []string{"demo.redhat.io:*", "golang", "book", "and", "unwanted"},
+		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/detail/100:*)", "golang", "book", "and", "unwanted"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestRegisterAsKnownURL(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// build 2 fake urls and cross check against RegisterAsKnownURL
 	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
@@ -325,6 +332,7 @@ func TestRegisterAsKnownURL(t *testing.T) {
 }
 
 func TestIsKnownURL(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// register few URLs and cross check is knwon or not one by one
 	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
@@ -343,6 +351,7 @@ func TestIsKnownURL(t *testing.T) {
 }
 
 func TestGetSearchQueryFromURLPattern(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// getSearchQueryFromURLPattern
 	// register urls
@@ -353,7 +362,7 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 	RegisterAsKnownURL(routeName, urlRegex)
 
 	searchQuery := getSearchQueryFromURLPattern(routeName, "google.me.io/everything/100")
-	assert.Equal(t, "100:* | google.me.io/everything/100:*", searchQuery)
+	assert.Equal(t, "(100:* | google.me.io/everything/100:*)", searchQuery)
 
 	searchQuery = getSearchQueryFromURLPattern(routeName, "google.me.io/everything/")
 	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
@@ -363,6 +372,7 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 }
 
 func TestGetSearchQueryFromURLString(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// register few urls
 	// call getSearchQueryFromURLString with different urls - both registered and non-registered
@@ -377,5 +387,5 @@ func TestGetSearchQueryFromURLString(t *testing.T) {
 	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
 
 	searchQuery = getSearchQueryFromURLString("google.me.io/everything/100")
-	assert.Equal(t, "100:* | google.me.io/everything/100:*", searchQuery)
+	assert.Equal(t, "(100:* | google.me.io/everything/100:*)", searchQuery)
 }
