@@ -246,7 +246,24 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
+func TestParseSearchStringCombination(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	// do combination of ID, full text and URLs
+	// check if it works as expected.
+	input := "http://demo.redhat.io id:300 golang book and           id:900 \t \n unwanted"
+	op := parseSearchString(input)
+	expectedSearchRes := searchKeyword{
+		id:    []string{"300", "900"},
+		words: []string{"demo.redhat.io:*", "golang", "book", "and", "unwanted"},
+	}
+	fmt.Printf("\n-----------%#v\n", op)
+	fmt.Printf("\n-----------%#v\n", expectedSearchRes)
+	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
+
+}
+
 func TestRegisterAsKnownURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// build 2 fake urls and cross check against RegisterAsKnownURL
 	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
 	routeName := "custom-test-route"
@@ -265,6 +282,7 @@ func TestRegisterAsKnownURL(t *testing.T) {
 }
 
 func TestIsKnownURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// register few URLs and cross check is knwon or not one by one
 	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
 	routeName := "custom-test-route"
@@ -282,6 +300,7 @@ func TestIsKnownURL(t *testing.T) {
 }
 
 func TestGetSearchQueryFromURLPattern(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// getSearchQueryFromURLPattern
 	// register urls
 	// select pattern and pass search string
@@ -301,6 +320,7 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 }
 
 func TestGetSearchQueryFromURLString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
 	// register few urls
 	// call getSearchQueryFromURLString with different urls - both registered and non-registered
 	searchQuery := getSearchQueryFromURLString("abcd.something.com")
