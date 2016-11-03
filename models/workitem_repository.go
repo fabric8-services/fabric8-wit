@@ -53,13 +53,13 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 		return NotFoundError{entity: "work item", ID: ID}
 	}
 	workItem.ID = id
-	tx := r.db
+	tx := r.db.Delete(workItem)
 
-	if err = tx.Delete(workItem).Error; err != nil {
-		if tx.RecordNotFound() {
-			return NotFoundError{entity: "work item", ID: ID}
-		}
+	if err = tx.Error; err != nil {
 		return InternalError{simpleError{err.Error()}}
+	}
+	if tx.RowsAffected == 0 {
+		return NotFoundError{entity: "work item", ID: ID}
 	}
 
 	return nil
