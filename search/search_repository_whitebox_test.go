@@ -3,6 +3,7 @@ package search
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -212,10 +213,37 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 
 func TestRegisterAsKnownURL(t *testing.T) {
 	// build 2 fake urls and cross check against RegisterAsKnownURL
+	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
+	routeName := "custom-test-route"
+	RegisterAsKnownURL(routeName, urlRegex)
+	compiledRegex := regexp.MustCompile(urlRegex)
+	groupNames := compiledRegex.SubexpNames()
+	var expected = make(map[string]KnownURL)
+	expected[routeName] = KnownURL{
+		urlRegex:          urlRegex,
+		compiledRegex:     regexp.MustCompile(urlRegex),
+		groupNamesInRegex: groupNames,
+	}
+	assert.True(t, assert.ObjectsAreEqualValues(expected[routeName], knownURLs[routeName]))
+	//cleanup
+	delete(knownURLs, routeName)
 }
 
 func TestIsKnownURL(t *testing.T) {
 	// register few URLs and cross check is knwon or not one by one
+	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
+	routeName := "custom-test-route"
+	RegisterAsKnownURL(routeName, urlRegex)
+	known, patternName := isKnownURL("google.me.io/everything/v1/v2/q=1")
+	assert.True(t, known)
+	assert.Equal(t, routeName, patternName)
+
+	known, patternName = isKnownURL("google.different.io/everything/v1/v2/q=1")
+	assert.False(t, known)
+	assert.Equal(t, "", patternName)
+
+	// cleanup
+	delete(knownURLs, routeName)
 }
 
 func TestGetSearchQueryFromURLPattern(t *testing.T) {
@@ -223,9 +251,33 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 	// register urls
 	// select pattern and pass search string
 	// validate output with different scenarios like ID present not present
+	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<id>\d*)`
+	routeName := "custom-test-route"
+	RegisterAsKnownURL(routeName, urlRegex)
+
+	searchQuery := getSearchQueryFromURLPattern(routeName, "google.me.io/everything/100")
+	assert.Equal(t, "100:* | google.me.io/everything/100:*", searchQuery)
+
+	searchQuery = getSearchQueryFromURLPattern(routeName, "google.me.io/everything/")
+	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
+
+	// cleanup
+	delete(knownURLs, routeName)
 }
 
 func TestGetSearchQueryFromURLString(t *testing.T) {
 	// register few urls
 	// call getSearchQueryFromURLString with different urls - both registered and non-registered
+	searchQuery := getSearchQueryFromURLString("abcd.something.com")
+	assert.Equal(t, "abcd.something.com:*", searchQuery)
+
+	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<id>\d*)`
+	routeName := "custom-test-route"
+	RegisterAsKnownURL(routeName, urlRegex)
+
+	searchQuery = getSearchQueryFromURLString("google.me.io/everything/")
+	assert.Equal(t, "google.me.io/everything/:*", searchQuery)
+
+	searchQuery = getSearchQueryFromURLString("google.me.io/everything/100")
+	assert.Equal(t, "100:* | google.me.io/everything/100:*", searchQuery)
 }

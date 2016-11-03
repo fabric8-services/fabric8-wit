@@ -153,6 +153,7 @@ func isKnownURL(url string) (bool, string) {
 // Iterates over pattern's groupNames and loads respective values into result
 func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 	pattern := knownURLs[patternName]
+	// TODO : handle case for 0 matches
 	match := pattern.compiledRegex.FindStringSubmatch(stringToMatch)
 	result := make(map[string]string)
 	// result will hold key-value for groupName to its value
@@ -169,12 +170,15 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 	}
 	// first value from FindStringSubmatch is always full input itself, hence ignored
 	// Join rest of the tokens to make query like "demo.almighty.io/details/100"
-	searchQueryString := strings.Join(match[1:], "") + ":*"
-	if result["id"] != "" {
-		// Look for pattern's ID field, if exists update searchQueryString
-		searchQueryString = result["id"] + ":*" + " | " + searchQueryString
+	if len(match) > 1 {
+		searchQueryString := strings.Join(match[1:], "") + ":*"
+		if result["id"] != "" {
+			// Look for pattern's ID field, if exists update searchQueryString
+			searchQueryString = result["id"] + ":*" + " | " + searchQueryString
+		}
+		return searchQueryString
 	}
-	return searchQueryString
+	return match[0] + ":*"
 }
 
 // getSearchQueryFromURLString gets a url string and checks if that matches with any of known urls.
