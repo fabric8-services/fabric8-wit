@@ -312,7 +312,6 @@ func TestParseSearchStringCombination(t *testing.T) {
 }
 
 func TestRegisterAsKnownURL(t *testing.T) {
-	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// build 2 fake urls and cross check against RegisterAsKnownURL
 	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
@@ -332,7 +331,6 @@ func TestRegisterAsKnownURL(t *testing.T) {
 }
 
 func TestIsKnownURL(t *testing.T) {
-	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// register few URLs and cross check is knwon or not one by one
 	urlRegex := `(?P<domain>google.me.io)(?P<path>/everything/)(?P<param>.*)`
@@ -351,7 +349,6 @@ func TestIsKnownURL(t *testing.T) {
 }
 
 func TestGetSearchQueryFromURLPattern(t *testing.T) {
-	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// getSearchQueryFromURLPattern
 	// register urls
@@ -372,7 +369,6 @@ func TestGetSearchQueryFromURLPattern(t *testing.T) {
 }
 
 func TestGetSearchQueryFromURLString(t *testing.T) {
-	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	// register few urls
 	// call getSearchQueryFromURLString with different urls - both registered and non-registered
