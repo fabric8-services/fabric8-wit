@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"sync"
 
 	"golang.org/x/net/context"
 
@@ -114,11 +115,14 @@ type KnownURL struct {
 // }
 // above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
 var knownURLs = make(map[string]KnownURL)
+var knownURLLock sync.RWMutex
 
 // RegisterAsKnownURL appends to KnownURLs
 func RegisterAsKnownURL(name, urlRegex string) {
 	compiledRegex := regexp.MustCompile(urlRegex)
 	groupNames := compiledRegex.SubexpNames()
+	knownURLLock.Lock()
+	defer knownURLLock.Unlock()
 	knownURLs[name] = KnownURL{
 		urlRegex:          urlRegex,
 		compiledRegex:     regexp.MustCompile(urlRegex),
