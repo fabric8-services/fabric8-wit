@@ -209,7 +209,6 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// but this processing is required becasue at this moment, we do not know if
 		// search input is a regular string or a URL
 		part, err := url.QueryUnescape(part)
-		fmt.Println(part)
 		if err != nil {
 			fmt.Println("Could not escape url", err)
 		}
