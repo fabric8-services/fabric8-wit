@@ -87,8 +87,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
-	result := transaction.Do(c.ts, func() error {
-		err := c.tqRepository.Delete(ctx.Context, ctx.ID)
+	result := application.Transactional(c.db, func(appl application.Application) error {
+		err := appl.TrackerQueries().Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case remoteworkitem.NotFoundError:
@@ -113,8 +113,8 @@ func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
-	return transaction.Do(c.ts, func() error {
-		result, err := c.tqRepository.List(ctx.Context, exp, start, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.TrackerQueries().List(ctx.Context, exp, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error()))
 		}

@@ -130,7 +130,7 @@ func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID string) erro
 		return NotFoundError{entity: "trackerquery", ID: ID}
 	}
 	tq.ID = id
-	tx := r.ts.TX()
+	tx := r.db
 	tx = tx.Delete(tq)
 	if err = tx.Error; err != nil {
 		return InternalError{simpleError{err.Error()}}
@@ -151,7 +151,7 @@ func (r *GormTrackerQueryRepository) List(ctx context.Context, criteria criteria
 	log.Printf("executing query: %s", where)
 
 	var rows []TrackerQuery
-	db := r.ts.TX().Where(where, parameters)
+	db := r.db.Where(where, parameters)
 	if start != nil {
 		db = db.Offset(*start)
 	}
