@@ -250,7 +250,6 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParamete
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQuery string, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-
 	db := r.db.Model(&models.WorkItem{}).Where(sqlSearchQuery, sqlSearchQueryParameter)
 	orgDB := db
 	if start != nil {

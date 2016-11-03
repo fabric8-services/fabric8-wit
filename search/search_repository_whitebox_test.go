@@ -36,88 +36,134 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+type SearchTestDescriptor struct {
+	wi             app.WorkItem
+	searchString   string
+	minimumResults int
+}
+
 func TestSearchByText(t *testing.T) {
 	resource.Require(t, resource.Database)
 
 	wir := models.NewWorkItemRepository(db)
 
+	testDataSet := []SearchTestDescriptor{
+		{
+			wi: app.WorkItem{
+				Fields: map[string]interface{}{
+					models.SystemTitle:       "test sbose title '12345678asdfgh'",
+					models.SystemDescription: `"description" for search test`,
+					models.SystemCreator:     "sbose78",
+					models.SystemAssignee:    "pranav",
+					models.SystemState:       "closed",
+				},
+			},
+			searchString:   `Sbose "deScription" '12345678asdfgh' `,
+			minimumResults: 1,
+		},
+		{
+			wi: app.WorkItem{
+				Fields: map[string]interface{}{
+					models.SystemTitle:       "add new error types in models/errors.go'",
+					models.SystemDescription: `Make sure remoteworkitem can access..`,
+					models.SystemCreator:     "sbose78",
+					models.SystemAssignee:    "pranav",
+					models.SystemState:       "closed",
+				},
+			},
+			searchString:   `models/errors.go remoteworkitem `,
+			minimumResults: 1,
+		},
+		{
+			wi: app.WorkItem{
+				Fields: map[string]interface{}{
+					models.SystemTitle:       "test sbose title '12345678asdfgh'",
+					models.SystemDescription: `"description" for search test`,
+					models.SystemCreator:     "sbose78",
+					models.SystemAssignee:    "pranav",
+					models.SystemState:       "closed",
+				},
+			},
+			searchString:   `Sbose "deScription" '12345678asdfgh' `,
+			minimumResults: 1,
+		},
+	}
+
 	models.Transactional(db, func(tx *gorm.DB) error {
 
-		workItem := app.WorkItem{Fields: make(map[string]interface{})}
-		createdWorkItems := make([]string, 0, 3)
+		for _, testData := range testDataSet {
+			workItem := testData.wi
+			searchString := testData.searchString
+			minimumResults := testData.minimumResults
+			workItemUrlInSearchString := "http://demo.almighty.io/detail/"
 
-		workItem.Fields = map[string]interface{}{
-			models.SystemTitle:       "test sbose title for search",
-			models.SystemDescription: "description for search test",
-			models.SystemCreator:     "sbose78",
-			models.SystemAssignee:    "pranav",
-			models.SystemState:       "closed",
-		}
-
-		workItemUrlInSearchString := "http://demo.almighty.io/detail/"
-		searchString := "Sbose deScription "
-		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
-		defer wir.Delete(context.Background(), createdWorkItem.ID)
-
-		if err != nil {
-			t.Fatal("Couldnt create test data")
-		}
-
-		// create the URL and use it in the search string
-		workItemUrlInSearchString = workItemUrlInSearchString + createdWorkItem.ID
-
-		// had to dynamically create this since I didn't now the URL/ID of the workitem
-		// till the test data was created.
-		searchString = searchString + workItemUrlInSearchString
-		t.Log("using search string: " + searchString)
-
-		createdWorkItems = append(createdWorkItems, createdWorkItem.ID)
-		t.Log(createdWorkItem.ID)
-
-		sr := NewGormSearchRepository(db)
-		var start, limit int = 0, 100
-		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
-		if err != nil {
-			t.Fatal("Error getting search result ", err)
-		}
-
-		// Since this test adds test data, whether or not other workitems exist
-		// there must be at least 1 search result returned.
-		assert.NotEqual(t, 0, len(workItemList))
-
-		// These keywords need a match in the textual part.
-		allKeywords := []string{workItemUrlInSearchString, createdWorkItem.ID, "Sbose", "deScription"}
-
-		// These keywords need a match
-		optionalKeywords := []string{workItemUrlInSearchString, createdWorkItem.ID}
-
-		// We will now check the legitimacy of the search results.
-		// Iterate through all search results and see whether they meet the critera
-
-		for _, workItemValue := range workItemList {
-			t.Log("Found search result  ", workItemValue.ID)
-
-			for _, keyWord := range allKeywords {
-
-				workItemTitle := strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
-				workItemDescription := strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
-				keyWord = strings.ToLower(keyWord)
-
-				if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
-					// Check if the search keyword is present as text in the title/description
-					t.Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
-				} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, workItemValue.ID) {
-					// If not present in title/description then it should be a URL or ID
-					t.Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
-				} else {
-					t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemValue.Fields[models.SystemTitle], workItemValue.Fields[models.SystemDescription])
-				}
+			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
+			if err != nil {
+				t.Fatal("Couldnt create test data")
 			}
-			// defer wir.Delete(context.Background(), workItemValue.ID)
-		}
 
-		return err
+			defer wir.Delete(context.Background(), createdWorkItem.ID)
+
+			// create the URL and use it in the search string
+			workItemUrlInSearchString = workItemUrlInSearchString + createdWorkItem.ID
+
+			// had to dynamically create this since I didn't now the URL/ID of the workitem
+			// till the test data was created.
+			searchString = searchString + workItemUrlInSearchString
+			t.Log("using search string: " + searchString)
+			sr := NewGormSearchRepository(db)
+			var start, limit int = 0, 100
+			workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
+			if err != nil {
+				t.Fatal("Error getting search result ", err)
+			}
+
+			// Since this test adds test data, whether or not other workitems exist
+			// there must be at least 1 search result returned.
+			if len(workItemList) < minimumResults {
+				t.Fatalf("At least %d search results was expected ", minimumResults)
+			}
+
+			// These keywords need a match in the textual part.
+			allKeywords := strings.Fields(searchString)
+			allKeywords = append(allKeywords, createdWorkItem.ID)
+			//[]string{workItemUrlInSearchString, createdWorkItem.ID, `"Sbose"`, `"deScription"`, `'12345678asdfgh'`}
+
+			// These keywords need a match optionally either as URL string or ID
+			optionalKeywords := []string{workItemUrlInSearchString, createdWorkItem.ID}
+
+			// We will now check the legitimacy of the search results.
+			// Iterate through all search results and see whether they meet the critera
+
+			for _, workItemValue := range workItemList {
+				t.Log("Found search result  ", workItemValue.ID)
+
+				for _, keyWord := range allKeywords {
+
+					workItemTitle := strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
+					workItemDescription := strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
+					keyWord = strings.ToLower(keyWord)
+
+					if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
+						// Check if the search keyword is present as text in the title/description
+						t.Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
+					} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, workItemValue.ID) {
+						// If not present in title/description then it should be a URL or ID
+						t.Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
+					} else {
+						t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemValue.Fields[models.SystemTitle], workItemValue.Fields[models.SystemDescription])
+					}
+				}
+				//defer wir.Delete(context.Background(), workItemValue.ID)
+			}
+
+		}
+		return nil
+
 	})
+}
+
+func TestComplexSearchStrings(t *testing.T) {
 }
 
 func stringInSlice(str string, list []string) bool {
