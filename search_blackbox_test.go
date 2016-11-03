@@ -34,6 +34,33 @@ func TestSearch(t *testing.T) {
 	q := "specialwordforsearch"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, &q)
 	r := sr.Data[0]
-	assert.Equal(t, r.Fields[models.SystemTitle], "specialwordforsearch")
+	assert.Equal(t, "specialwordforsearch", r.Fields[models.SystemTitle])
+	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
+}
+
+func TestSearchPagination(t *testing.T) {
+	resource.Require(t, resource.Database)
+
+	service := goa.New("TestSearch-Service")
+	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+
+	wiPayload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:       "specialwordforsearch2",
+			models.SystemDescription: "",
+			models.SystemCreator:     "baijum",
+			models.SystemState:       "closed"},
+	}
+
+	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	q := "specialwordforsearch2"
+	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, &q)
+	assert.Equal(t, "/api/search?q=specialwordforsearch2&page[offset]=0,page[limit]=100", *sr.Links.First)
+	assert.Equal(t, "/api/search?q=specialwordforsearch2&page[offset]=0,page[limit]=100", *sr.Links.Last)
+	r := sr.Data[0]
+	assert.Equal(t, "specialwordforsearch2", r.Fields[models.SystemTitle])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
