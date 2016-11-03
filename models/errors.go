@@ -2,9 +2,9 @@ package models
 
 import "fmt"
 
-const(
+const (
 	stBadParameterErrorMsg = "Bad value for parameter '%s': '%v'"
-	stNotFoundErrorMsg = "%s with id '%s' not found"
+	stNotFoundErrorMsg     = "%s with id '%s' not found"
 )
 
 type simpleError struct {
@@ -15,14 +15,10 @@ func (err simpleError) Error() string {
 	return err.message
 }
 
-func NewSimpleError(msg string) simpleError {
-	return simpleError{message: msg}
-}
-
+// NewInternalError returns the custom defined error of type NewInternalError.
 func NewInternalError(msg string) InternalError {
-	return InternalError{simpleError: NewSimpleError(msg)}
+	return InternalError{simpleError{msg}}
 }
-
 
 // InternalError means that the operation failed for some internal, unexpected reason
 type InternalError struct {
@@ -43,6 +39,11 @@ type BadParameterError struct {
 // Error implements the error interface
 func (err BadParameterError) Error() string {
 	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
+}
+
+// NewConversionError returns the custom defined error of type NewConversionError.
+func NewConversionError(msg string) ConversionError {
+	return ConversionError{simpleError{msg}}
 }
 
 // ConversionError error means something went wrong converting between different representations
