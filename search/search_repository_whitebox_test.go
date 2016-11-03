@@ -54,13 +54,23 @@ func TestSearchByText(t *testing.T) {
 			models.SystemState:       "closed",
 		}
 
-		searchString := "Sbose deScription"
+		workItemUrlInSearchString := "http://demo.almighty.io/detail/"
+		searchString := "Sbose deScription "
 		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
 		defer wir.Delete(context.Background(), createdWorkItem.ID)
 
 		if err != nil {
 			t.Fatal("Couldnt create test data")
 		}
+
+		// create the URL and use it in the search string
+		workItemUrlInSearchString = workItemUrlInSearchString + createdWorkItem.ID
+
+		// had to dynamically create this since I didn't now the URL/ID of the workitem
+		// till the test data was created.
+		searchString = searchString + workItemUrlInSearchString
+		t.Log("using search string: " + searchString)
+
 		createdWorkItems = append(createdWorkItems, createdWorkItem.ID)
 		t.Log(createdWorkItem.ID)
 
@@ -71,18 +81,34 @@ func TestSearchByText(t *testing.T) {
 			t.Fatal("Error getting search result ", err)
 		}
 
-		mandatoryKeyWords := strings.Split(searchString, " ")
+		// Since this test adds test data, whether or not other workitems exist
+		// there must be at least 1 search result returned.
+		assert.NotEqual(t, 0, len(workItemList))
+
+		// These keywords need a match in the textual part.
+		allKeywords := []string{workItemUrlInSearchString, createdWorkItem.ID, "Sbose", "deScription"}
+
+		// These keywords need a match
+		optionalKeywords := []string{workItemUrlInSearchString, createdWorkItem.ID}
+
+		// We will now check the legitimacy of the search results.
+		// Iterate through all search results and see whether they meet the critera
+
 		for _, workItemValue := range workItemList {
 			t.Log("Found search result  ", workItemValue.ID)
 
-			for _, keyWord := range mandatoryKeyWords {
+			for _, keyWord := range allKeywords {
 
 				workItemTitle := strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
 				workItemDescription := strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
 				keyWord = strings.ToLower(keyWord)
 
 				if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
+					// Check if the search keyword is present as text in the title/description
 					t.Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
+				} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, workItemValue.ID) {
+					// If not present in title/description then it should be a URL or ID
+					t.Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
 				} else {
 					t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemValue.Fields[models.SystemTitle], workItemValue.Fields[models.SystemDescription])
 				}
@@ -92,6 +118,15 @@ func TestSearchByText(t *testing.T) {
 
 		return err
 	})
+}
+
+func stringInSlice(str string, list []string) bool {
+	for _, v := range list {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }
 
 func TestSearchByID(t *testing.T) {
