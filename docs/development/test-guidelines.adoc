@@ -1,0 +1,209 @@
+= Test Guidelines
+:toc:
+:toc-placement: preamble
+
+:sectnums:
+:experimental:
+
+This documents contains various information on testing the codebase. Over time it might
+grow to include sections on other testing strategies than unit or integration tests. 
+
+[[how-to-write-unit-tests]]
+== How to write unit tests?
+
+Instead of writing down general rules for how to write tests, this section presents a
+step-by-step approach on how to write tests for a very simply library file called `lib.go`
+that lives inside the `foo/bar` package.
+The library contains three one-line functions which means that we have to test three functions
+in order to gain 100% test coverage. For simplicity, the functions under test don't have
+any dependency on an external resource like a database connection or something else.
+Nevertheless we will present mechanisms to handle this as well.
+
+[[lib-dot-go-source]]
+[source,go]
+.$GOPATH/src/foo/bar/lib.go
+----
+package bar // <1>
+
+import (
+	"fmt"
+	"strings"
+)
+
+// Say returns the input string as is
+func Say(message string) string { // <2>
+	return fmt.Sprintf("%s", message)
+}
+
+// Shout returns the input string in upper case
+// letters with three exlamation marks.
+func Shout(message string) string { // <3>
+	return fmt.Sprintf("%s!!!", toUpper(message))
+}
+
+// toUpper returns the input string in upper case
+func toUpper(message string) string { // <4>
+	return strings.ToUpper(message)
+}
+----
+<1> The package name is `bar`. 
+<2> An exported function called `Say` that is unknown packages that import `bar`.
+<3> Another exported function called `Shout` that is unknown packages that import `bar`.
+<4> A function called `toUpper` that is unexported and unknown packages that import `bar`.
+
+=== Blackbox vs. Whitebox tests
+
+In a blackbox test, you test a package as if you **only have access to the
+exported symbols**. In our <<lib-dot-go-source>> example above we have two exported
+symbols: `Say` and `Shout`. The `toUpper` function is an unexported symbol due
+to its lowercase name. 
+
+A whitebox test has access to all symbols, and not only to the expored ones.
+
+In principle, all symbols in a file can be *seen* by all files in the same package.
+As a consequence, to have a blackbox test, we must write it in a different package
+than `bar`. But in order for `go test` to pick up a test we need to place it in the
+same directory as the <<lib-dot-go-source>> file.
+
+In Go your test filenames must end with `_test.go`. In order to distinguish black-
+and whitebox test files, a recommendation is to use the suffixes `_blackbox_test.go`
+and `_whitebox_test.go`.
+
+[[lib-blackbox-test-dot-go-source]]
+[source,go]
+.$GOPATH/src/foo/bar/lib_blackbox_test.go
+----
+package bar_test // <1>
+
+import (
+	. "foo/bar" // <2>
+	"testing"
+)
+
+func TestSay(t *testing.T) { // <3>
+	t.Parallel() // <4>
+	if Say("heLLo") != "heLLo" { 
+		t.Errorf("Wrong say result")
+	}
+}
+
+func TestShout(t *testing.T) { // <5>
+	t.Parallel() // <6>
+	if Shout("heLLo") != "HELLO!!!" {
+		t.Errorf("Wrong shout result")
+	}
+}
+----
+<1> Notice that Go **allows** the package name `bar_test` to exist in the `bar` folder.
+<2> One of the very few circumstances in which a dot-import is okay in Go. Here it simply
+    allows for easier writing.
+<3> Testing the exported `Say` function.
+<4> Marking the test for the `Say` function test as: "executable in parallel".
+<5> Testing the exported `Shout` function.
+<6> Marking the test for the `Shout` function test as: "executable in parallel".
+
+A few things to notice in <<lib-blackbox-test-dot-go-source>> is the package name: `bar_test`.
+This is an exception to the Go compiler because normally only package names with the same name are
+allowed in one folder. Go doesn't complain if you add `_test` to the name though.
+A nice side-effect of this exception is that it allows us to better determine the coverage of
+a package. If the test functions needed to live inside of a different directory, we would
+not have been able to collect coverage information because currently Go can only collect
+this for a single package or directory.
+
+NOTE: Have you noticed the `t.Parallel()` calls? This is a hint for `go test` so that it knows
+that the test `t` can be executed in parallel. Normally `go test` executes tests sequentially,
+but it also tries to executes as many tests in parallel as there are CPUs and as there are tests
+that have been marked to be executable in parallel. In this example, none of our tests
+has any side effects and so they can be executed in parallel.
+The number of parallel executable tests can be overwritten by the `-parallel` switch.
+
+Let's move on to our whitebox test file.
+
+[[lib-whitebox-test-dot-go-source]]
+[source,go]
+.$GOPATH/src/foo/bar/lib_whitebox_test.go
+----
+package bar // <1>
+
+import "testing"
+
+func TestToUpper(t *testing.T) { // <2>
+	t.Parallel() // <3>
+	if toUpper("hello") != "HELLO" {
+		t.Fail()
+	}
+}
+----
+<1> Notice the package name is just `bar` so we have access to all symbols (exported and unexported ones).
+<2> Test the unexported symbol `toUpper`.
+<3> Marking the test for the `toUpper` function test as: "executable in parallel".
+
+The whitebox test <<lib-whitebox-test-dot-go-source>> uses the `bar` package name
+and thereby gets access to all the internal of a package. There is also no need
+to import the `foo/bar` package. We can just use the `toUpper()` function.
+
+In order to confirm that our code actually works, let's jump to a shell and run these commands:
+
+[source,bash]
+.Run tests and collect coverage information
+----
+$ go test -v -coverprofile cov.out foo/bar # <1>
+=== RUN   TestToUpper
+--- PASS: TestToUpper (0.00s)
+=== RUN   TestSay
+=== RUN   TestShout
+--- PASS: TestSay (0.00s)
+--- PASS: TestShout (0.00s)
+PASS
+coverage: 100.0% of statements
+ok  	foo/bar	0.002s
+
+
+$ go tool cover -func=cov.out # <2>
+foo/bar/lib.go:9:	Say		100.0%
+foo/bar/lib.go:15:	Shout		100.0%
+foo/bar/lib.go:20:	toUpper		100.0%
+total:			(statements)	100.0%
+----
+<1> Runs all the tests in the `foo/bar` package and collects coverage information in the `cov.out` file.
+<2> Prints coverage information per function in the package.
+
+[[why-no-build-tags]]
+== Why don't we use build tags?
+
+What we want is to compile all code in our codebase to find errors quickly.
+
+At runtime we may want to skip some tests for speed or missing dependency reasons. 
+
+There are people on the internet that propose the use of build tags to distinguish
+unit and integration tests. The way this works is as follows:
+
+ 1. You write a comment in the form of `// +build unit` or `// +build integration`
+    as the first line inside of a `*.go` file.
+ 2. As a consequence such a file will only be compiled by `go build` or `go test`
+    if a special tag (e.g. `unit` or `integration`) is specified on the command
+    line using the `-tags` parameter (see `go build --help`).
+
+This has dramatic side effects:
+
+Suppose all that you wanted was to distinguish *at runtime* if a test shall be run or not (skipped).
+With build tags though, your code will *not even be compiled* and *compile errors cannot be found*
+if a tag is missing.
+
+That is why we try to avoid build tags. We don't say that build tags are completely useless.
+In order to compile platform specific code, they come in handy for example.
+
+[[why-no-short-parameter]]
+== Why don't we use the -short parameter?
+
+The `go test` command offers a switch ( `-short` ) to skip long running tests,
+that have been marked as such.
+
+The downside of build tags (see <<why-no-build-tags>>) is eliminated because
+the decision whether a test is run, is made at runtime.
+
+The only reason why we still don't use the `-short` parameter is that we want to
+have the ability to define more test-skipping criteria than just the time
+consumed by a test.
+That is why we have the `resource.require(t, resource.Database)` syntax to
+specify what resource is required by a certain test.
