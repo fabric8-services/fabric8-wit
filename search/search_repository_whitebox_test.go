@@ -256,10 +256,7 @@ func TestParseSearchStringCombination(t *testing.T) {
 		id:    []string{"300", "900"},
 		words: []string{"demo.redhat.io:*", "golang", "book", "and", "unwanted"},
 	}
-	fmt.Printf("\n-----------%#v\n", op)
-	fmt.Printf("\n-----------%#v\n", expectedSearchRes)
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
-
 }
 
 func TestRegisterAsKnownURL(t *testing.T) {
