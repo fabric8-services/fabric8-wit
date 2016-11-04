@@ -359,7 +359,6 @@ Start up dependent docker services using `docker-compose` and runs auto reload o
 
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
-$ export ALMIGHTY_DEVELOPER_MODE_ENABLED=true
 $ make dev
 ----
 

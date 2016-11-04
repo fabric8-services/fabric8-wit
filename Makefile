@@ -186,7 +186,7 @@ generate: app/controllers.go assets/js/client.js bindata_assetfs.go migration/sq
 .PHONY: dev
 dev: prebuild-check deps generate $(FRESH_BIN)
 	docker-compose up -d db
-	$(FRESH_BIN)
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=true $(FRESH_BIN)
 
 include ./.make/test.mk
 
