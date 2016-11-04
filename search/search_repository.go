@@ -31,14 +31,14 @@ const (
 
 	*/
 
-	// This SQL query is used when search is performed across workitem fields and workitem ID
+	// WhereClauseForSearchByText This SQL query is used when search is performed across workitem fields and workitem ID
 	WhereClauseForSearchByText = `setweight(to_tsvector('english',coalesce(fields->>'system.title','')),'B')||
 				setweight(to_tsvector('english',coalesce(fields->>'system.description','')),'C')|| 
 				setweight(to_tsvector('english', id::text),'A')
 				@@ to_tsquery('english',$1)`
 
-	// This SQL query is used when search is performed across workitem ID ONLY.
-	WhereClauseForSearchById = `to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1)`
+	// WhereClauseForSearchByID This SQL query is used when search is performed across workitem ID ONLY.
+	WhereClauseForSearchByID = `to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1)`
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -242,7 +242,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParamete
 		// If the search string is of the form "id:2647326482" then we perform
 		// search only on the ID, else we do a full text search.
 		// Is "id:45453 id:43234" be valid ? NO, because the no row can have 2 IDs.
-		searchQuery = WhereClauseForSearchById
+		searchQuery = WhereClauseForSearchByID
 	}
 
 	searchStr := idStr + wordStr

@@ -122,7 +122,7 @@ func TestSearchByText(t *testing.T) {
 			workItem := testData.wi
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
-			workItemUrlInSearchString := "http://demo.almighty.io/detail/"
+			workItemURLInSearchString := "http://demo.almighty.io/detail/"
 
 			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
 			if err != nil {
@@ -132,11 +132,11 @@ func TestSearchByText(t *testing.T) {
 			defer wir.Delete(context.Background(), createdWorkItem.ID)
 
 			// create the URL and use it in the search string
-			workItemUrlInSearchString = workItemUrlInSearchString + createdWorkItem.ID
+			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
 
 			// had to dynamically create this since I didn't now the URL/ID of the workitem
 			// till the test data was created.
-			searchString = searchString + workItemUrlInSearchString
+			searchString = searchString + workItemURLInSearchString
 			t.Log("using search string: " + searchString)
 			sr := NewGormSearchRepository(db)
 			var start, limit int = 0, 100
@@ -157,10 +157,10 @@ func TestSearchByText(t *testing.T) {
 			// These keywords need a match in the textual part.
 			allKeywords := strings.Fields(searchString)
 			allKeywords = append(allKeywords, createdWorkItem.ID)
-			//[]string{workItemUrlInSearchString, createdWorkItem.ID, `"Sbose"`, `"deScription"`, `'12345678asdfgh'`}
+			//[]string{workItemURLInSearchString, createdWorkItem.ID, `"Sbose"`, `"deScription"`, `'12345678asdfgh'`}
 
 			// These keywords need a match optionally either as URL string or ID
-			optionalKeywords := []string{workItemUrlInSearchString, createdWorkItem.ID}
+			optionalKeywords := []string{workItemURLInSearchString, createdWorkItem.ID}
 
 			// We will now check the legitimacy of the search results.
 			// Iterate through all search results and see whether they meet the critera
