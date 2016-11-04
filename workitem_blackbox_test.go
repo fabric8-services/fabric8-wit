@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 
 	"testing"
@@ -399,17 +400,17 @@ EtL7rwKBgQC5x7lGs+908uqf7yFXHzw7rPGFUe6cuxZ3jVOzovVoXRma+C7nroNx
 CMnDipW5SU9AQE+xC8Zc+02rcyuZ7ha1WXKgIKwAa92jmJSCJjzdxA==
 -----END RSA PRIVATE KEY-----`
 
-func createPagingTest(t *testing.T, controller *Workitem2Controller, repo *testsupport.WorkItemRepository, totalCount int64) func(start float64, limit float64, first string, last string, prev string, next string) {
-	return func(start float64, limit float64, first string, last string, prev string, next string) {
+func createPagingTest(t *testing.T, controller *Workitem2Controller, repo *testsupport.WorkItemRepository, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
+	return func(start int, limit int, first string, last string, prev string, next string) {
 		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
-
-		_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &start)
+		offset := strconv.Itoa(start)
+		_, response := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
 		assertLink(t, "next", next, response.Links.Next)
-		assert.Equal(t, float64(totalCount), response.Meta.TotalCount)
+		assert.Equal(t, totalCount, response.Meta.TotalCount)
 	}
 }
 
@@ -427,12 +428,12 @@ func assertLink(t *testing.T, l string, expected string, actual *string) {
 	}
 }
 
-func computeCount(totalCount int64, start int, limit int) int {
-	if start < 0 || int64(start) >= totalCount {
+func computeCount(totalCount int, start int, limit int) int {
+	if start < 0 || start >= totalCount {
 		return 0
 	}
-	if int64(start+limit) > totalCount {
-		return int(totalCount - int64(start))
+	if start+limit > totalCount {
+		return totalCount - start
 	}
 	return limit
 }
@@ -479,19 +480,19 @@ func TestPagingErrors(t *testing.T) {
 	db := testsupport.NewMockDB()
 	controller := NewWorkitem2Controller(svc, db)
 
-	var offset float64 = -1
-	var limit float64 = 2
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+	var offset string = "-1"
+	var limit int = 2
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
 
-	offset = 0
+	offset = "0"
 	limit = 0
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
 
-	offset = 3
+	offset = "3"
 	limit = -1
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
 
-	offset = -3
+	offset = "-3"
 	limit = -1
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &offset, &limit)
+	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
 }

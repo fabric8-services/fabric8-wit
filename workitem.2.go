@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -98,7 +99,12 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	if ctx.PageOffset == nil {
 		offset = 0
 	} else {
-		offset = int(*ctx.PageOffset)
+		offsetValue, err := strconv.Atoi(*ctx.PageOffset)
+		if err != nil {
+			offset = 0
+		} else {
+			offset = offsetValue
+		}
 	}
 	if err != nil {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse page offset: %s", err.Error())))
@@ -107,7 +113,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	if ctx.PageLimit == nil {
 		limit = 100
 	} else {
-		limit = int(*ctx.PageLimit)
+		limit = *ctx.PageLimit
 	}
 	if err != nil {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse page limit: %s", err.Error())))
@@ -135,7 +141,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 
 		response := app.WorkItemListResponse{
 			Links: &app.PagingLinks{},
-			Meta:  &app.WorkItemListResponseMeta{TotalCount: float64(count)},
+			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 			Data:  result,
 		}
 
