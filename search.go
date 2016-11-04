@@ -59,8 +59,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		}
 
 		response := app.SearchResponse{
-			Links: &app.SearchPagingLinks{},
-			Meta:  &app.SearchResponseMeta{TotalCount: float64(count)},
+			Links: &app.PagingLinks{},
+			Meta:  &app.WorkItemListResponseMeta{TotalCount: float64(count)},
 			Data:  result,
 		}
 
