@@ -104,16 +104,18 @@ type KnownURL struct {
 	groupNamesInRegex []string       // Valid output of SubexpNames called on compliedRegex
 }
 
-// KnownURLs is set of KnownURLs will be used while searching on a URL
-// "Known" means that, our system understands the format of URLs
-// URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
-// e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
-// knownURLs["work-item-details"] = KnownURL{
-// 	urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`,
-// 	compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`),
-//  groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
-// }
-// above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
+/*
+KnownURLs is set of KnownURLs will be used while searching on a URL
+"Known" means that, our system understands the format of URLs
+URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
+e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
+knownURLs["work-item-details"] = KnownURL{
+urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`,
+compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`),
+groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
+}
+above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
+*/
 var knownURLs = make(map[string]KnownURL)
 var knownURLLock sync.RWMutex
 
@@ -130,9 +132,11 @@ func RegisterAsKnownURL(name, urlRegex string) {
 	}
 }
 
-// isKnownURL compares with registered URLs in our system.
-// Iterates over knownURLs and finds out most relevent matching pattern.
-// If found, it returns true along with "name" of the KnownURL
+/*
+isKnownURL compares with registered URLs in our system.
+Iterates over knownURLs and finds out most relevent matching pattern.
+If found, it returns true along with "name" of the KnownURL
+*/
 func isKnownURL(url string) (bool, string) {
 	// should check on all system's known URLs
 	var mostReleventMatchCount int
@@ -150,11 +154,13 @@ func isKnownURL(url string) (bool, string) {
 	return true, mostReleventMatchName
 }
 
-//getSearchQueryFromURLPattern takes
-// patternName - name of the KnownURL
-// stringToMatch - search string
-// Finds all string match for given pattern
-// Iterates over pattern's groupNames and loads respective values into result
+/*
+getSearchQueryFromURLPattern takes
+patternName - name of the KnownURL
+stringToMatch - search string
+Finds all string match for given pattern
+Iterates over pattern's groupNames and loads respective values into result
+*/
 func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 	pattern := knownURLs[patternName]
 	// TODO : handle case for 0 matches
@@ -186,11 +192,13 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 	return match[0] + ":*"
 }
 
-// getSearchQueryFromURLString gets a url string and checks if that matches with any of known urls.
-// Respectively it will return a string that can be directly used in search query
-// e.g>
-// Unknown url : www.google.com then response = "www.google.com:*"
-// Known url : almighty.io/detail/500 then response = "500:* | almighty.io/detail/500"
+/*
+getSearchQueryFromURLString gets a url string and checks if that matches with any of known urls.
+Respectively it will return a string that can be directly used in search query
+e.g>
+Unknown url : www.google.com then response = "www.google.com:*"
+Known url : almighty.io/detail/500 then response = "500:* | almighty.io/detail/500"
+*/
 func getSearchQueryFromURLString(url string) string {
 	known, patternName := isKnownURL(url)
 	if known {
