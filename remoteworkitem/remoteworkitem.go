@@ -49,17 +49,17 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 		AttributeMapper{AttributeExpression(GithubAssignee), StringConverter{}}:    models.SystemAssignee,
 	},
 	ProviderJira: WorkItemMap{
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:      models.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:       models.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), GithubStateConverter{}}: models.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:         models.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:    models.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), StringConverter{}}:   models.SystemAssignee,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:    models.SystemTitle,
+		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:     models.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}: models.SystemState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:       models.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:  models.SystemCreator,
+		AttributeMapper{AttributeExpression(JiraAssignee), StringConverter{}}: models.SystemAssignee,
 	},
 }
 
 type AttributeConverter interface {
-	Convert(interface{}) (interface{}, error)
+	Convert(interface{}, interface{}) (interface{}, error)
 }
 
 type StateConverter interface{}
@@ -68,16 +68,31 @@ type StringConverter struct{}
 
 type GithubStateConverter struct{}
 
+type JiraStateConverter struct{}
+
 // Convert method map the external tracker item to ALM WorkItem
-func (sc StringConverter) Convert(value interface{}) (interface{}, error) {
+func (sc StringConverter) Convert(value interface{}, item interface{}) (interface{}, error) {
 	return value, nil
 }
 
-func (ghc GithubStateConverter) Convert(value interface{}) (interface{}, error) {
+func (ghc GithubStateConverter) Convert(value interface{}, item interface{}) (interface{}, error) {
 	if value.(string) == "closed" {
 		value = "closed"
 	} else if value.(string) == "open" {
 		value = "open"
+	}
+	return value, nil
+}
+
+func (jhc JiraStateConverter) Convert(value interface{}, item interface{}) (interface{}, error) {
+	if value.(string) == "closed" {
+		value = "closed"
+	} else if value.(string) == "open" {
+		value = "open"
+	} else if value.(string) == "in progress" {
+		value = "in progress"
+	} else if value.(string) == "resolved" {
+		value = "resolved"
 	}
 	return value, nil
 }
@@ -153,7 +168,7 @@ func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 	workItem := app.WorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
 		originalValue := item.Get(from.expression)
-		convertedValue, err := from.attributeConverter.Convert(originalValue)
+		convertedValue, err := from.attributeConverter.Convert(originalValue, item)
 		if err == nil {
 			workItem.Fields[to] = convertedValue
 		}
