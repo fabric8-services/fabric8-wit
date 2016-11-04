@@ -19,13 +19,14 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/models"
+
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
@@ -107,14 +108,10 @@ func main() {
 		os.Exit(0)
 	}
 
-	ts := models.NewGormTransactionSupport(db)
-	witRepo := models.NewWorkItemTypeRepository(ts)
-	wiRepo := models.NewWorkItemRepository(ts, witRepo)
-
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
-		if err := transaction.Do(ts, func() error {
-			return migration.PopulateCommonTypes(context.Background(), ts.TX(), witRepo)
+		if err := models.Transactional(db, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -167,24 +164,25 @@ func main() {
 	statusCtrl := NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
 
+	appDB := gormapplication.NewGormDB(db)
+
 	// Mount "workitem" controller
-	workitemCtrl := NewWorkitemController(service, wiRepo, ts)
+	workitemCtrl := NewWorkitemController(service, appDB)
 	app.MountWorkitemController(service, workitemCtrl)
 
+	workitem2Ctrl := NewWorkitem2Controller(service, appDB)
+	app.MountWorkitem2Controller(service, workitem2Ctrl)
+
 	// Mount "workitemtype" controller
-	workitemtypeCtrl := NewWorkitemtypeController(service, witRepo, ts)
+	workitemtypeCtrl := NewWorkitemtypeController(service, appDB)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
-	ts2 := models.NewGormTransactionSupport(db)
-
 	// Mount "tracker" controller
-	repo2 := remoteworkitem.NewTrackerRepository(ts2)
-	c5 := NewTrackerController(service, repo2, ts2, scheduler)
+	c5 := NewTrackerController(service, appDB, scheduler)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
-	repo3 := remoteworkitem.NewTrackerQueryRepository(ts2)
-	c6 := NewTrackerqueryController(service, repo3, ts2, scheduler)
+	c6 := NewTrackerqueryController(service, appDB, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "user" controller

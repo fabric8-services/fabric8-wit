@@ -6,18 +6,18 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
+	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
 
 // GormTrackerQueryRepository implements TrackerRepository using gorm
 type GormTrackerQueryRepository struct {
-	ts *models.GormTransactionSupport
+	db *gorm.DB
 }
 
 // NewTrackerQueryRepository constructs a TrackerQueryRepository
-func NewTrackerQueryRepository(ts *models.GormTransactionSupport) *GormTrackerQueryRepository {
-	return &GormTrackerQueryRepository{ts}
+func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
+	return &GormTrackerQueryRepository{db}
 }
 
 // Create creates a new tracker query in the repository
@@ -33,7 +33,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		Query:     query,
 		Schedule:  schedule,
 		TrackerID: tid}
-	tx := r.ts.TX()
+	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -58,7 +58,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 
 	log.Printf("loading tracker query %d", id)
 	res := TrackerQuery{}
-	if r.ts.TX().First(&res, id).RecordNotFound() {
+	if r.db.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker query", ID}
 	}
@@ -87,7 +87,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.ts.TX()
+	tx := r.db
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "TrackerQuery", ID: tq.ID}

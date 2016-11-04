@@ -15,6 +15,15 @@ func (err simpleError) Error() string {
 	return err.message
 }
 
+func NewSimpleError(msg string) simpleError {
+	return simpleError{message: msg}
+}
+
+func NewInternalError(msg string) InternalError {
+	return InternalError{simpleError: NewSimpleError(msg)}
+}
+
+
 // InternalError means that the operation failed for some internal, unexpected reason
 type InternalError struct {
 	simpleError
