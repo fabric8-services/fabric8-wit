@@ -22,6 +22,66 @@ func NewWorkitem2Controller(service *goa.Service, db application.DB) *Workitem2C
 	return &Workitem2Controller{Controller: service.NewController("WorkitemController"), db: db}
 }
 
+func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int) {
+
+	// prev link
+	if offset > 0 && count > 0 {
+		var prevStart int
+		// we do have a prev link
+		if offset <= count {
+			prevStart = offset - limit
+		} else {
+			// the first range that intersects the end of the useful range
+			prevStart = offset - (((offset-count)/limit)+1)*limit
+		}
+		realLimit := limit
+		if prevStart < 0 {
+			// need to cut the range to start at 0
+			realLimit = limit + prevStart
+			prevStart = 0
+		}
+		prev := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, prevStart, realLimit)
+		links.Prev = &prev
+	}
+
+	// next link
+	nextStart := offset + resultLen
+	if nextStart < count {
+		// we have a next link
+		next := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, nextStart, limit)
+		links.Next = &next
+	}
+
+	// first link
+	var firstEnd int
+	if offset > 0 {
+		firstEnd = offset % limit // this is where the second page starts
+	} else {
+		// offset == 0, first == current
+		firstEnd = limit
+	}
+	first := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, 0, firstEnd)
+	links.First = &first
+
+	// last link
+	var lastStart int
+	if offset < count {
+		// advance some pages until touching the end of the range
+		lastStart = offset + (((count - offset - 1) / limit) * limit)
+	} else {
+		// retreat at least one page until covering the range
+		lastStart = offset - ((((offset - count) / limit) + 1) * limit)
+	}
+	realLimit := limit
+	if lastStart < 0 {
+		// need to cut the range to start at 0
+		realLimit = limit + lastStart
+		lastStart = 0
+	}
+	last := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, lastStart, realLimit)
+	links.Last = &last
+}
+
 // List runs the list action.
 // Prev and Next links will be present only when there actually IS a next or previous page.
 // Last will always be present. Total Item count needs to be computed from the "Last" link.
@@ -79,62 +139,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			Data:  result,
 		}
 
-		// prev link
-		if offset > 0 && count > 0 {
-			var prevStart int
-			// we do have a prev link
-			if offset <= count {
-				prevStart = offset - limit
-			} else {
-				// the first range that intersects the end of the useful range
-				prevStart = offset - (((offset-count)/limit)+1)*limit
-			}
-			realLimit := limit
-			if prevStart < 0 {
-				// need to cut the range to start at 0
-				realLimit = limit + prevStart
-				prevStart = 0
-			}
-			prev := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, prevStart, realLimit)
-			response.Links.Prev = &prev
-		}
-
-		// next link
-		nextStart := offset + len(result)
-		if nextStart < count {
-			// we have a next link
-			next := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, nextStart, limit)
-			response.Links.Next = &next
-		}
-
-		// first link
-		var firstEnd int
-		if offset > 0 {
-			firstEnd = offset % limit // this is where the second page starts
-		} else {
-			// offset == 0, first == current
-			firstEnd = limit
-		}
-		first := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, 0, firstEnd)
-		response.Links.First = &first
-
-		// last link
-		var lastStart int
-		if offset < count {
-			// advance some pages until touching the end of the range
-			lastStart = offset + (((count - offset - 1) / limit) * limit)
-		} else {
-			// retreat at least one page until covering the range
-			lastStart = offset - ((((offset - count) / limit) + 1) * limit)
-		}
-		realLimit := limit
-		if lastStart < 0 {
-			// need to cut the range to start at 0
-			realLimit = limit + lastStart
-			lastStart = 0
-		}
-		last := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", ctx.Request.URL.Path, lastStart, realLimit)
-		response.Links.Last = &last
+		setPagingLinks(response.Links, ctx.Request.URL.Path, len(result), offset, limit, count)
 
 		return ctx.OK(&response)
 	})
