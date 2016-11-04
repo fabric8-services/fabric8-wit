@@ -459,19 +459,19 @@ func TestPagingLinks(t *testing.T) {
 
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	pagingTest := createPagingTest(t, controller, repo, 13)
-	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=12,page[limit]=5", "page[offset]=0,page[limit]=2", "page[offset]=7,page[limit]=5")
-	pagingTest(10, 3, "page[offset]=0,page[limit]=1", "page[offset]=10,page[limit]=3", "page[offset]=7,page[limit]=3", "")
-	pagingTest(0, 4, "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=4", "", "page[offset]=4,page[limit]=4")
-	pagingTest(4, 8, "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=8", "page[offset]=0,page[limit]=4", "page[offset]=12,page[limit]=8")
+	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=12&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
+	pagingTest(10, 3, "page[offset]=0&page[limit]=1", "page[offset]=10&page[limit]=3", "page[offset]=7&page[limit]=3", "")
+	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=4", "", "page[offset]=4&page[limit]=4")
+	pagingTest(4, 8, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=8", "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=8")
 
-	pagingTest(16, 14, "page[offset]=0,page[limit]=2", "page[offset]=2,page[limit]=14", "page[offset]=2,page[limit]=14", "")
-	pagingTest(16, 18, "page[offset]=0,page[limit]=16", "page[offset]=0,page[limit]=16", "page[offset]=0,page[limit]=16", "")
+	pagingTest(16, 14, "page[offset]=0&page[limit]=2", "page[offset]=2&page[limit]=14", "page[offset]=2&page[limit]=14", "")
+	pagingTest(16, 18, "page[offset]=0&page[limit]=16", "page[offset]=0&page[limit]=16", "page[offset]=0&page[limit]=16", "")
 
-	pagingTest(3, 50, "page[offset]=0,page[limit]=3", "page[offset]=3,page[limit]=50", "page[offset]=0,page[limit]=3", "")
-	pagingTest(0, 50, "page[offset]=0,page[limit]=50", "page[offset]=0,page[limit]=50", "", "")
+	pagingTest(3, 50, "page[offset]=0&page[limit]=3", "page[offset]=3&page[limit]=50", "page[offset]=0&page[limit]=3", "")
+	pagingTest(0, 50, "page[offset]=0&page[limit]=50", "page[offset]=0&page[limit]=50", "", "")
 
 	pagingTest = createPagingTest(t, controller, repo, 0)
-	pagingTest(2, 5, "page[offset]=0,page[limit]=2", "page[offset]=0,page[limit]=2", "", "")
+	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "", "")
 }
 
 func TestPagingErrors(t *testing.T) {

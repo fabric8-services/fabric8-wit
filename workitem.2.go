@@ -41,7 +41,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 			realLimit = limit + prevStart
 			prevStart = 0
 		}
-		prev := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, prevStart, realLimit)
+		prev := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, prevStart, realLimit)
 		links.Prev = &prev
 	}
 
@@ -49,7 +49,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	nextStart := offset + resultLen
 	if nextStart < count {
 		// we have a next link
-		next := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, nextStart, limit)
+		next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, nextStart, limit)
 		links.Next = &next
 	}
 
@@ -61,7 +61,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 		// offset == 0, first == current
 		firstEnd = limit
 	}
-	first := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, 0, firstEnd)
+	first := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, 0, firstEnd)
 	links.First = &first
 
 	// last link
@@ -79,7 +79,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 		realLimit = limit + lastStart
 		lastStart = 0
 	}
-	last := fmt.Sprintf("%s?page[offset]=%d,page[limit]=%d", path, lastStart, realLimit)
+	last := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, lastStart, realLimit)
 	links.Last = &last
 }
 
