@@ -105,7 +105,7 @@ func TestSearchByText(t *testing.T) {
 			wi: app.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					models.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
+					models.SystemTitle:    "test should return 0 results'",
 					models.SystemCreator:  "sbose78",
 					models.SystemAssignee: "pranav",
 					models.SystemState:    "closed",
@@ -199,9 +199,6 @@ func TestSearchByText(t *testing.T) {
 	})
 }
 
-func TestComplexSearchStrings(t *testing.T) {
-}
-
 func stringInSlice(str string, list []string) bool {
 	for _, v := range list {
 		if v == str {
@@ -232,6 +229,7 @@ func TestSearchByID(t *testing.T) {
 		if err != nil {
 			t.Fatal("Couldnt create test data")
 		}
+		defer wir.Delete(context.Background(), createdWorkItem.ID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
@@ -245,7 +243,8 @@ func TestSearchByID(t *testing.T) {
 		sr := NewGormSearchRepository(db)
 
 		var start, limit int = 0, 100
-		workItemList, _, err := sr.SearchFullText(context.Background(), "id:"+createdWorkItem.ID, &start, &limit)
+		searchString := "id:" + createdWorkItem.ID
+		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 		if err != nil {
 			t.Fatal("Error gettig search result ", err)
 		}
@@ -255,17 +254,12 @@ func TestSearchByID(t *testing.T) {
 		for _, workItemValue := range workItemList {
 			t.Log("Found search result for ID Search ", workItemValue.ID)
 			assert.Equal(t, createdWorkItem.ID, workItemValue.ID)
-
-			// clean it up if found, this effectively cleans up the test data created.
-			// this for loop is always of 1 iteration, hence only 1 item gets deleted anyway.
-
-			defer wir.Delete(context.Background(), workItemValue.ID)
 		}
 		return err
 	})
 }
 
-func TestGenerateSQLSearchString(t *testing.T) {
+func TestGenerateSQLSearchStringText(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := searchKeyword{
@@ -274,6 +268,21 @@ func TestGenerateSQLSearchString(t *testing.T) {
 	}
 	expectedSQLParameter := "10 & 99 & username & title_substr & desc_substr"
 	expectedSQLQuery := WhereClauseForSearchByText
+
+	actualSQLQuery, actualSQLParameter := generateSQLSearchInfo(input)
+	assert.Equal(t, expectedSQLParameter, actualSQLParameter)
+	assert.Equal(t, expectedSQLQuery, actualSQLQuery)
+}
+
+func TestGenerateSQLSearchStringIdOnly(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	input := searchKeyword{
+		id:    []string{"10"},
+		words: []string{},
+	}
+	expectedSQLParameter := "10"
+	expectedSQLQuery := WhereClauseForSearchById
 
 	actualSQLQuery, actualSQLParameter := generateSQLSearchInfo(input)
 	assert.Equal(t, expectedSQLParameter, actualSQLParameter)
