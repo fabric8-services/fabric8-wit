@@ -282,7 +282,7 @@ func TestGenerateSQLSearchStringIdOnly(t *testing.T) {
 		words: []string{},
 	}
 	expectedSQLParameter := "10"
-	expectedSQLQuery := WhereClauseForSearchById
+	expectedSQLQuery := WhereClauseForSearchByID
 
 	actualSQLQuery, actualSQLParameter := generateSQLSearchInfo(input)
 	assert.Equal(t, expectedSQLParameter, actualSQLParameter)
