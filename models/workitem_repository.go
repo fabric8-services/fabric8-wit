@@ -75,10 +75,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.db
-	if tx.First(&res, id).RecordNotFound() {
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+	}
+	if tx.Error != nil {
+		return nil, InternalError{simpleError{err.Error()}}
 	}
 	if res.Version != wi.Version {
 		return nil, VersionConflictError{simpleError{"version conflict"}}
