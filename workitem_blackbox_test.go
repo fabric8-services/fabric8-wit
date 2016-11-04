@@ -496,3 +496,30 @@ func TestPagingErrors(t *testing.T) {
 	limit = -1
 	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
 }
+
+func TestPagingLinksHasAbsoluteURL(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	svc := goa.New("TestPaginErrors-Service")
+	db := testsupport.NewMockDB()
+	controller := NewWorkitem2Controller(svc, db)
+
+	offset := "10"
+	limit := 10
+
+	repo := db.WorkItems().(*testsupport.WorkItemRepository)
+	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
+
+	_, result := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.HasPrefix(*result.Links.First, "http://") {
+		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
+	}
+	if !strings.HasPrefix(*result.Links.Last, "http://") {
+		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Last", *result.Links.Last)
+	}
+	if !strings.HasPrefix(*result.Links.Prev, "http://") {
+		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Prev", *result.Links.Prev)
+	}
+	if !strings.HasPrefix(*result.Links.Next, "http://") {
+		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Next", *result.Links.Next)
+	}
+}
