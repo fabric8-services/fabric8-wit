@@ -110,8 +110,8 @@ var _ = a.Resource("workitem.2", func() {
 		a.Description("List work items.")
 		a.Params(func() {
 			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
-			a.Param("page[offset]", d.Number, "Paging in the format <start>,<limit>")
-			a.Param("page[limit]", d.Number, "Paging in the format <start>,<limit>")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemListResponse)
