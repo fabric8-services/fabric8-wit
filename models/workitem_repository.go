@@ -36,7 +36,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	result, err := convertFromModel(*wiType, res)
+	result, err := wiType.ConvertFromModel(res)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
 	}
@@ -110,7 +110,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("updated item to %v\n", newWi)
-	result, err := convertFromModel(*wiType, newWi)
+	result, err := wiType.ConvertFromModel(newWi)
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -142,7 +142,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("created item %v\n", wi)
-	result, err := convertFromModel(*wiType, wi)
+	result, err := wiType.ConvertFromModel(wi)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
 	}
@@ -159,7 +159,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	}
 
 	log.Printf("executing query: '%s' with params %v", where, parameters)
- 
+
 	db := r.db.Model(&WorkItem{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
@@ -240,29 +240,11 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		if err != nil {
 			return nil, 0, InternalError{simpleError{err.Error()}}
 		}
-		res[index], err = convertFromModel(*wiType, result[index])
+		res[index], err = wiType.ConvertFromModel(value)
 		if err != nil {
 			return nil, 0, ConversionError{simpleError{err.Error()}}
 		}
 	}
 
 	return res, count, nil
-}
-
-func convertFromModel(wiType WorkItemType, workItem WorkItem) (*app.WorkItem, error) {
-	result := app.WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{}}
-
-	for name, field := range wiType.Fields {
-		var err error
-		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return &result, nil
 }

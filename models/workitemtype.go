@@ -1,6 +1,9 @@
 package models
 
 import (
+	"strconv"
+
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 )
@@ -76,4 +79,23 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		}
 	}
 	return true
+}
+
+// ConvertFromModel serializes a database persisted workitem.
+func (wiType WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
+	result := app.WorkItem{
+		ID:      strconv.FormatUint(workItem.ID, 10),
+		Type:    workItem.Type,
+		Version: workItem.Version,
+		Fields:  map[string]interface{}{}}
+
+	for name, field := range wiType.Fields {
+		var err error
+		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &result, nil
 }
