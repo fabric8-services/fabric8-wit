@@ -80,7 +80,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				realLimit = limit + prevStart
 				prevStart = 0
 			}
-			prev := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", ctx.Request.URL.Path, *ctx.Q, prevStart, realLimit)
+			prev := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", buildAbsoluteURL(ctx.RequestData), *ctx.Q, prevStart, realLimit)
 			response.Links.Prev = &prev
 		}
 
@@ -88,7 +88,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		nextStart := offset + len(result)
 		if nextStart < count {
 			// we have a next link
-			next := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", ctx.Request.URL.Path, *ctx.Q, nextStart, limit)
+			next := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", buildAbsoluteURL(ctx.RequestData), *ctx.Q, nextStart, limit)
 			response.Links.Next = &next
 		}
 
@@ -100,7 +100,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			// offset == 0, first == current
 			firstEnd = limit
 		}
-		first := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", ctx.Request.URL.Path, *ctx.Q, 0, firstEnd)
+		first := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", buildAbsoluteURL(ctx.RequestData), *ctx.Q, 0, firstEnd)
 		response.Links.First = &first
 
 		// last link
@@ -118,7 +118,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			realLimit = limit + lastStart
 			lastStart = 0
 		}
-		last := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", ctx.Request.URL.Path, *ctx.Q, lastStart, realLimit)
+		last := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", buildAbsoluteURL(ctx.RequestData), *ctx.Q, lastStart, realLimit)
 		response.Links.Last = &last
 
 		return ctx.OK(&response)
