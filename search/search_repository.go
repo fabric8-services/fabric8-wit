@@ -6,7 +6,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"log"
 	"strconv"
 
 	"strings"
@@ -72,23 +71,6 @@ func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*ap
 	}
 
 	return &result, nil
-}
-
-func (r *GormSearchRepository) loadTypeFromDB(ctx context.Context, name string) (*models.WorkItemType, error) {
-
-	log.Printf("loading work item type %s", name)
-	res := models.WorkItemType{}
-
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item type", name}
-	}
-	if err := db.Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
-	}
-
-	return &res, nil
 }
 
 //searchKeyword defines how a decomposed raw search query will look like
@@ -348,7 +330,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.loadTypeFromDB(ctx, value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, InternalError{simpleError{err.Error()}}
 		}
