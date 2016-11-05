@@ -1,5 +1,5 @@
-hash: 9dfc8b8dc31f0ce495de5431d40c3ad9bc83fb21b358c00dc541b0a0bdd444da
-updated: 2016-10-17T01:11:50.617319377+02:00
+hash: 6578c071c341ad73b48c39a5c29d7f9848909000314659a75358d2c476171814
+updated: 2016-10-25T11:04:33.767635582+02:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -18,7 +18,7 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 4f42e68bc5bbcb4b4af4a7d811a1d5f4111be063
+  version: 5cb0ec25af2dd6a7d3718b5aa05dc48e192473bc
 - name: github.com/dnaeon/go-vcr
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
@@ -31,25 +31,25 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
-  version: 114ecb88f11ee21dcb9130280b0a580ecf8f7569
+  version: 994ca104f3dc4f982c3cb2f642ac602f8b481a74
   vcs: git
   subpackages:
   - client
   - cors
   - design
   - design/apidsl
+  - dslengine
   - goagen
   - goagen/codegen
   - goagen/gen_app
   - goagen/utils
   - goatest
   - middleware
-  - middleware/security/jwt
   - middleware/gzip
+  - middleware/security/jwt
   - uuid
-  - dslengine
 - name: github.com/golang/protobuf
-  version: df1d3ca07d2d07bba352d5b73c4313b4e2a6203e
+  version: 98fa357170587e470c5f27d3c3ea0947b71eb455
   subpackages:
   - proto
 - name: github.com/google/go-github
@@ -65,10 +65,10 @@ imports:
   subpackages:
   - hcl/ast
   - hcl/parser
-  - hcl/token
-  - json/parser
   - hcl/scanner
   - hcl/strconv
+  - hcl/token
+  - json/parser
   - json/scanner
   - json/token
 - name: github.com/howeyc/fsnotify
@@ -140,6 +140,7 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
+  - require
   - suite
 - name: github.com/wadey/gocovmerge
   version: b5bfa59ec0adc420475f97f89b58045c721d761c
@@ -148,10 +149,10 @@ imports:
 - name: golang.org/x/crypto
   version: 9e590154d2353f3f5e1b24da7275686040dcf491
   subpackages:
-  - ssh
   - curve25519
   - ed25519
   - ed25519/internal/edwards25519
+  - ssh
 - name: golang.org/x/net
   version: f841c39de738b1d0df95b5a7187744f0e03d8112
   subpackages:
@@ -176,22 +177,22 @@ imports:
   subpackages:
   - go/ast/astutil
 - name: google.golang.org/appengine
-  version: 3f4dbbc0ec153a39878fd524ece9f39732bd4998
+  version: 5b8c3b819891014a2d12354528f7d046dd53c89e
   subpackages:
-  - urlfetch
   - internal
-  - internal/urlfetch
   - internal/base
   - internal/datastore
   - internal/log
   - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
   version: a83829b6f1293c91addabc89d0571c246397bbf4
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 2df174808ee097f90d259e432cc04442cf60be21
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib

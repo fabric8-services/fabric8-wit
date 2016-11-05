@@ -5,29 +5,28 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/remoteworkitem"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
 
 // TrackerController implements the tracker resource.
 type TrackerController struct {
 	*goa.Controller
-	tRepository remoteworkitem.TrackerRepository
-	ts          transaction.Support
-	scheduler   *remoteworkitem.Scheduler
+	db        application.DB
+	scheduler *remoteworkitem.Scheduler
 }
 
 // NewTrackerController creates a tracker controller.
-func NewTrackerController(service *goa.Service, tRepository remoteworkitem.TrackerRepository, ts transaction.Support, scheduler *remoteworkitem.Scheduler) *TrackerController {
-	return &TrackerController{Controller: service.NewController("TrackerController"), tRepository: tRepository, ts: ts, scheduler: scheduler}
+func NewTrackerController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler) *TrackerController {
+	return &TrackerController{Controller: service.NewController("TrackerController"), db: db, scheduler: scheduler}
 }
 
 // Create runs the create action.
 func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
-	result := transaction.Do(c.ts, func() error {
-		t, err := c.tRepository.Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
+	result := application.Transactional(c.db, func(appl application.Application) error {
+		t, err := appl.Trackers().Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
 			switch err := err.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
@@ -45,8 +44,8 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 
 // Delete runs the delete action.
 func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
-	result := transaction.Do(c.ts, func() error {
-		err := c.tRepository.Delete(ctx.Context, ctx.ID)
+	result := application.Transactional(c.db, func(appl application.Application) error {
+		err := appl.Trackers().Delete(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case remoteworkitem.NotFoundError:
@@ -63,8 +62,8 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 
 // Show runs the show action.
 func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
-	return transaction.Do(c.ts, func() error {
-		t, err := c.tRepository.Load(ctx.Context, ctx.ID)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		t, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			switch err.(type) {
 			case remoteworkitem.NotFoundError:
@@ -88,8 +87,8 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
-	return transaction.Do(c.ts, func() error {
-		result, err := c.tRepository.List(ctx.Context, exp, start, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.Trackers().List(ctx.Context, exp, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing trackers: %s", err.Error()))
 		}
@@ -100,14 +99,14 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 
 // Update runs the update action.
 func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
-	result := transaction.Do(c.ts, func() error {
+	result := application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.Tracker{
 			ID:   ctx.ID,
 			URL:  ctx.Payload.URL,
 			Type: ctx.Payload.Type,
 		}
-		t, err := c.tRepository.Save(ctx.Context, toSave)
+		t, err := appl.Trackers().Save(ctx.Context, toSave)
 
 		if err != nil {
 			switch err := err.(type) {

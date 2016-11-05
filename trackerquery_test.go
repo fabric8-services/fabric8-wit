@@ -6,25 +6,20 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/resource"
 )
 
 func TestCreateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
-	tqts := models.NewGormTransactionSupport(DB)
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
-	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
@@ -41,17 +36,14 @@ func TestCreateTrackerQuery(t *testing.T) {
 
 func TestGetTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
-	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
@@ -73,17 +65,14 @@ func TestGetTrackerQuery(t *testing.T) {
 
 func TestUpdateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(ts)
-	tqController := TrackerqueryController{ts: ts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",

@@ -5,17 +5,18 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/application"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTrackerQueryCreate(t *testing.T) {
-	doWithTrackerRepositories(t, func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository) {
+	doWithTrackerRepositories(t, func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository) {
 		query, err := queryRepo.Create(context.Background(), "abc", "xyz", "lmn")
 		assert.IsType(t, NotFoundError{}, err)
 		assert.Nil(t, query)
 
-		tracker, err := trackerRepo.Create(context.Background(), "gugus", ProviderJira)
+		tracker, err := trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
 		query, err = queryRepo.Create(context.Background(), "abc", "xyz", tracker.ID)
 		assert.Nil(t, err)
 		assert.Equal(t, "abc", query.Query)
@@ -28,14 +29,14 @@ func TestTrackerQueryCreate(t *testing.T) {
 }
 
 func TestTrackerQuerySave(t *testing.T) {
-	doWithTrackerRepositories(t, func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository) {
+	doWithTrackerRepositories(t, func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository) {
 
 		query, err := queryRepo.Load(context.Background(), "abcd")
 		assert.IsType(t, NotFoundError{}, err)
 		assert.Nil(t, query)
 
-		tracker, err := trackerRepo.Create(context.Background(), "gugus", ProviderJira)
-		tracker2, err := trackerRepo.Create(context.Background(), "theother", ProviderGithub)
+		tracker, err := trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
+		tracker2, err := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		query, err = queryRepo.Create(context.Background(), "abc", "xyz", tracker.ID)
 		query2, err := queryRepo.Load(context.Background(), query.ID)
 		assert.Nil(t, err)
@@ -62,7 +63,7 @@ func TestTrackerQuerySave(t *testing.T) {
 }
 
 func TestTrackerQueryDelete(t *testing.T) {
-	doWithTrackerRepositories(t, func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository) {
+	doWithTrackerRepositories(t, func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository) {
 		_, err := queryRepo.Load(context.Background(), "asdf")
 		assert.IsType(t, NotFoundError{}, err)
 
@@ -71,10 +72,10 @@ func TestTrackerQueryDelete(t *testing.T) {
 	})
 }
 
-func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository)) {
-	doWithTransaction(t, func(ts *models.GormTransactionSupport) {
-		trackerRepo := NewTrackerRepository(ts)
-		queryRepo := NewTrackerQueryRepository(ts)
+func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository)) {
+	doWithTransaction(t, func(ts *gorm.DB) {
+		trackerRepo := NewTrackerRepository(db)
+		queryRepo := NewTrackerQueryRepository(db)
 		todo(trackerRepo, queryRepo)
 	})
 

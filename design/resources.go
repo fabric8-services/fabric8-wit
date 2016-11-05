@@ -1,357 +1,381 @@
 package design
 
 import (
-	. "github.com/goadesign/goa/design"
-	. "github.com/goadesign/goa/design/apidsl"
+	d "github.com/goadesign/goa/design"
+	a "github.com/goadesign/goa/design/apidsl"
 )
 
-var _ = Resource("workitem", func() {
-	BasePath("/workitems")
+var _ = a.Resource("workitem", func() {
+	a.BasePath("/workitems")
 
-	Action("show", func() {
-		Routing(
-			GET("/:id"),
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
 		)
-		Description("Retrieve work item with given id.")
-		Params(func() {
-			Param("id", String, "id")
+		a.Description("Retrieve work item with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
 		})
-		Response(OK, func() {
-			Media(workItem)
+		a.Response(d.OK, func() {
+			a.Media(workItem)
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(InternalServerError)
-		Response(NotFound)
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
 	})
 
-	Action("list", func() {
-		Routing(
-			GET(""),
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
 		)
-		Description("List work items.")
-		Params(func() {
-			Param("filter", String, "a query language expression restricting the set of found work items")
-			Param("page", String, "Paging in the format <start>,<limit>")
+		a.Description("List work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 		})
-		Response(OK, func() {
-			Media(CollectionOf(workItem))
+		a.Response(d.OK, func() {
+			a.Media(a.CollectionOf(workItem))
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(InternalServerError)
+		a.Response(d.InternalServerError)
 	})
 
-	Action("create", func() {
-		Security("jwt")
-		Routing(
-			POST(""),
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
 		)
-		Description("create work item with type and id.")
-		Payload(CreateWorkItemPayload)
-		Response(Created, "/workitems/.*", func() {
-			Media(workItem)
+		a.Description("create work item with type and id.")
+		a.Payload(CreateWorkItemPayload)
+		a.Response(d.Created, "/workitems/.*", func() {
+			a.Media(workItem)
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(InternalServerError)
-		Response(Unauthorized)
+		a.Response(d.InternalServerError)
+		a.Response(d.Unauthorized)
 	})
-	Action("delete", func() {
-		Security("jwt")
-		Routing(
-			DELETE("/:id"),
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:id"),
 		)
-		Description("Delete work item with given id.")
-		Params(func() {
-			Param("id", String, "id")
+		a.Description("Delete work item with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
 		})
-		Response(OK)
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.OK)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(InternalServerError)
-		Response(NotFound)
-		Response(Unauthorized)
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
-	Action("update", func() {
-		Security("jwt")
-		Routing(
-			PUT("/:id"),
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PUT("/:id"),
 		)
-		Description("update the given work item with given id.")
-		Params(func() {
-			Param("id", String, "id")
+		a.Description("update the given work item with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
 		})
-		Payload(UpdateWorkItemPayload)
-		Response(OK, func() {
-			Media(workItem)
+		a.Payload(UpdateWorkItemPayload)
+		a.Response(d.OK, func() {
+			a.Media(workItem)
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(InternalServerError)
-		Response(NotFound)
-		Response(Unauthorized)
-	})
-
-})
-
-var _ = Resource("workitemtype", func() {
-
-	BasePath("/workitemtypes")
-
-	Action("show", func() {
-
-		Routing(
-			GET("/:name"),
-		)
-		Description("Retrieve work item type with given name.")
-		Params(func() {
-			Param("name", String, "name")
-		})
-		Response(OK, func() {
-			Media(workItemType)
-		})
-		Response(NotFound)
-	})
-
-	Action("create", func() {
-		Security("jwt")
-		Routing(
-			POST(""),
-		)
-		Description("Create work item type.")
-		Payload(CreateWorkItemTypePayload)
-		Response(Created, "/workitemtypes/.*", func() {
-			Media(workItemType)
-		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(Unauthorized)
-	})
-
-	Action("list", func() {
-		Routing(
-			GET(""),
-		)
-		Description("List work item types.")
-		Params(func() {
-			Param("page", String, "Paging in the format <start>,<limit>")
-		})
-		Response(OK, func() {
-			Media(CollectionOf(workItemType))
-		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-	})
-})
-
-var _ = Resource("user", func() {
-	BasePath("/user")
-
-	Action("show", func() {
-		Security("jwt")
-		Routing(
-			GET(""),
-		)
-		Description("Get the authenticated user")
-		Response(OK, func() {
-			Media(User)
-		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(Unauthorized)
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 
 })
 
-var _ = Resource("status", func() {
-
-	DefaultMedia(ALMStatus)
-	BasePath("/status")
-
-	Action("show", func() {
-		Routing(
-			GET(""),
+// new version of "list" for migration
+var _ = a.Resource("workitem.2", func() {
+	a.BasePath("/workitems.2")
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
 		)
-		Description("Show the status of the current running instance")
-		Response(OK)
-		Response(ServiceUnavailable, ALMStatus)
-	})
-})
-
-var _ = Resource("login", func() {
-
-	BasePath("/login")
-
-	Action("authorize", func() {
-		Routing(
-			GET("authorize"),
-		)
-		Description("Authorize with the ALM")
-		Response(Unauthorized)
-		Response(TemporaryRedirect)
-	})
-
-	Action("generate", func() {
-		Routing(
-			GET("generate"),
-		)
-		Description("Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode")
-		Response(OK, func() {
-			Media(CollectionOf(AuthToken))
+		a.Description("List work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
 		})
-		Response(Unauthorized)
-	})
-})
-
-var _ = Resource("tracker", func() {
-	BasePath("/trackers")
-
-	Action("list", func() {
-		Routing(
-			GET(""),
-		)
-		Description("List all tracker configurations.")
-		Params(func() {
-			Param("filter", String, "a query language expression restricting the set of found items")
-			Param("page", String, "Paging in the format <start>,<limit>")
+		a.Response(d.OK, func() {
+			a.Media(workItemListResponse)
 		})
-		Response(OK, func() {
-			Media(CollectionOf(Tracker))
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
-	})
-
-	Action("show", func() {
-		Routing(
-			GET("/:id"),
-		)
-		Description("Retrieve tracker configuration for the given id.")
-		Params(func() {
-			Param("id", String, "id")
-		})
-		Response(OK, func() {
-			Media(Tracker)
-		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
-	})
-
-	Action("create", func() {
-		Routing(
-			POST(""),
-		)
-		Description("Add new tracker configuration.")
-		Payload(CreateTrackerAlternatePayload)
-		Response(Created, "/trackers/.*", func() {
-			Media(Tracker)
-		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
-	})
-	Action("delete", func() {
-		Routing(
-			DELETE("/:id"),
-		)
-		Description("Delete tracker configuration.")
-		Params(func() {
-			Param("id", String, "id")
-		})
-		Response(OK)
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
-	})
-	Action("update", func() {
-		Routing(
-			PUT("/:id"),
-		)
-		Description("Update tracker configuration.")
-		Payload(UpdateTrackerAlternatePayload)
-		Response(OK, func() {
-			Media(Tracker)
-		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
+		a.Response(d.InternalServerError)
 	})
 
 })
 
-var _ = Resource("trackerquery", func() {
-	BasePath("/trackerqueries")
-	Action("show", func() {
-		Routing(
-			GET("/:id"),
+var _ = a.Resource("workitemtype", func() {
+
+	a.BasePath("/workitemtypes")
+
+	a.Action("show", func() {
+
+		a.Routing(
+			a.GET("/:name"),
 		)
-		Description("Retrieve tracker configuration for the given id.")
-		Params(func() {
-			Param("id", String, "id")
+		a.Description("Retrieve work item type with given name.")
+		a.Params(func() {
+			a.Param("name", d.String, "name")
 		})
-		Response(OK, func() {
-			Media(TrackerQuery)
+		a.Response(d.OK, func() {
+			a.Media(workItemType)
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
-		})
-		Response(InternalServerError)
-		Response(NotFound)
+		a.Response(d.NotFound)
 	})
 
-	Action("create", func() {
-		Routing(
-			POST(""),
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
 		)
-		Description("Add new tracker query.")
-		Payload(CreateTrackerQueryAlternatePayload)
-		Response(Created, "/trackerqueries/.*", func() {
-			Media(TrackerQuery)
+		a.Description("Create work item type.")
+		a.Payload(CreateWorkItemTypePayload)
+		a.Response(d.Created, "/workitemtypes/.*", func() {
+			a.Media(workItemType)
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
 		})
-		Response(InternalServerError)
-		Response(NotFound)
+		a.Response(d.InternalServerError)
+		a.Response(d.Unauthorized)
 	})
-	Action("update", func() {
-		Routing(
-			PUT("/:id"),
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
 		)
-		Description("Update tracker query.")
-		Payload(UpdateTrackerQueryAlternatePayload)
-		Response(OK, func() {
-			Media(TrackerQuery)
+		a.Description("List work item types.")
+		a.Params(func() {
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 		})
-		Response(BadRequest, func() {
-			Media(ErrorMedia)
+		a.Response(d.OK, func() {
+			a.Media(a.CollectionOf(workItemType))
 		})
-		Response(InternalServerError)
-		Response(NotFound)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+	})
+})
+
+var _ = a.Resource("user", func() {
+	a.BasePath("/user")
+
+	a.Action("show", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("Get the authenticated user")
+		a.Response(d.OK, func() {
+			a.Media(User)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.Unauthorized)
+	})
+
+})
+
+var _ = a.Resource("status", func() {
+
+	a.DefaultMedia(ALMStatus)
+	a.BasePath("/status")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("Show the status of the current running instance")
+		a.Response(d.OK)
+		a.Response(d.ServiceUnavailable, ALMStatus)
+	})
+})
+
+var _ = a.Resource("login", func() {
+
+	a.BasePath("/login")
+
+	a.Action("authorize", func() {
+		a.Routing(
+			a.GET("authorize"),
+		)
+		a.Description("Authorize with the ALM")
+		a.Response(d.Unauthorized)
+		a.Response(d.TemporaryRedirect)
+	})
+
+	a.Action("generate", func() {
+		a.Routing(
+			a.GET("generate"),
+		)
+		a.Description("Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode")
+		a.Response(d.OK, func() {
+			a.Media(a.CollectionOf(AuthToken))
+		})
+		a.Response(d.Unauthorized)
+	})
+})
+
+var _ = a.Resource("tracker", func() {
+	a.BasePath("/trackers")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List all tracker configurations.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found items")
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+		})
+		a.Response(d.OK, func() {
+			a.Media(a.CollectionOf(Tracker))
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve tracker configuration for the given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK, func() {
+			a.Media(Tracker)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+
+	a.Action("create", func() {
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("Add new tracker configuration.")
+		a.Payload(CreateTrackerAlternatePayload)
+		a.Response(d.Created, "/trackers/.*", func() {
+			a.Media(Tracker)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+	a.Action("delete", func() {
+		a.Routing(
+			a.DELETE("/:id"),
+		)
+		a.Description("Delete tracker configuration.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+	a.Action("update", func() {
+		a.Routing(
+			a.PUT("/:id"),
+		)
+		a.Description("Update tracker configuration.")
+		a.Payload(UpdateTrackerAlternatePayload)
+		a.Response(d.OK, func() {
+			a.Media(Tracker)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+
+})
+
+var _ = a.Resource("trackerquery", func() {
+	a.BasePath("/trackerqueries")
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve tracker configuration for the given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK, func() {
+			a.Media(TrackerQuery)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+
+	a.Action("create", func() {
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("Add new tracker query.")
+		a.Payload(CreateTrackerQueryAlternatePayload)
+		a.Response(d.Created, "/trackerqueries/.*", func() {
+			a.Media(TrackerQuery)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+	})
+	a.Action("update", func() {
+		a.Routing(
+			a.PUT("/:id"),
+		)
+		a.Description("Update tracker query.")
+		a.Payload(UpdateTrackerQueryAlternatePayload)
+		a.Response(d.OK, func() {
+			a.Media(TrackerQuery)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
 	})
 
 })

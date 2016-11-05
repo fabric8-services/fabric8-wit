@@ -6,35 +6,33 @@ import (
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/transaction"
 	"github.com/goadesign/goa"
 )
 
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
-	witRepository models.WorkItemTypeRepository
-	ts            transaction.Support
+	db application.DB
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, witRepository models.WorkItemTypeRepository, ts transaction.Support) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB) *WorkitemtypeController {
 	return &WorkitemtypeController{
-		Controller:    service.NewController("WorkitemtypeController"),
-		witRepository: witRepository,
-		ts:            ts,
+		Controller: service.NewController("WorkitemtypeController"),
+		db:         db,
 	}
 }
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	return transaction.Do(c.ts, func() error {
-		res, err := c.witRepository.Load(ctx.Context, ctx.Name)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
-				log.Printf("not found, id=%s", ctx.Name)
+				log.Printf("not found, name=%s", ctx.Name)
 				return goa.ErrNotFound(err.Error())
 			default:
 				return err
@@ -46,13 +44,13 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 
 // Create runs the create action.
 func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
-	return transaction.Do(c.ts, func() error {
+	return application.Transactional(c.db, func(appl application.Application) error {
 		var fields = map[string]app.FieldDefinition{}
 
 		for key, fd := range ctx.Payload.Fields {
 			fields[key] = *fd
 		}
-		wit, err := c.witRepository.Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
+		wit, err := appl.WorkItemTypes().Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
 
 		if err != nil {
 			switch err := err.(type) {
@@ -73,8 +71,8 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
 	}
-	return transaction.Do(c.ts, func() error {
-		result, err := c.witRepository.List(ctx.Context, start, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.WorkItemTypes().List(ctx.Context, start, &limit)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing work item types: %s", err.Error()))
 		}
