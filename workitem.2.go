@@ -145,10 +145,18 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			Data:  result,
 		}
 
-		setPagingLinks(response.Links, ctx.Request.URL.Path, len(result), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count)
 
 		return ctx.OK(&response)
 	})
 
 	// Workitem2Controller_List: end_implement
+}
+
+func buildAbsoluteURL(req *goa.RequestData) string {
+	scheme := "http"
+	if req.TLS != nil { // isHTTPS
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
 }
