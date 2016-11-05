@@ -24,6 +24,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -33,9 +34,11 @@ import (
 
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", account.TestUser)
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", account.TestIdentity)
 	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -57,7 +60,10 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
-	wi.Fields[models.SystemCreator] = "thomas"
+	if wi.Fields[models.SystemCreator] != account.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Fields[models.SystemCreator])
+	}
+	wi.Fields[models.SystemTitle] = "Updated Test WI"
 	payload2 := app.UpdateWorkItemPayload{
 		Type:    wi.Type,
 		Version: wi.Version,
@@ -70,8 +76,8 @@ func TestGetWorkItem(t *testing.T) {
 	if updated.ID != result.ID {
 		t.Errorf("id has changed from %s to %s", result.ID, updated.ID)
 	}
-	if updated.Fields[models.SystemCreator] != "thomas" {
-		t.Errorf("expected creator %s, but got %s", "thomas", updated.Fields[models.SystemCreator])
+	if updated.Fields[models.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Fields[models.SystemTitle])
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, result.ID)
@@ -79,9 +85,11 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := testsupport.ServiceAsUser("TestCreateWI-Service", account.TestUser)
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", account.TestIdentity)
 	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -97,14 +105,35 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Fields[models.SystemCreator])
-	assert.Equal(t, created.Fields[models.SystemCreator], account.TestUser.ID.String())
+	assert.Equal(t, created.Fields[models.SystemCreator], account.TestIdentity.ID.String())
+}
+
+func TestCreateWorkItemWithoutContext(t *testing.T) {
+	resource.Require(t, resource.Database)
+	svc := goa.New("TestCreateWorkItemWithoutContext-Service")
+	assert.NotNil(t, svc)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:   "Test WI",
+			models.SystemCreator: "tmaeder",
+			models.SystemState:   models.SystemStateNew,
+		},
+	}
+	test.CreateWorkitemUnauthorized(t, svc.Context, svc, controller, &payload)
 }
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := testsupport.ServiceAsUser("TestListByFields-Service", account.TestUser)
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", account.TestIdentity)
 	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -129,7 +158,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result))
 	}
 
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestUser.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestIdentity.ID.String())
 	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, &page)
 
 	if result == nil {
@@ -347,7 +376,9 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
 		app.UseJWTMiddleware(service, jwtMiddleware)
 
-		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+		pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+		priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
 		app.MountWorkitemController(service, controller)
 
 		// Hit the service with own request

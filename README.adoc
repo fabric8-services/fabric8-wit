@@ -407,3 +407,24 @@ Retrieve the work item.
 $ ./bin/alm-cli show workitem --id 1 -H localhost:8080 --pp
 ----
 
+
+System defined Work Item Types are
+
+ * system.userstory
+ * system.valueproposition
+ * system.fundamental
+ * system.experience
+ * system.feature
+ * system.bug
+
+Use any one of above to create Work Item based on that type.
+Following example creates a Work Item of type `system.userstory`
+----
+$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "system.userstory", "fields": { "system.title": "A catchy Title", "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+----
+
+In response you should get ID of created item, using that you can retrieve the work item.
+
+----
+$ ./bin/alm-cli show workitem --id <ID> -H localhost:8080 --pp
+----

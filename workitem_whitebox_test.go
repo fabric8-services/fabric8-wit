@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
+	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,9 @@ func TestNewWorkitemController(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	assert.Panics(t, func() {
-		NewWorkitemController(goa.New("Test service"), nil)
+		pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+		priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+		NewWorkitemController(goa.New("Test service"), nil, almtoken.NewManager(pub, priv))
 	})
 }
 
