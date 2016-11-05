@@ -58,8 +58,8 @@ func TestSearchPagination(t *testing.T) {
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch2"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, &q)
-	assert.Equal(t, "/api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
-	assert.Equal(t, "/api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
+	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
+	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
 	r := sr.Data[0]
 	assert.Equal(t, "specialwordforsearch2", r.Fields[models.SystemTitle])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
