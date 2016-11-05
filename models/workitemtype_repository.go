@@ -29,7 +29,7 @@ type GormWorkItemTypeRepository struct {
 // Load returns the work item for the given id
 // returns NotFoundError, InternalError
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
-	res, err := r.loadTypeFromDB(ctx, name)
+	res, err := r.LoadTypeFromDB(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,8 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 	return &result, nil
 }
 
-func (r *GormWorkItemTypeRepository) loadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
+// LoadTypeFromDB return work item type for the given id
+func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
 	log.Printf("loading work item type %s", name)
 	res := WorkItemType{}
 
