@@ -32,13 +32,13 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	if ctx.PageOffset == nil {
 		offset = 0
 	} else {
-		offset = int(*ctx.PageOffset)
+		offset = *ctx.PageOffset
 	}
 
 	if ctx.PageLimit == nil {
 		limit = 100
 	} else {
-		limit = int(*ctx.PageLimit)
+		limit = *ctx.PageLimit
 	}
 	if offset < 0 {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
@@ -60,7 +60,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 		response := app.SearchResponse{
 			Links: &app.PagingLinks{},
-			Meta:  &app.WorkItemListResponseMeta{TotalCount: float64(count)},
+			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 			Data:  result,
 		}
 
