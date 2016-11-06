@@ -13,22 +13,20 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/query/simple"
-	"github.com/almighty/almighty-core/token"
 )
 
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
-	db           application.DB
-	tokenManager token.Manager
+	db application.DB
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, db application.DB, tokenManager token.Manager) *WorkitemController {
+func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemController {
 	if db == nil {
 		panic("db must not be nil")
 	}
-	return &WorkitemController{Controller: service.NewController("WorkitemController"), db: db, tokenManager: tokenManager}
+	return &WorkitemController{Controller: service.NewController("WorkitemController"), db: db}
 }
 
 // Show runs the show action.
@@ -101,7 +99,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		currentUser, err := login.ContextIdentity(c.tokenManager, ctx)
+		currentUser, err := login.ContextIdentity(ctx)
 		if err != nil {
 			return ctx.Unauthorized()
 		}

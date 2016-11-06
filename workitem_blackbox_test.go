@@ -34,11 +34,11 @@ import (
 
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", account.TestIdentity)
-	assert.NotNil(t, svc)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -85,11 +85,11 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := testsupport.ServiceAsUser("TestCreateWI-Service", account.TestIdentity)
-	assert.NotNil(t, svc)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -112,9 +112,7 @@ func TestCreateWorkItemWithoutContext(t *testing.T) {
 	resource.Require(t, resource.Database)
 	svc := goa.New("TestCreateWorkItemWithoutContext-Service")
 	assert.NotNil(t, svc)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -129,11 +127,11 @@ func TestCreateWorkItemWithoutContext(t *testing.T) {
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := testsupport.ServiceAsUser("TestListByFields-Service", account.TestIdentity)
-	assert.NotNil(t, svc)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
@@ -375,10 +373,7 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		// Because it will check the design and accordingly apply the middleware if mentioned in design
 		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
 		app.UseJWTMiddleware(service, jwtMiddleware)
-
-		pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-		priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB), almtoken.NewManager(pub, priv))
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 		app.MountWorkitemController(service, controller)
 
 		// Hit the service with own request

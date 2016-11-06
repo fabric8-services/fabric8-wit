@@ -2,12 +2,15 @@ package login
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
 	"sync"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/token"
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -204,12 +207,50 @@ type ghUser struct {
 
 // ContextIdentity returns the identity's ID found in given context
 // Uses tokenManager.Locate to fetch the identity of currently logged in user
-func ContextIdentity(tokenManager token.Manager, ctx context.Context) (string, error) {
-	uuid, err := tokenManager.Locate(ctx)
+func ContextIdentity(ctx context.Context) (string, error) {
+	tm := ReadTokenManagerFromContext(ctx)
+	if tm == nil {
+		return "", errors.New("Missing token manager")
+	}
+	uuid, err := tm.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
 		fmt.Println("Geust User")
 		return "", err
 	}
 	return uuid.String(), nil
+}
+
+type contextTMKey int
+
+const (
+	//contextTokenManagerKey is a key that will be used to put and to get `tokenManager` from goa.context
+	contextTokenManagerKey contextTMKey = iota + 1
+)
+
+//ReadTokenManagerFromContext returns tokenManager from context.
+// Must have been set by ContextWithTokenManager ONLY
+func ReadTokenManagerFromContext(ctx context.Context) token.Manager {
+	tm := ctx.Value(contextTokenManagerKey)
+	if tm != nil {
+		return tm.(token.Manager)
+	}
+	return nil
+}
+
+// ContextWithTokenManager injects tokenManager in the context for every incoming request
+// Accepts Token.Manager in order to make sure that correct object is set in the context.
+// Only other possible value is nil
+func ContextWithTokenManager(ctx context.Context, tm token.Manager) context.Context {
+	return context.WithValue(ctx, contextTokenManagerKey, tm)
+}
+
+// InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
+func InjectTokenManager(tokenManager token.Manager) goa.Middleware {
+	return func(h goa.Handler) goa.Handler {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+			ctxWithTM := ContextWithTokenManager(ctx, tokenManager)
+			return h(ctxWithTM, rw, req)
+		}
+	}
 }

@@ -4,6 +4,8 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -20,8 +22,9 @@ func WithIdentity(ctx context.Context, ident account.Identity) context.Context {
 }
 
 // ServiceAsUser creates a new service and fill the context with input Identity
-func ServiceAsUser(serviceName string, u account.Identity) *goa.Service {
+func ServiceAsUser(serviceName string, tm token.Manager, u account.Identity) *goa.Service {
 	svc := goa.New(serviceName)
 	svc.Context = WithIdentity(svc.Context, u)
+	svc.Context = login.ContextWithTokenManager(svc.Context, tm)
 	return svc
 }

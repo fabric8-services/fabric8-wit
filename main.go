@@ -146,6 +146,7 @@ func main() {
 
 	tokenManager := token.NewManager(publicKey, privateKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
+	service.Use(login.InjectTokenManager(tokenManager))
 
 	// Mount "login" controller
 	oauth := &oauth2.Config{
@@ -166,7 +167,7 @@ func main() {
 	appDB := gormapplication.NewGormDB(db)
 
 	// Mount "workitem" controller
-	workitemCtrl := NewWorkitemController(service, appDB, tokenManager)
+	workitemCtrl := NewWorkitemController(service, appDB)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	workitem2Ctrl := NewWorkitem2Controller(service, appDB)
