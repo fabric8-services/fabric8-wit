@@ -111,8 +111,8 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			offset = offsetValue
 		}
 	}
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse page offset: %s", err.Error())))
+	if offset < 0 {
+		offset = 0
 	}
 
 	if ctx.PageLimit == nil {
@@ -120,17 +120,10 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	} else {
 		limit = *ctx.PageLimit
 	}
-	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse page limit: %s", err.Error())))
-	}
-	if offset < 0 {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
-	}
 
 	if limit <= 0 {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("limit must be > 0, but is: %d", limit)))
-	}
-	if limit > pageSizeMax {
+		limit = pageSizeDefault
+	} else if limit > pageSizeMax {
 		limit = pageSizeMax
 	}
 

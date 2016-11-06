@@ -507,27 +507,54 @@ func TestPagingErrors(t *testing.T) {
 	svc := goa.New("TestPaginErrors-Service")
 	db := testsupport.NewMockDB()
 	controller := NewWorkitem2Controller(svc, db)
+	repo := db.WorkItems().(*testsupport.WorkItemRepository)
+	repo.ListReturns(makeWorkItems(100), uint64(100), nil)
 
 	var offset string = "-1"
 	var limit int = 2
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[offset]=0") {
+		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
+	}
 
 	offset = "0"
 	limit = 0
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(t, "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
+	}
 
-	offset = "3"
+	offset = "0"
 	limit = -1
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
+	}
 
 	offset = "-3"
 	limit = -1
-	test.ListWorkitem2BadRequest(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
+	}
+	if !strings.Contains(*result.Links.First, "page[offset]=0") {
+		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
+	}
+
+	offset = "ALPHA"
+	limit = 40
+	_, result = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=40") {
+		assert.Fail(t, "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
+	}
+	if !strings.Contains(*result.Links.First, "page[offset]=0") {
+		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
+	}
 }
 
 func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	svc := goa.New("TestPaginErrors-Service")
+	svc := goa.New("TestPaginAbsoluteURL-Service")
 	db := testsupport.NewMockDB()
 	controller := NewWorkitem2Controller(svc, db)
 
@@ -554,7 +581,7 @@ func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 
 func TestPagingDefaultAndMaxSize(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	svc := goa.New("TestPaginErrors-Service")
+	svc := goa.New("TestPaginSize-Service")
 	db := testsupport.NewMockDB()
 	controller := NewWorkitem2Controller(svc, db)
 
