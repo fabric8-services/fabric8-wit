@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/models"
@@ -124,7 +125,7 @@ func TestSearchByText(t *testing.T) {
 			minimumResults := testData.minimumResults
 			workItemURLInSearchString := "http://demo.almighty.io/detail/"
 
-			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
+			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
 				t.Fatal("Couldnt create test data")
 			}
@@ -226,7 +227,7 @@ func TestSearchByID(t *testing.T) {
 			models.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields)
+		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
 			t.Fatal("Couldnt create test data")
 		}
@@ -236,7 +237,7 @@ func TestSearchByID(t *testing.T) {
 		// up in search results
 
 		workItem.Fields[models.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields)
+		_, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
 			t.Fatal("Couldnt create test data")
 		}

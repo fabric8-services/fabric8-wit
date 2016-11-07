@@ -4,19 +4,28 @@ import (
 	"testing"
 
 	. "github.com/almighty/almighty-core"
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 )
 
+func getServiceAsUser() *goa.Service {
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	return service
+}
+
 func TestSearch(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	service := goa.New("TestSearch-Service")
+	service := getServiceAsUser()
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	wiPayload := app.CreateWorkItemPayload{
@@ -28,7 +37,7 @@ func TestSearch(t *testing.T) {
 			models.SystemState:       "closed"},
 	}
 
-	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch"
@@ -40,8 +49,7 @@ func TestSearch(t *testing.T) {
 
 func TestSearchPagination(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	service := goa.New("TestSearch-Service")
+	service := getServiceAsUser()
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	wiPayload := app.CreateWorkItemPayload{
@@ -53,7 +61,7 @@ func TestSearchPagination(t *testing.T) {
 			models.SystemState:       "closed"},
 	}
 
-	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch2"
@@ -67,8 +75,7 @@ func TestSearchPagination(t *testing.T) {
 
 func TestSearchWithEmptyValue(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	service := goa.New("TestSearch-Service")
+	service := getServiceAsUser()
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	wiPayload := app.CreateWorkItemPayload{
@@ -80,7 +87,7 @@ func TestSearchWithEmptyValue(t *testing.T) {
 			models.SystemState:       "closed"},
 	}
 
-	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := ""
@@ -91,8 +98,7 @@ func TestSearchWithEmptyValue(t *testing.T) {
 
 func TestSearchWithDomainPortCombination(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	service := goa.New("TestSearch-Service")
+	service := getServiceAsUser()
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	expectedDescription := "http://localhost:8080/detail/154687364529310 is related issue"
@@ -105,7 +111,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 			models.SystemState:       "closed"},
 	}
 
-	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := `"http://localhost:8080/detail/154687364529310"`
@@ -118,8 +124,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 
 func TestSearchURLWithoutPort(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	service := goa.New("TestSearch-Service")
+	service := getServiceAsUser()
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	expectedDescription := "This issue is related to http://localhost/detail/876394"
@@ -132,7 +137,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 			models.SystemState:       "closed"},
 	}
 
-	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := `"http://localhost/detail/876394"`
