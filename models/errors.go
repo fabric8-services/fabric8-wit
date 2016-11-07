@@ -41,6 +41,11 @@ func (err BadParameterError) Error() string {
 	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
 }
 
+// NewBadParameterError returns the custom defined error of type NewBadParameterError.
+func NewBadParameterError(param string, value interface{}) BadParameterError {
+	return BadParameterError{parameter: param, value: value}
+}
+
 // NewConversionError returns the custom defined error of type NewConversionError.
 func NewConversionError(msg string) ConversionError {
 	return ConversionError{simpleError{msg}}
@@ -59,4 +64,9 @@ type NotFoundError struct {
 
 func (err NotFoundError) Error() string {
 	return fmt.Sprintf(stNotFoundErrorMsg, err.entity, err.ID)
+}
+
+// NewNotFoundError returns the custom defined error of type NewNotFoundError.
+func NewNotFoundError(entity string, id string) NotFoundError {
+	return NotFoundError{entity: entity, ID: id}
 }
