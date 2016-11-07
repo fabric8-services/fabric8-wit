@@ -218,7 +218,7 @@ var searchResponse = a.MediaType("application/vnd.search+json", func() {
 			a.Attribute("last", d.String)
 		})
 		a.Attribute("meta", func() {
-			a.Attribute("totalCount", d.Number)
+			a.Attribute("totalCount", d.Integer)
 		})
 		a.Attribute("data")
 	})
