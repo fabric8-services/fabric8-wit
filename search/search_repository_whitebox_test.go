@@ -137,6 +137,7 @@ func TestSearchByText(t *testing.T) {
 			// had to dynamically create this since I didn't now the URL/ID of the workitem
 			// till the test data was created.
 			searchString = searchString + workItemURLInSearchString
+			searchString = fmt.Sprintf("\"%s\"", searchString)
 			t.Log("using search string: " + searchString)
 			sr := NewGormSearchRepository(db)
 			var start, limit int = 0, 100
@@ -144,7 +145,7 @@ func TestSearchByText(t *testing.T) {
 			if err != nil {
 				t.Fatal("Error getting search result ", err)
 			}
-
+			searchString = strings.Trim(searchString, "\"")
 			// Since this test adds test data, whether or not other workitems exist
 			// there must be at least 1 search result returned.
 			if len(workItemList) == minimumResults && minimumResults == 0 {
