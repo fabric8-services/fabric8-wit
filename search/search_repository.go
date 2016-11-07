@@ -344,11 +344,6 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	return result, count, nil
 }
 
-// Validate ensures that the search string is valid and also ensures its not an injection attack.
-func (r *GormSearchRepository) Validate(ctx context.Context, rawSearchString string) error {
-	return nil
-}
-
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
 	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`)

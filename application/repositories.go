@@ -41,5 +41,4 @@ type TrackerQueryRepository interface {
 // SearchRepository encapsulates searching of woritems,users,etc
 type SearchRepository interface {
 	SearchFullText(ctx context.Context, searchStr string, start *int, length *int) ([]*app.WorkItem, uint64, error)
-	Validate(ctx context.Context, searchStr string) error
 }
