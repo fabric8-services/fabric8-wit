@@ -1,2 +1,4 @@
-CREATE INDEX IF NOT EXISTS fields_title ON work_items USING GIN (to_tsvector('english', fields->>'system.title'));
-CREATE INDEX IF NOT EXISTS fields_description ON work_items USING GIN (to_tsvector('english', fields->>'system.description'));
+CREATE INDEX IF NOT EXISTS fulltext_search_index ON work_items 
+USING gin((setweight(to_tsvector('english',coalesce(fields->>'system.title','')),'B')||
+    setweight(to_tsvector('english',coalesce(fields->>'system.description','')),'C')|| 
+    setweight(to_tsvector('english', id::text),'A')));
