@@ -2,9 +2,9 @@ package models
 
 import "fmt"
 
-const(
+const (
 	stBadParameterErrorMsg = "Bad value for parameter '%s': '%v'"
-	stNotFoundErrorMsg = "%s with id '%s' not found"
+	stNotFoundErrorMsg     = "%s with id '%s' not found"
 )
 
 type simpleError struct {
@@ -15,14 +15,10 @@ func (err simpleError) Error() string {
 	return err.message
 }
 
-func NewSimpleError(msg string) simpleError {
-	return simpleError{message: msg}
-}
-
+// NewInternalError returns the custom defined error of type NewInternalError.
 func NewInternalError(msg string) InternalError {
-	return InternalError{simpleError: NewSimpleError(msg)}
+	return InternalError{simpleError{msg}}
 }
-
 
 // InternalError means that the operation failed for some internal, unexpected reason
 type InternalError struct {
@@ -45,6 +41,16 @@ func (err BadParameterError) Error() string {
 	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
 }
 
+// NewBadParameterError returns the custom defined error of type NewBadParameterError.
+func NewBadParameterError(param string, value interface{}) BadParameterError {
+	return BadParameterError{parameter: param, value: value}
+}
+
+// NewConversionError returns the custom defined error of type NewConversionError.
+func NewConversionError(msg string) ConversionError {
+	return ConversionError{simpleError{msg}}
+}
+
 // ConversionError error means something went wrong converting between different representations
 type ConversionError struct {
 	simpleError
@@ -58,4 +64,9 @@ type NotFoundError struct {
 
 func (err NotFoundError) Error() string {
 	return fmt.Sprintf(stNotFoundErrorMsg, err.entity, err.ID)
+}
+
+// NewNotFoundError returns the custom defined error of type NewNotFoundError.
+func NewNotFoundError(entity string, id string) NotFoundError {
+	return NotFoundError{entity: entity, ID: id}
 }

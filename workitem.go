@@ -10,6 +10,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/query/simple"
 )
@@ -98,7 +99,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 // Create runs the create action.
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		wi, err := appl.WorkItems().Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields)
+		currentUser, err := login.ContextIdentity(ctx)
+		if err != nil {
+			return ctx.Unauthorized()
+		}
+		wi, err := appl.WorkItems().Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields, currentUser)
 
 		if err != nil {
 			switch err := err.(type) {

@@ -32,7 +32,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item", ID}
 	}
-	wiType, err := r.wir.loadTypeFromDB(ctx, res.Type)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
@@ -84,7 +84,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
 
-	wiType, err := r.wir.loadTypeFromDB(ctx, wi.Type)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
 	if err != nil {
 		return nil, BadParameterError{"Type", wi.Type}
 	}
@@ -119,8 +119,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}) (*app.WorkItem, error) {
-	wiType, err := r.wir.loadTypeFromDB(ctx, typeID)
+func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
+	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, BadParameterError{parameter: "type", value: typeID}
 	}
@@ -128,6 +128,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		Type:   typeID,
 		Fields: Fields{},
 	}
+	fields[SystemCreator] = creator
 	for fieldName, fieldDef := range wiType.Fields {
 		fieldValue := fields[fieldName]
 		var err error
@@ -236,7 +237,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	res := make([]*app.WorkItem, len(result))
 
 	for index, value := range result {
-		wiType, err := r.wir.loadTypeFromDB(ctx, value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, InternalError{simpleError{err.Error()}}
 		}

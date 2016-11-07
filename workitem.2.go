@@ -12,6 +12,11 @@ import (
 	"github.com/goadesign/goa"
 )
 
+const (
+	pageSizeDefault = 20
+	pageSizeMax     = 100
+)
+
 // Workitem2Controller implements the workitem.2 resource.
 type Workitem2Controller struct {
 	*goa.Controller
@@ -111,7 +116,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	}
 
 	if ctx.PageLimit == nil {
-		limit = 100
+		limit = pageSizeDefault
 	} else {
 		limit = *ctx.PageLimit
 	}
@@ -124,6 +129,9 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 
 	if limit <= 0 {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("limit must be > 0, but is: %d", limit)))
+	}
+	if limit > pageSizeMax {
+		limit = pageSizeMax
 	}
 
 	return application.Transactional(c.db, func(tx application.Application) error {

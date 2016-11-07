@@ -13,10 +13,7 @@ var _ = a.API("alm", func() {
 	a.Scheme("http")
 	a.BasePath("/api")
 	a.Consumes("application/json")
-	a.Produces("application/json", "*/*", func() {
-		a.Package("github.com/almighty/almighty-core/encoding")
-		a.Function("CustomJSONEncoder")
-	})
+	a.Produces("application/json")
 
 	a.License(func() {
 		a.Name("Apache License Version 2.0")
