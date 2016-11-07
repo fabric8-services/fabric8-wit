@@ -59,7 +59,7 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 }
 
 type AttributeConverter interface {
-	Convert(interface{}, interface{}) (interface{}, error)
+	Convert(interface{}, AttributeAccessor) (interface{}, error)
 }
 
 type StateConverter interface{}
@@ -71,11 +71,11 @@ type GithubStateConverter struct{}
 type JiraStateConverter struct{}
 
 // Convert method map the external tracker item to ALM WorkItem
-func (sc StringConverter) Convert(value interface{}, item interface{}) (interface{}, error) {
+func (sc StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	return value, nil
 }
 
-func (ghc GithubStateConverter) Convert(value interface{}, item interface{}) (interface{}, error) {
+func (ghc GithubStateConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	if value.(string) == "closed" {
 		value = "closed"
 	} else if value.(string) == "open" {
@@ -84,7 +84,7 @@ func (ghc GithubStateConverter) Convert(value interface{}, item interface{}) (in
 	return value, nil
 }
 
-func (jhc JiraStateConverter) Convert(value interface{}, item interface{}) (interface{}, error) {
+func (jhc JiraStateConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	if value.(string) == "closed" {
 		value = "closed"
 	} else if value.(string) == "open" {
