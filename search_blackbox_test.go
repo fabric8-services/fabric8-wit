@@ -88,3 +88,57 @@ func TestSearchWithEmptyValue(t *testing.T) {
 	assert.Equal(t, 0, len(sr.Data))
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
+
+func TestSearchWithDomainPortCombination(t *testing.T) {
+	resource.Require(t, resource.Database)
+
+	service := goa.New("TestSearch-Service")
+	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+
+	expectedDescription := "http://localhost:8080/detail/154687364529310 is related issue"
+	wiPayload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:       "specialwordforsearch_new",
+			models.SystemDescription: expectedDescription,
+			models.SystemCreator:     "baijum",
+			models.SystemState:       "closed"},
+	}
+
+	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	q := `"http://localhost:8080/detail/154687364529310"`
+	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	assert.NotEqual(t, 0, len(sr.Data))
+	r := sr.Data[0]
+	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
+}
+
+func TestSearchURLWithoutPort(t *testing.T) {
+	resource.Require(t, resource.Database)
+
+	service := goa.New("TestSearch-Service")
+	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+
+	expectedDescription := "This issue is related to http://localhost/detail/876394"
+	wiPayload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:       "specialwordforsearch_without_port",
+			models.SystemDescription: expectedDescription,
+			models.SystemCreator:     "baijum",
+			models.SystemState:       "closed"},
+	}
+
+	_, wiResult := test.CreateWorkitemCreated(t, nil, nil, wiController, &wiPayload)
+
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	q := `"http://localhost/detail/876394"`
+	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	assert.NotEqual(t, 0, len(sr.Data))
+	r := sr.Data[0]
+	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
+}

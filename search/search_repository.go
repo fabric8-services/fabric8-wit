@@ -163,7 +163,10 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 	// first value from FindStringSubmatch is always full input itself, hence ignored
 	// Join rest of the tokens to make query like "demo.almighty.io/details/100"
 	if len(match) > 1 {
-		searchQueryString := strings.Join(match[1:], "") + ":*"
+		searchQueryString := strings.Join(match[1:], "")
+		searchQueryString = strings.Replace(searchQueryString, ":", "\\:", -1)
+		// need to escape ":" because this string will go as an input to tsquery
+		searchQueryString = fmt.Sprintf("%s:*", searchQueryString)
 		if result["id"] != "" {
 			// Look for pattern's ID field, if exists update searchQueryString
 			searchQueryString = fmt.Sprintf("(%v:* | %v)", result["id"], searchQueryString)
@@ -347,4 +350,5 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
 	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/detail/)(?P<id>\d*)`)
 }
