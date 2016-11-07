@@ -4,6 +4,8 @@ import (
 	"log"
 	"strconv"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/models"
@@ -63,9 +65,13 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 
 	log.Printf("loading tracker %d", id)
 	res := Tracker{}
-	if r.db.First(&res, id).RecordNotFound() {
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"tracker", ID}
+	}
+	if tx.Error != nil {
+		return nil, InternalError{simpleError{fmt.Sprintf("error while loading: %s", tx.Error.Error())}}
 	}
 	t := app.Tracker{
 		ID:   strconv.FormatUint(res.ID, 10),
