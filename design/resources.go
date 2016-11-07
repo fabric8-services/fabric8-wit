@@ -397,6 +397,7 @@ var _ = a.Resource("search", func() {
 				3) simple keywords seperated by space :- Search in Work Items based on these keywords.`)
 			a.Param("page[offset]", d.Integer, "Paging in the format <start>,<limit>")
 			a.Param("page[limit]", d.Integer, "Paging in the format <start>,<limit>")
+			a.Required("q")
 		})
 		a.Response(d.OK, func() {
 			a.Media(searchResponse)
