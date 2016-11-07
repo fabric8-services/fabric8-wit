@@ -172,7 +172,7 @@ func (fake *WorkItemRepository) DeleteReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *WorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		ctx    context.Context

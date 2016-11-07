@@ -16,6 +16,7 @@ import (
 	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
@@ -23,6 +24,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
@@ -32,8 +34,9 @@ import (
 
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
-
-	svc := goa.New("TestGetWorkItem-Service")
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -45,7 +48,7 @@ func TestGetWorkItem(t *testing.T) {
 			models.SystemState:   "closed"},
 	}
 
-	_, result := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
+	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, result.ID)
 
@@ -57,7 +60,10 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
-	wi.Fields[models.SystemCreator] = "thomas"
+	if wi.Fields[models.SystemCreator] != account.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Fields[models.SystemCreator])
+	}
+	wi.Fields[models.SystemTitle] = "Updated Test WI"
 	payload2 := app.UpdateWorkItemPayload{
 		Type:    wi.Type,
 		Version: wi.Version,
@@ -70,8 +76,8 @@ func TestGetWorkItem(t *testing.T) {
 	if updated.ID != result.ID {
 		t.Errorf("id has changed from %s to %s", result.ID, updated.ID)
 	}
-	if updated.Fields[models.SystemCreator] != "thomas" {
-		t.Errorf("expected creator %s, but got %s", "thomas", updated.Fields[models.SystemCreator])
+	if updated.Fields[models.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Fields[models.SystemTitle])
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, result.ID)
@@ -79,7 +85,9 @@ func TestGetWorkItem(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := goa.New("TestCreateWI-Service")
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -92,15 +100,36 @@ func TestCreateWI(t *testing.T) {
 		},
 	}
 
-	_, created := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
+	_, created := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	if created.ID == "" {
 		t.Error("no id")
 	}
+	assert.NotNil(t, created.Fields[models.SystemCreator])
+	assert.Equal(t, created.Fields[models.SystemCreator], account.TestIdentity.ID.String())
+}
+
+func TestCreateWorkItemWithoutContext(t *testing.T) {
+	resource.Require(t, resource.Database)
+	svc := goa.New("TestCreateWorkItemWithoutContext-Service")
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:   "Test WI",
+			models.SystemCreator: "tmaeder",
+			models.SystemState:   models.SystemStateNew,
+		},
+	}
+	test.CreateWorkitemUnauthorized(t, svc.Context, svc, controller, &payload)
 }
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	svc := goa.New("TestListByFields-Service")
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -113,7 +142,7 @@ func TestListByFields(t *testing.T) {
 		},
 	}
 
-	_, wi := test.CreateWorkitemCreated(t, nil, nil, controller, &payload)
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
 	filter := "{\"system.title\":\"run integration test\"}"
 	page := "0,1"
@@ -127,7 +156,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result))
 	}
 
-	filter = "{\"system.creator\":\"aslak\"}"
+	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestIdentity.ID.String())
 	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, &page)
 
 	if result == nil {
@@ -344,7 +373,6 @@ func TestUnauthorizeWorkItemCUD(t *testing.T) {
 		// Because it will check the design and accordingly apply the middleware if mentioned in design
 		// But if I use `service.Use(jwtMiddleware)` then middleware is applied for all the requests (without checking design)
 		app.UseJWTMiddleware(service, jwtMiddleware)
-
 		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 		app.MountWorkitemController(service, controller)
 
