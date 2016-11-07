@@ -21,23 +21,14 @@ import (
 )
 
 const (
-	/*
-		- The SQL queries do a case-insensitive search.
-		- English words are normalized during search which means words like qualifying === qualify
-		- To disable the above normalization change "to_tsquery('english',$1)" to "to_tsquery($1)"
-		- Create GIN indexes : https://www.postgresql.org/docs/9.5/static/textsearch-tables.html#TEXTSEARCH-TABLES-INDEX
-		- To perform "LIKE" query we are appending ":*" to the search token
+/*
+	- The SQL queries do a case-insensitive search.
+	- English words are normalized during search which means words like qualifying === qualify
+	- To disable the above normalization change "to_tsquery('english',$1)" to "to_tsquery($1)"
+	- Create GIN indexes : https://www.postgresql.org/docs/9.5/static/textsearch-tables.html#TEXTSEARCH-TABLES-INDEX
+	- To perform "LIKE" query we are appending ":*" to the search token
 
-	*/
-
-	// WhereClauseForSearchByText This SQL query is used when search is performed across workitem fields and workitem ID
-	WhereClauseForSearchByText = `setweight(to_tsvector('english',coalesce(fields->>'system.title','')),'B')||
-				setweight(to_tsvector('english',coalesce(fields->>'system.description','')),'C')|| 
-				setweight(to_tsvector('english', id::text),'A')
-				@@ to_tsquery('english',$1)`
-
-	// WhereClauseForSearchByID This SQL query is used when search is performed across workitem ID ONLY.
-	WhereClauseForSearchByID = `to_tsvector('english', id::text || ' ') @@ to_tsquery('english',$1)`
+*/
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -214,43 +205,34 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
-			res.id = append(res.id, strings.Trim(part, "id:"))
+			res.id = append(res.id, strings.Trim(part, "id:")+":A")
 		} else if govalidator.IsURL(part) {
 			part := strings.Trim(part, `http[s]://`)
 			searchQueryFromURL := getSearchQueryFromURLString(part)
 			res.words = append(res.words, searchQueryFromURL)
 		} else {
-			res.words = append(res.words, part)
+			res.words = append(res.words, part+":*")
 		}
 	}
 	return res
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
-func generateSQLSearchInfo(keywords searchKeyword) (sqlQuery string, sqlParameter string) {
+func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 	idStr := strings.Join(keywords.id, " & ")
 	wordStr := strings.Join(keywords.words, " & ")
-	searchQuery := WhereClauseForSearchByText
-
-	if len(keywords.id) == 1 && len(keywords.words) == 0 {
-		// If the search string is of the form "id:2647326482" then we perform
-		// search only on the ID, else we do a full text search.
-		// Is "id:45453 id:43234" be valid ? NO, because the no row can have 2 IDs.
-		searchQuery = WhereClauseForSearchByID
-	}
 
 	searchStr := idStr + wordStr
 	if len(wordStr) != 0 && len(idStr) != 0 {
 		searchStr = idStr + " & " + wordStr
 	}
-	return searchQuery, searchStr
+	return searchStr
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQuery string, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-	db := r.db.Model(&models.WorkItem{}).Where(sqlSearchQuery, sqlSearchQueryParameter)
-	orgDB := db
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
+	db := r.db.Debug().Model(&models.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, models.NewBadParameterError("start", *start)
@@ -264,6 +246,8 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQuery string
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Joins(", to_tsquery('english', $1) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
+	db = db.Order("rank desc")
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -301,16 +285,8 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQuery string
 
 	}
 	if first {
-		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
-		// need to do a count(*) to find out total
-		orgDB := orgDB.Select("count(*)")
-		rows2, err := orgDB.Rows()
-		defer rows2.Close()
-		if err != nil {
-			return nil, 0, err
-		}
-		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
+		// means 0 rows were returned from the first query,
+		count = 0
 	}
 	return result, count, nil
 	//*/
@@ -323,9 +299,9 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// ....
 	parsedSearchDict := parseSearchString(rawSearchString)
 
-	sqlSearchQuery, sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
+	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []models.WorkItem
-	rows, count, err := r.search(ctx, sqlSearchQuery, sqlSearchQueryParameter, start, limit)
+	rows, count, err := r.search(ctx, sqlSearchQueryParameter, start, limit)
 	if err != nil {
 		return nil, 0, err
 	}
