@@ -1,10 +1,12 @@
 package models_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewInternalError(t *testing.T) {
@@ -23,4 +25,23 @@ func TestNewConversionError(t *testing.T) {
 
 	// not sure what assertion to do here.
 	t.Log(err)
+}
+
+func TestNewBadParameterError(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	param := "assigness"
+	value := 10
+	err := models.NewBadParameterError(param, value)
+	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v'", param, value), err.Error())
+
+}
+
+func TestNewNotFoundError(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	param := "assigness"
+	value := "10"
+	err := models.NewNotFoundError(param, value)
+	assert.Equal(t, fmt.Sprintf("%s with id '%s' not found", param, value), err.Error())
 }
