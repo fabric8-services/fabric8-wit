@@ -551,3 +551,31 @@ func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Next", *result.Links.Next)
 	}
 }
+
+func TestPagingDefaultAndMaxSize(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	svc := goa.New("TestPaginErrors-Service")
+	db := testsupport.NewMockDB()
+	controller := NewWorkitem2Controller(svc, db)
+
+	offset := "0"
+	var limit int
+	repo := db.WorkItems().(*testsupport.WorkItemRepository)
+	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
+
+	_, result := test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, nil, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=20") {
+		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
+	}
+	limit = 1000
+	_, result = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=100") {
+		assert.Fail(t, "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
+	}
+
+	limit = 50
+	_, result = test.ListWorkitem2OK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	if !strings.Contains(*result.Links.First, "page[limit]=50") {
+		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
+	}
+}
