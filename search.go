@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -32,7 +33,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	if ctx.PageOffset == nil {
 		offset = 0
 	} else {
-		offset = *ctx.PageOffset
+		offsetValue, err := strconv.Atoi(*ctx.PageOffset)
+		if err != nil {
+			offset = 0
+		} else {
+			offset = offsetValue
+		}
 	}
 
 	if ctx.PageLimit == nil {

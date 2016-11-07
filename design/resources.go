@@ -395,8 +395,8 @@ var _ = a.Resource("search", func() {
 				2) url:http://demo.almighty.io/details/500 :- Search on WI having id 500 and check 
 					if this URL is mentioned in searchable columns of work item
 				3) simple keywords seperated by space :- Search in Work Items based on these keywords.`)
-			a.Param("page[offset]", d.Integer, "Paging in the format <start>,<limit>")
-			a.Param("page[limit]", d.Integer, "Paging in the format <start>,<limit>")
+			a.Param("page[offset]", d.String, "Paging start position") // #428
+			a.Param("page[limit]", d.Integer, "Paging size")
 			a.Required("q")
 		})
 		a.Response(d.OK, func() {
