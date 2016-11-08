@@ -189,6 +189,10 @@ func main() {
 	userCtrl := NewUserController(service, identityRepository, tokenManager)
 	app.MountUserController(service, userCtrl)
 
+	// Mount "search" controller
+	searchCtrl := NewSearchController(service, appDB)
+	app.MountSearchController(service, searchCtrl)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("UTC Start Time: ", StartTime)

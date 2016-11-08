@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/search"
 	"github.com/jinzhu/gorm"
 )
 
@@ -68,6 +69,10 @@ func (g *GormBase) Trackers() application.TrackerRepository {
 }
 func (g *GormBase) TrackerQueries() application.TrackerQueryRepository {
 	return remoteworkitem.NewTrackerQueryRepository(g.db)
+}
+
+func (g *GormBase) SearchItems() application.SearchRepository {
+	return search.NewGormSearchRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {
