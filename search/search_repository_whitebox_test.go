@@ -293,7 +293,7 @@ func TestParseSearchString(t *testing.T) {
 	input := "user input for search string with some ids like id:99 and id:400 but this is not id like 800"
 	op := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
-		id:    []string{"99:A", "400:A"},
+		id:    []string{"99:*A", "400:*A"},
 		words: []string{"user:*", "input:*", "for:*", "search:*", "string:*", "with:*", "some:*", "ids:*", "like:*", "and:*", "but:*", "this:*", "is:*", "not:*", "id:*", "like:*", "800:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
@@ -347,7 +347,7 @@ func TestParseSearchStringCombination(t *testing.T) {
 	input := "http://general.url.io http://demo.almighty.io/detail/100 id:300 golang book and           id:900 \t \n unwanted"
 	op := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
-		id:    []string{"300:A", "900:A"},
+		id:    []string{"300:*A", "900:*A"},
 		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
