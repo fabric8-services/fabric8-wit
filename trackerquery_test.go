@@ -112,18 +112,14 @@ func TestUpdateTrackerQuery(t *testing.T) {
 // This test ensures that List does not return NIL items.
 func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
-	tqts := models.NewGormTransactionSupport(DB)
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
-	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
@@ -133,7 +129,7 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	_, item1 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	_, item2 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 
-	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController, nil, nil)
+	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController)
 	for _, tq := range list {
 		if tq == nil {
 			t.Error("Returned Tracker Query found nil")
@@ -147,18 +143,14 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/189
 func TestCreateTrackerQueryValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
-	ts := models.NewGormTransactionSupport(DB)
-	repo := remoteworkitem.NewTrackerRepository(ts)
-	controller := TrackerController{ts: ts, tRepository: repo, scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
 		Type: "github",
 	}
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(result.ID)
-	tqts := models.NewGormTransactionSupport(DB)
-	tqrepo := remoteworkitem.NewTrackerQueryRepository(tqts)
-	tqController := TrackerqueryController{ts: tqts, tqRepository: tqrepo, scheduler: rwiScheduler}
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
 	tqpayload := app.CreateTrackerQueryAlternatePayload{
 
 		Query:     "is:open is:issue user:arquillian author:aslakknutsen",

@@ -6,8 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/models"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -84,8 +83,8 @@ func TestTrackerQueryDelete(t *testing.T) {
 }
 
 func TestTrackerQueryList(t *testing.T) {
-	doWithTrackerRepositories(t, func(trackerRepo TrackerRepository, queryRepo TrackerQueryRepository) {
-		trackerqueries1, _ := queryRepo.List(context.Background(), criteria.Literal(true), nil, nil)
+	doWithTrackerRepositories(t, func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository) {
+		trackerqueries1, _ := queryRepo.List(context.Background())
 
 		tracker1, _ := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		queryRepo.Create(context.Background(), "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID)
@@ -95,19 +94,17 @@ func TestTrackerQueryList(t *testing.T) {
 		queryRepo.Create(context.Background(), "project = ARQ AND text ~ 'arquillian'", "15 * * * * *", tracker2.ID)
 		queryRepo.Create(context.Background(), "project = ARQ AND text ~ 'javadoc'", "15 * * * * *", tracker2.ID)
 
-		trackerqueries2, _ := queryRepo.List(context.Background(), criteria.Literal(true), nil, nil)
+		trackerqueries2, _ := queryRepo.List(context.Background())
 		assert.Equal(t, len(trackerqueries1)+4, len(trackerqueries2))
-		start, len := 0, 2
-
-		trackerqueries3, _ := queryRepo.List(context.Background(), criteria.Literal(true), &start, &len)
+		trackerqueries3, _ := queryRepo.List(context.Background())
 		assert.Equal(t, trackerqueries2[1], trackerqueries3[1])
 	})
 }
 
 func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository)) {
-	doWithTransaction(t, func(ts *models.GormTransactionSupport) {
-		trackerRepo := NewTrackerRepository(ts)
-		queryRepo := NewTrackerQueryRepository(ts)
+	doWithTransaction(t, func(db *gorm.DB) {
+		trackerRepo := NewTrackerRepository(db)
+		queryRepo := NewTrackerQueryRepository(db)
 		todo(trackerRepo, queryRepo)
 	})
 
