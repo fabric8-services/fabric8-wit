@@ -75,160 +75,237 @@ func TestWorkItemMapping(t *testing.T) {
 func TestGitHubIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	content, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubDataWithAssignee)
-	if err != nil {
-		t.Fatal(err)
+	type githubData struct {
+		inputFile      string
+		expectedOutput bool
 	}
 
-	workItemMap := WorkItemKeyMaps[ProviderGithub]
-	remoteTrackerkItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
-
-	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
-	gh, err := remoteWorkItemImpl(remoteTrackerkItem)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	workItem, err := Map(gh, workItemMap)
-	if err != nil {
-		t.Fatal(err)
+	var gid = []githubData{
+		{"github_issue_mapping.json", true},
 	}
 
-	for _, localWorkItemKey := range workItemMap {
-		t.Log("Mapping ", localWorkItemKey)
-		_, ok := workItem.Fields[localWorkItemKey]
-		assert.Equal(t, ok, true, fmt.Sprintf("%s not mapped", localWorkItemKey))
+	for _, j := range gid {
+		content, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithAssignee)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		workItemMap := WorkItemKeyMaps[ProviderGithub]
+		remoteTrackerkItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
+
+		remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
+		gh, err := remoteWorkItemImpl(remoteTrackerkItem)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+		workItem, err := Map(gh, workItemMap)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, localWorkItemKey := range workItemMap {
+			t.Log("Mapping ", localWorkItemKey)
+			_, ok := workItem.Fields[localWorkItemKey]
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("%s not mapped", localWorkItemKey))
+		}
 	}
 }
 func TestJiraIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	content, err := test.LoadTestData("jira_issue_mapping.json", provideRemoteJiraDataWithAssignee)
-	if err != nil {
-		t.Fatal(err)
+	type jiradata struct {
+		inputFile      string
+		expectedOutput bool
 	}
 
-	workItemMap := WorkItemKeyMaps[ProviderJira]
-	remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
-	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderJira]
-	ji, err := remoteWorkItemImpl(remoteTrackerItem)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-	workItem, err := Map(ji, workItemMap)
-	if err != nil {
-		t.Fatal(err)
+	var jir = []jiradata{
+		{"jira_issue_mapping.json", true},
 	}
 
-	for _, localWorkItemKey := range workItemMap {
-		t.Log("Mapping ", localWorkItemKey)
-		_, ok := workItem.Fields[localWorkItemKey]
-		assert.Equal(t, ok, true, fmt.Sprintf("%s not mapped", localWorkItemKey))
+	for _, j := range jir {
+		content, err := test.LoadTestData(j.inputFile, provideRemoteJiraDataWithAssignee)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		workItemMap := WorkItemKeyMaps[ProviderJira]
+		remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
+		remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderJira]
+		ji, err := remoteWorkItemImpl(remoteTrackerItem)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+		workItem, err := Map(ji, workItemMap)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, localWorkItemKey := range workItemMap {
+			t.Log("Mapping ", localWorkItemKey)
+			_, ok := workItem.Fields[localWorkItemKey]
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("%s not mapped", localWorkItemKey))
+		}
 	}
 }
 
 func TestFlattenGithubResponseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	testString, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubDataWithAssignee)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var nestedMap map[string]interface{}
-	err = json.Unmarshal(testString, &nestedMap)
 
-	if err != nil {
-		t.Error("Incorrect dataset ", testString)
+	type githubData struct {
+		inputFile      string
+		expectedOutput bool
 	}
 
-	OneLevelMap := Flatten(nestedMap)
+	var gid = []githubData{
+		{"github_issue_mapping.json", true},
+	}
 
-	githubKeyMap := WorkItemKeyMaps[ProviderGithub]
+	for _, j := range gid {
+		testString, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithAssignee)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var nestedMap map[string]interface{}
+		err = json.Unmarshal(testString, &nestedMap)
+
+		if err != nil {
+			t.Error("Incorrect dataset ", testString)
+		}
+
+		OneLevelMap := Flatten(nestedMap)
+
+		githubKeyMap := WorkItemKeyMaps[ProviderGithub]
 
 	// Verifying if the new map is usable.
 	for k := range githubKeyMap {
 		_, ok := OneLevelMap[string(k.expression)]
 		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		// Verifying if the new map is usable.
+		for k := range githubKeyMap {
+			_, ok := OneLevelMap[string(k.expression)]
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		}
 	}
 }
 
 func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	testString, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubDataWithoutAssignee)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var nestedMap map[string]interface{}
-	err = json.Unmarshal(testString, &nestedMap)
 
-	if err != nil {
-		t.Error("Incorrect dataset ", testString)
+	type githubData struct {
+		inputFile      string
+		expectedOutput bool
 	}
 
-	OneLevelMap := Flatten(nestedMap)
-	githubKeyMap := WorkItemKeyMaps[ProviderGithub]
-	// Verifying if the new map is usable.
-	for k := range githubKeyMap {
-		_, ok := OneLevelMap[string(k.expression)]
-		if k.expression == GithubAssignee {
-			continue
+	var gid = []githubData{
+		{"github_issue_mapping.json", true},
+	}
+
+	for _, j := range gid {
+		testString, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithoutAssignee)
+		if err != nil {
+			t.Fatal(err)
 		}
-		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		var nestedMap map[string]interface{}
+		err = json.Unmarshal(testString, &nestedMap)
+
+		if err != nil {
+			t.Error("Incorrect dataset ", testString)
+		}
+
+		OneLevelMap := Flatten(nestedMap)
+
+		githubKeyMap := WorkItemKeyMaps[ProviderGithub]
+
+		// Verifying if the new map is usable.
+		for k := range githubKeyMap {
+			_, ok := OneLevelMap[string(k.expression)]
+			if k == GithubAssignee {
+				continue
+			}
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		}
 	}
 }
 
 func TestFlattenJiraResponseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	testString, err := test.LoadTestData("jira_issue_mapping.json", provideRemoteJiraDataWithAssignee)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var nestedMap map[string]interface{}
-	err = json.Unmarshal(testString, &nestedMap)
 
-	if err != nil {
-		t.Error("Incorrect dataset ", testString)
+	type jiradata struct {
+		inputFile      string
+		expectedOutput bool
 	}
 
-	OneLevelMap := Flatten(nestedMap)
-	jiraKeyMap := WorkItemKeyMaps[ProviderJira]
+	var jir = []jiradata{
+		{"jira_issue_mapping.json", true},
+	}
 
-	// Verifying if the newly converted map is usable.
-	for k := range jiraKeyMap {
-		_, ok := OneLevelMap[string(k.expression)]
-		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
+	for _, j := range jir {
+
+		testString, err := test.LoadTestData(j.inputFile, provideRemoteJiraDataWithAssignee)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var nestedMap map[string]interface{}
+		err = json.Unmarshal(testString, &nestedMap)
+
+		if err != nil {
+			t.Error("Incorrect dataset ", testString)
+		}
+
+		OneLevelMap := Flatten(nestedMap)
+		jiraKeyMap := WorkItemKeyMaps[ProviderJira]
+
+		// Verifying if the newly converted map is usable.
+		for k := range jiraKeyMap {
+			_, ok := OneLevelMap[string(k.expression)]
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		}
 	}
 }
 
 func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	testString, err := test.LoadTestData("jira_issue_mapping.json", provideRemoteJiraDataWithoutAssignee)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var nestedMap map[string]interface{}
-	err = json.Unmarshal(testString, &nestedMap)
 
-	if err != nil {
-		t.Error("Incorrect dataset ", testString)
+	type jiradata struct {
+		inputFile      string
+		expectedOutput bool
 	}
 
-	OneLevelMap := Flatten(nestedMap)
-	jiraKeyMap := WorkItemKeyMaps[ProviderJira]
+	var jir = []jiradata{
+		{"jira_issue_mapping.json", true},
+	}
 
-	// Verifying if the newly converted map is usable.
-	for k := range jiraKeyMap {
-		_, ok := OneLevelMap[string(k.expression)]
-		if k.expression == JiraAssignee {
-			continue
+	for _, j := range jir {
+
+		testString, err := test.LoadTestData(j.inputFile, provideRemoteJiraDataWithoutAssignee)
+		if err != nil {
+			t.Fatal(err)
 		}
-		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		var nestedMap map[string]interface{}
+		err = json.Unmarshal(testString, &nestedMap)
+
+		if err != nil {
+			t.Error("Incorrect dataset ", testString)
+		}
+
+		OneLevelMap := Flatten(nestedMap)
+		jiraKeyMap := WorkItemKeyMaps[ProviderJira]
+
+		// Verifying if the newly converted map is usable.
+		for k := range jiraKeyMap {
+			_, ok := OneLevelMap[string(k.expression)]
+			if k == JiraAssignee {
+				continue
+			}
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
+		}
 	}
 }
 
 func TestNewGitHubRemoteWorkItem(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-
 	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
 	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
 
