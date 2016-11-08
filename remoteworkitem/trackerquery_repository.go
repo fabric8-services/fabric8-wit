@@ -6,8 +6,6 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
@@ -142,27 +140,12 @@ func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID string) erro
 }
 
 // List returns tracker query selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormTrackerQueryRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.TrackerQuery, error) {
-	where, parameters, err := models.Compile(criteria)
-	if err != nil {
-		return nil, BadParameterError{"expression", criteria}
-	}
-
-	log.Printf("executing query: %s", where)
-
+func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQuery, error) {
 	var rows []TrackerQuery
-	db := r.db.Where(where, parameters)
-	if start != nil {
-		db = db.Offset(*start)
-	}
-	if limit != nil {
-		db = db.Limit(*limit)
-	}
-	if err := db.Find(&rows).Error; err != nil {
+	if err := r.db.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	result := make([]*app.TrackerQuery, len(rows))
-
 	for i, tq := range rows {
 		t := app.TrackerQuery{
 			ID:        strconv.FormatUint(tq.ID, 10),

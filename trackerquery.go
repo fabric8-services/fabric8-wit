@@ -6,7 +6,6 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
 )
@@ -105,16 +104,8 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 
 // List runs the list action.
 func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
-	exp, err := query.Parse(ctx.Filter)
-	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
-	}
-	start, limit, err := parseLimit(ctx.Page)
-	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
-	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.TrackerQueries().List(ctx.Context, exp, start, &limit)
+		result, err := appl.TrackerQueries().List(ctx.Context)
 		if err != nil {
 			return goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error()))
 		}

@@ -396,10 +396,6 @@ var _ = a.Resource("trackerquery", func() {
 			a.GET(""),
 		)
 		a.Description("List all tracker queries.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found items")
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-		})
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(TrackerQuery))
 		})
