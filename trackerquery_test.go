@@ -108,3 +108,59 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
 	}
 }
+
+// This test ensures that List does not return NIL items.
+func TestTrackerQueryListItemsNotNil(t *testing.T) {
+	resource.Require(t, resource.Database)
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	payload := app.CreateTrackerAlternatePayload{
+		URL:  "http://api.github.com",
+		Type: "github",
+	}
+	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	t.Log(result.ID)
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
+
+		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:  "15 * * * * *",
+		TrackerID: result.ID,
+	}
+	_, item1 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	_, item2 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+
+	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController)
+	for _, tq := range list {
+		if tq == nil {
+			t.Error("Returned Tracker Query found nil")
+		}
+	}
+	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item1.ID)
+	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item2.ID)
+}
+
+// This test ensures that ID returned by Show is valid.
+// refer : https://github.com/almighty/almighty-core/issues/189
+func TestCreateTrackerQueryValidId(t *testing.T) {
+	resource.Require(t, resource.Database)
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	payload := app.CreateTrackerAlternatePayload{
+		URL:  "http://api.github.com",
+		Type: "github",
+	}
+	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	t.Log(result.ID)
+	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	tqpayload := app.CreateTrackerQueryAlternatePayload{
+
+		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:  "15 * * * * *",
+		TrackerID: result.ID,
+	}
+	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	_, created := test.ShowTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
+	if created != nil && created.ID != trackerquery.ID {
+		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
+	}
+	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
+}

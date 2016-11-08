@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/almighty/almighty-core/app"
@@ -81,4 +82,34 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 	})
 	c.scheduler.ScheduleAllQueries()
 	return result
+}
+
+// Delete runs the delete action.
+func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
+	result := application.Transactional(c.db, func(appl application.Application) error {
+		err := appl.TrackerQueries().Delete(ctx.Context, ctx.ID)
+		if err != nil {
+			switch err.(type) {
+			case remoteworkitem.NotFoundError:
+				return goa.ErrNotFound(err.Error())
+			default:
+				return goa.ErrInternal(err.Error())
+			}
+		}
+		return ctx.OK([]byte{})
+	})
+	c.scheduler.ScheduleAllQueries()
+	return result
+}
+
+// List runs the list action.
+func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.TrackerQueries().List(ctx.Context)
+		if err != nil {
+			return goa.ErrInternal(fmt.Sprintf("Error listing tracker queries: %s", err.Error()))
+		}
+		return ctx.OK(result)
+	})
+
 }
