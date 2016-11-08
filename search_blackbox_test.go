@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
@@ -66,8 +67,8 @@ func TestSearchPagination(t *testing.T) {
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch2"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
-	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
+	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=20", *sr.Links.First)
+	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=20", *sr.Links.Last)
 	r := sr.Data[0]
 	assert.Equal(t, "specialwordforsearch2", r.Fields[models.SystemTitle])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
@@ -145,5 +146,41 @@ func TestSearchURLWithoutPort(t *testing.T) {
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
 	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
+}
+
+func TestSearchPaginationDefaultLimitAndMaxSize(t *testing.T) {
+	resource.Require(t, resource.Database)
+	service := getServiceAsUser()
+	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+
+	wiPayload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:       "specialwordforsearch2",
+			models.SystemDescription: "",
+			models.SystemCreator:     "baijum",
+			models.SystemState:       "closed"},
+	}
+
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
+
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	q := "specialwordforsearch2"
+	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	if !strings.Contains(*sr.Links.First, "page[limit]=20") {
+		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *sr.Links.First)
+	}
+	limit := 1000
+	_, sr = test.ShowSearchOK(t, nil, nil, controller, &limit, nil, q)
+	if !strings.Contains(*sr.Links.First, "page[limit]=100") {
+		assert.Fail(t, "Limit is 1000", "Expected limit to be default size %d, got %v", 100, *sr.Links.First)
+	}
+	limit = -1
+	_, sr = test.ShowSearchOK(t, nil, nil, controller, &limit, nil, q)
+	if !strings.Contains(*sr.Links.First, "page[limit]=20") {
+		assert.Fail(t, "Limit is -1", "Expected limit to be default size %d, got %v", 20, *sr.Links.First)
+	}
+
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }

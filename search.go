@@ -42,16 +42,21 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	}
 
 	if ctx.PageLimit == nil {
-		limit = 100
+		limit = pageSizeDefault
 	} else {
 		limit = *ctx.PageLimit
 	}
 	if offset < 0 {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+		offset = 0
+	}
+
+	if limit <= 0 {
+		limit = pageSizeDefault
+	} else if limit > pageSizeMax {
+		limit = pageSizeMax
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		//return transaction.Do(c.ts, func() error {
 		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit)
 		count := int(c)
 		if err != nil {
