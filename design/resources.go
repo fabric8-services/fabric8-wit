@@ -382,7 +382,7 @@ var _ = a.Resource("trackerquery", func() {
 		)
 		a.Description("Delete tracker query")
 		a.Params(func() {
-			a.Param("id", String, "id")
+			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, func() {
@@ -397,10 +397,10 @@ var _ = a.Resource("trackerquery", func() {
 		)
 		a.Description("List all tracker queries.")
 		a.Params(func() {
-			a.Param("filter", String, "a query language expression restricting the set of found items")
-			a.Param("page", String, "Paging in the format <start>,<limit>")
+			a.Param("filter", d.String, "a query language expression restricting the set of found items")
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 		})
-		a.Response(OK, func() {
+		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(TrackerQuery))
 		})
 		a.Response(d.BadRequest, func() {

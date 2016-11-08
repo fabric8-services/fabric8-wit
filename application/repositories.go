@@ -36,6 +36,8 @@ type TrackerQueryRepository interface {
 	Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error)
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
+    Delete(ctx context.Context, ID string) error
+    List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.TrackerQuery, error)
 }
 
 // SearchRepository encapsulates searching of woritems,users,etc
