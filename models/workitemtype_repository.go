@@ -73,7 +73,11 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		for key, value := range extendedType.Fields {
 			allFields[key] = value
 		}
-		path = extendedType.ParentPath + "/" + extendedType.Name
+		if extendedType.ParentPath == "/" {
+			path = "/" + extendedType.Name
+		} else {
+			path = extendedType.ParentPath + "/" + extendedType.Name
+		}
 	}
 
 	// now process new fields, checking whether they are ok to add.
@@ -143,9 +147,10 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 // converts from models to app representation
 func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
 	var converted = app.WorkItemType{
-		Name:    t.Name,
-		Version: t.Version,
-		Fields:  map[string]*app.FieldDefinition{},
+		Name:       t.Name,
+		Version:    t.Version,
+		Fields:     map[string]*app.FieldDefinition{},
+		ParentPath: t.ParentPath,
 	}
 	for name, def := range t.Fields {
 		ct := convertFieldTypeFromModels(def.Type)

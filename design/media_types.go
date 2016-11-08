@@ -129,15 +129,18 @@ var workItemType = a.MediaType("application/vnd.workitemtype+json", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("name", d.String, "User Readable Name of this item type")
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type")
+	a.Attribute("parentPath", d.String, "The names of the parent types separated with '/' or just '/' if no parents")
 
 	a.Required("version")
 	a.Required("name")
 	a.Required("fields")
+	a.Required("parentPath")
 
 	a.View("default", func() {
 		a.Attribute("version")
 		a.Attribute("name")
 		a.Attribute("fields")
+		a.Attribute("parentPath")
 	})
 	a.View("link", func() {
 		a.Attribute("name")
