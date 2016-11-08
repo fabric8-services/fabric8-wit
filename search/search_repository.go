@@ -205,7 +205,7 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
-			res.id = append(res.id, strings.Trim(part, "id:")+":A")
+			res.id = append(res.id, strings.Trim(part, "id:")+":*A")
 		} else if govalidator.IsURL(part) {
 			part := strings.Trim(part, `http[s]://`)
 			searchQueryFromURL := getSearchQueryFromURLString(part)
