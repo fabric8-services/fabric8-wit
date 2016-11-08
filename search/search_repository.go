@@ -127,6 +127,24 @@ func isKnownURL(url string) (bool, string) {
 	return true, mostReleventMatchName
 }
 
+func trimProtocolFromURLString(urlString string) string {
+	urlString = strings.TrimPrefix(urlString, `http://`)
+	urlString = strings.TrimPrefix(urlString, `https://`)
+	return urlString
+}
+
+func escapeCharFromURLString(urlString string) string {
+	return strings.Replace(urlString, ":", "\\:", -1)
+}
+
+// sanitizeURL does cleaning of URL
+// returns DB friendly string
+// Trims protocol and escapes ":"
+func sanitizeURL(urlString string) string {
+	trimmedURL := trimProtocolFromURLString(urlString)
+	return escapeCharFromURLString(trimmedURL)
+}
+
 /*
 getSearchQueryFromURLPattern takes
 patternName - name of the KnownURL
@@ -183,13 +201,14 @@ func getSearchQueryFromURLString(url string) string {
 	}
 	// any URL other than our system's
 	// return url without protocol
-	return strings.Trim(url, `http[s]://`) + ":*"
+	return sanitizeURL(url) + ":*"
 }
 
 // parseSearchString accepts a raw string and generates a searchKeyword object
 func parseSearchString(rawSearchString string) searchKeyword {
 	// TODO remove special characters and exclaimations if any
 	rawSearchString = strings.ToLower(rawSearchString)
+	rawSearchString = strings.Trim(rawSearchString, "/") // get rid of trailing slashes
 	rawSearchString = strings.Trim(rawSearchString, "\"")
 	parts := strings.Fields(rawSearchString)
 	var res searchKeyword
@@ -205,9 +224,9 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
-			res.id = append(res.id, strings.Trim(part, "id:")+":*A")
+			res.id = append(res.id, strings.TrimPrefix(part, "id:")+":*A")
 		} else if govalidator.IsURL(part) {
-			part := strings.Trim(part, `http[s]://`)
+			part := trimProtocolFromURLString(part)
 			searchQueryFromURL := getSearchQueryFromURLString(part)
 			res.words = append(res.words, searchQueryFromURL)
 		} else {
@@ -325,6 +344,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
+	// Please do not include trailing slashes becasue it will be removed before scanning starts
 	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`)
 	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/detail/)(?P<id>\d*)`)
 }

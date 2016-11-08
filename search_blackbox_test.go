@@ -147,3 +147,28 @@ func TestSearchURLWithoutPort(t *testing.T) {
 	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
+
+func TestUnregisteredURLWithPort(t *testing.T) {
+	resource.Require(t, resource.Database)
+	service := getServiceAsUser()
+	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+	expectedDescription := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
+	wiPayload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:       "specialwordforsearch_new",
+			models.SystemDescription: expectedDescription,
+			models.SystemCreator:     "baijum",
+			models.SystemState:       "closed"},
+	}
+
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
+
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	q := `http://some-other-domain:8080/different-path/`
+	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	assert.NotEqual(t, 0, len(sr.Data))
+	r := sr.Data[0]
+	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
+}
