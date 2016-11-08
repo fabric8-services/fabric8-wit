@@ -80,11 +80,11 @@ func TestGitHubIssueMapping(t *testing.T) {
 		expectedOutput bool
 	}
 
-	var gid = []githubData{
+	var gitData = []githubData{
 		{"github_issue_mapping.json", true},
 	}
 
-	for _, j := range gid {
+	for _, j := range gitData {
 		content, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithAssignee)
 		if err != nil {
 			t.Fatal(err)
@@ -114,12 +114,12 @@ func TestGitHubIssueMapping(t *testing.T) {
 func TestJiraIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	type jiradata struct {
+	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
 	}
 
-	var jir = []jiradata{
+	var jir = []jiraData{
 		{"jira_issue_mapping.json", true},
 	}
 
@@ -158,11 +158,11 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 		expectedOutput bool
 	}
 
-	var gid = []githubData{
+	var gitData = []githubData{
 		{"github_issue_mapping.json", true},
 	}
 
-	for _, j := range gid {
+	for _, j := range gitData {
 		testString, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithAssignee)
 		if err != nil {
 			t.Fatal(err)
@@ -178,14 +178,15 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 
 		githubKeyMap := WorkItemKeyMaps[ProviderGithub]
 
-	// Verifying if the new map is usable.
-	for k := range githubKeyMap {
-		_, ok := OneLevelMap[string(k.expression)]
-		assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
 		// Verifying if the new map is usable.
 		for k := range githubKeyMap {
 			_, ok := OneLevelMap[string(k.expression)]
-			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
+			assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
+			// Verifying if the new map is usable.
+			for k := range githubKeyMap {
+				_, ok := OneLevelMap[string(k.expression)]
+				assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
+			}
 		}
 	}
 }
@@ -198,11 +199,11 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 		expectedOutput bool
 	}
 
-	var gid = []githubData{
+	var gitData = []githubData{
 		{"github_issue_mapping.json", true},
 	}
 
-	for _, j := range gid {
+	for _, j := range gitData {
 		testString, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithoutAssignee)
 		if err != nil {
 			t.Fatal(err)
@@ -221,7 +222,7 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 		// Verifying if the new map is usable.
 		for k := range githubKeyMap {
 			_, ok := OneLevelMap[string(k.expression)]
-			if k == GithubAssignee {
+			if k.expression == GithubAssignee {
 				continue
 			}
 			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
@@ -232,12 +233,12 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 func TestFlattenJiraResponseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	type jiradata struct {
+	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
 	}
 
-	var jir = []jiradata{
+	var jir = []jiraData{
 		{"jira_issue_mapping.json", true},
 	}
 
@@ -268,12 +269,12 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	type jiradata struct {
+	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
 	}
 
-	var jir = []jiradata{
+	var jir = []jiraData{
 		{"jira_issue_mapping.json", true},
 	}
 
@@ -296,7 +297,7 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 		// Verifying if the newly converted map is usable.
 		for k := range jiraKeyMap {
 			_, ok := OneLevelMap[string(k.expression)]
-			if k == JiraAssignee {
+			if k.expression == JiraAssignee {
 				continue
 			}
 			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
