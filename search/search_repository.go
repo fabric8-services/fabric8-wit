@@ -230,6 +230,7 @@ func parseSearchString(rawSearchString string) searchKeyword {
 			searchQueryFromURL := getSearchQueryFromURLString(part)
 			res.words = append(res.words, searchQueryFromURL)
 		} else {
+			part = sanitizeURL(part)
 			res.words = append(res.words, part+":*")
 		}
 	}

@@ -172,3 +172,27 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
+
+func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
+	resource.Require(t, resource.Database)
+	service := getServiceAsUser()
+	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+	expectedDescription := "Related to http://example-domain:8080/different-path/ok issue"
+	wiPayload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle:       "specialwordforsearch_new",
+			models.SystemDescription: expectedDescription,
+			models.SystemCreator:     "baijum",
+			models.SystemState:       "closed"},
+	}
+
+	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
+
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
+	q := `http://url:some-random-other-domain:8080/different-path/`
+	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	assert.Equal(t, 0, len(sr.Data))
+	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
+}
