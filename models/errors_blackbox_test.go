@@ -32,9 +32,11 @@ func TestNewBadParameterError(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	param := "assigness"
 	value := 10
+	expectedValue := 11
 	err := models.NewBadParameterError(param, value)
 	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v'", param, value), err.Error())
-
+	err = models.NewBadParameterError(param, value).Expected(expectedValue)
+	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v' (expected: '%v')", param, value, expectedValue), err.Error())
 }
 
 func TestNewNotFoundError(t *testing.T) {
