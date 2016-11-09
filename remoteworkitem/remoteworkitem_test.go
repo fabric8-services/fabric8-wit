@@ -177,16 +177,10 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 		OneLevelMap := Flatten(nestedMap)
 
 		githubKeyMap := WorkItemKeyMaps[ProviderGithub]
-
 		// Verifying if the new map is usable.
 		for k := range githubKeyMap {
 			_, ok := OneLevelMap[string(k.expression)]
-			assert.Equal(t, ok, true, fmt.Sprintf("Could not access %s from the flattened map ", k))
-			// Verifying if the new map is usable.
-			for k := range githubKeyMap {
-				_, ok := OneLevelMap[string(k.expression)]
-				assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
-			}
+			assert.Equal(t, ok, j.expectedOutput, fmt.Sprintf("Could not access %s from the flattened map ", k))
 		}
 	}
 }
@@ -201,6 +195,7 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 
 	var gitData = []githubData{
 		{"github_issue_mapping.json", true},
+		{"github_test_data.json", true},
 	}
 
 	for _, j := range gitData {
