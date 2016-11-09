@@ -75,7 +75,7 @@ func TestValidOAuthAccessToken(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: configuration.ActualToken,
+		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
 
@@ -112,7 +112,7 @@ func TestGetUserEmails(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: configuration.ActualToken,
+		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
 
@@ -129,7 +129,7 @@ func TestGetUser(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: configuration.ActualToken,
+		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
 
