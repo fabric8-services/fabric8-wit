@@ -7,8 +7,6 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
-
-	"github.com/google/go-github/github"
 )
 
 // githubFetcher provides issue listing
@@ -35,7 +33,11 @@ func (f *githubIssueFetcher) listIssues(query string, opts *github.SearchOptions
 // Fetch tracker items from Github
 func (g *GithubTracker) Fetch() chan TrackerItemContent {
 	f := githubIssueFetcher{}
-	f.client = github.NewClient(nil)
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: configuration.GetGithubAuthToken()},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	f.client = github.NewClient(tc)
 	return g.fetch(&f)
 }
 
@@ -47,12 +49,6 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 				PerPage: 20,
 			},
 		}
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: configuration.ActualToken},
-		)
-		tc := oauth2.NewClient(oauth2.NoContext, ts)
-
-		client := github.NewClient(tc)
 		for {
 			result, response, err := f.listIssues(g.Query, opts)
 			if _, ok := err.(*github.RateLimitError); ok {
