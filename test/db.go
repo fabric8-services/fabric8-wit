@@ -26,6 +26,11 @@ func (db *MockDB) TrackerQueries() application.TrackerQueryRepository {
 func (db *MockDB) SearchItems() application.SearchRepository {
 	return nil
 }
+
+func (db *MockDB) Identities() application.IdentityRepository {
+	return nil
+}
+
 func (db *MockDB) Commit() error {
 	return nil
 }
