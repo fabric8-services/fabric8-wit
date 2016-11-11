@@ -110,6 +110,28 @@ var _ = a.Resource("workitem.2", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("update the given work item with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(UpdateWorkItemJSONAPIPayload)
+		a.Response(d.OK, func() {
+			// Still using workitem in MediaTypes.
+			// ToDo update to struct which complies to jsonapi
+			a.Media(workItem)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
+	})
 })
 
 var _ = a.Resource("workitemtype", func() {

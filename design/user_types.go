@@ -38,6 +38,66 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Required("type", "fields", "version")
 })
 
+// UpdateWorkItemJSONAPIPayload defines top level structure from jsonapi specs
+// visit : http://jsonapi.org/format/#document-top-level
+var UpdateWorkItemJSONAPIPayload = a.Type("UpdateWorkItemJSONAPIPayload", func() {
+	a.Attribute("data", WorkItemDataForUpdate)
+	a.Required("data")
+})
+
+// WorkItemDataForUpdate defines how an update payload will look like
+var WorkItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitems")
+	})
+	a.Attribute("id", d.String, "ID of the work item which is being updated", func() {
+		a.Example("42")
+	})
+	a.Attribute("attributes", WorkItemAttributes)
+	a.Required("type", "id", "attributes")
+	a.Attribute("relationships", WorkItemRelationships)
+})
+
+// WorkItemAttributes defines attributes of WI
+// visit : http://jsonapi.org/format/#document-resource-objects
+var WorkItemAttributes = a.Type("WorkItemAttributes", func() {
+	a.Attribute("version", d.Integer, "version for optimistic concurrency control", func() {
+		a.Example(5)
+	})
+	a.Attribute("type", d.String, "The type of the newly created work item", func() {
+		a.Example("system.userstory")
+		a.MinLength(1)
+		a.Pattern("^[\\p{L}.]+$")
+	})
+	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
+		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
+		a.MinLength(1)
+	})
+	a.Required("version", "type", "fields")
+})
+
+// WorkItemRelationships defines only `assignee` as of now. To be updated
+var WorkItemRelationships = a.Type("WorkItemRelationships", func() {
+	a.Attribute("assignee", RelationAssignee, "This deinfes assignees of the WI")
+})
+
+// RelationAssignee is a top level structure for assignee relationship
+var RelationAssignee = a.Type("RelationAssignee", func() {
+	a.Attribute("data", AssigneeData)
+	a.Required("data")
+})
+
+// AssigneeData defines what is needed inside Assignee Relationship
+var AssigneeData = a.Type("AssigneeData", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("identities")
+	})
+	a.Attribute("id", d.String, "UUID of the identity", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
+	})
+	a.Required("type", "id")
+})
+
 // CreateWorkItemTypePayload explains how input payload should look like
 var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 	a.Attribute("name", d.String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
