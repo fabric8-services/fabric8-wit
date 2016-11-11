@@ -199,24 +199,6 @@ var User = a.MediaType("application/vnd.user+json", func() {
 	})
 })
 
-// UserData represents a user object (TODO: add better description)
-var UserData = a.MediaType("application/vnd.users+json", func() {
-	a.Description(`JSONAPI store for the data of a work item link type.  See also http://jsonapi.org/format/#document-resource-object`)
-	a.Attribute("type", d.String, func() {
-		a.Enum("users")
-	})
-	a.Attribute("id", d.String, "ID of work item link type (optional during creation)", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
-	a.Attribute("attributes", UserAttributes)
-	a.Required("type", "attributes")
-	a.View("default", func() {
-		a.Attribute("type")
-		a.Attribute("id")
-		a.Attribute("attributes")
-	})
-})
-
 var searchResponse = a.MediaType("application/vnd.search+json", func() {
 	a.TypeName("SearchResponse")
 	a.Description("Holds the paginated response to a search request")
@@ -242,12 +224,13 @@ var searchResponse = a.MediaType("application/vnd.search+json", func() {
 	})
 })
 
+// SearchUserArray represents the result of a search for Users
 var SearchUserArray = a.MediaType("application/vnd.searchusers+json", func() {
 	a.TypeName("SearchResponseUsers")
 	a.Description("Holds the paginated response to a search request")
 	a.Attribute("links", pagingLinks)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("data", a.CollectionOf(UserData))
+	a.Attribute("data", a.ArrayOf(Users))
 
 	a.View("default", func() {
 		a.Required("data")

@@ -130,8 +130,21 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 	a.Required("query", "schedule", "trackerID")
 })
 
+// Users represents a user object (TODO: add better description)
+var Users = a.Type("Users", func() {
+	a.Description(`JSONAPI store for the data of a user.  See also http://jsonapi.org/format/#document-resource-object`)
+	a.Attribute("type", d.String, func() {
+		a.Enum("users")
+	})
+	a.Attribute("id", d.String, "ID of work item link type (optional during creation)", func() {
+		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
+	})
+	a.Attribute("attributes", UsersAttributes)
+	a.Required("type", "attributes")
+})
+
 // UserAttributes is the JSONAPI store for all the "attributes" of a user.
-var UserAttributes = a.Type("UserAttributes", func() {
+var UsersAttributes = a.Type("UserAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a user. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("fullname", d.String, "The users full name", func() {
 		a.Example("John Smith")
