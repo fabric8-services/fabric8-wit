@@ -79,7 +79,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 	offset, limit := paginationOptions(ctx.PageOffset, ctx.PageLimit)
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		result, count, err = appl.Identities().SearchByFullName(ctx, q, offset, limit)
+		result, count, err = appl.Identities().Search(ctx, q, offset, limit)
 		return err
 	})
 	if err != nil {
@@ -88,7 +88,8 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 	}
 
 	var users []*app.Users
-	for _, ident := range result {
+	for i := range result {
+		ident := result[i]
 		id := ident.ID.String()
 		users = append(users, &app.Users{
 			Type: "users",

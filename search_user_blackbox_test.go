@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"strings"
+
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -38,12 +40,15 @@ func TestUsersSearchOK(t *testing.T) {
 	defer cleanTestData(idents)
 
 	tests := []okScenario{
-		{"With uppercase query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase query", args{offset("0"), limit(10), "test_ab"}, expects{totalCount(1)}},
+		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
+		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
+		{"With uppercase email query", args{offset("0"), limit(10), "EMAIL_TEST_AB"}, expects{totalCount(1)}},
+		{"With lowercase email query", args{offset("0"), limit(10), "email_test_ab"}, expects{totalCount(1)}},
 		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
 		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
 		{"with multi page", args{offset("0"), limit(10), "TEST"}, expects{hasLinks("Next")}},
 		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
+		{"with different values", args{offset("0"), limit(10), "TEST"}, expects{differentValues()}},
 	}
 
 	service := goa.New("TestUserSearch-Service")
@@ -67,7 +72,7 @@ func TestUsersSearchBadRequest(t *testing.T) {
 		{"with empty query", args{offset("0"), limit(10), ""}},
 	}
 
-	defer cleanTestData(createTestData())
+	//defer cleanTestData(createTestData())
 
 	service := goa.New("TestUserSearch-Service")
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -89,7 +94,15 @@ func createTestData() []account.Identity {
 		for _, name := range names {
 			ident := account.Identity{
 				FullName: name,
-				ImageURL: "http://example.org/test.png",
+				ImageURL: "http://example.org/" + name + ".png",
+				Emails: []account.User{
+					account.User{
+						Email: strings.ToLower("email_" + name + "@" + name + ".org"),
+					},
+					account.User{
+						Email: strings.ToLower("email2_" + name + "@" + name + ".org"),
+					},
+				},
 			}
 			err := app.Identities().Create(context.Background(), &ident)
 			if err != nil {
@@ -111,6 +124,7 @@ func cleanTestData(idents []account.Identity) {
 		db = db.Unscoped()
 		for _, ident := range idents {
 			db.Delete(ident)
+			db.Delete(&account.User{}, "identity_id = ?", ident.ID)
 		}
 		return nil
 	})
@@ -155,6 +169,32 @@ func hasNoLinks(linkNames ...string) func(*testing.T, okScenario, *app.SearchRes
 		for _, linkName := range linkNames {
 			if !reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(linkName).IsNil() {
 				t.Errorf("%s got link, wanted empty %s", scenario.name, linkName)
+			}
+		}
+	}
+}
+
+func differentValues() func(*testing.T, okScenario, *app.SearchResponseUsers) {
+	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
+		var prev *app.Users
+
+		for i := range result.Data {
+			u := result.Data[i]
+			if prev == nil {
+				prev = u
+			} else {
+				if *prev.Attributes.Fullname == *u.Attributes.Fullname {
+					t.Errorf("%s got equal Fullname, wanted different %s", scenario.name, *u.Attributes.Fullname)
+				}
+				if *prev.Attributes.ImageURL == *u.Attributes.ImageURL {
+					t.Errorf("%s got equal ImageURL, wanted different %s", scenario.name, *u.Attributes.ImageURL)
+				}
+				if *prev.ID == *u.ID {
+					t.Errorf("%s got equal ID, wanted different %s", scenario.name, *u.ID)
+				}
+				if prev.Type != u.Type {
+					t.Errorf("%s got non equal Type, wanted same %s", scenario.name, u.Type)
+				}
 			}
 		}
 	}

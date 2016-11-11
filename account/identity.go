@@ -46,7 +46,7 @@ type IdentityRepository interface {
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
-	SearchByFullName(ctx context.Context, q string, start int, limit int) ([]Identity, int, error)
+	Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -129,13 +129,17 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	return objs, nil
 }
 
-// SearchByFullName searches for Identites where FullNmae like q%
-func (m *GormIdentityRepository) SearchByFullName(ctx context.Context, q string, start int, limit int) ([]Identity, int, error) {
+// Search searches for Identites where FullNmae like q% or users.email like q%
+func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error) {
 
-	db := m.db.Model(&Identity{}).Where("LOWER(full_name) like ?", strings.ToLower(q)+"%")
+	db := m.db.Model(&Identity{})
 	db = db.Offset(start)
 	db = db.Limit(limit)
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , identities.*")
+	db = db.Joins("LEFT JOIN users ON identities.id = users.identity_id")
+	db = db.Where("LOWER(identities.full_name) like ?", strings.ToLower(q)+"%")
+	db = db.Or("users.email like ?", strings.ToLower(q)+"%")
+	db = db.Group("identities.id")
 
 	rows, err := db.Rows()
 	if err != nil {

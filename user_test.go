@@ -113,6 +113,6 @@ func (m *TestIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*acc
 	return []*account.Identity{m.Identity}, nil
 }
 
-func (m *TestIdentityRepository) SearchByFullName(ctx context.Context, q string, start int, limit int) ([]account.Identity, int, error) {
+func (m *TestIdentityRepository) Search(ctx context.Context, q string, start int, limit int) ([]account.Identity, int, error) {
 	return []account.Identity{}, 0, nil
 }
