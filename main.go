@@ -96,6 +96,10 @@ func main() {
 		panic("Could not open connection to database")
 	}
 
+	if configuration.IsPostgresDeveloperModeEnabled() {
+		db = db.Debug()
+	}
+
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
