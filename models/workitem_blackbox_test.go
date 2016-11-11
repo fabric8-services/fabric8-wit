@@ -48,8 +48,24 @@ func TestWorkItem_Equal(t *testing.T) {
 	f.Version += 1
 	assert.False(t, a.Equal(f))
 
-	// Test fields difference
+	// Test ID difference
 	g := a
-	g.Fields = models.Fields{}
+	g.ID = 1
 	assert.False(t, a.Equal(g))
+
+	// Test fields difference
+	h := a
+	h.Fields = models.Fields{}
+	assert.False(t, a.Equal(h))
+
+	i := models.WorkItem{
+		ID:      0,
+		Type:    "foo",
+		Version: 0,
+		Fields: models.Fields{
+			"foo": "bar",
+		},
+	}
+	assert.True(t, a.Equal(i))
+	assert.True(t, i.Equal(a))
 }

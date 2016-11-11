@@ -30,7 +30,11 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 	if !wi.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
+
 	if wi.Type != other.Type {
+		return false
+	}
+	if wi.ID != other.ID {
 		return false
 	}
 	if wi.Version != other.Version {
