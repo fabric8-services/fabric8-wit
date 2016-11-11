@@ -3,8 +3,9 @@ package models
 import "fmt"
 
 const (
-	stBadParameterErrorMsg = "Bad value for parameter '%s': '%v'"
-	stNotFoundErrorMsg     = "%s with id '%s' not found"
+	stBadParameterErrorMsg         = "Bad value for parameter '%s': '%v'"
+	stBadParameterErrorExpectedMsg = "Bad value for parameter '%s': '%v' (expected: '%v')"
+	stNotFoundErrorMsg             = "%s with id '%s' not found"
 )
 
 type simpleError struct {
@@ -32,18 +33,31 @@ type VersionConflictError struct {
 
 // BadParameterError means that a parameter was not as required
 type BadParameterError struct {
-	parameter string
-	value     interface{}
+	parameter        string
+	value            interface{}
+	expectedValue    interface{}
+	hasExpectedValue bool
 }
 
 // Error implements the error interface
 func (err BadParameterError) Error() string {
+	if err.hasExpectedValue {
+		return fmt.Sprintf(stBadParameterErrorExpectedMsg, err.parameter, err.value, err.expectedValue)
+	}
 	return fmt.Sprintf(stBadParameterErrorMsg, err.parameter, err.value)
+
+}
+
+// Expected sets the optional expectedValue parameter on the BadParameterError
+func (err BadParameterError) Expected(expexcted interface{}) BadParameterError {
+	err.expectedValue = expexcted
+	err.hasExpectedValue = true
+	return err
 }
 
 // NewBadParameterError returns the custom defined error of type NewBadParameterError.
-func NewBadParameterError(param string, value interface{}) BadParameterError {
-	return BadParameterError{parameter: param, value: value}
+func NewBadParameterError(param string, actual interface{}) BadParameterError {
+	return BadParameterError{parameter: param, value: actual}
 }
 
 // NewConversionError returns the custom defined error of type NewConversionError.

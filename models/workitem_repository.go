@@ -86,7 +86,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
 	if err != nil {
-		return nil, BadParameterError{"Type", wi.Type}
+		return nil, NewBadParameterError("Type", wi.Type)
 	}
 
 	newWi := WorkItem{
@@ -101,7 +101,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		var err error
 		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, BadParameterError{fieldName, fieldValue}
+			return nil, NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 
@@ -122,7 +122,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
 	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
-		return nil, BadParameterError{parameter: "type", value: typeID}
+		return nil, NewBadParameterError("type", typeID)
 	}
 	wi := WorkItem{
 		Type:   typeID,
@@ -134,7 +134,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, BadParameterError{fieldName, fieldValue}
+			return nil, NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 	tx := r.db
@@ -156,7 +156,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
-		return nil, 0, BadParameterError{"expression", criteria}
+		return nil, 0, NewBadParameterError("expression", criteria)
 	}
 
 	log.Printf("executing query: '%s' with params %v", where, parameters)
@@ -165,13 +165,13 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
-			return nil, 0, BadParameterError{"start", *start}
+			return nil, 0, NewBadParameterError("start", *start)
 		}
 		db = db.Offset(*start)
 	}
 	if limit != nil {
 		if *limit <= 0 {
-			return nil, 0, BadParameterError{"limit", *limit}
+			return nil, 0, NewBadParameterError("limit", *limit)
 		}
 		db = db.Limit(*limit)
 	}
