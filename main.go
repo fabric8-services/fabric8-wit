@@ -95,6 +95,7 @@ func main() {
 	if err != nil {
 		panic("Could not open connection to database")
 	}
+	db = db.Debug()
 
 	if configuration.IsPostgresDeveloperModeEnabled() {
 		db = db.Debug()

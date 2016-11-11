@@ -112,3 +112,7 @@ func (m *TestIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 func (m *TestIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*account.Identity, error) {
 	return []*account.Identity{m.Identity}, nil
 }
+
+func (m *TestIdentityRepository) SearchByFullName(ctx context.Context, q string, start int, limit int) ([]account.Identity, int, error) {
+	return []account.Identity{}, 0, nil
+}

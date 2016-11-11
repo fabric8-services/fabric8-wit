@@ -129,3 +129,14 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 	})
 	a.Required("query", "schedule", "trackerID")
 })
+
+// UserAttributes is the JSONAPI store for all the "attributes" of a user.
+var UserAttributes = a.Type("UserAttributes", func() {
+	a.Description(`JSONAPI store for all the "attributes" of a user. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
+	a.Attribute("fullname", d.String, "The users full name", func() {
+		a.Example("John Smith")
+	})
+	a.Attribute("image-url", d.String, "The avatar image for the user", func() {
+		a.Example("http://example.org/user/image.png")
+	})
+})

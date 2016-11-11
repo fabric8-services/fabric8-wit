@@ -1,5 +1,9 @@
 package application
 
+import (
+	"github.com/almighty/almighty-core/account"
+)
+
 //An Application stands for a particular implementation of the business logic of our application
 type Application interface {
 	WorkItems() WorkItemRepository
@@ -7,6 +11,7 @@ type Application interface {
 	Trackers() TrackerRepository
 	TrackerQueries() TrackerQueryRepository
 	SearchItems() SearchRepository
+	Identities() account.IdentityRepository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction
