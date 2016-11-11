@@ -399,6 +399,19 @@ Retrieve the work item.
 $ ./bin/wit-cli show workitem --id 1 -H localhost:8080 --pp
 ----
 
+=== Reset Database
+
+The database are kept in a docker container that gets reused between restarts. Thus restarts will not clear out the database.
+
+To clear out the database kill the database like this:
+
+----
+$ docker kill almightycore_db_1 && docker rm almightycore_db_1
+----
+
+In case you have mulitple almighty running use `docker ps` to locate the container name.
+
+== Debugging [[debug]]
 
 System defined Work Item Types are
 
