@@ -143,10 +143,7 @@ func totalCount(count int) expect {
 func totalCountAtLeast(count int) expect {
 	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
 		got := result.Meta["total-count"].(int)
-		if got == count {
-			return
-		}
-		if got < count {
+		if !(got >= count) {
 			t.Errorf("%s got %v, wanted at least %v", scenario.name, got, count)
 		}
 	}
