@@ -1,9 +1,11 @@
 package account
 
 import (
+	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -44,6 +46,7 @@ type IdentityRepository interface {
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
+	Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -124,4 +127,53 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 		return nil, err
 	}
 	return objs, nil
+}
+
+// Search searches for Identites where FullNmae like q% or users.email like q%
+func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error) {
+
+	db := m.db.Model(&Identity{})
+	db = db.Offset(start)
+	db = db.Limit(limit)
+	db = db.Select("count(*) over () as cnt2 , identities.*")
+	db = db.Joins("LEFT JOIN users ON identities.id = users.identity_id")
+	db = db.Where("LOWER(identities.full_name) like ?", strings.ToLower(q)+"%")
+	db = db.Or("users.email like ?", strings.ToLower(q)+"%")
+	db = db.Group("identities.id")
+
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	result := []Identity{}
+	value := Identity{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, models.NewInternalError(err.Error())
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count int
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
+
+	for rows.Next() {
+		db.ScanRows(rows, &value)
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, models.NewInternalError(err.Error())
+			}
+		}
+		result = append(result, value)
+	}
+	return result, count, nil
 }

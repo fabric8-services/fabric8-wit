@@ -1,6 +1,7 @@
 package test
 
 import "github.com/almighty/almighty-core/application"
+import "github.com/almighty/almighty-core/account"
 
 func NewMockDB() *MockDB {
 	return &MockDB{wir: &WorkItemRepository{}}
@@ -20,6 +21,9 @@ func (db *MockDB) Trackers() application.TrackerRepository {
 	return nil
 }
 func (db *MockDB) TrackerQueries() application.TrackerQueryRepository {
+	return nil
+}
+func (db *MockDB) Identities() account.IdentityRepository {
 	return nil
 }
 

@@ -223,3 +223,19 @@ var searchResponse = a.MediaType("application/vnd.search+json", func() {
 		a.Attribute("data")
 	})
 })
+
+// SearchUserArray represents the result of a search for Users
+var SearchUserArray = a.MediaType("application/vnd.searchusers+json", func() {
+	a.TypeName("SearchResponseUsers")
+	a.Description("Holds the paginated response to a search request")
+	a.Attribute("links", pagingLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+	a.Attribute("data", a.ArrayOf(Users))
+
+	a.View("default", func() {
+		a.Required("data")
+		a.Attribute("links")
+		a.Attribute("data")
+		a.Attribute("meta")
+	})
+})
