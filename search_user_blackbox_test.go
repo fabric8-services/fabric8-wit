@@ -25,7 +25,8 @@ type args struct {
 	q          string
 }
 
-type expects []func(*testing.T, okScenario, *app.SearchResponseUsers)
+type expect func(*testing.T, okScenario, *app.SearchResponseUsers)
+type expects []expect
 
 type okScenario struct {
 	name    string
@@ -71,8 +72,6 @@ func TestUsersSearchBadRequest(t *testing.T) {
 	}{
 		{"with empty query", args{offset("0"), limit(10), ""}},
 	}
-
-	//defer cleanTestData(createTestData())
 
 	service := goa.New("TestUserSearch-Service")
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -133,7 +132,7 @@ func cleanTestData(idents []account.Identity) {
 	}
 }
 
-func totalCount(count int) func(*testing.T, okScenario, *app.SearchResponseUsers) {
+func totalCount(count int) expect {
 	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
 		if got := result.Meta["total-count"].(int); got != count {
 			t.Errorf("%s got = %v, want %v", scenario.name, got, count)
@@ -141,7 +140,7 @@ func totalCount(count int) func(*testing.T, okScenario, *app.SearchResponseUsers
 	}
 }
 
-func totalCountAtLeast(count int) func(*testing.T, okScenario, *app.SearchResponseUsers) {
+func totalCountAtLeast(count int) expect {
 	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
 		got := result.Meta["total-count"].(int)
 		if got == count {
@@ -153,7 +152,7 @@ func totalCountAtLeast(count int) func(*testing.T, okScenario, *app.SearchRespon
 	}
 }
 
-func hasLinks(linkNames ...string) func(*testing.T, okScenario, *app.SearchResponseUsers) {
+func hasLinks(linkNames ...string) expect {
 	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
 		for _, linkName := range linkNames {
 			link := linkName
@@ -164,7 +163,7 @@ func hasLinks(linkNames ...string) func(*testing.T, okScenario, *app.SearchRespo
 	}
 }
 
-func hasNoLinks(linkNames ...string) func(*testing.T, okScenario, *app.SearchResponseUsers) {
+func hasNoLinks(linkNames ...string) expect {
 	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
 		for _, linkName := range linkNames {
 			if !reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(linkName).IsNil() {
@@ -174,7 +173,7 @@ func hasNoLinks(linkNames ...string) func(*testing.T, okScenario, *app.SearchRes
 	}
 }
 
-func differentValues() func(*testing.T, okScenario, *app.SearchResponseUsers) {
+func differentValues() expect {
 	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
 		var prev *app.Users
 
