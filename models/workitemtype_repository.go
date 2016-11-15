@@ -147,10 +147,9 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 // converts from models to app representation
 func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
 	var converted = app.WorkItemType{
-		Name:       t.Name,
-		Version:    t.Version,
-		Fields:     map[string]*app.FieldDefinition{},
-		ParentPath: t.ParentPath,
+		Name:    t.Name,
+		Version: t.Version,
+		Fields:  map[string]*app.FieldDefinition{},
 	}
 	for name, def := range t.Fields {
 		ct := convertFieldTypeFromModels(def.Type)

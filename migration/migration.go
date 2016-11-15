@@ -285,12 +285,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			if err != nil {
 				return err
 			}
-			path = extendedWit.ParentPath
-			if path == "/" {
-				path = path + *extendedTypeName
-			} else {
-				path = path + "/" + *extendedTypeName
-			}
+			path = "/" + *extendedTypeName
 			//load fields from the extended type
 			err = loadFields(ctx, extendedWit, fields)
 			if err != nil {
