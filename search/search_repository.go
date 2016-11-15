@@ -66,6 +66,7 @@ func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*ap
 
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
+	types []string
 	id    []string
 	words []string
 }
@@ -205,9 +206,8 @@ func getSearchQueryFromURLString(url string) string {
 }
 
 // parseSearchString accepts a raw string and generates a searchKeyword object
-func parseSearchString(rawSearchString string) searchKeyword {
+func parseSearchString(rawSearchString string) (searchKeyword, error) {
 	// TODO remove special characters and exclaimations if any
-	rawSearchString = strings.ToLower(rawSearchString)
 	rawSearchString = strings.Trim(rawSearchString, "/") // get rid of trailing slashes
 	rawSearchString = strings.Trim(rawSearchString, "\"")
 	parts := strings.Fields(rawSearchString)
@@ -217,6 +217,7 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// And does not harm regular search strings
 		// but this processing is required becasue at this moment, we do not know if
 		// search input is a regular string or a URL
+
 		part, err := url.QueryUnescape(part)
 		if err != nil {
 			fmt.Println("Could not escape url", err)
@@ -225,16 +226,24 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
 			res.id = append(res.id, strings.TrimPrefix(part, "id:")+":*A")
+		} else if strings.HasPrefix(part, "type:") {
+			typeName := strings.TrimPrefix(part, "type:")
+			if len(typeName) == 0 {
+				return res, models.NewBadParameterError("Type name must not be empty", part)
+			}
+			res.types = append(res.types, typeName)
 		} else if govalidator.IsURL(part) {
-			part := trimProtocolFromURLString(part)
+			part := strings.ToLower(part)
+			part = trimProtocolFromURLString(part)
 			searchQueryFromURL := getSearchQueryFromURLString(part)
 			res.words = append(res.words, searchQueryFromURL)
 		} else {
+			part := strings.ToLower(part)
 			part = sanitizeURL(part)
 			res.words = append(res.words, part+":*")
 		}
 	}
-	return res
+	return res, nil
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -251,8 +260,8 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-	db := r.db.Model(&models.WorkItem{}).Where("tsv @@ query")
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, types []string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
+	db := r.db.Debug().Table("work_items w").Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, models.NewBadParameterError("start", *start)
@@ -265,9 +274,15 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		}
 		db = db.Limit(*limit)
 	}
+	if len(types) > 0 {
+		db = db.Joins("JOIN work_item_types w1 on w1.name=w.type")
+		db = db.Joins("JOIN work_item_types w2 on w2.path like (w1.path || '%')")
+		db = db.Where("w.type in(?)", types)
+	}
+
 	db = db.Select("count(*) over () as cnt2 , *")
-	db = db.Joins(", to_tsquery('english', $1) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Order("rank desc, updated_at desc")
+	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
+	db = db.Order("rank desc,w.updated_at desc")
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -317,11 +332,14 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// parse
 	// generateSearchQuery
 	// ....
-	parsedSearchDict := parseSearchString(rawSearchString)
+	parsedSearchDict, err := parseSearchString(rawSearchString)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []models.WorkItem
-	rows, count, err := r.search(ctx, sqlSearchQueryParameter, start, limit)
+	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.types, start, limit)
 	if err != nil {
 		return nil, 0, err
 	}

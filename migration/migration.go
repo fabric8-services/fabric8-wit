@@ -92,6 +92,8 @@ func getMigrations() migrations {
 	// Version 5
 	m = append(m, steps{executeSQLFile("005-add-search-index.sql")})
 
+	// Version 6
+	m = append(m, steps{executeSQLFile("006-rename-parent-path.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
