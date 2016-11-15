@@ -291,7 +291,7 @@ func TestParseSearchString(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "user input for search string with some ids like id:99 and id:400 but this is not id like 800"
-	op := parseSearchString(input)
+	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"99:*A", "400:*A"},
 		words: []string{"user:*", "input:*", "for:*", "search:*", "string:*", "with:*", "some:*", "ids:*", "like:*", "and:*", "but:*", "this:*", "is:*", "not:*", "id:*", "like:*", "800:*"},
@@ -302,8 +302,8 @@ func TestParseSearchString(t *testing.T) {
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/work-item-list/detail/100"
-	op := parseSearchString(input)
+	input := "http://demo.almighty.io/detail/100"
+	op, _ := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
 		id:    nil,
@@ -316,8 +316,8 @@ func TestParseSearchStringURL(t *testing.T) {
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/work-item-list/detail/"
-	op := parseSearchString(input)
+	input := "http://demo.almighty.io/detail/"
+	op, _ := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
 		id:    nil,
@@ -331,7 +331,7 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "http://demo.redhat.io"
-	op := parseSearchString(input)
+	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    nil,
 		words: []string{"demo.redhat.io:*"},
@@ -344,8 +344,8 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/work-item-list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
-	op := parseSearchString(input)
+	input := "http://general.url.io http://demo.almighty.io/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300:*A", "900:*A"},
 		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item-list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
