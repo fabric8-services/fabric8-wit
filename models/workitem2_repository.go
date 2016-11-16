@@ -56,7 +56,6 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	}
 
 	// Attributes is a string->string map hence need to add few conditions
-	var inputWIType string
 	var version int
 	// validate version attribute
 	if _, ok := wi.Attributes["version"]; ok {
@@ -67,17 +66,15 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	} else {
 		return nil, VersionConflictError{simpleError{"version is mandatory"}}
 	}
-
-	// WorkItemType is mandatory
-	if _, ok := wi.Attributes["type"]; ok {
-		inputWIType = wi.Attributes["type"]
-	} else {
-		return nil, NewBadParameterError("Type", wi.Type)
-	}
-
 	if res.Version != version {
 		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
+
+	rel := wi.Relationships
+	// take out workItemType from relationship
+	// It is mandatory and type must be workitemtypes (only one enum provided in design)
+	// Hence direct access is possible
+	inputWIType := rel.BaseType.Data.ID
 
 	wiType, err := r.wir.LoadTypeFromDB(ctx, inputWIType)
 	if err != nil {
@@ -91,7 +88,6 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		Fields:  res.Fields,
 	}
 
-	rel := wi.Relationships
 	if rel != nil && rel.Assignee != nil && rel.Assignee.Data != nil {
 		assigneeData := rel.Assignee.Data
 		identityRepo := account.NewIdentityRepository(r.db)
