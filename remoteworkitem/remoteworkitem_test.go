@@ -13,12 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	GithubIssueWithAssignee    = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
-	GithubIssueWithoutAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/1"
-	JiraIssueWithAssignee      = "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"
-	JiraIssueWithoutAssignee   = "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"
-)
+var GithubIssueWithAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"}
+var GithubIssueWithoutAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/1"}
+var JiraIssueWithAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-9"}
+var JiraIssueWithoutAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-10"}
 
 func provideRemoteData(dataURL string) ([]byte, error) {
 	response, err := http.Get(dataURL)
@@ -34,20 +32,20 @@ func provideRemoteData(dataURL string) ([]byte, error) {
 	return responseData, nil
 }
 
-func provideRemoteGithubDataWithAssignee() ([]byte, error) {
-	return provideRemoteData(GithubIssueWithAssignee)
+func provideRemoteGithubDataWithAssignee(input string) ([]byte, error) {
+	return provideRemoteData(input)
 }
 
-func provideRemoteJiraDataWithAssignee() ([]byte, error) {
-	return provideRemoteData(JiraIssueWithAssignee)
+func provideRemoteJiraDataWithAssignee(input string) ([]byte, error) {
+	return provideRemoteData(input)
 }
 
-func provideRemoteGithubDataWithoutAssignee() ([]byte, error) {
-	return provideRemoteData(GithubIssueWithoutAssignee)
+func provideRemoteGithubDataWithoutAssignee(input string) ([]byte, error) {
+	return provideRemoteData(input)
 }
 
-func provideRemoteJiraDataWithoutAssignee() ([]byte, error) {
-	return provideRemoteData(JiraIssueWithoutAssignee)
+func provideRemoteJiraDataWithoutAssignee(input string) ([]byte, error) {
+	return provideRemoteData(input)
 }
 
 func TestWorkItemMapping(t *testing.T) {
@@ -78,14 +76,17 @@ func TestGitHubIssueMapping(t *testing.T) {
 	type githubData struct {
 		inputFile      string
 		expectedOutput bool
+		inputURL       string
 	}
 
 	var gitData = []githubData{
-		{"github_issue_mapping.json", true},
+		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 	}
 
 	for _, j := range gitData {
-		content, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithAssignee)
+		content, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
+			return provideRemoteGithubDataWithAssignee(j.inputURL)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -117,14 +118,17 @@ func TestJiraIssueMapping(t *testing.T) {
 	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
+		inputURL       string
 	}
 
 	var jir = []jiraData{
-		{"jira_issue_mapping.json", true},
+		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
 	}
 
 	for _, j := range jir {
-		content, err := test.LoadTestData(j.inputFile, provideRemoteJiraDataWithAssignee)
+		content, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
+			return provideRemoteJiraDataWithAssignee(j.inputURL)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,14 +160,17 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 	type githubData struct {
 		inputFile      string
 		expectedOutput bool
+		inputURL       string
 	}
 
 	var gitData = []githubData{
-		{"github_issue_mapping.json", true},
+		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 	}
 
 	for _, j := range gitData {
-		testString, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithAssignee)
+		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
+			return provideRemoteGithubDataWithAssignee(j.inputURL)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -191,15 +198,18 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	type githubData struct {
 		inputFile      string
 		expectedOutput bool
+		inputURL       string
 	}
 
 	var gitData = []githubData{
-		{"github_issue_mapping.json", true},
-		{"github_test_data.json", true},
+		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_test_data.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
 	}
 
 	for _, j := range gitData {
-		testString, err := test.LoadTestData(j.inputFile, provideRemoteGithubDataWithoutAssignee)
+		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
+			return provideRemoteGithubDataWithoutAssignee(j.inputURL)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -231,15 +241,18 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
+		inputURL       string
 	}
 
 	var jir = []jiraData{
-		{"jira_issue_mapping.json", true},
+		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
 	}
 
 	for _, j := range jir {
 
-		testString, err := test.LoadTestData(j.inputFile, provideRemoteJiraDataWithAssignee)
+		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
+			return provideRemoteJiraDataWithAssignee(j.inputURL)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -267,15 +280,18 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
+		inputURL       string
 	}
 
 	var jir = []jiraData{
-		{"jira_issue_mapping.json", true},
+		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"},
 	}
 
 	for _, j := range jir {
 
-		testString, err := test.LoadTestData(j.inputFile, provideRemoteJiraDataWithoutAssignee)
+		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
+			return provideRemoteJiraDataWithoutAssignee(j.inputURL)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
