@@ -42,7 +42,7 @@ type WorkItemType struct {
 	// Version for optimistic concurrency control
 	Version int
 	// the id's of the parents, separated with some separator
-	ParentPath string
+	Path string
 	// definitions of the fields this work item type supports
 	Fields FieldDefinitions `sql:"type:jsonb"`
 }
@@ -66,7 +66,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if wit.Name != other.Name {
 		return false
 	}
-	if wit.ParentPath != other.ParentPath {
+	if wit.Path != other.Path {
 		return false
 	}
 	if len(wit.Fields) != len(other.Fields) {

@@ -18,7 +18,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-var db *gorm.DB
+var DB *gorm.DB
 
 func TestMain(m *testing.M) {
 	var err error
@@ -28,11 +28,11 @@ func TestMain(m *testing.M) {
 	}
 
 	if _, c := os.LookupEnv(resource.Database); c {
-		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+		DB, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			panic("Failed to connect database: " + err.Error())
 		}
-		defer db.Close()
+		defer DB.Close()
 	}
 	os.Exit(m.Run())
 }
@@ -47,7 +47,7 @@ func TestSearchByText(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.Database)
 
-	wir := models.NewWorkItemRepository(db)
+	wir := models.NewWorkItemRepository(DB)
 
 	testDataSet := []SearchTestDescriptor{
 		{
@@ -117,7 +117,7 @@ func TestSearchByText(t *testing.T) {
 		},
 	}
 
-	models.Transactional(db, func(tx *gorm.DB) error {
+	models.Transactional(DB, func(tx *gorm.DB) error {
 
 		for _, testData := range testDataSet {
 			workItem := testData.wi
@@ -140,7 +140,7 @@ func TestSearchByText(t *testing.T) {
 			searchString = searchString + workItemURLInSearchString
 			searchString = fmt.Sprintf("\"%s\"", searchString)
 			t.Log("using search string: " + searchString)
-			sr := NewGormSearchRepository(db)
+			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
 			workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 			if err != nil {
@@ -213,9 +213,9 @@ func stringInSlice(str string, list []string) bool {
 func TestSearchByID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.Database)
-	wir := models.NewWorkItemRepository(db)
+	wir := models.NewWorkItemRepository(DB)
 
-	models.Transactional(db, func(tx *gorm.DB) error {
+	models.Transactional(DB, func(tx *gorm.DB) error {
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
 
@@ -242,7 +242,7 @@ func TestSearchByID(t *testing.T) {
 			t.Fatal("Couldnt create test data")
 		}
 
-		sr := NewGormSearchRepository(db)
+		sr := NewGormSearchRepository(tx)
 
 		var start, limit int = 0, 100
 		searchString := "id:" + createdWorkItem.ID

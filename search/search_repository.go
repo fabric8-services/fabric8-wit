@@ -261,7 +261,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-	db := r.db.Debug().Table("work_items w").Where("tsv @@ query")
+	db := r.db.Debug().Model(models.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, models.NewBadParameterError("start", *start)
@@ -275,14 +275,12 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		db = db.Limit(*limit)
 	}
 	if len(workItemTypes) > 0 {
-		db = db.Joins("JOIN work_item_types w1 on w1.name=w.type")
-		db = db.Joins("JOIN work_item_types w2 on w2.path like (w1.path || '%')")
-		db = db.Where("w.type in(?)", workItemTypes)
+		db = db.Where("work_items.type in (select distinct w1.name from work_item_types w1 join work_item_types w2 on w1.path like (w2.path || '%') where w2.name in (?))", workItemTypes)
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Order("rank desc,w.updated_at desc")
+	db = db.Order("rank desc,work_items.updated_at desc")
 
 	rows, err := db.Rows()
 	if err != nil {
