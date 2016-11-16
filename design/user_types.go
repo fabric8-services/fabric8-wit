@@ -53,28 +53,30 @@ var WorkItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
 	a.Attribute("id", d.String, "ID of the work item which is being updated", func() {
 		a.Example("42")
 	})
-	a.Attribute("attributes", WorkItemAttributes)
+	a.Attribute("attributes", a.HashOf(d.String, d.String), func() {
+		a.Example(map[string]interface{}{"version": "1", "type": "system.userstory", "system.state": "new", "system.title": "Example story"})
+	})
 	a.Required("type", "id", "attributes")
 	a.Attribute("relationships", WorkItemRelationships)
 })
 
 // WorkItemAttributes defines attributes of WI
 // visit : http://jsonapi.org/format/#document-resource-objects
-var WorkItemAttributes = a.Type("WorkItemAttributes", func() {
-	a.Attribute("version", d.Integer, "version for optimistic concurrency control", func() {
-		a.Example(5)
-	})
-	a.Attribute("type", d.String, "The type of the newly created work item", func() {
-		a.Example("system.userstory")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}.]+$")
-	})
-	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
-		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
-		a.MinLength(1)
-	})
-	a.Required("version", "type", "fields")
-})
+// var WorkItemAttributes = a.Type("WorkItemAttributes", func() {
+// 	a.Attribute("version", d.Integer, "version for optimistic concurrency control", func() {
+// 		a.Example(5)
+// 	})
+// 	a.Attribute("type", d.String, "The type of the newly created work item", func() {
+// 		a.Example("system.userstory")
+// 		a.MinLength(1)
+// 		a.Pattern("^[\\p{L}.]+$")
+// 	})
+// 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
+// 		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
+// 		a.MinLength(1)
+// 	})
+// 	a.Required("version", "type", "fields")
+// })
 
 // WorkItemRelationships defines only `assignee` as of now. To be updated
 var WorkItemRelationships = a.Type("WorkItemRelationships", func() {

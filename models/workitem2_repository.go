@@ -26,12 +26,11 @@ type GormWorkItem2Repository struct {
 // Used for dev-testing. This is temparory method. Will be removed/moved_to_test package soon.
 func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) {
 	newUUID := uuid.NewV4()
-	fmt.Println("new UUId is -> ", newUUID)
 	identityRepo := account.NewIdentityRepository(db)
 	identity := account.Identity{
 		FullName: "Test User Integration Random",
 		ImageURL: "http://images.com/42",
-		ID:       uuid.NewV4(),
+		ID:       newUUID,
 	}
 	err := identityRepo.Create(ctx, &identity)
 	if err != nil {
@@ -56,47 +55,70 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		return nil, NewNotFoundError("work item", wi.ID)
 	}
 
-	if res.Version != wi.Attributes.Version {
+	// Attributes is a string->string map hence need to add few conditions
+	var inputWIType string
+	var version int
+	// validate version attribute
+	if _, ok := wi.Attributes["version"]; ok {
+		version, err = strconv.Atoi(wi.Attributes["version"])
+		if err != nil {
+			return nil, NewBadParameterError("version", version)
+		}
+	} else {
+		return nil, VersionConflictError{simpleError{"version is mandatory"}}
+	}
+
+	// WorkItemType is mandatory
+	if _, ok := wi.Attributes["type"]; ok {
+		inputWIType = wi.Attributes["type"]
+	} else {
+		return nil, NewBadParameterError("Type", wi.Type)
+	}
+
+	if res.Version != version {
 		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
-	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Attributes.Type)
+
+	wiType, err := r.wir.LoadTypeFromDB(ctx, inputWIType)
 	if err != nil {
 		return nil, NewBadParameterError("Type", wi.Type)
 	}
 
 	newWi := WorkItem{
 		ID:      id,
-		Type:    wi.Attributes.Type,
-		Version: wi.Attributes.Version + 1,
-		Fields:  Fields{},
+		Type:    inputWIType,
+		Version: version + 1,
+		Fields:  res.Fields,
 	}
 
 	rel := wi.Relationships
 	if rel != nil && rel.Assignee != nil && rel.Assignee.Data != nil {
-		fmt.Println("checking for relationships started !")
 		assigneeData := rel.Assignee.Data
 		identityRepo := account.NewIdentityRepository(r.db)
 		uuidStr := assigneeData.ID
 		assigneeUUID, err := uuid.FromString(uuidStr)
 		if err != nil {
-			return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			return nil, NewBadParameterError("data.relationships.assignee.data.id should be UUID", uuidStr)
 		}
 		_, err = identityRepo.Load(ctx, assigneeUUID)
 		if err != nil {
-			return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			return nil, NewBadParameterError("data.relationships.assignee.data.id not found", uuidStr)
 		}
 
 		// overwrite assignee for now;
-		wi.Attributes.Fields[SystemAssignee] = uuidStr
+		wi.Attributes[SystemAssignee] = uuidStr
 		//  ToDO : make it a list and append
 		// existingAssignees := res.Fields[SystemAssignee]
 		// wi.Attributes.Fields[SystemAssignee] = append(existingAssignees, uuidStr)
 	}
 
 	for fieldName, fieldDef := range wiType.Fields {
-		fieldValue := wi.Attributes.Fields[fieldName]
+		fieldValue, exist := wi.Attributes[fieldName]
+		if !exist {
+			// skip non-mentioned Attributes because this is a PATCH request.
+			continue
+		}
 		var err error
-		fmt.Println("Now setting", fieldName, fieldValue)
 		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, NewBadParameterError(fieldName, fieldValue)
