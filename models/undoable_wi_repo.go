@@ -64,7 +64,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 	res, err := r.wrapped.Save(ctx, wi)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
-			db = db.Save(old)
+			db = db.Save(&old)
 			return db.Error
 		})
 	}
@@ -89,7 +89,8 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 	err = r.wrapped.Delete(ctx, ID)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
-			db = db.Create(old)
+			old.DeletedAt = nil
+			db = db.Save(&old)
 			return db.Error
 		})
 	}
@@ -110,7 +111,7 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 	toDelete := WorkItem{ID: id}
 
 	r.undo.Append(func(db *gorm.DB) error {
-		db = db.Unscoped().Delete(toDelete)
+		db = db.Unscoped().Delete(&toDelete)
 		return db.Error
 	})
 
