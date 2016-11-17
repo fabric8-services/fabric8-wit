@@ -174,7 +174,7 @@ func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.WorkItemDataForUpdate{
-			ID:            ctx.ID,
+			ID:            ctx.Payload.Data.ID,
 			Type:          ctx.Payload.Data.Type,
 			Relationships: ctx.Payload.Data.Relationships,
 			Attributes:    ctx.Payload.Data.Attributes,
