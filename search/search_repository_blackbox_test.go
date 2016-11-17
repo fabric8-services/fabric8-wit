@@ -16,7 +16,7 @@ import (
 func TestRestricByType(t *testing.T) {
 	resource.Require(t, resource.Database)
 	undoScript := &models.DBScript{}
-	//defer undoScript.Run(search.DB)
+	defer undoScript.Run(search.DB)
 	typeRepo := models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(search.DB), undoScript)
 	wiRepo := models.NewUndoableWorkItemRepository(models.NewWorkItemRepository(search.DB), undoScript)
 	searchRepo := search.NewGormSearchRepository(search.DB)
@@ -31,7 +31,7 @@ func TestRestricByType(t *testing.T) {
 
 	search.DB.Unscoped().Delete(&models.WorkItemType{Name: "base"})
 	search.DB.Unscoped().Delete(&models.WorkItemType{Name: "sub1"})
-	search.DB.Unscoped().Delete(&models.WorkItemType{Name: "sub2"})
+	search.DB.Unscoped().Delete(&models.WorkItemType{Name: "sub two"})
 
 	extended := models.SystemBug
 	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{})
@@ -43,7 +43,7 @@ func TestRestricByType(t *testing.T) {
 	require.NotNil(t, sub1)
 	require.Nil(t, err)
 
-	sub2, err := typeRepo.Create(ctx, &extended, "sub2", map[string]app.FieldDefinition{})
+	sub2, err := typeRepo.Create(ctx, &extended, "sub two", map[string]app.FieldDefinition{})
 	require.NotNil(t, sub2)
 	require.Nil(t, err)
 
@@ -54,7 +54,7 @@ func TestRestricByType(t *testing.T) {
 	require.NotNil(t, wi1)
 	require.Nil(t, err)
 
-	wi2, err := wiRepo.Create(ctx, "sub2", map[string]interface{}{
+	wi2, err := wiRepo.Create(ctx, "sub two", map[string]interface{}{
 		models.SystemTitle: "Test TestRestrictByType 2",
 		models.SystemState: "closed",
 	}, account.TestIdentity.ID.String())
@@ -68,18 +68,22 @@ func TestRestricByType(t *testing.T) {
 	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub1", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(1), count)
-	assert.Equal(t, wi1.ID, res[0].ID)
+	if count == 1 {
+		assert.Equal(t, wi1.ID, res[0].ID)
+	}
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub2", nil, nil)
+	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub+two", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(1), count)
-	assert.Equal(t, wi2.ID, res[0].ID)
+	if count == 1 {
+		assert.Equal(t, wi2.ID, res[0].ID)
+	}
 
 	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(2), count)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub2 type:sub1", nil, nil)
+	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub+two type:sub1", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(2), count)
 

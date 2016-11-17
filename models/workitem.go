@@ -17,6 +17,11 @@ type WorkItem struct {
 	Fields Fields `sql:"type:jsonb"`
 }
 
+// TableName implements gorm.tabler
+func (w WorkItem) TableName() string {
+	return "work_items"
+}
+
 // Ensure WorkItem implements the Equaler interface
 var _ convert.Equaler = WorkItem{}
 var _ convert.Equaler = (*WorkItem)(nil)

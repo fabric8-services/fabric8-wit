@@ -275,12 +275,13 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		db = db.Limit(*limit)
 	}
 	if len(workItemTypes) > 0 {
-		db = db.Where("work_items.type in (select distinct w1.name from work_item_types w1 join work_item_types w2 on w1.path like (w2.path || '%') where w2.name in (?))", workItemTypes)
+		query := fmt.Sprintf("%[1]s.type in (select distinct w1.name from %[2]s w1 join %[2]s w2 on w1.path like (w2.path || '%%') where w2.name in (?))", models.WorkItem{}.TableName(), models.WorkItemType{}.TableName())
+		db = db.Where(query, workItemTypes)
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Order("rank desc,work_items.updated_at desc")
+	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", models.WorkItem{}.TableName()))
 
 	rows, err := db.Rows()
 	if err != nil {
