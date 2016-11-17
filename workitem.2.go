@@ -26,6 +26,9 @@ type Workitem2Controller struct {
 
 // NewWorkitem2Controller creates a workitem.2 controller.
 func NewWorkitem2Controller(service *goa.Service, db application.DB) *Workitem2Controller {
+	if db == nil {
+		panic("db must not be nil")
+	}
 	return &Workitem2Controller{Controller: service.NewController("WorkitemController"), db: db}
 }
 
@@ -166,9 +169,10 @@ func buildAbsoluteURL(req *goa.RequestData) string {
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
 }
 
-// PATCH workitem
+// Update does PATCH workitem
 func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
+
 		toSave := app.WorkItemDataForUpdate{
 			ID:            ctx.ID,
 			Type:          ctx.Payload.Data.Type,

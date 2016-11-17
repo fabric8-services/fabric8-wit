@@ -24,6 +24,8 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
+	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -479,4 +481,99 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
 	}
+}
+
+func generatePayloadBase(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
+	return &app.UpdateWorkItemJSONAPIPayload{
+		Data: &app.WorkItemDataForUpdate{
+			Type: "workitems",
+			ID:   wi.ID,
+			Attributes: map[string]string{
+				"version": strconv.Itoa(wi.Version),
+			},
+			Relationships: &app.WorkItemRelationships{
+				BaseType: &app.RelationshipBaseType{
+					Data: &app.BaseTypeData{
+						Type: "workitemtypes",
+						ID:   wi.Type,
+					},
+				},
+			},
+		},
+	}
+}
+
+func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Identity {
+	newUUID := uuid.NewV4()
+	identityRepo := account.NewIdentityRepository(db)
+	identity := account.Identity{
+		FullName: "Test User Integration Random",
+		ImageURL: "http://images.com/42",
+		ID:       newUUID,
+	}
+	err := identityRepo.Create(ctx, &identity)
+	if err != nil {
+		fmt.Println("should not happen off.")
+		return nil
+	}
+	return &identity
+}
+
+func TestUpdateWI2(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	patchPayload := generatePayloadBase(wi)
+
+	// update title attribute
+	modifiedTitle := "Is the model updated?"
+	patchPayload.Data.Attributes[models.SystemTitle] = modifiedTitle
+
+	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+	assert.Equal(t, updatedWI.Fields[models.SystemTitle], modifiedTitle)
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version)
+	// update assignee relationship and verify
+	newUser := createOneRandomUserIdentity(svc.Context, DB)
+	assert.NotNil(t, newUser)
+
+	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   newUser.ID.String(),
+			Type: "some_invalid_type_identities",
+		},
+	}
+
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+
+	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   newUser.ID.String(),
+			Type: "identities",
+		},
+	}
+	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+	assert.Equal(t, updatedWI.Fields[models.SystemAssignee], newUser.ID.String())
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version)
+
+	// update to wrong version
+	patchPayload.Data.Attributes["version"] = "12453972348"
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
 }
