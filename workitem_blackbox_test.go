@@ -581,7 +581,7 @@ func TestUpdateWI2(t *testing.T) {
 
 	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
 	assert.Equal(t, updatedWI.Fields[models.SystemTitle], modifiedTitle)
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version)
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version) // need to do in order to keep object future usage
 	// update assignee relationship and verify
 	newUser := createOneRandomUserIdentity(svc.Context, DB)
 	assert.NotNil(t, newUser)
@@ -595,6 +595,15 @@ func TestUpdateWI2(t *testing.T) {
 
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
 
+	// update with invalid assignee string (non-UUID)
+	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   "non UUID string",
+			Type: "identities",
+		},
+	}
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   newUser.ID.String(),
@@ -603,7 +612,7 @@ func TestUpdateWI2(t *testing.T) {
 	}
 	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
 	assert.Equal(t, updatedWI.Fields[models.SystemAssignee], newUser.ID.String())
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version)
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version) // need to do in order to keep object future usage
 
 	// update to wrong version
 	patchPayload.Data.Attributes["version"] = "12453972348"
