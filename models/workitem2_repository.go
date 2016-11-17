@@ -94,11 +94,11 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		uuidStr := assigneeData.ID
 		assigneeUUID, err := uuid.FromString(uuidStr)
 		if err != nil {
-			return nil, NewBadParameterError("data.relationships.assignee.data.id should be UUID", uuidStr)
+			return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
 		}
 		_, err = identityRepo.Load(ctx, assigneeUUID)
 		if err != nil {
-			return nil, NewBadParameterError("data.relationships.assignee.data.id not found", uuidStr)
+			return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
 		}
 
 		// overwrite assignee for now;
