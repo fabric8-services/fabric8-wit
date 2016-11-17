@@ -2,12 +2,10 @@ package migration
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
@@ -205,7 +203,7 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 }
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
-func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr application.WorkItemTypeRepository) error {
+func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *models.GormWorkItemTypeRepository) error {
 	// FIXME: Need to add this conditionally
 	// q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
 	// db.Exec(q)
@@ -234,7 +232,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr application.Work
 	return nil
 }
 
-func createOrUpdateSystemPlannerItemType(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
 	typeName := models.SystemPlannerItem
 	stString := "string"
 	workItemTypeFields := map[string]app.FieldDefinition{
@@ -262,14 +260,14 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr application.W
 	return createOrUpdateType(typeName, nil, workItemTypeFields, ctx, witr, db)
 }
 
-func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
 	workItemTypeFields := map[string]app.FieldDefinition{}
 	extTypeName := models.SystemPlannerItem
 	return createOrUpdateType(typeName, &extTypeName, workItemTypeFields, ctx, witr, db)
 }
 
-func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	_, err := witr.Load(ctx, typeName)
+func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
+	wit, err := witr.LoadTypeFromDB(ctx, typeName)
 	switch err.(type) {
 	case models.NotFoundError:
 		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
@@ -279,37 +277,43 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 	case nil:
 		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
 		path := "/"
+		convertedFields, err := models.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
-			extendedWit, err := witr.Load(ctx, *extendedTypeName)
+			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeName)
 			if err != nil {
 				return err
 			}
-			path = "/" + *extendedTypeName
+			path = extendedWit.ParentPath
+			if path == "/" {
+				path = path + *extendedTypeName
+			} else {
+				path = path + "/" + *extendedTypeName
+			}
 			//load fields from the extended type
-			err = loadFields(ctx, extendedWit, fields)
+			err = loadFields(ctx, extendedWit, convertedFields)
 			if err != nil {
 				return err
 			}
 		}
-		convertedFields, err := models.TEMPConvertFieldTypesToModel(fields)
+
 		if err != nil {
 			return err
 		}
-		jsonArray, err := json.Marshal(convertedFields)
-		jsonString := string(jsonArray[:])
-		q := fmt.Sprintf(`UPDATE work_item_types SET fields='%s',parent_path='%s' where name = '%s'`, jsonString, path, typeName)
-		db.Exec(q)
+		wit.Fields = convertedFields
+		wit.ParentPath = path
+
+		db.Save(wit)
 	}
 	return nil
 }
 
-func loadFields(ctx context.Context, wit *app.WorkItemType, into map[string]app.FieldDefinition) error {
+func loadFields(ctx context.Context, wit *models.WorkItemType, into models.FieldDefinitions) error {
 	// copy fields from wit
 	for key, value := range wit.Fields {
-		// do not overwrite any existing field
+		// do not overwrite already defined fields in the map
 		if _, exist := into[key]; !exist {
-			into[key] = *value
+			into[key] = value
 		}
 	}
 
