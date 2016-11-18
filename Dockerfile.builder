@@ -22,4 +22,5 @@ RUN cd /tmp \
     && mv linux-amd64/glide /usr/bin \
     && rm -rfv glide-v* linux-amd64
 
+ADD . /tmp/go/src/github.com/almighty/almighty-core/
 ENTRYPOINT ["/bin/bash"]
