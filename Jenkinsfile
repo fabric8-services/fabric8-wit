@@ -1,7 +1,4 @@
 #!/usr/bin/groovy
-import groovy.json.JsonSlurperClassic
-import groovy.json.JsonBuilder
-
 @Library('github.com/fabric8io/fabric8-pipeline-library@master')
 
 def utils = new io.fabric8.Utils()
@@ -117,7 +114,7 @@ node {
 def setupEnv(json) {
 
   def slurp = new groovy.json.JsonSlurperClassic().parseText(json)
-  def rc = new JsonBuilder(slurp)  
+  def rc = new groovy.json.JsonBuilder(slurp)  
 
   env = rc.objects[1].spec.template.spec[0].env
   env << [name: "ALMIGHTY_POSTGRES_HOST", value: "db"] 
@@ -125,5 +122,5 @@ def setupEnv(json) {
   env << [name: "ALMIGHTY_POSTGRES_USER", value: "postgres"]
   env << [name: "ALMIGHTY_POSTGRES_PASSWORD", value: "mysecretpassword"]
   
-  return JsonOutput.toJson(rc)
+  return new groovy.json.JsonBuilder(rc).toPrettyString()
 }
