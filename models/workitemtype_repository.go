@@ -13,17 +13,20 @@ import (
 
 // NewWorkItemRepository creates a wi repository based on gorm
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
-	return &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}}
+	return &GormWorkItemRepository{db, NewWorkItemTypeRepository(db)}
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
 func NewWorkItemTypeRepository(db *gorm.DB) *GormWorkItemTypeRepository {
-	return &GormWorkItemTypeRepository{db}
+	r := &GormWorkItemTypeRepository{db, nil}
+	r.cache = NewWorkItemTypeCache(r)
+	return r
 }
 
 // GormWorkItemTypeRepository implements WorkItemTypeRepository using gorm
 type GormWorkItemTypeRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache *WorkItemTypeCache
 }
 
 // Load returns the work item for the given id
@@ -40,7 +43,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
-	log.Printf("loading work item type %s", name)
+	log.Printf("loading work item type %s from DB", name)
 	res := WorkItemType{}
 
 	db := r.db.Model(&res).Where("name=?", name).First(&res)
@@ -53,6 +56,15 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name st
 	}
 
 	return &res, nil
+}
+
+func (r *GormWorkItemTypeRepository) loadTypeFromCache(ctx context.Context, name string) (*WorkItemType, error) {
+	log.Printf("loading work item type %s from cache", name)
+	res := WorkItemType{}
+
+	err := r.cache.Get(ctx, name, &res)
+
+	return &res, err
 }
 
 // Create creates a new work item in the repository

@@ -86,3 +86,4 @@ import:
 - package: github.com/dnaeon/go-vcr
   subpackages:
   - recorder
+- package: github.com/golang/groupcache
