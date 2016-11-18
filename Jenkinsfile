@@ -35,7 +35,8 @@ node {
     def CUR_USER = sh(returnStdout: true, script: 'whoami')
     def GROUP_ID = sh(returnStdout: true, script: 'id -g ${CUR_USER}')
     def USER_ID = sh(returnStdout: true, script: 'id -u ${CUR_USER}')
-
+    echo "-u ${USER_ID}:${GROUP_ID}"
+    
     def namespace = utils.getNamespace()
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
 
