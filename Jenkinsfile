@@ -23,11 +23,13 @@ node {
 
     stage 'Checkout project from SCM'
     def checkoutDir = "go/src/${PACKAGE_NAME}"
+    def newVersion = ""
     sh "mkdir -pv ${checkoutDir}"
     dir ("${checkoutDir}") {
       checkout scm
+      newVersion = sh(returnStdout: true, script: 'git rev-parse HEAD').take(6)
     }
-    def newVersion = sh(returnStdout: true, script: 'git rev-parse HEAD').take(6)
+
     def CUR_DIR = pwd() + "/${checkoutDir}"
 
     def CUR_USER = sh(returnStdout: true, script: 'whoami')
