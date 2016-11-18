@@ -1,4 +1,7 @@
 #!/usr/bin/groovy
+import groovy.json.JsonSlurperClassic
+import groovy.json.JsonBuilder
+
 @Library('github.com/fabric8io/fabric8-pipeline-library@master')
 
 def utils = new io.fabric8.Utils()
@@ -93,6 +96,8 @@ node {
     imageName = clusterImageName
   }
   
+  rc = setupEnv(rc)
+
   stage 'Rollout Staging'
   kubernetesApply(file: rc, environment: envStage)
 
@@ -106,4 +111,19 @@ node {
 
   stage 'Rollout Production'
   kubernetesApply(file: rc, environment: envProd)
+}
+
+@NonDSL
+def setupEnv(json) {
+
+  def slurp = new groovy.json.JsonSlurperClassic().parseText(json)
+  def rc = new JsonBuilder(slurp)  
+
+  env = rc.objects[1].spec.template.spec[0].env
+  env << [name: "ALMIGHTY_POSTGRES_HOST", value: "db"] 
+  env << [name: "ALMIGHTY_POSTGRES_PORT", value: "5432"]
+  env << [name: "ALMIGHTY_POSTGRES_USER", value: "postgres"]
+  env << [name: "ALMIGHTY_POSTGRES_PASSWORD", value: "mysecretpassword"]
+  
+  return JsonOutput.toJson(rc)
 }
