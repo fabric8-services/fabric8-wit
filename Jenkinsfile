@@ -20,8 +20,7 @@ node {
   def DOCKER_CONTAINER_NAME = "${BUILD_TAG}"
   def PACKAGE_PATH= "${GOPATH_IN_CONTAINER}/src/${PACKAGE_NAME}"
 
-  def namespace = utils.getNamespace()
-  def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
+  def namespace = ""
 
 
   clientsNode{
@@ -34,6 +33,9 @@ node {
       newVersion = sh(returnStdout: true, script: 'git rev-parse `git rev-parse --abbrev-ref HEAD`').take(6)
     }
     env.setProperty('VERSION',newVersion)
+
+    namespace = utils.getNamespace()
+    def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
 
 
     def CUR_DIR = pwd() + "/${checkoutDir}"
