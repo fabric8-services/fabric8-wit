@@ -7,6 +7,7 @@ node {
 
   def envStage = utils.environmentNamespace('staging')
   def envProd = utils.environmentNamespace('production')
+  def newVersion = ""
 
   def PROJECT_NAME = "almighty-core"
   def PACKAGE_NAME = 'github.com/almighty/almighty-core'
@@ -23,13 +24,13 @@ node {
 
     stage 'Checkout'
     def checkoutDir = "go/src/${PACKAGE_NAME}"
-    def newVersion = ""
     sh "mkdir -pv ${checkoutDir}"
     dir ("${checkoutDir}") {
       checkout scm
       newVersion = sh(returnStdout: true, script: 'git rev-parse `git rev-parse --abbrev-ref HEAD`').take(6)
     }
     env.setProperty('VERSION',newVersion)
+
 
     def CUR_DIR = pwd() + "/${checkoutDir}"
 
