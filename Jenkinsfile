@@ -64,7 +64,7 @@ node {
 
       stage 'Run unit tests'
       //sh "make docker-test-unit"
-      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH}  bash -ec 'make test-unit'"
+      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make test-unit'"
 
       stage 'Get build arifacts'
       sh 'mkdir ${CUR_DIR}/bin'
