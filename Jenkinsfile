@@ -68,14 +68,14 @@ node {
 
       stage 'Get BuilArifacts'
       sh 'mkdir -p ${CUR_DIR}/bin'
-      sh 'docker cp ${DOCKER_CONTAINER_NAME}:${PACKAGE_PATH}/bin/*:${CUR_DIR}/bin/'
+      sh 'docker cp \"${DOCKER_CONTAINER_NAME}\":${PACKAGE_PATH}/bin/*:${CUR_DIR}/bin/'
 
       stage 'Delete Builder'
       sh "docker rm --force ${DOCKER_CONTAINER_NAME}"
 
       stage 'Create Runtime'
       //sh "make docker-image-deploy"
-      sh "docker build -t ${DOCKER_IMAGE_DEPLOY} -f ${CUR_DI}/Dockerfile.deploy ${CUR_DIR}"
+      sh "docker build -t ${DOCKER_IMAGE_DEPLOY} -f ${CUR_DIR}/Dockerfile.deploy ${CUR_DIR}"
 
       stage 'Push Runtime'
       sh "docker tag ${DOCKER_IMAGE_DEPLOY} ${newImageName}"
