@@ -7,7 +7,6 @@ node {
 
   def envStage = utils.environmentNamespace('staging')
   def envProd = utils.environmentNamespace('production')
-  def newVersion = '5'
 
   def PROJECT_NAME = "almighty-core"
   def PACKAGE_NAME = 'github.com/almighty/almighty-core'
@@ -28,7 +27,12 @@ node {
     dir ("${checkoutDir}") {
       checkout scm
     }
+    def newVersion = sh(returnStdout: true, script: 'git rev-parse HEAD').take(6)
     def CUR_DIR = pwd() + "/${checkoutDir}"
+
+    def CUR_USER = sh(returnStdout: true, script: 'whoami')
+    def GROUP_ID = sh(returnStdout: true, script: 'id -g $(CUR_USER)')
+    def USER_ID = sh(returnStdout: true, script: 'id -u $(CUR_USER)')
 
     def namespace = utils.getNamespace()
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
@@ -40,7 +44,7 @@ node {
       sh "mkdir -p ${DOCKER_BUILD_DIR}"
       sh "docker build -t ${DOCKER_IMAGE_CORE} -f ${CUR_DIR}/Dockerfile.builder ${CUR_DIR}"
       sh "ls -la ${CUR_DIR}"
-      sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH}:Z -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
+      sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH}:Z -u ${USER_ID}:${GROUP_ID} -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
 
 
       stage 'Fetch dependencies'
