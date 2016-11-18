@@ -33,36 +33,40 @@ node {
     def namespace = utils.getNamespace()
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
 
-    stage 'Create docker builder image 2'
-    //sh "make docker-start"
-    sh "mkdir -p ${DOCKER_BUILD_DIR}"
-    sh "docker build -t ${DOCKER_IMAGE_CORE} -f ${CUR_DIR}/Dockerfile.builder ${CUR_DIR}"
-    sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH}:Z -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
+    container('client') {
+
+      stage 'Create docker builder image 2'
+      //sh "make docker-start"
+      sh "mkdir -p ${DOCKER_BUILD_DIR}"
+      sh "docker build -t ${DOCKER_IMAGE_CORE} -f ${CUR_DIR}/Dockerfile.builder ${CUR_DIR}"
+      sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH}:Z -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
 
 
-    stage 'Fetch dependencies'
-    //sh "make docker-deps"
-    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make deps'"
-    
-    stage 'Generate structure'
-    //sh "make docker-generate"
-    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make generate'"
+      stage 'Fetch dependencies'
+      //sh "make docker-deps"
+      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make deps'"
+      
+      stage 'Generate structure'
+      //sh "make docker-generate"
+      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make generate'"
 
-    stage 'Build source'
-    //sh "make docker-build"
-    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make build'"
+      stage 'Build source'
+      //sh "make docker-build"
+      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make build'"
 
-    stage 'Run unit tests'
-    //sh "make docker-test-unit"
-    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make test-unit'"
+      stage 'Run unit tests'
+      //sh "make docker-test-unit"
+      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make test-unit'"
 
-    stage 'Create docker deploy image'
-    //sh "make docker-image-deploy"
-    sh "docker build -t ${DOCKER_IMAGE_DEPLOY} -f ${CUR_DI}/Dockerfile.deploy ${CUR_DIR}"
+      stage 'Create docker deploy image'
+      //sh "make docker-image-deploy"
+      sh "docker build -t ${DOCKER_IMAGE_DEPLOY} -f ${CUR_DI}/Dockerfile.deploy ${CUR_DIR}"
 
-    stage 'Push docker deploy image'
-    sh "docker tag ${DOCKER_IMAGE_DEPLOY} ${newImageName}"
-    sh "docker push ${newImageName}"
+      stage 'Push docker deploy image'
+      sh "docker tag ${DOCKER_IMAGE_DEPLOY} ${newImageName}"
+      sh "docker push ${newImageName}"
+
+    }
   }
 
   def rc = getKubernetesJson {
