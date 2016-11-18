@@ -15,7 +15,6 @@ node {
   def DOCKER_BUILD_DIR = "${env.WORKSPACE}/${PROJECT_NAME}-build"
   def DOCKER_IMAGE_CORE = "${PROJECT_NAME}"
   def DOCKER_IMAGE_DEPLOY = "${PROJECT_NAME}-deploy"
-  def CUR_DIR = "."
   def DOCKER_RUN_INTERACTIVE_SWITCH = ""
   def BUILD_TAG = "${PROJECT_NAME}-local-build"
   def DOCKER_CONTAINER_NAME = "${BUILD_TAG}"
@@ -29,6 +28,8 @@ node {
     dir ("${checkoutDir}") {
       checkout scm
     }
+    def CUR_DIR = "${checkoutDir}"
+
 
     def namespace = utils.getNamespace()
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
