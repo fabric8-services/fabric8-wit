@@ -32,9 +32,9 @@ node {
 
     def CUR_DIR = pwd() + "/${checkoutDir}"
 
-    def GROUP_ID = sh(returnStdout: true, script: 'id -g').trim()
-    def USER_ID = sh(returnStdout: true, script: 'id -u').trim()
-    echo "-u ${USER_ID}:${GROUP_ID}"
+    //def GROUP_ID = sh(returnStdout: true, script: 'id -g').trim()
+    //def USER_ID = sh(returnStdout: true, script: 'id -u').trim()
+    //echo "-u ${USER_ID}:${GROUP_ID}"
 
     def namespace = utils.getNamespace()
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
@@ -46,7 +46,7 @@ node {
       sh "mkdir -p ${DOCKER_BUILD_DIR}"
       sh "docker build -t ${DOCKER_IMAGE_CORE} -f ${CUR_DIR}/Dockerfile.builder ${CUR_DIR}"
       sh "ls -la ${CUR_DIR}"
-      sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH}:Z -u ${USER_ID}:${GROUP_ID} -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
+      sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH} -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
 
 
       stage 'Fetch dependencies'
