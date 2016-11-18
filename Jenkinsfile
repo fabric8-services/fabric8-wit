@@ -20,6 +20,10 @@ node {
   def DOCKER_CONTAINER_NAME = "${BUILD_TAG}"
   def PACKAGE_PATH= "${GOPATH_IN_CONTAINER}/src/${PACKAGE_NAME}"
 
+  def namespace = utils.getNamespace()
+  def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
+
+
   clientsNode{
 
     stage 'Checkout'
@@ -37,9 +41,6 @@ node {
     //def GROUP_ID = sh(returnStdout: true, script: 'id -g').trim()
     //def USER_ID = sh(returnStdout: true, script: 'id -u').trim()
     //echo "-u ${USER_ID}:${GROUP_ID}"
-
-    def namespace = utils.getNamespace()
-    def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
 
     container('client') {
 
@@ -91,6 +92,7 @@ node {
     icon = 'https://cdn.rawgit.com/fabric8io/fabric8/dc05040/website/src/images/logos/gopher.png'
     version = newVersion
     imageName = clusterImageName
+    namespace = namespace
   }
   
   stage 'Rollout Staging'
@@ -219,7 +221,7 @@ def createKubernetesJson(body) {
                     "containers": [
                         {
                             "name": "${env.JOB_NAME}",
-                            "image": "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${env.KUBERNETES_NAMESPACE}/${env.JOB_NAME}:${config.version}",
+                            "image": "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${config.namespace}/${env.JOB_NAME}:${config.version}",
                             "ports": [
                                 {
                                     "name": "web",
