@@ -110,6 +110,7 @@ node {
   kubernetesApply(file: rc, environment: envProd)
 }
 
+@NonCPS
 def setupEnv(json) {
 
   def slurp = new groovy.json.JsonSlurperClassic().parseText(json)
