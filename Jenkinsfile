@@ -44,6 +44,7 @@ node {
 
       stage 'Fetch dependencies'
       //sh "make docker-deps"
+      sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'ls -la'"
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make deps'"
       
       stage 'Generate structure'
