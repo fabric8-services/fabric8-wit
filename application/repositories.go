@@ -44,3 +44,8 @@ type TrackerQueryRepository interface {
 type SearchRepository interface {
 	SearchFullText(ctx context.Context, searchStr string, start *int, length *int) ([]*app.WorkItem, uint64, error)
 }
+
+// IdentityRepository encapsulates identity
+type IdentityRepository interface {
+	List(ctx context.Context) (*app.IdentityArray, error)
+}

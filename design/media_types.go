@@ -199,6 +199,38 @@ var User = a.MediaType("application/vnd.user+json", func() {
 	})
 })
 
+// identity represents an identified user object
+var identity = a.MediaType("application/vnd.identity+json", func() {
+	a.ContentType("application/vnd.api+json")
+	a.TypeName("Identity")
+	a.Description("ALM User Identity")
+	a.Attributes(func() {
+		a.Attribute("data", identityData)
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
+// identityArray represents an array of identified user objects
+var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
+	a.ContentType("application/vnd.api+json")
+	a.TypeName("IdentityArray")
+	a.Description("ALM User Identity Array")
+	a.Attributes(func() {
+		a.Attribute("data", a.ArrayOf(identityData))
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
 var searchResponse = a.MediaType("application/vnd.search+json", func() {
 	a.TypeName("SearchResponse")
 	a.Description("Holds the paginated response to a search request")
