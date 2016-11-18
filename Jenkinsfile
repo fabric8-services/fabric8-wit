@@ -113,7 +113,7 @@ node {
 @NonCPS
 def setupEnv(json) {
 
-  def slurp = new groovy.json.JsonSlurperClassic().parseText(json)
+  def slurp = new groovy.json.JsonSlurper().parseText(json)
   def rc = new groovy.json.JsonBuilder(slurp)  
 
   env = rc.objects[1].spec.template.spec[0].env
