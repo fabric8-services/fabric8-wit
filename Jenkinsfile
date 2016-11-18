@@ -239,7 +239,7 @@ def createKubernetesJson(body) {
                                 },
                                 {
                                     "name": "ALMIGHTY_POSTGRES_HOST",
-                                    "value": "db"
+                                    "value": "\${DB_SERVICE_HOST}"
                                 },
                                 {
                                     "name": "ALMIGHTY_POSTGRES_PORT",
