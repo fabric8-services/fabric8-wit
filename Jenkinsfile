@@ -109,7 +109,7 @@ node {
   }
 
   stage 'Rollout Production'
-  kubernetesApply(file: rc, environment: envProd)
+  kubernetesApply(file: rc, environment: 'default', registry: '172.30.149.153:80')
 }
 
 def createKubernetesJson(body) {
