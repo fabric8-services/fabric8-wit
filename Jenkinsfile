@@ -27,8 +27,9 @@ node {
     sh "mkdir -pv ${checkoutDir}"
     dir ("${checkoutDir}") {
       checkout scm
-      newVersion = sh(returnStdout: true, script: 'git rev-parse HEAD').take(6)
+      newVersion = sh(returnStdout: true, script: 'git rev-parse `git rev-parse --abbrev-ref HEAD`').take(6)
     }
+    env.setProperty('VERSION',newVersion)
 
     def CUR_DIR = pwd() + "/${checkoutDir}"
 
