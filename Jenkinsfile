@@ -28,7 +28,7 @@ node {
     dir ("${checkoutDir}") {
       checkout scm
     }
-    def CUR_DIR = pwd() + "${checkoutDir}"
+    def CUR_DIR = pwd() + "/${checkoutDir}"
 
     def namespace = utils.getNamespace()
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
