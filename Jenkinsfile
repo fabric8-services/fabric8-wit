@@ -67,8 +67,7 @@ node {
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make test-unit'"
 
       stage 'Get BuilArifacts'
-      sh "mkdir -p ${CUR_DIR}/bin"
-      sh "docker cp \"${DOCKER_CONTAINER_NAME}\":${PACKAGE_PATH}/bin/* ${CUR_DIR}/bin/"
+      sh "docker cp \"${DOCKER_CONTAINER_NAME}\":${PACKAGE_PATH}/bin/ ${CUR_DIR}"
 
       stage 'Delete Builder'
       sh "docker rm --force ${DOCKER_CONTAINER_NAME}"
