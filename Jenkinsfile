@@ -58,7 +58,7 @@ node {
 
     stage 'Create docker deploy image'
     //sh "make docker-image-deploy"
-    sh "docker build -t $(DOCKER_IMAGE_DEPLOY) -f $(CUR_DIR)/Dockerfile.deploy $(CUR_DIR)"
+    sh "docker build -t ${DOCKER_IMAGE_DEPLOY} -f ${CUR_DI}/Dockerfile.deploy ${CUR_DIR}"
 
     stage 'Push docker deploy image'
     sh "docker tag ${DOCKER_IMAGE_DEPLOY} ${newImageName}"
