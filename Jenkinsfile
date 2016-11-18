@@ -223,7 +223,7 @@ def createKubernetesJson(body) {
                     "containers": [
                         {
                             "name": "${env.JOB_NAME}",
-                            "image": "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${config.namespace}/${env.JOB_NAME}:${config.version}",
+                            "image": "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/default/${env.JOB_NAME}:${config.version}",
                             "ports": [
                                 {
                                     "name": "web",
