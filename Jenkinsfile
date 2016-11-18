@@ -93,8 +93,6 @@ node {
     imageName = clusterImageName
   }
   
-  rc = setupEnv(rc)
-
   stage 'Rollout Staging'
   kubernetesApply(file: rc, environment: envStage)
 
@@ -108,21 +106,6 @@ node {
 
   stage 'Rollout Production'
   kubernetesApply(file: rc, environment: envProd)
-}
-
-@NonCPS
-def setupEnv(json) {
-
-  def slurp = new groovy.json.JsonSlurper().parseText(json)
-  def rc = new groovy.json.JsonBuilder(slurp)  
-
-  env = rc.objects[1].spec.template.spec[0].env
-  env << [name: "ALMIGHTY_POSTGRES_HOST", value: "db"] 
-  env << [name: "ALMIGHTY_POSTGRES_PORT", value: "5432"]
-  env << [name: "ALMIGHTY_POSTGRES_USER", value: "postgres"]
-  env << [name: "ALMIGHTY_POSTGRES_PASSWORD", value: "mysecretpassword"]
-  
-  return new groovy.json.JsonBuilder(rc).toPrettyString()
 }
 
 def createKubernetesJson(body) {
