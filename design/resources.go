@@ -199,6 +199,25 @@ var _ = a.Resource("user", func() {
 
 })
 
+var _ = a.Resource("identity", func() {
+	a.BasePath("/identities")
+
+	a.Action("list", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List all identities.")
+		a.Response(d.OK, func() {
+			a.Media(identityArray)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+	})
+})
+
 var _ = a.Resource("status", func() {
 
 	a.DefaultMedia(ALMStatus)
