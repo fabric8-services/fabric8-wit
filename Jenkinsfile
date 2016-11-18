@@ -110,7 +110,6 @@ node {
   kubernetesApply(file: rc, environment: envProd)
 }
 
-@NonDSL
 def setupEnv(json) {
 
   def slurp = new groovy.json.JsonSlurperClassic().parseText(json)
