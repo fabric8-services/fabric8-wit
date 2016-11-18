@@ -22,7 +22,7 @@ node {
 
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
 
-    stage 'Create docker builder image'
+    stage 'Create docker builder image 2'
     sh "make docker-start"
     stage 'Fetch dependencies'
     sh "make docker-deps"
