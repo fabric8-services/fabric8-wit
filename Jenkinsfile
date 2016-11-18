@@ -9,7 +9,17 @@ node {
   def envProd = utils.environmentNamespace('production')
   def newVersion = '5'
 
+  def PROJECT_NAME = "almighty-core"
   def PACKAGE_NAME = 'github.com/almighty/almighty-core'
+  def GOPATH_IN_CONTAINER="/tmp/go"
+  def DOCKER_BUILD_DIR = "${env.WORKSPACE}/${PROJECT_NAME}-build"
+  def DOCKER_IMAGE_CORE = "${PROJECT_NAME}"
+  def DOCKER_IMAGE_DEPLOY = "${PROJECT_NAME}-deploy"
+  def CUR_DIR = "."
+  def DOCKER_RUN_INTERACTIVE_SWITCH = ""
+  def BUILD_TAG = "${PROJECT_NAME}-local-build"
+  def DOCKER_CONTAINER_NAME = "${BUILD_TAG}"
+  def PACKAGE_PATH= "${GOPATH_IN_CONTAINER}/src/${PACKAGE_NAME}"
 
   clientsNode{
 
@@ -24,20 +34,34 @@ node {
     def newImageName = "${env.FABRIC8_DOCKER_REGISTRY_SERVICE_HOST}:${env.FABRIC8_DOCKER_REGISTRY_SERVICE_PORT}/${namespace}/${env.JOB_NAME}:${newVersion}"
 
     stage 'Create docker builder image 2'
-    sh "make docker-start"
+    //sh "make docker-start"
+    sh "mkdir -p ${DOCKER_BUILD_DIR}"
+    sh "docker build -t ${DOCKER_IMAGE_CORE} -f ${CUR_DIR}/Dockerfile.builder ${CUR_DIR}"
+    sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -v ${CUR_DIR}:${PACKAGE_PATH}:Z -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
+
+
     stage 'Fetch dependencies'
-    sh "make docker-deps"
+    //sh "make docker-deps"
+    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make deps'"
+    
     stage 'Generate structure'
-    sh "make docker-generate"
+    //sh "make docker-generate"
+    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make generate'"
+
     stage 'Build source'
-    sh "make docker-build"
+    //sh "make docker-build"
+    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make build'"
+
     stage 'Run unit tests'
-    sh "make docker-test-unit"
+    //sh "make docker-test-unit"
+    sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make test-unit'"
+
     stage 'Create docker deploy image'
-    sh "make docker-image-deploy"
+    //sh "make docker-image-deploy"
+    sh "docker build -t $(DOCKER_IMAGE_DEPLOY) -f $(CUR_DIR)/Dockerfile.deploy $(CUR_DIR)"
 
     stage 'Push docker deploy image'
-    sh "docker tag almighty-core-deploy ${newImageName}"
+    sh "docker tag ${DOCKER_IMAGE_DEPLOY} ${newImageName}"
     sh "docker push ${newImageName}"
   }
 
