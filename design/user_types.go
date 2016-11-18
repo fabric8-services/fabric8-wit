@@ -53,12 +53,12 @@ var WorkItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
 	a.Attribute("id", d.String, "ID of the work item which is being updated", func() {
 		a.Example("42")
 	})
-	a.Attribute("attributes", a.HashOf(d.String, d.String), func() {
+	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
 		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
 	})
 	a.Attribute("relationships", WorkItemRelationships)
 	// relationships must be required becasue we MUST have workItemType during PATCh
-	a.Required("type", "id", "attributes", "relationships")
+	a.Required("type", "id", "attributes")
 })
 
 // WorkItemRelationships defines only `assignee` as of now. To be updated
@@ -66,7 +66,6 @@ var WorkItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignee", RelationAssignee, "This deinfes assignees of the WI")
 	a.Attribute("baseType", RelationBaseType, "This defines type of Work Item")
 	// baseType relationship must present while updating work item
-	a.Required("baseType")
 })
 
 // RelationAssignee is a top level structure for assignee relationship

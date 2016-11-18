@@ -189,7 +189,7 @@ func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 			case models.VersionConflictError:
 				return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			default:
-				log.Printf("Error listing work items: %s", err.Error())
+				log.Printf("Error updating work items: %s", err.Error())
 				return ctx.InternalServerError()
 			}
 		}

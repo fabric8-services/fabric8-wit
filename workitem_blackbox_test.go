@@ -520,16 +520,8 @@ func generatePayloadBase(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
 		Data: &app.WorkItemDataForUpdate{
 			Type: "workitems",
 			ID:   wi.ID,
-			Attributes: map[string]string{
+			Attributes: map[string]interface{}{
 				"version": strconv.Itoa(wi.Version),
-			},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationshipBaseType{
-					Data: &app.BaseTypeData{
-						Type: "workitemtypes",
-						ID:   wi.Type,
-					},
-				},
 			},
 		},
 	}
@@ -586,6 +578,7 @@ func TestUpdateWI2(t *testing.T) {
 	newUser := createOneRandomUserIdentity(svc.Context, DB)
 	assert.NotNil(t, newUser)
 
+	patchPayload.Data.Relationships = &app.WorkItemRelationships{}
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   newUser.ID.String(),

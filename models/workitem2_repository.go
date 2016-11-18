@@ -6,8 +6,6 @@ import (
 	"log"
 	"strconv"
 
-	"fmt"
-
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/jinzhu/gorm"
@@ -23,25 +21,9 @@ type GormWorkItem2Repository struct {
 	wir *GormWorkItemTypeRepository
 }
 
-// Used for dev-testing. This is temparory method. Will be removed/moved_to_test package soon.
-func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) {
-	newUUID := uuid.NewV4()
-	identityRepo := account.NewIdentityRepository(db)
-	identity := account.Identity{
-		FullName: "Test User Integration Random",
-		ImageURL: "http://images.com/42",
-		ID:       newUUID,
-	}
-	err := identityRepo.Create(ctx, &identity)
-	if err != nil {
-		fmt.Println("should not happen off.")
-	}
-}
-
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataForUpdate) (*app.WorkItem, error) {
-	createOneRandomUserIdentity(ctx, r.db) // will be removed too.
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
@@ -59,7 +41,8 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	var version int
 	// validate version attribute
 	if _, ok := wi.Attributes["version"]; ok {
-		version, err = strconv.Atoi(wi.Attributes["version"])
+		versionStr := wi.Attributes["version"].(string)
+		version, err = strconv.Atoi(versionStr)
 		if err != nil {
 			return nil, NewBadParameterError("version", version)
 		}
@@ -70,24 +53,20 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
 
-	rel := wi.Relationships
-	// take out workItemType from relationship
-	// It is mandatory and type must be workitemtypes (only one enum provided in design)
-	// Hence direct access is possible
-	inputWIType := rel.BaseType.Data.ID
-
-	wiType, err := r.wir.LoadTypeFromDB(ctx, inputWIType)
-	if err != nil {
-		return nil, NewBadParameterError("Type", wi.Type)
-	}
-
 	newWi := WorkItem{
 		ID:      id,
-		Type:    inputWIType,
+		Type:    res.Type, // read WIT from DB object and not from payload relationship
 		Version: version + 1,
 		Fields:  res.Fields,
 	}
 
+	wiType, err := r.wir.LoadTypeFromDB(ctx, newWi.Type)
+	if err != nil {
+		// ideally should not reach this, if reach it means something went wrong while CREATE WI
+		return nil, NewBadParameterError("Type", newWi.Type)
+	}
+
+	rel := wi.Relationships
 	if rel != nil && rel.Assignee != nil && rel.Assignee.Data != nil {
 		assigneeData := rel.Assignee.Data
 		identityRepo := account.NewIdentityRepository(r.db)
