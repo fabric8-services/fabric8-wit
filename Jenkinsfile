@@ -21,7 +21,7 @@ node {
 
   clientsNode{
 
-    stage 'Checkout project from SCM'
+    stage 'Checkout'
     def checkoutDir = "go/src/${PACKAGE_NAME}"
     def newVersion = ""
     sh "mkdir -pv ${checkoutDir}"
@@ -41,7 +41,7 @@ node {
 
     container('client') {
 
-      stage 'Create docker builder image 2'
+      stage 'Create Builder'
       //sh "make docker-start"
       sh "mkdir -p ${DOCKER_BUILD_DIR}"
       sh "docker build -t ${DOCKER_IMAGE_CORE} -f ${CUR_DIR}/Dockerfile.builder ${CUR_DIR}"
@@ -49,35 +49,35 @@ node {
       sh "docker run --detach=true -t ${DOCKER_RUN_INTERACTIVE_SWITCH} --name=\"${DOCKER_CONTAINER_NAME}\" -e GOPATH=${GOPATH_IN_CONTAINER}	-w ${PACKAGE_PATH} ${DOCKER_IMAGE_CORE}"
 
 
-      stage 'Fetch dependencies'
+      stage 'Get Deps'
       //sh "make docker-deps"
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'ls -la'"
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make deps'"
       
-      stage 'Generate structure'
+      stage 'Generate'
       //sh "make docker-generate"
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make generate'"
 
-      stage 'Build source'
+      stage 'Compile'
       //sh "make docker-build"
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make build'"
 
-      stage 'Run unit tests'
+      stage 'Run UnitTests'
       //sh "make docker-test-unit"
       sh "docker exec -t ${DOCKER_RUN_INTERACTIVE_SWITCH} \"${DOCKER_CONTAINER_NAME}\" bash -ec 'make test-unit'"
 
-      stage 'Get build arifacts'
+      stage 'Get BuilArifacts'
       sh 'mkdir -p ${CUR_DIR}/bin'
       sh 'docker cp ${DOCKER_CONTAINER_NAME}:${PACKAGE_PATH}/bin/*:${CUR_DIR}/bin/'
 
-      stage 'Remove docker builder image'
+      stage 'Delete Builder'
       sh "docker rm --force ${DOCKER_CONTAINER_NAME}"
 
-      stage 'Create docker deploy image'
+      stage 'Create Runtime'
       //sh "make docker-image-deploy"
       sh "docker build -t ${DOCKER_IMAGE_DEPLOY} -f ${CUR_DI}/Dockerfile.deploy ${CUR_DIR}"
 
-      stage 'Push docker deploy image'
+      stage 'Push Runtime'
       sh "docker tag ${DOCKER_IMAGE_DEPLOY} ${newImageName}"
       sh "docker push ${newImageName}"
 
