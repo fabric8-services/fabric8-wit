@@ -68,7 +68,7 @@ node {
 
       stage 'Get BuilArifacts'
       sh "mkdir -p ${CUR_DIR}/bin"
-      sh "docker cp \"${DOCKER_CONTAINER_NAME}\":${PACKAGE_PATH}/bin/*:${CUR_DIR}/bin/"
+      sh "docker cp \"${DOCKER_CONTAINER_NAME}\":${PACKAGE_PATH}/bin/* ${CUR_DIR}/bin/"
 
       stage 'Delete Builder'
       sh "docker rm --force ${DOCKER_CONTAINER_NAME}"
