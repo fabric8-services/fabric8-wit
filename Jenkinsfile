@@ -90,8 +90,8 @@ node {
 
   def rc = createKubernetesJson {
     port = 8080
-    label = 'golang'
-    icon = 'https://cdn.rawgit.com/fabric8io/fabric8/dc05040/website/src/images/logos/gopher.png'
+    label = 'almighty-core'
+    icon = 'https://cdn.rawgit.com/fabric8io/fabric8/master/website/src/images/fabric8_icon.svg'
     version = newVersion
     imageName = clusterImageName
     namespace = namespace
@@ -126,7 +126,7 @@ def createKubernetesJson(body) {
       "labels" : { },
       "metadata" : {
         "annotations" : {
-          "description" : "${config.label} example",
+          "description" : "${config.label}",
           "fabric8.${env.JOB_NAME}/iconUrl" : "${config.icon}"
         },
         "labels" : { },
@@ -149,7 +149,6 @@ def createKubernetesJson(body) {
             },
             "annotations": {
                 "fabric8.io/app-menu": "development",
-                "fabric8.io/iconUrl": "https://cdn.rawgit.com/fabric8io/fabric8/master/website/src/images/fabric8_icon.svg",
                 "fabric8.${env.JOB_NAME}/iconUrl" : "${config.icon}",
                 "prometheus.io/port": "${config.port}",
                 "prometheus.io/scheme": "http",
