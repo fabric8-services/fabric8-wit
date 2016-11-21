@@ -13,7 +13,7 @@ const (
 	TopologyDependency      = "dependency"
 	TopologyTree            = "tree"
 
-	SystemWorkItemLinkTypeBugBlocker = "bug-blocker"
+	SystemWorkItemLinkTypeBugBlocker = "system.bug-blocker"
 )
 
 // WorkItemLinkType represents the type of a work item link as it is stored in the db

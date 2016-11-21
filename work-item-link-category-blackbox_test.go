@@ -268,18 +268,18 @@ func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 	require.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
 }
 
-func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequest() {
-	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
-	require.NotNil(s.T(), linkCatSystem)
-
-	description := "New description for work item link category \"system\"."
-	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{}
-	updatePayload.Data = linkCatSystem.Data
-	updatePayload.Data.Attributes.Description = &description
-	updatePayload.Data.Type = "this is a wrong type!!!" // "should be workitemlinkcategories"
-
-	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
-}
+//func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequest() {
+//	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
+//	require.NotNil(s.T(), linkCatSystem)
+//
+//	description := "New description for work item link category \"system\"."
+//	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{}
+//	updatePayload.Data = linkCatSystem.Data
+//	updatePayload.Data.Attributes.Description = &description
+//	updatePayload.Data.Type = "this is a wrong type!!!" // "should be workitemlinkcategories"
+//
+//	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
+//}
 
 // TestShowWorkItemLinkCategoryOK tests if we can fetch the "system" work item link category
 func (s *WorkItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
