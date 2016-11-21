@@ -3,12 +3,15 @@ package main_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/resource"
@@ -198,4 +201,50 @@ func TestUnauthorizeTrackerQueryCUD(t *testing.T) {
 		assert.Equal(t, testObject.expectedErrorCode, content.Code)
 		assert.Equal(t, testObject.expectedStatusCode, content.Status)
 	}
+}
+
+func TestCreateTrackerQueryREST(t *testing.T) {
+	resource.Require(t, resource.Database)
+
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	if err != nil {
+		t.Fatal("Could not parse Key ", err)
+	}
+
+	service := goa.New("API")
+
+	controller := NewTrackerController(service, gormapplication.NewGormDB(DB), RwiScheduler)
+	payload := app.CreateTrackerAlternatePayload{
+		URL:  "http://api.github.com",
+		Type: "github",
+	}
+	_, tracker := test.CreateTrackerCreated(t, nil, nil, controller, &payload)
+
+	publickey, err := jwt.ParseRSAPublicKeyFromPEM((configuration.GetTokenPublicKey()))
+	if err != nil {
+		t.Fatal("Could not parse Key ", err)
+	}
+	jwtMiddleware := goajwt.New(publickey, nil, app.NewJWTSecurity())
+	app.UseJWTMiddleware(service, jwtMiddleware)
+
+	controller2 := NewTrackerqueryController(service, gormapplication.NewGormDB(DB), RwiScheduler)
+	app.MountTrackerqueryController(service, controller2)
+
+	server := httptest.NewServer(service.Mux)
+	tqPayload := fmt.Sprintf(`{"query": "abcdefgh", "schedule": "1 1 * * * *", "trackerID": "%s"}`, tracker.ID)
+	trackerQueryCreateURL := "/api/trackerqueries"
+	req, _ := http.NewRequest("POST", server.URL+trackerQueryCreateURL, strings.NewReader(tqPayload))
+
+	jwtToken := getValidAuthHeader(t, privatekey)
+	req.Header.Set("Authorization", jwtToken)
+	client := http.Client{}
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("Server error %s", err)
+	}
+	if res.StatusCode != http.StatusCreated {
+		t.Fatalf("Expected a 201 Created response, got %d", res.StatusCode)
+	}
+
+	server.Close()
 }
