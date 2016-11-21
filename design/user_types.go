@@ -183,6 +183,8 @@ optionally including any of the following members
            or "/data/attributes/title" for a specific attribute].
 * parameter: a string indicating which URI query parameter caused the error.`)
 	a.Attribute("meta", a.HashOf(d.String, d.Any), "a meta object containing non-standard meta-information about the error")
+
+	a.Required("detail")
 })
 
 //#############################################################################

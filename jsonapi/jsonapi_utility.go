@@ -72,7 +72,7 @@ func ConvertErrorFromModelToJSONAPIError(err error) (app.JSONAPIError, int) {
 		Code:   &code,
 		Status: &statusCodeStr,
 		Title:  &title,
-		Detail: &detail,
+		Detail: detail,
 	}
 	return jerr, statusCode
 }
