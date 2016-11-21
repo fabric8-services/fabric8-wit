@@ -13,10 +13,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var GithubIssueWithAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"}
-var GithubIssueWithoutAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/1"}
-var JiraIssueWithAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-9"}
-var JiraIssueWithoutAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-10"}
+// var GithubIssueWithAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2", "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"}
+// var GithubIssueWithoutAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/1", "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"}
+// var JiraIssueWithAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-9"}
+// var JiraIssueWithoutAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-10"}
 
 func provideRemoteData(dataURL string) ([]byte, error) {
 	response, err := http.Get(dataURL)
@@ -81,6 +81,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 
 	var gitData = []githubData{
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
 	}
 
 	for _, j := range gitData {
@@ -165,6 +166,8 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 
 	var gitData = []githubData{
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
+		{"github_test3_data.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
 	}
 
 	for _, j := range gitData {
@@ -204,6 +207,7 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	var gitData = []githubData{
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		{"github_test_data.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
+		{"github_test3_data.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
 	}
 
 	for _, j := range gitData {
