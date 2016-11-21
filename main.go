@@ -119,6 +119,11 @@ func main() {
 		}); err != nil {
 			panic(err.Error())
 		}
+		if err := models.Transactional(db, func(tx *gorm.DB) error {
+			return migration.BootstrapWorkItemLinking(context.Background(), tx, models.NewWorkItemLinkCategoryRepository(tx), models.NewWorkItemLinkTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
 
 	// Scheduler to fetch and import remote tracker items

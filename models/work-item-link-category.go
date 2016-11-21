@@ -7,6 +7,11 @@ import (
 	satoriuuid "github.com/satori/go.uuid"
 )
 
+const (
+	SystemWorkItemLinkCategorySystem = "system"
+	SystemWorkItemLinkCategoryUser   = "user"
+)
+
 // WorkItemLinkCategory represents the category of a work item link as it is stored in the db
 type WorkItemLinkCategory struct {
 	gormsupport.Lifecycle

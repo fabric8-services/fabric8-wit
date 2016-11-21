@@ -207,6 +207,69 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 	return current, nil
 }
 
+// BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
+func BootstrapWorkItemLinking(ctx context.Context, db *gorm.DB, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
+	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only.", ctx, linkCatRepo, db); err != nil {
+		return err
+	}
+	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user.", ctx, linkCatRepo, db); err != nil {
+		return err
+	}
+	if err := createOrUpdateWorkItemLinkType(models.SystemWorkItemLinkTypeBugBlocker, "one bug blocks another", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemBug, models.SystemWorkItemLinkCategorySystem, ctx, linkCatRepo, linkTypeRepo, db); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkCategory(name string, description string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, db *gorm.DB) error {
+	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
+	switch err.(type) {
+	case models.NotFoundError:
+		_, err := linkCatRepo.Create(ctx, &name, &description)
+		if err != nil {
+			return err
+		}
+	case nil:
+		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
+		cat.Description = &description
+		db = db.Save(cat)
+		return db.Error
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository, db *gorm.DB) error {
+	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
+	if err != nil {
+		return err
+	}
+
+	linkType, err := linkTypeRepo.LoadTypeFromDB(ctx, name)
+	newLinkType := models.WorkItemLinkType{
+		Name:           name,
+		Description:    &description,
+		Topology:       topology,
+		ForwardName:    forwardName,
+		ReverseName:    reverseName,
+		SourceTypeName: sourceTypeName,
+		TargetTypeName: targetTypeName,
+		LinkCategoryID: cat.ID,
+	}
+	switch err.(type) {
+	case models.NotFoundError:
+		_, err := linkTypeRepo.Create(ctx, &newLinkType)
+		if err != nil {
+			return err
+		}
+	case nil:
+		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
+		newLinkType.ID = linkType.ID
+		db = db.Save(newLinkType)
+		return db.Error
+	}
+	return nil
+}
+
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *models.GormWorkItemTypeRepository) error {
 	// FIXME: Need to add this conditionally
@@ -304,7 +367,8 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		wit.Fields = convertedFields
 		wit.Path = path
 
-		db.Save(wit)
+		db = db.Save(wit)
+		return db.Error
 	}
 	return nil
 }

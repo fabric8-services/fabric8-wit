@@ -69,6 +69,21 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 	return &result, nil
 }
 
+// LoadTypeFromDB return work item link type for the name
+func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemLinkType, error) {
+	log.Printf("loading work item link type %s", name)
+	res := WorkItemLinkType{}
+	db := r.db.Model(&res).Where("name=?", name).First(&res)
+	if db.RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return nil, NewNotFoundError("work item link type", name)
+	}
+	if db.Error != nil {
+		return nil, NewInternalError(db.Error.Error())
+	}
+	return &res, nil
+}
+
 // List returns all work item link types
 // TODO: Handle pagination
 func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkItemLinkTypeArray, error) {

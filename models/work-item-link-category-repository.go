@@ -64,6 +64,21 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 	return &result, nil
 }
 
+// LoadCategoryFromDB return work item link category for the name
+func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Context, name string) (*WorkItemLinkCategory, error) {
+	log.Printf("loading work item link category %s", name)
+	res := WorkItemLinkCategory{}
+	db := r.db.Model(&res).Where("name=?", name).First(&res)
+	if db.RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return nil, NewNotFoundError("work item link category", name)
+	}
+	if db.Error != nil {
+		return nil, NewInternalError(db.Error.Error())
+	}
+	return &res, nil
+}
+
 // List returns all work item link categories
 // TODO: Handle pagination
 func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.WorkItemLinkCategoryArray, error) {
