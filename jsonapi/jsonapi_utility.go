@@ -80,9 +80,9 @@ func ConvertErrorFromModelToJSONAPIError(err error) (app.JSONAPIError, int) {
 // ConvertErrorFromModelToJSONAPIErrors is a convenience function if you
 // just want to return one error from the models package as a JSONAPI errors
 // array.
-func ConvertErrorFromModelToJSONAPIErrors(err error) (app.JSONAPIErrors, int) {
+func ConvertErrorFromModelToJSONAPIErrors(err error) (*app.JSONAPIErrors, int) {
 	jerr, httpStatusCode := ConvertErrorFromModelToJSONAPIError(err)
 	jerrors := app.JSONAPIErrors{}
 	jerrors.Errors = append(jerrors.Errors, &jerr)
-	return jerrors, httpStatusCode
+	return &jerrors, httpStatusCode
 }
