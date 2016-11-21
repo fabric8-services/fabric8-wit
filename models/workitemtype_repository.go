@@ -62,18 +62,23 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	path := "/"
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
-		if r.db.First(&extendedType, extendedTypeName).RecordNotFound() {
+		db := r.db.First(&extendedType, extendedTypeName)
+		if db.RecordNotFound() {
 			log.Printf("not found, res=%v", extendedType)
 			return nil, BadParameterError{parameter: "extendedTypeName", value: *extendedTypeName}
 		}
-		if err := r.db.Error; err != nil {
+		if err := db.Error; err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
 		}
 		// copy fields from extended type
 		for key, value := range extendedType.Fields {
 			allFields[key] = value
 		}
-		path = extendedType.ParentPath + "/" + extendedType.Name
+		if extendedType.ParentPath == "/" {
+			path = "/" + extendedType.Name
+		} else {
+			path = extendedType.ParentPath + "/" + extendedType.Name
+		}
 	}
 
 	// now process new fields, checking whether they are ok to add.

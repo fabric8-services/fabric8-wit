@@ -2,12 +2,10 @@ package migration
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
@@ -205,57 +203,37 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 }
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
-func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr application.WorkItemTypeRepository) error {
+func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *models.GormWorkItemTypeRepository) error {
 	// FIXME: Need to add this conditionally
 	// q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
 	// db.Exec(q)
 
-	if err := createOrUpdateSystemUserstory(ctx, witr, db); err != nil {
+	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdateSystemValueProposition(ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtention(models.SystemUserStory, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdateSystemFundamental(ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtention(models.SystemValueProposition, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdateSystemExperience(ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtention(models.SystemFundamental, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdateSystemFeature(ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtention(models.SystemExperience, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdateSystemBug(ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtention(models.SystemFeature, ctx, witr, db); err != nil {
+		return err
+	}
+	if err := createOrUpdatePlannerItemExtention(models.SystemBug, ctx, witr, db); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createOrUpdateSystemUserstory(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon(models.SystemUserStory, ctx, witr, db)
-}
-
-func createOrUpdateSystemValueProposition(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon(models.SystemValueProposition, ctx, witr, db)
-}
-
-func createOrUpdateSystemFundamental(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon(models.SystemFundamental, ctx, witr, db)
-}
-
-func createOrUpdateSystemExperience(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon(models.SystemExperience, ctx, witr, db)
-}
-
-func createOrUpdateSystemFeature(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon(models.SystemFeature, ctx, witr, db)
-}
-
-func createOrUpdateSystemBug(ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
-	return createOrUpdateCommon(models.SystemBug, ctx, witr, db)
-}
-
-func createOrUpdateCommon(typeName string, ctx context.Context, witr application.WorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
+	typeName := models.SystemPlannerItem
 	stString := "string"
 	workItemTypeFields := map[string]app.FieldDefinition{
 		models.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
@@ -279,23 +257,65 @@ func createOrUpdateCommon(typeName string, ctx context.Context, witr application
 		},
 	}
 
-	_, err := witr.Load(ctx, typeName)
+	return createOrUpdateType(typeName, nil, workItemTypeFields, ctx, witr, db)
+}
+
+func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
+	workItemTypeFields := map[string]app.FieldDefinition{}
+	extTypeName := models.SystemPlannerItem
+	return createOrUpdateType(typeName, &extTypeName, workItemTypeFields, ctx, witr, db)
+}
+
+func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
+	wit, err := witr.LoadTypeFromDB(ctx, typeName)
 	switch err.(type) {
 	case models.NotFoundError:
-		_, err := witr.Create(ctx, nil, typeName, workItemTypeFields)
+		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
 		if err != nil {
 			return err
 		}
 	case nil:
-		fmt.Println("Work item type exists, will update/overwrite the fields only ")
-		convertedFields, err := models.TEMPConvertFieldTypesToModel(workItemTypeFields)
+		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
+		path := "/"
+		convertedFields, err := models.TEMPConvertFieldTypesToModel(fields)
+		if extendedTypeName != nil {
+			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
+			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeName)
+			if err != nil {
+				return err
+			}
+			path = extendedWit.ParentPath
+			if path == "/" {
+				path = path + *extendedTypeName
+			} else {
+				path = path + "/" + *extendedTypeName
+			}
+			//load fields from the extended type
+			err = loadFields(ctx, extendedWit, convertedFields)
+			if err != nil {
+				return err
+			}
+		}
+
 		if err != nil {
 			return err
 		}
-		jsonArray, err := json.Marshal(convertedFields)
-		jsonString := string(jsonArray[:])
-		q := fmt.Sprintf(`UPDATE work_item_types SET fields='%s' where name = '%s'`, jsonString, typeName)
-		db.Exec(q)
+		wit.Fields = convertedFields
+		wit.ParentPath = path
+
+		db.Save(wit)
 	}
+	return nil
+}
+
+func loadFields(ctx context.Context, wit *models.WorkItemType, into models.FieldDefinitions) error {
+	// copy fields from wit
+	for key, value := range wit.Fields {
+		// do not overwrite already defined fields in the map
+		if _, exist := into[key]; !exist {
+			into[key] = value
+		}
+	}
+
 	return nil
 }

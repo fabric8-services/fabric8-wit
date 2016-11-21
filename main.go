@@ -96,6 +96,10 @@ func main() {
 		panic("Could not open connection to database")
 	}
 
+	if configuration.IsPostgresDeveloperModeEnabled() {
+		db = db.Debug()
+	}
+
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
@@ -192,6 +196,10 @@ func main() {
 	// Mount "search" controller
 	searchCtrl := NewSearchController(service, appDB)
 	app.MountSearchController(service, searchCtrl)
+
+	// Mount "indentity" controller
+	identityCtrl := NewIdentityController(service, appDB)
+	app.MountIdentityController(service, identityCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

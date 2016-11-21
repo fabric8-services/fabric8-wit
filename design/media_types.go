@@ -111,7 +111,7 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 	})
 })
 
-// fieldType is the datatype of a single field in a work item tepy
+// fieldType is the datatype of a single field in a work item type
 var fieldType = a.Type("fieldType", func() {
 	a.Description("A fieldType describes the values a particular field can hold")
 	a.Attribute("kind", d.String, "The constant indicating the kind of type, for example 'string' or 'enum' or 'instant'")
@@ -196,6 +196,38 @@ var User = a.MediaType("application/vnd.user+json", func() {
 	a.View("default", func() {
 		a.Attribute("fullName")
 		a.Attribute("imageURL")
+	})
+})
+
+// identity represents an identified user object
+var identity = a.MediaType("application/vnd.identity+json", func() {
+	a.ContentType("application/vnd.api+json")
+	a.TypeName("Identity")
+	a.Description("ALM User Identity")
+	a.Attributes(func() {
+		a.Attribute("data", identityData)
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
+// identityArray represents an array of identified user objects
+var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
+	a.ContentType("application/vnd.api+json")
+	a.TypeName("IdentityArray")
+	a.Description("ALM User Identity Array")
+	a.Attributes(func() {
+		a.Attribute("data", a.ArrayOf(identityData))
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
 	})
 })
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -73,6 +74,10 @@ func (g *GormBase) TrackerQueries() application.TrackerQueryRepository {
 
 func (g *GormBase) SearchItems() application.SearchRepository {
 	return search.NewGormSearchRepository(g.db)
+}
+
+func (g *GormBase) Identities() application.IdentityRepository {
+	return account.NewIdentityRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {

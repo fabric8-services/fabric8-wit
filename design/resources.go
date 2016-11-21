@@ -199,6 +199,25 @@ var _ = a.Resource("user", func() {
 
 })
 
+var _ = a.Resource("identity", func() {
+	a.BasePath("/identities")
+
+	a.Action("list", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List all identities.")
+		a.Response(d.OK, func() {
+			a.Media(identityArray)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+	})
+})
+
 var _ = a.Resource("status", func() {
 
 	a.DefaultMedia(ALMStatus)
@@ -280,6 +299,7 @@ var _ = a.Resource("tracker", func() {
 	})
 
 	a.Action("create", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
 		)
@@ -293,8 +313,10 @@ var _ = a.Resource("tracker", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("delete", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.DELETE("/:id"),
 		)
@@ -308,8 +330,10 @@ var _ = a.Resource("tracker", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("update", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.PUT("/:id"),
 		)
@@ -323,6 +347,7 @@ var _ = a.Resource("tracker", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 
 })
@@ -347,6 +372,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.NotFound)
 	})
 	a.Action("create", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
 		)
@@ -360,8 +386,10 @@ var _ = a.Resource("trackerquery", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("update", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.PUT("/:id"),
 		)
@@ -375,8 +403,10 @@ var _ = a.Resource("trackerquery", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("delete", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.DELETE("/:id"),
 		)
@@ -390,6 +420,7 @@ var _ = a.Resource("trackerquery", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("list", func() {
 		a.Routing(

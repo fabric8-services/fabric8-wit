@@ -11,7 +11,7 @@ import (
 
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -25,7 +25,7 @@ func TestCreateTracker(t *testing.T) {
 
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -63,7 +63,7 @@ func TestGetTracker(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/191
 func TestTrackerListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -87,7 +87,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/189
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: rwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",

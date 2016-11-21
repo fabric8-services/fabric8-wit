@@ -3,6 +3,7 @@ package account
 import (
 	"time"
 
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -26,6 +27,22 @@ func (m Identity) TableName() string {
 
 }
 
+// ConvertIdentityFromModel convert identity from model to app representation
+func (m Identity) ConvertIdentityFromModel() *app.Identity {
+	id := m.ID.String()
+	converted := app.Identity{
+		Data: &app.IdentityData{
+			ID:   &id,
+			Type: "identities",
+			Attributes: &app.IdentityDataAttributes{
+				FullName: &m.FullName,
+				ImageURL: &m.ImageURL,
+			},
+		},
+	}
+	return &converted
+}
+
 // GormIdentityRepository is the implementation of the storage interface for
 // Identity.
 type GormIdentityRepository struct {
@@ -33,7 +50,7 @@ type GormIdentityRepository struct {
 }
 
 // NewIdentityRepository creates a new storage type.
-func NewIdentityRepository(db *gorm.DB) IdentityRepository {
+func NewIdentityRepository(db *gorm.DB) *GormIdentityRepository {
 	return &GormIdentityRepository{db: db}
 }
 
@@ -124,4 +141,22 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 		return nil, err
 	}
 	return objs, nil
+}
+
+// List return all user identities
+func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "list"}, time.Now())
+	var rows []Identity
+
+	err := m.db.Model(&Identity{}).Order("full_name").Find(&rows).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	res := app.IdentityArray{}
+	res.Data = make([]*app.IdentityData, len(rows))
+	for index, value := range rows {
+		ident := value.ConvertIdentityFromModel()
+		res.Data[index] = ident.Data
+	}
+	return &res, nil
 }

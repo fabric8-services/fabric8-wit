@@ -18,7 +18,7 @@ import (
 )
 
 var DB *gorm.DB
-var rwiScheduler *remoteworkitem.Scheduler
+var RwiScheduler *remoteworkitem.Scheduler
 
 func TestMain(m *testing.M) {
 	var err error
@@ -47,9 +47,13 @@ func TestMain(m *testing.M) {
 		}
 
 		// RemoteWorkItemScheduler now available for all other test cases
-		rwiScheduler = remoteworkitem.NewScheduler(DB)
+		RwiScheduler = remoteworkitem.NewScheduler(DB)
 	}
-	os.Exit(m.Run())
+	os.Exit(func() int {
+		c := m.Run()
+		RwiScheduler.Stop()
+		return c
+	}())
 }
 
 func TestNewWorkitemController(t *testing.T) {

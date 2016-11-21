@@ -87,15 +87,22 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.db
-	if tx.First(&res, id).RecordNotFound() {
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "TrackerQuery", ID: tq.ID}
 	}
+	if tx.Error != nil {
+		return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker query: %s", tx.Error.Error())}}
+	}
 
-	if tx.First(&Tracker{}, tid).RecordNotFound() {
+	tx = r.db.First(&Tracker{}, tid)
+	if tx.RecordNotFound() {
 		log.Printf("not found, id=%d", id)
 		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID}
+	}
+	if tx.Error != nil {
+		return nil, InternalError{simpleError{fmt.Sprintf("could not load tracker: %s", tx.Error.Error())}}
 	}
 
 	newTq := TrackerQuery{
