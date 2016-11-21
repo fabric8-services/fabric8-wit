@@ -299,6 +299,7 @@ var _ = a.Resource("tracker", func() {
 	})
 
 	a.Action("create", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
 		)
@@ -312,8 +313,10 @@ var _ = a.Resource("tracker", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("delete", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.DELETE("/:id"),
 		)
@@ -327,8 +330,10 @@ var _ = a.Resource("tracker", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("update", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.PUT("/:id"),
 		)
@@ -342,6 +347,7 @@ var _ = a.Resource("tracker", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 
 })
@@ -366,6 +372,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.NotFound)
 	})
 	a.Action("create", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
 		)
@@ -379,8 +386,10 @@ var _ = a.Resource("trackerquery", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("update", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.PUT("/:id"),
 		)
@@ -394,8 +403,10 @@ var _ = a.Resource("trackerquery", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("delete", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.DELETE("/:id"),
 		)
@@ -409,6 +420,7 @@ var _ = a.Resource("trackerquery", func() {
 		})
 		a.Response(d.InternalServerError)
 		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
 	})
 	a.Action("list", func() {
 		a.Routing(
