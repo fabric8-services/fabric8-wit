@@ -407,7 +407,7 @@ func (s *WorkItemLinkSuite) TestShowWorkItemLinkOK() {
 }
 
 func (s *WorkItemLinkSuite) TestShowWorkItemLinkNotFoundDueToBadID() {
-	_ = test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "something that is not a UUID")
+	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "something that is not a UUID")
 }
 
 // TestShowWorkItemLinkNotFound tests if we can fetch a non existing work item link

@@ -236,7 +236,7 @@ func (s *WorkItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 }
 
 func (s *WorkItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
-	_ = test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
+	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
 }
 
 // TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
