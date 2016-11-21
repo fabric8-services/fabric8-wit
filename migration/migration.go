@@ -244,7 +244,7 @@ func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, re
 		return err
 	}
 
-	linkType, err := linkTypeRepo.LoadTypeFromDB(ctx, name)
+	linkType, err := linkTypeRepo.LoadTypeFromDB(ctx, name, cat.ID)
 	newLinkType := models.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
@@ -255,6 +255,7 @@ func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, re
 		TargetTypeName: targetTypeName,
 		LinkCategoryID: cat.ID,
 	}
+
 	switch err.(type) {
 	case models.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx, &newLinkType)

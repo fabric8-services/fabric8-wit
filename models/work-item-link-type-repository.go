@@ -70,10 +70,10 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 }
 
 // LoadTypeFromDB return work item link type for the name
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemLinkType, error) {
-	log.Printf("loading work item link type %s", name)
+func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDB(ctx context.Context, name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
+	log.Printf("loading work item link type %s with category ID", name, categoryId.String())
 	res := WorkItemLinkType{}
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
+	db := r.db.Model(&res).Where("name=? AND link_category_id=?", name, categoryId.String()).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NewNotFoundError("work item link type", name)
