@@ -169,6 +169,51 @@ func buildAbsoluteURL(req *goa.RequestData) string {
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
 }
 
+// ConvertWorkItemToJSONAPI is responsible for converting given WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2Context, wi *app.WorkItem) *app.WorkItem2 {
+	// construct default values from input WI
+
+	absoluteURL := buildAbsoluteURL(ctx.RequestData) // it includes path hence no modifications needed
+	op := &app.WorkItem2{
+		Links: &app.WorkItemLinks{
+			Self: &absoluteURL,
+		},
+		Data: &app.WorkItemDataForUpdate{
+			ID:   wi.ID,
+			Type: "workitems",
+			Attributes: map[string]interface{}{
+				"version": wi.Version,
+			},
+			Relationships: &app.WorkItemRelationships{
+				BaseType: &app.RelationshipBaseType{
+					Data: &app.BaseTypeData{
+						ID:   wi.Type,
+						Type: "workitemtypes",
+					},
+				},
+			},
+		},
+	}
+	// Move fields into Relationships or Attributes as needed
+	for name, val := range wi.Fields {
+		switch name {
+		case models.SystemAssignee:
+			if val != nil {
+				op.Data.Relationships.Assignee = &app.RelationAssignee{
+					Data: &app.AssigneeData{
+						ID:   val.(string),
+						Type: "identities",
+					},
+				}
+			}
+		default:
+			op.Data.Attributes[name] = val
+		}
+	}
+	return op
+}
+
 // Update does PATCH workitem
 func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -193,6 +238,6 @@ func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 				return ctx.InternalServerError()
 			}
 		}
-		return ctx.OK(wi)
+		return ctx.OK(c.ConvertWorkItemToJSONAPI(ctx, wi))
 	})
 }

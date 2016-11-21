@@ -572,8 +572,18 @@ func TestUpdateWI2(t *testing.T) {
 	patchPayload.Data.Attributes[models.SystemTitle] = modifiedTitle
 
 	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	assert.Equal(t, updatedWI.Fields[models.SystemTitle], modifiedTitle)
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version) // need to do in order to keep object future usage
+	assert.Equal(t, updatedWI.Data.Attributes[models.SystemTitle], modifiedTitle)
+
+	// verify self link value
+	if !strings.HasPrefix(*updatedWI.Links.Self, "http://") {
+		assert.Fail(t, fmt.Sprintf("%s is not absolute URL", *updatedWI.Links.Self))
+	}
+	if !strings.HasSuffix(*updatedWI.Links.Self, fmt.Sprintf("/%s", updatedWI.Data.ID)) {
+		assert.Fail(t, fmt.Sprintf("%s is not FETCH URL of the resource", *updatedWI.Links.Self))
+	}
+
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
+
 	// update assignee relationship and verify
 	newUser := createOneRandomUserIdentity(svc.Context, DB)
 	assert.NotNil(t, newUser)
@@ -604,10 +614,12 @@ func TestUpdateWI2(t *testing.T) {
 		},
 	}
 	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	assert.Equal(t, updatedWI.Fields[models.SystemAssignee], newUser.ID.String())
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Version) // need to do in order to keep object future usage
+	assert.Equal(t, updatedWI.Data.Relationships.Assignee.Data.ID, newUser.ID.String())
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
 
 	// update to wrong version
 	patchPayload.Data.Attributes["version"] = "12453972348"
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+
+	// Add test to remove assignee for WI
 }

@@ -123,7 +123,7 @@ var _ = a.Resource("workitem.2", func() {
 		a.Response(d.OK, func() {
 			// Still using workitem in MediaTypes.
 			// ToDo update to struct which complies to jsonapi
-			a.Media(workItem)
+			a.Media(workItem2)
 		})
 		a.Response(d.BadRequest, func() {
 			a.Media(d.ErrorMedia)

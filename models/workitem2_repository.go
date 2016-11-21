@@ -67,6 +67,8 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	}
 
 	rel := wi.Relationships
+	// TODO
+	// if rel.Assignee.Data == nil then remove the relationship for WI
 	if rel != nil && rel.Assignee != nil && rel.Assignee.Data != nil {
 		assigneeData := rel.Assignee.Data
 		identityRepo := account.NewIdentityRepository(r.db)
