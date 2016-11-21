@@ -13,11 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// var GithubIssueWithAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2", "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"}
-// var GithubIssueWithoutAssignee = []string{"http://api.github.com/repos/almighty-test/almighty-test-unit/issues/1", "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"}
-// var JiraIssueWithAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-9"}
-// var JiraIssueWithoutAssignee = []string{"http://jira.atlassian.com/rest/api/latest/issue/JRA-10"}
-
 func provideRemoteData(dataURL string) ([]byte, error) {
 	response, err := http.Get(dataURL)
 	if err != nil {
