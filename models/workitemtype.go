@@ -17,6 +17,9 @@ const (
 	SystemAssignee     = "system.assignee"
 	SystemCreator      = "system.creator"
 
+	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
+	SystemPlannerItem = "system.planneritem"
+
 	SystemUserStory        = "system.userstory"
 	SystemValueProposition = "system.valueproposition"
 	SystemFundamental      = "system.fundamental"

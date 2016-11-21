@@ -74,7 +74,11 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		for key, value := range extendedType.Fields {
 			allFields[key] = value
 		}
-		path = extendedType.ParentPath + "/" + extendedType.Name
+		if extendedType.ParentPath == "/" {
+			path = "/" + extendedType.Name
+		} else {
+			path = extendedType.ParentPath + "/" + extendedType.Name
+		}
 	}
 
 	// now process new fields, checking whether they are ok to add.

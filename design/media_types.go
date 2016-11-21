@@ -111,7 +111,7 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 	})
 })
 
-// fieldType is the datatype of a single field in a work item tepy
+// fieldType is the datatype of a single field in a work item type
 var fieldType = a.Type("fieldType", func() {
 	a.Description("A fieldType describes the values a particular field can hold")
 	a.Attribute("kind", d.String, "The constant indicating the kind of type, for example 'string' or 'enum' or 'instant'")
