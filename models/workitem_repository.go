@@ -28,9 +28,13 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 
 	log.Printf("loading work item %d", id)
 	res := WorkItem{}
-	if r.db.First(&res, id).RecordNotFound() {
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{"work item", ID}
+	}
+	if tx.Error != nil {
+		return nil, InternalError{simpleError{tx.Error.Error()}}
 	}
 	wiType, err := r.wir.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
@@ -53,13 +57,13 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 		return NotFoundError{entity: "work item", ID: ID}
 	}
 	workItem.ID = id
-	tx := r.db
+	tx := r.db.Delete(workItem)
 
-	if err = tx.Delete(workItem).Error; err != nil {
-		if tx.RecordNotFound() {
-			return NotFoundError{entity: "work item", ID: ID}
-		}
+	if err = tx.Error; err != nil {
 		return InternalError{simpleError{err.Error()}}
+	}
+	if tx.RowsAffected == 0 {
+		return NotFoundError{entity: "work item", ID: ID}
 	}
 
 	return nil
@@ -75,10 +79,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	log.Printf("looking for id %d", id)
-	tx := r.db
-	if tx.First(&res, id).RecordNotFound() {
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+	}
+	if tx.Error != nil {
+		return nil, InternalError{simpleError{err.Error()}}
 	}
 	if res.Version != wi.Version {
 		return nil, VersionConflictError{simpleError{"version conflict"}}
@@ -105,9 +112,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		}
 	}
 
-	if err := tx.Save(&newWi).Error; err != nil {
+	tx = tx.Where("Version = ?", wi.Version).Save(&newWi)
+	if err := tx.Error; err != nil {
 		log.Print(err.Error())
 		return nil, InternalError{simpleError{err.Error()}}
+	}
+	if tx.RowsAffected == 0 {
+		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
 	log.Printf("updated item to %v\n", newWi)
 	result, err := wiType.ConvertFromModel(newWi)
