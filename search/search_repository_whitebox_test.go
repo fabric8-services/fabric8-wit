@@ -123,7 +123,7 @@ func TestSearchByText(t *testing.T) {
 			workItem := testData.wi
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
-			workItemURLInSearchString := "http://demo.almighty.io/detail/"
+			workItemURLInSearchString := "http://demo.almighty.io/work-item-list/detail/"
 
 			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
@@ -302,12 +302,12 @@ func TestParseSearchString(t *testing.T) {
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/detail/100"
+	input := "http://demo.almighty.io/work-item-list/detail/100"
 	op := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
 		id:    nil,
-		words: []string{"(100:* | demo.almighty.io/detail/100:*)"},
+		words: []string{"(100:* | demo.almighty.io/work-item-list/detail/100:*)"},
 	}
 
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
@@ -316,12 +316,12 @@ func TestParseSearchStringURL(t *testing.T) {
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/detail/"
+	input := "http://demo.almighty.io/work-item-list/detail/"
 	op := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
 		id:    nil,
-		words: []string{"demo.almighty.io/detail:*"},
+		words: []string{"demo.almighty.io/work-item-list/detail:*"},
 	}
 
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
@@ -344,11 +344,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/work-item-list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
 	op := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300:*A", "900:*A"},
-		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item-list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
