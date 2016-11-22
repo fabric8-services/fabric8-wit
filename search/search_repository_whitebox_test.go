@@ -302,7 +302,7 @@ func TestParseSearchString(t *testing.T) {
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/detail/100"
+	input := "http://demo.almighty.io/work-item-list/detail/100"
 	op, _ := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
@@ -316,7 +316,7 @@ func TestParseSearchStringURL(t *testing.T) {
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/detail/"
+	input := "http://demo.almighty.io/work-item-list/detail/"
 	op, _ := parseSearchString(input)
 
 	expectedSearchRes := searchKeyword{
@@ -344,7 +344,7 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/work-item-list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
 	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300:*A", "900:*A"},
