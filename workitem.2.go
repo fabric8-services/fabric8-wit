@@ -200,9 +200,10 @@ func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2C
 		switch name {
 		case models.SystemAssignee:
 			if val != nil {
+				valStr := val.(string)
 				op.Data.Relationships.Assignee = &app.RelationAssignee{
 					Data: &app.AssigneeData{
-						ID:   val.(string),
+						ID:   &valStr,
 						Type: "identities",
 					},
 				}

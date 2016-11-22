@@ -73,20 +73,23 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		assigneeData := rel.Assignee.Data
 		identityRepo := account.NewIdentityRepository(r.db)
 		uuidStr := assigneeData.ID
-		assigneeUUID, err := uuid.FromString(uuidStr)
-		if err != nil {
-			return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+		if uuidStr == nil {
+			// remove Assignee
+			wi.Attributes[SystemAssignee] = nil
+		} else {
+			assigneeUUID, err := uuid.FromString(*uuidStr)
+			if err != nil {
+				return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			}
+			_, err = identityRepo.Load(ctx, assigneeUUID)
+			if err != nil {
+				return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			}
+			wi.Attributes[SystemAssignee] = *uuidStr
+			//  ToDO : make it a list and append
+			// existingAssignees := res.Fields[SystemAssignee]
+			// wi.Attributes.Fields[SystemAssignee] = append(existingAssignees, uuidStr)
 		}
-		_, err = identityRepo.Load(ctx, assigneeUUID)
-		if err != nil {
-			return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
-		}
-
-		// overwrite assignee for now;
-		wi.Attributes[SystemAssignee] = uuidStr
-		//  ToDO : make it a list and append
-		// existingAssignees := res.Fields[SystemAssignee]
-		// wi.Attributes.Fields[SystemAssignee] = append(existingAssignees, uuidStr)
 	}
 
 	for fieldName, fieldDef := range wiType.Fields {

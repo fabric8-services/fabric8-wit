@@ -27,6 +27,7 @@ import (
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetWorkItem(t *testing.T) {
@@ -528,12 +529,12 @@ func generatePayloadBase(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
 }
 
 func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Identity {
-	newUUID := uuid.NewV4()
+	newUserUUID := uuid.NewV4()
 	identityRepo := account.NewIdentityRepository(db)
 	identity := account.Identity{
 		FullName: "Test User Integration Random",
 		ImageURL: "http://images.com/42",
-		ID:       newUUID,
+		ID:       newUserUUID,
 	}
 	err := identityRepo.Create(ctx, &identity)
 	if err != nil {
@@ -572,6 +573,7 @@ func TestUpdateWI2(t *testing.T) {
 	patchPayload.Data.Attributes[models.SystemTitle] = modifiedTitle
 
 	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+	require.NotNil(t, updatedWI)
 	assert.Equal(t, updatedWI.Data.Attributes[models.SystemTitle], modifiedTitle)
 
 	// verify self link value
@@ -581,17 +583,17 @@ func TestUpdateWI2(t *testing.T) {
 	if !strings.HasSuffix(*updatedWI.Links.Self, fmt.Sprintf("/%s", updatedWI.Data.ID)) {
 		assert.Fail(t, fmt.Sprintf("%s is not FETCH URL of the resource", *updatedWI.Links.Self))
 	}
-
 	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
 
 	// update assignee relationship and verify
 	newUser := createOneRandomUserIdentity(svc.Context, DB)
 	assert.NotNil(t, newUser)
 
+	newUserUUID := newUser.ID.String()
 	patchPayload.Data.Relationships = &app.WorkItemRelationships{}
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
-			ID:   newUser.ID.String(),
+			ID:   &newUserUUID,
 			Type: "some_invalid_type_identities",
 		},
 	}
@@ -599,9 +601,10 @@ func TestUpdateWI2(t *testing.T) {
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
 
 	// update with invalid assignee string (non-UUID)
+	maliciousUUID := "non UUID string"
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
-			ID:   "non UUID string",
+			ID:   &maliciousUUID,
 			Type: "identities",
 		},
 	}
@@ -609,17 +612,25 @@ func TestUpdateWI2(t *testing.T) {
 
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
-			ID:   newUser.ID.String(),
+			ID:   &newUserUUID,
 			Type: "identities",
 		},
 	}
 	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	assert.Equal(t, updatedWI.Data.Relationships.Assignee.Data.ID, newUser.ID.String())
+	require.NotNil(t, updatedWI)
+	assert.Equal(t, *updatedWI.Data.Relationships.Assignee.Data.ID, newUser.ID.String())
 	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
 
 	// update to wrong version
+	correctVersion := patchPayload.Data.Attributes["version"]
 	patchPayload.Data.Attributes["version"] = "12453972348"
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+	patchPayload.Data.Attributes["version"] = correctVersion
 
 	// Add test to remove assignee for WI
+	patchPayload.Data.Relationships.Assignee.Data.ID = nil
+	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
+	require.NotNil(t, updatedWI)
+	require.Nil(t, updatedWI.Data.Relationships.Assignee)
+	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
 }
