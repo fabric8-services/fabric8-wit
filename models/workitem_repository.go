@@ -260,3 +260,54 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 
 	return res, count, nil
 }
+
+// Patch patches the given work item in storage. Version must be the same as the one int the stored version
+// returns NotFoundError, VersionConflictError, ConversionError or InternalError
+func (r *GormWorkItemRepository) Patch(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+	res := WorkItem{}
+	id, err := strconv.ParseUint(wi.ID, 10, 64)
+	if err != nil {
+		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+	}
+
+	log.Printf("looking for id %d", id)
+	tx := r.db
+	if tx.First(&res, id).RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+	}
+	if res.Version != wi.Version {
+		return nil, VersionConflictError{simpleError{"version conflict"}}
+	}
+
+	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
+	if err != nil {
+		return nil, NewBadParameterError("Type", wi.Type)
+	}
+	newWi := WorkItem{
+		ID:      id,
+		Type:    wi.Type,
+		Version: wi.Version + 1,
+		Fields:  Fields{},
+	}
+
+	for fieldName, fieldDef := range wiType.Fields {
+		fieldValue := wi.Fields[fieldName]
+		var err error
+		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		if err != nil {
+			return nil, NewBadParameterError(fieldName, fieldValue)
+		}
+	}
+
+	if err := tx.Save(&newWi).Error; err != nil {
+		log.Print(err.Error())
+		return nil, InternalError{simpleError{err.Error()}}
+	}
+	log.Printf("updated item to %v\n", newWi)
+	result, err := wiType.ConvertFromModel(newWi)
+	if err != nil {
+		return nil, InternalError{simpleError{err.Error()}}
+	}
+	return result, nil
+}

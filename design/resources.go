@@ -97,7 +97,26 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.NotFound)
 		a.Response(d.Unauthorized)
 	})
-
+	a.Action("patch", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("patch the given work item with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(PatchWorkItemPayload)
+		a.Response(d.OK, func() {
+			a.Media(workItem)
+		})
+		a.Response(d.BadRequest, func() {
+			a.Media(d.ErrorMedia)
+		})
+		a.Response(d.InternalServerError)
+		a.Response(d.NotFound)
+		a.Response(d.Unauthorized)
+	})
 })
 
 // new version of "list" for migration

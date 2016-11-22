@@ -137,7 +137,6 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 // Update runs the update action.
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-
 		toSave := app.WorkItem{
 			ID:      ctx.ID,
 			Type:    ctx.Payload.Type,
@@ -154,6 +153,21 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 				return goa.ErrInternal(err.Error())
 			}
 		}
+		return ctx.OK(wi)
+	})
+}
+
+// Patch runs the patch action.
+func (c *WorkitemController) Patch(ctx *app.PatchWorkitemContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		toPatch := app.WorkItem{
+			ID:      ctx.ID,
+			Type:    *ctx.Payload.Type,
+			Version: *ctx.Payload.Version,
+			Fields:  ctx.Payload.Fields,
+		}
+		wi, err := appl.WorkItems().Patch(ctx.Context, toPatch)
+		log.Println(err)
 		return ctx.OK(wi)
 	})
 }
