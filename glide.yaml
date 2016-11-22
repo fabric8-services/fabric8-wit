@@ -5,7 +5,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: a867de7c676bc9000c1978874d9dc4f0a5887c1c
+  version: 63ced8cc12461611f6d6563741a1b4f437936bc1
   vcs: git
   subpackages:
   - client
