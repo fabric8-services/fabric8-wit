@@ -483,15 +483,9 @@ var _ = a.Resource("work-item-link-category", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkCategory)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
@@ -502,12 +496,8 @@ var _ = a.Resource("work-item-link-category", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkCategoryArray)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -520,15 +510,9 @@ var _ = a.Resource("work-item-link-category", func() {
 		a.Response(d.Created, "/workitemlinkcategories/.*", func() {
 			a.Media(WorkItemLinkCategory)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("delete", func() {
@@ -541,18 +525,10 @@ var _ = a.Resource("work-item-link-category", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("update", func() {
@@ -568,18 +544,10 @@ var _ = a.Resource("work-item-link-category", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkCategory)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
 
@@ -597,15 +565,9 @@ var _ = a.Resource("work-item-link-type", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkType)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
@@ -616,12 +578,8 @@ var _ = a.Resource("work-item-link-type", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkTypeArray)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -634,15 +592,9 @@ var _ = a.Resource("work-item-link-type", func() {
 		a.Response(d.Created, "/workitemlinktypes/.*", func() {
 			a.Media(WorkItemLinkType)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("delete", func() {
@@ -655,18 +607,10 @@ var _ = a.Resource("work-item-link-type", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("update", func() {
@@ -682,18 +626,10 @@ var _ = a.Resource("work-item-link-type", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkType)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
 
@@ -711,15 +647,9 @@ var _ = a.Resource("work-item-link", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLink)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
@@ -730,12 +660,8 @@ var _ = a.Resource("work-item-link", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLinkArray)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -748,15 +674,9 @@ var _ = a.Resource("work-item-link", func() {
 		a.Response(d.Created, "/workitemlinks/.*", func() {
 			a.Media(WorkItemLink)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("delete", func() {
@@ -769,18 +689,10 @@ var _ = a.Resource("work-item-link", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("update", func() {
@@ -796,17 +708,9 @@ var _ = a.Resource("work-item-link", func() {
 		a.Response(d.OK, func() {
 			a.Media(WorkItemLink)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.InternalServerError, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.NotFound, func() {
-			a.Media(JSONAPIErrors)
-		})
-		a.Response(d.Unauthorized, func() {
-			a.Media(JSONAPIErrors)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
