@@ -68,6 +68,7 @@ func TestWorkItemMapping(t *testing.T) {
 func TestGitHubIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
+	// githubData struct define test file and test url
 	type githubData struct {
 		inputFile      string
 		expectedOutput bool
@@ -75,6 +76,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	var gitData = []githubData{
+		// JSON data to test the issue mapping for github
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
 	}
@@ -108,17 +110,20 @@ func TestGitHubIssueMapping(t *testing.T) {
 		}
 	}
 }
+
 func TestJiraIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
+	// jiraData struct define test file and test url
 	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
 		inputURL       string
 	}
-
+	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
 		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
+		{"jira_issue2_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
 	}
 
 	for _, j := range jir {
@@ -153,12 +158,14 @@ func TestJiraIssueMapping(t *testing.T) {
 func TestFlattenGithubResponseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
+	// githubData struct define test file and test url
 	type githubData struct {
 		inputFile      string
 		expectedOutput bool
 		inputURL       string
 	}
 
+	// JSON data to test the issue mapping for github
 	var gitData = []githubData{
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
@@ -193,12 +200,14 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
+	// githubData struct define test file and test url
 	type githubData struct {
 		inputFile      string
 		expectedOutput bool
 		inputURL       string
 	}
 
+	// JSON data to test the issue mapping for github
 	var gitData = []githubData{
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		{"github_test_data.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
@@ -237,14 +246,17 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 func TestFlattenJiraResponseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
+	// jiraData struct define test file and test url
 	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
 		inputURL       string
 	}
 
+	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
 		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
+		{"jira_issue3_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-1300"},
 	}
 
 	for _, j := range jir {
@@ -276,14 +288,17 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
+	// jiraData struct define test file and test url
 	type jiraData struct {
 		inputFile      string
 		expectedOutput bool
 		inputURL       string
 	}
 
+	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
 		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"},
+		{"jira_issue2_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
 	}
 
 	for _, j := range jir {
