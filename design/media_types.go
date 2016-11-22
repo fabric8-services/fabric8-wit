@@ -201,7 +201,7 @@ var User = a.MediaType("application/vnd.user+json", func() {
 
 // identity represents an identified user object
 var identity = a.MediaType("application/vnd.identity+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("Identity")
 	a.Description("ALM User Identity")
 	a.Attributes(func() {
@@ -217,7 +217,7 @@ var identity = a.MediaType("application/vnd.identity+json", func() {
 
 // identityArray represents an array of identified user objects
 var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("IdentityArray")
 	a.Description("ALM User Identity Array")
 	a.Attributes(func() {
@@ -258,7 +258,7 @@ var searchResponse = a.MediaType("application/vnd.search+json", func() {
 
 // JSONAPIErrors is an array of JSONAPI error objects
 var JSONAPIErrors = a.MediaType("application/vnd.jsonapierrors+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("JSONAPIErrors")
 	a.Description(``)
 	a.Attributes(func() {
@@ -274,7 +274,7 @@ var JSONAPIErrors = a.MediaType("application/vnd.jsonapierrors+json", func() {
 // WorkItemLinkCategory puts a category on a link between two work items.
 // The category is attached to a work item link type.
 var WorkItemLinkCategory = a.MediaType("application/vnd.work-item-link-category+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("WorkItemLinkCategory")
 	a.Description(`A link type can have a category like "system", "extension", or "user".
 Those categories are handled by this media type.`)
@@ -290,7 +290,7 @@ Those categories are handled by this media type.`)
 
 // WorkItemLinkCategoryArray is a collection of work WorkItemLinkCategoryData objects.
 var WorkItemLinkCategoryArray = a.MediaType("application/vnd.work-item-link-category-array+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("WorkItemLinkCategoryArray")
 	a.Description(`An array of work item link categories`)
 	a.Attributes(func() {
@@ -307,7 +307,7 @@ var WorkItemLinkCategoryArray = a.MediaType("application/vnd.work-item-link-cate
 
 // WorkItemLinkType defines a type of connection between two types of work items
 var WorkItemLinkType = a.MediaType("application/vnd.work-item-link-type+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("WorkItemLinkType")
 	a.Description(`Defines the type of link between two work items`)
 	a.Attributes(func() {
@@ -322,7 +322,7 @@ var WorkItemLinkType = a.MediaType("application/vnd.work-item-link-type+json", f
 
 // WorkItemLinkTypeArray is a collection of work WorkItemLinkTypeData objects.
 var WorkItemLinkTypeArray = a.MediaType("application/vnd.work-item-link-type-array+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("WorkItemLinkTypeArray")
 	a.Description(`An array of work item link types`)
 	a.Attributes(func() {
@@ -339,7 +339,7 @@ var WorkItemLinkTypeArray = a.MediaType("application/vnd.work-item-link-type-arr
 
 // WorkItemLink defines a connection between two types of work items
 var WorkItemLink = a.MediaType("application/vnd.work-item-link+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("WorkItemLink")
 	a.Description(`Defines a connection between two work items`)
 	a.Attributes(func() {
@@ -354,7 +354,7 @@ var WorkItemLink = a.MediaType("application/vnd.work-item-link+json", func() {
 
 // WorkItemLinkArray is a collection of work WorkItemLinkData objects.
 var WorkItemLinkArray = a.MediaType("application/vnd.work-item-link-array+json", func() {
-	a.ContentType("application/vnd.api+json")
+	a.UseTrait("jsonapi-media-type")
 	a.TypeName("WorkItemLinkArray")
 	a.Description(`An array of work item links`)
 	a.Attributes(func() {
