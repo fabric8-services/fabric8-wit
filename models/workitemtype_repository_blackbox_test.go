@@ -6,25 +6,46 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestCreateLoadWIT(t *testing.T) {
-	resource.Require(t, resource.Database)
+type WorkItemTypeRepoBlackBoxTest struct {
+	gormsupport.DBTestSuite
+	undoScript *gormsupport.DBScript
+	repo       application.WorkItemTypeRepository
+}
 
-	undoScript := &models.DBScript{}
-	defer undoScript.Run(db)
-	repo := models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(db), undoScript)
-	db2 := db.Unscoped().Delete(models.WorkItemType{Name: "foo.bar"})
+func RunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
+	suite.Run(t, new(WorkItemTypeRepoBlackBoxTest))
+}
+
+func (s *WorkItemTypeRepoBlackBoxTest) SetupTest() {
+
+	resource.Require(s.T(), resource.Database)
+
+	s.undoScript = &gormsupport.DBScript{}
+	s.repo = models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(s.DB), s.undoScript)
+	db2 := s.DB.Unscoped().Delete(models.WorkItemType{Name: "foo.bar"})
 
 	if db2.Error != nil {
-		t.Fatalf("Could not setup test %s", db2.Error.Error())
+		s.T().Fatalf("Could not setup test %s", db2.Error.Error())
 		return
 	}
+}
 
-	wit, err := repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{
+func (s *WorkItemTypeRepoBlackBoxTest) TearDownTest() {
+	s.undoScript.Run(s.DB)
+}
+
+func (s *WorkItemTypeRepoBlackBoxTest) TestCreateLoadWIT(t *testing.T) {
+
+	wit, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{
 		"foo": app.FieldDefinition{
 			Required: true,
 			Type:     &app.FieldType{Kind: string(models.KindFloat)},
@@ -33,15 +54,15 @@ func TestCreateLoadWIT(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, wit)
 
-	wit3, err := repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{})
+	wit3, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{})
 	assert.IsType(t, models.BadParameterError{}, err)
 	assert.Nil(t, wit3)
 
-	wit2, err := repo.Load(context.Background(), "foo.bar")
+	wit2, err := s.repo.Load(context.Background(), "foo.bar")
 	assert.Nil(t, err)
-	assert.NotNil(t, wit2)
+	require.NotNil(t, wit2)
 	field := wit2.Fields["foo"]
-	assert.NotNil(t, field)
+	require.NotNil(t, field)
 	assert.Equal(t, string(models.KindFloat), field.Type.Kind)
 	assert.Equal(t, true, field.Required)
 	assert.Nil(t, field.Type.ComponentType)

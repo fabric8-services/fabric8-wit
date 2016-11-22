@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
@@ -15,7 +16,7 @@ import (
 
 func TestRestricByType(t *testing.T) {
 	resource.Require(t, resource.Database)
-	undoScript := &models.DBScript{}
+	undoScript := &gormsupport.DBScript{}
 	defer undoScript.Run(search.DB)
 	typeRepo := models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(search.DB), undoScript)
 	wiRepo := models.NewUndoableWorkItemRepository(models.NewWorkItemRepository(search.DB), undoScript)

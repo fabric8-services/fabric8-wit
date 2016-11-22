@@ -6,59 +6,47 @@ import (
 
 	"golang.org/x/net/context"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
 )
 
 var _ application.WorkItemRepository = &UndoableWorkItemRepository{}
 
-type DBScript struct {
-	script []func(db *gorm.DB) error
-}
-
-func (s *DBScript) Run(db *gorm.DB) []error {
-	var errs []error
-	for _, f := range s.script {
-		err := f(db)
-		if err != nil {
-			errs = append(errs, err)
-		}
-	}
-	return errs
-}
-
-func (s *DBScript) Append(f func(db *gorm.DB) error) {
-	s.script = append(s.script, f)
-}
-
-func NewUndoableWorkItemRepository(wrapped *GormWorkItemRepository, undoScript *DBScript) *UndoableWorkItemRepository {
+// NewUndoableWorkItemRepository creates a new undoable work item repo
+func NewUndoableWorkItemRepository(wrapped *GormWorkItemRepository, undoScript *gormsupport.DBScript) *UndoableWorkItemRepository {
 	return &UndoableWorkItemRepository{wrapped, undoScript}
 }
 
+// An UndoableWorkItemRepository is a wrapper that appends inverse operations to an undo
+// script for every operation and then calls the wrapped repo
 type UndoableWorkItemRepository struct {
 	wrapped *GormWorkItemRepository
-	undo    *DBScript
+	undo    *gormsupport.DBScript
 }
 
+// Load implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
 	return r.wrapped.Load(ctx, ID)
 }
 
+// Save implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"work item", wi.ID}
+		return nil, NewNotFoundError("work item", wi.ID)
 	}
 
 	log.Printf("loading work item %d", id)
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", old)
-		return nil, NotFoundError{"work item", wi.ID}
+	if db.Error != nil {
+		return nil, NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
 	}
 
 	res, err := r.wrapped.Save(ctx, wi)
@@ -71,19 +59,19 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 	return res, err
 }
 
+// Delete implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	id, err := strconv.ParseUint(ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return NotFoundError{"work item", ID}
+		return NewNotFoundError("work item", ID)
 	}
 
 	log.Printf("loading work item %d", id)
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", old)
-		return NotFoundError{"work item", ID}
+	if db.Error != nil {
+		return NewInternalError(fmt.Sprintf("could not load %s, %s", ID, db.Error.Error()))
 	}
 
 	err = r.wrapped.Delete(ctx, ID)
@@ -97,6 +85,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 	return err
 }
 
+// Create implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
 	result, err := r.wrapped.Create(ctx, typeID, fields, creator)
 	if err != nil {
@@ -105,7 +94,7 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 	id, err := strconv.ParseUint(result.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"work item", result.ID}
+		return nil, NewNotFoundError("work item", result.ID)
 	}
 
 	toDelete := WorkItem{ID: id}
@@ -118,10 +107,7 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 	return result, err
 }
 
+// List implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
 	return r.wrapped.List(ctx, criteria, start, length)
-}
-
-func (r *UndoableWorkItemRepository) Undo(db *gorm.DB) []error {
-	return r.undo.Run(db)
 }
