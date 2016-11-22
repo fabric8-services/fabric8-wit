@@ -278,7 +278,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		}
 	case nil:
 		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
-		path := "/"
+		path := "/" + typeName
 		convertedFields, err := models.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
@@ -286,12 +286,8 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			if err != nil {
 				return err
 			}
-			path = extendedWit.ParentPath
-			if path == "/" {
-				path = path + *extendedTypeName
-			} else {
-				path = path + "/" + *extendedTypeName
-			}
+			path = extendedWit.Path + path
+
 			//load fields from the extended type
 			err = loadFields(ctx, extendedWit, convertedFields)
 			if err != nil {
@@ -303,7 +299,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			return err
 		}
 		wit.Fields = convertedFields
-		wit.ParentPath = path
+		wit.Path = path
 
 		db.Save(wit)
 	}
