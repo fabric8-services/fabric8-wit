@@ -2,39 +2,28 @@ package search
 
 import (
 	"fmt"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
-var DB *gorm.DB
+type searchRepositoryWhiteboxTest struct {
+	gormsupport.DBTestSuite
+}
 
-func TestMain(m *testing.M) {
-	var err error
-
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	if _, c := os.LookupEnv(resource.Database); c {
-		DB, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
-		if err != nil {
-			panic("Failed to connect database: " + err.Error())
-		}
-		defer DB.Close()
-	}
-	os.Exit(m.Run())
+func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
+	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type SearchTestDescriptor struct {
@@ -43,11 +32,9 @@ type SearchTestDescriptor struct {
 	minimumResults int
 }
 
-func TestSearchByText(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.Database)
+func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 
-	wir := models.NewWorkItemRepository(DB)
+	wir := models.NewWorkItemRepository(s.DB)
 
 	testDataSet := []SearchTestDescriptor{
 		{
@@ -117,7 +104,7 @@ func TestSearchByText(t *testing.T) {
 		},
 	}
 
-	models.Transactional(DB, func(tx *gorm.DB) error {
+	models.Transactional(s.DB, func(tx *gorm.DB) error {
 
 		for _, testData := range testDataSet {
 			workItem := testData.wi
@@ -127,7 +114,7 @@ func TestSearchByText(t *testing.T) {
 
 			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
-				t.Fatal("Couldnt create test data")
+				s.T().Fatal("Couldnt create test data")
 			}
 
 			defer wir.Delete(context.Background(), createdWorkItem.ID)
@@ -139,12 +126,12 @@ func TestSearchByText(t *testing.T) {
 			// till the test data was created.
 			searchString = searchString + workItemURLInSearchString
 			searchString = fmt.Sprintf("\"%s\"", searchString)
-			t.Log("using search string: " + searchString)
+			s.T().Log("using search string: " + searchString)
 			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
 			workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 			if err != nil {
-				t.Fatal("Error getting search result ", err)
+				s.T().Fatal("Error getting search result ", err)
 			}
 			searchString = strings.Trim(searchString, "\"")
 			// Since this test adds test data, whether or not other workitems exist
@@ -153,7 +140,7 @@ func TestSearchByText(t *testing.T) {
 				// no point checking further, we got what we wanted.
 				continue
 			} else if len(workItemList) < minimumResults {
-				t.Fatalf("At least %d search results was expected ", minimumResults)
+				s.T().Fatalf("At least %d search results was expected ", minimumResults)
 			}
 
 			// These keywords need a match in the textual part.
@@ -168,7 +155,7 @@ func TestSearchByText(t *testing.T) {
 			// Iterate through all search results and see whether they meet the critera
 
 			for _, workItemValue := range workItemList {
-				t.Log("Found search result  ", workItemValue.ID)
+				s.T().Log("Found search result  ", workItemValue.ID)
 
 				for _, keyWord := range allKeywords {
 
@@ -184,12 +171,12 @@ func TestSearchByText(t *testing.T) {
 
 					if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
 						// Check if the search keyword is present as text in the title/description
-						t.Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
+						s.T().Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
 					} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, workItemValue.ID) {
 						// If not present in title/description then it should be a URL or ID
-						t.Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
+						s.T().Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
 					} else {
-						t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemTitle, workItemDescription)
+						s.T().Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemTitle, workItemDescription)
 					}
 				}
 				//defer wir.Delete(context.Background(), workItemValue.ID)
@@ -210,12 +197,10 @@ func stringInSlice(str string, list []string) bool {
 	return false
 }
 
-func TestSearchByID(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.Database)
-	wir := models.NewWorkItemRepository(DB)
+func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
-	models.Transactional(DB, func(tx *gorm.DB) error {
+	models.Transactional(s.DB, func(tx *gorm.DB) error {
+		wir := models.NewWorkItemRepository(tx)
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
 
@@ -229,7 +214,7 @@ func TestSearchByID(t *testing.T) {
 
 		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
-			t.Fatal("Couldnt create test data")
+			s.T().Fatal("Couldnt create test data")
 		}
 		defer wir.Delete(context.Background(), createdWorkItem.ID)
 
@@ -239,7 +224,7 @@ func TestSearchByID(t *testing.T) {
 		workItem.Fields[models.SystemTitle] = "Search test sbose " + createdWorkItem.ID
 		_, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
-			t.Fatal("Couldnt create test data")
+			s.T().Fatal("Couldnt create test data")
 		}
 
 		sr := NewGormSearchRepository(tx)
@@ -248,14 +233,14 @@ func TestSearchByID(t *testing.T) {
 		searchString := "id:" + createdWorkItem.ID
 		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 		if err != nil {
-			t.Fatal("Error gettig search result ", err)
+			s.T().Fatal("Error gettig search result ", err)
 		}
 
 		// ID is unique, hence search result set's length should be 1
-		assert.Equal(t, len(workItemList), 1)
+		assert.Equal(s.T(), len(workItemList), 1)
 		for _, workItemValue := range workItemList {
-			t.Log("Found search result for ID Search ", workItemValue.ID)
-			assert.Equal(t, createdWorkItem.ID, workItemValue.ID)
+			s.T().Log("Found search result for ID Search ", workItemValue.ID)
+			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
 		}
 		return err
 	})
