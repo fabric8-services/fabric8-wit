@@ -341,6 +341,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
+	witr.ClearCache() // Clear the WIT cache after updating existing WITs
 	return nil
 }
 
