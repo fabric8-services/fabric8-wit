@@ -330,11 +330,13 @@ var WorkItemLinkTypeArray = a.MediaType("application/vnd.work-item-link-type-arr
 	a.Attributes(func() {
 		a.Attribute("meta", WorkItemLinkTypeArrayMeta)
 		a.Attribute("data", a.ArrayOf(WorkItemLinkTypeData))
+		a.Attribute("included", a.ArrayOf(WorkItemLinkCategoryData))
 		a.Required("data")
 	})
 	a.View("default", func() {
 		a.Attribute("data")
 		a.Attribute("meta")
+		a.Attribute("included")
 		a.Required("data")
 	})
 })

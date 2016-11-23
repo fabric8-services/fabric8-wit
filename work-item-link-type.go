@@ -8,7 +8,6 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
-	satoriuuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkTypeController implements the work-item-link-type resource.
@@ -75,6 +74,20 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		// Build our "set" of distinct category IDs already converted as strings
+		categoryIDMap := map[string]bool{}
+		for _, typeData := range result.Data {
+			categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
+		}
+		// Now include the optional link category data in the work item link type "included" array
+		for categoryID := range categoryIDMap {
+			linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, categoryID)
+			if err != nil {
+				jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			}
+			result.Included = append(result.Included, linkCat.Data)
+		}
 		return ctx.OK(result)
 	})
 	// WorkItemLinkTypeController_List: end_implement
@@ -91,12 +104,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 		}
 
 		// Now include the optional link category data in the work item link type "included" array
-		linkCatId, err := satoriuuid.FromString(res.Data.Relationships.LinkCategory.Data.ID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-		}
-		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, linkCatId.String())
+		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, res.Data.Relationships.LinkCategory.Data.ID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)

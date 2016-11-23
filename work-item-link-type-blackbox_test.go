@@ -234,8 +234,8 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.Nil(s.T(), models.ConvertLinkTypeToModel(readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), workItemLinkType.Included, 1)
-	require.Equal(s.T(), "user", *workItemLinkType.Included[0].Attributes.Name)
+	require.Len(s.T(), readIn.Included, 1, "The work item link type should include it's work item link category.")
+	require.Equal(s.T(), "user", *readIn.Included[0].Attributes.Name, "The work item link types category should have the name 'user'.")
 }
 
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
@@ -276,6 +276,10 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 		}
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item link types (bug-blocker and related) where found.")
+
+	// Check that the link categories are included in the response in the "included" array
+	require.Len(s.T(), linkTypeCollection.Included, 1, "The work item link type should include it's work item link category.")
+	require.Equal(s.T(), "user", *linkTypeCollection.Included[0].Attributes.Name, "The work item link types category should have the name 'user'.")
 }
 
 func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
