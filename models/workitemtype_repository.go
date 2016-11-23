@@ -11,6 +11,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+var cache = NewWorkItemTypeCache()
+
 // NewWorkItemRepository creates a wi repository based on gorm
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 	return &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}}
@@ -41,15 +43,20 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
 	log.Printf("loading work item type %s", name)
-	res := WorkItemType{}
+	res, ok := cache.Get(name)
+	if !ok {
+		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
+		res = WorkItemType{}
 
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item type", name}
-	}
-	if err := db.Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		db := r.db.Model(&res).Where("name=?", name).First(&res)
+		if db.RecordNotFound() {
+			log.Printf("not found, res=%v", res)
+			return nil, NotFoundError{"work item type", name}
+		}
+		if err := db.Error; err != nil {
+			return nil, InternalError{simpleError{err.Error()}}
+		}
+		cache.Put(res)
 	}
 
 	return &res, nil
