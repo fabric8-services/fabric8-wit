@@ -379,14 +379,14 @@ func (s *WorkItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
 }
 
-func (s *WorkItemLinkSuite) TestUpdateWorkItemLinkBadRequest() {
-	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
-		Data: createPayload.Data,
-	}
-	updateLinkPayload.Data.Type = "This should be workitemlinks" // Causes bad request
-	test.UpdateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
-}
+//func (s *WorkItemLinkSuite) TestUpdateWorkItemLinkBadRequest() {
+//	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+//	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
+//		Data: createPayload.Data,
+//	}
+//	updateLinkPayload.Data.Type = "This should be workitemlinks" // Causes bad request
+//	test.UpdateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
+//}
 
 // TestShowWorkItemLinkOK tests if we can fetch the "system" work item link
 func (s *WorkItemLinkSuite) TestShowWorkItemLinkOK() {

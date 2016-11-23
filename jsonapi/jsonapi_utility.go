@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	ErrorCodeNotFound         = "not_found_error"
-	ErrorCodeBadParameter     = "bad_parameter_error"
-	ErrorCodeVersionConflict  = "version_conflict_error"
+	ErrorCodeNotFound         = "not_found"
+	ErrorCodeBadParameter     = "bad_parameter"
+	ErrorCodeVersionConflict  = "version_conflict"
 	ErrorCodeUnknownError     = "unknown_error"
 	ErrorCodeConversionError  = "conversion_error"
 	ErrorCodeInternalError    = "internal_error"
