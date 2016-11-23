@@ -28,9 +28,9 @@ import (
 // Test Suite setup
 //-----------------------------------------------------------------------------
 
-// The WorkItemLinkCategorySuite has state the is relevant to all tests.
+// The workItemLinkCategorySuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
-type WorkItemLinkCategorySuite struct {
+type workItemLinkCategorySuite struct {
 	suite.Suite
 	db          *gorm.DB
 	linkCatCtrl *WorkItemLinkCategoryController
@@ -38,7 +38,7 @@ type WorkItemLinkCategorySuite struct {
 
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *WorkItemLinkCategorySuite) SetupSuite() {
+func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
 
 	if err = configuration.Setup(""); err != nil {
@@ -58,7 +58,7 @@ func (s *WorkItemLinkCategorySuite) SetupSuite() {
 		panic(err.Error())
 	}
 
-	svc := goa.New("WorkItemLinkCategorySuite-Service")
+	svc := goa.New("workItemLinkCategorySuite-Service")
 	require.NotNil(s.T(), svc)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
@@ -66,7 +66,7 @@ func (s *WorkItemLinkCategorySuite) SetupSuite() {
 
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
-func (s *WorkItemLinkCategorySuite) TearDownSuite() {
+func (s *workItemLinkCategorySuite) TearDownSuite() {
 	if s.db != nil {
 		s.db.Close()
 	}
@@ -75,19 +75,19 @@ func (s *WorkItemLinkCategorySuite) TearDownSuite() {
 // removeWorkItemLinkCategories removes all work item link categories from the db that will be created
 // during these tests. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
-func (s *WorkItemLinkCategorySuite) removeWorkItemLinkCategories() {
+func (s *workItemLinkCategorySuite) removeWorkItemLinkCategories() {
 	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "system"})
 	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "user"})
 }
 
 // The SetupTest method will be run before every test in the suite.
 // SetupTest ensures that none of the work item link categories that we will create already exist.
-func (s *WorkItemLinkCategorySuite) SetupTest() {
+func (s *workItemLinkCategorySuite) SetupTest() {
 	s.removeWorkItemLinkCategories()
 }
 
 // The TearDownTest method will be run after every test in the suite.
-func (s *WorkItemLinkCategorySuite) TearDownTest() {
+func (s *workItemLinkCategorySuite) TearDownTest() {
 	s.removeWorkItemLinkCategories()
 }
 
@@ -96,7 +96,7 @@ func (s *WorkItemLinkCategorySuite) TearDownTest() {
 //-----------------------------------------------------------------------------
 
 // createWorkItemLinkCategorySystem defines a work item link category "system"
-func (s *WorkItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.ResponseWriter, *app.WorkItemLinkCategory) {
+func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.ResponseWriter, *app.WorkItemLinkCategory) {
 	name := "system"
 	description := "This work item link category is reserved for the core system."
 	id := "0e671e36-871b-43a6-9166-0c4bd573e231"
@@ -117,7 +117,7 @@ func (s *WorkItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.Res
 }
 
 // createWorkItemLinkCategoryUser defines a work item link category "user"
-func (s *WorkItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.ResponseWriter, *app.WorkItemLinkCategory) {
+func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.ResponseWriter, *app.WorkItemLinkCategory) {
 	name := "user"
 	description := "This work item link category is managed by an admin user."
 	id := "bf30167a-9446-42de-82be-6b3815152051"
@@ -142,7 +142,7 @@ func (s *WorkItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.Respo
 //-----------------------------------------------------------------------------
 
 // TestCreateWorkItemLinkCategory tests if we can create the "system" work item link category
-func (s *WorkItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
+func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 
@@ -152,7 +152,7 @@ func (s *WorkItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
 	test.DeleteWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID)
 }
 
-func (s *WorkItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
+func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 	description := "New description for work item link category."
 	name := "" // This will lead to a bad parameter error
 	id := "88727441-4a21-4b35-aabe-007f8273cdBB"
@@ -169,15 +169,15 @@ func (s *WorkItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 	test.CreateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, payload)
 }
 
-func (s *WorkItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
 	test.DeleteWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "01f6c751-53f3-401f-be9b-6a9a230db8AA")
 }
 
-func (s *WorkItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFoundDueToBadID() {
+func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFoundDueToBadID() {
 	test.DeleteWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "something that is not a UUID")
 }
 
-func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 	description := "New description for work item link category."
 	id := "88727441-4a21-4b35-aabe-007f8273cd19"
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -192,7 +192,7 @@ func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 	test.UpdateWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
-// func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToBadID() {
+// func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToBadID() {
 // 	description := "New description for work item link category."
 // 	id := "something that is not a UUID" // This will cause a Not Found error
 // 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -207,7 +207,7 @@ func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 // 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
 // }
 
-func (s *WorkItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBadType() {
+func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBadType() {
 	description := "New description for work item link category."
 	id := "88727441-4a21-4b35-aabe-007f8273cd19"
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -222,7 +222,7 @@ func (s *WorkItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBad
 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
-func (s *WorkItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmptyName() {
+func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmptyName() {
 	name := "" // When updating the name, it must not be empty
 	id := "88727441-4a21-4b35-aabe-007f8273cd19"
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -237,7 +237,7 @@ func (s *WorkItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmp
 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
-func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 
@@ -249,7 +249,7 @@ func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueT
 	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 }
 
-func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 
@@ -268,7 +268,7 @@ func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 	require.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
 }
 
-//func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequest() {
+//func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequest() {
 //	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 //	require.NotNil(s.T(), linkCatSystem)
 //
@@ -282,7 +282,7 @@ func (s *WorkItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 //}
 
 // TestShowWorkItemLinkCategoryOK tests if we can fetch the "system" work item link category
-func (s *WorkItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
+func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	// Create the work item link category first and try to read it back in
 	_, linkCat := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCat)
@@ -293,18 +293,18 @@ func (s *WorkItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	require.EqualValues(s.T(), linkCat, linkCat2)
 }
 
-func (s *WorkItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFoundDueToBadID() {
+func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFoundDueToBadID() {
 	test.ShowWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "something that is not a UUID")
 }
 
 // TestShowWorkItemLinkCategoryNotFound tests if we can fetch a non existing work item link category
-func (s *WorkItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFound() {
+func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFound() {
 	test.ShowWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
 }
 
 // TestListWorkItemLinkCategoryOK tests if we can find the work item link categories
 // "system" and "user" in the list of work item link categories
-func (s *WorkItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
+func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
 	_, linkCatUser := s.createWorkItemLinkCategoryUser()
@@ -337,7 +337,7 @@ func (s *WorkItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 // a normal test function and pass our suite to suite.Run
 func TestSuiteWorkItemLinkCategory(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(WorkItemLinkCategorySuite))
+	suite.Run(t, new(workItemLinkCategorySuite))
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
@@ -469,7 +469,7 @@ func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
-func (s *WorkItemLinkCategorySuite) TestUnauthorizeWorkItemLinkCategoryCUD() {
+func (s *workItemLinkCategorySuite) TestUnauthorizeWorkItemLinkCategoryCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkCategoryTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLinkCategory-Service")
 	}, func(service *goa.Service) error {

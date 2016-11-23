@@ -28,9 +28,9 @@ import (
 // Test Suite setup
 //-----------------------------------------------------------------------------
 
-// The WorkItemLinkTypeSuite has state the is relevant to all tests.
+// The workItemLinkTypeSuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
-type WorkItemLinkTypeSuite struct {
+type workItemLinkTypeSuite struct {
 	suite.Suite
 	db           *gorm.DB
 	linkTypeCtrl *WorkItemLinkTypeController
@@ -40,7 +40,7 @@ type WorkItemLinkTypeSuite struct {
 
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *WorkItemLinkTypeSuite) SetupSuite() {
+func (s *workItemLinkTypeSuite) SetupSuite() {
 	var err error
 
 	if err = configuration.Setup(""); err != nil {
@@ -60,7 +60,7 @@ func (s *WorkItemLinkTypeSuite) SetupSuite() {
 		panic(err.Error())
 	}
 
-	svc := goa.New("WorkItemLinkTypeSuite-Service")
+	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkTypeCtrl)
@@ -72,7 +72,7 @@ func (s *WorkItemLinkTypeSuite) SetupSuite() {
 
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
-func (s *WorkItemLinkTypeSuite) TearDownSuite() {
+func (s *workItemLinkTypeSuite) TearDownSuite() {
 	if s.db != nil {
 		s.db.Close()
 	}
@@ -81,7 +81,7 @@ func (s *WorkItemLinkTypeSuite) TearDownSuite() {
 // cleanup removes all DB entries that will be created or have been created
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
-func (s *WorkItemLinkTypeSuite) cleanup() {
+func (s *workItemLinkTypeSuite) cleanup() {
 	db := s.db.Unscoped().Delete(&models.WorkItemLinkType{Name: "bug-blocker"})
 	require.Nil(s.T(), db.Error)
 	db = s.db.Unscoped().Delete(&models.WorkItemLinkType{Name: "related"})
@@ -94,12 +94,12 @@ func (s *WorkItemLinkTypeSuite) cleanup() {
 
 // The SetupTest method will be run before every test in the suite.
 // SetupTest ensures that none of the work item link types that we will create already exist.
-func (s *WorkItemLinkTypeSuite) SetupTest() {
+func (s *workItemLinkTypeSuite) SetupTest() {
 	s.cleanup()
 }
 
 // The TearDownTest method will be run after every test in the suite.
-func (s *WorkItemLinkTypeSuite) TearDownTest() {
+func (s *workItemLinkTypeSuite) TearDownTest() {
 	s.cleanup()
 }
 
@@ -108,7 +108,7 @@ func (s *WorkItemLinkTypeSuite) TearDownTest() {
 //-----------------------------------------------------------------------------
 
 // createDemoType creates a demo work item link type of type "name"
-func (s *WorkItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkItemLinkTypePayload {
+func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkItemLinkTypePayload {
 	//	//   1. Create at least one work item type
 	//	workItemTypePayload := CreateWorkItemType("foo.bug")
 	//	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, workItemTypePayload)
@@ -132,45 +132,45 @@ func (s *WorkItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 // a normal test function and pass our suite to suite.Run
 func TestSuiteWorkItemLinkType(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(WorkItemLinkTypeSuite))
+	suite.Run(t, new(workItemLinkTypeSuite))
 }
 
 // TestCreateWorkItemLinkType tests if we can create the "bug-blocker" work item link type
-func (s *WorkItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
+func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	createPayload := s.createDemoLinkType("bug-blocker")
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 }
 
-//func (s *WorkItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequest() {
+//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequest() {
 //	createPayload := s.createDemoLinkType("") // empty name causes bad request
 //	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 //}
 
-//func (s *WorkItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToEmptyTopology() {
+//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToEmptyTopology() {
 //	createPayload := s.createDemoLinkType("bug-blocker")
 //	emptyTopology := ""
 //	createPayload.Data.Attributes.Topology = &emptyTopology
 //	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 //}
 
-//func (s *WorkItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToWrongTopology() {
+//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToWrongTopology() {
 //	createPayload := s.createDemoLinkType("bug-blocker")
 //	wrongTopology := "wrongtopology"
 //	createPayload.Data.Attributes.Topology = &wrongTopology
 //	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 //}
 
-func (s *WorkItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
+func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
 	test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "1e9a8b53-73a6-40de-b028-5177add79ffa")
 }
 
-func (s *WorkItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFoundDueToBadID() {
+func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFoundDueToBadID() {
 	_, _ = test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
 }
 
-func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
+func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 	createPayload := s.createDemoLinkType("bug-blocker")
 	notExistingId := "46bbce9c-8219-4364-a450-dfd1b501654e" // This ID does not exist
 	createPayload.Data.ID = &notExistingId
@@ -181,7 +181,7 @@ func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 	test.UpdateWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 }
 
-// func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequestDueToBadID() {
+// func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequestDueToBadID() {
 // 	createPayload := s.createDemoLinkType("bug-blocker")
 // 	notExistingId := "something that is not a UUID" // This ID does not exist
 // 	createPayload.Data.ID = &notExistingId
@@ -192,7 +192,7 @@ func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 // 	test.UpdateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 // }
 
-func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
+func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	createPayload := s.createDemoLinkType("bug-blocker")
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
@@ -210,7 +210,7 @@ func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	require.Equal(s.T(), newDescription, *lt.Data.Attributes.Description)
 }
 
-// func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {
+// func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {
 // 	createPayload := s.createDemoLinkType("bug-blocker")
 // 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
 // 		Data: createPayload.Data,
@@ -220,7 +220,7 @@ func (s *WorkItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 // }
 
 // TestShowWorkItemLinkTypeOK tests if we can fetch the "system" work item link type
-func (s *WorkItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	// Create the work item link type first and try to read it back in
 	createPayload := s.createDemoLinkType("bug-blocker")
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
@@ -235,18 +235,18 @@ func (s *WorkItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.True(s.T(), expected.Equal(actual))
 }
 
-func (s *WorkItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
 	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
 }
 
 // TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
-func (s *WorkItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
 	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
 }
 
 // TestListWorkItemLinkTypeOK tests if we can find the work item link types
 // "bug-blocker" and "related" in the list of work item link types
-func (s *WorkItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
+func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	bugBlockerPayload := s.createDemoLinkType("bug-blocker")
 	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
@@ -410,7 +410,7 @@ func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
-func (s *WorkItemLinkTypeSuite) TestUnauthorizeWorkItemLinkTypeCUD() {
+func (s *workItemLinkTypeSuite) TestUnauthorizeWorkItemLinkTypeCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTypeTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLinkType-Service")
 	}, func(service *goa.Service) error {
