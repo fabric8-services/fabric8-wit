@@ -30,3 +30,10 @@ func (c *WorkItemTypeCache) Put(wit WorkItemType) {
 	defer c.mapLock.Unlock()
 	c.cache[wit.Name] = wit
 }
+
+// Clear clears the cache
+func (c *WorkItemTypeCache) Clear() {
+	c.mapLock.Lock()
+	defer c.mapLock.Unlock()
+	c.cache = make(map[string]WorkItemType)
+}

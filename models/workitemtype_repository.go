@@ -62,6 +62,11 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	return &res, nil
 }
 
+// ClearCache clears the work item type cache
+func (r *GormWorkItemTypeRepository) ClearCache() {
+	cache.Clear()
+}
+
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
