@@ -119,7 +119,7 @@ var _ = a.Resource("workitem.2", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
-		a.Payload(UpdateWorkItemJSONAPIPayload)
+		a.Payload(updateWorkItemJSONAPIPayload)
 		a.Response(d.OK, func() {
 			// Still using workitem in MediaTypes.
 			// ToDo update to struct which complies to jsonapi

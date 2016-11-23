@@ -40,13 +40,13 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 
 // UpdateWorkItemJSONAPIPayload defines top level structure from jsonapi specs
 // visit : http://jsonapi.org/format/#document-top-level
-var UpdateWorkItemJSONAPIPayload = a.Type("UpdateWorkItemJSONAPIPayload", func() {
-	a.Attribute("data", WorkItemDataForUpdate)
+var updateWorkItemJSONAPIPayload = a.Type("UpdateWorkItemJSONAPIPayload", func() {
+	a.Attribute("data", workItemDataForUpdate)
 	a.Required("data")
 })
 
 // WorkItemDataForUpdate defines how an update payload will look like
-var WorkItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
+var workItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitems")
 	})
@@ -56,13 +56,13 @@ var WorkItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
 	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
 		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
 	})
-	a.Attribute("relationships", WorkItemRelationships)
+	a.Attribute("relationships", workItemRelationships)
 	// relationships must be required becasue we MUST have workItemType during PATCh
 	a.Required("type", "id", "attributes")
 })
 
 // WorkItemRelationships defines only `assignee` as of now. To be updated
-var WorkItemRelationships = a.Type("WorkItemRelationships", func() {
+var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignee", RelationAssignee, "This deinfes assignees of the WI")
 	a.Attribute("baseType", RelationBaseType, "This defines type of Work Item")
 	// baseType relationship must present while updating work item

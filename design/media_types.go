@@ -63,7 +63,7 @@ var workItem2 = a.MediaType("application/vnd.workitem2+json", func() {
 	a.TypeName("WorkItem2")
 	a.Description("A work item hold field values according to a given field type in JSONAPI form")
 	a.Attribute("links", WorkItemLinks)
-	a.Attribute("data", WorkItemDataForUpdate)
+	a.Attribute("data", workItemDataForUpdate)
 	a.Required("links")
 	a.Required("data")
 	a.View("default", func() {
