@@ -9,6 +9,8 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -65,7 +67,8 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		knownReferer = stateReferer[state]
 		if state == "" || knownReferer == "" {
-			return ctx.Unauthorized()
+			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(models.NewUnauthorizedError("State or known referer was empty"))
+			return ctx.Unauthorized(jerrors)
 		}
 
 		ghtoken, err := gh.config.Exchange(ctx, code)
@@ -104,7 +107,8 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			ghUser, err := gh.getUser(ctx, ghtoken)
 			if err != nil {
 				fmt.Println(err)
-				return ctx.Unauthorized()
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+				return ctx.Unauthorized(jerrors)
 			}
 			fmt.Println(ghUser)
 
@@ -123,7 +127,8 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 		almtoken, err := gh.tokenManager.Generate(identity)
 		if err != nil {
 			fmt.Println("Failed to generate token", err)
-			return ctx.Unauthorized()
+			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.Unauthorized(jerrors)
 		}
 
 		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+almtoken)

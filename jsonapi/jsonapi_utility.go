@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	ErrorCodeNotFound         = "not_found"
-	ErrorCodeBadParameter     = "bad_parameter"
-	ErrorCodeVersionConflict  = "version_conflict"
-	ErrorCodeUnknownError     = "unknown_error"
-	ErrorCodeConversionError  = "conversion_error"
-	ErrorCodeInternalError    = "internal_error"
-	ErrorCodeJWTSecurityError = "jwt_security_error"
+	ErrorCodeNotFound          = "not_found"
+	ErrorCodeBadParameter      = "bad_parameter"
+	ErrorCodeVersionConflict   = "version_conflict"
+	ErrorCodeUnknownError      = "unknown_error"
+	ErrorCodeConversionError   = "conversion_error"
+	ErrorCodeInternalError     = "internal_error"
+	ErrorCodeUnauthorizedError = "unauthorized_error"
+	ErrorCodeJWTSecurityError  = "jwt_security_error"
 )
 
 // ConvertErrorFromModelToJSONAPIError returns the JSONAPI representation
@@ -49,6 +50,10 @@ func ConvertErrorFromModelToJSONAPIError(err error) (app.JSONAPIError, int) {
 		code = ErrorCodeInternalError
 		title = "Internal error"
 		statusCode = http.StatusInternalServerError
+	case models.UnauthorizedError:
+		code = ErrorCodeUnauthorizedError
+		title = "Unauthorized error"
+		statusCode = http.StatusUnauthorized
 	default:
 		code = ErrorCodeUnknownError
 		title = "Unknown error"
