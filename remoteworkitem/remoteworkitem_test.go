@@ -27,22 +27,6 @@ func provideRemoteData(dataURL string) ([]byte, error) {
 	return responseData, nil
 }
 
-func provideRemoteGithubDataWithAssignee(input string) ([]byte, error) {
-	return provideRemoteData(input)
-}
-
-func provideRemoteJiraDataWithAssignee(input string) ([]byte, error) {
-	return provideRemoteData(input)
-}
-
-func provideRemoteGithubDataWithoutAssignee(input string) ([]byte, error) {
-	return provideRemoteData(input)
-}
-
-func provideRemoteJiraDataWithoutAssignee(input string) ([]byte, error) {
-	return provideRemoteData(input)
-}
-
 func TestWorkItemMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
@@ -79,15 +63,15 @@ func TestGitHubIssueMapping(t *testing.T) {
 	var gitData = []githubData{
 		// JSON data file of Github issue with assignee to test that the data is getting correctly Mapped through the Map funtion
 		// Github Issue API URL for the respective JSON data file to update the cache
-		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		// JSON data file of Github issue with assignee and label
 		// Issue API URL for the respective JSON file to update the cache
-		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
+		{"github_issue_with_assignee_labels.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
 	}
 
 	for _, j := range gitData {
 		content, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
-			return provideRemoteGithubDataWithAssignee(j.inputURL)
+			return provideRemoteData(j.inputURL)
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -129,15 +113,15 @@ func TestJiraIssueMapping(t *testing.T) {
 	var jir = []jiraData{
 		// JSON data file of Jira issue with null assignee
 		// Issue API URL for the respective JSON file to update the cache
-		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
+		{"jira_issue_without_assignee.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
 		// JSON data file of Jira issue
 		// Issue API URL for the respective JSON file to update the cache
-		{"jira_issue2_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
+		{"jira_issue_mapping_data.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
 	}
 
 	for _, j := range jir {
 		content, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
-			return provideRemoteJiraDataWithAssignee(j.inputURL)
+			return provideRemoteData(j.inputURL)
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -180,17 +164,17 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 		// JSON data file of Github issue with assignee to test that the data
 		// is getting correctly Mapped through the Map funtion
 		// Github Issue API URL for the respective JSON data file to update the cache
-		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		// Github issue with assignee and label
-		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
+		{"github_issue_with_assignee_labels.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
 		// The Github issue URL doesn't exist. So, the mapping will not happen
 		// The map created from the Flatten will be empty
-		{"github_test3_data.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
+		{"github_issue_invalid.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
 	}
 
 	for _, j := range gitData {
 		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
-			return provideRemoteGithubDataWithAssignee(j.inputURL)
+			return provideRemoteData(j.inputURL)
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -227,18 +211,18 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	// JSON data to test the issue mapping for github
 	var gitData = []githubData{
 		// Github data with assignee to map local workItem to remote workItem
-		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		// Github data with labels and without assignee
 		// assignee field is skipped if that is null
-		{"github_test_data.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
+		{"github_issue_with_labels.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
 		// The Github issue URL doesn't exist. So, the mapping will not happen
 		// The map created from the Flatten will be empty
-		{"github_test3_data.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
+		{"github_issue_invalid.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
 	}
 
 	for _, j := range gitData {
 		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
-			return provideRemoteGithubDataWithoutAssignee(j.inputURL)
+			return provideRemoteData(j.inputURL)
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -278,15 +262,15 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
 		// JSON data file of Jira issue with null assignee, test assertion, Issue API URL for the respective JSON file to update the cache
-		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
+		{"jira_issue_without_assignee.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
 		// JSON data file of Jira issue with null assignee, test assertion, Issue API URL for the respective JSON file to update the cache
-		{"jira_issue3_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-1300"},
+		{"jira_issue_with_null_assignee.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-1300"},
 	}
 
 	for _, j := range jir {
 
 		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
-			return provideRemoteJiraDataWithAssignee(j.inputURL)
+			return provideRemoteData(j.inputURL)
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -322,15 +306,15 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
 		// JSON data file of Jira issue with null assignee, test assertion, Issue API URL for the respective JSON file to update the cache
-		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"},
+		{"jira_issue_without_assignee.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"},
 		// JSON data file of Jira issue, test assertion, Issue API URL for the respective JSON file to update the cache
-		{"jira_issue2_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
+		{"jira_issue_mapping_data.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
 	}
 
 	for _, j := range jir {
 
 		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
-			return provideRemoteJiraDataWithoutAssignee(j.inputURL)
+			return provideRemoteData(j.inputURL)
 		})
 		if err != nil {
 			t.Fatal(err)

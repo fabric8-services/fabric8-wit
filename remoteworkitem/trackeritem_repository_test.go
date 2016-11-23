@@ -121,7 +121,7 @@ func TestConvertGithubIssue(t *testing.T) {
 
 	models.Transactional(db, func(tx *gorm.DB) error {
 		content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
-			return provideRemoteGithubDataWithAssignee(GitIssueWithAssignee)
+			return provideRemoteData(GitIssueWithAssignee)
 		})
 		if err != nil {
 			t.Fatal(err)
