@@ -516,7 +516,7 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	}
 }
 
-func generatePayloadBase(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
+func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
 	return &app.UpdateWorkItemJSONAPIPayload{
 		Data: &app.WorkItemDataForUpdate{
 			Type: "workitems",
@@ -566,7 +566,7 @@ func TestUpdateWI2(t *testing.T) {
 	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller2)
 
-	patchPayload := generatePayloadBase(wi)
+	patchPayload := getMinimumRequiredUpdatePayload(wi)
 
 	// update title attribute
 	modifiedTitle := "Is the model updated?"
@@ -633,4 +633,273 @@ func TestUpdateWI2(t *testing.T) {
 	require.NotNil(t, updatedWI)
 	require.Nil(t, updatedWI.Data.Relationships.Assignee)
 	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
+}
+
+// Check patching only one attribute with minimum required patch payload
+func TestUpdateOnlyDescription(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	minimumPayload := getMinimumRequiredUpdatePayload(wi)
+	modifiedDescription := "Only Description is modified"
+	minimumPayload.Data.Attributes[models.SystemDescription] = modifiedDescription
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+	require.NotNil(t, updatedWI)
+	assert.Equal(t, updatedWI.Data.Attributes[models.SystemDescription], modifiedDescription)
+}
+
+// Setup only Assignee
+func TestUpdateOnlyAssignee(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	minimumPayload := getMinimumRequiredUpdatePayload(wi)
+	minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+
+	tempUser := createOneRandomUserIdentity(svc.Context, DB)
+	assert.NotNil(t, tempUser)
+
+	tempUserUUID := tempUser.ID.String()
+	assignee := &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &tempUserUUID,
+			Type: "identities",
+		},
+	}
+	minimumPayload.Data.Relationships.Assignee = assignee
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+	require.NotNil(t, updatedWI)
+	assert.Equal(t, *updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
+
+	// retrieve work item from Db and verify
+	db := gormapplication.NewGormDB(DB)
+	wiFromDB, _ := db.WorkItems().Load(svc.Context, updatedWI.Data.ID)
+	require.NotNil(t, wiFromDB)
+	assert.Equal(t, wiFromDB.Fields[models.SystemAssignee], tempUserUUID)
+}
+
+// Removing assignee
+func TestUpdateRemoveAssignee(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	minimumPayload := getMinimumRequiredUpdatePayload(wi)
+	minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+
+	tempUser := createOneRandomUserIdentity(svc.Context, DB)
+	assert.NotNil(t, tempUser)
+
+	tempUserUUID := tempUser.ID.String()
+	assignee := &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &tempUserUUID,
+			Type: "identities",
+		},
+	}
+	minimumPayload.Data.Relationships.Assignee = assignee
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+	require.NotNil(t, updatedWI)
+	assert.Equal(t, *updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
+
+	// Remove assignee
+	assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   nil,
+			Type: "identities",
+		},
+	}
+	minimumPayload.Data.Relationships.Assignee = assignee
+	// Update should fail because of version conflict
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+
+	// update version and then update assignee to NIL
+	minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
+
+	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+	require.NotNil(t, updatedWI)
+	assert.Nil(t, updatedWI.Data.Relationships.Assignee)
+
+	// retrieve work item from Db and verify
+	db := gormapplication.NewGormDB(DB)
+	wiFromDB, _ := db.WorkItems().Load(svc.Context, updatedWI.Data.ID)
+	require.NotNil(t, wiFromDB)
+	assert.Nil(t, wiFromDB.Fields[models.SystemAssignee])
+}
+
+func TestUpdateWithInvalidID(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+	updatePayload := getMinimumRequiredUpdatePayload(wi)
+	updatePayload.Data.ID = "some non-int ID"
+	test.UpdateWorkitem2NotFound(t, svc.Context, svc, controller2, wi.ID, updatePayload)
+}
+
+func TestUpdateWithNonExistentID(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+	updatePayload := getMinimumRequiredUpdatePayload(wi)
+	updatePayload.Data.ID = "2398475203"
+	test.UpdateWorkitem2NotFound(t, svc.Context, svc, controller2, wi.ID, updatePayload)
+}
+
+func TestUpdateVersionConflict(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	updatePayload := getMinimumRequiredUpdatePayload(wi)
+	test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, updatePayload)
+	// set invalid version number
+	updatePayload.Data.Attributes["version"] = "2398475203"
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, updatePayload)
+}
+
+func TestUpdateInvalidUUID(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "closed"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	minimumPayload := getMinimumRequiredUpdatePayload(wi)
+	minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+
+	tempUser := createOneRandomUserIdentity(svc.Context, DB)
+	assert.NotNil(t, tempUser)
+
+	invalidUserUUID := fmt.Sprintf("%s-invalid", tempUser.ID.String())
+	assignee := &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &invalidUserUUID,
+			Type: "identities",
+		},
+	}
+	minimumPayload.Data.Relationships.Assignee = assignee
+
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
 }
