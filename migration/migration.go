@@ -209,19 +209,19 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
 func BootstrapWorkItemLinking(ctx context.Context, db *gorm.DB, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
-	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only.", ctx, linkCatRepo, db); err != nil {
+	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only.", ctx, linkCatRepo); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user.", ctx, linkCatRepo, db); err != nil {
+	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user.", ctx, linkCatRepo); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkType(models.SystemWorkItemLinkTypeBugBlocker, "one bug blocks another", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemBug, models.SystemWorkItemLinkCategorySystem, ctx, linkCatRepo, linkTypeRepo, db); err != nil {
+	if err := createOrUpdateWorkItemLinkType(models.SystemWorkItemLinkTypeBugBlocker, "one bug blocks another", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemBug, models.SystemWorkItemLinkCategorySystem, ctx, linkCatRepo, linkTypeRepo); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createOrUpdateWorkItemLinkCategory(name string, description string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, db *gorm.DB) error {
+func createOrUpdateWorkItemLinkCategory(name string, description string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
 	switch err.(type) {
 	case models.NotFoundError:
@@ -232,13 +232,14 @@ func createOrUpdateWorkItemLinkCategory(name string, description string, ctx con
 	case nil:
 		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
 		cat.Description = &description
-		db = db.Save(cat)
-		return db.Error
+		linkCat := models.ConvertLinkCategoryFromModel(cat)
+		_, err = linkCatRepo.Save(ctx, linkCat)
+		return err
 	}
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository, db *gorm.DB) error {
+func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return err
@@ -265,8 +266,8 @@ func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, re
 	case nil:
 		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
 		newLinkType.ID = linkType.ID
-		db = db.Save(newLinkType)
-		return db.Error
+		_, err = linkTypeRepo.Save(ctx, models.ConvertLinkTypeFromModel(&newLinkType))
+		return err
 	}
 	return nil
 }
