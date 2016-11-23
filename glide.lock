@@ -1,5 +1,5 @@
-hash: 8e41b16192c92a31f92630aaee3aa3ab74bdf2f2e15505c90b50aab15825abce
-updated: 2016-11-22T09:49:03.764773561+01:00
+hash: 4007b51be0ca5d02dea8d8a1fc736604ccb9ce2e7d6073671e982393fb3e5a8f
+updated: 2016-11-23T09:46:14.066600465+01:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -33,7 +33,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
-  version: 63ced8cc12461611f6d6563741a1b4f437936bc1
+  version: a83a8abde6fd089078d40f2e4e51a93ee42854ac
   vcs: git
   subpackages:
   - client
