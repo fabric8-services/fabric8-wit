@@ -233,6 +233,9 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.Nil(s.T(), models.ConvertLinkTypeToModel(workItemLinkType, &expected))
 	require.Nil(s.T(), models.ConvertLinkTypeToModel(readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
+	// Check that the link category is included in the response in the "included" array
+	require.Len(s.T(), workItemLinkType.Included, 1)
+	require.Equal(s.T(), "user", *workItemLinkType.Included[0].Attributes.Name)
 }
 
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {

@@ -312,10 +312,12 @@ var WorkItemLinkType = a.MediaType("application/vnd.work-item-link-type+json", f
 	a.Description(`Defines the type of link between two work items`)
 	a.Attributes(func() {
 		a.Attribute("data", WorkItemLinkTypeData)
+		a.Attribute("included", a.ArrayOf(WorkItemLinkCategoryData))
 		a.Required("data")
 	})
 	a.View("default", func() {
 		a.Attribute("data")
+		a.Attribute("included")
 		a.Required("data")
 	})
 })

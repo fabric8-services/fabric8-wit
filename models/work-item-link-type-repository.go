@@ -66,6 +66,7 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 	}
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkTypeFromModel(&res)
+
 	return &result, nil
 }
 

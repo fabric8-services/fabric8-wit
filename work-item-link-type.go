@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
+	satoriuuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkTypeController implements the work-item-link-type resource.
@@ -88,6 +89,19 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+
+		// Now include the optional link category data in the work item link type "included" array
+		linkCatId, err := satoriuuid.FromString(res.Data.Relationships.LinkCategory.Data.ID)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, linkCatId.String())
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		res.Included = append(res.Included, linkCat.Data)
 		return ctx.OK(res)
 	})
 	// WorkItemLinkTypeController_Show: end_implement
