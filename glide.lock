@@ -1,5 +1,5 @@
-hash: 4007b51be0ca5d02dea8d8a1fc736604ccb9ce2e7d6073671e982393fb3e5a8f
-updated: 2016-11-23T09:46:14.066600465+01:00
+hash: d72846733f82ee56495e423fe9b3d58c471c53a26cac43faf7cd2317e7f7dd38
+updated: 2016-11-23T10:52:13.012741647+01:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
@@ -20,7 +20,7 @@ imports:
 - name: github.com/dimfeld/httptreemux
   version: 5cb0ec25af2dd6a7d3718b5aa05dc48e192473bc
 - name: github.com/dnaeon/go-vcr
-  version: 82c8877b55452fe358f69d77685e57700f78c30a
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - cassette
   - recorder

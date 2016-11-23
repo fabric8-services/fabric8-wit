@@ -84,5 +84,6 @@ import:
   version: ^3.1.0
 - package: golang.org/x/oauth2
 - package: github.com/dnaeon/go-vcr
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - recorder
