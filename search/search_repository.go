@@ -261,7 +261,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
 func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-	db := r.db.Debug().Model(models.WorkItem{}).Where("tsv @@ query")
+	db := r.db.Model(models.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, models.NewBadParameterError("start", *start)
@@ -275,7 +275,11 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		db = db.Limit(*limit)
 	}
 	if len(workItemTypes) > 0 {
-		query := fmt.Sprintf("%[1]s.type in (select distinct w1.name from %[2]s w1 join %[2]s w2 on w1.path like (w2.path || '%%') where w2.name in (?))", models.WorkItem{}.TableName(), models.WorkItemType{}.TableName())
+		// restrict to all given types and their subtypes
+		query := fmt.Sprintf("%[1]s.type in ("+
+			"select distinct subtype.name from %[2]s subtype "+
+			"join %[2]s supertype on subtype.path like (supertype.path || '%%') "+
+			"where supertype.name in (?))", models.WorkItem{}.TableName(), models.WorkItemType{}.TableName())
 		db = db.Where(query, workItemTypes)
 	}
 
