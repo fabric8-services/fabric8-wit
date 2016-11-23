@@ -65,6 +65,7 @@ func TestWorkItemMapping(t *testing.T) {
 	assert.NotNil(t, workItem.Fields[models.SystemTitle], fmt.Sprintf("%s not mapped", models.SystemTitle))
 }
 
+// Table driven tests for the Mapping of Github issues
 func TestGitHubIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
@@ -76,8 +77,11 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	var gitData = []githubData{
-		// JSON data to test the issue mapping for github
+		// JSON data file of Github issue with assignee to test that the data is getting correctly Mapped through the Map funtion
+		// Github Issue API URL for the respective JSON data file to update the cache
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		// JSON data file of Github issue with assignee and label
+		// Issue API URL for the respective JSON file to update the cache
 		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
 	}
 
@@ -111,6 +115,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 }
 
+// Table driven tests for the Mapping of Jira issues
 func TestJiraIssueMapping(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
@@ -122,7 +127,11 @@ func TestJiraIssueMapping(t *testing.T) {
 	}
 	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
+		// JSON data file of Jira issue with null assignee
+		// Issue API URL for the respective JSON file to update the cache
 		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
+		// JSON data file of Jira issue
+		// Issue API URL for the respective JSON file to update the cache
 		{"jira_issue2_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
 	}
 
@@ -155,6 +164,7 @@ func TestJiraIssueMapping(t *testing.T) {
 	}
 }
 
+// Table driven tests for Flattening the Github response data with assignee
 func TestFlattenGithubResponseMap(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
@@ -167,8 +177,14 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 
 	// JSON data to test the issue mapping for github
 	var gitData = []githubData{
+		// JSON data file of Github issue with assignee to test that the data
+		// is getting correctly Mapped through the Map funtion
+		// Github Issue API URL for the respective JSON data file to update the cache
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		// Github issue with assignee and label
 		{"github_test2_data.json", true, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/1"},
+		// The Github issue URL doesn't exist. So, the mapping will not happen
+		// The map created from the Flatten will be empty
 		{"github_test3_data.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
 	}
 
@@ -197,6 +213,7 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 	}
 }
 
+// Table driven tests for Flattening the Github response data without assignee
 func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
@@ -209,8 +226,13 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 
 	// JSON data to test the issue mapping for github
 	var gitData = []githubData{
+		// Github data with assignee to map local workItem to remote workItem
 		{"github_issue_mapping.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
+		// Github data with labels and without assignee
+		// assignee field is skipped if that is null
 		{"github_test_data.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
+		// The Github issue URL doesn't exist. So, the mapping will not happen
+		// The map created from the Flatten will be empty
 		{"github_test3_data.json", false, "https://api.github.com/repos/almighty-unit-test/almighty-test/issues/255"},
 	}
 
@@ -255,7 +277,9 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 
 	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
+		// JSON data file of Jira issue with null assignee, test assertion, Issue API URL for the respective JSON file to update the cache
 		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-9"},
+		// JSON data file of Jira issue with null assignee, test assertion, Issue API URL for the respective JSON file to update the cache
 		{"jira_issue3_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-1300"},
 	}
 
@@ -297,7 +321,9 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 
 	// JSON data to test the issue mapping for jira
 	var jir = []jiraData{
+		// JSON data file of Jira issue with null assignee, test assertion, Issue API URL for the respective JSON file to update the cache
 		{"jira_issue_mapping.json", true, "http://jira.atlassian.com/rest/api/latest/issue/JRA-10"},
+		// JSON data file of Jira issue, test assertion, Issue API URL for the respective JSON file to update the cache
 		{"jira_issue2_mapping.json", true, "https://jira.atlassian.com/rest/api/latest/issue/JRA-3"},
 	}
 
