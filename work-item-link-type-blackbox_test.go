@@ -211,6 +211,9 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	require.NotNil(s.T(), lt.Data.Attributes)
 	require.NotNil(s.T(), lt.Data.Attributes.Description)
 	require.Equal(s.T(), newDescription, *lt.Data.Attributes.Description)
+	// Check that the link categories are included in the response in the "included" array
+	require.Len(s.T(), lt.Included, 1, "The work item link type should include it's work item link category.")
+	require.Equal(s.T(), "user", *lt.Included[0].Attributes.Name, "The work item link type's category should have the name 'user'.")
 }
 
 // func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {

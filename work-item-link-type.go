@@ -40,21 +40,21 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		return ctx.ResponseData.Service.Send(ctx.Context, http.StatusBadRequest, goa.ErrBadRequest(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cat, err := appl.WorkItemLinkTypes().Create(ctx.Context, &model)
+		linkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, &model)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Now include the optional link category data in the work item link type "included" array
-		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, cat.Data.Relationships.LinkCategory.Data.ID)
+		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, linkType.Data.Relationships.LinkCategory.Data.ID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		cat.Included = append(cat.Included, linkCat.Data)
+		linkType.Included = append(linkType.Included, linkCat.Data)
 
-		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(cat.Data.ID))
-		return ctx.Created(cat)
+		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(linkType.Data.ID))
+		return ctx.Created(linkType)
 	})
 	// WorkItemLinkTypeController_Create: end_implement
 }
@@ -135,6 +135,13 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		// Now include the optional link category data in the work item link type "included" array
+		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, linkType.Data.Relationships.LinkCategory.Data.ID)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		linkType.Included = append(linkType.Included, linkCat.Data)
 		return ctx.OK(linkType)
 	})
 	// WorkItemLinkTypeController_Update: end_implement
