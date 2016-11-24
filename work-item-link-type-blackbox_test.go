@@ -140,6 +140,9 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	createPayload := s.createDemoLinkType("bug-blocker")
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
+	// Check that the link category is included in the response in the "included" array
+	require.Len(s.T(), workItemLinkType.Included, 1, "The work item link type should include it's work item link category.")
+	require.Equal(s.T(), "user", *workItemLinkType.Included[0].Attributes.Name, "The work item link type's category should have the name 'user'.")
 	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 }
 
@@ -235,7 +238,7 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.True(s.T(), expected.Equal(actual))
 	// Check that the link category is included in the response in the "included" array
 	require.Len(s.T(), readIn.Included, 1, "The work item link type should include it's work item link category.")
-	require.Equal(s.T(), "user", *readIn.Included[0].Attributes.Name, "The work item link types category should have the name 'user'.")
+	require.Equal(s.T(), "user", *readIn.Included[0].Attributes.Name, "The work item link type's category should have the name 'user'.")
 }
 
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
@@ -279,7 +282,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 
 	// Check that the link categories are included in the response in the "included" array
 	require.Len(s.T(), linkTypeCollection.Included, 1, "The work item link type should include it's work item link category.")
-	require.Equal(s.T(), "user", *linkTypeCollection.Included[0].Attributes.Name, "The work item link types category should have the name 'user'.")
+	require.Equal(s.T(), "user", *linkTypeCollection.Included[0].Attributes.Name, "The work item link type's category should have the name 'user'.")
 }
 
 func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {

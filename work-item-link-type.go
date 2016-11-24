@@ -45,6 +45,14 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		// Now include the optional link category data in the work item link type "included" array
+		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, cat.Data.Relationships.LinkCategory.Data.ID)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		cat.Included = append(cat.Included, linkCat.Data)
+
 		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(cat.Data.ID))
 		return ctx.Created(cat)
 	})
