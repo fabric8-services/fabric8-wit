@@ -120,7 +120,7 @@ func main() {
 			panic(err.Error())
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(context.Background(), tx, models.NewWorkItemLinkCategoryRepository(tx), models.NewWorkItemLinkTypeRepository(tx))
+			return migration.BootstrapWorkItemLinking(context.Background(), models.NewWorkItemLinkCategoryRepository(tx), models.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}

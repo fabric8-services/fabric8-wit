@@ -209,7 +209,7 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 }
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
-func BootstrapWorkItemLinking(ctx context.Context, db *gorm.DB, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
 	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only.", ctx, linkCatRepo); err != nil {
 		return err
 	}
