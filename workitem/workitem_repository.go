@@ -122,6 +122,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt {
+			continue
+		}
 		fieldValue := wi.Fields[fieldName]
 		var err error
 		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
@@ -159,6 +162,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	}
 	fields[SystemCreator] = creator
 	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt {
+			continue
+		}
 		fieldValue := fields[fieldName]
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
