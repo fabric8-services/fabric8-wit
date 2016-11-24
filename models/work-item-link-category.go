@@ -47,14 +47,8 @@ func (self WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 	if self.Version != other.Version {
 		return false
 	}
-	if self.Description != nil && other.Description != nil {
-		if *self.Description != *other.Description {
-			return false
-		}
-	} else {
-		if self.Description != other.Description {
-			return false
-		}
+	if !strPtrIsNilOrContentIsEqual(self.Description, other.Description) {
+		return false
 	}
 	return true
 }

@@ -16,6 +16,22 @@ const (
 	SystemWorkItemLinkTypeBugBlocker = "system.bug-blocker"
 )
 
+// returns true if the left hand and right hand side string
+// pointers either both point to nil or reference the same
+// content; otherwise false is returned.
+func strPtrIsNilOrContentIsEqual(l, r *string) bool {
+	if l == nil && r != nil {
+		return false
+	}
+	if l != nil && r == nil {
+		return false
+	}
+	if l == nil && r == nil {
+		return true
+	}
+	return *l == *r
+}
+
 // WorkItemLinkType represents the type of a work item link as it is stored in the db
 type WorkItemLinkType struct {
 	gormsupport.Lifecycle
@@ -60,14 +76,8 @@ func (self WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if self.Version != other.Version {
 		return false
 	}
-	if self.Description != nil && other.Description != nil {
-		if *self.Description != *other.Description {
-			return false
-		}
-	} else {
-		if self.Description != other.Description {
-			return false
-		}
+	if !strPtrIsNilOrContentIsEqual(self.Description, other.Description) {
+		return false
 	}
 	if self.Topology != other.Topology {
 		return false
