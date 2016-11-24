@@ -96,6 +96,6 @@ type UnauthorizedError struct {
 }
 
 // NewUnauthorizedError returns the custom defined error of type UnauthorizedError.
-func NewUnauthorizedError(reason string) UnauthorizedError {
+func NewUnauthorizedError(msg string) UnauthorizedError {
 	return UnauthorizedError{simpleError{msg}}
 }
