@@ -95,7 +95,8 @@ func getMigrations() migrations {
 	// Version 6
 	m = append(m, steps{executeSQLFile("006-rename-parent-path.sql")})
 
-	m = append(m, steps{executeSQLFile("006-work-item-links.sql")})
+	// Version 7
+	m = append(m, steps{executeSQLFile("007-work-item-links.sql")})
 
 	// Version N
 	//
