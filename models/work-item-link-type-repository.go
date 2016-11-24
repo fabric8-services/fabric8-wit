@@ -43,7 +43,8 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 	db := r.db.Where("id=?", linkType.LinkCategoryID).Find(&linkCategory)
 	if db.RecordNotFound() {
 		return nil, NewBadParameterError("work item link category", linkType.LinkCategoryID)
-	} else if db.Error != nil {
+	}
+	if db.Error != nil {
 		return nil, NewInternalError(fmt.Sprintf("Failed to find work item link category: %s", db.Error.Error()))
 	}
 

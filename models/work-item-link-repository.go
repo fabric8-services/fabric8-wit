@@ -48,7 +48,8 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	db := r.db.Where("id=?", link.LinkTypeID).Find(&linkType)
 	if db.RecordNotFound() {
 		return nil, NewBadParameterError("work item link type", link.LinkTypeID.String())
-	} else if db.Error != nil {
+	}
+	if db.Error != nil {
 		fmt.Printf("\n\nError: %s\n\n", db.Error.Error())
 		return nil, NewInternalError(fmt.Sprintf("Failed to find work item link type: %s", db.Error.Error()))
 	}
@@ -58,7 +59,8 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	db = r.db.Where("id=?", link.SourceID).Find(&source)
 	if db.RecordNotFound() {
 		return nil, NewBadParameterError("source work item", strconv.FormatUint(link.SourceID, 10))
-	} else if db.Error != nil {
+	}
+	if db.Error != nil {
 		return nil, NewInternalError(fmt.Sprintf("Failed to find source work item: %s", db.Error.Error()))
 	}
 
@@ -67,7 +69,8 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	db = r.db.Where("id=?", link.TargetID).Find(&target)
 	if db.RecordNotFound() {
 		return nil, NewBadParameterError("target work item", strconv.FormatUint(link.TargetID, 10))
-	} else if db.Error != nil {
+	}
+	if db.Error != nil {
 		return nil, NewInternalError(fmt.Sprintf("Failed to find target work item: %s", db.Error.Error()))
 	}
 
