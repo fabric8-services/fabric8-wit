@@ -23,7 +23,17 @@ type GormWorkItemLinkTypeRepository struct {
 
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *WorkItemLinkType) (*app.WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategoryID satoriuuid.UUID) (*app.WorkItemLinkType, error) {
+	linkType := &WorkItemLinkType{
+		Name:           name,
+		Description:    description,
+		SourceTypeName: sourceTypeName,
+		TargetTypeName: targetTypeName,
+		ForwardName:    forwardName,
+		ReverseName:    reverseName,
+		Topology:       topology,
+		LinkCategoryID: linkCategoryID,
+	}
 	if err := linkType.CheckValidForCreation(); err != nil {
 		return nil, err
 	}

@@ -39,7 +39,7 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cat, err := appl.WorkItemLinks().Create(ctx.Context, &model)
+		cat, err := appl.WorkItemLinks().Create(ctx.Context, model.SourceID, model.TargetID, model.LinkTypeID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
