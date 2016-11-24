@@ -248,7 +248,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	res := make([]*app.WorkItem, len(result))
 
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.wir.loadTypeFromCache(ctx, value.Type)
 		if err != nil {
 			return nil, 0, InternalError{simpleError{err.Error()}}
 		}
