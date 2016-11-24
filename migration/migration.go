@@ -210,19 +210,19 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
 func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
-	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only.", ctx, linkCatRepo); err != nil {
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkCategory(models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user.", ctx, linkCatRepo); err != nil {
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkType(models.SystemWorkItemLinkTypeBugBlocker, "one bug blocks another", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemBug, models.SystemWorkItemLinkCategorySystem, ctx, linkCatRepo, linkTypeRepo); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkTypeBugBlocker, "one bug blocks another", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemBug, models.SystemWorkItemLinkCategorySystem); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createOrUpdateWorkItemLinkCategory(name string, description string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository) error {
+func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, name string, description string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
 	switch err.(type) {
 	case models.NotFoundError:
@@ -240,7 +240,7 @@ func createOrUpdateWorkItemLinkCategory(name string, description string, ctx con
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string, ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return err
