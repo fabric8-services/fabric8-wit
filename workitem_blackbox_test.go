@@ -903,3 +903,45 @@ func TestUpdateInvalidUUID(t *testing.T) {
 
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
 }
+
+// Update only State
+func TestUpdateOnlyState(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := app.CreateWorkItemPayload{
+		Type: models.SystemBug,
+		Fields: map[string]interface{}{
+			models.SystemTitle: "Test WI",
+			models.SystemState: "new"},
+	}
+
+	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+
+	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+
+	minimumPayload := getMinimumRequiredUpdatePayload(wi)
+
+	minimumPayload.Data.Attributes["system.state"] = "invalid_value"
+
+	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller2)
+
+	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+
+	newStateValue := "closed"
+	minimumPayload.Data.Attributes[models.SystemState] = newStateValue
+	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
+	require.NotNil(t, updatedWI)
+	assert.Equal(t, updatedWI.Data.Attributes[models.SystemState], newStateValue)
+
+	// retrieve work item from Db and verify
+	db := gormapplication.NewGormDB(DB)
+	wiFromDB, _ := db.WorkItems().Load(svc.Context, updatedWI.Data.ID)
+	require.NotNil(t, wiFromDB)
+	assert.Equal(t, wiFromDB.Fields[models.SystemState], newStateValue)
+}
