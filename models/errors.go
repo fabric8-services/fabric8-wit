@@ -92,14 +92,10 @@ func NewNotFoundError(entity string, id string) NotFoundError {
 
 // UnauthorizedError means the action is not permitted
 type UnauthorizedError struct {
-	reason string
-}
-
-func (err UnauthorizedError) Error() string {
-	return err.reason
+	simpleError
 }
 
 // NewUnauthorizedError returns the custom defined error of type UnauthorizedError.
 func NewUnauthorizedError(reason string) UnauthorizedError {
-	return UnauthorizedError{reason: reason}
+	return UnauthorizedError{simpleError{msg}}
 }
