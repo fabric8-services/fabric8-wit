@@ -58,8 +58,13 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name st
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
+	existing, _ := r.LoadTypeFromDB(ctx, name)
+	if existing != nil {
+		log.Printf("creating type %s again", name)
+		return nil, BadParameterError{parameter: "name", value: name}
+	}
 	allFields := map[string]FieldDefinition{}
-	path := "/"
+	path := "/" + name
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
 		db := r.db.First(&extendedType, extendedTypeName)
@@ -74,11 +79,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		for key, value := range extendedType.Fields {
 			allFields[key] = value
 		}
-		if extendedType.ParentPath == "/" {
-			path = "/" + extendedType.Name
-		} else {
-			path = extendedType.ParentPath + "/" + extendedType.Name
-		}
+		path = extendedType.Path + "/" + name
 	}
 
 	// now process new fields, checking whether they are ok to add.
@@ -99,13 +100,13 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	}
 
 	created := WorkItemType{
-		Version:    0,
-		Name:       name,
-		ParentPath: path,
-		Fields:     allFields,
+		Version: 0,
+		Name:    name,
+		Path:    path,
+		Fields:  allFields,
 	}
 
-	if err := r.db.Create(&created).Error; err != nil {
+	if err := r.db.Save(&created).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 

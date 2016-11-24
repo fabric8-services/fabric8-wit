@@ -121,7 +121,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 
 	// Test parent path
 	f := a
-	f.ParentPath = "foobar"
+	f.Path = "foobar"
 	assert.False(t, a.Equal(f))
 
 	// Test field array length
