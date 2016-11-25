@@ -66,8 +66,9 @@ func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*ap
 
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
-	id    []string
-	words []string
+	workItemTypes []string
+	id            []string
+	words         []string
 }
 
 // KnownURL has a regex string format URL and compiled regex for the same
@@ -83,8 +84,8 @@ KnownURLs is set of KnownURLs will be used while searching on a URL
 URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
 e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
 knownURLs["work-item-details"] = KnownURL{
-urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`,
-compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`),
+urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`,
+compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`),
 groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
 }
 above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
@@ -170,7 +171,7 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 		}
 	}
 	// first value from FindStringSubmatch is always full input itself, hence ignored
-	// Join rest of the tokens to make query like "demo.almighty.io/details/100"
+	// Join rest of the tokens to make query like "demo.almighty.io/work-item-list/detail/100"
 	if len(match) > 1 {
 		searchQueryString := strings.Join(match[1:], "")
 		searchQueryString = strings.Replace(searchQueryString, ":", "\\:", -1)
@@ -205,9 +206,8 @@ func getSearchQueryFromURLString(url string) string {
 }
 
 // parseSearchString accepts a raw string and generates a searchKeyword object
-func parseSearchString(rawSearchString string) searchKeyword {
+func parseSearchString(rawSearchString string) (searchKeyword, error) {
 	// TODO remove special characters and exclaimations if any
-	rawSearchString = strings.ToLower(rawSearchString)
 	rawSearchString = strings.Trim(rawSearchString, "/") // get rid of trailing slashes
 	rawSearchString = strings.Trim(rawSearchString, "\"")
 	parts := strings.Fields(rawSearchString)
@@ -217,6 +217,7 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// And does not harm regular search strings
 		// but this processing is required becasue at this moment, we do not know if
 		// search input is a regular string or a URL
+
 		part, err := url.QueryUnescape(part)
 		if err != nil {
 			fmt.Println("Could not escape url", err)
@@ -225,16 +226,24 @@ func parseSearchString(rawSearchString string) searchKeyword {
 		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
 			res.id = append(res.id, strings.TrimPrefix(part, "id:")+":*A")
+		} else if strings.HasPrefix(part, "type:") {
+			typeName := strings.TrimPrefix(part, "type:")
+			if len(typeName) == 0 {
+				return res, models.NewBadParameterError("Type name must not be empty", part)
+			}
+			res.workItemTypes = append(res.workItemTypes, typeName)
 		} else if govalidator.IsURL(part) {
-			part := trimProtocolFromURLString(part)
+			part := strings.ToLower(part)
+			part = trimProtocolFromURLString(part)
 			searchQueryFromURL := getSearchQueryFromURLString(part)
 			res.words = append(res.words, searchQueryFromURL)
 		} else {
+			part := strings.ToLower(part)
 			part = sanitizeURL(part)
 			res.words = append(res.words, part+":*")
 		}
 	}
-	return res
+	return res, nil
 }
 
 // generateSQLSearchInfo accepts searchKeyword and join them in a way that can be used in sql
@@ -251,8 +260,8 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-	db := r.db.Model(&models.WorkItem{}).Where("tsv @@ query")
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
+	db := r.db.Model(models.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, models.NewBadParameterError("start", *start)
@@ -265,9 +274,18 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		}
 		db = db.Limit(*limit)
 	}
+	if len(workItemTypes) > 0 {
+		// restrict to all given types and their subtypes
+		query := fmt.Sprintf("%[1]s.type in ("+
+			"select distinct subtype.name from %[2]s subtype "+
+			"join %[2]s supertype on subtype.path like (supertype.path || '%%') "+
+			"where supertype.name in (?))", models.WorkItem{}.TableName(), models.WorkItemType{}.TableName())
+		db = db.Where(query, workItemTypes)
+	}
+
 	db = db.Select("count(*) over () as cnt2 , *")
-	db = db.Joins(", to_tsquery('english', $1) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Order("rank desc, updated_at desc")
+	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
+	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", models.WorkItem{}.TableName()))
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -317,11 +335,14 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// parse
 	// generateSearchQuery
 	// ....
-	parsedSearchDict := parseSearchString(rawSearchString)
+	parsedSearchDict, err := parseSearchString(rawSearchString)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []models.WorkItem
-	rows, count, err := r.search(ctx, sqlSearchQueryParameter, start, limit)
+	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -346,6 +367,6 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
 	// Please do not include trailing slashes becasue it will be removed before scanning starts
-	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/detail/)(?P<id>\d*)`)
-	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/work-item-list/detail/)(?P<id>\d*)`)
 }

@@ -38,9 +38,9 @@ func TestConvertTypeFromModels(t *testing.T) {
 	//------------------------------
 
 	a := WorkItemType{
-		Name:       "foo",
-		Version:    42,
-		ParentPath: "something",
+		Name:    "foo",
+		Version: 42,
+		Path:    "something",
 		Fields: map[string]FieldDefinition{
 			"aListType": FieldDefinition{
 				Type: EnumType{
