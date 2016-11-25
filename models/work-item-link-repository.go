@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 
@@ -22,12 +21,57 @@ const (
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
 func NewWorkItemLinkRepository(db *gorm.DB) *GormWorkItemLinkRepository {
-	return &GormWorkItemLinkRepository{db}
+	return &GormWorkItemLinkRepository{
+		db:                   db,
+		workItemRepo:         NewWorkItemRepository(db),
+		workItemTypeRepo:     NewWorkItemTypeRepository(db),
+		workItemLinkTypeRepo: NewWorkItemLinkTypeRepository(db),
+	}
 }
 
 // GormWorkItemLinkRepository implements WorkItemLinkRepository using gorm
 type GormWorkItemLinkRepository struct {
-	db *gorm.DB
+	db                   *gorm.DB
+	workItemRepo         *GormWorkItemRepository
+	workItemTypeRepo     *GormWorkItemTypeRepository
+	workItemLinkTypeRepo *GormWorkItemLinkTypeRepository
+}
+
+// ValidateCorrectSourceAndTargetType returns an error if the Path of
+// the source WIT as defined by the work item link type is not part of
+// the actual source's WIT; the same applies for the target.
+func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(sourceID, targetID uint64, linkTypeID satoriuuid.UUID) error {
+	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(linkTypeID)
+	if err != nil {
+		return err
+	}
+	// Fetch the source work item
+	source, err := r.workItemRepo.LoadFromDB(strconv.FormatUint(sourceID, 10))
+	if err != nil {
+		return err
+	}
+	// Fetch the target work item
+	target, err := r.workItemRepo.LoadFromDB(strconv.FormatUint(targetID, 10))
+	if err != nil {
+		return err
+	}
+	// Fetch the concrete work item types of the target and the source.
+	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(source.Type)
+	if err != nil {
+		return err
+	}
+	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(target.Type)
+	if err != nil {
+		return err
+	}
+	// Check type paths
+	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeName) {
+		return NewBadParameterError("source work item type", source.Type)
+	}
+	if !targetWorkItemType.IsTypeOrSubtypeOf(linkType.TargetTypeName) {
+		return NewBadParameterError("target work item type", target.Type)
+	}
+	return nil
 }
 
 // Create creates a new work item link in the repository.
@@ -41,52 +85,13 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := link.CheckValidForCreation(); err != nil {
 		return nil, err
 	}
-
-	// Fetch the work item link type first in order to check that
-	// the given source and target work items match the correct work item types.
-	linkType := WorkItemLinkType{}
-	db := r.db.Where("id=?", link.LinkTypeID).Find(&linkType)
-	if db.RecordNotFound() {
-		return nil, NewBadParameterError("work item link type", link.LinkTypeID.String())
+	if err := r.ValidateCorrectSourceAndTargetType(sourceID, targetID, linkTypeID); err != nil {
+		return nil, err
 	}
-	if db.Error != nil {
-		fmt.Printf("\n\nError: %s\n\n", db.Error.Error())
-		return nil, NewInternalError(fmt.Sprintf("Failed to find work item link type: %s", db.Error.Error()))
-	}
-
-	// Fetch the source work item
-	source := WorkItem{}
-	db = r.db.Where("id=?", link.SourceID).Find(&source)
-	if db.RecordNotFound() {
-		return nil, NewBadParameterError("source work item", strconv.FormatUint(link.SourceID, 10))
-	}
-	if db.Error != nil {
-		return nil, NewInternalError(fmt.Sprintf("Failed to find source work item: %s", db.Error.Error()))
-	}
-
-	// Fetch the target work item
-	target := WorkItem{}
-	db = r.db.Where("id=?", link.TargetID).Find(&target)
-	if db.RecordNotFound() {
-		return nil, NewBadParameterError("target work item", strconv.FormatUint(link.TargetID, 10))
-	}
-	if db.Error != nil {
-		return nil, NewInternalError(fmt.Sprintf("Failed to find target work item: %s", db.Error.Error()))
-	}
-
-	// Check that the work item types of the source and target match those specified in the link type
-	if source.Type != linkType.SourceTypeName {
-		return nil, NewBadParameterError("source.type", source.Type).Expected(linkType.SourceTypeName)
-	}
-	if target.Type != linkType.TargetTypeName {
-		return nil, NewBadParameterError("target.type", target.Type).Expected(linkType.TargetTypeName)
-	}
-
-	db = db.Create(link)
+	db := r.db.Create(link)
 	if db.Error != nil {
 		return nil, NewInternalError(db.Error.Error())
 	}
-
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkFromModel(link)
 	return &result, nil
@@ -111,7 +116,6 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 	if db.Error != nil {
 		return nil, NewInternalError(db.Error.Error())
 	}
-
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkFromModel(&res)
 	return &result, nil
@@ -154,6 +158,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 	log.Printf("work item link to delete %v\n", link)
 	db := r.db.Delete(&link)
 	if db.Error != nil {
+		log.Print(db.Error.Error())
 		return NewInternalError(db.Error.Error())
 	}
 	if db.RowsAffected == 0 {
@@ -185,7 +190,10 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 		return nil, err
 	}
 	res.Version = res.Version + 1
-	db = db.Save(&res)
+	if err := r.ValidateCorrectSourceAndTargetType(res.SourceID, res.TargetID, res.LinkTypeID); err != nil {
+		return nil, err
+	}
+	db = r.db.Save(&res)
 	if db.Error != nil {
 		log.Print(db.Error.Error())
 		return nil, NewInternalError(db.Error.Error())

@@ -64,7 +64,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Printf("Error listing work items: %s", err.Error())
-				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(err.Error()))
 				return ctx.InternalServerError(jerrors)
 			}
 		}

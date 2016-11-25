@@ -41,8 +41,14 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	return application.Transactional(c.db, func(appl application.Application) error {
 		cat, err := appl.WorkItemLinks().Create(ctx.Context, model.SourceID, model.TargetID, model.LinkTypeID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			switch err.(type) {
+			case models.NotFoundError:
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+				return ctx.BadRequest(jerrors)
+			default:
+				jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			}
 		}
 		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkHref(cat.Data.ID))
 		return ctx.Created(cat)

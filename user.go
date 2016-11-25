@@ -6,7 +6,6 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 )
@@ -27,13 +26,13 @@ func NewUserController(service *goa.Service, identityRepository account.Identity
 func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	identID, err := c.tokenManager.Locate(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 		return ctx.BadRequest(jerrors)
 	}
 	ident, err := c.identityRepository.Load(ctx, identID)
 	if err != nil {
 		fmt.Printf("Auth token contains id %s of unknown Identity\n", identID)
-		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(models.NewUnauthorizedError(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", identID)))
+		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", identID)))
 		return ctx.Unauthorized(jerrors)
 	}
 

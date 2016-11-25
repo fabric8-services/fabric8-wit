@@ -1,13 +1,11 @@
 package main
 
 import (
-	"log"
-
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/goadesign/goa"
 )
 
@@ -30,13 +28,8 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
 		if err != nil {
-			switch err.(type) {
-			case models.NotFoundError:
-				log.Printf("not found, name=%s", ctx.Name)
-				return goa.ErrNotFound(err.Error())
-			default:
-				return err
-			}
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(res)
 	})
@@ -53,12 +46,8 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		wit, err := appl.WorkItemTypes().Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
 
 		if err != nil {
-			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
-				return goa.ErrBadRequest(err.Error())
-			default:
-				return goa.ErrInternal(err.Error())
-			}
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(wit.Name))
 		return ctx.Created(wit)
@@ -69,12 +58,14 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error())))
+		return ctx.BadRequest(jerrors)
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.WorkItemTypes().List(ctx.Context, start, &limit)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing work item types: %s", err.Error()))
+			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work item types: %s", err.Error())))
+			return ctx.BadRequest(jerrors)
 		}
 		return ctx.OK(result)
 	})

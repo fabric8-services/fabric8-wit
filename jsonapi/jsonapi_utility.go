@@ -21,10 +21,11 @@ const (
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
 )
 
-// ConvertErrorFromModelToJSONAPIError returns the JSONAPI representation
-// of an error from the models package and the HTTP status code that will
-// be associated with it.
-func ConvertErrorFromModelToJSONAPIError(err error) (app.JSONAPIError, int) {
+// ErrorToJSONAPIError returns the JSONAPI representation
+// of an error and the HTTP status code that will be associated with it.
+// This function knows about the models package and the errors from there
+// as well as goa error classes.
+func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	detail := err.Error()
 	var title, code string
 	var statusCode int
@@ -50,10 +51,6 @@ func ConvertErrorFromModelToJSONAPIError(err error) (app.JSONAPIError, int) {
 		code = ErrorCodeInternalError
 		title = "Internal error"
 		statusCode = http.StatusInternalServerError
-	case models.UnauthorizedError:
-		code = ErrorCodeUnauthorizedError
-		title = "Unauthorized error"
-		statusCode = http.StatusUnauthorized
 	default:
 		code = ErrorCodeUnknownError
 		title = "Unknown error"
@@ -82,11 +79,11 @@ func ConvertErrorFromModelToJSONAPIError(err error) (app.JSONAPIError, int) {
 	return jerr, statusCode
 }
 
-// ConvertErrorFromModelToJSONAPIErrors is a convenience function if you
+// ErrorToJSONAPIErrors is a convenience function if you
 // just want to return one error from the models package as a JSONAPI errors
 // array.
-func ConvertErrorFromModelToJSONAPIErrors(err error) (*app.JSONAPIErrors, int) {
-	jerr, httpStatusCode := ConvertErrorFromModelToJSONAPIError(err)
+func ErrorToJSONAPIErrors(err error) (*app.JSONAPIErrors, int) {
+	jerr, httpStatusCode := ErrorToJSONAPIError(err)
 	jerrors := app.JSONAPIErrors{}
 	jerrors.Errors = append(jerrors.Errors, &jerr)
 	return &jerrors, httpStatusCode

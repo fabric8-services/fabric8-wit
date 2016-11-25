@@ -40,7 +40,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 			cause := errors.Cause(e)
 			status := http.StatusInternalServerError
 			var respBody interface{}
-			respBody, status = ConvertErrorFromModelToJSONAPIErrors(e)
+			respBody, status = ErrorToJSONAPIErrors(e)
 			rw.Header().Set("Content-Type", ErrorMediaIdentifier)
 			if err, ok := cause.(goa.ServiceError); ok {
 				status = err.ResponseStatus()

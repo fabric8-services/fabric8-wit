@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/goadesign/goa"
 )
 
@@ -24,7 +25,8 @@ func (c *IdentityController) List(ctx *app.ListIdentityContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.Identities().List(ctx.Context)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing identities: %s", err.Error()))
+			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing identities: %s", err.Error())))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(result)
 	})

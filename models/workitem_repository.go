@@ -17,15 +17,13 @@ type GormWorkItemRepository struct {
 	wir *GormWorkItemTypeRepository
 }
 
-// Load returns the work item for the given id
-// returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
+// LoadFromDB returns the work item with the given ID in model representation.
+func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 	id, err := strconv.ParseUint(ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, NotFoundError{"work item", ID}
 	}
-
 	log.Printf("loading work item %d", id)
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
@@ -36,11 +34,21 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if tx.Error != nil {
 		return nil, InternalError{simpleError{tx.Error.Error()}}
 	}
-	wiType, err := r.wir.LoadTypeFromDB(ctx, res.Type)
+	return &res, nil
+}
+
+// Load returns the work item for the given id
+// returns NotFoundError, ConversionError or InternalError
+func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
+	res, err := r.LoadFromDB(ID)
+	if err != nil {
+		return nil, err
+	}
+	wiType, err := r.wir.LoadTypeFromDB(res.Type)
 	if err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	result, err := wiType.ConvertFromModel(res)
+	result, err := wiType.ConvertFromModel(*res)
 	if err != nil {
 		return nil, ConversionError{simpleError{err.Error()}}
 	}
@@ -91,7 +99,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
 
-	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
+	wiType, err := r.wir.LoadTypeFromDB(wi.Type)
 	if err != nil {
 		return nil, NewBadParameterError("Type", wi.Type)
 	}
@@ -131,7 +139,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
-	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
+	wiType, err := r.wir.LoadTypeFromDB(typeID)
 	if err != nil {
 		return nil, NewBadParameterError("type", typeID)
 	}
@@ -248,7 +256,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	res := make([]*app.WorkItem, len(result))
 
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(value.Type)
 		if err != nil {
 			return nil, 0, InternalError{simpleError{err.Error()}}
 		}

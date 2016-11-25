@@ -216,7 +216,10 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *models.GormWorkI
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkTypeBugBlocker, "one bug blocks another", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemBug, models.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemPlannerItem, models.SystemWorkItemLinkCategorySystem); err != nil {
+		return err
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", models.TopologyNetwork, "relates to", "relates to", models.SystemPlannerItem, models.SystemPlannerItem, models.SystemWorkItemLinkCategorySystem); err != nil {
 		return err
 	}
 	return nil
@@ -246,7 +249,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.Gor
 		return err
 	}
 
-	linkType, err := linkTypeRepo.LoadTypeFromDB(ctx, name, cat.ID)
+	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(name, cat.ID)
 	lt := models.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
@@ -338,7 +341,7 @@ func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, wi
 }
 
 func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
-	wit, err := witr.LoadTypeFromDB(ctx, typeName)
+	wit, err := witr.LoadTypeFromDB(typeName)
 	switch err.(type) {
 	case models.NotFoundError:
 		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
@@ -351,7 +354,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		convertedFields, err := models.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
-			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeName)
+			extendedWit, err := witr.LoadTypeFromDB(*extendedTypeName)
 			if err != nil {
 				return err
 			}

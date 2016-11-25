@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -35,13 +34,8 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
-			case models.NotFoundError:
-				log.Printf("not found, id=%s", ctx.ID)
-				return goa.ErrNotFound(err.Error())
-			default:
-				return err
-			}
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(wi)
 	})
@@ -82,16 +76,19 @@ func parseLimit(pageParameter *string) (s *int, l int, e error) {
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
+		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
+		return ctx.BadRequest(jerrors)
 	}
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error())))
+		return ctx.BadRequest(jerrors)
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, _, err := appl.WorkItems().List(ctx.Context, exp, start, &limit)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error()))
+			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error())))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(result)
 	})
@@ -102,7 +99,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		currentUser, err := login.ContextIdentity(ctx)
 		if err != nil {
-			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.Unauthorized(jerrors)
 		}
 		wi, err := appl.WorkItems().Create(ctx.Context, ctx.Payload.Type, ctx.Payload.Fields, currentUser)
@@ -110,9 +107,11 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
-				return goa.ErrBadRequest(err.Error())
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+				return ctx.BadRequest(jerrors)
 			default:
-				return goa.ErrInternal(err.Error())
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi.ID))
@@ -125,12 +124,8 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
-			case models.NotFoundError:
-				return goa.ErrNotFound(err.Error())
-			default:
-				return goa.ErrInternal(err.Error())
-			}
+			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK([]byte{})
 	})
@@ -151,9 +146,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError, models.ConversionError:
-				return goa.ErrBadRequest(err.Error())
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+				return ctx.BadRequest(jerrors)
 			default:
-				return goa.ErrInternal(err.Error())
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 		return ctx.OK(wi)

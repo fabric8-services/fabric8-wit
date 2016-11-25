@@ -139,7 +139,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Printf("Error listing work items: %s", err.Error())
-				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.InternalServerError(jerrors)
 			}
 		}

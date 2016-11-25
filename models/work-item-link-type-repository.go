@@ -47,7 +47,6 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 	if db.Error != nil {
 		return nil, NewInternalError(fmt.Sprintf("Failed to find work item link category: %s", db.Error.Error()))
 	}
-
 	db = r.db.Create(linkType)
 	if db.Error != nil {
 		return nil, NewInternalError(db.Error.Error())
@@ -81,14 +80,30 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 	return &result, nil
 }
 
-// LoadTypeFromDB return work item link type for the name
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDB(ctx context.Context, name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
-	log.Printf("loading work item link type %s with category ID", name, categoryId.String())
+// LoadTypeFromDB return work item link type for the given name in the correct link category
+// NOTE: Two link types can coexist with different categoryIDs.
+func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
+	log.Printf("loading work item link type %s with category ID %s", name, categoryId.String())
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("name=? AND link_category_id=?", name, categoryId.String()).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return nil, NewNotFoundError("work item link type", name)
+	}
+	if db.Error != nil {
+		return nil, NewInternalError(db.Error.Error())
+	}
+	return &res, nil
+}
+
+// LoadTypeFromDB return work item link type for the given ID
+func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) (*WorkItemLinkType, error) {
+	log.Printf("loading work item link type with ID %s", ID)
+	res := WorkItemLinkType{}
+	db := r.db.Model(&res).Where("ID=?", ID.String()).First(&res)
+	if db.RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return nil, NewNotFoundError("work item link type", ID.String())
 	}
 	if db.Error != nil {
 		return nil, NewInternalError(db.Error.Error())

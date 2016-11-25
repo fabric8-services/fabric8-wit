@@ -196,3 +196,27 @@ func TestMarshalArray(t *testing.T) {
 		t.Error("not equal")
 	}
 }
+
+func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	// Test types and subtypes
+	assert.True(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("foo"))
+	assert.True(t, models.WorkItemType{Name: "bar", Path: "/foo/bar"}.IsTypeOrSubtypeOf("foo"))
+	assert.True(t, models.WorkItemType{Name: "bar", Path: "/foo/bar"}.IsTypeOrSubtypeOf("bar"))
+	assert.True(t, models.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("foo"))
+	assert.True(t, models.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("bar"))
+	assert.True(t, models.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("cake"))
+
+	// Test we actually do return false sometimes
+	assert.False(t, models.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("fo"))
+	assert.False(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("fo"))
+
+	// Test wrong argument with prefixed and trailing slashes
+	assert.False(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf(""))
+	assert.False(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/"))
+	assert.True(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/foo"))
+	assert.True(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/foo/"))
+	assert.True(t, models.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("foo/"))
+}
