@@ -33,7 +33,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 // Generate runs the authorize action.
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
-		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
 		return ctx.Unauthorized(jerrors)
 	}
 
@@ -52,7 +52,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		tokenStr, err := c.tokenManager.Generate(user)
 		if err != nil {
 			fmt.Println("Failed to generate token", err)
-			jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Failed to generate token: %s", err.Error())))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Failed to generate token: %s", err.Error())))
 			return ctx.Unauthorized(jerrors)
 		}
 		tokens = append(tokens, &app.AuthToken{Token: tokenStr})

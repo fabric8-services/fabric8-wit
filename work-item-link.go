@@ -35,7 +35,7 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	}
 	err := models.ConvertLinkToModel(&in, &model)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -43,10 +43,10 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 		if err != nil {
 			switch err.(type) {
 			case models.NotFoundError:
-				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
 			default:
-				jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 			}
 		}
@@ -62,7 +62,7 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItemLinks().Delete(ctx.Context, ctx.ID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK([]byte{})
@@ -76,7 +76,7 @@ func (c *WorkItemLinkController) List(ctx *app.ListWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.WorkItemLinks().List(ctx.Context)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(result)
@@ -90,7 +90,7 @@ func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		res, err := appl.WorkItemLinks().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(res)
@@ -107,7 +107,7 @@ func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) erro
 		}
 		linkType, err := appl.WorkItemLinks().Save(ctx.Context, toSave)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(linkType)

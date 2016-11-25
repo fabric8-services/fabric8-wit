@@ -48,8 +48,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		limit = *ctx.PageLimit
 	}
 	if offset < 0 {
-		//jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(models.NewBadParameterError(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
-		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+		//jerrors, _ := jsonapi.ErrorToJSONAPIErrors(models.NewBadParameterError(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
 		return ctx.BadRequest(jerrors)
 	}
 
@@ -60,11 +60,11 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError:
-				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Printf("Error listing work items: %s", err.Error())
-				jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 				return ctx.InternalServerError(jerrors)
 			}
 		}

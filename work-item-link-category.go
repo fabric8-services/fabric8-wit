@@ -30,7 +30,7 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 	return application.Transactional(c.db, func(appl application.Application) error {
 		cat, err := appl.WorkItemLinkCategories().Create(ctx.Context, ctx.Payload.Data.Attributes.Name, ctx.Payload.Data.Attributes.Description)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkCategoryHref(cat.Data.ID))
@@ -43,7 +43,7 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 	return application.Transactional(c.db, func(appl application.Application) error {
 		res, err := appl.WorkItemLinkCategories().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(res)
@@ -55,7 +55,7 @@ func (c *WorkItemLinkCategoryController) List(ctx *app.ListWorkItemLinkCategoryC
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.WorkItemLinkCategories().List(ctx.Context)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(result)
@@ -67,7 +67,7 @@ func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCateg
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItemLinkCategories().Delete(ctx.Context, ctx.ID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK([]byte{})
@@ -82,7 +82,7 @@ func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCateg
 		}
 		linkCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, toSave)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ConvertErrorFromModelToJSONAPIErrors(err)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		return ctx.OK(linkCategory)

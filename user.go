@@ -26,13 +26,13 @@ func NewUserController(service *goa.Service, identityRepository account.Identity
 func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	identID, err := c.tokenManager.Locate(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 		return ctx.BadRequest(jerrors)
 	}
 	ident, err := c.identityRepository.Load(ctx, identID)
 	if err != nil {
 		fmt.Printf("Auth token contains id %s of unknown Identity\n", identID)
-		jerrors, _ := jsonapi.ConvertErrorFromModelToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", identID)))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", identID)))
 		return ctx.Unauthorized(jerrors)
 	}
 
