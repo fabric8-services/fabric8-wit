@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	SystemWorkItemLinkCategorySystem = "system.system"
-	SystemWorkItemLinkCategoryUser   = "system.user"
+	SystemWorkItemLinkCategorySystem = "system"
+	SystemWorkItemLinkCategoryUser   = "user"
 )
 
 // WorkItemLinkCategory represents the category of a work item link as it is stored in the db

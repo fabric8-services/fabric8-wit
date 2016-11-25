@@ -134,9 +134,9 @@ func (s *workItemLinkSuite) cleanup() {
 	// Delete work item link types and categories by name.
 	// They will be created during the tests but have to be deleted by name
 	// rather than ID, unlike the work items or work item links.
-	db = db.Unscoped().Delete(&models.WorkItemLinkType{Name: "bug-blocker"})
+	db = db.Unscoped().Delete(&models.WorkItemLinkType{Name: "test-bug-blocker"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "user"})
+	db = db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
 
 	// Last but not least delete the work items
@@ -192,7 +192,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	fmt.Printf("Created feature with ID: %s\n", feature1.ID)
 
 	// Create a work item link category
-	createLinkCategoryPayload := CreateWorkItemLinkCategory("user")
+	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
 	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
 	//s.deleteWorkItemLinkCategories = append(s.deleteWorkItemLinkCategories, *workItemLinkCategory.Data.ID)
@@ -200,7 +200,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	fmt.Printf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType("bug-blocker", models.SystemBug, models.SystemBug, s.userLinkCategoryID)
+	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", models.SystemBug, models.SystemBug, s.userLinkCategoryID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
@@ -416,7 +416,7 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkNotFound() {
 }
 
 // TestListWorkItemLinkOK tests if we can find the work item links
-// "bug-blocker" and "related" in the list of work item links
+// "test-bug-blocker" and "related" in the list of work item links
 func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload1)

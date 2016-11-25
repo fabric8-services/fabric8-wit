@@ -76,8 +76,8 @@ func (s *workItemLinkCategorySuite) TearDownSuite() {
 // during these tests. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkCategorySuite) removeWorkItemLinkCategories() {
-	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "system"})
-	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "user"})
+	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-system"})
+	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-user"})
 }
 
 // The SetupTest method will be run before every test in the suite.
@@ -95,9 +95,9 @@ func (s *workItemLinkCategorySuite) TearDownTest() {
 // helper method
 //-----------------------------------------------------------------------------
 
-// createWorkItemLinkCategorySystem defines a work item link category "system"
+// createWorkItemLinkCategorySystem defines a work item link category "test-system"
 func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.ResponseWriter, *app.WorkItemLinkCategory) {
-	name := "system"
+	name := "test-system"
 	description := "This work item link category is reserved for the core system."
 	id := "0e671e36-871b-43a6-9166-0c4bd573e231"
 
@@ -116,9 +116,9 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.Res
 	return test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, &payload)
 }
 
-// createWorkItemLinkCategoryUser defines a work item link category "user"
+// createWorkItemLinkCategoryUser defines a work item link category "test-user"
 func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.ResponseWriter, *app.WorkItemLinkCategory) {
-	name := "user"
+	name := "test-user"
 	description := "This work item link category is managed by an admin user."
 	id := "bf30167a-9446-42de-82be-6b3815152051"
 
@@ -141,7 +141,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.Respo
 // Actual tests
 //-----------------------------------------------------------------------------
 
-// TestCreateWorkItemLinkCategory tests if we can create the "system" work item link category
+// TestCreateWorkItemLinkCategory tests if we can create the "test-system" work item link category
 func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -281,7 +281,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 //	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 //}
 
-// TestShowWorkItemLinkCategoryOK tests if we can fetch the "system" work item link category
+// TestShowWorkItemLinkCategoryOK tests if we can fetch the "test-system" work item link category
 func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	// Create the work item link category first and try to read it back in
 	_, linkCat := s.createWorkItemLinkCategorySystem()
@@ -303,7 +303,7 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFound() {
 }
 
 // TestListWorkItemLinkCategoryOK tests if we can find the work item link categories
-// "system" and "user" in the list of work item link categories
+// "test-system" and "test-user" in the list of work item link categories
 func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
@@ -325,7 +325,7 @@ func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 	// Search for the work item types that must exist at minimum
 	toBeFound := 2
 	for i := 0; i < len(linkCatCollection.Data) && toBeFound > 0; i++ {
-		if *linkCatCollection.Data[i].Attributes.Name == "system" || *linkCatCollection.Data[i].Attributes.Name == "user" {
+		if *linkCatCollection.Data[i].Attributes.Name == "test-system" || *linkCatCollection.Data[i].Attributes.Name == "test-user" {
 			s.T().Log("Found work item link category in collection: ", *linkCatCollection.Data[i].Attributes.Name)
 			toBeFound--
 		}
