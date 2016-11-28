@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 // githubFetcher provides issue listing
@@ -31,7 +33,11 @@ func (f *githubIssueFetcher) listIssues(query string, opts *github.SearchOptions
 // Fetch tracker items from Github
 func (g *GithubTracker) Fetch() chan TrackerItemContent {
 	f := githubIssueFetcher{}
-	f.client = github.NewClient(nil)
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: configuration.GetGithubAuthToken()},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	f.client = github.NewClient(tc)
 	return g.fetch(&f)
 }
 

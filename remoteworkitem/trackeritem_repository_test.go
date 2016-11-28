@@ -104,6 +104,8 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 }
 
+var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
+
 func TestConvertGithubIssue(t *testing.T) {
 	resource.Require(t, resource.Database)
 
@@ -118,14 +120,16 @@ func TestConvertGithubIssue(t *testing.T) {
 	defer db.Delete(&tq)
 
 	models.Transactional(db, func(tx *gorm.DB) error {
-		content, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubDataWithAssignee)
+		content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
+			return provideRemoteData(GitIssueWithAssignee)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		remoteItemDataGithub := TrackerItemContent{
 			Content: content[:],
-			ID:      GithubIssueWithAssignee, // GH issue url
+			ID:      GitIssueWithAssignee, // GH issue url
 		}
 
 		workItemGithub, err := convert(tx, int(tq.ID), remoteItemDataGithub, ProviderGithub)
