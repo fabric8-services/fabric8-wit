@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
 )
@@ -47,7 +48,9 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		limit = *ctx.PageLimit
 	}
 	if offset < 0 {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+		//jerrors, _ := jsonapi.ErrorToJSONAPIErrors(models.NewBadParameterError(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
+		return ctx.BadRequest(jerrors)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -57,10 +60,12 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError:
-				return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
 			default:
 				log.Printf("Error listing work items: %s", err.Error())
-				return ctx.InternalServerError()
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 

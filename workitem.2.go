@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/models"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/goadesign/goa"
@@ -96,7 +97,8 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
+		return ctx.BadRequest(jerrors)
 	}
 	var offset int
 	var limit int
@@ -133,10 +135,12 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError:
-				return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
 			default:
 				log.Printf("Error listing work items: %s", err.Error())
-				return ctx.InternalServerError()
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 

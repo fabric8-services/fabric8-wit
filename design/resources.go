@@ -19,11 +19,9 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItem)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
@@ -38,10 +36,8 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(workItem))
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -54,11 +50,9 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.Created, "/workitems/.*", func() {
 			a.Media(workItem)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("delete", func() {
 		a.Security("jwt")
@@ -70,12 +64,10 @@ var _ = a.Resource("workitem", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("update", func() {
 		a.Security("jwt")
@@ -90,12 +82,10 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItem)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 })
@@ -116,10 +106,8 @@ var _ = a.Resource("workitem.2", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItemListResponse)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 })
@@ -140,7 +128,7 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItemType)
 		})
-		a.Response(d.NotFound)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -153,11 +141,9 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.Created, "/workitemtypes/.*", func() {
 			a.Media(workItemType)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("list", func() {
@@ -171,10 +157,8 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(workItemType))
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
 
@@ -190,11 +174,9 @@ var _ = a.Resource("user", func() {
 		a.Response(d.OK, func() {
 			a.Media(User)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 })
@@ -211,10 +193,8 @@ var _ = a.Resource("identity", func() {
 		a.Response(d.OK, func() {
 			a.Media(identityArray)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
 
@@ -242,7 +222,7 @@ var _ = a.Resource("login", func() {
 			a.GET("authorize"),
 		)
 		a.Description("Authorize with the ALM")
-		a.Response(d.Unauthorized)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.TemporaryRedirect)
 	})
 
@@ -254,7 +234,7 @@ var _ = a.Resource("login", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(AuthToken))
 		})
-		a.Response(d.Unauthorized)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
 
@@ -273,11 +253,9 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(Tracker))
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("show", func() {
@@ -291,11 +269,9 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.OK, func() {
 			a.Media(Tracker)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -308,12 +284,10 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.Created, "/trackers/.*", func() {
 			a.Media(Tracker)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("delete", func() {
 		a.Security("jwt")
@@ -325,12 +299,10 @@ var _ = a.Resource("tracker", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("update", func() {
 		a.Security("jwt")
@@ -342,12 +314,10 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.OK, func() {
 			a.Media(Tracker)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 })
@@ -365,11 +335,9 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.OK, func() {
 			a.Media(TrackerQuery)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 	a.Action("create", func() {
 		a.Security("jwt")
@@ -381,12 +349,10 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.Created, "/trackerqueries/.*", func() {
 			a.Media(TrackerQuery)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("update", func() {
 		a.Security("jwt")
@@ -398,12 +364,10 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.OK, func() {
 			a.Media(TrackerQuery)
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("delete", func() {
 		a.Security("jwt")
@@ -415,12 +379,10 @@ var _ = a.Resource("trackerquery", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK)
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 	a.Action("list", func() {
 		a.Routing(
@@ -430,11 +392,9 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(TrackerQuery))
 		})
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })
 
@@ -461,10 +421,254 @@ var _ = a.Resource("search", func() {
 			a.Media(searchResponse)
 		})
 
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
+		a.Response(d.BadRequest, JSONAPIErrors)
 
-		a.Response(d.InternalServerError)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("work-item-link-category", func() {
+	a.BasePath("/workitemlinkcategories")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve work item link category (as JSONAPI) for the given ID.")
+		a.Params(func() {
+			a.Param("id", d.String, "ID of the work item link category")
+		})
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkCategory)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work item link categories.")
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkCategoryArray)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("Create a work item link category")
+		a.Payload(CreateWorkItemLinkCategoryPayload)
+		a.Response(d.Created, "/workitemlinkcategories/.*", func() {
+			a.Media(WorkItemLinkCategory)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:id"),
+		)
+		a.Description("Delete work item link category with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("Update the given work item link category with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(UpdateWorkItemLinkCategoryPayload)
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkCategory)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("work-item-link-type", func() {
+	a.BasePath("/workitemlinktypes")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve work item link type (as JSONAPI) for the given ID.")
+		a.Params(func() {
+			a.Param("id", d.String, "ID of the work item link type")
+		})
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkType)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work item link types.")
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkTypeArray)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("Create a work item link type")
+		a.Payload(CreateWorkItemLinkTypePayload)
+		a.Response(d.Created, "/workitemlinktypes/.*", func() {
+			a.Media(WorkItemLinkType)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:id"),
+		)
+		a.Description("Delete work item link type with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("Update the given work item link type with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(UpdateWorkItemLinkTypePayload)
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkType)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("work-item-link", func() {
+	a.BasePath("/workitemlinks")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve work item link (as JSONAPI) for the given ID.")
+		a.Params(func() {
+			a.Param("id", d.String, "ID of the work item link")
+		})
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLink)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work item links.")
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLinkArray)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("Create a work item link")
+		a.Payload(CreateWorkItemLinkPayload)
+		a.Response(d.Created, "/workitemlinks/.*", func() {
+			a.Media(WorkItemLink)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
+	a.Action("delete", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.DELETE("/:id"),
+		)
+		a.Description("Delete work item link with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("Update the given work item link with given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(UpdateWorkItemLinkPayload)
+		a.Response(d.OK, func() {
+			a.Media(WorkItemLink)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

@@ -21,6 +21,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -118,6 +119,11 @@ func main() {
 		}); err != nil {
 			panic(err.Error())
 		}
+		if err := models.Transactional(db, func(tx *gorm.DB) error {
+			return migration.BootstrapWorkItemLinking(context.Background(), models.NewWorkItemLinkCategoryRepository(tx), models.NewWorkItemLinkTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
 
 	// Scheduler to fetch and import remote tracker items
@@ -132,7 +138,7 @@ func main() {
 	service.Use(middleware.RequestID())
 	service.Use(middleware.LogRequest(true))
 	service.Use(gzip.Middleware(9))
-	service.Use(middleware.ErrorHandler(service, true))
+	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
 	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
@@ -180,6 +186,18 @@ func main() {
 	// Mount "workitemtype" controller
 	workitemtypeCtrl := NewWorkitemtypeController(service, appDB)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
+
+	// Mount "work item link category" controller
+	workItemLinkCategoryCtrl := NewWorkItemLinkCategoryController(service, appDB)
+	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
+
+	// Mount "work item link type" controller
+	workItemLinkTypeCtrl := NewWorkItemLinkTypeController(service, appDB)
+	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
+
+	// Mount "work item link" controller
+	workItemLinkCtrl := NewWorkItemLinkController(service, appDB)
+	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "tracker" controller
 	c5 := NewTrackerController(service, appDB, scheduler)

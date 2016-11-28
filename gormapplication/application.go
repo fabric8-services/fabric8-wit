@@ -80,6 +80,21 @@ func (g *GormBase) Identities() application.IdentityRepository {
 	return account.NewIdentityRepository(g.db)
 }
 
+// WorkItemLinkCategories returns a work item link category repository
+func (g *GormBase) WorkItemLinkCategories() application.WorkItemLinkCategoryRepository {
+	return models.NewWorkItemLinkCategoryRepository(g.db)
+}
+
+// WorkItemLinkTypes returns a work item link type repository
+func (g *GormBase) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
+	return models.NewWorkItemLinkTypeRepository(g.db)
+}
+
+// WorkItemLinks returns a work item link repository
+func (g *GormBase) WorkItemLinks() application.WorkItemLinkRepository {
+	return models.NewWorkItemLinkRepository(g.db)
+}
+
 func (g *GormBase) DB() *gorm.DB {
 	return g.db
 }

@@ -94,6 +94,13 @@ func getMigrations() migrations {
 
 	// Version 6
 	m = append(m, steps{executeSQLFile("006-rename-parent-path.sql")})
+
+	// Version 7
+	m = append(m, steps{executeSQLFile("007-work-item-links.sql")})
+
+	// Version 8
+	m = append(m, steps{executeSQLFile("008-soft-delete-or-resurrect.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -204,6 +211,75 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 	return current, nil
 }
 
+// BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository) error {
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
+		return err
+	}
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
+		return err
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemPlannerItem, models.SystemWorkItemLinkCategorySystem); err != nil {
+		return err
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", models.TopologyNetwork, "relates to", "relates to", models.SystemPlannerItem, models.SystemPlannerItem, models.SystemWorkItemLinkCategorySystem); err != nil {
+		return err
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, name string, description string) error {
+	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
+	switch err.(type) {
+	case models.NotFoundError:
+		_, err := linkCatRepo.Create(ctx, &name, &description)
+		if err != nil {
+			return err
+		}
+	case nil:
+		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
+		cat.Description = &description
+		linkCat := models.ConvertLinkCategoryFromModel(*cat)
+		_, err = linkCatRepo.Save(ctx, linkCat)
+		return err
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, linkTypeRepo *models.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
+	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
+	if err != nil {
+		return err
+	}
+
+	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(name, cat.ID)
+	lt := models.WorkItemLinkType{
+		Name:           name,
+		Description:    &description,
+		Topology:       topology,
+		ForwardName:    forwardName,
+		ReverseName:    reverseName,
+		SourceTypeName: sourceTypeName,
+		TargetTypeName: targetTypeName,
+		LinkCategoryID: cat.ID,
+	}
+
+	switch err.(type) {
+	case models.NotFoundError:
+		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID)
+		if err != nil {
+			return err
+		}
+	case nil:
+		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
+		lt.ID = linkType.ID
+		lt.Version = linkType.Version
+		_, err = linkTypeRepo.Save(ctx, models.ConvertLinkTypeFromModel(lt))
+		return err
+	}
+	return nil
+}
+
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *models.GormWorkItemTypeRepository) error {
 	// FIXME: Need to add this conditionally
@@ -269,7 +345,7 @@ func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, wi
 }
 
 func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
-	wit, err := witr.LoadTypeFromDB(ctx, typeName)
+	wit, err := witr.LoadTypeFromDB(typeName)
 	switch err.(type) {
 	case models.NotFoundError:
 		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
@@ -282,7 +358,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		convertedFields, err := models.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
-			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeName)
+			extendedWit, err := witr.LoadTypeFromDB(*extendedTypeName)
 			if err != nil {
 				return err
 			}
@@ -301,7 +377,8 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		wit.Fields = convertedFields
 		wit.Path = path
 
-		db.Save(wit)
+		db = db.Save(wit)
+		return db.Error
 	}
 	return nil
 }

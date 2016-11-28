@@ -5,7 +5,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: 994ca104f3dc4f982c3cb2f642ac602f8b481a74
+  version: a83a8abde6fd089078d40f2e4e51a93ee42854ac
   vcs: git
   subpackages:
   - client
@@ -84,5 +84,6 @@ import:
   version: ^3.1.0
 - package: golang.org/x/oauth2
 - package: github.com/dnaeon/go-vcr
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - recorder

@@ -2,6 +2,7 @@ package models
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
@@ -10,6 +11,9 @@ import (
 
 // String constants for the local work item types.
 const (
+	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
+	pathSep = "/"
+
 	SystemRemoteItemID = "system.remote_item_id"
 	SystemTitle        = "system.title"
 	SystemDescription  = "system.description"
@@ -48,7 +52,7 @@ type WorkItemType struct {
 }
 
 // TableName implements gorm.tabler
-func (w WorkItemType) TableName() string {
+func (wit WorkItemType) TableName() string {
 	return "work_item_types"
 }
 
@@ -90,14 +94,14 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 }
 
 // ConvertFromModel serializes a database persisted workitem.
-func (wiType WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
+func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{}}
 
-	for name, field := range wiType.Fields {
+	for name, field := range wit.Fields {
 		var err error
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
@@ -106,4 +110,23 @@ func (wiType WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, e
 	}
 
 	return &result, nil
+}
+
+// IsTypeOrSubtypeOf returns true if the work item type is of the given type name,
+// or a subtype; otherwise false is returned.
+func (wit WorkItemType) IsTypeOrSubtypeOf(typeName string) bool {
+	// Remove any prefixed "/"
+	for strings.HasPrefix(typeName, pathSep) && len(typeName) > 0 {
+		typeName = strings.TrimPrefix(typeName, pathSep)
+	}
+	// Remove any trailing "/"
+	for strings.HasSuffix(typeName, pathSep) && len(typeName) > 0 {
+		typeName = strings.TrimSuffix(typeName, pathSep)
+	}
+	if len(typeName) <= 0 {
+		return false
+	}
+	// Check for complete inclusion (e.g. "/bar/" is contained in "/foo/bar/cake")
+	// and for suffix (e.g. "/cake" is the suffix of "/foo/bar/cake").
+	return wit.Name == typeName || strings.Contains(wit.Path, pathSep+typeName+pathSep)
 }

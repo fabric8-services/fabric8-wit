@@ -22,15 +22,21 @@ func (db *MockDB) Trackers() application.TrackerRepository {
 func (db *MockDB) TrackerQueries() application.TrackerQueryRepository {
 	return nil
 }
-
 func (db *MockDB) SearchItems() application.SearchRepository {
 	return nil
 }
-
 func (db *MockDB) Identities() application.IdentityRepository {
 	return nil
 }
-
+func (db *MockDB) WorkItemLinkCategories() application.WorkItemLinkCategoryRepository {
+	return nil
+}
+func (db *MockDB) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
+	return nil
+}
+func (db *MockDB) WorkItemLinks() application.WorkItemLinkRepository {
+	return nil
+}
 func (db *MockDB) Commit() error {
 	return nil
 }
