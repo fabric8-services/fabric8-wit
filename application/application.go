@@ -19,6 +19,7 @@ type Application interface {
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	WorkItemComments() comment.Repository
+	Projects() ProjectRepository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction
