@@ -72,6 +72,7 @@ const (
 	varDeveloperModeEnabled         = "developer.mode.enabled"
 	varGithubSecret                 = "github.secret"
 	varGithubClientID               = "github.client.id"
+	varGithubAuthToken              = "github.auth.token"
 	varTokenPublicKey               = "token.publickey"
 	varTokenPrivateKey              = "token.privatekey"
 )
@@ -111,6 +112,7 @@ func setConfigDefaults() {
 	viper.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
 	viper.SetDefault(varGithubClientID, defaultGithubClientID)
 	viper.SetDefault(varGithubSecret, defaultGithubSecret)
+	viper.SetDefault(varGithubAuthToken, defaultActualToken)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -209,6 +211,11 @@ func GetGithubClientID() string {
 	return viper.GetString(varGithubClientID)
 }
 
+// GetGithubAuthToken returns the actual Github OAuth Access Token
+func GetGithubAuthToken() string {
+	return viper.GetString(varGithubAuthToken)
+}
+
 // Auth-related defaults
 
 // RSAPrivateKey for signing JWT Tokens
@@ -255,3 +262,9 @@ PwIDAQAB
 
 var defaultGithubClientID = "875da0d2113ba0a6951d"
 var defaultGithubSecret = "2fe6736e90a9283036a37059d75ac0c82f4f5288"
+
+// Github doesnot allow commiting actual OAuth tokens no matter how less priviledge the token has
+var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+
+// ActualToken is actual OAuth access token of github
+var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]

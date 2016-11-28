@@ -1,15 +1,13 @@
 package login
 
 import (
-	"os"
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
@@ -18,47 +16,35 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-var db *gorm.DB
 var loginService *gitHubOAuth
-
-// Github doesn't allow commiting actual tokens no matter how
-// less privleges the token has.
-var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
-var actualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
 
 func setup() {
 
-	// If it's an integration test then this setups up the database object,
-
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		var err error
-		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
-
-		if err != nil {
-			panic("Failed to connect database: " + err.Error())
-		}
+	var err error
+	if err = configuration.Setup(""); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
 	oauth := &oauth2.Config{
-		ClientID:     "875da0d2113ba0a6951d",
-		ClientSecret: "2fe6736e90a9283036a37059d75ac0c82f4f5288",
+		ClientID:     configuration.GetGithubClientID(),
+		ClientSecret: configuration.GetGithubSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint:     github.Endpoint,
 	}
 
-	publicKey, err := token.ParsePublicKey([]byte(token.RSAPublicKey))
+	publicKey, err := token.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
 	if err != nil {
 		panic(err)
 	}
 
-	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	privateKey, err := token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
 	if err != nil {
 		panic(err)
 	}
 
 	tokenManager := token.NewManager(publicKey, privateKey)
-	userRepository := account.NewUserRepository(db)
-	identityRepository := account.NewIdentityRepository(db)
+	userRepository := account.NewUserRepository(nil)
+	identityRepository := account.NewIdentityRepository(nil)
 	loginService = &gitHubOAuth{
 		config:       oauth,
 		identities:   identityRepository,
@@ -68,10 +54,6 @@ func setup() {
 }
 
 func tearDown() {
-	if db != nil {
-		db.Close()
-		db = nil
-	}
 	loginService = nil
 }
 
@@ -81,7 +63,7 @@ func TestValidOAuthAccessToken(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: actualToken,
+		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
 
@@ -118,7 +100,7 @@ func TestGetUserEmails(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: actualToken,
+		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
 
@@ -135,7 +117,7 @@ func TestGetUser(t *testing.T) {
 	defer tearDown()
 
 	accessToken := &oauth2.Token{
-		AccessToken: actualToken,
+		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
 
