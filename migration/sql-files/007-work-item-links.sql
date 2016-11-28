@@ -61,12 +61,12 @@ CREATE TABLE work_item_link_types (
 
     name                text NOT NULL,
     description         text,
-    source_type_name    text REFERENCES work_item_types(name) NOT NULL,
-    target_type_name    text REFERENCES work_item_types(name) NOT NULL,
+    source_type_name    text REFERENCES work_item_types(name) ON DELETE CASCADE,
+    target_type_name    text REFERENCES work_item_types(name) ON DELETE CASCADE,
     forward_name        text NOT NULL, -- MUST not be NULL because UI needs this
     reverse_name        text NOT NULL, -- MUST not be NULL because UI needs this
     topology            work_item_link_topology NOT NULL, 
-    link_category_id    uuid REFERENCES work_item_link_categories(id) NOT NULL 
+    link_category_id    uuid REFERENCES work_item_link_categories(id) ON DELETE CASCADE
 );
 
 -- Ensure we only have one link type with the same name in a category in existence.
@@ -83,7 +83,7 @@ CREATE TABLE work_item_links (
     id              uuid primary key DEFAULT uuid_generate_v4() NOT NULL,
     version         integer DEFAULT 0 NOT NULL,
 
-    link_type_id    uuid REFERENCES work_item_link_types(id) NOT NULL,
-    source_id       bigint REFERENCES work_items(id) NOT NULL,
-    target_id       bigint REFERENCES work_items(id) NOT NULL
+    link_type_id    uuid REFERENCES work_item_link_types(id) ON DELETE CASCADE,
+    source_id       bigint REFERENCES work_items(id) ON DELETE CASCADE,
+    target_id       bigint REFERENCES work_items(id) ON DELETE CASCADE
 );

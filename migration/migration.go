@@ -98,6 +98,9 @@ func getMigrations() migrations {
 	// Version 7
 	m = append(m, steps{executeSQLFile("007-work-item-links.sql")})
 
+	// Version 8
+	m = append(m, steps{executeSQLFile("008-soft-delete-or-resurrect.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
