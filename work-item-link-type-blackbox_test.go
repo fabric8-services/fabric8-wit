@@ -236,8 +236,8 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	// Convert to model space and use equal function
 	expected := models.WorkItemLinkType{}
 	actual := models.WorkItemLinkType{}
-	require.Nil(s.T(), models.ConvertLinkTypeToModel(workItemLinkType, &expected))
-	require.Nil(s.T(), models.ConvertLinkTypeToModel(readIn, &actual))
+	require.Nil(s.T(), models.ConvertLinkTypeToModel(*workItemLinkType, &expected))
+	require.Nil(s.T(), models.ConvertLinkTypeToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 	// Check that the link category is included in the response in the "included" array
 	require.Len(s.T(), readIn.Included, 1, "The work item link type should include it's work item link category.")

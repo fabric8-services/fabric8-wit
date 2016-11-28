@@ -33,7 +33,7 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 	in := app.WorkItemLink{
 		Data: ctx.Payload.Data,
 	}
-	err := models.ConvertLinkToModel(&in, &model)
+	err := models.ConvertLinkToModel(in, &model)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)

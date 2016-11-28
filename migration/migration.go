@@ -239,7 +239,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *models
 	case nil:
 		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
 		cat.Description = &description
-		linkCat := models.ConvertLinkCategoryFromModel(cat)
+		linkCat := models.ConvertLinkCategoryFromModel(*cat)
 		_, err = linkCatRepo.Save(ctx, linkCat)
 		return err
 	}
@@ -274,7 +274,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.Gor
 		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
-		_, err = linkTypeRepo.Save(ctx, models.ConvertLinkTypeFromModel(&lt))
+		_, err = linkTypeRepo.Save(ctx, models.ConvertLinkTypeFromModel(lt))
 		return err
 	}
 	return nil

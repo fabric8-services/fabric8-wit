@@ -93,7 +93,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, NewInternalError(db.Error.Error())
 	}
 	// Convert the created link type entry into a JSONAPI response
-	result := ConvertLinkFromModel(link)
+	result := ConvertLinkFromModel(*link)
 	return &result, nil
 }
 
@@ -117,7 +117,7 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NewInternalError(db.Error.Error())
 	}
 	// Convert the created link type entry into a JSONAPI response
-	result := ConvertLinkFromModel(&res)
+	result := ConvertLinkFromModel(res)
 	return &result, nil
 }
 
@@ -133,7 +133,7 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 	res := app.WorkItemLinkArray{}
 	res.Data = make([]*app.WorkItemLinkData, len(rows))
 	for index, value := range rows {
-		cat := ConvertLinkFromModel(&value)
+		cat := ConvertLinkFromModel(value)
 		res.Data[index] = cat.Data
 	}
 	// TODO: When adding pagination, this must not be len(rows) but
@@ -186,7 +186,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	if lt.Data.Attributes.Version == nil || res.Version != *lt.Data.Attributes.Version {
 		return nil, NewVersionConflictError("version conflict")
 	}
-	if err := ConvertLinkToModel(&lt, &res); err != nil {
+	if err := ConvertLinkToModel(lt, &res); err != nil {
 		return nil, err
 	}
 	res.Version = res.Version + 1
@@ -199,6 +199,6 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 		return nil, NewInternalError(db.Error.Error())
 	}
 	log.Printf("updated work item link to %v\n", res)
-	result := ConvertLinkFromModel(&res)
+	result := ConvertLinkFromModel(res)
 	return &result, nil
 }

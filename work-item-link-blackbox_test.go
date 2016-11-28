@@ -257,7 +257,7 @@ func CreateWorkItemLinkType(name string, sourceType string, targetType string, c
 		ReverseName:    "reverse name string for " + name,
 		LinkCategoryID: satoriuuid.FromStringOrNil(categoryID),
 	}
-	payload := models.ConvertLinkTypeFromModel(&lt)
+	payload := models.ConvertLinkTypeFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
@@ -271,7 +271,7 @@ func CreateWorkItemLink(sourceID uint64, targetID uint64, linkTypeID string) *ap
 		TargetID:   targetID,
 		LinkTypeID: satoriuuid.FromStringOrNil(linkTypeID),
 	}
-	payload := models.ConvertLinkFromModel(&lt)
+	payload := models.ConvertLinkFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkPayload{
 		Data: payload.Data,
@@ -396,13 +396,13 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
 	expected := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(workItemLink, &expected))
+	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink, &expected))
 
 	_, readIn := test.ShowWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *workItemLink.Data.ID)
 	require.NotNil(s.T(), readIn)
 	// Convert to model space and use equal function
 	actual := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(readIn, &actual))
+	require.Nil(s.T(), models.ConvertLinkToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 }
 
@@ -424,7 +424,7 @@ func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
 	expected1 := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(workItemLink1, &expected1))
+	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink1, &expected1))
 
 	createPayload2 := CreateWorkItemLink(s.bug2ID, s.bug3ID, s.bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload2)
@@ -432,7 +432,7 @@ func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink2.Data.ID)
 	expected2 := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(workItemLink2, &expected2))
+	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink2, &expected2))
 
 	// Fetch a single work item link
 	_, linkCollection := test.ListWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl)

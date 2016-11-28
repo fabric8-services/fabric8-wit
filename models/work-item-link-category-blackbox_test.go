@@ -92,7 +92,7 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 		},
 	}
 
-	actual := models.ConvertLinkCategoryFromModel(&m)
+	actual := models.ConvertLinkCategoryFromModel(m)
 	require.Equal(t, expected.Data.Type, actual.Data.Type)
 	require.Equal(t, *expected.Data.ID, *actual.Data.ID)
 	require.Equal(t, *expected.Data.Attributes.Name, *actual.Data.Attributes.Name)

@@ -33,7 +33,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 	in := app.WorkItemLinkType{
 		Data: ctx.Payload.Data,
 	}
-	err := models.ConvertLinkTypeToModel(&in, &model)
+	err := models.ConvertLinkTypeToModel(in, &model)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 		return ctx.BadRequest(jerrors)

@@ -54,7 +54,7 @@ func (self WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 }
 
 // ConvertLinkCategoryFromModel converts work item link category from model to app representation
-func ConvertLinkCategoryFromModel(t *WorkItemLinkCategory) app.WorkItemLinkCategory {
+func ConvertLinkCategoryFromModel(t WorkItemLinkCategory) app.WorkItemLinkCategory {
 	id := t.ID.String()
 	var converted = app.WorkItemLinkCategory{
 		Data: &app.WorkItemLinkCategoryData{

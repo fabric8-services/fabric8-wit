@@ -36,7 +36,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *s
 		return nil, NewInternalError(db.Error.Error())
 	}
 	// Convert the created link category entry into a JSONAPI response
-	result := ConvertLinkCategoryFromModel(&created)
+	result := ConvertLinkCategoryFromModel(created)
 	return &result, nil
 }
 
@@ -60,7 +60,7 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 	}
 
 	// Convert the created link category entry into a JSONAPI response
-	result := ConvertLinkCategoryFromModel(&res)
+	result := ConvertLinkCategoryFromModel(res)
 	return &result, nil
 }
 
@@ -90,7 +90,7 @@ func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.Wor
 	res := app.WorkItemLinkCategoryArray{}
 	res.Data = make([]*app.WorkItemLinkCategoryData, len(rows))
 	for index, value := range rows {
-		cat := ConvertLinkCategoryFromModel(&value)
+		cat := ConvertLinkCategoryFromModel(value)
 		res.Data[index] = cat.Data
 	}
 	// TODO: When adding pagination, this must not be len(rows) but
@@ -181,6 +181,6 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 		return nil, NewInternalError(db.Error.Error())
 	}
 	log.Printf("updated work item link category to %v\n", newLinkCat)
-	result := ConvertLinkCategoryFromModel(&newLinkCat)
+	result := ConvertLinkCategoryFromModel(newLinkCat)
 	return &result, nil
 }
