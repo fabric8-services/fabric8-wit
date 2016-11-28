@@ -519,7 +519,7 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
 	return &app.UpdateWorkItemJSONAPIPayload{
 		Data: &app.WorkItemDataForUpdate{
-			Type: "workitems",
+			Type: models.APIStinrgTypeWorkItem,
 			ID:   wi.ID,
 			Attributes: map[string]interface{}{
 				"version": strconv.Itoa(wi.Version),
@@ -605,7 +605,7 @@ func TestUpdateWI2(t *testing.T) {
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &maliciousUUID,
-			Type: "identities",
+			Type: models.APIStinrgTypeAssignee,
 		},
 	}
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
@@ -613,7 +613,7 @@ func TestUpdateWI2(t *testing.T) {
 	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &newUserUUID,
-			Type: "identities",
+			Type: models.APIStinrgTypeAssignee,
 		},
 	}
 	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
@@ -697,7 +697,7 @@ func TestUpdateOnlyAssignee(t *testing.T) {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &tempUserUUID,
-			Type: "identities",
+			Type: models.APIStinrgTypeAssignee,
 		},
 	}
 	minimumPayload.Data.Relationships.Assignee = assignee
@@ -746,7 +746,7 @@ func TestUpdateRemoveAssignee(t *testing.T) {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &tempUserUUID,
-			Type: "identities",
+			Type: models.APIStinrgTypeAssignee,
 		},
 	}
 	minimumPayload.Data.Relationships.Assignee = assignee
@@ -762,7 +762,7 @@ func TestUpdateRemoveAssignee(t *testing.T) {
 	assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   nil,
-			Type: "identities",
+			Type: models.APIStinrgTypeAssignee,
 		},
 	}
 	minimumPayload.Data.Relationships.Assignee = assignee
@@ -896,7 +896,7 @@ func TestUpdateInvalidUUID(t *testing.T) {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &invalidUserUUID,
-			Type: "identities",
+			Type: models.APIStinrgTypeAssignee,
 		},
 	}
 	minimumPayload.Data.Relationships.Assignee = assignee

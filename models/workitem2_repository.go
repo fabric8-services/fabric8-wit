@@ -12,8 +12,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Following constants define "Type" value to be used in jsonapi specification based APIStinrgTypeAssignee
+// e.g> Workitem.2 Update/List API
 const (
-	AssigneeType = "identities"
+	APIStinrgTypeAssignee = "identities"
+	APIStinrgTypeWorkItem = "workitems"
 )
 
 type GormWorkItem2Repository struct {
