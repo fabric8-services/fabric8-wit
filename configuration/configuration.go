@@ -112,7 +112,7 @@ func setConfigDefaults() {
 	viper.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
 	viper.SetDefault(varGithubClientID, defaultGithubClientID)
 	viper.SetDefault(varGithubSecret, defaultGithubSecret)
-	viper.SetDefault(varGithubAuthToken, ActualToken)
+	viper.SetDefault(varGithubAuthToken, defaultActualToken)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -267,4 +267,4 @@ var defaultGithubSecret = "2fe6736e90a9283036a37059d75ac0c82f4f5288"
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
 
 // ActualToken is actual OAuth access token of github
-var ActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
