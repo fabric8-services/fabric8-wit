@@ -293,30 +293,30 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 		},
 		// adding security tests for workitem.2 endpoint
 		{
-			method:             "PATCH",
+			method:             http.MethodPatch,
 			url:                "/api/workitems.2/12345",
-			expectedStatusCode: 401,
+			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  "jwt_security_error",
 			payload:            createWIPayloadString, // doesnt matter actually because we expect it to fail
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
-			method:             "PATCH",
+			method:             http.MethodPatch,
 			url:                "/api/workitems.2/12345",
-			expectedStatusCode: 401,
+			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  "jwt_security_error",
 			payload:            createWIPayloadString, // doesnt matter actually because we expect it to fail
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
-			method:             "PATCH",
+			method:             http.MethodPatch,
 			url:                "/api/workitems.2/12345",
-			expectedStatusCode: 401,
+			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  "jwt_security_error",
 			payload:            createWIPayloadString, // doesnt matter actually because we expect it to fail
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
-			method:             "PATCH",
+			method:             http.MethodPatch,
 			url:                "/api/workitems.2/12345",
-			expectedStatusCode: 401,
+			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  "jwt_security_error", // doesnt matter actually because we expect it to fail
 			payload:            createWIPayloadString,
 			jwtToken:           "",
