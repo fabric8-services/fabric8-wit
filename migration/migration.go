@@ -273,6 +273,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.Gor
 	case nil:
 		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
 		lt.ID = linkType.ID
+		lt.Version = linkType.Version
 		_, err = linkTypeRepo.Save(ctx, models.ConvertLinkTypeFromModel(&lt))
 		return err
 	}
