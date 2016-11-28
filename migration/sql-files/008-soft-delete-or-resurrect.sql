@@ -77,7 +77,7 @@ CREATE FUNCTION update_WI_after_WIT() RETURNS trigger AS $update_WI_after_WIT$
     END;
 $update_WI_after_WIT$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_WIL_after_WILT_trigger
+CREATE TRIGGER update_WI_after_WILT_trigger
 AFTER UPDATE OF deleted_at
 ON work_item_types
 FOR EACH ROW
