@@ -128,5 +128,5 @@ func (wit WorkItemType) IsTypeOrSubtypeOf(typeName string) bool {
 	}
 	// Check for complete inclusion (e.g. "/bar/" is contained in "/foo/bar/cake")
 	// and for suffix (e.g. "/cake" is the suffix of "/foo/bar/cake").
-	return strings.Contains(wit.Path, pathSep+typeName+pathSep) || strings.HasSuffix(wit.Path, pathSep+typeName)
+	return wit.Name == typeName || strings.Contains(wit.Path, pathSep+typeName+pathSep)
 }
