@@ -112,7 +112,7 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	log.Printf("updated item to %v\n", newWi)
 	result, err := wiType.ConvertFromModel(newWi)
 	if err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, NewInternalError(err.Error())
 	}
 	return result, nil
 }

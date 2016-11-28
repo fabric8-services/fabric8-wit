@@ -115,7 +115,7 @@ var _ = a.Resource("workitem.2", func() {
 		a.Routing(
 			a.PATCH("/:id"),
 		)
-		a.Description("update the given work item with given id.")
+		a.Description("update the work item with the given id.")
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
@@ -125,6 +125,7 @@ var _ = a.Resource("workitem.2", func() {
 			// ToDo update to struct which complies to jsonapi
 			a.Media(workItem2)
 		})
+		//ToDo: Error responses need modifications as per https://github.com/almighty/almighty-core/pull/421
 		a.Response(d.BadRequest, func() {
 			a.Media(d.ErrorMedia)
 		})

@@ -525,6 +525,6 @@ var RelationWorkItemData = a.Type("RelationWorkItemData", func() {
 // WorkItemLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var WorkItemLinks = a.Type("WorkItemLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://localhost:8080/api/workitems.2/1")
+		a.Example("http://api.almighty.io/api/workitems.2/1")
 	})
 })
