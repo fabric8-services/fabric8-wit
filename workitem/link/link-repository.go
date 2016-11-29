@@ -25,7 +25,7 @@ const (
 type WorkItemLinkRepository interface {
 	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error)
 	Load(ctx context.Context, ID string) (*app.WorkItemLink, error)
-	List(ctx context.Context) (*app.WorkItemLinkArray, error)
+	List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkArray, error)
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
 }
@@ -118,7 +118,6 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 	}
 	log.Printf("loading work item link %s", id.String())
 	res := WorkItemLink{}
-	//db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	db := r.db.Where("id=?", id).Find(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found work item link, res=%v", res)
@@ -132,15 +131,31 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 	return &result, nil
 }
 
-// List returns all work item links
+// List returns all work item links if wiID is nil; otherwise the work item links are returned
+// that have wiID as source or target.
 // TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLinkArray, error) {
-	// We don't have any where clause or paging at the moment.
+func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkArray, error) {
 	var rows []WorkItemLink
-	db := r.db.Find(&rows)
-	if db.Error != nil {
-		return nil, db.Error
+	db := r.db
+	if wiIDStr == nil {
+		// When no work item ID is given, return all links
+		db = db.Find(&rows)
+		if db.Error != nil {
+			return nil, db.Error
+		}
+	} else {
+		// When work item ID is given, filter by it
+		wi, err := workitem.CheckWorkItemExists(r.db, *wiIDStr)
+		if err != nil {
+			return nil, err
+		}
+		// Now fetch all links for that work item
+		db = r.db.Model(&WorkItemLink{}).Where("? IN (source_id, target_id)", wi.ID).Find(&rows)
+		if db.Error != nil {
+			return nil, db.Error
+		}
 	}
+
 	res := app.WorkItemLinkArray{}
 	res.Data = make([]*app.WorkItemLinkData, len(rows))
 	for index, value := range rows {
