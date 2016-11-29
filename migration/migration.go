@@ -101,6 +101,9 @@ func getMigrations() migrations {
 	// Version 8
 	m = append(m, steps{executeSQLFile("008-soft-delete-or-resurrect.sql")})
 
+	// Version 9
+	m = append(m, steps{executeSQLFile("009-drop-wit-trigger.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
