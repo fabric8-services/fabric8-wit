@@ -77,9 +77,9 @@ type WorkItemLinkTypeRepository interface {
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
-	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error)
-	Load(ctx context.Context, ID string) (*app.WorkItemLink, error)
-	List(ctx context.Context) (*app.WorkItemLinkArray, error)
-	Delete(ctx context.Context, ID string) error
-	Save(ctx context.Context, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
+	Create(ctx context.Context, wiID *string, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error)
+	Load(ctx context.Context, wiID *string, ID string) (*app.WorkItemLink, error)
+	List(ctx context.Context, wiID *string) (*app.WorkItemLinkArray, error)
+	Delete(ctx context.Context, wiID *string, ID string) error
+	Save(ctx context.Context, wiID *string, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
 }

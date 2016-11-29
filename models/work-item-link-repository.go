@@ -76,7 +76,17 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(sourceID
 
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Create(ctx context.Context, wiIDStr *string, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error) {
+	wi, err := checkWorkItemExists(r.db, wiIDStr)
+	if err != nil {
+		return nil, err
+	}
+	if wiIDStr != nil {
+		// Check that the source is the same as the work item ID
+		if sourceID != wi.ID {
+			return nil, NewBadParameterError("work item link source", sourceID).Expected(wi.ID)
+		}
+	}
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -99,7 +109,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Load(ctx context.Context, wiIDStr *string, ID string) (*app.WorkItemLink, error) {
+	if _, err := checkWorkItemExists(r.db, wiIDStr); err != nil {
+		return nil, err
+	}
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
@@ -121,15 +134,31 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 	return &result, nil
 }
 
-// List returns all work item links
+// List returns all work item links if wiID is nil; otherwise the work item links are returned
+// that have wiID as source or target.
 // TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLinkArray, error) {
-	// We don't have any where clause or paging at the moment.
+func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkArray, error) {
 	var rows []WorkItemLink
-	db := r.db.Find(&rows)
-	if db.Error != nil {
-		return nil, db.Error
+	db := r.db
+	if wiIDStr == nil {
+		// When no work item ID is given, return all links
+		db = db.Find(&rows)
+		if db.Error != nil {
+			return nil, db.Error
+		}
+	} else {
+		// When work item ID is given, filter by it
+		wi, err := checkWorkItemExists(r.db, wiIDStr)
+		if err != nil {
+			return nil, err
+		}
+		// Now fetch all links for that work item
+		db = r.db.Model(&WorkItemLink{}).Where("? IN (source_id, target_id)", wi.ID).Find(&rows)
+		if db.Error != nil {
+			return nil, db.Error
+		}
 	}
+
 	res := app.WorkItemLinkArray{}
 	res.Data = make([]*app.WorkItemLinkData, len(rows))
 	for index, value := range rows {
@@ -146,7 +175,10 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) error {
+func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, wiIDStr *string, ID string) error {
+	if _, err := checkWorkItemExists(r.db, wiIDStr); err != nil {
+		return err
+	}
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
@@ -169,7 +201,18 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLink) (*app.WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Save(ctx context.Context, wiIDStr *string, lt app.WorkItemLink) (*app.WorkItemLink, error) {
+	_, err := checkWorkItemExists(r.db, wiIDStr)
+	if err != nil {
+		return nil, err
+	}
+	if wiIDStr != nil {
+		// Check that the source is the same as the work item ID
+		if lt.Data.Relationships.Source.Data.ID != *wiIDStr {
+			return nil, NewBadParameterError("work item link source", lt.Data.Relationships.Source.Data.ID).Expected(*wiIDStr)
+		}
+	}
+
 	res := WorkItemLink{}
 	if lt.Data.ID == nil {
 		return nil, NewBadParameterError("work item link", nil)
@@ -201,4 +244,31 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	log.Printf("updated work item link to %v\n", res)
 	result := ConvertLinkFromModel(res)
 	return &result, nil
+}
+
+// checkWorkItemExists returns nil if no work item ID string is given or if work
+// item ID string could be converted into a number and looked up in the
+// database; otherwise it returns an error.
+func checkWorkItemExists(db *gorm.DB, wiIDStr *string) (*WorkItem, error) {
+	if db == nil {
+		return nil, NewInternalError("db must not be nil")
+	}
+	if wiIDStr == nil {
+		return nil, nil
+	}
+	// When work item ID is given, filter by it
+	wiID, err := strconv.ParseUint(*wiIDStr, 10, 64)
+	if err != nil {
+		return nil, NewBadParameterError("work item id", *wiIDStr)
+	}
+	// Check that work item exists or return NotFoundError
+	wi := WorkItem{}
+	db = db.Model(&WorkItem{}).Where("id=?", wiID).Find(&wi)
+	if db.RecordNotFound() {
+		return nil, NewNotFoundError("work item", *wiIDStr)
+	}
+	if db.Error != nil {
+		return nil, NewInternalError(db.Error.Error())
+	}
+	return &wi, nil
 }
