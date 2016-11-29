@@ -519,6 +519,7 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	}
 }
 
+// ========== helper functions for tests inside WorkItem2Suite ==========
 func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
 	return &app.UpdateWorkItemJSONAPIPayload{
 		Data: &app.WorkItemDataForUpdate{
@@ -547,366 +548,7 @@ func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Iden
 	return &identity
 }
 
-func TestUpdateWI2(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	patchPayload := getMinimumRequiredUpdatePayload(wi)
-
-	// update title attribute
-	modifiedTitle := "Is the model updated?"
-	patchPayload.Data.Attributes[models.SystemTitle] = modifiedTitle
-
-	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	require.NotNil(t, updatedWI)
-	assert.Equal(t, updatedWI.Data.Attributes[models.SystemTitle], modifiedTitle)
-
-	// verify self link value
-	if !strings.HasPrefix(*updatedWI.Links.Self, "http://") {
-		assert.Fail(t, fmt.Sprintf("%s is not absolute URL", *updatedWI.Links.Self))
-	}
-	if !strings.HasSuffix(*updatedWI.Links.Self, fmt.Sprintf("/%s", updatedWI.Data.ID)) {
-		assert.Fail(t, fmt.Sprintf("%s is not FETCH URL of the resource", *updatedWI.Links.Self))
-	}
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
-
-	// update assignee relationship and verify
-	newUser := createOneRandomUserIdentity(svc.Context, DB)
-	assert.NotNil(t, newUser)
-
-	newUserUUID := newUser.ID.String()
-	patchPayload.Data.Relationships = &app.WorkItemRelationships{}
-	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &newUserUUID,
-			Type: "some_invalid_type_identities",
-		},
-	}
-
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-
-	// update with invalid assignee string (non-UUID)
-	maliciousUUID := "non UUID string"
-	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &maliciousUUID,
-			Type: models.APIStinrgTypeAssignee,
-		},
-	}
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-
-	patchPayload.Data.Relationships.Assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &newUserUUID,
-			Type: models.APIStinrgTypeAssignee,
-		},
-	}
-	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	require.NotNil(t, updatedWI)
-	assert.Equal(t, *updatedWI.Data.Relationships.Assignee.Data.ID, newUser.ID.String())
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
-
-	// update to wrong version
-	correctVersion := patchPayload.Data.Attributes["version"]
-	patchPayload.Data.Attributes["version"] = "12453972348"
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	patchPayload.Data.Attributes["version"] = correctVersion
-
-	// Add test to remove assignee for WI
-	patchPayload.Data.Relationships.Assignee.Data.ID = nil
-	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, patchPayload)
-	require.NotNil(t, updatedWI)
-	require.Nil(t, updatedWI.Data.Relationships.Assignee)
-	patchPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int)) // need to do in order to keep object future usage
-}
-
-// Check patching only one attribute with minimum required patch payload
-func TestUpdateOnlyDescription(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	minimumPayload := getMinimumRequiredUpdatePayload(wi)
-	modifiedDescription := "Only Description is modified"
-	minimumPayload.Data.Attributes[models.SystemDescription] = modifiedDescription
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-	require.NotNil(t, updatedWI)
-	assert.Equal(t, updatedWI.Data.Attributes[models.SystemDescription], modifiedDescription)
-}
-
-// Setup only Assignee
-func TestUpdateOnlyAssignee(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	minimumPayload := getMinimumRequiredUpdatePayload(wi)
-	minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-
-	tempUser := createOneRandomUserIdentity(svc.Context, DB)
-	assert.NotNil(t, tempUser)
-
-	tempUserUUID := tempUser.ID.String()
-	assignee := &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &tempUserUUID,
-			Type: models.APIStinrgTypeAssignee,
-		},
-	}
-	minimumPayload.Data.Relationships.Assignee = assignee
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-	require.NotNil(t, updatedWI)
-	assert.Equal(t, *updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
-
-	// retrieve work item from Db and verify
-	db := gormapplication.NewGormDB(DB)
-	wiFromDB, _ := db.WorkItems().Load(svc.Context, updatedWI.Data.ID)
-	require.NotNil(t, wiFromDB)
-	assert.Equal(t, wiFromDB.Fields[models.SystemAssignee], tempUserUUID)
-}
-
-// Removing assignee
-func TestUpdateRemoveAssignee(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	minimumPayload := getMinimumRequiredUpdatePayload(wi)
-	minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-
-	tempUser := createOneRandomUserIdentity(svc.Context, DB)
-	assert.NotNil(t, tempUser)
-
-	tempUserUUID := tempUser.ID.String()
-	assignee := &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &tempUserUUID,
-			Type: models.APIStinrgTypeAssignee,
-		},
-	}
-	minimumPayload.Data.Relationships.Assignee = assignee
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-	require.NotNil(t, updatedWI)
-	assert.Equal(t, *updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
-
-	// Remove assignee
-	assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   nil,
-			Type: models.APIStinrgTypeAssignee,
-		},
-	}
-	minimumPayload.Data.Relationships.Assignee = assignee
-	// Update should fail because of version conflict
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-
-	// update version and then update assignee to NIL
-	minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
-
-	_, updatedWI = test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-	require.NotNil(t, updatedWI)
-	assert.Nil(t, updatedWI.Data.Relationships.Assignee)
-
-	// retrieve work item from Db and verify
-	db := gormapplication.NewGormDB(DB)
-	wiFromDB, _ := db.WorkItems().Load(svc.Context, updatedWI.Data.ID)
-	require.NotNil(t, wiFromDB)
-	assert.Nil(t, wiFromDB.Fields[models.SystemAssignee])
-}
-
-func TestUpdateWithInvalidID(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-	updatePayload := getMinimumRequiredUpdatePayload(wi)
-	updatePayload.Data.ID = "some non-int ID"
-	test.UpdateWorkitem2NotFound(t, svc.Context, svc, controller2, wi.ID, updatePayload)
-}
-
-func TestUpdateWithNonExistentID(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-	updatePayload := getMinimumRequiredUpdatePayload(wi)
-	updatePayload.Data.ID = "2398475203"
-	test.UpdateWorkitem2NotFound(t, svc.Context, svc, controller2, wi.ID, updatePayload)
-}
-
-func TestUpdateVersionConflict(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	updatePayload := getMinimumRequiredUpdatePayload(wi)
-	test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, updatePayload)
-	// set invalid version number
-	updatePayload.Data.Attributes["version"] = "2398475203"
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, updatePayload)
-}
-
-func TestUpdateInvalidUUID(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
-		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "closed"},
-	}
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	minimumPayload := getMinimumRequiredUpdatePayload(wi)
-	minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-
-	tempUser := createOneRandomUserIdentity(svc.Context, DB)
-	assert.NotNil(t, tempUser)
-
-	invalidUserUUID := fmt.Sprintf("%s-invalid", tempUser.ID.String())
-	assignee := &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &invalidUserUUID,
-			Type: models.APIStinrgTypeAssignee,
-		},
-	}
-	minimumPayload.Data.Relationships.Assignee = assignee
-
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-}
-
+// ========== WorkItem2Suite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type WorkItem2Suite struct {
 	suite.Suite
 	db             *gorm.DB
@@ -934,13 +576,13 @@ func (s *WorkItem2Suite) SetupSuite() {
 	s.pubKey, _ = almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), account.TestIdentity)
-	assert.NotNil(s.T(), s.svc)
+	require.NotNil(s.T(), s.svc)
 
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	assert.NotNil(s.T(), s.wiCtrl)
+	require.NotNil(s.T(), s.wiCtrl)
 
 	s.wi2Ctrl = NewWorkitem2Controller(s.svc, gormapplication.NewGormDB(s.db))
-	assert.NotNil(s.T(), s.wi2Ctrl)
+	require.NotNil(s.T(), s.wi2Ctrl)
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
@@ -974,6 +616,7 @@ func (s *WorkItem2Suite) TearDownTest() {
 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wiCtrl, s.wi.ID)
 }
 
+// ========== Actual Test functions ==========
 func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
 	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
@@ -987,7 +630,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
 	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
 	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-	assert.NotNil(s.T(), tempUser)
+	require.NotNil(s.T(), tempUser)
 	invalidUserUUID := fmt.Sprintf("%s-invalid", tempUser.ID.String())
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
@@ -999,8 +642,163 @@ func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
 	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 }
 
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
+func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
+	test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	s.minimumPayload.Data.Attributes["version"] = "2398475203"
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
+	s.minimumPayload.Data.ID = "2398475203"
+	test.UpdateWorkitem2NotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.minimumPayload.Data.ID, s.minimumPayload)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateWithInvalidID() {
+	s.minimumPayload.Data.ID = "some non-int ID"
+	// pass s.wi.ID below, because that creates a route to the controller
+	// if do not pass s.wi.ID then we will be testing goa's code and not ours
+	test.UpdateWorkitem2NotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateRemoveAssignee() {
+	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+
+	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	require.NotNil(s.T(), tempUser)
+	tempUserUUID := tempUser.ID.String()
+	assignee := &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &tempUserUUID,
+			Type: models.APIStinrgTypeAssignee,
+		},
+	}
+	s.minimumPayload.Data.Relationships.Assignee = assignee
+
+	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), *updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
+
+	// Remove assignee
+	assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   nil,
+			Type: models.APIStinrgTypeAssignee,
+		},
+	}
+	s.minimumPayload.Data.Relationships.Assignee = assignee
+	// Update should fail because of version conflict
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+
+	// update version and then update assignee to NIL
+	s.minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
+
+	_, updatedWI = test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Nil(s.T(), updatedWI.Data.Relationships.Assignee)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateOnlyAssignee() {
+	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+
+	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	require.NotNil(s.T(), tempUser)
+	tempUserUUID := tempUser.ID.String()
+	assignee := &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &tempUserUUID,
+			Type: models.APIStinrgTypeAssignee,
+		},
+	}
+	s.minimumPayload.Data.Relationships.Assignee = assignee
+
+	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), *updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
+
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateOnlyDescription() {
+	modifiedDescription := "Only Description is modified"
+	s.minimumPayload.Data.Attributes[models.SystemDescription] = modifiedDescription
+	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), updatedWI.Data.Attributes[models.SystemDescription], modifiedDescription)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
+	// update title attribute
+	modifiedTitle := "Is the model updated?"
+	s.minimumPayload.Data.Attributes[models.SystemTitle] = modifiedTitle
+
+	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), updatedWI.Data.Attributes[models.SystemTitle], modifiedTitle)
+
+	// verify self link value
+	if !strings.HasPrefix(*updatedWI.Links.Self, "http://") {
+		assert.Fail(s.T(), fmt.Sprintf("%s is not absolute URL", *updatedWI.Links.Self))
+	}
+	if !strings.HasSuffix(*updatedWI.Links.Self, fmt.Sprintf("/%s", updatedWI.Data.ID)) {
+		assert.Fail(s.T(), fmt.Sprintf("%s is not FETCH URL of the resource", *updatedWI.Links.Self))
+	}
+	// clean up and keep version updated in order to keep object future usage
+	delete(s.minimumPayload.Data.Attributes, models.SystemTitle)
+	s.minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
+
+	// update assignee relationship and verify
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	require.NotNil(s.T(), newUser)
+
+	newUserUUID := newUser.ID.String()
+	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &newUserUUID,
+			Type: "some_invalid_type_identities",
+		},
+	}
+
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+
+	// update with invalid assignee string (non-UUID)
+	maliciousUUID := "non UUID string"
+	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &maliciousUUID,
+			Type: models.APIStinrgTypeAssignee,
+		},
+	}
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+
+	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &newUserUUID,
+			Type: models.APIStinrgTypeAssignee,
+		},
+	}
+	_, updatedWI = test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), *updatedWI.Data.Relationships.Assignee.Data.ID, newUser.ID.String())
+
+	// need to do in order to keep object future usage
+	s.minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
+
+	// update to wrong version
+	correctVersion := s.minimumPayload.Data.Attributes["version"]
+	s.minimumPayload.Data.Attributes["version"] = "12453972348"
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	s.minimumPayload.Data.Attributes["version"] = correctVersion
+
+	// Add test to remove assignee for WI
+	s.minimumPayload.Data.Relationships.Assignee.Data.ID = nil
+	_, updatedWI = test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	require.Nil(s.T(), updatedWI.Data.Relationships.Assignee)
+	// need to do in order to keep object future usage
+	s.minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
+}
+
+// a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, new(WorkItem2Suite))
