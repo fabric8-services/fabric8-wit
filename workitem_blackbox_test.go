@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -18,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -28,6 +30,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 func TestGetWorkItem(t *testing.T) {
@@ -904,44 +907,101 @@ func TestUpdateInvalidUUID(t *testing.T) {
 	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
 }
 
-// Update only State
-func TestUpdateOnlyState(t *testing.T) {
-	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
+type WorkItem2Suite struct {
+	suite.Suite
+	db             *gorm.DB
+	wiCtrl         app.WorkitemController
+	wi2Ctrl        app.Workitem2Controller
+	pubKey         *rsa.PublicKey
+	priKey         *rsa.PrivateKey
+	svc            *goa.Service
+	wi             *app.WorkItem
+	minimumPayload *app.UpdateWorkItemJSONAPIPayload
+}
+
+func (s *WorkItem2Suite) SetupSuite() {
+	var err error
+
+	if err = configuration.Setup(""); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
+	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+
+	if err != nil {
+		panic("Failed to connect database: " + err.Error())
+	}
+	s.pubKey, _ = almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), account.TestIdentity)
+	assert.NotNil(s.T(), s.svc)
+
+	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
+	assert.NotNil(s.T(), s.wiCtrl)
+
+	s.wi2Ctrl = NewWorkitem2Controller(s.svc, gormapplication.NewGormDB(s.db))
+	assert.NotNil(s.T(), s.wi2Ctrl)
+
+	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	if configuration.GetPopulateCommonTypes() {
+		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
+}
+
+func (s *WorkItem2Suite) TearDownSuite() {
+	if s.db != nil {
+		s.db.Close()
+	}
+}
+
+func (s *WorkItem2Suite) SetupTest() {
 	payload := app.CreateWorkItemPayload{
 		Type: models.SystemBug,
 		Fields: map[string]interface{}{
 			models.SystemTitle: "Test WI",
 			models.SystemState: "new"},
 	}
+	_, s.wi = test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, &payload)
+	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+}
 
-	defer test.DeleteWorkitemOK(t, svc.Context, svc, controller, wi.ID)
+func (s *WorkItem2Suite) TearDownTest() {
+	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wiCtrl, s.wi.ID)
+}
 
-	minimumPayload := getMinimumRequiredUpdatePayload(wi)
-
-	minimumPayload.Data.Attributes["system.state"] = "invalid_value"
-
-	controller2 := NewWorkitem2Controller(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller2)
-
-	test.UpdateWorkitem2BadRequest(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-
+func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
+	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 	newStateValue := "closed"
-	minimumPayload.Data.Attributes[models.SystemState] = newStateValue
-	_, updatedWI := test.UpdateWorkitem2OK(t, svc.Context, svc, controller2, wi.ID, minimumPayload)
-	require.NotNil(t, updatedWI)
-	assert.Equal(t, updatedWI.Data.Attributes[models.SystemState], newStateValue)
+	s.minimumPayload.Data.Attributes[models.SystemState] = newStateValue
+	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), updatedWI.Data.Attributes[models.SystemState], newStateValue)
+}
 
-	// retrieve work item from Db and verify
-	db := gormapplication.NewGormDB(DB)
-	wiFromDB, _ := db.WorkItems().Load(svc.Context, updatedWI.Data.ID)
-	require.NotNil(t, wiFromDB)
-	assert.Equal(t, wiFromDB.Fields[models.SystemState], newStateValue)
+func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
+	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
+	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	assert.NotNil(s.T(), tempUser)
+	invalidUserUUID := fmt.Sprintf("%s-invalid", tempUser.ID.String())
+	assignee := &app.RelationAssignee{
+		Data: &app.AssigneeData{
+			ID:   &invalidUserUUID,
+			Type: models.APIStinrgTypeAssignee,
+		},
+	}
+	s.minimumPayload.Data.Relationships.Assignee = assignee
+	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
+}
+
+// In order for 'go test' to run this suite, we need to create
+// a normal test function and pass our suite to suite.Run
+func TestSuiteWorkItem2(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, new(WorkItem2Suite))
 }
