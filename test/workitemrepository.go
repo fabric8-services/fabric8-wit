@@ -31,6 +31,16 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
+	PatchStub        func(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	PatchMutex       sync.RWMutex
+	patchArgsForCall []struct {
+		ctx context.Context
+		wi  app.WorkItem
+	}
+	patchReturns struct {
+		result1 *app.WorkItem
+		result2 error
+	}
 	DeleteStub        func(ctx context.Context, ID string) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -133,6 +143,41 @@ func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, app.Wor
 func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error) {
 	fake.SaveStub = nil
 	fake.saveReturns = struct {
+		result1 *app.WorkItem
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *WorkItemRepository) Patch(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+	fake.PatchMutex.Lock()
+	fake.patchArgsForCall = append(fake.patchArgsForCall, struct {
+		ctx context.Context
+		wi  app.WorkItem
+	}{ctx, wi})
+	fake.recordInvocation("Patch", []interface{}{ctx, wi})
+	fake.PatchMutex.Unlock()
+	if fake.PatchStub != nil {
+		return fake.PatchStub(ctx, wi)
+	} else {
+		return fake.patchReturns.result1, fake.patchReturns.result2
+	}
+}
+
+func (fake *WorkItemRepository) PatchCallCount() int {
+	fake.PatchMutex.RLock()
+	defer fake.PatchMutex.RUnlock()
+	return len(fake.patchArgsForCall)
+}
+
+func (fake *WorkItemRepository) PatchArgsForCall(i int) (context.Context, app.WorkItem) {
+	fake.PatchMutex.RLock()
+	defer fake.PatchMutex.RUnlock()
+	return fake.patchArgsForCall[i].ctx, fake.patchArgsForCall[i].wi
+}
+
+func (fake *WorkItemRepository) PatchReturns(result1 *app.WorkItem, result2 error) {
+	fake.PatchStub = nil
+	fake.patchReturns = struct {
 		result1 *app.WorkItem
 		result2 error
 	}{result1, result2}

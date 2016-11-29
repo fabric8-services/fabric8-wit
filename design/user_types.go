@@ -38,6 +38,22 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Required("type", "fields", "version")
 })
 
+// PatchWorkItemPayload defines the structure of work item PATCH action payload
+var PatchWorkItemPayload = a.Type("PatchWorkItemPayload", func() {
+	a.Attribute("type", d.String, "The type of the newly created work item", func() {
+		a.Example("system.userstory")
+		a.MinLength(1)
+		a.Pattern("^[\\p{L}.]+$")
+	})
+	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
+		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
+		a.MinLength(1)
+	})
+	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {
+		a.Example(0)
+	})
+})
+
 // CreateWorkItemTypePayload explains how input payload should look like
 var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 	a.Attribute("name", d.String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
