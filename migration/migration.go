@@ -310,7 +310,6 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *models.GormWork
 	if err := createOrUpdatePlannerItemExtention(models.SystemBug, ctx, witr, db); err != nil {
 		return err
 	}
-	witr.ClearCache() // Clear the WIT cache after updating existing WITs
 	return nil
 }
 
@@ -382,7 +381,11 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		wit.Path = path
 
 		db = db.Save(wit)
-		return db.Error
+		if dbErr := db.Error; dbErr != nil {
+			witr.Cache.Delete(wit.Name)
+			return dbErr
+		}
+		witr.Cache.Put(*wit)
 	}
 	return nil
 }

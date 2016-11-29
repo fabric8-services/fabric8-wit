@@ -27,7 +27,7 @@ func NewWorkItemTypeRepository(db *gorm.DB, witCache *WorkItemTypeCache) *GormWo
 // GormWorkItemTypeRepository implements WorkItemTypeRepository using gorm
 type GormWorkItemTypeRepository struct {
 	db    *gorm.DB
-	cache *WorkItemTypeCache
+	Cache *WorkItemTypeCache
 }
 
 // Load returns the work item for the given id
@@ -45,7 +45,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
 	log.Printf("loading work item type %s", name)
-	res, ok := r.cache.Get(name)
+	res, ok := r.Cache.Get(name)
 	if !ok {
 		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
 		res = WorkItemType{}
@@ -58,15 +58,10 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 		if err := db.Error; err != nil {
 			return nil, InternalError{simpleError{err.Error()}}
 		}
-		r.cache.Put(res)
+		r.Cache.Put(res)
 	}
 
 	return &res, nil
-}
-
-// ClearCache clears the work item type cache
-func (r *GormWorkItemTypeRepository) ClearCache() {
-	r.cache.Clear()
 }
 
 // Create creates a new work item in the repository

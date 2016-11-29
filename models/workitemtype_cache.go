@@ -37,3 +37,10 @@ func (c *WorkItemTypeCache) Clear() {
 	defer c.mapLock.Unlock()
 	c.cache = make(map[string]WorkItemType)
 }
+
+// Delete a type from the cache
+func (c *WorkItemTypeCache) Delete(typeName string) {
+	c.mapLock.Lock()
+	defer c.mapLock.Unlock()
+	delete(c.cache, typeName)
+}

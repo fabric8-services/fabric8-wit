@@ -48,6 +48,25 @@ func TestClear(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestDelete(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	c := models.NewWorkItemTypeCache()
+	c.Put(models.WorkItemType{Name: "toDelete"})
+	c.Put(models.WorkItemType{Name: "toPersist"})
+	_, ok := c.Get("toDelete")
+	assert.True(t, ok)
+	_, ok = c.Get("toPersist")
+	assert.True(t, ok)
+
+	c.Delete("toDelete")
+	_, ok = c.Get("toDelete")
+	assert.False(t, ok)
+	_, ok = c.Get("toPersist")
+	assert.True(t, ok)
+}
+
 func TestConcurrentAccess(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
