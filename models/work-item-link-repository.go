@@ -20,11 +20,11 @@ const (
 )
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
-func NewWorkItemLinkRepository(db *gorm.DB) *GormWorkItemLinkRepository {
+func NewWorkItemLinkRepository(db *gorm.DB, witCache *WorkItemTypeCache) *GormWorkItemLinkRepository {
 	return &GormWorkItemLinkRepository{
 		db:                   db,
-		workItemRepo:         NewWorkItemRepository(db),
-		workItemTypeRepo:     NewWorkItemTypeRepository(db),
+		workItemRepo:         NewWorkItemRepository(db, witCache),
+		workItemTypeRepo:     NewWorkItemTypeRepository(db, witCache),
 		workItemLinkTypeRepo: NewWorkItemLinkTypeRepository(db),
 	}
 }

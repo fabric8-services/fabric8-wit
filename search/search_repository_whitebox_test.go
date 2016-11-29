@@ -34,7 +34,7 @@ type SearchTestDescriptor struct {
 
 func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 
-	wir := models.NewWorkItemRepository(s.DB)
+	wir := models.NewWorkItemRepository(s.DB, nil)
 
 	testDataSet := []SearchTestDescriptor{
 		{
@@ -127,7 +127,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			searchString = searchString + workItemURLInSearchString
 			searchString = fmt.Sprintf("\"%s\"", searchString)
 			s.T().Log("using search string: " + searchString)
-			sr := NewGormSearchRepository(tx)
+			sr := NewGormSearchRepository(tx, nil)
 			var start, limit int = 0, 100
 			workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
 			if err != nil {
@@ -200,7 +200,7 @@ func stringInSlice(str string, list []string) bool {
 func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 	models.Transactional(s.DB, func(tx *gorm.DB) error {
-		wir := models.NewWorkItemRepository(tx)
+		wir := models.NewWorkItemRepository(tx, nil)
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
 
@@ -227,7 +227,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			s.T().Fatal("Couldnt create test data")
 		}
 
-		sr := NewGormSearchRepository(tx)
+		sr := NewGormSearchRepository(tx, nil)
 
 		var start, limit int = 0, 100
 		searchString := "id:" + createdWorkItem.ID

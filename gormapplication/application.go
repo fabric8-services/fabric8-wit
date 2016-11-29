@@ -39,13 +39,15 @@ const (
 var x application.Application = &GormDB{}
 var y application.Application = &GormTransaction{}
 
+// NewGormDB constructs GormDB
 func NewGormDB(db *gorm.DB) *GormDB {
-	return &GormDB{GormBase{db}, ""}
+	return &GormDB{GormBase{db, models.NewWorkItemTypeCache()}, ""}
 }
 
-// GormTransactionSupport implements TransactionSupport for gorm
+// GormBase represents a gorm base
 type GormBase struct {
-	db *gorm.DB
+	db       *gorm.DB
+	witCache *models.WorkItemTypeCache
 }
 
 type GormTransaction struct {
@@ -57,12 +59,14 @@ type GormDB struct {
 	txIsoLevel string
 }
 
+// WorkItems creates application.WorkItemRepository
 func (g *GormBase) WorkItems() application.WorkItemRepository {
-	return models.NewWorkItemRepository(g.db)
+	return models.NewWorkItemRepository(g.db, g.witCache)
 }
 
+// WorkItemTypes creates application.WorkItemTypeRepository
 func (g *GormBase) WorkItemTypes() application.WorkItemTypeRepository {
-	return models.NewWorkItemTypeRepository(g.db)
+	return models.NewWorkItemTypeRepository(g.db, g.witCache)
 }
 
 func (g *GormBase) Trackers() application.TrackerRepository {
@@ -73,7 +77,7 @@ func (g *GormBase) TrackerQueries() application.TrackerQueryRepository {
 }
 
 func (g *GormBase) SearchItems() application.SearchRepository {
-	return search.NewGormSearchRepository(g.db)
+	return search.NewGormSearchRepository(g.db, g.witCache)
 }
 
 func (g *GormBase) Identities() application.IdentityRepository {
@@ -92,7 +96,7 @@ func (g *GormBase) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
 
 // WorkItemLinks returns a work item link repository
 func (g *GormBase) WorkItemLinks() application.WorkItemLinkRepository {
-	return models.NewWorkItemLinkRepository(g.db)
+	return models.NewWorkItemLinkRepository(g.db, g.witCache)
 }
 
 func (g *GormBase) DB() *gorm.DB {
@@ -117,7 +121,7 @@ func (g *GormDB) SetTransactionIsolationLevel(level TXIsoLevel) error {
 	return nil
 }
 
-// Begin implements TransactionSupport
+// BeginTransaction implements TransactionSupport
 func (g *GormDB) BeginTransaction() (application.Transaction, error) {
 	tx := g.db.Begin()
 	if tx.Error != nil {
@@ -128,9 +132,9 @@ func (g *GormDB) BeginTransaction() (application.Transaction, error) {
 		if tx.Error != nil {
 			return nil, tx.Error
 		}
-		return &GormTransaction{GormBase{tx}}, nil
+		return &GormTransaction{GormBase{tx, g.GormBase.witCache}}, nil
 	}
-	return &GormTransaction{GormBase{tx}}, nil
+	return &GormTransaction{GormBase{tx, g.GormBase.witCache}}, nil
 }
 
 // Commit implements TransactionSupport

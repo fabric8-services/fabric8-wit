@@ -26,7 +26,7 @@ func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
 
 func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
 	s.undoScript = &gormsupport.DBScript{}
-	s.repo = models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(s.DB), s.undoScript)
+	s.repo = models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(s.DB, nil), s.undoScript)
 	db2 := s.DB.Unscoped().Delete(models.WorkItemType{Name: "foo.bar"})
 
 	if db2.Error != nil {

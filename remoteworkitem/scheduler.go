@@ -20,14 +20,15 @@ type trackerSchedule struct {
 
 // Scheduler represents scheduler
 type Scheduler struct {
-	db *gorm.DB
+	db       *gorm.DB
+	witCache *models.WorkItemTypeCache
 }
 
 var cr *cron.Cron
 
 // NewScheduler creates a new Scheduler
-func NewScheduler(db *gorm.DB) *Scheduler {
-	s := Scheduler{db: db}
+func NewScheduler(db *gorm.DB, witCache *models.WorkItemTypeCache) *Scheduler {
+	s := Scheduler{db, witCache}
 	return &s
 }
 
@@ -58,7 +59,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 						return err
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
+					_, err = convert(tx, s.witCache, tq.TrackerID, i, tq.TrackerType)
 					return err
 				})
 			}
