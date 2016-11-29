@@ -29,11 +29,11 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 }
 
 // Map a remote work item into an ALM work item and persist it into the database.
-func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*app.WorkItem, error) {
+func convert(db *gorm.DB, witCache *models.WorkItemTypeCache, tID int, item TrackerItemContent, provider string) (*app.WorkItem, error) {
 	remoteID := item.ID
 	content := string(item.Content)
 
-	wir := models.NewWorkItemRepository(db)
+	wir := models.NewWorkItemRepository(db, witCache)
 	ti := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: uint64(tID)}
 
 	// Converting the remote item to a local work item

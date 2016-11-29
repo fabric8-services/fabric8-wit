@@ -27,9 +27,10 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	resource.Require(s.T(), resource.Database)
 	undoScript := &gormsupport.DBScript{}
 	defer undoScript.Run(s.DB)
-	typeRepo := models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(s.DB), undoScript)
-	wiRepo := models.NewUndoableWorkItemRepository(models.NewWorkItemRepository(s.DB), undoScript)
-	searchRepo := search.NewGormSearchRepository(s.DB)
+	witCache := models.NewWorkItemTypeCache()
+	typeRepo := models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(s.DB, witCache), undoScript)
+	wiRepo := models.NewUndoableWorkItemRepository(models.NewWorkItemRepository(s.DB, witCache), undoScript)
+	searchRepo := search.NewGormSearchRepository(s.DB, nil)
 
 	ctx := context.Background()
 	res, count, err := searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)

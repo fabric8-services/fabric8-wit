@@ -55,7 +55,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+		return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx, nil))
 	}); err != nil {
 		panic(err.Error())
 	}

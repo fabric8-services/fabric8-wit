@@ -39,7 +39,7 @@ func TestMain(m *testing.M) {
 		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 		if configuration.GetPopulateCommonTypes() {
 			if err := models.Transactional(DB, func(tx *gorm.DB) error {
-				return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+				return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx, nil))
 			}); err != nil {
 				panic(err.Error())
 			}
@@ -47,7 +47,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// RemoteWorkItemScheduler now available for all other test cases
-		RwiScheduler = remoteworkitem.NewScheduler(DB)
+		RwiScheduler = remoteworkitem.NewScheduler(DB, nil)
 	}
 	os.Exit(func() int {
 		c := m.Run()

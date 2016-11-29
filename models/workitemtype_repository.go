@@ -12,18 +12,22 @@ import (
 )
 
 // NewWorkItemRepository creates a wi repository based on gorm
-func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
-	return &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}}
+func NewWorkItemRepository(db *gorm.DB, witCache *WorkItemTypeCache) *GormWorkItemRepository {
+	return &GormWorkItemRepository{db, NewWorkItemTypeRepository(db, witCache)}
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
-func NewWorkItemTypeRepository(db *gorm.DB) *GormWorkItemTypeRepository {
-	return &GormWorkItemTypeRepository{db}
+func NewWorkItemTypeRepository(db *gorm.DB, witCache *WorkItemTypeCache) *GormWorkItemTypeRepository {
+	if witCache == nil {
+		witCache = NewWorkItemTypeCache()
+	}
+	return &GormWorkItemTypeRepository{db, witCache}
 }
 
 // GormWorkItemTypeRepository implements WorkItemTypeRepository using gorm
 type GormWorkItemTypeRepository struct {
-	db *gorm.DB
+	db    *gorm.DB
+	Cache *WorkItemTypeCache
 }
 
 // Load returns the work item for the given id
@@ -41,15 +45,20 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
 	log.Printf("loading work item type %s", name)
-	res := WorkItemType{}
+	res, ok := r.Cache.Get(name)
+	if !ok {
+		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
+		res = WorkItemType{}
 
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item type", name}
-	}
-	if err := db.Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		db := r.db.Model(&res).Where("name=?", name).First(&res)
+		if db.RecordNotFound() {
+			log.Printf("not found, res=%v", res)
+			return nil, NotFoundError{"work item type", name}
+		}
+		if err := db.Error; err != nil {
+			return nil, InternalError{simpleError{err.Error()}}
+		}
+		r.Cache.Put(res)
 	}
 
 	return &res, nil

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -33,9 +34,13 @@ func TestMain(m *testing.M) {
 func TestNewScheduler(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	s := NewScheduler(db)
+	witCache := models.NewWorkItemTypeCache()
+	s := NewScheduler(db, witCache)
 	if s.db != db {
 		t.Error("DB not set as an attribute")
+	}
+	if s.witCache != witCache {
+		t.Error("WitCache not set as an attribute")
 	}
 	s.Stop()
 }

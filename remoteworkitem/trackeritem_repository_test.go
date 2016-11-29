@@ -26,6 +26,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 	t.Log("Created Tracker Query and Tracker")
 
+	witCache := models.NewWorkItemTypeCache()
 	models.Transactional(db, func(tx *gorm.DB) error {
 		t.Log("Scenario 1 : Scenario 1: Adding a work item which wasn't present.")
 
@@ -34,7 +35,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 			ID:      "http://github.com/sbose/api/testonly/1",
 		}
 
-		workItem, err := convert(db, int(tq.ID), remoteItemData, ProviderGithub)
+		workItem, err := convert(db, witCache, int(tq.ID), remoteItemData, ProviderGithub)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "linking", workItem.Fields[models.SystemTitle])
@@ -42,7 +43,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 		assert.Equal(t, "pranav", workItem.Fields[models.SystemAssignee])
 		assert.Equal(t, "closed", workItem.Fields[models.SystemState])
 
-		wir := models.NewWorkItemRepository(db)
+		wir := models.NewWorkItemRepository(db, witCache)
 		wir.Delete(context.Background(), workItem.ID)
 
 		return err
@@ -63,6 +64,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 	t.Log("Created Tracker Query and Tracker")
 
+	witCache := models.NewWorkItemTypeCache()
 	models.Transactional(db, func(tx *gorm.DB) error {
 		t.Log("Adding a work item which wasn't present.")
 
@@ -71,7 +73,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 			ID:      "http://github.com/sbose/api/testonly/1",
 		}
 
-		workItem, err := convert(tx, int(tq.ID), remoteItemData, ProviderGithub)
+		workItem, err := convert(tx, witCache, int(tq.ID), remoteItemData, ProviderGithub)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "linking", workItem.Fields[models.SystemTitle])
@@ -88,7 +90,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 			Content: []byte(`{"title":"linking-updated","url":"http://github.com/api/testonly/1","state":"closed","body":"body of issue","user.login":"sbose78","assignee.login":"pranav"}`),
 			ID:      "http://github.com/sbose/api/testonly/1",
 		}
-		workItemUpdated, err := convert(tx, int(tq.ID), remoteItemDataUpdated, ProviderGithub)
+		workItemUpdated, err := convert(tx, witCache, int(tq.ID), remoteItemDataUpdated, ProviderGithub)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "linking-updated", workItemUpdated.Fields[models.SystemTitle])
@@ -96,7 +98,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		assert.Equal(t, "pranav", workItemUpdated.Fields[models.SystemAssignee])
 		assert.Equal(t, "closed", workItemUpdated.Fields[models.SystemState])
 
-		wir := models.NewWorkItemRepository(tx)
+		wir := models.NewWorkItemRepository(tx, nil)
 		wir.Delete(context.Background(), workItemUpdated.ID)
 
 		return err
@@ -132,7 +134,7 @@ func TestConvertGithubIssue(t *testing.T) {
 			ID:      GitIssueWithAssignee, // GH issue url
 		}
 
-		workItemGithub, err := convert(tx, int(tq.ID), remoteItemDataGithub, ProviderGithub)
+		workItemGithub, err := convert(tx, nil, int(tq.ID), remoteItemDataGithub, ProviderGithub)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[models.SystemTitle])

@@ -38,8 +38,8 @@ type GormSearchRepository struct {
 }
 
 // NewGormSearchRepository creates a new search repository
-func NewGormSearchRepository(db *gorm.DB) *GormSearchRepository {
-	return &GormSearchRepository{db, models.NewWorkItemTypeRepository(db)}
+func NewGormSearchRepository(db *gorm.DB, witCache *models.WorkItemTypeCache) *GormSearchRepository {
+	return &GormSearchRepository{db, models.NewWorkItemTypeRepository(db, witCache)}
 }
 
 func generateSearchQuery(q string) (string, error) {
