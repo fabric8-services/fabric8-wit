@@ -63,7 +63,7 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		Fields:  res.Fields,
 	}
 
-	wiType, err := r.wir.LoadTypeFromDB(ctx, newWi.Type)
+	wiType, err := r.wir.LoadTypeFromDB(newWi.Type)
 	if err != nil {
 		// ideally should not reach this, if reach it means something went wrong while CREATE WI
 		return nil, NewBadParameterError("Type", newWi.Type)

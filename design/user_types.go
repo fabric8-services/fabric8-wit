@@ -521,6 +521,7 @@ var RelationWorkItemData = a.Type("RelationWorkItemData", func() {
 		a.Example("1234")
 	})
 	a.Required("type", "id")
+})
 
 // WorkItemLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var WorkItemLinks = a.Type("WorkItemLinks", func() {
