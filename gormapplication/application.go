@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/search"
@@ -98,6 +99,11 @@ func (g *GormBase) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
 // WorkItemLinks returns a work item link repository
 func (g *GormBase) WorkItemLinks() application.WorkItemLinkRepository {
 	return models.NewWorkItemLinkRepository(g.db)
+}
+
+// WorkItemComments returns a work item comments repository
+func (g *GormBase) WorkItemComments() comment.Repository {
+	return comment.NewCommentRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {
