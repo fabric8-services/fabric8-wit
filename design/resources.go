@@ -90,6 +90,28 @@ var _ = a.Resource("identity", func() {
 	})
 })
 
+var _ = a.Resource("users", func() {
+	a.BasePath("/users")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve user for the given ID.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK, func() {
+			a.Media(identity)
+		})
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+
+	})
+
+})
+
 var _ = a.Resource("status", func() {
 
 	a.DefaultMedia(ALMStatus)

@@ -88,6 +88,10 @@ func (g *GormBase) Identities() application.IdentityRepository {
 	return account.NewIdentityRepository(g.db)
 }
 
+func (g *GormBase) Users() account.IdentityRepository {
+	return account.NewIdentityRepository(g.db)
+}
+
 // WorkItemLinkCategories returns a work item link category repository
 func (g *GormBase) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {
 	return link.NewWorkItemLinkCategoryRepository(g.db)
