@@ -3,9 +3,9 @@ package models_test
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/project"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ type projectRepoBBTest struct {
 func (test *projectRepoBBTest) SetupTest() {
 	test.undoScript = &gormsupport.DBScript{}
 	test.repo = models.NewUndoableProjectRepository(models.NewProjectRepository(test.DB), test.undoScript)
-	test.DB.Unscoped().Delete(&models.Project{}, "Name=?", testProject)
+	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject)
 }
 
 func (test *projectRepoBBTest) TearDownTest() {
@@ -41,7 +41,7 @@ func (test *projectRepoBBTest) TestCreate() {
 		test.T().Fatal(err)
 	}
 	require.NotNil(test.T(), res)
-	require.Equal(test.T(), *res.Attributes.Name, testProject)
+	require.Equal(test.T(), res.Name, testProject)
 
 	test.failCreate("", models.BadParameterError{})
 	test.failCreate(testProject, models.InternalError{})
@@ -54,13 +54,10 @@ func (test *projectRepoBBTest) failCreate(name string, expected error) {
 }
 
 func (test *projectRepoBBTest) TestSaveNew() {
-	version := 0
-	p := app.ProjectData{
-		ID: satoriuuid.NewV4().String(),
-		Attributes: &app.ProjectAttributes{
-			Version: &version,
-			Name:    &testProject,
-		},
+	p := project.Project{
+		ID:      satoriuuid.NewV4(),
+		Version: 0,
+		Name:    testProject,
 	}
 	_, err := test.repo.Save(context.Background(), p)
 	if err == nil {

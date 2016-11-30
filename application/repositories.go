@@ -3,6 +3,8 @@ package application
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/project"
+	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -32,4 +34,38 @@ type SearchRepository interface {
 // IdentityRepository encapsulates identity
 type IdentityRepository interface {
 	List(ctx context.Context) (*app.IdentityArray, error)
+}
+
+// WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
+type WorkItemLinkCategoryRepository interface {
+	Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategory, error)
+	Load(ctx context.Context, ID string) (*app.WorkItemLinkCategory, error)
+	List(ctx context.Context) (*app.WorkItemLinkCategoryArray, error)
+	Delete(ctx context.Context, ID string) error
+	Save(ctx context.Context, linkCat app.WorkItemLinkCategory) (*app.WorkItemLinkCategory, error)
+}
+
+// WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
+type WorkItemLinkTypeRepository interface {
+	Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategory satoriuuid.UUID) (*app.WorkItemLinkType, error)
+	Load(ctx context.Context, ID string) (*app.WorkItemLinkType, error)
+	List(ctx context.Context) (*app.WorkItemLinkTypeArray, error)
+	Delete(ctx context.Context, ID string) error
+	Save(ctx context.Context, linkCat app.WorkItemLinkType) (*app.WorkItemLinkType, error)
+}
+
+// WorkItemLinkRepository encapsulates storage & retrieval of work item links
+type WorkItemLinkRepository interface {
+	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error)
+	Load(ctx context.Context, ID string) (*app.WorkItemLink, error)
+	List(ctx context.Context) (*app.WorkItemLinkArray, error)
+	Delete(ctx context.Context, ID string) error
+	Save(ctx context.Context, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
+// ProjectRepository encapsulate storage & retrieval of projects
+type ProjectRepository interface {
+	Create(ctx context.Context, name string) (*project.Project, error)
+	Save(ctx context.Context, project project.Project) (*project.Project, error)
+	Load(ctx context.Context, ID satoriuuid.UUID) (*project.Project, error)
+	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	List(ctx context.Context, start *int, length *int) ([]project.Project, uint64, error)
 }

@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/project"
 	"github.com/jinzhu/gorm"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -21,42 +21,31 @@ type GormProjectRepository struct {
 }
 
 // Load returns the project for the given id
-func (r *GormProjectRepository) Load(ctx context.Context, ID string) (*app.ProjectData, error) {
-	id, err := satoriuuid.FromString(ID)
-	if err != nil {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"project", ID}
-	}
-
-	log.Printf("loading project %d", id)
-	res := Project{}
-	tx := r.db.First(&res, id)
+func (r *GormProjectRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*project.Project, error) {
+	log.Printf("loading project %v", ID)
+	res := project.Project{}
+	tx := r.db.First(&res, ID)
 	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"project", ID}
+		return nil, NotFoundError{"project", ID.String()}
 	}
 	if tx.Error != nil {
 		return nil, InternalError{simpleError{tx.Error.Error()}}
 	}
-	return res.ConvertFromModel(), nil
+	return &res, nil
 }
 
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
-func (r *GormProjectRepository) Delete(ctx context.Context, ID string) error {
-	id, err := satoriuuid.FromString(ID)
-	if err != nil {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return NotFoundError{"project", ID}
-	}
-	project := Project{ID: id}
+func (r *GormProjectRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
+	project := project.Project{ID: ID}
 	tx := r.db.Delete(project)
 
-	if err = tx.Error; err != nil {
+	if err := tx.Error; err != nil {
 		return InternalError{simpleError{err.Error()}}
 	}
 	if tx.RowsAffected == 0 {
-		return NotFoundError{entity: "project", ID: ID}
+		return NotFoundError{entity: "project", ID: ID.String()}
 	}
 
 	return nil
@@ -64,45 +53,33 @@ func (r *GormProjectRepository) Delete(ctx context.Context, ID string) error {
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormProjectRepository) Save(ctx context.Context, p app.ProjectData) (*app.ProjectData, error) {
-	id, err := satoriuuid.FromString(p.ID)
-	if err != nil {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"project", p.ID}
-	}
-
-	newProject := Project{
-		ID:      id,
-		Version: *p.Attributes.Version + 1,
-		Name:    *p.Attributes.Name,
-	}
-
-	tx := r.db.Debug().First(&Project{}, id)
+func (r *GormProjectRepository) Save(ctx context.Context, p project.Project) (*project.Project, error) {
+	tx := r.db.Debug().First(&project.Project{}, p.ID)
+	p.Version = p.Version + 1
 	if tx.RecordNotFound() {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"project", p.ID}
+		return nil, NotFoundError{"project", p.ID.String()}
 	}
 	if err := tx.Error; err != nil {
 		log.Print(err.Error())
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	tx = tx.Where("Version = ?", *p.Attributes.Version).Save(&newProject)
+	tx = tx.Where("Version = ?", p.Version).Save(&p)
 	if err := tx.Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	if tx.RowsAffected == 0 {
 		return nil, VersionConflictError{simpleError{"version conflict"}}
 	}
-	log.Printf("updated project to %v\n", newProject)
-	return newProject.ConvertFromModel(), nil
+	log.Printf("updated project to %v\n", p)
+	return &p, nil
 }
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormProjectRepository) Create(ctx context.Context, name string) (*app.ProjectData, error) {
-	newProject := Project{
-		Version: 0,
-		Name:    name,
+func (r *GormProjectRepository) Create(ctx context.Context, name string) (*project.Project, error) {
+	newProject := project.Project{
+		Name: name,
 	}
 
 	tx := r.db.Debug().Create(&newProject)
@@ -112,15 +89,15 @@ func (r *GormProjectRepository) Create(ctx context.Context, name string) (*app.P
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("created project %v\n", newProject)
-	return newProject.ConvertFromModel(), nil
+	return &newProject, nil
 
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *int, limit *int) ([]Project, uint64, error) {
+func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *int, limit *int) ([]project.Project, uint64, error) {
 
-	db := r.db.Model(&Project{})
+	db := r.db.Model(&project.Project{})
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
@@ -142,8 +119,8 @@ func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *in
 	}
 	defer rows.Close()
 
-	result := []Project{}
-	value := Project{}
+	result := []project.Project{}
+	value := project.Project{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, InternalError{simpleError{err.Error()}}
@@ -187,20 +164,11 @@ func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *in
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormProjectRepository) List(ctx context.Context, start *int, limit *int) ([]*app.ProjectData, uint64, error) {
+func (r *GormProjectRepository) List(ctx context.Context, start *int, limit *int) ([]project.Project, uint64, error) {
 	result, count, err := r.listProjectFromDB(ctx, start, limit)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	res := make([]*app.ProjectData, len(result))
-
-	for index, value := range result {
-		if err != nil {
-			return nil, 0, InternalError{simpleError{err.Error()}}
-		}
-		res[index] = value.ConvertFromModel()
-	}
-
-	return res, count, nil
+	return result, count, nil
 }

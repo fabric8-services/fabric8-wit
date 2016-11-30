@@ -1,4 +1,4 @@
-package models
+package project
 
 import (
 	"github.com/almighty/almighty-core/app"
