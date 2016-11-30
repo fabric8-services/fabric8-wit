@@ -3,6 +3,7 @@ package login
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/configuration"
@@ -66,10 +67,23 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		AccessToken: configuration.GetGithubAuthToken(),
 		TokenType:   "Bearer",
 	}
-
 	emails, err := loginService.getUserEmails(context.Background(), accessToken)
-	assert.Nil(t, err)
-	assert.NotEmpty(t, emails)
+	var maxtries int // Number of tries to reach GitHub
+	if err != nil {
+		for maxtries = 0; maxtries < 10; maxtries++ {
+			time.Sleep(5 * time.Second) // Pause before the next retry
+			emails, err = loginService.getUserEmails(context.Background(), accessToken)
+			if err == nil {
+				assert.Nil(t, err)
+				assert.NotEmpty(t, emails)
+				break
+			}
+		}
+	}
+	if maxtries == 10 {
+		t.Error("Test failed, Maximum Retry limit reached", err) // Test failed after trial for 10 times
+	}
+
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
