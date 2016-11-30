@@ -77,9 +77,17 @@ func (r *GormProjectRepository) Save(ctx context.Context, p app.ProjectData) (*a
 		Name:    *p.Attributes.Name,
 	}
 
-	tx := r.db.Where("Version = ?", *p.Attributes.Version).Save(&newProject)
+	tx := r.db.Debug().First(&Project{}, id)
+	if tx.RecordNotFound() {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, NotFoundError{"project", p.ID}
+	}
 	if err := tx.Error; err != nil {
 		log.Print(err.Error())
+		return nil, InternalError{simpleError{err.Error()}}
+	}
+	tx = tx.Where("Version = ?", *p.Attributes.Version).Save(&newProject)
+	if err := tx.Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	if tx.RowsAffected == 0 {
@@ -97,9 +105,10 @@ func (r *GormProjectRepository) Create(ctx context.Context, name string) (*app.P
 		Name:    name,
 	}
 
-	tx := r.db.Create(&newProject)
+	tx := r.db.Debug().Create(&newProject)
 	if err := tx.Error; err != nil {
 		log.Print(err.Error())
+		log.Printf("err: %v", tx.Error)
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Printf("created project %v\n", newProject)

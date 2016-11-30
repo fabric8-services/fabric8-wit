@@ -2,10 +2,12 @@ package models
 
 import (
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/gormsupport"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
 type Project struct {
+	gormsupport.Lifecycle
 	ID      satoriuuid.UUID
 	Version int
 	Name    string

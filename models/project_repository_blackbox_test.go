@@ -7,9 +7,13 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	satoriuuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
+
+var testProject string = satoriuuid.NewV4().String()
 
 func TestRunProjectRepoBBTest(t *testing.T) {
 	suite.Run(t, &projectRepoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
@@ -18,29 +22,52 @@ func TestRunProjectRepoBBTest(t *testing.T) {
 type projectRepoBBTest struct {
 	gormsupport.DBTestSuite
 	undoScript *gormsupport.DBScript
-	repo       *models.GormProjectRepository
+	repo       *models.UndoableProjectRepository
 }
 
 func (test *projectRepoBBTest) SetupTest() {
 	test.undoScript = &gormsupport.DBScript{}
-	test.repo = models.NewProjectRepository(test.DB)
+	test.repo = models.NewUndoableProjectRepository(models.NewProjectRepository(test.DB), test.undoScript)
+	test.DB.Unscoped().Delete(&models.Project{}, "Name=?", testProject)
 }
 
-func (test *projectRepoBBTest) TestSave() {
+func (test *projectRepoBBTest) TearDownTest() {
+	test.undoScript.Run(test.DB)
+}
+
+func (test *projectRepoBBTest) TestCreate() {
+	res, err := test.repo.Create(context.Background(), testProject)
+	if err != nil {
+		test.T().Fatal(err)
+	}
+	require.NotNil(test.T(), res)
+	require.Equal(test.T(), *res.Attributes.Name, testProject)
+
+	test.failCreate("", models.BadParameterError{})
+	test.failCreate(testProject, models.InternalError{})
+}
+
+func (test *projectRepoBBTest) failCreate(name string, expected error) {
+	res, err := test.repo.Create(context.Background(), name)
+	assert.Nil(test.T(), res)
+	assert.IsType(test.T(), expected, err)
+}
+
+func (test *projectRepoBBTest) TestSaveNew() {
 	version := 0
-	name := "bla"
 	p := app.ProjectData{
 		ID: satoriuuid.NewV4().String(),
 		Attributes: &app.ProjectAttributes{
 			Version: &version,
-			Name:    &name,
+			Name:    &testProject,
 		},
 	}
 	_, err := test.repo.Save(context.Background(), p)
 	if err == nil {
-		test.repo.Delete(context.Background(), p.ID)
 		test.T().Fatal("Save succeded for new project")
-	} else {
+	} else if assert.IsType(test.T(), models.NotFoundError{}, err) {
 		test.T().Logf("got expected error: %v", err)
+	} else {
+		test.T().Errorf("unexpected error: %v", err)
 	}
 }
