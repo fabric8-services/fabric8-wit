@@ -15,8 +15,9 @@ import (
 // Following constants define "Type" value to be used in jsonapi specification based APIStinrgTypeAssignee
 // e.g> Workitem.2 Update/List API
 const (
-	APIStinrgTypeAssignee = "identities"
-	APIStinrgTypeWorkItem = "workitems"
+	APIStinrgTypeAssignee     = "identities"
+	APIStinrgTypeWorkItem     = "workitems"
+	APIStinrgTypeWorkItemType = "workitemtypes"
 )
 
 type GormWorkItem2Repository struct {
@@ -50,10 +51,10 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 			return nil, NewBadParameterError("version", version)
 		}
 	} else {
-		return nil, VersionConflictError{simpleError{"version is mandatory"}}
+		return nil, NewVersionConflictError("version is mandatory")
 	}
 	if res.Version != version {
-		return nil, VersionConflictError{simpleError{"version conflict"}}
+		return nil, NewVersionConflictError("version conflict")
 	}
 
 	newWi := WorkItem{
@@ -70,8 +71,6 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	}
 
 	rel := wi.Relationships
-	// TODO
-	// if rel.Assignee.Data == nil then remove the relationship for WI
 	if rel != nil && rel.Assignee != nil && rel.Assignee.Data != nil {
 		assigneeData := rel.Assignee.Data
 		identityRepo := account.NewIdentityRepository(r.db)
@@ -110,7 +109,7 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 
 	if err := tx.Save(&newWi).Error; err != nil {
 		log.Print(err.Error())
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, NewInternalError(err.Error())
 	}
 	log.Printf("updated item to %v\n", newWi)
 	result, err := wiType.ConvertFromModel(newWi)

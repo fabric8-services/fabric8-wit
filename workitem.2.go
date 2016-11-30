@@ -171,17 +171,17 @@ func buildAbsoluteURL(req *goa.RequestData) string {
 
 // ConvertWorkItemToJSONAPI is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2Context, wi *app.WorkItem) *app.WorkItem2 {
+func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2Context, wi app.WorkItem) *app.WorkItem2 {
 	// construct default values from input WI
 
 	absoluteURL := buildAbsoluteURL(ctx.RequestData) // it includes path hence no modifications needed
 	op := &app.WorkItem2{
-		Links: &app.WorkItemLinks{
+		Links: &app.WorkItemResourceLinksForJSONAPI{
 			Self: &absoluteURL,
 		},
 		Data: &app.WorkItemDataForUpdate{
 			ID:   wi.ID,
-			Type: "workitems",
+			Type: models.APIStinrgTypeWorkItem,
 			Attributes: map[string]interface{}{
 				"version": wi.Version,
 			},
@@ -189,7 +189,7 @@ func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2C
 				BaseType: &app.RelationshipBaseType{
 					Data: &app.BaseTypeData{
 						ID:   wi.Type,
-						Type: "workitemtypes",
+						Type: models.APIStinrgTypeWorkItemType,
 					},
 				},
 			},
@@ -204,7 +204,7 @@ func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2C
 				op.Data.Relationships.Assignee = &app.RelationAssignee{
 					Data: &app.AssigneeData{
 						ID:   &valStr,
-						Type: "identities",
+						Type: models.APIStinrgTypeAssignee,
 					},
 				}
 			}
@@ -229,16 +229,20 @@ func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 		if err != nil {
 			switch err := err.(type) {
 			case models.BadParameterError:
-				return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
 			case models.NotFoundError:
-				return ctx.NotFound()
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
+				return ctx.NotFound(jerrors)
 			case models.VersionConflictError:
-				return ctx.BadRequest(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
 			default:
 				log.Printf("Error updating work items: %s", err.Error())
-				return ctx.InternalServerError()
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
-		return ctx.OK(c.ConvertWorkItemToJSONAPI(ctx, wi))
+		return ctx.OK(c.ConvertWorkItemToJSONAPI(ctx, *wi))
 	})
 }

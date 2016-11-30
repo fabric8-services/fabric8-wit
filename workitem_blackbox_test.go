@@ -751,14 +751,6 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 
 	newUserUUID := newUser.ID.String()
 	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   &newUserUUID,
-			Type: "some_invalid_type_identities",
-		},
-	}
-
-	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 
 	// update with invalid assignee string (non-UUID)
 	maliciousUUID := "non UUID string"

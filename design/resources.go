@@ -125,13 +125,10 @@ var _ = a.Resource("workitem.2", func() {
 			// ToDo update to struct which complies to jsonapi
 			a.Media(workItem2)
 		})
-		//ToDo: Error responses need modifications as per https://github.com/almighty/almighty-core/pull/421
-		a.Response(d.BadRequest, func() {
-			a.Media(d.ErrorMedia)
-		})
-		a.Response(d.InternalServerError)
-		a.Response(d.NotFound)
-		a.Response(d.Unauthorized)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
 
