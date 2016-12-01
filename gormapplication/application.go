@@ -37,6 +37,7 @@ const (
 )
 
 var x application.Application = &GormDB{}
+
 var y application.Application = &GormTransaction{}
 
 func NewGormDB(db *gorm.DB) *GormDB {
@@ -59,6 +60,10 @@ type GormDB struct {
 
 func (g *GormBase) WorkItems() application.WorkItemRepository {
 	return models.NewWorkItemRepository(g.db)
+}
+
+func (g *GormBase) WorkItems2() application.WorkItem2Repository {
+	return models.NewWorkItem2Repository(g.db)
 }
 
 func (g *GormBase) WorkItemTypes() application.WorkItemTypeRepository {

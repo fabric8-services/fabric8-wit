@@ -41,7 +41,7 @@ type FieldType interface {
 	Equal(u convert.Equaler) bool
 }
 
-// FieldDefintion describes type & other restrictions of a field
+// FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
 	Required bool
 	Type     FieldType

@@ -58,6 +58,21 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	})
 })
 
+// workItem2 is the media type for work items
+var workItem2 = a.MediaType("application/vnd.workitem2+json", func() {
+	a.TypeName("WorkItem2")
+	a.Description("A work item holds field values according to a given field type in JSONAPI form")
+	a.Attribute("links", WorkItemResourceLinksForJSONAPI)
+	a.Attribute("data", workItemDataForUpdate)
+	a.Required("links")
+	a.Required("data")
+	a.View("default", func() {
+		a.Attribute("links")
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
 var pagingLinks = a.Type("pagingLinks", func() {
 	a.Attribute("prev", d.String)
 	a.Attribute("next", d.String)
