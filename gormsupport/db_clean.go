@@ -1,0 +1,54 @@
+package gormsupport
+
+import (
+	"fmt"
+
+	"github.com/jinzhu/gorm"
+)
+
+// DeleteCreatedEntities records all created entities on the gorm.DB connection
+// and returns a function which can be called on defer to delete created entities
+// in reverse order on function exit.
+//
+// Usage:
+//
+// func TestDatabaseActions(t *testing.T) {
+//
+// 	// setup database connection
+// 	db := ....
+// 	// setup auto clean up of created entities
+// 	defer DeleteCreatedEntities(db)()
+//
+// 	repo := NewRepo(db)
+// 	repo.Create(X)
+// 	repo.Create(X)
+// 	repo.Create(X)
+// }
+//
+// Output:
+//
+// Deleting from x 6d143405-1232-40de-bc73-835b543cd972
+// Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
+// Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
+func DeleteCreatedEntities(db *gorm.DB) func() {
+	hookName := "mighti:record"
+	type entity struct {
+		table   string
+		keyname string
+		key     interface{}
+	}
+	var entires []entity
+	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
+		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
+	})
+	return func() {
+		defer db.Callback().Create().Remove(hookName)
+		tx := db.Begin()
+		for i := len(entires) - 1; i >= 0; i-- {
+			entry := entires[i]
+			fmt.Println("Deleting from", entry.table, entry.key)
+			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
+		}
+		tx.Commit()
+	}
+}
