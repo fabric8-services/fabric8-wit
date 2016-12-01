@@ -523,7 +523,7 @@ var RelationWorkItemData = a.Type("RelationWorkItemData", func() {
 	a.Required("type", "id")
 })
 
-// WorkItemLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
+// WorkItemResourceLinksForJSONAPI has `self` as of now according to http://jsonapi.org/format/#fetching-resources
 var WorkItemResourceLinksForJSONAPI = a.Type("WorkItemResourceLinksForJSONAPI", func() {
 	a.Attribute("self", d.String, func() {
 		a.Example("http://api.almighty.io/api/workitems.2/1")
