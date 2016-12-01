@@ -26,6 +26,9 @@ type Workitem2Controller struct {
 
 // NewWorkitem2Controller creates a workitem.2 controller.
 func NewWorkitem2Controller(service *goa.Service, db application.DB) *Workitem2Controller {
+	if db == nil {
+		panic("db must not be nil")
+	}
 	return &Workitem2Controller{Controller: service.NewController("WorkitemController"), db: db}
 }
 
@@ -164,4 +167,82 @@ func buildAbsoluteURL(req *goa.RequestData) string {
 		scheme = "https"
 	}
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
+}
+
+// ConvertWorkItemToJSONAPI is responsible for converting given WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2Context, wi app.WorkItem) *app.WorkItem2 {
+	// construct default values from input WI
+
+	absoluteURL := buildAbsoluteURL(ctx.RequestData) // it includes path hence no modifications needed
+	op := &app.WorkItem2{
+		Links: &app.WorkItemResourceLinksForJSONAPI{
+			Self: &absoluteURL,
+		},
+		Data: &app.WorkItemDataForUpdate{
+			ID:   wi.ID,
+			Type: models.APIStinrgTypeWorkItem,
+			Attributes: map[string]interface{}{
+				"version": wi.Version,
+			},
+			Relationships: &app.WorkItemRelationships{
+				BaseType: &app.RelationshipBaseType{
+					Data: &app.BaseTypeData{
+						ID:   wi.Type,
+						Type: models.APIStinrgTypeWorkItemType,
+					},
+				},
+			},
+		},
+	}
+	// Move fields into Relationships or Attributes as needed
+	for name, val := range wi.Fields {
+		switch name {
+		case models.SystemAssignee:
+			if val != nil {
+				valStr := val.(string)
+				op.Data.Relationships.Assignee = &app.RelationAssignee{
+					Data: &app.AssigneeData{
+						ID:   &valStr,
+						Type: models.APIStinrgTypeAssignee,
+					},
+				}
+			}
+		default:
+			op.Data.Attributes[name] = val
+		}
+	}
+	return op
+}
+
+// Update does PATCH workitem
+func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+
+		toSave := app.WorkItemDataForUpdate{
+			ID:            ctx.Payload.Data.ID,
+			Type:          ctx.Payload.Data.Type,
+			Relationships: ctx.Payload.Data.Relationships,
+			Attributes:    ctx.Payload.Data.Attributes,
+		}
+		wi, err := appl.WorkItems2().Save(ctx, toSave)
+		if err != nil {
+			switch err := err.(type) {
+			case models.BadParameterError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			case models.NotFoundError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
+				return ctx.NotFound(jerrors)
+			case models.VersionConflictError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			default:
+				log.Printf("Error updating work items: %s", err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
+			}
+		}
+		return ctx.OK(c.ConvertWorkItemToJSONAPI(ctx, *wi))
+	})
 }

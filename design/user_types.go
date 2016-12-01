@@ -38,6 +38,71 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Required("type", "fields", "version")
 })
 
+// UpdateWorkItemJSONAPIPayload defines top level structure from jsonapi specs
+// visit : http://jsonapi.org/format/#document-top-level
+var updateWorkItemJSONAPIPayload = a.Type("UpdateWorkItemJSONAPIPayload", func() {
+	a.Attribute("data", workItemDataForUpdate)
+	a.Required("data")
+})
+
+// WorkItemDataForUpdate defines how an update payload will look like
+var workItemDataForUpdate = a.Type("WorkItemDataForUpdate", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitems")
+	})
+	a.Attribute("id", d.String, "ID of the work item which is being updated", func() {
+		a.Example("42")
+	})
+	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
+		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
+	})
+	a.Attribute("relationships", workItemRelationships)
+	// relationships must be required becasue we MUST have workItemType during PATCh
+	a.Required("type", "id", "attributes")
+})
+
+// WorkItemRelationships defines only `assignee` as of now. To be updated
+var workItemRelationships = a.Type("WorkItemRelationships", func() {
+	a.Attribute("assignee", RelationAssignee, "This deinfes assignees of the WI")
+	a.Attribute("baseType", RelationBaseType, "This defines type of Work Item")
+	// baseType relationship must present while updating work item
+})
+
+// RelationAssignee is a top level structure for assignee relationship
+var RelationAssignee = a.Type("RelationAssignee", func() {
+	a.Attribute("data", AssigneeData)
+	a.Required("data")
+})
+
+// AssigneeData defines what is needed inside Assignee Relationship
+var AssigneeData = a.Type("AssigneeData", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("identities")
+	})
+	a.Attribute("id", d.String, "UUID of the identity", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
+	})
+	a.Required("type")
+	// a.Required("id") if ID is nil then we remove assignee
+})
+
+// RelationBaseType is top level block for WorkItemType relationship
+var RelationBaseType = a.Type("RelationshipBaseType", func() {
+	a.Attribute("data", BaseTypeData)
+	a.Required("data")
+})
+
+// BaseTypeData is data block for `type` of a work item
+var BaseTypeData = a.Type("BaseTypeData", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitemtypes")
+	})
+	a.Attribute("id", d.String, func() {
+		a.Example("system.userstory")
+	})
+	a.Required("type", "id")
+})
+
 // CreateWorkItemTypePayload explains how input payload should look like
 var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 	a.Attribute("name", d.String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
@@ -456,4 +521,11 @@ var RelationWorkItemData = a.Type("RelationWorkItemData", func() {
 		a.Example("1234")
 	})
 	a.Required("type", "id")
+})
+
+// WorkItemResourceLinksForJSONAPI has `self` as of now according to http://jsonapi.org/format/#fetching-resources
+var WorkItemResourceLinksForJSONAPI = a.Type("WorkItemResourceLinksForJSONAPI", func() {
+	a.Attribute("self", d.String, func() {
+		a.Example("http://api.almighty.io/api/workitems.2/1")
+	})
 })
