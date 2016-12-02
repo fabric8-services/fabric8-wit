@@ -285,9 +285,6 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.Gor
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *models.GormWorkItemTypeRepository) error {
-	// FIXME: Need to add this conditionally
-	// q := `ALTER TABLE "tracker_queries" ADD CONSTRAINT "tracker_fk" FOREIGN KEY ("tracker") REFERENCES "trackers" ON DELETE CASCADE`
-	// db.Exec(q)
 
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
 		return err
