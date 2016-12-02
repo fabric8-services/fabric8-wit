@@ -71,7 +71,7 @@ type createWorkItemLinkFuncs interface {
 	Created(r *app.WorkItemLink) error
 }
 
-func createWorkItemLink(ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs createWorkItemLinkFuncs, wiIDStr *string, payload *app.CreateWorkItemLinkPayload) error {
+func createWorkItemLink(appl application.Application, ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
 	// Convert payload from app to model representation
 	model := models.WorkItemLink{}
 	in := app.WorkItemLink{
@@ -79,126 +79,126 @@ func createWorkItemLink(ctx context.Context, db application.DB, responseData *go
 	}
 	err := models.ConvertLinkToModel(in, &model)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
+		return funcs.BadRequest(jerrors)
 	}
-	return application.Transactional(db, func(appl application.Application) error {
-		link, err := appl.WorkItemLinks().Create(ctx, wiIDStr, model.SourceID, model.TargetID, model.LinkTypeID)
-		if err != nil {
-			switch err.(type) {
-			case models.NotFoundError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
-				return funcs.BadRequest(jerrors)
-			default:
-				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-				return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-			}
-		}
-		if err := enrichLinkWithType(appl, ctx, link); err != nil {
+	link, err := appl.WorkItemLinks().Create(ctx, model.SourceID, model.TargetID, model.LinkTypeID)
+	if err != nil {
+		switch err.(type) {
+		case models.NotFoundError:
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+			return funcs.BadRequest(jerrors)
+		default:
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 		}
-		responseData.Header().Set("Location", app.WorkItemLinkHref(link.Data.ID))
-		return funcs.Created(link)
-	})
+	}
+	if err := enrichLinkWithType(appl, ctx, link); err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	responseData.Header().Set("Location", app.WorkItemLinkHref(link.Data.ID))
+	return funcs.Created(link)
 }
 
 // Create runs the create action.
 func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) error {
-	return createWorkItemLink(ctx.Context, c.db, ctx.ResponseData, ctx, nil, ctx.Payload)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		return createWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.Payload)
+	})
 }
 
 type deleteWorkItemLinkFuncs interface {
 	OK(resp []byte) error
 }
 
-func deleteWorkItemLink(ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs deleteWorkItemLinkFuncs, wiIDStr *string, linkID string) error {
-	return application.Transactional(db, func(appl application.Application) error {
-		err := appl.WorkItemLinks().Delete(ctx, wiIDStr, linkID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		return funcs.OK([]byte{})
-	})
+func deleteWorkItemLink(appl application.Application, ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs deleteWorkItemLinkFuncs, linkID string) error {
+	err := appl.WorkItemLinks().Delete(ctx, linkID)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	return funcs.OK([]byte{})
 }
 
 // Delete runs the delete action
 func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) error {
-	return deleteWorkItemLink(ctx.Context, c.db, ctx.ResponseData, ctx, nil, ctx.LinkID)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		return deleteWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.LinkID)
+	})
 }
 
 type listWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLinkArray) error
 }
 
-func listWorkItemLink(ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs listWorkItemLinkFuncs, wiIDStr *string) error {
-	return application.Transactional(db, func(appl application.Application) error {
-		linkArr, err := appl.WorkItemLinks().List(ctx, wiIDStr)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		if err := enrichLinkArrayWithTypes(appl, ctx, linkArr); err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		return funcs.OK(linkArr)
-	})
+func listWorkItemLink(appl application.Application, ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs listWorkItemLinkFuncs, wiIDStr *string) error {
+	linkArr, err := appl.WorkItemLinks().List(ctx, wiIDStr)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	if err := enrichLinkArrayWithTypes(appl, ctx, linkArr); err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	return funcs.OK(linkArr)
 }
 
 // List runs the list action.
 func (c *WorkItemLinkController) List(ctx *app.ListWorkItemLinkContext) error {
-	return listWorkItemLink(ctx.Context, c.db, ctx.ResponseData, ctx, nil)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		return listWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, nil)
+	})
 }
 
 type showWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLink) error
 }
 
-func showWorkItemLink(ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs showWorkItemLinkFuncs, wiIDStr *string, linkID string) error {
-	return application.Transactional(db, func(appl application.Application) error {
-		link, err := appl.WorkItemLinks().Load(ctx, wiIDStr, linkID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		if err := enrichLinkWithType(appl, ctx, link); err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		return funcs.OK(link)
-	})
+func showWorkItemLink(appl application.Application, ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs showWorkItemLinkFuncs, linkID string) error {
+	link, err := appl.WorkItemLinks().Load(ctx, linkID)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	if err := enrichLinkWithType(appl, ctx, link); err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	return funcs.OK(link)
 }
 
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
-	return showWorkItemLink(ctx.Context, c.db, ctx.ResponseData, ctx, nil, ctx.LinkID)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		return showWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.LinkID)
+	})
 }
 
 type updateWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLink) error
 }
 
-func updateWorkItemLink(ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs updateWorkItemLinkFuncs, wiIDStr *string, payload *app.UpdateWorkItemLinkPayload) error {
-	return application.Transactional(db, func(appl application.Application) error {
-		toSave := app.WorkItemLink{
-			Data: payload.Data,
-		}
-		link, err := appl.WorkItemLinks().Save(ctx, wiIDStr, toSave)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		if err := enrichLinkWithType(appl, ctx, link); err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
-		}
-		return funcs.OK(link)
-	})
+func updateWorkItemLink(appl application.Application, ctx context.Context, db application.DB, responseData *goa.ResponseData, funcs updateWorkItemLinkFuncs, payload *app.UpdateWorkItemLinkPayload) error {
+	toSave := app.WorkItemLink{
+		Data: payload.Data,
+	}
+	link, err := appl.WorkItemLinks().Save(ctx, toSave)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	if err := enrichLinkWithType(appl, ctx, link); err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
+	}
+	return funcs.OK(link)
 }
 
 // Update runs the update action.
 func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) error {
-	return updateWorkItemLink(ctx.Context, c.db, ctx.ResponseData, ctx, nil, ctx.Payload)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		return updateWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.Payload)
+	})
 }
