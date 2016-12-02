@@ -41,8 +41,8 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Check that current work item does indeed exist
 		if _, err := appl.WorkItems().Load(ctx.Context, ctx.ID); err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
-			return ctx.BadRequest(jerrors)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Check that the source ID of the link is the same as the current work
 		// item ID.
@@ -75,8 +75,8 @@ func (c *WorkItemRelationshipsLinksController) Delete(ctx *app.DeleteWorkItemRel
 		// Check work item link exists
 		wil, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
-			return ctx.BadRequest(jerrors)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Only allow deletion if the current work item is at the source of the link
 		src, _ := getSrcTgt(wil.Data)
@@ -101,8 +101,8 @@ func (c *WorkItemRelationshipsLinksController) Show(ctx *app.ShowWorkItemRelatio
 		// Check work item link exists
 		wil, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
-			return ctx.BadRequest(jerrors)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Only allow showing if the current work item is at the source or at the target of the link
 		src, tgt := getSrcTgt(wil.Data)
@@ -120,8 +120,8 @@ func (c *WorkItemRelationshipsLinksController) Update(ctx *app.UpdateWorkItemRel
 		// Check work item link exists
 		wil, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
-			return ctx.BadRequest(jerrors)
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Only allow updating if the current work item is at the source of the current link
 		src, _ := getSrcTgt(wil.Data)
