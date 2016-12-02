@@ -82,9 +82,9 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, wiIDStr *string
 		return nil, err
 	}
 	if wiIDStr != nil {
-		// Check that the source is the same as the work item ID
-		if sourceID != wi.ID {
-			return nil, NewBadParameterError("work item link source", sourceID).Expected(wi.ID)
+		// Check that the given work item ID is either the target or the source
+		if sourceID != wi.ID && sourceID != wi.ID {
+			return nil, NewBadParameterError("one of work item link IDs (source or target) has to be the given work item ID", "").Expected(*wiIDStr)
 		}
 	}
 	link := &WorkItemLink{
