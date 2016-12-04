@@ -1,6 +1,9 @@
 package test
 
-import "github.com/almighty/almighty-core/application"
+import (
+	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/comment"
+)
 
 func NewMockDB() *MockDB {
 	return &MockDB{wir: &WorkItemRepository{}}
@@ -40,6 +43,10 @@ func (db *MockDB) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
 func (db *MockDB) WorkItemLinks() application.WorkItemLinkRepository {
 	return nil
 }
+func (db *MockDB) WorkItemComments() comment.Repository {
+	return nil
+}
+
 func (db *MockDB) Commit() error {
 	return nil
 }

@@ -104,6 +104,9 @@ func getMigrations() migrations {
 	// Version 9
 	m = append(m, steps{executeSQLFile("009-drop-wit-trigger.sql")})
 
+	// Version 10
+	m = append(m, steps{executeSQLFile("010-comments.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
