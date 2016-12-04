@@ -5,12 +5,13 @@ import (
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -18,14 +19,14 @@ import (
 
 func TestListIdentities(t *testing.T) {
 	resource.Require(t, resource.Database)
-	DB.Unscoped().Delete(&account.Identity{})
-	pub, _ := almtoken.ParsePublicKey(configuration.GetTokenPublicKey())
-	priv, _ := almtoken.ParsePrivateKey(configuration.GetTokenPrivateKey())
-	service := testsupport.ServiceAsUser("TestListIdentities-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 
+	service := goa.New("Test-Identities")
 	identityController := NewIdentityController(service, gormapplication.NewGormDB(DB))
 	_, ic := test.ListIdentityOK(t, service.Context, service, identityController)
 	require.NotNil(t, ic)
+
+	numberOfCurrentIdent := len(ic.Data)
 
 	ctx := context.Background()
 	identityRepo := account.NewIdentityRepository(DB)
@@ -38,14 +39,13 @@ func TestListIdentities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		DB.Unscoped().Delete(&identity)
-	}()
 
 	_, ic2 := test.ListIdentityOK(t, service.Context, service, identityController)
 	require.NotNil(t, ic2)
-	assert.Equal(t, identity.FullName, *ic2.Data[0].Attributes.FullName)
-	assert.Equal(t, identity.ImageURL, *ic2.Data[0].Attributes.ImageURL)
+
+	assert.Equal(t, numberOfCurrentIdent+1, len(ic2.Data))
+
+	assertIdent(t, findIdent(identity.ID, ic2.Data), identity.FullName, identity.ImageURL)
 
 	identity2 := account.Identity{
 		FullName: "Test User 2",
@@ -56,15 +56,25 @@ func TestListIdentities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		DB.Unscoped().Delete(&identity2)
-	}()
 
 	_, ic3 := test.ListIdentityOK(t, service.Context, service, identityController)
 	require.NotNil(t, ic3)
-	assert.Equal(t, identity.FullName, *ic3.Data[0].Attributes.FullName)
-	assert.Equal(t, identity.ImageURL, *ic3.Data[0].Attributes.ImageURL)
+	assert.Equal(t, numberOfCurrentIdent+2, len(ic3.Data))
 
-	assert.Equal(t, identity2.FullName, *ic3.Data[1].Attributes.FullName)
-	assert.Equal(t, identity2.ImageURL, *ic3.Data[1].Attributes.ImageURL)
+	assertIdent(t, findIdent(identity.ID, ic3.Data), identity.FullName, identity.ImageURL)
+	assertIdent(t, findIdent(identity2.ID, ic3.Data), identity2.FullName, identity2.ImageURL)
+}
+
+func findIdent(id uuid.UUID, idents []*app.IdentityData) *app.IdentityData {
+	for _, ident := range idents {
+		if *ident.ID == id.String() {
+			return ident
+		}
+	}
+	return nil
+}
+
+func assertIdent(t *testing.T, ident *app.IdentityData, fullName, imageURL string) {
+	assert.Equal(t, fullName, *ident.Attributes.FullName)
+	assert.Equal(t, imageURL, *ident.Attributes.ImageURL)
 }
