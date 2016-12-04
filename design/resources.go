@@ -205,7 +205,6 @@ var _ = a.Resource("identity", func() {
 	a.BasePath("/identities")
 
 	a.Action("list", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)
