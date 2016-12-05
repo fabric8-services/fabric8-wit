@@ -1,7 +1,6 @@
 package project
 
 import (
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	satoriuuid "github.com/satori/go.uuid"
@@ -13,17 +12,6 @@ type Project struct {
 	ID      satoriuuid.UUID
 	Version int
 	Name    string
-}
-
-// Converts a project to the API layer representation
-func (p *Project) ConvertFromModel() *app.ProjectData {
-	return &app.ProjectData{
-		ID:   p.ID.String(),
-		Type: "projects",
-		Attributes: &app.ProjectAttributes{
-			Name: &p.Name,
-		},
-	}
 }
 
 // Ensure Fields implements the Equaler interface

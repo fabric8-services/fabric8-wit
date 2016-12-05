@@ -61,6 +61,8 @@ type WorkItemLinkRepository interface {
 	List(ctx context.Context) (*app.WorkItemLinkArray, error)
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
+}
+
 // ProjectRepository encapsulate storage & retrieval of projects
 type ProjectRepository interface {
 	Create(ctx context.Context, name string) (*project.Project, error)

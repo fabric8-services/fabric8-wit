@@ -529,3 +529,4 @@ var WorkItemResourceLinksForJSONAPI = a.Type("WorkItemResourceLinksForJSONAPI", 
 		a.Example("http://api.almighty.io/api/workitems.2/1")
 	})
 
+})
