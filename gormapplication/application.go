@@ -46,7 +46,7 @@ func NewGormDB(db *gorm.DB) *GormDB {
 	return &GormDB{GormBase{db}, ""}
 }
 
-// GormTransactionSupport implements TransactionSupport for gorm
+// GormBase is a base struct for gorm implementations of db & transaction
 type GormBase struct {
 	db *gorm.DB
 }
