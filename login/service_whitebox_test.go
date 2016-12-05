@@ -73,20 +73,17 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		for trials = 0; trials < 10; trials++ {
 			emails, err = loginService.getUserEmails(context.Background(), accessToken)
 			if err == nil {
-				assert.Nil(t, err)
 				assert.NotEmpty(t, emails)
 				break
 			}
 			time.Sleep(5 * time.Second) // Pause before the next retry
 		}
+		if trials == 10 {
+			t.Error("Test failed, Maximum Retry limit reached", err) // Test failed after trial for 10 times
+		}
 	} else {
-		assert.Nil(t, err)
 		assert.NotEmpty(t, emails)
 	}
-	if trials == 10 {
-		t.Error("Test failed, Maximum Retry limit reached", err) // Test failed after trial for 10 times
-	}
-
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
