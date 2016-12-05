@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/convert"
+	"github.com/jinzhu/gorm"
 )
 
 // The Lifecycle struct contains all the items from gorm.Model except the ID field,
@@ -12,6 +13,14 @@ type Lifecycle struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time
+}
+
+func init() {
+	oldFunc := gorm.NowFunc
+	// we use microsecond precision timestamps in the db, so also use ms precision timestamps in gorm callbacks.
+	gorm.NowFunc = func() time.Time {
+		return oldFunc().Round(time.Microsecond)
+	}
 }
 
 // Ensure Lifecyle implements the Equaler interface
