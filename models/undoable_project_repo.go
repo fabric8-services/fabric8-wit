@@ -1,8 +1,6 @@
 package models
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/application"
@@ -72,7 +70,7 @@ func (r *UndoableProjectRepository) Delete(ctx context.Context, ID satoriuuid.UU
 	old := project.Project{}
 	db := r.wrapped.db.First(&old, ID)
 	if db.Error != nil {
-		return NewInternalError(fmt.Sprintf("could not load %s, %s", ID, db.Error.Error()))
+		return NewNotFoundError("project", ID.String())
 	}
 
 	err := r.wrapped.Delete(ctx, ID)
