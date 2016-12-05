@@ -141,7 +141,7 @@ func (test *projectRepoBBTest) assertBadParameter() func(p *project.Project, err
 func (test *projectRepoBBTest) assertErrorType(e error) func(p *project.Project, e2 error) {
 	return func(p *project.Project, err error) {
 		assert.Nil(test.T(), p)
-		assert.IsType(test.T(), e, err)
+		assert.IsType(test.T(), e, err, "error was %v", err)
 	}
 }
 
