@@ -21,41 +21,44 @@ type GormProjectRepository struct {
 }
 
 // Load returns the project for the given id
+// returns NotFoundError or InternalError
 func (r *GormProjectRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*project.Project, error) {
 	log.Printf("loading project %v", ID)
 	res := project.Project{}
-	tx := r.db.First(&res, ID)
+	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"project", ID.String()}
+		return nil, NewNotFoundError("project", ID.String())
 	}
 	if tx.Error != nil {
-		return nil, InternalError{simpleError{tx.Error.Error()}}
+		return nil, NewInternalError(tx.Error.Error())
 	}
 	return &res, nil
 }
 
-// Delete deletes the work item with the given id
+// Delete deletes the project with the given id
 // returns NotFoundError or InternalError
 func (r *GormProjectRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	project := project.Project{ID: ID}
 	tx := r.db.Delete(project)
 
 	if err := tx.Error; err != nil {
-		return InternalError{simpleError{err.Error()}}
+		return NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
-		return NotFoundError{entity: "project", ID: ID.String()}
+		return NewNotFoundError("project", ID.String())
 	}
 
 	return nil
 }
 
-// Save updates the given work item in storage. Version must be the same as the one int the stored version
-// returns NotFoundError, VersionConflictError, ConversionError or InternalError
+// Save updates the given project in the db. Version must be the same as the one in the stored version
+// returns NotFoundError, BadParameterError, VersionConflictError or InternalError
 func (r *GormProjectRepository) Save(ctx context.Context, p project.Project) (*project.Project, error) {
-	tx := r.db.Debug().First(&project.Project{}, p.ID)
-	p.Version = p.Version + 1
+	pr := project.Project{}
+	tx := r.db.Where("id=?", p.ID).First(&pr)
+	oldVersion := p.Version
+	p.Version++
 	if tx.RecordNotFound() {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, NotFoundError{"project", p.ID.String()}
@@ -64,8 +67,14 @@ func (r *GormProjectRepository) Save(ctx context.Context, p project.Project) (*p
 		log.Print(err.Error())
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	tx = tx.Where("Version = ?", p.Version).Save(&p)
+	tx = tx.Where("Version = ?", oldVersion).Save(&p)
 	if err := tx.Error; err != nil {
+		if isCheckViolation(tx.Error, "projects_name_check") {
+			return nil, NewBadParameterError("Name", p.Name).Expected("not empty")
+		}
+		if isUniqueViolation(tx.Error, "projects_name_idx") {
+			return nil, NewBadParameterError("Name", p.Name).Expected("unique")
+		}
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	if tx.RowsAffected == 0 {
@@ -75,22 +84,27 @@ func (r *GormProjectRepository) Save(ctx context.Context, p project.Project) (*p
 	return &p, nil
 }
 
-// Create creates a new work item in the repository
-// returns BadParameterError, ConversionError or InternalError
+// Create creates a new Project in the db
+// returns BadParameterError or InternalError
 func (r *GormProjectRepository) Create(ctx context.Context, name string) (*project.Project, error) {
 	newProject := project.Project{
 		Name: name,
 	}
 
-	tx := r.db.Debug().Create(&newProject)
+	tx := r.db.Create(&newProject)
 	if err := tx.Error; err != nil {
 		log.Print(err.Error())
 		log.Printf("err: %v", tx.Error)
-		return nil, InternalError{simpleError{err.Error()}}
+		if isCheckViolation(tx.Error, "projects_name_check") {
+			return nil, NewBadParameterError("Name", name).Expected("not empty")
+		}
+		if isUniqueViolation(tx.Error, "projects_name_idx") {
+			return nil, NewBadParameterError("Name", name).Expected("unique")
+		}
+		return nil, NewInternalError(err.Error())
 	}
 	log.Printf("created project %v\n", newProject)
 	return &newProject, nil
-
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
@@ -123,7 +137,7 @@ func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *in
 	value := project.Project{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, InternalError{simpleError{err.Error()}}
+		return nil, 0, NewInternalError(err.Error())
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -142,7 +156,7 @@ func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *in
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, InternalError{simpleError{err.Error()}}
+				return nil, 0, NewInternalError(err.Error())
 			}
 		}
 		result = append(result, value)

@@ -24,6 +24,11 @@ func (db *MockDB) WorkItems2() workitem.WorkItem2Repository {
 func (db *MockDB) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return nil
 }
+
+func (db *MockDB) Projects() application.ProjectRepository {
+	return nil
+}
+
 func (db *MockDB) Trackers() application.TrackerRepository {
 	return nil
 }
