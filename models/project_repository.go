@@ -23,11 +23,9 @@ type GormProjectRepository struct {
 // Load returns the project for the given id
 // returns NotFoundError or InternalError
 func (r *GormProjectRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*project.Project, error) {
-	log.Printf("loading project %v", ID)
 	res := project.Project{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
 		return nil, NewNotFoundError("project", ID.String())
 	}
 	if tx.Error != nil {
@@ -64,8 +62,7 @@ func (r *GormProjectRepository) Save(ctx context.Context, p project.Project) (*p
 		return nil, NotFoundError{"project", p.ID.String()}
 	}
 	if err := tx.Error; err != nil {
-		log.Print(err.Error())
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, NewInternalError(err.Error())
 	}
 	tx = tx.Where("Version = ?", oldVersion).Save(&p)
 	if err := tx.Error; err != nil {
@@ -75,10 +72,10 @@ func (r *GormProjectRepository) Save(ctx context.Context, p project.Project) (*p
 		if isUniqueViolation(tx.Error, "projects_name_idx") {
 			return nil, NewBadParameterError("Name", p.Name).Expected("unique")
 		}
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
-		return nil, VersionConflictError{simpleError{"version conflict"}}
+		return nil, NewVersionConflictError("version conflict")
 	}
 	log.Printf("updated project to %v\n", p)
 	return &p, nil
@@ -93,8 +90,6 @@ func (r *GormProjectRepository) Create(ctx context.Context, name string) (*proje
 
 	tx := r.db.Create(&newProject)
 	if err := tx.Error; err != nil {
-		log.Print(err.Error())
-		log.Printf("err: %v", tx.Error)
 		if isCheckViolation(tx.Error, "projects_name_check") {
 			return nil, NewBadParameterError("Name", name).Expected("not empty")
 		}
