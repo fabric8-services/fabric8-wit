@@ -363,10 +363,12 @@ var WorkItemLink = a.MediaType("application/vnd.work-item-link+json", func() {
 	a.Description(`Defines a connection between two work items`)
 	a.Attributes(func() {
 		a.Attribute("data", WorkItemLinkData)
+		a.Attribute("included", a.ArrayOf(WorkItemLinkTypeData))
 		a.Required("data")
 	})
 	a.View("default", func() {
 		a.Attribute("data")
+		a.Attribute("included")
 		a.Required("data")
 	})
 })
@@ -379,10 +381,12 @@ var WorkItemLinkArray = a.MediaType("application/vnd.work-item-link-array+json",
 	a.Attributes(func() {
 		a.Attribute("meta", WorkItemLinkArrayMeta)
 		a.Attribute("data", a.ArrayOf(WorkItemLinkData))
+		a.Attribute("included", a.ArrayOf(WorkItemLinkTypeData))
 		a.Required("data")
 	})
 	a.View("default", func() {
 		a.Attribute("data")
+		a.Attribute("included")
 		a.Attribute("meta")
 		a.Required("data")
 	})

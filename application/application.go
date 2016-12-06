@@ -1,6 +1,9 @@
 package application
 
-import "github.com/almighty/almighty-core/comment"
+import (
+	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/link"
+)
 
 //An Application stands for a particular implementation of the business logic of our application
 type Application interface {
@@ -11,9 +14,9 @@ type Application interface {
 	TrackerQueries() TrackerQueryRepository
 	SearchItems() SearchRepository
 	Identities() IdentityRepository
-	WorkItemLinkCategories() WorkItemLinkCategoryRepository
-	WorkItemLinkTypes() WorkItemLinkTypeRepository
-	WorkItemLinks() WorkItemLinkRepository
+	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
+	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
+	WorkItemLinks() link.WorkItemLinkRepository
 	WorkItemComments() comment.Repository
 }
 

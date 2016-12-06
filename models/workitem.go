@@ -1,6 +1,8 @@
 package models
 
 import (
+	"strconv"
+
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 )
@@ -46,4 +48,13 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 	return wi.Fields.Equal(other.Fields)
+}
+
+// ParseWorkItemIDToUint64 does what it says
+func ParseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
+	wiID, err := strconv.ParseUint(wiIDStr, 10, 64)
+	if err != nil {
+		return 0, NewBadParameterError("work item ID", wiIDStr)
+	}
+	return wiID, nil
 }

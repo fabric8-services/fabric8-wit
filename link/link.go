@@ -1,4 +1,4 @@
-package models
+package link
 
 import (
 	"strconv"
@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/models"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
@@ -56,7 +57,7 @@ func (self WorkItemLink) Equal(u convert.Equaler) bool {
 // cannot be used for the creation of a new work item link.
 func (t *WorkItemLink) CheckValidForCreation() error {
 	if satoriuuid.Equal(t.LinkTypeID, satoriuuid.Nil) {
-		return NewBadParameterError("link_type_id", t.LinkTypeID)
+		return models.NewBadParameterError("link_type_id", t.LinkTypeID)
 	}
 	return nil
 }
@@ -110,13 +111,13 @@ func ConvertLinkToModel(in app.WorkItemLink, out *WorkItemLink) error {
 		if err != nil {
 			//log.Printf("Error when converting %s to UUID: %s", *in.Data.ID, err.Error())
 			// treat as not found: clients don't know it must be a UUID
-			return NewNotFoundError("work item link", id.String())
+			return models.NewNotFoundError("work item link", id.String())
 		}
 		out.ID = id
 	}
 
 	if in.Data.Type != EndpointWorkItemLinks {
-		return NewBadParameterError("data.type", in.Data.Type).Expected(EndpointWorkItemLinks)
+		return models.NewBadParameterError("data.type", in.Data.Type).Expected(EndpointWorkItemLinks)
 	}
 
 	if attrs != nil {
@@ -129,16 +130,16 @@ func ConvertLinkToModel(in app.WorkItemLink, out *WorkItemLink) error {
 		d := rel.LinkType.Data
 		// If the the link category is not nil, it MUST be "workitemlinktypes"
 		if d.Type != EndpointWorkItemLinkTypes {
-			return NewBadParameterError("data.relationships.link_type.data.type", d.Type).Expected(EndpointWorkItemLinkTypes)
+			return models.NewBadParameterError("data.relationships.link_type.data.type", d.Type).Expected(EndpointWorkItemLinkTypes)
 		}
 		// The the link type id MUST NOT be empty
 		if d.ID == "" {
-			return NewBadParameterError("data.relationships.link_type.data.id", d.ID)
+			return models.NewBadParameterError("data.relationships.link_type.data.id", d.ID)
 		}
 		if out.LinkTypeID, err = satoriuuid.FromString(d.ID); err != nil {
 			//log.Printf("Error when converting %s to UUID: %s", in.Data.ID, err.Error())
 			// treat as not found: clients don't know it must be a UUID
-			return NewNotFoundError("work item link type", d.ID)
+			return models.NewNotFoundError("work item link type", d.ID)
 		}
 	}
 
@@ -146,14 +147,14 @@ func ConvertLinkToModel(in app.WorkItemLink, out *WorkItemLink) error {
 		d := rel.Source.Data
 		// If the the source type is not nil, it MUST be "workitems"
 		if d.Type != EndpointWorkItems {
-			return NewBadParameterError("data.relationships.source.data.type", d.Type).Expected(EndpointWorkItems)
+			return models.NewBadParameterError("data.relationships.source.data.type", d.Type).Expected(EndpointWorkItems)
 		}
 		// The the work item id MUST NOT be empty
 		if d.ID == "" {
-			return NewBadParameterError("data.relationships.source.data.id", d.ID)
+			return models.NewBadParameterError("data.relationships.source.data.id", d.ID)
 		}
 		if out.SourceID, err = strconv.ParseUint(d.ID, 10, 64); err != nil {
-			return NewBadParameterError("data.relationships.source.data.id", d.ID)
+			return models.NewBadParameterError("data.relationships.source.data.id", d.ID)
 		}
 	}
 
@@ -161,14 +162,14 @@ func ConvertLinkToModel(in app.WorkItemLink, out *WorkItemLink) error {
 		d := rel.Target.Data
 		// If the the target type is not nil, it MUST be "workitems"
 		if d.Type != EndpointWorkItems {
-			return NewBadParameterError("data.relationships.target.data.type", d.Type).Expected(EndpointWorkItems)
+			return models.NewBadParameterError("data.relationships.target.data.type", d.Type).Expected(EndpointWorkItems)
 		}
 		// The the work item id MUST NOT be empty
 		if d.ID == "" {
-			return NewBadParameterError("data.relationships.target.data.id", d.ID)
+			return models.NewBadParameterError("data.relationships.target.data.id", d.ID)
 		}
 		if out.TargetID, err = strconv.ParseUint(d.ID, 10, 64); err != nil {
-			return NewBadParameterError("data.relationships.target.data.id", d.ID)
+			return models.NewBadParameterError("data.relationships.target.data.id", d.ID)
 		}
 	}
 

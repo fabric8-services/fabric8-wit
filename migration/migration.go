@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/link"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
@@ -222,7 +223,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *models.GormWorkI
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, models.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return err
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, models.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", models.TopologyNetwork, "blocks", "blocked by", models.SystemBug, models.SystemPlannerItem, models.SystemWorkItemLinkCategorySystem); err != nil {

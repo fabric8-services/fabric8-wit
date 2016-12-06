@@ -3,6 +3,7 @@ package main_test
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"testing"
@@ -42,6 +43,7 @@ type workItemLinkSuite struct {
 	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
 	workItemLinkCtrl         *WorkItemLinkController
 	workItemCtrl             *WorkitemController
+	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
 	workItemSvc              *goa.Service
 
 	// These IDs can safely be used by all tests
@@ -98,6 +100,11 @@ func (s *workItemLinkSuite) SetupSuite() {
 	require.NotNil(s.T(), svc)
 	s.workItemLinkCtrl = NewWorkItemLinkController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemLinkCtrl)
+
+	svc = goa.New("TestWorkItemRelationshipsLinks-Service")
+	require.NotNil(s.T(), svc)
+	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
 	s.workItemSvc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
 	require.NotNil(s.T(), s.workItemSvc)
@@ -179,7 +186,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug3Payload)
 	require.NotNil(s.T(), bug3)
 	s.deleteWorkItems = append(s.deleteWorkItems, bug3.ID)
-	s.bug3ID, err = strconv.ParseUint(bug2.ID, 10, 64)
+	s.bug3ID, err = strconv.ParseUint(bug3.ID, 10, 64)
 	require.Nil(s.T(), err)
 	fmt.Printf("Created bug3 with ID: %s\n", bug3.ID)
 
@@ -296,9 +303,23 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 	_ = test.DeleteWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *workItemLink.Data.ID)
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemRelationshipsLink() {
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	require.NotNil(s.T(), workItemLink)
+	_ = test.DeleteWorkItemRelationshipsLinksOK(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), *workItemLink.Data.ID)
+}
+
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToInvalidLinkTypeID() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.Nil.String())
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+}
+
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToInvalidLinkTypeID() {
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.Nil.String())
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundLinkType() {
@@ -306,14 +327,32 @@ func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundLinkTyp
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateWorkItemRelationshipLinksBadRequestDueToNotFoundLinkType() {
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, "11122233-871b-43a6-9166-0c4bd573e333")
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+}
+
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundSource() {
 	createPayload := CreateWorkItemLink(666666, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundSource() {
+	createPayload := CreateWorkItemLink(666666, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug2ID, 10), createPayload)
+}
+
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundTarget() {
 	createPayload := CreateWorkItemLink(s.bug1ID, 666666, s.bugBlockerLinkTypeID)
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+}
+
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundTarget() {
+	createPayload := CreateWorkItemLink(s.bug1ID, 666666, s.bugBlockerLinkTypeID)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadSourceType() {
@@ -323,6 +362,14 @@ func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadSourceType()
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToBadSourceType() {
+	// Linking a bug and a feature isn't allowed for the bug blocker link type,
+	// thererfore this will cause a bad parameter error (which results in a bad request error).
+	createPayload := CreateWorkItemLink(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.feature1ID, 10), createPayload)
+}
+
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadTargetType() {
 	// Linking a bug and a feature isn't allowed for the bug blocker link type,
 	// thererfore this will cause a bad parameter error (which results in a bad request error).
@@ -330,12 +377,30 @@ func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadTargetType()
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToBadTargetType() {
+	// Linking a bug and a feature isn't allowed for the bug blocker link type,
+	// thererfore this will cause a bad parameter error (which results in a bad request error).
+	createPayload := CreateWorkItemLink(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+}
+
 func (s *workItemLinkSuite) TestDeleteWorkItemLinkNotFound() {
 	test.DeleteWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "1e9a8b53-73a6-40de-b028-5177add79ffa")
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestDeleteWorkItemRelationshipsLinksNotFound() {
+	test.DeleteWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), "1e9a8b53-73a6-40de-b028-5177add79ffa")
+}
+
 func (s *workItemLinkSuite) TestDeleteWorkItemLinkNotFoundDueToBadID() {
 	_, _ = test.DeleteWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "something that is not a UUID")
+}
+
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestDeleteWorkItemRelationshipsLinksNotFoundDueToBadID() {
+	_, _ = test.DeleteWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), "something that is not a UUID")
 }
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkNotFound() {
@@ -349,16 +414,17 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkNotFound() {
 	test.UpdateWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
 }
 
-// func (s *workItemLinkSuite) TestUpdateWorkItemLinkBadRequestDueToBadID() {
-// 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.userLinkCategoryID)
-// 	nonUUID := "something that is not a UUID"
-// 	createPayload.Data.ID = &nonUUID
-// 	// Wrap data portion in an update payload instead of a create payload
-// 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
-// 		Data: createPayload.Data,
-// 	}
-// 	test.UpdateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
-// }
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestUpdateWorkItemRelationshipsLinksNotFound() {
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.userLinkCategoryID)
+	notExistingId := "46bbce9c-8219-4364-a450-dfd1b501654e"
+	createPayload.Data.ID = &notExistingId
+	// Wrap data portion in an update payload instead of a create payload
+	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
+		Data: createPayload.Data,
+	}
+	test.UpdateWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), *updateLinkPayload.Data.ID, updateLinkPayload)
+}
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
@@ -379,14 +445,25 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
 }
 
-//func (s *workItemLinkSuite) TestUpdateWorkItemLinkBadRequest() {
-//	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-//	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
-//		Data: createPayload.Data,
-//	}
-//	updateLinkPayload.Data.Type = "This should be workitemlinks" // Causes bad request
-//	test.UpdateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
-//}
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestUpdateWorkItemRelationshipsLinksOK() {
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	require.NotNil(s.T(), workItemLink)
+	// Delete this work item link during cleanup
+	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
+	// Specify new description for link type that we just created
+	// Wrap data portion in an update payload instead of a create payload
+	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
+		Data: workItemLink.Data,
+	}
+	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
+	_, l := test.UpdateWorkItemRelationshipsLinksOK(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), *updateLinkPayload.Data.ID, updateLinkPayload)
+	require.NotNil(s.T(), l.Data)
+	require.NotNil(s.T(), l.Data.Relationships)
+	require.NotNil(s.T(), l.Data.Relationships.Target.Data)
+	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
+}
 
 // TestShowWorkItemLinkOK tests if we can fetch the "system" work item link
 func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
@@ -406,8 +483,31 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	require.True(s.T(), expected.Equal(actual))
 }
 
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestShowWorkItemRelationshipLinksOK() {
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	require.NotNil(s.T(), workItemLink)
+	// Delete this work item link during cleanup
+	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
+	expected := models.WorkItemLink{}
+	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink, &expected))
+
+	_, readIn := test.ShowWorkItemRelationshipsLinksOK(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), *workItemLink.Data.ID)
+	require.NotNil(s.T(), readIn)
+	// Convert to model space and use equal function
+	actual := models.WorkItemLink{}
+	require.Nil(s.T(), models.ConvertLinkToModel(*readIn, &actual))
+	require.True(s.T(), expected.Equal(actual))
+}
+
 func (s *workItemLinkSuite) TestShowWorkItemLinkNotFoundDueToBadID() {
 	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "something that is not a UUID")
+}
+
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestShowWorkItemRelationshipsLinksNotFoundDueToBadID() {
+	test.ShowWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), "something that is not a UUID")
 }
 
 // TestShowWorkItemLinkNotFound tests if we can fetch a non existing work item link
@@ -415,9 +515,12 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkNotFound() {
 	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
 }
 
-// TestListWorkItemLinkOK tests if we can find the work item links
-// "test-bug-blocker" and "related" in the list of work item links
-func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestShowWorkItemRelationshipsLinksNotFound() {
+	test.ShowWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), "88727441-4a21-4b35-aabe-007f8273cd19")
+}
+
+func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLink, *app.WorkItemLink) {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
@@ -434,8 +537,11 @@ func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	expected2 := models.WorkItemLink{}
 	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink2, &expected2))
 
-	// Fetch a single work item link
-	_, linkCollection := test.ListWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl)
+	return workItemLink1, workItemLink2
+}
+
+// validateSomeLinks validates that workItemLink1 and workItemLink2 are in the linkCollection
+func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkArray, workItemLink1, workItemLink2 *app.WorkItemLink) {
 	require.NotNil(s.T(), linkCollection)
 	require.Nil(s.T(), linkCollection.Validate())
 	// Check the number of found work item links
@@ -446,25 +552,78 @@ func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	// Search for the work item types that must exist at minimum
 	toBeFound := 2
 	for i := 0; i < len(linkCollection.Data) && toBeFound > 0; i++ {
-		if *linkCollection.Data[i].ID == *workItemLink1.Data.ID || *linkCollection.Data[i].ID == *workItemLink2.Data.ID {
-			s.T().Log("Found work item link in collection: ", *linkCollection.Data[i].ID)
+		actualLink := *linkCollection.Data[i]
+		var expectedLink *app.WorkItemLinkData
+
+		switch *actualLink.ID {
+		case *workItemLink1.Data.ID:
+			expectedLink = workItemLink1.Data
+		case *workItemLink2.Data.ID:
+			expectedLink = workItemLink2.Data
+		}
+
+		if expectedLink != nil {
+			s.T().Log("Found work item link in collection: ", *expectedLink.ID)
 			toBeFound--
+
+			// Check JSONAPI "type"" field (should be "workitemlinks")
+			require.Equal(s.T(), expectedLink.Type, actualLink.Type)
+
+			// Check work item link type
+			require.Equal(s.T(), expectedLink.Relationships.LinkType.Data.ID, actualLink.Relationships.LinkType.Data.ID)
+			require.Equal(s.T(), expectedLink.Relationships.LinkType.Data.Type, actualLink.Relationships.LinkType.Data.Type)
+
+			// Check source
+			require.Equal(s.T(), expectedLink.Relationships.Source.Data.ID, actualLink.Relationships.Source.Data.ID, "Wrong source ID for the link")
+			require.Equal(s.T(), expectedLink.Relationships.Source.Data.Type, actualLink.Relationships.Source.Data.Type, "Wrong source JSONAPI type for the link")
+
+			// Check target
+			require.Equal(s.T(), expectedLink.Relationships.Target.Data.ID, actualLink.Relationships.Target.Data.ID, "Wrong target ID for the link")
+			require.Equal(s.T(), expectedLink.Relationships.Target.Data.Type, actualLink.Relationships.Target.Data.Type, "Wrong target JSONAPI type for the link")
 		}
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item links (%s and %s) where found.", *workItemLink1.Data.ID, *workItemLink2.Data.ID)
 }
 
-func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	if err != nil {
-		t.Fatal("Could not parse different private key ", err)
-	}
+// TestListWorkItemLinkOK tests if we can find the work item links
+// "test-bug-blocker" and "related" in the list of work item links
+func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
+	link1, link2 := s.createSomeLinks()
+	_, linkCollection := test.ListWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl)
+	s.validateSomeLinks(linkCollection, link1, link2)
+}
 
-	createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
+// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksOK() {
+	link1, link2 := s.createSomeLinks()
+	filterByWorkItemID := strconv.FormatUint(s.bug2ID, 10)
+	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+	s.validateSomeLinks(linkCollection, link1, link2)
+}
+
+func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
+	filterByWorkItemID := strconv.FormatUint(math.MaxUint32, 10) // not existing bug ID
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+}
+
+func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksBadRequest() {
+	filterByWorkItemID := "invalid uint64"
+	_, _ = test.ListWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+}
+
+// The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
+func getWorkItemLinkTestData(t *testing.T, wiID *string) func(t *testing.T) []testSecureAPI {
+	return func(t *testing.T) []testSecureAPI {
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+		if err != nil {
+			t.Fatal("Could not parse Key ", err)
+		}
+		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+		if err != nil {
+			t.Fatal("Could not parse different private key ", err)
+		}
+
+		createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
 		{
 			"data": {
 				"attributes": {
@@ -495,113 +654,135 @@ func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
 			}
 		}
   		`))
-	return []testSecureAPI{
-		// Create Work Item API with different parameters
-		{
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           "",
-		},
-		// Update Work Item API with different parameters
-		{
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           "",
-		},
-		// Delete Work Item API with different parameters
-		{
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           "",
-		},
-		// Try fetching a random work item link
-		// We do not have security on GET hence this should return 404 not found
-		{
-			method:             http.MethodGet,
-			url:                endpointWorkItemLinks + "/fc591f38-a805-4abd-bfce-2460e49d8cc4",
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		},
+
+		testWorkItemLinksAPI := []testSecureAPI{
+			// Create Work Item API with different parameters
+			{
+				method:             http.MethodPost,
+				url:                "%s",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                "%s",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                "%s",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                "%s",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           "",
+			},
+			// Update Work Item API with different parameters
+			{
+				method:             http.MethodPatch,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           "",
+			},
+			// Delete Work Item API with different parameters
+			{
+				method:             http.MethodDelete,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                "%s" + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           "",
+			},
+			// Try fetching a random work item link
+			// We do not have security on GET hence this should return 404 not found
+			{
+				method:             http.MethodGet,
+				url:                "%s" + "/fc591f38-a805-4abd-bfce-2460e49d8cc4",
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			},
+		}
+
+		var result []testSecureAPI
+
+		if wiID == nil {
+			// If no work item ID is specified, substitute the endpoints with
+			// the /api/workitemlinks endpoint
+			for _, t := range testWorkItemLinksAPI {
+				t.url = fmt.Sprintf(t.url, endpointWorkItemLinks)
+				result = append(result, t)
+			}
+		} else {
+			// If the work item ID is specified, substitute the endpoints with
+			// the /api/workitems/:id/relationships/links endpoint
+			relationshipsEndpoint := fmt.Sprintf(endpointWorkItemRelationshipsLinks, *wiID)
+			for _, t := range testWorkItemLinksAPI {
+				t.url = fmt.Sprintf(t.url, relationshipsEndpoint)
+				result = append(result, t)
+			}
+		}
+		return result
 	}
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
 func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
-	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTestData, func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTestData(s.T(), nil), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLink-Service")
 	}, func(service *goa.Service) error {
 		controller := NewWorkItemLinkController(service, gormapplication.NewGormDB(DB))
@@ -610,8 +791,25 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 	})
 }
 
+func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
+	wiID := strconv.FormatUint(s.bug1ID, 10)
+	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTestData(s.T(), &wiID), func() *goa.Service {
+		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
+	}, func(service *goa.Service) error {
+		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(DB))
+		app.MountWorkItemRelationshipsLinksController(service, controller)
+		return nil
+	})
+}
+
 func TestNewWorkItemLinkControllerDBNull(t *testing.T) {
 	require.Panics(t, func() {
 		NewWorkItemLinkController(nil, nil)
+	})
+}
+
+func TestNewWorkItemRelationshipsLinksControllerDBNull(t *testing.T) {
+	require.Panics(t, func() {
+		NewWorkItemRelationshipsLinksController(nil, nil)
 	})
 }
