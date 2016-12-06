@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 )
@@ -31,14 +32,14 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
-		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
 	log.Printf("looking for id %d", id)
 	tx := r.db
 	if tx.First(&res, id).RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NewNotFoundError("work item", wi.ID)
+		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
 	// Attributes is a string->string map hence need to add few conditions
@@ -48,13 +49,13 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		versionStr := wi.Attributes["version"].(string)
 		version, err = strconv.Atoi(versionStr)
 		if err != nil {
-			return nil, NewBadParameterError("version", version)
+			return nil, errors.NewBadParameterError("version", version)
 		}
 	} else {
-		return nil, NewVersionConflictError("version is mandatory")
+		return nil, errors.NewVersionConflictError("version is mandatory")
 	}
 	if res.Version != version {
-		return nil, NewVersionConflictError("version conflict")
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
 	newWi := WorkItem{
@@ -67,7 +68,7 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 	wiType, err := r.wir.LoadTypeFromDB(newWi.Type)
 	if err != nil {
 		// ideally should not reach this, if reach it means something went wrong while CREATE WI
-		return nil, NewBadParameterError("Type", newWi.Type)
+		return nil, errors.NewBadParameterError("Type", newWi.Type)
 	}
 
 	rel := wi.Relationships
@@ -81,11 +82,11 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		} else {
 			assigneeUUID, err := uuid.FromString(*uuidStr)
 			if err != nil {
-				return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+				return nil, errors.NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
 			}
 			_, err = identityRepo.Load(ctx, assigneeUUID)
 			if err != nil {
-				return nil, NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+				return nil, errors.NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
 			}
 			wi.Attributes[SystemAssignee] = *uuidStr
 			//  ToDO : make it a list and append
@@ -103,18 +104,18 @@ func (r *GormWorkItem2Repository) Save(ctx context.Context, wi app.WorkItemDataF
 		var err error
 		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, NewBadParameterError(fieldName, fieldValue)
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 
 	if err := tx.Save(&newWi).Error; err != nil {
 		log.Print(err.Error())
-		return nil, NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err.Error())
 	}
 	log.Printf("updated item to %v\n", newWi)
 	result, err := wiType.ConvertFromModel(newWi)
 	if err != nil {
-		return nil, NewInternalError(err.Error())
+		return nil, errors.NewInternalError(err.Error())
 	}
 	return result, nil
 }

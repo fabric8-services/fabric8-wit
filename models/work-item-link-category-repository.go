@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -24,7 +25,7 @@ type GormWorkItemLinkCategoryRepository struct {
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategory, error) {
 	if name == nil || *name == "" {
-		return nil, NewBadParameterError("name", name)
+		return nil, errors.NewBadParameterError("name", name)
 	}
 	created := WorkItemLinkCategory{
 		// Omit "lifecycle" and "ID" fields as they will be filled by the DB
@@ -33,7 +34,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *s
 	}
 	db := r.db.Create(&created)
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	// Convert the created link category entry into a JSONAPI response
 	result := ConvertLinkCategoryFromModel(created)
@@ -46,17 +47,17 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
-		return nil, NewNotFoundError("work item link category", ID)
+		return nil, errors.NewNotFoundError("work item link category", ID)
 	}
 	log.Printf("loading work item link category %s", id.String())
 	res := WorkItemLinkCategory{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NewNotFoundError("work item link category", id.String())
+		return nil, errors.NewNotFoundError("work item link category", id.String())
 	}
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 
 	// Convert the created link category entry into a JSONAPI response
@@ -71,10 +72,10 @@ func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Cont
 	db := r.db.Model(&res).Where("name=?", name).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NewNotFoundError("work item link category", name)
+		return nil, errors.NewNotFoundError("work item link category", name)
 	}
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &res, nil
 }
@@ -107,7 +108,7 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
-		return NewNotFoundError("work item link category", ID)
+		return errors.NewNotFoundError("work item link category", ID)
 	}
 
 	var cat = WorkItemLinkCategory{
@@ -118,11 +119,11 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
-		return NewInternalError(db.Error.Error())
+		return errors.NewInternalError(db.Error.Error())
 	}
 
 	if db.RowsAffected == 0 {
-		return NewNotFoundError("work item link category", id.String())
+		return errors.NewNotFoundError("work item link category", id.String())
 	}
 	return nil
 }
@@ -132,35 +133,35 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat app.WorkItemLinkCategory) (*app.WorkItemLinkCategory, error) {
 	res := WorkItemLinkCategory{}
 	if linkCat.Data.ID == nil {
-		return nil, NewBadParameterError("data.id", linkCat.Data.ID)
+		return nil, errors.NewBadParameterError("data.id", linkCat.Data.ID)
 	}
 	id, err := satoriuuid.FromString(*linkCat.Data.ID)
 	if err != nil {
 		//log.Printf("Error when converting %s to UUID: %s", *linkCat.Data.ID, err.Error())
 		// treat as not found: clients don't know it must be a UUID
-		return nil, NewNotFoundError("work item link category", id.String())
+		return nil, errors.NewNotFoundError("work item link category", id.String())
 	}
 
 	if linkCat.Data.Type != EndpointWorkItemLinkCategories {
-		return nil, NewBadParameterError("data.type", linkCat.Data.Type).Expected(EndpointWorkItemLinkCategories)
+		return nil, errors.NewBadParameterError("data.type", linkCat.Data.Type).Expected(EndpointWorkItemLinkCategories)
 	}
 
 	// If the name is not nil, it MUST NOT be empty
 	if linkCat.Data.Attributes.Name != nil && *linkCat.Data.Attributes.Name == "" {
-		return nil, NewBadParameterError("data.attributes.name", *linkCat.Data.Attributes.Name)
+		return nil, errors.NewBadParameterError("data.attributes.name", *linkCat.Data.Attributes.Name)
 	}
 
 	db := r.db.Model(&res).Where("id=?", *linkCat.Data.ID).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("work item link category not found, res=%v", res)
-		return nil, NewNotFoundError("work item link category", id.String())
+		return nil, errors.NewNotFoundError("work item link category", id.String())
 	}
 	if db.Error != nil {
 		log.Print(db.Error.Error())
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if linkCat.Data.Attributes.Version == nil || res.Version != *linkCat.Data.Attributes.Version {
-		return nil, NewVersionConflictError("version conflict")
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
 	newLinkCat := WorkItemLinkCategory{
@@ -178,7 +179,7 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 	db = db.Save(&newLinkCat)
 	if db.Error != nil {
 		log.Print(db.Error.Error())
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Printf("updated work item link category to %v\n", newLinkCat)
 	result := ConvertLinkCategoryFromModel(newLinkCat)

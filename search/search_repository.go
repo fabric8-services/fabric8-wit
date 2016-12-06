@@ -15,6 +15,7 @@ import (
 	"net/url"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/models"
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
@@ -229,7 +230,7 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 		} else if strings.HasPrefix(part, "type:") {
 			typeName := strings.TrimPrefix(part, "type:")
 			if len(typeName) == 0 {
-				return res, models.NewBadParameterError("Type name must not be empty", part)
+				return res, errors.NewBadParameterError("Type name must not be empty", part)
 			}
 			res.workItemTypes = append(res.workItemTypes, typeName)
 		} else if govalidator.IsURL(part) {
@@ -264,13 +265,13 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	db := r.db.Model(models.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
-			return nil, 0, models.NewBadParameterError("start", *start)
+			return nil, 0, errors.NewBadParameterError("start", *start)
 		}
 		db = db.Offset(*start)
 	}
 	if limit != nil {
 		if *limit <= 0 {
-			return nil, 0, models.NewBadParameterError("limit", *limit)
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
 		}
 		db = db.Limit(*limit)
 	}
@@ -297,7 +298,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	value := models.WorkItem{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, models.NewInternalError(err.Error())
+		return nil, 0, errors.NewInternalError(err.Error())
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -316,7 +317,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, models.NewInternalError(err.Error())
+				return nil, 0, errors.NewInternalError(err.Error())
 			}
 		}
 		result = append(result, value)
@@ -353,11 +354,11 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
 		wiType, err := r.wir.LoadTypeFromDB(value.Type)
 		if err != nil {
-			return nil, 0, models.NewInternalError(err.Error())
+			return nil, 0, errors.NewInternalError(err.Error())
 		}
 		result[index], err = convertFromModel(*wiType, value)
 		if err != nil {
-			return nil, 0, models.NewConversionError(err.Error())
+			return nil, 0, errors.NewConversionError(err.Error())
 		}
 	}
 

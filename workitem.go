@@ -9,9 +9,9 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/query/simple"
 )
 
@@ -106,7 +106,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
+			case errors.BadParameterError, errors.ConversionError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
 			default:
@@ -145,7 +145,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError, models.ConversionError:
+			case errors.BadParameterError, errors.ConversionError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
 			default:

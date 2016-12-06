@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/models"
 	query "github.com/almighty/almighty-core/query/simple"
@@ -137,7 +138,7 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 		count := int(c)
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError:
+			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
@@ -228,13 +229,13 @@ func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 		wi, err := appl.WorkItems2().Save(ctx, toSave)
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError:
+			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
-			case models.NotFoundError:
+			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
-			case models.VersionConflictError:
+			case errors.VersionConflictError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:

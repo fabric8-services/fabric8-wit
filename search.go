@@ -7,8 +7,8 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
 )
 
@@ -59,7 +59,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		count := int(c)
 		if err != nil {
 			switch err := err.(type) {
-			case models.BadParameterError:
+			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
