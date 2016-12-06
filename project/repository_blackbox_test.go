@@ -90,6 +90,7 @@ func (test *repoBBTest) TestDelete() {
 	expectProject(test.delete(res.ID), func(p *project.Project, err error) { require.Nil(test.T(), err) })
 	expectProject(test.load(res.ID), test.assertNotFound())
 	expectProject(test.delete(satoriuuid.NewV4()), test.assertNotFound())
+	expectProject(test.delete(satoriuuid.Nil), test.assertNotFound())
 }
 
 func (test *repoBBTest) TestList() {
