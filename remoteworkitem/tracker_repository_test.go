@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -113,6 +114,7 @@ func doWithTrackerRepository(t *testing.T, todo func(repo application.TrackerRep
 	doWithTransaction(t, func(db *gorm.DB) {
 		trackerRepo := NewTrackerRepository(db)
 		todo(trackerRepo)
+		gormsupport.DeleteCreatedEntities(db)
 	})
 
 }

@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 )
@@ -106,6 +107,7 @@ func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo application.T
 		trackerRepo := NewTrackerRepository(db)
 		queryRepo := NewTrackerQueryRepository(db)
 		todo(trackerRepo, queryRepo)
+		gormsupport.DeleteCreatedEntities(db)
 	})
 
 }

@@ -32,6 +32,8 @@ func TestCreateTrackerQuery(t *testing.T) {
 	if tqresult.ID == "" {
 		t.Error("no id")
 	}
+	DB.Unscoped().Delete(&tqresult)
+	DB.Unscoped().Delete(&result)
 }
 
 func TestGetTrackerQuery(t *testing.T) {
@@ -61,6 +63,8 @@ func TestGetTrackerQuery(t *testing.T) {
 	if tqr.ID != tqresult.ID {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
+	DB.Unscoped().Delete(&tqresult)
+	DB.Unscoped().Delete(&result)
 }
 
 func TestUpdateTrackerQuery(t *testing.T) {
@@ -107,6 +111,8 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	if updated.Schedule != tqresult.Schedule {
 		t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
 	}
+	DB.Unscoped().Delete(&updated)
+	DB.Unscoped().Delete(&result)
 }
 
 // This test ensures that List does not return NIL items.
@@ -135,8 +141,9 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker Query found nil")
 		}
 	}
-	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item1.ID)
-	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, item2.ID)
+	DB.Unscoped().Delete(&item1)
+	DB.Unscoped().Delete(&item2)
+	DB.Unscoped().Delete(&result)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -162,5 +169,6 @@ func TestCreateTrackerQueryValidId(t *testing.T) {
 	if created != nil && created.ID != trackerquery.ID {
 		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
 	}
-	test.DeleteTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
+	DB.Unscoped().Delete(&trackerquery)
+	DB.Unscoped().Delete(&result)
 }

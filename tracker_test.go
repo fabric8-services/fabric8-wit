@@ -21,6 +21,7 @@ func TestCreateTracker(t *testing.T) {
 	if created.ID == "" {
 		t.Error("no id")
 	}
+	DB.Unscoped().Delete(&created)
 }
 
 func TestGetTracker(t *testing.T) {
@@ -56,7 +57,8 @@ func TestGetTracker(t *testing.T) {
 		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
 	}
 
-	test.DeleteTrackerOK(t, nil, nil, &controller, result.ID)
+	DB.Unscoped().Delete(&result)
+	DB.Unscoped().Delete(&updated)
 }
 
 // This test ensures that List does not return NIL items.
@@ -79,8 +81,8 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker found nil")
 		}
 	}
-	test.DeleteTrackerOK(t, nil, nil, &controller, item1.ID)
-	test.DeleteTrackerOK(t, nil, nil, &controller, item2.ID)
+	DB.Unscoped().Delete(&item1)
+	DB.Unscoped().Delete(&item2)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -98,5 +100,6 @@ func TestCreateTrackerValidId(t *testing.T) {
 	if created != nil && created.ID != tracker.ID {
 		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
 	}
-	test.DeleteTrackerOK(t, nil, nil, &controller, tracker.ID)
+	DB.Unscoped().Delete(&tracker)
+	DB.Unscoped().Delete(&created)
 }
