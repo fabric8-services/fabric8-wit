@@ -5,18 +5,26 @@ import (
 	"log"
 	"strconv"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
 	pageSizeDefault = 20
 	pageSizeMax     = 100
+
+	APIStringTypeAssignee     = "identities"
+	APIStringTypeWorkItem     = "workitems"
+	APIStringTypeWorkItemType = "workitemtypes"
 )
 
 // Workitem2Controller implements the workitem.2 resource.
@@ -31,6 +39,14 @@ func NewWorkitem2Controller(service *goa.Service, db application.DB) *Workitem2C
 		panic("db must not be nil")
 	}
 	return &Workitem2Controller{Controller: service.NewController("WorkitemController"), db: db}
+}
+
+func buildAbsoluteURL(req *goa.RequestData) string {
+	scheme := "http"
+	if req.TLS != nil { // isHTTPS
+		scheme = "https"
+	}
+	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
 }
 
 func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int) {
@@ -134,8 +150,8 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	}
 
 	return application.Transactional(c.db, func(tx application.Application) error {
-		result, c, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
-		count := int(c)
+		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
+		count := int(tc)
 		if err != nil {
 			switch err := err.(type) {
 			case errors.BadParameterError:
@@ -148,10 +164,10 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 			}
 		}
 
-		response := app.WorkItemListResponse{
+		response := app.WorkItem2List{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  result,
+			Data:  c.ConvertWorkItemToJSONAPIArray(result),
 		}
 
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count)
@@ -162,71 +178,26 @@ func (c *Workitem2Controller) List(ctx *app.ListWorkitem2Context) error {
 	// Workitem2Controller_List: end_implement
 }
 
-func buildAbsoluteURL(req *goa.RequestData) string {
-	scheme := "http"
-	if req.TLS != nil { // isHTTPS
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
-}
-
-// ConvertWorkItemToJSONAPI is responsible for converting given WorkItem model object into a
-// response resource object by jsonapi.org specifications
-func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2Context, wi app.WorkItem) *app.WorkItem2 {
-	// construct default values from input WI
-
-	absoluteURL := buildAbsoluteURL(ctx.RequestData) // it includes path hence no modifications needed
-	op := &app.WorkItem2{
-		Links: &app.WorkItemResourceLinksForJSONAPI{
-			Self: &absoluteURL,
-		},
-		Data: &app.WorkItemDataForUpdate{
-			ID:   wi.ID,
-			Type: workitem.APIStinrgTypeWorkItem,
-			Attributes: map[string]interface{}{
-				"version": wi.Version,
-			},
-			Relationships: &app.WorkItemRelationships{
-				BaseType: &app.RelationshipBaseType{
-					Data: &app.BaseTypeData{
-						ID:   wi.Type,
-						Type: workitem.APIStinrgTypeWorkItemType,
-					},
-				},
-			},
-		},
-	}
-	// Move fields into Relationships or Attributes as needed
-	for name, val := range wi.Fields {
-		switch name {
-		case workitem.SystemAssignee:
-			if val != nil {
-				valStr := val.(string)
-				op.Data.Relationships.Assignee = &app.RelationAssignee{
-					Data: &app.AssigneeData{
-						ID:   &valStr,
-						Type: workitem.APIStinrgTypeAssignee,
-					},
-				}
-			}
-		default:
-			op.Data.Attributes[name] = val
-		}
-	}
-	return op
-}
-
 // Update does PATCH workitem
 func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 
-		toSave := app.WorkItemDataForUpdate{
-			ID:            ctx.Payload.Data.ID,
-			Type:          ctx.Payload.Data.Type,
-			Relationships: ctx.Payload.Data.Relationships,
-			Attributes:    ctx.Payload.Data.Attributes,
+		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("data.id", nil))
+			return ctx.NotFound(jerrors)
 		}
-		wi, err := appl.WorkItems2().Save(ctx, toSave)
+
+		wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data.ID)
+		if err != nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error updating work item: %s", err.Error())))
+			return ctx.NotFound(jerrors)
+		}
+		err = c.ConvertJSONAPIToWorkItem(*ctx.Payload.Data, wi)
+		if err != nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+			return ctx.BadRequest(jerrors)
+		}
+		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
 			switch err := err.(type) {
 			case errors.BadParameterError:
@@ -244,6 +215,222 @@ func (c *Workitem2Controller) Update(ctx *app.UpdateWorkitem2Context) error {
 				return ctx.InternalServerError(jerrors)
 			}
 		}
-		return ctx.OK(c.ConvertWorkItemToJSONAPI(ctx, *wi))
+
+		wi2 := c.ConvertWorkItemToJSONAPI(wi)
+		resp := &app.WorkItem2Single{
+			Data: wi2,
+			Links: &app.WorkItemLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+
+		return ctx.OK(resp)
 	})
+}
+
+// Create does POST workitem
+func (c *Workitem2Controller) Create(ctx *app.CreateWorkitem2Context) error {
+	currentUser, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
+
+	var wit *string
+	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil && ctx.Payload.Data.Relationships.BaseType != nil {
+		if ctx.Payload.Data.Relationships.BaseType.Data != nil {
+			wit = &ctx.Payload.Data.Relationships.BaseType.Data.ID
+		}
+	}
+	if wit == nil { // TODO Figure out path source etc. Should be a required relation
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("data.relationships.basetype.data.id", nil))
+		return ctx.BadRequest(jerrors)
+
+	}
+
+	wi := app.WorkItem{
+		Fields: make(map[string]interface{}),
+	}
+	c.ConvertJSONAPIToWorkItem(*ctx.Payload.Data, &wi)
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+
+		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
+		if err != nil {
+			switch err := err.(type) {
+			case errors.BadParameterError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			case errors.VersionConflictError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			default:
+				log.Printf("Error updating work items: %s", err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
+			}
+		}
+
+		wi2 := c.ConvertWorkItemToJSONAPI(wi)
+		resp := &app.WorkItem2Single{
+			Data: wi2,
+			Links: &app.WorkItemLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		ctx.ResponseData.Header().Set("Location", app.Workitem2Href(wi2.ID))
+		return ctx.Created(resp)
+	})
+}
+
+// Show does GET workitem
+func (c *Workitem2Controller) Show(ctx *app.ShowWorkitem2Context) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+
+		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
+		if err != nil {
+			switch err := err.(type) {
+			case errors.NotFoundError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
+				return ctx.NotFound(jerrors)
+			case errors.BadParameterError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			case errors.VersionConflictError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			default:
+				log.Printf("Error updating work items: %s", err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
+			}
+		}
+
+		wi2 := c.ConvertWorkItemToJSONAPI(wi)
+		resp := &app.WorkItem2Single{
+			Data: wi2,
+			Links: &app.WorkItemLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		return ctx.OK(resp)
+	})
+}
+
+// Delete does DELETE workitem
+func (c *Workitem2Controller) Delete(ctx *app.DeleteWorkitem2Context) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+
+		err := appl.WorkItems().Delete(ctx, ctx.ID)
+		if err != nil {
+			switch err := err.(type) {
+			case errors.NotFoundError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
+				return ctx.NotFound(jerrors)
+			case errors.BadParameterError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			case errors.VersionConflictError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			default:
+				log.Printf("Error updating work items: %s", err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
+			}
+		}
+		return ctx.OK([]byte{})
+	})
+}
+
+// ConvertWorkItemToJSONAPIArray is responsible for converting given []WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func (c *Workitem2Controller) ConvertWorkItemToJSONAPIArray(wis []*app.WorkItem) []*app.WorkItem2 {
+	ops := []*app.WorkItem2{}
+	for _, wi := range wis {
+		ops = append(ops, c.ConvertWorkItemToJSONAPI(wi))
+	}
+	return ops
+}
+
+// ConvertWorkItemToJSONAPI is responsible for converting given WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(wi *app.WorkItem) *app.WorkItem2 {
+	// construct default values from input WI
+
+	op := &app.WorkItem2{
+		ID:   &wi.ID,
+		Type: APIStringTypeWorkItem,
+		Attributes: map[string]interface{}{
+			"version": wi.Version,
+		},
+		Relationships: &app.WorkItemRelationships{
+			BaseType: &app.RelationBaseType{
+				Data: &app.BaseTypeData{
+					ID:   wi.Type,
+					Type: APIStringTypeWorkItemType,
+				},
+			},
+		},
+	}
+	// Move fields into Relationships or Attributes as needed
+	for name, val := range wi.Fields {
+		switch name {
+		case workitem.SystemAssignee:
+			if val != nil {
+				valStr := val.(string)
+				op.Relationships.Assignee = &app.RelationAssignee{
+					Data: &app.AssigneeData{
+						ID:   valStr,
+						Type: APIStringTypeAssignee,
+					},
+				}
+			}
+		default:
+			op.Attributes[name] = val
+		}
+	}
+	if op.Relationships.Assignee == nil {
+		op.Relationships.Assignee = &app.RelationAssignee{Data: nil}
+	}
+
+	return op
+}
+
+// ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func (c *Workitem2Controller) ConvertJSONAPIToWorkItem(source app.WorkItem2, target *app.WorkItem) error {
+	// construct default values from input WI
+
+	var version = -1
+	if source.Attributes["version"] != nil {
+		v, err := strconv.Atoi(fmt.Sprintf("%v", source.Attributes["version"]))
+		if err != nil {
+			return errors.NewBadParameterError("data.attributes.version", source.Attributes["version"])
+		}
+		version = v
+	}
+	target.Version = version
+
+	if source.Relationships != nil && source.Relationships.Assignee != nil {
+		if source.Relationships.Assignee.Data == nil {
+			delete(target.Fields, workitem.SystemAssignee)
+		} else {
+			uuidStr := source.Relationships.Assignee.Data.ID
+			assigneeUUID, err := uuid.FromString(uuidStr)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			}
+			ok := c.db.Identities().ValidIdentity(context.Background(), assigneeUUID)
+			if !ok {
+				return errors.NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			}
+
+			target.Fields[workitem.SystemAssignee] = source.Relationships.Assignee.Data.ID
+		}
+	}
+	for key, val := range source.Attributes {
+		target.Fields[key] = val
+	}
+	return nil
 }

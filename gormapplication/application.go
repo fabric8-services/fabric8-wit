@@ -65,10 +65,6 @@ func (g *GormBase) WorkItems() workitem.WorkItemRepository {
 	return workitem.NewWorkItemRepository(g.db)
 }
 
-func (g *GormBase) WorkItems2() workitem.WorkItem2Repository {
-	return workitem.NewWorkItem2Repository(g.db)
-}
-
 func (g *GormBase) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return workitem.NewWorkItemTypeRepository(g.db)
 }

@@ -10,7 +10,6 @@ import (
 //An Application stands for a particular implementation of the business logic of our application
 type Application interface {
 	WorkItems() workitem.WorkItemRepository
-	WorkItems2() workitem.WorkItem2Repository
 	WorkItemTypes() workitem.WorkItemTypeRepository
 	Trackers() TrackerRepository
 	TrackerQueries() TrackerQueryRepository

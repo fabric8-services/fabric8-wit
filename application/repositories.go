@@ -3,6 +3,7 @@ package application
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -32,4 +33,5 @@ type SearchRepository interface {
 // IdentityRepository encapsulates identity
 type IdentityRepository interface {
 	List(ctx context.Context) (*app.IdentityArray, error)
+	ValidIdentity(context.Context, uuid.UUID) bool
 }
