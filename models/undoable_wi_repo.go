@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
 )
@@ -39,14 +40,14 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NewNotFoundError("work item", wi.ID)
+		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
 	log.Printf("loading work item %d", id)
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
-		return nil, NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
+		return nil, errors.NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
 	}
 
 	res, err := r.wrapped.Save(ctx, wi)
@@ -64,14 +65,14 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 	id, err := strconv.ParseUint(ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return NewNotFoundError("work item", ID)
+		return errors.NewNotFoundError("work item", ID)
 	}
 
 	log.Printf("loading work item %d", id)
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
-		return NewInternalError(fmt.Sprintf("could not load %s, %s", ID, db.Error.Error()))
+		return errors.NewInternalError(fmt.Sprintf("could not load %s, %s", ID, db.Error.Error()))
 	}
 
 	err = r.wrapped.Delete(ctx, ID)
@@ -94,7 +95,7 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 	id, err := strconv.ParseUint(result.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NewNotFoundError("work item", result.ID)
+		return nil, errors.NewNotFoundError("work item", result.ID)
 	}
 
 	toDelete := WorkItem{ID: id}

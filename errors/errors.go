@@ -1,4 +1,4 @@
-package models
+package errors
 
 import "fmt"
 
