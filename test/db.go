@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/link"
 )
 
 func NewMockDB() *MockDB {
@@ -34,13 +35,13 @@ func (db *MockDB) SearchItems() application.SearchRepository {
 func (db *MockDB) Identities() application.IdentityRepository {
 	return nil
 }
-func (db *MockDB) WorkItemLinkCategories() application.WorkItemLinkCategoryRepository {
+func (db *MockDB) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {
 	return nil
 }
-func (db *MockDB) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
+func (db *MockDB) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
 	return nil
 }
-func (db *MockDB) WorkItemLinks() application.WorkItemLinkRepository {
+func (db *MockDB) WorkItemLinks() link.WorkItemLinkRepository {
 	return nil
 }
 func (db *MockDB) WorkItemComments() comment.Repository {

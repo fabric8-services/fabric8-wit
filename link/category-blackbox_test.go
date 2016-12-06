@@ -1,4 +1,4 @@
-package models_test
+package link_test
 
 import (
 	"testing"
@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/link"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	satoriuuid "github.com/satori/go.uuid"
@@ -20,7 +21,7 @@ func TestWorkItemLinkCategory_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	description := "An example description"
-	a := models.WorkItemLinkCategory{
+	a := link.WorkItemLinkCategory{
 		ID:          satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:        "Example work item link category",
 		Description: &description,
