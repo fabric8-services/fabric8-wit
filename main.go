@@ -218,6 +218,10 @@ func main() {
 	c6 := NewTrackerqueryController(service, appDB, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
+	// Mount "project" controller
+	projectCtrl := NewProjectController(service, appDB)
+	app.MountProjectController(service, projectCtrl)
+
 	// Mount "user" controller
 	userCtrl := NewUserController(service, identityRepository, tokenManager)
 	app.MountUserController(service, userCtrl)

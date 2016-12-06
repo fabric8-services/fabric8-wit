@@ -88,3 +88,47 @@ func ErrorToJSONAPIErrors(err error) (*app.JSONAPIErrors, int) {
 	jerrors.Errors = append(jerrors.Errors, &jerr)
 	return &jerrors, httpStatusCode
 }
+
+// BadRequest represent a Context that can return a BadRequest HTTP status
+type BadRequest interface {
+	BadRequest(*app.JSONAPIErrors) error
+}
+
+// InternalServerError represent a Context that can return a InternalServerError HTTP status
+type InternalServerError interface {
+	InternalServerError(*app.JSONAPIErrors) error
+}
+
+// NotFound represent a Context that can return a NotFound HTTP status
+type NotFound interface {
+	NotFound(*app.JSONAPIErrors) error
+}
+
+// Unauthorized represent a Context that can return a Unauthorized HTTP status
+type Unauthorized interface {
+	Unauthorized(*app.JSONAPIErrors) error
+}
+
+// JSONErrorResponse auto maps the provided error to the correct response type
+// If all else fails, InternalServerError is returned
+func JSONErrorResponse(x InternalServerError, err error) error {
+	jsonErr, status := ErrorToJSONAPIErrors(err)
+	switch status {
+	case http.StatusBadRequest:
+		if ctx, ok := x.(BadRequest); ok {
+			return ctx.BadRequest(jsonErr)
+		}
+	case http.StatusNotFound:
+		if ctx, ok := x.(NotFound); ok {
+			return ctx.NotFound(jsonErr)
+		}
+	case http.StatusUnauthorized:
+		if ctx, ok := x.(Unauthorized); ok {
+			return ctx.Unauthorized(jsonErr)
+		}
+	default:
+		return x.InternalServerError(jsonErr)
+	}
+
+	return nil
+}

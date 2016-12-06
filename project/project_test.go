@@ -22,19 +22,17 @@ func TestRunRepoBBTest(t *testing.T) {
 
 type repoBBTest struct {
 	gormsupport.DBTestSuite
-	undoScript *gormsupport.DBScript
-	repo       *project.UndoableRepository
+	repo  project.Repository
+	clean func()
 }
 
 func (test *repoBBTest) SetupTest() {
-	test.undoScript = &gormsupport.DBScript{}
-	test.repo = project.NewUndoableRepository(project.NewRepository(test.DB), test.undoScript)
-	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject)
-	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject2)
+	test.repo = project.NewRepository(test.DB)
+	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
 }
 
 func (test *repoBBTest) TearDownTest() {
-	test.undoScript.Run(test.DB)
+	test.clean()
 }
 
 func (test *repoBBTest) TestCreate() {
@@ -90,32 +88,14 @@ func (test *repoBBTest) TestDelete() {
 	expectProject(test.delete(res.ID), func(p *project.Project, err error) { require.Nil(test.T(), err) })
 	expectProject(test.load(res.ID), test.assertNotFound())
 	expectProject(test.delete(satoriuuid.NewV4()), test.assertNotFound())
+	expectProject(test.delete(satoriuuid.Nil), test.assertNotFound())
 }
 
 func (test *repoBBTest) TestList() {
-	_, orgCount := test.findProjectNamed(testProject)
-	p1, _ := expectProject(test.create(testProject), test.requireOk)
-	p2, newCount := test.findProjectNamed(testProject)
+	_, orgCount, _ := test.list(nil, nil)
+	expectProject(test.create(testProject), test.requireOk)
+	_, newCount, _ := test.list(nil, nil)
 	assert.Equal(test.T(), orgCount+1, newCount)
-	assert.True(test.T(), p1.Equal(*p2))
-}
-
-func (test *repoBBTest) findProjectNamed(name string) (*project.Project, uint64) {
-	res, count, err := test.list(nil, nil)
-	if err != nil {
-		return nil, 0
-	}
-	start := 0
-	for start < int(count) {
-		for _, value := range res {
-			if value.Name == name {
-				return &value, count
-			}
-		}
-		start += len(res)
-		res, count, err = test.list(&start, nil)
-	}
-	return nil, count
 }
 
 type projectExpectation func(p *project.Project, err error)
@@ -168,6 +148,6 @@ func (test *repoBBTest) delete(id satoriuuid.UUID) func() (*project.Project, err
 	return func() (*project.Project, error) { return nil, test.repo.Delete(context.Background(), id) }
 }
 
-func (test *repoBBTest) list(start *int, length *int) ([]project.Project, uint64, error) {
+func (test *repoBBTest) list(start *int, length *int) ([]*project.Project, uint64, error) {
 	return test.repo.List(context.Background(), start, length)
 }
