@@ -7,7 +7,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
-	goaerrors "github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -56,7 +56,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 		title = "Unknown error"
 		statusCode = http.StatusInternalServerError
 
-		cause := goaerrors.Cause(err)
+		cause := pkgerrors.Cause(err)
 		if err, ok := cause.(goa.ServiceError); ok {
 			statusCode = err.ResponseStatus()
 			idStr := err.Token()
