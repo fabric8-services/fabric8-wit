@@ -1,10 +1,10 @@
-package models_test
+package project_test
 
 import (
 	"testing"
 
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/project"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -23,12 +23,12 @@ func TestRunProjectRepoBBTest(t *testing.T) {
 type projectRepoBBTest struct {
 	gormsupport.DBTestSuite
 	undoScript *gormsupport.DBScript
-	repo       *models.UndoableProjectRepository
+	repo       *project.UndoableProjectRepository
 }
 
 func (test *projectRepoBBTest) SetupTest() {
 	test.undoScript = &gormsupport.DBScript{}
-	test.repo = models.NewUndoableProjectRepository(models.NewProjectRepository(test.DB), test.undoScript)
+	test.repo = project.NewUndoableProjectRepository(project.NewProjectRepository(test.DB), test.undoScript)
 	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject)
 	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject2)
 }
@@ -81,7 +81,7 @@ func (test *projectRepoBBTest) TestSaveNew() {
 		Name:    testProject,
 	}
 
-	expectProject(test.save(p), test.requireErrorType(models.NotFoundError{}))
+	expectProject(test.save(p), test.requireErrorType(errors.NotFoundError{}))
 }
 
 func (test *projectRepoBBTest) TestDelete() {
@@ -132,10 +132,10 @@ func (test *projectRepoBBTest) requireOk(p *project.Project, err error) {
 }
 
 func (test *projectRepoBBTest) assertNotFound() func(p *project.Project, err error) {
-	return test.assertErrorType(models.NotFoundError{})
+	return test.assertErrorType(errors.NotFoundError{})
 }
 func (test *projectRepoBBTest) assertBadParameter() func(p *project.Project, err error) {
-	return test.assertErrorType(models.BadParameterError{})
+	return test.assertErrorType(errors.BadParameterError{})
 }
 
 func (test *projectRepoBBTest) assertErrorType(e error) func(p *project.Project, e2 error) {

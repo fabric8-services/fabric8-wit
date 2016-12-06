@@ -1,4 +1,4 @@
-package models
+package gormsupport
 
 import "github.com/lib/pq"
 
@@ -7,7 +7,8 @@ const (
 	errUniqueViolation = "23505"
 )
 
-func isCheckViolation(err error, constraintName string) bool {
+// IsCheckViolation returns true if the error is a violation of the given check
+func IsCheckViolation(err error, constraintName string) bool {
 	pqError, ok := err.(*pq.Error)
 	if !ok {
 		return false
@@ -15,7 +16,8 @@ func isCheckViolation(err error, constraintName string) bool {
 	return pqError.Code == errCheckViolation && pqError.Constraint == constraintName
 }
 
-func isUniqueViolation(err error, indexName string) bool {
+// IsUniqueViolation returns true if the error is a violation of the given unique index
+func IsUniqueViolation(err error, indexName string) bool {
 	pqError, ok := err.(*pq.Error)
 	if !ok {
 		return false

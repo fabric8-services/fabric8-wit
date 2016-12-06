@@ -1,16 +1,15 @@
-package models
+package project
 
 import (
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/project"
 	"github.com/jinzhu/gorm"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
-var _ application.ProjectRepository = &UndoableProjectRepository{}
+var _ Repository = &UndoableProjectRepository{}
 
 // NewUndoableProjectRepository creates a new UndoableProjectRepository
 func NewUndoableProjectRepository(wrapped *GormProjectRepository, undoScript *gormsupport.DBScript) *UndoableProjectRepository {
@@ -25,21 +24,21 @@ type UndoableProjectRepository struct {
 }
 
 // Load implements application.ProjectRepository
-func (r *UndoableProjectRepository) Load(ctx context.Context, id satoriuuid.UUID) (*project.Project, error) {
+func (r *UndoableProjectRepository) Load(ctx context.Context, id satoriuuid.UUID) (*Project, error) {
 	return r.wrapped.Load(ctx, id)
 }
 
 // List implements application.ProjectRepository
-func (r *UndoableProjectRepository) List(ctx context.Context, start *int, length *int) ([]project.Project, uint64, error) {
+func (r *UndoableProjectRepository) List(ctx context.Context, start *int, length *int) ([]Project, uint64, error) {
 	return r.wrapped.List(ctx, start, length)
 }
 
 // Create implements application.ProjectRepository
-func (r *UndoableProjectRepository) Create(ctx context.Context, name string) (*project.Project, error) {
+func (r *UndoableProjectRepository) Create(ctx context.Context, name string) (*Project, error) {
 	res, err := r.wrapped.Create(ctx, name)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
-			db = db.Unscoped().Delete(&project.Project{ID: res.ID})
+			db = db.Unscoped().Delete(&Project{ID: res.ID})
 			return db.Error
 		})
 	}
@@ -47,12 +46,12 @@ func (r *UndoableProjectRepository) Create(ctx context.Context, name string) (*p
 }
 
 // Save implements application.ProjectRepository
-func (r *UndoableProjectRepository) Save(ctx context.Context, p project.Project) (*project.Project, error) {
+func (r *UndoableProjectRepository) Save(ctx context.Context, p Project) (*Project, error) {
 
-	old := project.Project{}
+	old := Project{}
 	db := r.wrapped.db.First(&old, p.ID)
 	if db.Error != nil {
-		return nil, NewNotFoundError("project", p.ID.String())
+		return nil, errors.NewNotFoundError("project", p.ID.String())
 	}
 
 	res, err := r.wrapped.Save(ctx, p)
@@ -67,10 +66,10 @@ func (r *UndoableProjectRepository) Save(ctx context.Context, p project.Project)
 
 // Delete implements application.WorkItemRepository
 func (r *UndoableProjectRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
-	old := project.Project{}
+	old := Project{}
 	db := r.wrapped.db.First(&old, ID)
 	if db.Error != nil {
-		return NewNotFoundError("project", ID.String())
+		return errors.NewNotFoundError("project", ID.String())
 	}
 
 	err := r.wrapped.Delete(ctx, ID)

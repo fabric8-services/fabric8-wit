@@ -3,7 +3,6 @@ package application
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/project"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -61,13 +60,4 @@ type WorkItemLinkRepository interface {
 	List(ctx context.Context) (*app.WorkItemLinkArray, error)
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
-}
-
-// ProjectRepository encapsulate storage & retrieval of projects
-type ProjectRepository interface {
-	Create(ctx context.Context, name string) (*project.Project, error)
-	Save(ctx context.Context, project project.Project) (*project.Project, error)
-	Load(ctx context.Context, ID satoriuuid.UUID) (*project.Project, error)
-	Delete(ctx context.Context, ID satoriuuid.UUID) error
-	List(ctx context.Context, start *int, length *int) ([]project.Project, uint64, error)
 }
