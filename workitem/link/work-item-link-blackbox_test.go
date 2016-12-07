@@ -1,4 +1,4 @@
-package workitem_test
+package link_test
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ func TestWorkItemLink_Equal(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	a := workitem.WorkItemLink{
+	a := link.WorkItemLink{
 		ID:         satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		SourceID:   1,
 		TargetID:   2,
@@ -68,7 +68,7 @@ func TestWorkItemLinkCheckValidForCreation(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	a := workitem.WorkItemLink{
+	a := link.WorkItemLink{
 		ID:         satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		SourceID:   1,
 		TargetID:   2,

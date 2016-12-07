@@ -1,4 +1,4 @@
-package workitem_test
+package link_test
 
 import (
 	"testing"
@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +20,7 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	description := "An example description"
-	a := workitem.WorkItemLinkType{
+	a := link.WorkItemLinkType{
 		ID:             satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:           "Example work item link category",
 		Description:    &description,
@@ -102,11 +103,11 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	description := "An example description"
-	a := workitem.WorkItemLinkType{
+	a := link.WorkItemLinkType{
 		ID:             satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:           "Example work item link category",
 		Description:    &description,
-		Topology:       workitem.TopologyNetwork,
+		Topology:       link.TopologyNetwork,
 		Version:        0,
 		SourceTypeName: workitem.SystemBug,
 		TargetTypeName: workitem.SystemUserStory,

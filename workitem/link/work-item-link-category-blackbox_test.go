@@ -1,4 +1,4 @@
-package workitem_test
+package link_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ func TestWorkItemLinkCategory_Equal(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	description := "An example description"
-	a := workitem.WorkItemLinkCategory{
+	a := link.WorkItemLinkCategory{
 		ID:          satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:        "Example work item link category",
 		Description: &description,
@@ -72,7 +72,7 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	description := "An example description"
-	m := workitem.WorkItemLinkCategory{
+	m := link.WorkItemLinkCategory{
 		ID:          satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:        "Example work item link category",
 		Description: &description,
@@ -82,7 +82,7 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 	id := m.ID.String()
 	expected := app.WorkItemLinkCategory{
 		Data: &app.WorkItemLinkCategoryData{
-			Type: workitem.EndpointWorkItemLinkCategories,
+			Type: link.EndpointWorkItemLinkCategories,
 			ID:   &id,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &m.Name,
@@ -92,7 +92,7 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 		},
 	}
 
-	actual := workitem.ConvertLinkCategoryFromModel(m)
+	actual := link.ConvertLinkCategoryFromModel(m)
 	require.Equal(t, expected.Data.Type, actual.Data.Type)
 	require.Equal(t, *expected.Data.ID, *actual.Data.ID)
 	require.Equal(t, *expected.Data.Attributes.Name, *actual.Data.Attributes.Name)

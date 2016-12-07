@@ -1,4 +1,4 @@
-package workitem
+package link
 
 import (
 	"github.com/almighty/almighty-core/app"

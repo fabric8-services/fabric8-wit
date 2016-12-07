@@ -1,4 +1,4 @@
-package workitem
+package link
 
 import (
 	"log"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -33,8 +34,8 @@ type WorkItemLinkRepository interface {
 func NewWorkItemLinkRepository(db *gorm.DB) *GormWorkItemLinkRepository {
 	return &GormWorkItemLinkRepository{
 		db:                   db,
-		workItemRepo:         NewWorkItemRepository(db),
-		workItemTypeRepo:     NewWorkItemTypeRepository(db),
+		workItemRepo:         workitem.NewWorkItemRepository(db),
+		workItemTypeRepo:     workitem.NewWorkItemTypeRepository(db),
 		workItemLinkTypeRepo: NewWorkItemLinkTypeRepository(db),
 	}
 }
@@ -42,8 +43,8 @@ func NewWorkItemLinkRepository(db *gorm.DB) *GormWorkItemLinkRepository {
 // GormWorkItemLinkRepository implements WorkItemLinkRepository using gorm
 type GormWorkItemLinkRepository struct {
 	db                   *gorm.DB
-	workItemRepo         *GormWorkItemRepository
-	workItemTypeRepo     *GormWorkItemTypeRepository
+	workItemRepo         *workitem.GormWorkItemRepository
+	workItemTypeRepo     *workitem.GormWorkItemTypeRepository
 	workItemLinkTypeRepo *GormWorkItemLinkTypeRepository
 }
 

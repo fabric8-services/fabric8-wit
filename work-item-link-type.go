@@ -4,7 +4,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
 )
 
@@ -29,11 +29,11 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB) *Wor
 func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
 	// WorkItemLinkTypeController_Create: start_implement
 	// Convert payload from app to model representation
-	model := workitem.WorkItemLinkType{}
+	model := link.WorkItemLinkType{}
 	in := app.WorkItemLinkType{
 		Data: ctx.Payload.Data,
 	}
-	err := workitem.ConvertLinkTypeToModel(in, &model)
+	err := link.ConvertLinkTypeToModel(in, &model)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 		return ctx.BadRequest(jerrors)

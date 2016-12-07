@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
 )
 
@@ -87,18 +88,18 @@ func (g *GormBase) Identities() application.IdentityRepository {
 }
 
 // WorkItemLinkCategories returns a work item link category repository
-func (g *GormBase) WorkItemLinkCategories() workitem.WorkItemLinkCategoryRepository {
-	return workitem.NewWorkItemLinkCategoryRepository(g.db)
+func (g *GormBase) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {
+	return link.NewWorkItemLinkCategoryRepository(g.db)
 }
 
 // WorkItemLinkTypes returns a work item link type repository
-func (g *GormBase) WorkItemLinkTypes() workitem.WorkItemLinkTypeRepository {
-	return workitem.NewWorkItemLinkTypeRepository(g.db)
+func (g *GormBase) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
+	return link.NewWorkItemLinkTypeRepository(g.db)
 }
 
 // WorkItemLinks returns a work item link repository
-func (g *GormBase) WorkItemLinks() workitem.WorkItemLinkRepository {
-	return workitem.NewWorkItemLinkRepository(g.db)
+func (g *GormBase) WorkItemLinks() link.WorkItemLinkRepository {
+	return link.NewWorkItemLinkRepository(g.db)
 }
 
 // WorkItemComments returns a work item comments repository

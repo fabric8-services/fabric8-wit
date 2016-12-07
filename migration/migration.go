@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
 )
@@ -219,23 +220,23 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 }
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
-func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *workitem.GormWorkItemLinkCategoryRepository, linkTypeRepo *workitem.GormWorkItemLinkTypeRepository) error {
-	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, workitem.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, workitem.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, workitem.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", workitem.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, workitem.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return err
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, workitem.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", workitem.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, workitem.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *workitem.GormWorkItemLinkCategoryRepository, name string, description string) error {
+func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, name string, description string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
 	switch err.(type) {
 	case errors.NotFoundError:
@@ -246,21 +247,21 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *workit
 	case nil:
 		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
 		cat.Description = &description
-		linkCat := workitem.ConvertLinkCategoryFromModel(*cat)
+		linkCat := link.ConvertLinkCategoryFromModel(*cat)
 		_, err = linkCatRepo.Save(ctx, linkCat)
 		return err
 	}
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *workitem.GormWorkItemLinkCategoryRepository, linkTypeRepo *workitem.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return err
 	}
 
 	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(name, cat.ID)
-	lt := workitem.WorkItemLinkType{
+	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
 		Topology:       topology,
@@ -281,7 +282,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *workitem.G
 		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
-		_, err = linkTypeRepo.Save(ctx, workitem.ConvertLinkTypeFromModel(lt))
+		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(lt))
 		return err
 	}
 	return nil
