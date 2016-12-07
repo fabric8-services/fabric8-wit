@@ -24,7 +24,7 @@ func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error) {
 	tid, err := strconv.ParseUint(tracker, 10, 64)
-	if err != nil {
+	if err != nil || tid == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, NotFoundError{"tracker", tracker}
 	}
@@ -51,7 +51,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.TrackerQuery, error) {
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, NotFoundError{"tracker query", ID}
 	}
@@ -76,12 +76,12 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error) {
 	res := TrackerQuery{}
 	id, err := strconv.ParseUint(tq.ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		return nil, NotFoundError{entity: "trackerquery", ID: tq.ID}
 	}
 
 	tid, err := strconv.ParseUint(tq.TrackerID, 10, 64)
-	if err != nil {
+	if err != nil || tid == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, NotFoundError{"tracker", tq.TrackerID}
 	}
@@ -130,7 +130,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID string) error {
 	var tq = TrackerQuery{}
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treat as not found: clients don't know it must be a number
 		return NotFoundError{entity: "trackerquery", ID: ID}
 	}
