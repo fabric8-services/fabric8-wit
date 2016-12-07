@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/workitem"
 )
 
 // List of supported attributes
@@ -41,20 +41,20 @@ const (
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:       models.SystemTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), StringConverter{}}: models.SystemDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:  models.SystemState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:          models.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:     models.SystemCreator,
-		AttributeMapper{AttributeExpression(GithubAssignee), StringConverter{}}:    models.SystemAssignee,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:       workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), StringConverter{}}: workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:  workitem.SystemState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:          workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:     workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(GithubAssignee), StringConverter{}}:    workitem.SystemAssignee,
 	},
 	ProviderJira: WorkItemMap{
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:    models.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:     models.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}: models.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:       models.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:  models.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), StringConverter{}}: models.SystemAssignee,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:    workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:     workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}: workitem.SystemState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:       workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:  workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(JiraAssignee), StringConverter{}}: workitem.SystemAssignee,
 	},
 }
 

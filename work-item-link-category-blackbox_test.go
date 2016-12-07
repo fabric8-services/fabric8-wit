@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -53,7 +54,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	}); err != nil {
 		panic(err.Error())
 	}
@@ -76,8 +77,8 @@ func (s *workItemLinkCategorySuite) TearDownSuite() {
 // during these tests. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkCategorySuite) removeWorkItemLinkCategories() {
-	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-system"})
-	s.db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-user"})
+	s.db.Unscoped().Delete(&workitem.WorkItemLinkCategory{Name: "test-system"})
+	s.db.Unscoped().Delete(&workitem.WorkItemLinkCategory{Name: "test-user"})
 }
 
 // The SetupTest method will be run before every test in the suite.
@@ -105,7 +106,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.Res
 	payload := app.CreateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
-			Type: models.EndpointWorkItemLinkCategories,
+			Type: workitem.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &name,
 				Description: &description,
@@ -126,7 +127,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.Respo
 	payload := app.CreateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
-			Type: models.EndpointWorkItemLinkCategories,
+			Type: workitem.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &name,
 				Description: &description,
@@ -159,7 +160,7 @@ func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 	payload := &app.CreateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
-			Type: models.EndpointWorkItemLinkCategories,
+			Type: workitem.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &name,
 				Description: &description,
@@ -183,7 +184,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
-			Type: models.EndpointWorkItemLinkCategories,
+			Type: workitem.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Description: &description,
 			},
@@ -198,7 +199,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 // 	payload := &app.UpdateWorkItemLinkCategoryPayload{
 // 		Data: &app.WorkItemLinkCategoryData{
 // 			ID:   &id,
-// 			Type: models.EndpointWorkItemLinkCategories,
+// 			Type: workitem.EndpointWorkItemLinkCategories,
 // 			Attributes: &app.WorkItemLinkCategoryAttributes{
 // 				Description: &description,
 // 			},
@@ -228,7 +229,7 @@ func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmp
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
-			Type: models.EndpointWorkItemLinkCategories,
+			Type: workitem.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name: &name,
 			},

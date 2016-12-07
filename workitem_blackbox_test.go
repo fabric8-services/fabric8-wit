@@ -24,6 +24,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -42,11 +43,11 @@ func TestGetWorkItem(t *testing.T) {
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:   "Test WI",
-			models.SystemCreator: "aslak",
-			models.SystemState:   "closed"},
+			workitem.SystemTitle:   "Test WI",
+			workitem.SystemCreator: "aslak",
+			workitem.SystemState:   "closed"},
 	}
 
 	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
@@ -61,10 +62,10 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
 
-	if wi.Fields[models.SystemCreator] != account.TestIdentity.ID.String() {
-		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Fields[models.SystemCreator])
+	if wi.Fields[workitem.SystemCreator] != account.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Fields[workitem.SystemCreator])
 	}
-	wi.Fields[models.SystemTitle] = "Updated Test WI"
+	wi.Fields[workitem.SystemTitle] = "Updated Test WI"
 	payload2 := app.UpdateWorkItemPayload{
 		Type:    wi.Type,
 		Version: wi.Version,
@@ -77,8 +78,8 @@ func TestGetWorkItem(t *testing.T) {
 	if updated.ID != result.ID {
 		t.Errorf("id has changed from %s to %s", result.ID, updated.ID)
 	}
-	if updated.Fields[models.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Fields[models.SystemTitle])
+	if updated.Fields[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Fields[workitem.SystemTitle])
 	}
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, result.ID)
@@ -93,11 +94,11 @@ func TestCreateWI(t *testing.T) {
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:   "Test WI",
-			models.SystemCreator: "tmaeder",
-			models.SystemState:   models.SystemStateNew,
+			workitem.SystemTitle:   "Test WI",
+			workitem.SystemCreator: "tmaeder",
+			workitem.SystemState:   workitem.SystemStateNew,
 		},
 	}
 
@@ -105,8 +106,8 @@ func TestCreateWI(t *testing.T) {
 	if created.ID == "" {
 		t.Error("no id")
 	}
-	assert.NotNil(t, created.Fields[models.SystemCreator])
-	assert.Equal(t, created.Fields[models.SystemCreator], account.TestIdentity.ID.String())
+	assert.NotNil(t, created.Fields[workitem.SystemCreator])
+	assert.Equal(t, created.Fields[workitem.SystemCreator], account.TestIdentity.ID.String())
 }
 
 func TestCreateWorkItemWithoutContext(t *testing.T) {
@@ -116,11 +117,11 @@ func TestCreateWorkItemWithoutContext(t *testing.T) {
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:   "Test WI",
-			models.SystemCreator: "tmaeder",
-			models.SystemState:   models.SystemStateNew,
+			workitem.SystemTitle:   "Test WI",
+			workitem.SystemCreator: "tmaeder",
+			workitem.SystemState:   workitem.SystemStateNew,
 		},
 	}
 	test.CreateWorkitemUnauthorized(t, svc.Context, svc, controller, &payload)
@@ -135,11 +136,11 @@ func TestListByFields(t *testing.T) {
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:   "run integration test",
-			models.SystemCreator: "aslak",
-			models.SystemState:   models.SystemStateClosed,
+			workitem.SystemTitle:   "run integration test",
+			workitem.SystemCreator: "aslak",
+			workitem.SystemState:   workitem.SystemStateClosed,
 		},
 	}
 
@@ -523,7 +524,7 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkItemJSONAPIPayload {
 	return &app.UpdateWorkItemJSONAPIPayload{
 		Data: &app.WorkItemDataForUpdate{
-			Type: models.APIStinrgTypeWorkItem,
+			Type: workitem.APIStinrgTypeWorkItem,
 			ID:   wi.ID,
 			Attributes: map[string]interface{}{
 				"version": strconv.Itoa(wi.Version),
@@ -587,7 +588,7 @@ func (s *WorkItem2Suite) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -602,10 +603,10 @@ func (s *WorkItem2Suite) TearDownSuite() {
 
 func (s *WorkItem2Suite) SetupTest() {
 	payload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle: "Test WI",
-			models.SystemState: "new"},
+			workitem.SystemTitle: "Test WI",
+			workitem.SystemState: "new"},
 	}
 	_, s.wi = test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, &payload)
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
@@ -621,10 +622,10 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
 	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 	newStateValue := "closed"
-	s.minimumPayload.Data.Attributes[models.SystemState] = newStateValue
+	s.minimumPayload.Data.Attributes[workitem.SystemState] = newStateValue
 	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Attributes[models.SystemState], newStateValue)
+	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemState], newStateValue)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
@@ -635,7 +636,7 @@ func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &invalidUserUUID,
-			Type: models.APIStinrgTypeAssignee,
+			Type: workitem.APIStinrgTypeAssignee,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -669,7 +670,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveAssignee() {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &tempUserUUID,
-			Type: models.APIStinrgTypeAssignee,
+			Type: workitem.APIStinrgTypeAssignee,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -682,7 +683,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveAssignee() {
 	assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   nil,
-			Type: models.APIStinrgTypeAssignee,
+			Type: workitem.APIStinrgTypeAssignee,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -706,7 +707,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyAssignee() {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &tempUserUUID,
-			Type: models.APIStinrgTypeAssignee,
+			Type: workitem.APIStinrgTypeAssignee,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -719,20 +720,20 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyAssignee() {
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyDescription() {
 	modifiedDescription := "Only Description is modified"
-	s.minimumPayload.Data.Attributes[models.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
 	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Attributes[models.SystemDescription], modifiedDescription)
+	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemDescription], modifiedDescription)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	// update title attribute
 	modifiedTitle := "Is the model updated?"
-	s.minimumPayload.Data.Attributes[models.SystemTitle] = modifiedTitle
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = modifiedTitle
 
 	_, updatedWI := test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Attributes[models.SystemTitle], modifiedTitle)
+	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemTitle], modifiedTitle)
 
 	// verify self link value
 	if !strings.HasPrefix(*updatedWI.Links.Self, "http://") {
@@ -742,7 +743,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 		assert.Fail(s.T(), fmt.Sprintf("%s is not FETCH URL of the resource", *updatedWI.Links.Self))
 	}
 	// clean up and keep version updated in order to keep object future usage
-	delete(s.minimumPayload.Data.Attributes, models.SystemTitle)
+	delete(s.minimumPayload.Data.Attributes, workitem.SystemTitle)
 	s.minimumPayload.Data.Attributes["version"] = strconv.Itoa(updatedWI.Data.Attributes["version"].(int))
 
 	// update assignee relationship and verify
@@ -757,7 +758,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &maliciousUUID,
-			Type: models.APIStinrgTypeAssignee,
+			Type: workitem.APIStinrgTypeAssignee,
 		},
 	}
 	test.UpdateWorkitem2BadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)
@@ -765,7 +766,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   &newUserUUID,
-			Type: models.APIStinrgTypeAssignee,
+			Type: workitem.APIStinrgTypeAssignee,
 		},
 	}
 	_, updatedWI = test.UpdateWorkitem2OK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.ID, s.minimumPayload)

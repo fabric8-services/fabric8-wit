@@ -9,8 +9,8 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/models"
 	query "github.com/almighty/almighty-core/query/simple"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 )
 
@@ -182,7 +182,7 @@ func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2C
 		},
 		Data: &app.WorkItemDataForUpdate{
 			ID:   wi.ID,
-			Type: models.APIStinrgTypeWorkItem,
+			Type: workitem.APIStinrgTypeWorkItem,
 			Attributes: map[string]interface{}{
 				"version": wi.Version,
 			},
@@ -190,7 +190,7 @@ func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2C
 				BaseType: &app.RelationshipBaseType{
 					Data: &app.BaseTypeData{
 						ID:   wi.Type,
-						Type: models.APIStinrgTypeWorkItemType,
+						Type: workitem.APIStinrgTypeWorkItemType,
 					},
 				},
 			},
@@ -199,13 +199,13 @@ func (c *Workitem2Controller) ConvertWorkItemToJSONAPI(ctx *app.UpdateWorkitem2C
 	// Move fields into Relationships or Attributes as needed
 	for name, val := range wi.Fields {
 		switch name {
-		case models.SystemAssignee:
+		case workitem.SystemAssignee:
 			if val != nil {
 				valStr := val.(string)
 				op.Data.Relationships.Assignee = &app.RelationAssignee{
 					Data: &app.AssigneeData{
 						ID:   &valStr,
-						Type: models.APIStinrgTypeAssignee,
+						Type: workitem.APIStinrgTypeAssignee,
 					},
 				}
 			}

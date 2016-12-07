@@ -27,6 +27,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
@@ -115,12 +116,12 @@ func main() {
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(context.Background(), models.NewWorkItemLinkCategoryRepository(tx), models.NewWorkItemLinkTypeRepository(tx))
+			return migration.BootstrapWorkItemLinking(context.Background(), workitem.NewWorkItemLinkCategoryRepository(tx), workitem.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}

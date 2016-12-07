@@ -15,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -58,7 +59,7 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -77,8 +78,8 @@ func (s *WorkItemTypeSuite) TearDownSuite() {
 // during these tests. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *WorkItemTypeSuite) removeWorkItemTypes() {
-	s.db.Unscoped().Delete(&models.WorkItemType{Name: "person"})
-	s.db.Unscoped().Delete(&models.WorkItemType{Name: "animal"})
+	s.db.Unscoped().Delete(&workitem.WorkItemType{Name: "person"})
+	s.db.Unscoped().Delete(&workitem.WorkItemType{Name: "animal"})
 }
 
 // The SetupTest method will be run before every test in the suite.

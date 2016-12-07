@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/workitem"
 	"golang.org/x/net/context"
 )
 
@@ -274,4 +274,4 @@ func (fake *WorkItemRepository) recordInvocation(key string, args []interface{})
 	fake.invocations[key] = append(fake.invocations[key], args)
 }
 
-var _ application.WorkItemRepository = new(WorkItemRepository)
+var _ workitem.WorkItemRepository = new(WorkItemRepository)

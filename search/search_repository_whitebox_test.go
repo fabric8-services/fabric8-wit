@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
@@ -34,17 +35,17 @@ type SearchTestDescriptor struct {
 
 func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 
-	wir := models.NewWorkItemRepository(s.DB)
+	wir := workitem.NewWorkItemRepository(s.DB)
 
 	testDataSet := []SearchTestDescriptor{
 		{
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
-					models.SystemTitle:       "test sbose title '12345678asdfgh'",
-					models.SystemDescription: `"description" for search test`,
-					models.SystemCreator:     "sbose78",
-					models.SystemAssignee:    "pranav",
-					models.SystemState:       "closed",
+					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
+					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemCreator:     "sbose78",
+					workitem.SystemAssignee:    "pranav",
+					workitem.SystemState:       "closed",
 				},
 			},
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
@@ -53,11 +54,11 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 		{
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
-					models.SystemTitle:       "add new error types in models/errors.go'",
-					models.SystemDescription: `Make sure remoteworkitem can access..`,
-					models.SystemCreator:     "sbose78",
-					models.SystemAssignee:    "pranav",
-					models.SystemState:       "closed",
+					workitem.SystemTitle:       "add new error types in models/errors.go'",
+					workitem.SystemDescription: `Make sure remoteworkitem can access..`,
+					workitem.SystemCreator:     "sbose78",
+					workitem.SystemAssignee:    "pranav",
+					workitem.SystemState:       "closed",
 				},
 			},
 			searchString:   `models/errors.go remoteworkitem `,
@@ -66,11 +67,11 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 		{
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
-					models.SystemTitle:       "test sbose title '12345678asdfgh'",
-					models.SystemDescription: `"description" for search test`,
-					models.SystemCreator:     "sbose78",
-					models.SystemAssignee:    "pranav",
-					models.SystemState:       "closed",
+					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
+					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemCreator:     "sbose78",
+					workitem.SystemAssignee:    "pranav",
+					workitem.SystemState:       "closed",
 				},
 			},
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
@@ -80,10 +81,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					models.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
-					models.SystemCreator:  "sbose78",
-					models.SystemAssignee: "pranav",
-					models.SystemState:    "closed",
+					workitem.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
+					workitem.SystemCreator:  "sbose78",
+					workitem.SystemAssignee: "pranav",
+					workitem.SystemState:    "closed",
 				},
 			},
 			searchString:   `sbose nofield `,
@@ -93,10 +94,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					models.SystemTitle:    "test should return 0 results'",
-					models.SystemCreator:  "sbose78",
-					models.SystemAssignee: "pranav",
-					models.SystemState:    "closed",
+					workitem.SystemTitle:    "test should return 0 results'",
+					workitem.SystemCreator:  "sbose78",
+					workitem.SystemAssignee: "pranav",
+					workitem.SystemState:    "closed",
 				},
 			},
 			searchString:   `negative case `,
@@ -112,7 +113,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults := testData.minimumResults
 			workItemURLInSearchString := "http://demo.almighty.io/work-item-list/detail/"
 
-			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
 				s.T().Fatal("Couldnt create test data")
 			}
@@ -160,12 +161,12 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 				for _, keyWord := range allKeywords {
 
 					workItemTitle := ""
-					if workItemValue.Fields[models.SystemTitle] != nil {
-						workItemTitle = strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
+					if workItemValue.Fields[workitem.SystemTitle] != nil {
+						workItemTitle = strings.ToLower(workItemValue.Fields[workitem.SystemTitle].(string))
 					}
 					workItemDescription := ""
-					if workItemValue.Fields[models.SystemDescription] != nil {
-						workItemDescription = strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
+					if workItemValue.Fields[workitem.SystemDescription] != nil {
+						workItemDescription = strings.ToLower(workItemValue.Fields[workitem.SystemDescription].(string))
 					}
 					keyWord = strings.ToLower(keyWord)
 
@@ -200,19 +201,19 @@ func stringInSlice(str string, list []string) bool {
 func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 	models.Transactional(s.DB, func(tx *gorm.DB) error {
-		wir := models.NewWorkItemRepository(tx)
+		wir := workitem.NewWorkItemRepository(tx)
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
 
 		workItem.Fields = map[string]interface{}{
-			models.SystemTitle:       "Search Test Sbose",
-			models.SystemDescription: "Description",
-			models.SystemCreator:     "sbose78",
-			models.SystemAssignee:    "pranav",
-			models.SystemState:       "closed",
+			workitem.SystemTitle:       "Search Test Sbose",
+			workitem.SystemDescription: "Description",
+			workitem.SystemCreator:     "sbose78",
+			workitem.SystemAssignee:    "pranav",
+			workitem.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
 			s.T().Fatal("Couldnt create test data")
 		}
@@ -221,8 +222,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
 
-		workItem.Fields[models.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
+		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
 			s.T().Fatal("Couldnt create test data")
 		}

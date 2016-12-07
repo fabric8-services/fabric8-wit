@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -55,7 +56,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	}); err != nil {
 		panic(err.Error())
 	}
@@ -82,13 +83,13 @@ func (s *workItemLinkTypeSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkTypeSuite) cleanup() {
-	db := s.db.Unscoped().Delete(&models.WorkItemLinkType{Name: "test-bug-blocker"})
+	db := s.db.Unscoped().Delete(&workitem.WorkItemLinkType{Name: "test-bug-blocker"})
 	require.Nil(s.T(), db.Error)
-	db = s.db.Unscoped().Delete(&models.WorkItemLinkType{Name: "test-related"})
+	db = s.db.Unscoped().Delete(&workitem.WorkItemLinkType{Name: "test-related"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-user"})
+	db = db.Unscoped().Delete(&workitem.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
-	//db = db.Unscoped().Delete(&models.WorkItemType{Name: "foo.bug"})
+	//db = db.Unscoped().Delete(&workitem.WorkItemType{Name: "foo.bug"})
 
 }
 
@@ -120,7 +121,7 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	require.NotNil(s.T(), workItemLinkCategory)
 
 	// 3. Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType(name, models.SystemBug, models.SystemBug, *workItemLinkCategory.Data.ID)
+	createLinkTypePayload := CreateWorkItemLinkType(name, workitem.SystemBug, workitem.SystemBug, *workItemLinkCategory.Data.ID)
 	return createLinkTypePayload
 }
 
@@ -234,10 +235,10 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 	require.NotNil(s.T(), readIn)
 	// Convert to model space and use equal function
-	expected := models.WorkItemLinkType{}
-	actual := models.WorkItemLinkType{}
-	require.Nil(s.T(), models.ConvertLinkTypeToModel(*workItemLinkType, &expected))
-	require.Nil(s.T(), models.ConvertLinkTypeToModel(*readIn, &actual))
+	expected := workitem.WorkItemLinkType{}
+	actual := workitem.WorkItemLinkType{}
+	require.Nil(s.T(), workitem.ConvertLinkTypeToModel(*workItemLinkType, &expected))
+	require.Nil(s.T(), workitem.ConvertLinkTypeToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 	// Check that the link category is included in the response in the "included" array
 	require.Len(s.T(), readIn.Included, 1, "The work item link type should include it's work item link category.")
@@ -260,7 +261,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
 
-	relatedPayload := CreateWorkItemLinkType("test-related", models.SystemBug, models.SystemBug, bugBlockerType.Data.Relationships.LinkCategory.Data.ID)
+	relatedPayload := CreateWorkItemLinkType("test-related", workitem.SystemBug, workitem.SystemBug, bugBlockerType.Data.Relationships.LinkCategory.Data.ID)
 	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, relatedPayload)
 	require.NotNil(s.T(), relatedType)
 

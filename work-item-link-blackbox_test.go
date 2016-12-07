@@ -21,6 +21,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -74,7 +75,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	}); err != nil {
 		panic(err.Error())
 	}
@@ -122,28 +123,28 @@ func (s *workItemLinkSuite) cleanup() {
 	// First delete work item links and then the types;
 	// otherwise referential integrity will be violated.
 	for _, id := range s.deleteWorkItemLinks {
-		db = db.Unscoped().Delete(&models.WorkItemLink{ID: satoriuuid.FromStringOrNil(id)})
+		db = db.Unscoped().Delete(&workitem.WorkItemLink{ID: satoriuuid.FromStringOrNil(id)})
 		require.Nil(s.T(), db.Error)
 	}
 	s.deleteWorkItemLinks = nil
 
 	// Delete all work item links for now
-	db.Unscoped().Delete(&models.WorkItemLink{})
+	db.Unscoped().Delete(&workitem.WorkItemLink{})
 	require.Nil(s.T(), db.Error)
 
 	// Delete work item link types and categories by name.
 	// They will be created during the tests but have to be deleted by name
 	// rather than ID, unlike the work items or work item links.
-	db = db.Unscoped().Delete(&models.WorkItemLinkType{Name: "test-bug-blocker"})
+	db = db.Unscoped().Delete(&workitem.WorkItemLinkType{Name: "test-bug-blocker"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&models.WorkItemLinkCategory{Name: "test-user"})
+	db = db.Unscoped().Delete(&workitem.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
 
 	// Last but not least delete the work items
 	for _, idStr := range s.deleteWorkItems {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		require.Nil(s.T(), err)
-		db = db.Unscoped().Delete(&models.WorkItem{ID: id})
+		db = db.Unscoped().Delete(&workitem.WorkItem{ID: id})
 		require.Nil(s.T(), db.Error)
 	}
 	s.deleteWorkItems = nil
@@ -159,7 +160,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	var err error
 
 	// Create 3 work items (bug1, bug2, and feature1)
-	bug1Payload := CreateWorkItem(models.SystemBug, "bug1")
+	bug1Payload := CreateWorkItem(workitem.SystemBug, "bug1")
 	_, bug1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug1Payload)
 	require.NotNil(s.T(), bug1)
 	s.deleteWorkItems = append(s.deleteWorkItems, bug1.ID)
@@ -167,7 +168,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	fmt.Printf("Created bug1 with ID: %s\n", bug1.ID)
 
-	bug2Payload := CreateWorkItem(models.SystemBug, "bug2")
+	bug2Payload := CreateWorkItem(workitem.SystemBug, "bug2")
 	_, bug2 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug2Payload)
 	require.NotNil(s.T(), bug2)
 	s.deleteWorkItems = append(s.deleteWorkItems, bug2.ID)
@@ -175,7 +176,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	fmt.Printf("Created bug2 with ID: %s\n", bug2.ID)
 
-	bug3Payload := CreateWorkItem(models.SystemBug, "bug3")
+	bug3Payload := CreateWorkItem(workitem.SystemBug, "bug3")
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug3Payload)
 	require.NotNil(s.T(), bug3)
 	s.deleteWorkItems = append(s.deleteWorkItems, bug3.ID)
@@ -183,7 +184,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	fmt.Printf("Created bug3 with ID: %s\n", bug3.ID)
 
-	feature1Payload := CreateWorkItem(models.SystemFeature, "feature1")
+	feature1Payload := CreateWorkItem(workitem.SystemFeature, "feature1")
 	_, feature1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, feature1Payload)
 	require.NotNil(s.T(), feature1)
 	s.deleteWorkItems = append(s.deleteWorkItems, feature1.ID)
@@ -200,7 +201,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	fmt.Printf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", models.SystemBug, models.SystemBug, s.userLinkCategoryID)
+	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
@@ -223,7 +224,7 @@ func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayl
 	// Use the goa generated code to create a work item link category
 	return &app.CreateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
-			Type: models.EndpointWorkItemLinkCategories,
+			Type: workitem.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &name,
 				Description: &description,
@@ -237,9 +238,9 @@ func CreateWorkItem(workItemType string, title string) *app.CreateWorkItemPayloa
 	payload := app.CreateWorkItemPayload{
 		Type: workItemType,
 		Fields: map[string]interface{}{
-			models.SystemTitle:   title,
-			models.SystemCreator: "konrad",
-			models.SystemState:   "closed"},
+			workitem.SystemTitle:   title,
+			workitem.SystemCreator: "konrad",
+			workitem.SystemState:   "closed"},
 	}
 	return &payload
 }
@@ -247,17 +248,17 @@ func CreateWorkItem(workItemType string, title string) *app.CreateWorkItemPayloa
 // CreateWorkItemLinkType defines a work item link type
 func CreateWorkItemLinkType(name string, sourceType string, targetType string, categoryID string) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
-	lt := models.WorkItemLinkType{
+	lt := workitem.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
 		SourceTypeName: sourceType,
 		TargetTypeName: targetType,
-		Topology:       models.TopologyNetwork,
+		Topology:       workitem.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
 		LinkCategoryID: satoriuuid.FromStringOrNil(categoryID),
 	}
-	payload := models.ConvertLinkTypeFromModel(lt)
+	payload := workitem.ConvertLinkTypeFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
@@ -266,12 +267,12 @@ func CreateWorkItemLinkType(name string, sourceType string, targetType string, c
 
 // CreateWorkItemLink defines a work item link
 func CreateWorkItemLink(sourceID uint64, targetID uint64, linkTypeID string) *app.CreateWorkItemLinkPayload {
-	lt := models.WorkItemLink{
+	lt := workitem.WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
 		LinkTypeID: satoriuuid.FromStringOrNil(linkTypeID),
 	}
-	payload := models.ConvertLinkFromModel(lt)
+	payload := workitem.ConvertLinkFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkPayload{
 		Data: payload.Data,
@@ -395,14 +396,14 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	require.NotNil(s.T(), workItemLink)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
-	expected := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink, &expected))
+	expected := workitem.WorkItemLink{}
+	require.Nil(s.T(), workitem.ConvertLinkToModel(*workItemLink, &expected))
 
 	_, readIn := test.ShowWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *workItemLink.Data.ID)
 	require.NotNil(s.T(), readIn)
 	// Convert to model space and use equal function
-	actual := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(*readIn, &actual))
+	actual := workitem.WorkItemLink{}
+	require.Nil(s.T(), workitem.ConvertLinkToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 }
 
@@ -423,16 +424,16 @@ func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	require.NotNil(s.T(), workItemLink1)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
-	expected1 := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink1, &expected1))
+	expected1 := workitem.WorkItemLink{}
+	require.Nil(s.T(), workitem.ConvertLinkToModel(*workItemLink1, &expected1))
 
 	createPayload2 := CreateWorkItemLink(s.bug2ID, s.bug3ID, s.bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload2)
 	require.NotNil(s.T(), workItemLink2)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink2.Data.ID)
-	expected2 := models.WorkItemLink{}
-	require.Nil(s.T(), models.ConvertLinkToModel(*workItemLink2, &expected2))
+	expected2 := workitem.WorkItemLink{}
+	require.Nil(s.T(), workitem.ConvertLinkToModel(*workItemLink2, &expected2))
 
 	// Fetch a single work item link
 	_, linkCollection := test.ListWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl)

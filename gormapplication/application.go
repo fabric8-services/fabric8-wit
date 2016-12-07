@@ -7,9 +7,9 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 )
 
@@ -59,16 +59,16 @@ type GormDB struct {
 	txIsoLevel string
 }
 
-func (g *GormBase) WorkItems() application.WorkItemRepository {
-	return models.NewWorkItemRepository(g.db)
+func (g *GormBase) WorkItems() workitem.WorkItemRepository {
+	return workitem.NewWorkItemRepository(g.db)
 }
 
-func (g *GormBase) WorkItems2() application.WorkItem2Repository {
-	return models.NewWorkItem2Repository(g.db)
+func (g *GormBase) WorkItems2() workitem.WorkItem2Repository {
+	return workitem.NewWorkItem2Repository(g.db)
 }
 
-func (g *GormBase) WorkItemTypes() application.WorkItemTypeRepository {
-	return models.NewWorkItemTypeRepository(g.db)
+func (g *GormBase) WorkItemTypes() workitem.WorkItemTypeRepository {
+	return workitem.NewWorkItemTypeRepository(g.db)
 }
 
 func (g *GormBase) Trackers() application.TrackerRepository {
@@ -87,18 +87,18 @@ func (g *GormBase) Identities() application.IdentityRepository {
 }
 
 // WorkItemLinkCategories returns a work item link category repository
-func (g *GormBase) WorkItemLinkCategories() application.WorkItemLinkCategoryRepository {
-	return models.NewWorkItemLinkCategoryRepository(g.db)
+func (g *GormBase) WorkItemLinkCategories() workitem.WorkItemLinkCategoryRepository {
+	return workitem.NewWorkItemLinkCategoryRepository(g.db)
 }
 
 // WorkItemLinkTypes returns a work item link type repository
-func (g *GormBase) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
-	return models.NewWorkItemLinkTypeRepository(g.db)
+func (g *GormBase) WorkItemLinkTypes() workitem.WorkItemLinkTypeRepository {
+	return workitem.NewWorkItemLinkTypeRepository(g.db)
 }
 
 // WorkItemLinks returns a work item link repository
-func (g *GormBase) WorkItemLinks() application.WorkItemLinkRepository {
-	return models.NewWorkItemLinkRepository(g.db)
+func (g *GormBase) WorkItemLinks() workitem.WorkItemLinkRepository {
+	return workitem.NewWorkItemLinkRepository(g.db)
 }
 
 // WorkItemComments returns a work item comments repository

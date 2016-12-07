@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/workitem"
 )
 
 func NewMockDB() *MockDB {
@@ -13,13 +14,13 @@ type MockDB struct {
 	wir *WorkItemRepository
 }
 
-func (db *MockDB) WorkItems() application.WorkItemRepository {
+func (db *MockDB) WorkItems() workitem.WorkItemRepository {
 	return db.wir
 }
-func (db *MockDB) WorkItems2() application.WorkItem2Repository {
+func (db *MockDB) WorkItems2() workitem.WorkItem2Repository {
 	return nil
 }
-func (db *MockDB) WorkItemTypes() application.WorkItemTypeRepository {
+func (db *MockDB) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return nil
 }
 func (db *MockDB) Trackers() application.TrackerRepository {
@@ -34,13 +35,13 @@ func (db *MockDB) SearchItems() application.SearchRepository {
 func (db *MockDB) Identities() application.IdentityRepository {
 	return nil
 }
-func (db *MockDB) WorkItemLinkCategories() application.WorkItemLinkCategoryRepository {
+func (db *MockDB) WorkItemLinkCategories() workitem.WorkItemLinkCategoryRepository {
 	return nil
 }
-func (db *MockDB) WorkItemLinkTypes() application.WorkItemLinkTypeRepository {
+func (db *MockDB) WorkItemLinkTypes() workitem.WorkItemLinkTypeRepository {
 	return nil
 }
-func (db *MockDB) WorkItemLinks() application.WorkItemLinkRepository {
+func (db *MockDB) WorkItemLinks() workitem.WorkItemLinkRepository {
 	return nil
 }
 func (db *MockDB) WorkItemComments() comment.Repository {
