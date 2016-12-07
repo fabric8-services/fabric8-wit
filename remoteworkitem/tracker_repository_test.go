@@ -112,9 +112,9 @@ func TestTrackerList(t *testing.T) {
 
 func doWithTrackerRepository(t *testing.T, todo func(repo application.TrackerRepository)) {
 	doWithTransaction(t, func(db *gorm.DB) {
+		defer gormsupport.DeleteCreatedEntities(db)()
 		trackerRepo := NewTrackerRepository(db)
 		todo(trackerRepo)
-		gormsupport.DeleteCreatedEntities(db)
 	})
 
 }
