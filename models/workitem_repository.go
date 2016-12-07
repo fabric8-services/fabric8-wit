@@ -21,7 +21,7 @@ type GormWorkItemRepository struct {
 // LoadFromDB returns the work item with the given ID in model representation.
 func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
@@ -61,7 +61,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	var workItem = WorkItem{}
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treat as not found: clients don't know it must be a number
 		return errors.NewNotFoundError("work item", ID)
 	}
@@ -83,7 +83,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
