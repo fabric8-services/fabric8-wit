@@ -69,10 +69,10 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			}
 		}
 
-		response := app.SearchResponse{
+		response := app.SearchWorkItemList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  result,
+			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 
 		// prev link
