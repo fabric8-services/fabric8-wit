@@ -58,7 +58,7 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Tracker, error) {
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, NotFoundError{"tracker", ID}
 	}
@@ -118,7 +118,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.Tracker, error) {
 	res := Tracker{}
 	id, err := strconv.ParseUint(t.ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
 	}
 
@@ -157,7 +157,7 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 func (r *GormTrackerRepository) Delete(ctx context.Context, ID string) error {
 	var t = Tracker{}
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treat as not found: clients don't know it must be a number
 		return NotFoundError{entity: "tracker", ID: ID}
 	}
