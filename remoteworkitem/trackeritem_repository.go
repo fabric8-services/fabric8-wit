@@ -7,7 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 )
 
@@ -33,7 +33,7 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 	remoteID := item.ID
 	content := string(item.Content)
 
-	wir := models.NewWorkItemRepository(db)
+	wir := workitem.NewWorkItemRepository(db)
 	ti := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: uint64(tID)}
 
 	// Converting the remote item to a local work item
@@ -51,9 +51,9 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 	}
 
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
-	workItemRemoteID := workItem.Fields[models.SystemRemoteItemID]
+	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
 
-	sqlExpression := criteria.Equals(criteria.Field(models.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
+	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
 
 	var newWorkItem *app.WorkItem
 
@@ -72,12 +72,12 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 	} else {
 		fmt.Println("Work item not found , will now create new work item")
-		c := workItem.Fields[models.SystemCreator]
+		c := workItem.Fields[workitem.SystemCreator]
 		var creator string
 		if c != nil {
 			creator = c.(string)
 		}
-		newWorkItem, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields, creator)
+		newWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
 			fmt.Println("Error creating work item : ", err)
 		}

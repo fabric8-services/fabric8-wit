@@ -14,10 +14,10 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -190,10 +190,10 @@ func createWorkItem(db *gormapplication.GormDB) (string, error) {
 		repo := appl.WorkItems()
 		wi, err := repo.Create(
 			context.Background(),
-			models.SystemBug,
+			workitem.SystemBug,
 			map[string]interface{}{
-				models.SystemTitle: "A",
-				models.SystemState: "new",
+				workitem.SystemTitle: "A",
+				workitem.SystemState: "new",
 			},
 			uuid.NewV4().String())
 		if err != nil {

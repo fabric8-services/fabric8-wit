@@ -1,8 +1,8 @@
 package criteria
 
 import (
-	"testing"
 	"github.com/almighty/almighty-core/resource"
+	"testing"
 )
 
 func TestGetParent(t *testing.T) {

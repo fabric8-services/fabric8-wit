@@ -6,9 +6,9 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -27,8 +27,8 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	resource.Require(s.T(), resource.Database)
 	undoScript := &gormsupport.DBScript{}
 	defer undoScript.Run(s.DB)
-	typeRepo := models.NewUndoableWorkItemTypeRepository(models.NewWorkItemTypeRepository(s.DB), undoScript)
-	wiRepo := models.NewUndoableWorkItemRepository(models.NewWorkItemRepository(s.DB), undoScript)
+	typeRepo := workitem.NewUndoableWorkItemTypeRepository(workitem.NewWorkItemTypeRepository(s.DB), undoScript)
+	wiRepo := workitem.NewUndoableWorkItemRepository(workitem.NewWorkItemRepository(s.DB), undoScript)
 	searchRepo := search.NewGormSearchRepository(s.DB)
 
 	ctx := context.Background()
@@ -39,11 +39,11 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 		wiRepo.Delete(ctx, wi.ID)
 	}
 
-	s.DB.Unscoped().Delete(&models.WorkItemType{Name: "base"})
-	s.DB.Unscoped().Delete(&models.WorkItemType{Name: "sub1"})
-	s.DB.Unscoped().Delete(&models.WorkItemType{Name: "sub two"})
+	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "base"})
+	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "sub1"})
+	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "sub two"})
 
-	extended := models.SystemBug
+	extended := workitem.SystemBug
 	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{})
 	require.NotNil(s.T(), base)
 	require.Nil(s.T(), err)
@@ -58,15 +58,15 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.Nil(s.T(), err)
 
 	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
-		models.SystemTitle: "Test TestRestrictByType",
-		models.SystemState: "closed",
+		workitem.SystemTitle: "Test TestRestrictByType",
+		workitem.SystemState: "closed",
 	}, account.TestIdentity.ID.String())
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
 	wi2, err := wiRepo.Create(ctx, "sub two", map[string]interface{}{
-		models.SystemTitle: "Test TestRestrictByType 2",
-		models.SystemState: "closed",
+		workitem.SystemTitle: "Test TestRestrictByType 2",
+		workitem.SystemState: "closed",
 	}, account.TestIdentity.ID.String())
 	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
