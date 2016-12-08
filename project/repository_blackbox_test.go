@@ -16,28 +16,28 @@ import (
 var testProject string = satoriuuid.NewV4().String()
 var testProject2 string = satoriuuid.NewV4().String()
 
-func TestRunProjectRepoBBTest(t *testing.T) {
-	suite.Run(t, &projectRepoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+func TestRunRepoBBTest(t *testing.T) {
+	suite.Run(t, &repoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
-type projectRepoBBTest struct {
+type repoBBTest struct {
 	gormsupport.DBTestSuite
 	undoScript *gormsupport.DBScript
-	repo       *project.UndoableProjectRepository
+	repo       *project.UndoableRepository
 }
 
-func (test *projectRepoBBTest) SetupTest() {
+func (test *repoBBTest) SetupTest() {
 	test.undoScript = &gormsupport.DBScript{}
-	test.repo = project.NewUndoableProjectRepository(project.NewProjectRepository(test.DB), test.undoScript)
+	test.repo = project.NewUndoableRepository(project.NewRepository(test.DB), test.undoScript)
 	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject)
 	test.DB.Unscoped().Delete(&project.Project{}, "Name=?", testProject2)
 }
 
-func (test *projectRepoBBTest) TearDownTest() {
+func (test *repoBBTest) TearDownTest() {
 	test.undoScript.Run(test.DB)
 }
 
-func (test *projectRepoBBTest) TestCreate() {
+func (test *repoBBTest) TestCreate() {
 	res, _ := expectProject(test.create(testProject), test.requireOk)
 
 	require.Equal(test.T(), res.Name, testProject)
@@ -46,7 +46,7 @@ func (test *projectRepoBBTest) TestCreate() {
 	expectProject(test.create(testProject), test.assertBadParameter())
 }
 
-func (test *projectRepoBBTest) TestLoad() {
+func (test *repoBBTest) TestLoad() {
 	expectProject(test.load(satoriuuid.NewV4()), test.assertNotFound())
 	res, _ := expectProject(test.create(testProject), test.requireOk)
 
@@ -54,7 +54,7 @@ func (test *projectRepoBBTest) TestLoad() {
 	assert.True(test.T(), (*res).Equal(*res2))
 }
 
-func (test *projectRepoBBTest) TestSaveOk() {
+func (test *repoBBTest) TestSaveOk() {
 	res, _ := expectProject(test.create(testProject), test.requireOk)
 
 	newName := satoriuuid.NewV4().String()
@@ -63,7 +63,7 @@ func (test *projectRepoBBTest) TestSaveOk() {
 	assert.Equal(test.T(), newName, res2.Name)
 }
 
-func (test *projectRepoBBTest) TestSaveFail() {
+func (test *repoBBTest) TestSaveFail() {
 	p1, _ := expectProject(test.create(testProject), test.requireOk)
 	p2, _ := expectProject(test.create(testProject2), test.requireOk)
 
@@ -74,7 +74,7 @@ func (test *projectRepoBBTest) TestSaveFail() {
 	expectProject(test.save(*p1), test.assertBadParameter())
 }
 
-func (test *projectRepoBBTest) TestSaveNew() {
+func (test *repoBBTest) TestSaveNew() {
 	p := project.Project{
 		ID:      satoriuuid.NewV4(),
 		Version: 0,
@@ -84,7 +84,7 @@ func (test *projectRepoBBTest) TestSaveNew() {
 	expectProject(test.save(p), test.requireErrorType(errors.NotFoundError{}))
 }
 
-func (test *projectRepoBBTest) TestDelete() {
+func (test *repoBBTest) TestDelete() {
 	res, _ := expectProject(test.create(testProject), test.requireOk)
 	expectProject(test.load(res.ID), test.requireOk)
 	expectProject(test.delete(res.ID), func(p *project.Project, err error) { require.Nil(test.T(), err) })
@@ -92,7 +92,7 @@ func (test *projectRepoBBTest) TestDelete() {
 	expectProject(test.delete(satoriuuid.NewV4()), test.assertNotFound())
 }
 
-func (test *projectRepoBBTest) TestList() {
+func (test *repoBBTest) TestList() {
 	_, orgCount := test.findProjectNamed(testProject)
 	p1, _ := expectProject(test.create(testProject), test.requireOk)
 	p2, newCount := test.findProjectNamed(testProject)
@@ -100,7 +100,7 @@ func (test *projectRepoBBTest) TestList() {
 	assert.True(test.T(), p1.Equal(*p2))
 }
 
-func (test *projectRepoBBTest) findProjectNamed(name string) (*project.Project, uint64) {
+func (test *repoBBTest) findProjectNamed(name string) (*project.Project, uint64) {
 	res, count, err := test.list(nil, nil)
 	if err != nil {
 		return nil, 0
@@ -126,48 +126,48 @@ func expectProject(f func() (*project.Project, error), e projectExpectation) (*p
 	return p, err
 }
 
-func (test *projectRepoBBTest) requireOk(p *project.Project, err error) {
+func (test *repoBBTest) requireOk(p *project.Project, err error) {
 	assert.NotNil(test.T(), p)
 	require.Nil(test.T(), err)
 }
 
-func (test *projectRepoBBTest) assertNotFound() func(p *project.Project, err error) {
+func (test *repoBBTest) assertNotFound() func(p *project.Project, err error) {
 	return test.assertErrorType(errors.NotFoundError{})
 }
-func (test *projectRepoBBTest) assertBadParameter() func(p *project.Project, err error) {
+func (test *repoBBTest) assertBadParameter() func(p *project.Project, err error) {
 	return test.assertErrorType(errors.BadParameterError{})
 }
 
-func (test *projectRepoBBTest) assertErrorType(e error) func(p *project.Project, e2 error) {
+func (test *repoBBTest) assertErrorType(e error) func(p *project.Project, e2 error) {
 	return func(p *project.Project, err error) {
 		assert.Nil(test.T(), p)
 		assert.IsType(test.T(), e, err, "error was %v", err)
 	}
 }
 
-func (test *projectRepoBBTest) requireErrorType(e error) func(p *project.Project, err error) {
+func (test *repoBBTest) requireErrorType(e error) func(p *project.Project, err error) {
 	return func(p *project.Project, err error) {
 		assert.Nil(test.T(), p)
 		require.IsType(test.T(), e, err)
 	}
 }
 
-func (test *projectRepoBBTest) create(name string) func() (*project.Project, error) {
+func (test *repoBBTest) create(name string) func() (*project.Project, error) {
 	return func() (*project.Project, error) { return test.repo.Create(context.Background(), name) }
 }
 
-func (test *projectRepoBBTest) save(p project.Project) func() (*project.Project, error) {
+func (test *repoBBTest) save(p project.Project) func() (*project.Project, error) {
 	return func() (*project.Project, error) { return test.repo.Save(context.Background(), p) }
 }
 
-func (test *projectRepoBBTest) load(id satoriuuid.UUID) func() (*project.Project, error) {
+func (test *repoBBTest) load(id satoriuuid.UUID) func() (*project.Project, error) {
 	return func() (*project.Project, error) { return test.repo.Load(context.Background(), id) }
 }
 
-func (test *projectRepoBBTest) delete(id satoriuuid.UUID) func() (*project.Project, error) {
+func (test *repoBBTest) delete(id satoriuuid.UUID) func() (*project.Project, error) {
 	return func() (*project.Project, error) { return nil, test.repo.Delete(context.Background(), id) }
 }
 
-func (test *projectRepoBBTest) list(start *int, length *int) ([]project.Project, uint64, error) {
+func (test *repoBBTest) list(start *int, length *int) ([]project.Project, uint64, error) {
 	return test.repo.List(context.Background(), start, length)
 }

@@ -74,7 +74,7 @@ func (g *GormBase) WorkItemTypes() workitem.WorkItemTypeRepository {
 }
 
 func (g *GormBase) Projects() project.Repository {
-	return project.NewProjectRepository(g.db)
+	return project.NewRepository(g.db)
 }
 
 func (g *GormBase) Trackers() application.TrackerRepository {

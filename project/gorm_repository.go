@@ -12,18 +12,18 @@ import (
 )
 
 // NewProjectRepository creates a new project repo
-func NewProjectRepository(db *gorm.DB) *GormProjectRepository {
-	return &GormProjectRepository{db}
+func NewRepository(db *gorm.DB) *GormRepository {
+	return &GormRepository{db}
 }
 
-// GormProjectRepository implements ProjectRepository using gorm
-type GormProjectRepository struct {
+// GormRepository implements ProjectRepository using gorm
+type GormRepository struct {
 	db *gorm.DB
 }
 
 // Load returns the project for the given id
 // returns NotFoundError or InternalError
-func (r *GormProjectRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Project, error) {
+func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Project, error) {
 	res := Project{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
@@ -37,7 +37,7 @@ func (r *GormProjectRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*
 
 // Delete deletes the project with the given id
 // returns NotFoundError or InternalError
-func (r *GormProjectRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
+func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	project := Project{ID: ID}
 	tx := r.db.Delete(project)
 
@@ -53,7 +53,7 @@ func (r *GormProjectRepository) Delete(ctx context.Context, ID satoriuuid.UUID) 
 
 // Save updates the given project in the db. Version must be the same as the one in the stored version
 // returns NotFoundError, BadParameterError, VersionConflictError or InternalError
-func (r *GormProjectRepository) Save(ctx context.Context, p Project) (*Project, error) {
+func (r *GormRepository) Save(ctx context.Context, p Project) (*Project, error) {
 	pr := Project{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	oldVersion := p.Version
@@ -84,7 +84,7 @@ func (r *GormProjectRepository) Save(ctx context.Context, p Project) (*Project, 
 
 // Create creates a new Project in the db
 // returns BadParameterError or InternalError
-func (r *GormProjectRepository) Create(ctx context.Context, name string) (*Project, error) {
+func (r *GormRepository) Create(ctx context.Context, name string) (*Project, error) {
 	newProject := Project{
 		Name: name,
 	}
@@ -105,7 +105,7 @@ func (r *GormProjectRepository) Create(ctx context.Context, name string) (*Proje
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *int, limit *int) ([]Project, uint64, error) {
+func (r *GormRepository) listProjectFromDB(ctx context.Context, start *int, limit *int) ([]Project, uint64, error) {
 
 	db := r.db.Model(&Project{})
 	orgDB := db
@@ -174,7 +174,7 @@ func (r *GormProjectRepository) listProjectFromDB(ctx context.Context, start *in
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormProjectRepository) List(ctx context.Context, start *int, limit *int) ([]Project, uint64, error) {
+func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]Project, uint64, error) {
 	result, count, err := r.listProjectFromDB(ctx, start, limit)
 	if err != nil {
 		return nil, 0, err
