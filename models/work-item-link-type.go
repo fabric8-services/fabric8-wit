@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/almighty/almighty-core/app"
 	convert "github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -108,25 +109,25 @@ func (self WorkItemLinkType) Equal(u convert.Equaler) bool {
 // cannot be used for the creation of a new work item link type.
 func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
-		return NewBadParameterError("name", t.Name)
+		return errors.NewBadParameterError("name", t.Name)
 	}
 	if t.SourceTypeName == "" {
-		return NewBadParameterError("source_type_name", t.SourceTypeName)
+		return errors.NewBadParameterError("source_type_name", t.SourceTypeName)
 	}
 	if t.TargetTypeName == "" {
-		return NewBadParameterError("target_type_name", t.TargetTypeName)
+		return errors.NewBadParameterError("target_type_name", t.TargetTypeName)
 	}
 	if t.ForwardName == "" {
-		return NewBadParameterError("forward_name", t.ForwardName)
+		return errors.NewBadParameterError("forward_name", t.ForwardName)
 	}
 	if t.ReverseName == "" {
-		return NewBadParameterError("reverse_name", t.ReverseName)
+		return errors.NewBadParameterError("reverse_name", t.ReverseName)
 	}
 	if err := CheckValidTopology(t.Topology); err != nil {
 		return err
 	}
 	if t.LinkCategoryID == satoriuuid.Nil {
-		return NewBadParameterError("link_category_id", t.LinkCategoryID)
+		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
 	return nil
 }
@@ -135,7 +136,7 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 // otherwise a BadParameterError is returned.
 func CheckValidTopology(t string) error {
 	if t != TopologyNetwork && t != TopologyDirectedNetwork && t != TopologyDependency && t != TopologyTree {
-		return NewBadParameterError("topolgy", t).Expected(TopologyNetwork + "|" + TopologyDirectedNetwork + "|" + TopologyDependency + "|" + TopologyTree)
+		return errors.NewBadParameterError("topolgy", t).Expected(TopologyNetwork + "|" + TopologyDirectedNetwork + "|" + TopologyDependency + "|" + TopologyTree)
 	}
 	return nil
 }
@@ -192,20 +193,20 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) erro
 		if err != nil {
 			//log.Printf("Error when converting %s to UUID: %s", *in.Data.ID, err.Error())
 			// treat as not found: clients don't know it must be a UUID
-			return NewNotFoundError("work item link type", id.String())
+			return errors.NewNotFoundError("work item link type", id.String())
 		}
 		out.ID = id
 	}
 
 	if in.Data.Type != EndpointWorkItemLinkTypes {
-		return NewBadParameterError("data.type", in.Data.Type).Expected(EndpointWorkItemLinkTypes)
+		return errors.NewBadParameterError("data.type", in.Data.Type).Expected(EndpointWorkItemLinkTypes)
 	}
 
 	if attrs != nil {
 		// If the name is not nil, it MUST NOT be empty
 		if attrs.Name != nil {
 			if *attrs.Name == "" {
-				return NewBadParameterError("data.attributes.name", *attrs.Name)
+				return errors.NewBadParameterError("data.attributes.name", *attrs.Name)
 			}
 			out.Name = *attrs.Name
 		}
@@ -221,7 +222,7 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) erro
 		// If the forwardName is not nil, it MUST NOT be empty
 		if attrs.ForwardName != nil {
 			if *attrs.ForwardName == "" {
-				return NewBadParameterError("data.attributes.forward_name", *attrs.ForwardName)
+				return errors.NewBadParameterError("data.attributes.forward_name", *attrs.ForwardName)
 			}
 			out.ForwardName = *attrs.ForwardName
 		}
@@ -229,7 +230,7 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) erro
 		// If the ReverseName is not nil, it MUST NOT be empty
 		if attrs.ReverseName != nil {
 			if *attrs.ReverseName == "" {
-				return NewBadParameterError("data.attributes.reverse_name", *attrs.ReverseName)
+				return errors.NewBadParameterError("data.attributes.reverse_name", *attrs.ReverseName)
 			}
 			out.ReverseName = *attrs.ReverseName
 		}
@@ -246,17 +247,17 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) erro
 		d := rel.LinkCategory.Data
 		// If the the link category is not nil, it MUST be "workitemlinkcategories"
 		if d.Type != EndpointWorkItemLinkCategories {
-			return NewBadParameterError("data.relationships.link_category.data.type", d.Type).Expected(EndpointWorkItemLinkCategories)
+			return errors.NewBadParameterError("data.relationships.link_category.data.type", d.Type).Expected(EndpointWorkItemLinkCategories)
 		}
 		// The the link category MUST NOT be empty
 		if d.ID == "" {
-			return NewBadParameterError("data.relationships.link_category.data.id", d.ID)
+			return errors.NewBadParameterError("data.relationships.link_category.data.id", d.ID)
 		}
 		out.LinkCategoryID, err = satoriuuid.FromString(d.ID)
 		if err != nil {
 			//log.Printf("Error when converting %s to UUID: %s", in.Data.ID, err.Error())
 			// treat as not found: clients don't know it must be a UUID
-			return NotFoundError{entity: "work item link category", ID: d.ID}
+			return errors.NewNotFoundError("work item link category", d.ID)
 		}
 	}
 
@@ -264,11 +265,11 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) erro
 		d := rel.SourceType.Data
 		// If the the link type is not nil, it MUST be "workitemlinktypes"
 		if d.Type != EndpointWorkItemTypes {
-			return NewBadParameterError("data.relationships.source_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
+			return errors.NewBadParameterError("data.relationships.source_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
 		}
 		// The the link type MUST NOT be empty
 		if d.ID == "" {
-			return NewBadParameterError("data.relationships.source_type.data.id", d.ID)
+			return errors.NewBadParameterError("data.relationships.source_type.data.id", d.ID)
 		}
 		out.SourceTypeName = d.ID
 	}
@@ -277,11 +278,11 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) erro
 		d := rel.TargetType.Data
 		// If the the link type is not nil, it MUST be "workitemlinktypes"
 		if d.Type != EndpointWorkItemTypes {
-			return NewBadParameterError("data.relationships.target_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
+			return errors.NewBadParameterError("data.relationships.target_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
 		}
 		// The the link type MUST NOT be empty
 		if d.ID == "" {
-			return NewBadParameterError("data.relationships.target_type.data.id", d.ID)
+			return errors.NewBadParameterError("data.relationships.target_type.data.id", d.ID)
 		}
 		out.TargetTypeName = d.ID
 	}

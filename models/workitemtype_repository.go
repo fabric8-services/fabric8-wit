@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
 )
 
@@ -51,10 +52,10 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	db := r.db.Model(&res).Where("name=?", name).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item type", name}
+		return nil, errors.NewNotFoundError("work item type", name)
 	}
 	if err := db.Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 
 	return &res, nil
@@ -66,7 +67,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	existing, _ := r.LoadTypeFromDB(name)
 	if existing != nil {
 		log.Printf("creating type %s again", name)
-		return nil, BadParameterError{parameter: "name", value: name}
+		return nil, errors.NewBadParameterError("name", name)
 	}
 	allFields := map[string]FieldDefinition{}
 	path := pathSep + name
@@ -75,10 +76,10 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		db := r.db.First(&extendedType, extendedTypeName)
 		if db.RecordNotFound() {
 			log.Printf("not found, res=%v", extendedType)
-			return nil, BadParameterError{parameter: "extendedTypeName", value: *extendedTypeName}
+			return nil, errors.NewBadParameterError("extendedTypeName", *extendedTypeName)
 		}
 		if err := db.Error; err != nil {
-			return nil, InternalError{simpleError{err.Error()}}
+			return nil, errors.NewInternalError(err.Error())
 		}
 		// copy fields from extended type
 		for key, value := range extendedType.Fields {
@@ -112,7 +113,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	}
 
 	if err := r.db.Save(&created).Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 
 	result := convertTypeFromModels(&created)

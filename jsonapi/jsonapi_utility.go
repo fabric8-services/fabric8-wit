@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 )
 
 const (
@@ -31,23 +31,23 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var statusCode int
 	var id *string
 	switch err.(type) {
-	case models.NotFoundError:
+	case errors.NotFoundError:
 		code = ErrorCodeNotFound
 		title = "Not found error"
 		statusCode = http.StatusNotFound
-	case models.ConversionError:
+	case errors.ConversionError:
 		code = ErrorCodeConversionError
 		title = "Conversion error"
 		statusCode = http.StatusBadRequest
-	case models.BadParameterError:
+	case errors.BadParameterError:
 		code = ErrorCodeBadParameter
 		title = "Bad parameter error"
 		statusCode = http.StatusBadRequest
-	case models.VersionConflictError:
+	case errors.VersionConflictError:
 		code = ErrorCodeVersionConflict
 		title = "Version conflict error"
 		statusCode = http.StatusBadRequest
-	case models.InternalError:
+	case errors.InternalError:
 		code = ErrorCodeInternalError
 		title = "Internal error"
 		statusCode = http.StatusInternalServerError
@@ -56,7 +56,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 		title = "Unknown error"
 		statusCode = http.StatusInternalServerError
 
-		cause := errors.Cause(err)
+		cause := pkgerrors.Cause(err)
 		if err, ok := cause.(goa.ServiceError); ok {
 			statusCode = err.ResponseStatus()
 			idStr := err.Token()

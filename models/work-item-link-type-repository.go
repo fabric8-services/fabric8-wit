@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -42,14 +43,14 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 	linkCategory := WorkItemLinkCategory{}
 	db := r.db.Where("id=?", linkType.LinkCategoryID).Find(&linkCategory)
 	if db.RecordNotFound() {
-		return nil, NewBadParameterError("work item link category", linkType.LinkCategoryID)
+		return nil, errors.NewBadParameterError("work item link category", linkType.LinkCategoryID)
 	}
 	if db.Error != nil {
-		return nil, NewInternalError(fmt.Sprintf("Failed to find work item link category: %s", db.Error.Error()))
+		return nil, errors.NewInternalError(fmt.Sprintf("Failed to find work item link category: %s", db.Error.Error()))
 	}
 	db = r.db.Create(linkType)
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkTypeFromModel(*linkType)
@@ -62,17 +63,17 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
-		return nil, NewNotFoundError("work item link type", ID)
+		return nil, errors.NewNotFoundError("work item link type", ID)
 	}
 	log.Printf("loading work item link type %s", id.String())
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found work item link type, res=%v", res)
-		return nil, NewNotFoundError("work item link type", id.String())
+		return nil, errors.NewNotFoundError("work item link type", id.String())
 	}
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkTypeFromModel(res)
@@ -88,10 +89,10 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name st
 	db := r.db.Model(&res).Where("name=? AND link_category_id=?", name, categoryId.String()).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NewNotFoundError("work item link type", name)
+		return nil, errors.NewNotFoundError("work item link type", name)
 	}
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &res, nil
 }
@@ -103,10 +104,10 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) 
 	db := r.db.Model(&res).Where("ID=?", ID.String()).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NewNotFoundError("work item link type", ID.String())
+		return nil, errors.NewNotFoundError("work item link type", ID.String())
 	}
 	if db.Error != nil {
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &res, nil
 }
@@ -140,7 +141,7 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
-		return NewNotFoundError("work item link type", ID)
+		return errors.NewNotFoundError("work item link type", ID)
 	}
 	var cat = WorkItemLinkType{
 		ID: id,
@@ -148,10 +149,10 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 	log.Printf("work item link type to delete %v\n", cat)
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
-		return NewInternalError(db.Error.Error())
+		return errors.NewInternalError(db.Error.Error())
 	}
 	if db.RowsAffected == 0 {
-		return NewNotFoundError("work item link type", id.String())
+		return errors.NewNotFoundError("work item link type", id.String())
 	}
 	return nil
 }
@@ -161,19 +162,19 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkItemLinkType) (*app.WorkItemLinkType, error) {
 	res := WorkItemLinkType{}
 	if lt.Data.ID == nil {
-		return nil, NewBadParameterError("work item link type", nil)
+		return nil, errors.NewBadParameterError("work item link type", nil)
 	}
 	db := r.db.Model(&res).Where("id=?", *lt.Data.ID).First(&res)
 	if db.RecordNotFound() {
 		log.Printf("work item link type not found, res=%v", res)
-		return nil, NewNotFoundError("work item link type", *lt.Data.ID)
+		return nil, errors.NewNotFoundError("work item link type", *lt.Data.ID)
 	}
 	if db.Error != nil {
 		log.Print(db.Error.Error())
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if lt.Data.Attributes.Version == nil || res.Version != *lt.Data.Attributes.Version {
-		return nil, NewVersionConflictError("version conflict")
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	if err := ConvertLinkTypeToModel(lt, &res); err != nil {
 		return nil, err
@@ -182,7 +183,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkIt
 	db = db.Save(&res)
 	if db.Error != nil {
 		log.Print(db.Error.Error())
-		return nil, NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Printf("updated work item link type to %v\n", res)
 	result := ConvertLinkTypeFromModel(res)

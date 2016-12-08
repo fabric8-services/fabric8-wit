@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +52,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	assert.NotNil(s.T(), wit)
 
 	wit3, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{})
-	assert.IsType(s.T(), models.BadParameterError{}, err)
+	assert.IsType(s.T(), errors.BadParameterError{}, err)
 	assert.Nil(s.T(), wit3)
 
 	wit2, err := s.repo.Load(context.Background(), "foo.bar")

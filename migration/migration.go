@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/net/context"
@@ -237,7 +238,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *models.GormWorkI
 func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *models.GormWorkItemLinkCategoryRepository, name string, description string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
 	switch err.(type) {
-	case models.NotFoundError:
+	case errors.NotFoundError:
 		_, err := linkCatRepo.Create(ctx, &name, &description)
 		if err != nil {
 			return err
@@ -271,7 +272,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *models.Gor
 	}
 
 	switch err.(type) {
-	case models.NotFoundError:
+	case errors.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID)
 		if err != nil {
 			return err
@@ -350,7 +351,7 @@ func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, wi
 func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *models.GormWorkItemTypeRepository, db *gorm.DB) error {
 	wit, err := witr.LoadTypeFromDB(typeName)
 	switch err.(type) {
-	case models.NotFoundError:
+	case errors.NotFoundError:
 		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
 		if err != nil {
 			return err

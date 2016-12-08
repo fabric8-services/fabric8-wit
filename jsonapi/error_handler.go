@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
-	"github.com/pkg/errors"
+	goaerrors "github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +37,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 			if e == nil {
 				return nil
 			}
-			cause := errors.Cause(e)
+			cause := goaerrors.Cause(e)
 			status := http.StatusInternalServerError
 			var respBody interface{}
 			respBody, status = ErrorToJSONAPIErrors(e)
@@ -62,7 +62,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 				goa.LogError(ctx, "uncaught error", "err", fmt.Sprintf("%+v", e), "id", reqID, "msg", respBody)
 				if !verbose {
 					rw.Header().Set("Content-Type", goa.ErrorMediaIdentifier)
-					msg := models.NewInternalError(fmt.Sprintf("%s [%s]", http.StatusText(http.StatusInternalServerError), reqID))
+					msg := errors.NewInternalError(fmt.Sprintf("%s [%s]", http.StatusText(http.StatusInternalServerError), reqID))
 					//respBody = goa.ErrInternal(msg)
 					respBody, status = ErrorToJSONAPIErrors(msg)
 					// Preserve the ID of the original error as that's what gets logged, the client

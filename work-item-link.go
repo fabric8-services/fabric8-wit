@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/models"
 	"github.com/goadesign/goa"
@@ -42,7 +43,7 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 		cat, err := appl.WorkItemLinks().Create(ctx.Context, model.SourceID, model.TargetID, model.LinkTypeID)
 		if err != nil {
 			switch err.(type) {
-			case models.NotFoundError:
+			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
 			default:

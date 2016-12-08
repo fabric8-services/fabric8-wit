@@ -1,10 +1,10 @@
-package models_test
+package errors_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,7 +12,7 @@ import (
 func TestNewInternalError(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	err := models.NewInternalError("System disk could not be read")
+	err := errors.NewInternalError("System disk could not be read")
 
 	// not sure what assertion to do here.
 	t.Log(err)
@@ -21,7 +21,7 @@ func TestNewInternalError(t *testing.T) {
 func TestNewConversionError(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	err := models.NewConversionError("Couldn't convert workitem")
+	err := errors.NewConversionError("Couldn't convert workitem")
 
 	// not sure what assertion to do here.
 	t.Log(err)
@@ -33,9 +33,9 @@ func TestNewBadParameterError(t *testing.T) {
 	param := "assigness"
 	value := 10
 	expectedValue := 11
-	err := models.NewBadParameterError(param, value)
+	err := errors.NewBadParameterError(param, value)
 	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v'", param, value), err.Error())
-	err = models.NewBadParameterError(param, value).Expected(expectedValue)
+	err = errors.NewBadParameterError(param, value).Expected(expectedValue)
 	assert.Equal(t, fmt.Sprintf("Bad value for parameter '%s': '%v' (expected: '%v')", param, value, expectedValue), err.Error())
 }
 
@@ -44,6 +44,6 @@ func TestNewNotFoundError(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	param := "assigness"
 	value := "10"
-	err := models.NewNotFoundError(param, value)
+	err := errors.NewNotFoundError(param, value)
 	assert.Equal(t, fmt.Sprintf("%s with id '%s' not found", param, value), err.Error())
 }

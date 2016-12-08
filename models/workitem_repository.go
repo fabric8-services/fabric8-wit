@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
 )
 
@@ -20,19 +21,19 @@ type GormWorkItemRepository struct {
 // LoadFromDB returns the work item with the given ID in model representation.
 func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, NotFoundError{"work item", ID}
+		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	log.Printf("loading work item %d", id)
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{"work item", ID}
+		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	if tx.Error != nil {
-		return nil, InternalError{simpleError{tx.Error.Error()}}
+		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &res, nil
 }
@@ -46,11 +47,11 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	}
 	wiType, err := r.wir.LoadTypeFromDB(res.Type)
 	if err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 	result, err := wiType.ConvertFromModel(*res)
 	if err != nil {
-		return nil, ConversionError{simpleError{err.Error()}}
+		return nil, errors.NewConversionError(err.Error())
 	}
 	return result, nil
 }
@@ -60,18 +61,18 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	var workItem = WorkItem{}
 	id, err := strconv.ParseUint(ID, 10, 64)
-	if err != nil {
+	if err != nil || id == 0 {
 		// treat as not found: clients don't know it must be a number
-		return NotFoundError{entity: "work item", ID: ID}
+		return errors.NewNotFoundError("work item", ID)
 	}
 	workItem.ID = id
 	tx := r.db.Delete(workItem)
 
 	if err = tx.Error; err != nil {
-		return InternalError{simpleError{err.Error()}}
+		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
-		return NotFoundError{entity: "work item", ID: ID}
+		return errors.NewNotFoundError("work item", ID)
 	}
 
 	return nil
@@ -82,26 +83,26 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
-	if err != nil {
-		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+	if err != nil || id == 0 {
+		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
 	log.Printf("looking for id %d", id)
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
-		return nil, NotFoundError{entity: "work item", ID: wi.ID}
+		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if tx.Error != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 	if res.Version != wi.Version {
-		return nil, VersionConflictError{simpleError{"version conflict"}}
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
 	wiType, err := r.wir.LoadTypeFromDB(wi.Type)
 	if err != nil {
-		return nil, NewBadParameterError("Type", wi.Type)
+		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
 
 	newWi := WorkItem{
@@ -116,22 +117,22 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		var err error
 		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, NewBadParameterError(fieldName, fieldValue)
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 
 	tx = tx.Where("Version = ?", wi.Version).Save(&newWi)
 	if err := tx.Error; err != nil {
 		log.Print(err.Error())
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
-		return nil, VersionConflictError{simpleError{"version conflict"}}
+		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.Printf("updated item to %v\n", newWi)
 	result, err := wiType.ConvertFromModel(newWi)
 	if err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 	return result, nil
 }
@@ -141,7 +142,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
 	wiType, err := r.wir.LoadTypeFromDB(typeID)
 	if err != nil {
-		return nil, NewBadParameterError("type", typeID)
+		return nil, errors.NewBadParameterError("type", typeID)
 	}
 	wi := WorkItem{
 		Type:   typeID,
@@ -153,18 +154,18 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
-			return nil, NewBadParameterError(fieldName, fieldValue)
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 	tx := r.db
 
 	if err = tx.Create(&wi).Error; err != nil {
-		return nil, InternalError{simpleError{err.Error()}}
+		return nil, errors.NewInternalError(err.Error())
 	}
 	log.Printf("created item %v\n", wi)
 	result, err := wiType.ConvertFromModel(wi)
 	if err != nil {
-		return nil, ConversionError{simpleError{err.Error()}}
+		return nil, errors.NewConversionError(err.Error())
 	}
 
 	return result, nil
@@ -175,7 +176,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
-		return nil, 0, NewBadParameterError("expression", criteria)
+		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 
 	log.Printf("executing query: '%s' with params %v", where, parameters)
@@ -184,13 +185,13 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
-			return nil, 0, NewBadParameterError("start", *start)
+			return nil, 0, errors.NewBadParameterError("start", *start)
 		}
 		db = db.Offset(*start)
 	}
 	if limit != nil {
 		if *limit <= 0 {
-			return nil, 0, NewBadParameterError("limit", *limit)
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
 		}
 		db = db.Limit(*limit)
 	}
@@ -206,7 +207,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	value := WorkItem{}
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, 0, InternalError{simpleError{err.Error()}}
+		return nil, 0, errors.NewInternalError(err.Error())
 	}
 
 	// need to set up a result for Scan() in order to extract total count.
@@ -225,7 +226,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, InternalError{simpleError{err.Error()}}
+				return nil, 0, errors.NewInternalError(err.Error())
 			}
 		}
 		result = append(result, value)
@@ -258,11 +259,11 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	for index, value := range result {
 		wiType, err := r.wir.LoadTypeFromDB(value.Type)
 		if err != nil {
-			return nil, 0, InternalError{simpleError{err.Error()}}
+			return nil, 0, errors.NewInternalError(err.Error())
 		}
 		res[index], err = wiType.ConvertFromModel(value)
 		if err != nil {
-			return nil, 0, ConversionError{simpleError{err.Error()}}
+			return nil, 0, errors.NewConversionError(err.Error())
 		}
 	}
 
