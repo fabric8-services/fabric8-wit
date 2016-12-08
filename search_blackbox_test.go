@@ -8,10 +8,10 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,12 +29,12 @@ func TestSearch(t *testing.T) {
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch",
-			models.SystemDescription: "",
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch",
+			workitem.SystemDescription: "",
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
@@ -43,7 +43,7 @@ func TestSearch(t *testing.T) {
 	q := "specialwordforsearch"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	r := sr.Data[0]
-	assert.Equal(t, "specialwordforsearch", r.Fields[models.SystemTitle])
+	assert.Equal(t, "specialwordforsearch", r.Fields[workitem.SystemTitle])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
 
@@ -53,12 +53,12 @@ func TestSearchPagination(t *testing.T) {
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch2",
-			models.SystemDescription: "",
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch2",
+			workitem.SystemDescription: "",
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
@@ -69,7 +69,7 @@ func TestSearchPagination(t *testing.T) {
 	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
 	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
 	r := sr.Data[0]
-	assert.Equal(t, "specialwordforsearch2", r.Fields[models.SystemTitle])
+	assert.Equal(t, "specialwordforsearch2", r.Fields[workitem.SystemTitle])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
 
@@ -79,12 +79,12 @@ func TestSearchWithEmptyValue(t *testing.T) {
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch",
-			models.SystemDescription: "",
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch",
+			workitem.SystemDescription: "",
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
@@ -103,12 +103,12 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 
 	expectedDescription := "http://localhost:8080/detail/154687364529310 is related issue"
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch_new",
-			models.SystemDescription: expectedDescription,
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch_new",
+			workitem.SystemDescription: expectedDescription,
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
@@ -118,7 +118,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	assert.Equal(t, expectedDescription, r.Fields[workitem.SystemDescription])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
 
@@ -129,12 +129,12 @@ func TestSearchURLWithoutPort(t *testing.T) {
 
 	expectedDescription := "This issue is related to http://localhost/detail/876394"
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch_without_port",
-			models.SystemDescription: expectedDescription,
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch_without_port",
+			workitem.SystemDescription: expectedDescription,
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
@@ -144,7 +144,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	assert.Equal(t, expectedDescription, r.Fields[workitem.SystemDescription])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
 
@@ -154,12 +154,12 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 	expectedDescription := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch_new",
-			models.SystemDescription: expectedDescription,
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch_new",
+			workitem.SystemDescription: expectedDescription,
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)
@@ -169,7 +169,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Fields[models.SystemDescription])
+	assert.Equal(t, expectedDescription, r.Fields[workitem.SystemDescription])
 	test.DeleteWorkitemOK(t, nil, nil, wiController, wiResult.ID)
 }
 
@@ -179,12 +179,12 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 	wiController := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 	expectedDescription := "Related to http://example-domain:8080/different-path/ok issue"
 	wiPayload := app.CreateWorkItemPayload{
-		Type: models.SystemBug,
+		Type: workitem.SystemBug,
 		Fields: map[string]interface{}{
-			models.SystemTitle:       "specialwordforsearch_new",
-			models.SystemDescription: expectedDescription,
-			models.SystemCreator:     "baijum",
-			models.SystemState:       "closed"},
+			workitem.SystemTitle:       "specialwordforsearch_new",
+			workitem.SystemDescription: expectedDescription,
+			workitem.SystemCreator:     "baijum",
+			workitem.SystemState:       "closed"},
 	}
 
 	_, wiResult := test.CreateWorkitemCreated(t, service.Context, service, wiController, &wiPayload)

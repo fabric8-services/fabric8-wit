@@ -16,7 +16,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 )
@@ -35,19 +35,19 @@ const (
 // GormSearchRepository provides a Gorm based repository
 type GormSearchRepository struct {
 	db  *gorm.DB
-	wir *models.GormWorkItemTypeRepository
+	wir *workitem.GormWorkItemTypeRepository
 }
 
 // NewGormSearchRepository creates a new search repository
 func NewGormSearchRepository(db *gorm.DB) *GormSearchRepository {
-	return &GormSearchRepository{db, models.NewWorkItemTypeRepository(db)}
+	return &GormSearchRepository{db, workitem.NewWorkItemTypeRepository(db)}
 }
 
 func generateSearchQuery(q string) (string, error) {
 	return q, nil
 }
 
-func convertFromModel(wiType models.WorkItemType, workItem models.WorkItem) (*app.WorkItem, error) {
+func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
@@ -261,8 +261,8 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]models.WorkItem, uint64, error) {
-	db := r.db.Model(models.WorkItem{}).Where("tsv @@ query")
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+	db := r.db.Model(workitem.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, errors.NewBadParameterError("start", *start)
@@ -280,13 +280,13 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		query := fmt.Sprintf("%[1]s.type in ("+
 			"select distinct subtype.name from %[2]s subtype "+
 			"join %[2]s supertype on subtype.path like (supertype.path || '%%') "+
-			"where supertype.name in (?))", models.WorkItem{}.TableName(), models.WorkItemType{}.TableName())
+			"where supertype.name in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
 		db = db.Where(query, workItemTypes)
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", models.WorkItem{}.TableName()))
+	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItem{}.TableName()))
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -294,8 +294,8 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 	defer rows.Close()
 
-	result := []models.WorkItem{}
-	value := models.WorkItem{}
+	result := []workitem.WorkItem{}
+	value := workitem.WorkItem{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -342,7 +342,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	}
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
-	var rows []models.WorkItem
+	var rows []workitem.WorkItem
 	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit)
 	if err != nil {
 		return nil, 0, err

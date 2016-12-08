@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -39,7 +40,7 @@ func TestMain(m *testing.M) {
 		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
 		if configuration.GetPopulateCommonTypes() {
 			if err := models.Transactional(DB, func(tx *gorm.DB) error {
-				return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+				return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 			}); err != nil {
 				panic(err.Error())
 			}
