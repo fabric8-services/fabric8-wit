@@ -225,10 +225,10 @@ func TestConvertFromModel(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	wi := models.WorkItem{}
-	wit := models.WorkItemType{}
+	wi := workitem.WorkItem{}
+	wit := workitem.WorkItemType{}
 	result, err := wit.ConvertFromModel(wi)
 	assert.Nil(t, err)
 	assert.NotNil(t, result)
-	assert.NotNil(t, result.Fields[models.SystemCreatedAt])
+	assert.NotNil(t, result.Fields[workitem.SystemCreatedAt])
 }
