@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/workitem"
@@ -46,7 +47,7 @@ func NewGormDB(db *gorm.DB) *GormDB {
 	return &GormDB{GormBase{db}, ""}
 }
 
-// GormTransactionSupport implements TransactionSupport for gorm
+// GormBase is a base struct for gorm implementations of db & transaction
 type GormBase struct {
 	db *gorm.DB
 }
@@ -70,6 +71,10 @@ func (g *GormBase) WorkItems2() workitem.WorkItem2Repository {
 
 func (g *GormBase) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return workitem.NewWorkItemTypeRepository(g.db)
+}
+
+func (g *GormBase) Projects() project.Repository {
+	return project.NewRepository(g.db)
 }
 
 func (g *GormBase) Trackers() application.TrackerRepository {

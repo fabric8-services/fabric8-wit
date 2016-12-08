@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 )
@@ -24,6 +25,11 @@ func (db *MockDB) WorkItems2() workitem.WorkItem2Repository {
 func (db *MockDB) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return nil
 }
+
+func (db *MockDB) Projects() project.Repository {
+	return nil
+}
+
 func (db *MockDB) Trackers() application.TrackerRepository {
 	return nil
 }

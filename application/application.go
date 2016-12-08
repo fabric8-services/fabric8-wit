@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 )
@@ -19,6 +20,7 @@ type Application interface {
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	WorkItemComments() comment.Repository
+	Projects() project.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction
