@@ -649,6 +649,30 @@ func (s *WorkItem2Suite) TestWI2UpdateWithInvalidID() {
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 }
 
+func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
+	c := minimumRequiredCreateWithType(workitem.SystemBug)
+	c.Data.Attributes[workitem.SystemTitle] = "Test title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
+
+	u := minimumRequiredUpdatePayload()
+	u.Data.Attributes["version"] = created.Data.Attributes["version"]
+	u.Data.ID = created.Data.ID
+	u.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				ID:   workitem.SystemExperience,
+				Type: APIStringTypeWorkItemType,
+			},
+		},
+	}
+
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, &u)
+	assert.Equal(s.T(), u.Data.Relationships.BaseType.Data.ID, updated.Data.Relationships.BaseType.Data.ID)
+}
+
 func (s *WorkItem2Suite) TestWI2UpdateRemoveAssignee() {
 	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
 

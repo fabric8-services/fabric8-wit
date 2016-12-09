@@ -461,6 +461,11 @@ func (c *WorkitemController) ConvertJSONAPIToWorkItem(source app.WorkItem2, targ
 			target.Fields[workitem.SystemAssignee] = source.Relationships.Assignee.Data.ID
 		}
 	}
+	if source.Relationships != nil && source.Relationships.BaseType != nil {
+		if source.Relationships.BaseType.Data != nil {
+			target.Type = source.Relationships.BaseType.Data.ID
+		}
+	}
 	for key, val := range source.Attributes {
 		target.Fields[key] = val
 	}
