@@ -102,9 +102,11 @@ func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, erro
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{}}
 
-	result.Fields[SystemCreatedAt] = workItem.CreatedAt
 	for name, field := range wit.Fields {
 		var err error
+		if name == SystemCreatedAt {
+			continue
+		}
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
 			return nil, err

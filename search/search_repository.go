@@ -55,6 +55,9 @@ func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) 
 		Fields:  map[string]interface{}{}}
 
 	for name, field := range wiType.Fields {
+		if name == workitem.SystemCreatedAt {
+			continue
+		}
 		var err error
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {

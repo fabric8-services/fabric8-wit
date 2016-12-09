@@ -220,15 +220,3 @@ func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
 	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/foo/"))
 	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("foo/"))
 }
-
-func TestConvertFromModel(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	wi := workitem.WorkItem{}
-	wit := workitem.WorkItemType{}
-	result, err := wit.ConvertFromModel(wi)
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.NotNil(t, result.Fields[workitem.SystemCreatedAt])
-}
