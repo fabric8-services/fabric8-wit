@@ -28,7 +28,8 @@ func NewWorkItemLinkController(service *goa.Service, db application.DB) *WorkIte
 	}
 }
 
-// getTypesOfLinks returns an array of distinct work item link types for the given work item links
+// getTypesOfLinks returns an array of distinct work item link types for the
+// given work item links
 func getTypesOfLinks(appl application.Application, ctx context.Context, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItemLinkTypeData, error) {
 	// Build our "set" of distinct type IDs already converted as strings
 	typeIDMap := map[string]bool{}
@@ -47,23 +48,105 @@ func getTypesOfLinks(appl application.Application, ctx context.Context, linksDat
 	return typeDataArr, nil
 }
 
-// enrichLinkWithType includes the optional link type data in the work item link "included" array
-func enrichLinkWithType(appl application.Application, ctx context.Context, link *app.WorkItemLink) error {
+// getCategoriesOfLinkTypes returns an array of distinct work item link
+// categories for the given work item link types
+func getCategoriesOfLinkTypes(appl application.Application, ctx context.Context, linkTypeDataArr []*app.WorkItemLinkTypeData) ([]*app.WorkItemLinkCategoryData, error) {
+	// Build our "set" of distinct link IDs already converted as strings
+	catIDMap := map[string]bool{}
+	for _, linkTypeData := range linkTypeDataArr {
+		catIDMap[linkTypeData.Relationships.LinkCategory.Data.ID] = true
+	}
+	// Now include the optional link type data in the work item link "included" array
+	catDataArr := []*app.WorkItemLinkCategoryData{}
+	for catID := range catIDMap {
+		linkType, err := appl.WorkItemLinkCategories().Load(ctx, catID)
+		if err != nil {
+			return nil, err
+		}
+		catDataArr = append(catDataArr, linkType.Data)
+	}
+	return catDataArr, nil
+}
+
+// enrichLink includes related resources in the link's "included" array
+func enrichLink(appl application.Application, ctx context.Context, link *app.WorkItemLink) error {
+
+	// include link type
 	linkType, err := appl.WorkItemLinkTypes().Load(ctx, link.Data.Relationships.LinkType.Data.ID)
 	if err != nil {
 		return err
 	}
 	link.Included = append(link.Included, linkType.Data)
+
+	// include link category
+	linkCat, err := appl.WorkItemLinkCategories().Load(ctx, linkType.Data.Relationships.LinkCategory.Data.ID)
+	if err != nil {
+		return err
+	}
+	link.Included = append(link.Included, linkCat.Data)
+
+	// TODO(kwk): include source work item type (once #559 is merged)
+	// sourceWit, err := appl.WorkItemTypes().Load(ctx, linkType.Data.Relationships.SourceType.Data.ID)
+	// if err != nil {
+	// 	return err
+	// }
+	// link.Included = append(link.Included, sourceWit.Data)
+
+	// TODO(kwk): include target work item type (once #559 is merged)
+	// targetWit, err := appl.WorkItemTypes().Load(ctx, linkType.Data.Relationships.TargetType.Data.ID)
+	// if err != nil {
+	// 	return err
+	// }
+	// link.Included = append(link.Included, targetWit.Data)
+
+	// TODO(kwk): include source work item (once #559 is merged)
+	// sourceWi, err := appl.WorkItems().Load(ctx, link.Data.Relationships.Source.Data.ID)
+	// if err != nil {
+	// 	return err
+	// }
+	// link.Included = append(link.Included, sourceWi.Data)
+
+	// TODO(kwk): include target work item (once #559 is merged)
+	// sourceWi, err := appl.WorkItems().Load(ctx, link.Data.Relationships.Target.Data.ID)
+	// if err != nil {
+	// 	return err
+	// }
+	// link.Included = append(link.Included, sourceWi.Data)
+
 	return nil
 }
 
-// enrichLinkArrayWithTypes includes distinct work item link types in the "included" element
-func enrichLinkArrayWithTypes(appl application.Application, ctx context.Context, linkArr *app.WorkItemLinkArray) error {
+// enrichLinkArray includes related resources in the linkArr's "included" element
+func enrichLinkArray(appl application.Application, ctx context.Context, linkArr *app.WorkItemLinkArray) error {
+
+	// include link types
 	typeDataArr, err := getTypesOfLinks(appl, ctx, linkArr.Data)
 	if err != nil {
 		return err
 	}
-	linkArr.Included = append(linkArr.Included, typeDataArr...)
+	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
+	interfaceArr := make([]interface{}, len(typeDataArr))
+	for i, v := range typeDataArr {
+		interfaceArr[i] = v
+	}
+	linkArr.Included = append(linkArr.Included, interfaceArr...)
+
+	// include link categories
+	catDataArr, err := getCategoriesOfLinkTypes(appl, ctx, typeDataArr)
+	if err != nil {
+		return err
+	}
+	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
+	interfaceArr = make([]interface{}, len(catDataArr))
+	for i, v := range catDataArr {
+		interfaceArr[i] = v
+	}
+	linkArr.Included = append(linkArr.Included, interfaceArr...)
+
+	// TODO(kwk): Include source WIs (once #559 is merged)
+	// TODO(kwk): Include target WIs (once #559 is merged)
+	// TODO(kwk): Include WITs (once #559 is merged)
+
 	return nil
 }
 
@@ -94,7 +177,7 @@ func createWorkItemLink(appl application.Application, ctx context.Context, db ap
 			return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 		}
 	}
-	if err := enrichLinkWithType(appl, ctx, link); err != nil {
+	if err := enrichLink(appl, ctx, link); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
@@ -139,7 +222,7 @@ func listWorkItemLink(appl application.Application, ctx context.Context, db appl
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
-	if err := enrichLinkArrayWithTypes(appl, ctx, linkArr); err != nil {
+	if err := enrichLinkArray(appl, ctx, linkArr); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
@@ -163,7 +246,7 @@ func showWorkItemLink(appl application.Application, ctx context.Context, db appl
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
-	if err := enrichLinkWithType(appl, ctx, link); err != nil {
+	if err := enrichLink(appl, ctx, link); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
@@ -190,7 +273,7 @@ func updateWorkItemLink(appl application.Application, ctx context.Context, db ap
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
-	if err := enrichLinkWithType(appl, ctx, link); err != nil {
+	if err := enrichLink(appl, ctx, link); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return responseData.Service.Send(ctx, httpStatusCode, jerrors)
 	}
