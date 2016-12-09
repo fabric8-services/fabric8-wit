@@ -19,9 +19,6 @@ type MockDB struct {
 func (db *MockDB) WorkItems() workitem.WorkItemRepository {
 	return db.wir
 }
-func (db *MockDB) WorkItems2() workitem.WorkItem2Repository {
-	return nil
-}
 func (db *MockDB) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return nil
 }

@@ -37,6 +37,7 @@ var AuthToken = a.MediaType("application/vnd.authtoken+json", func() {
 })
 
 // workItem is the media type for work items
+// Deprecated, but kept around as internal model for now.
 var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.TypeName("WorkItem")
 	a.Description("A work item hold field values according to a given field type")
@@ -58,21 +59,6 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	})
 })
 
-// workItem2 is the media type for work items
-var workItem2 = a.MediaType("application/vnd.workitem2+json", func() {
-	a.TypeName("WorkItem2")
-	a.Description("A work item holds field values according to a given field type in JSONAPI form")
-	a.Attribute("links", WorkItemResourceLinksForJSONAPI)
-	a.Attribute("data", workItemDataForUpdate)
-	a.Required("links")
-	a.Required("data")
-	a.View("default", func() {
-		a.Attribute("links")
-		a.Attribute("data")
-		a.Required("data")
-	})
-})
-
 var pagingLinks = a.Type("pagingLinks", func() {
 	a.Attribute("prev", d.String)
 	a.Attribute("next", d.String)
@@ -84,32 +70,6 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Attribute("totalCount", d.Integer)
 
 	a.Required("totalCount")
-})
-
-// workItemListResponse contains paged results for listing work items and paging links
-var workItemListResponse = a.MediaType("application/vnd.workitemlist+json", func() {
-	a.TypeName("WorkItemListResponse")
-	a.Description("Holds the paginated response to a work item list request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", meta)
-	a.Attribute("data", a.CollectionOf(workItem))
-
-	a.Required("links")
-	a.Required("meta")
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("links", func() {
-			a.Attribute("prev", d.String)
-			a.Attribute("next", d.String)
-			a.Attribute("first", d.String)
-			a.Attribute("last", d.String)
-		})
-		a.Attribute("meta", func() {
-			a.Attribute("totalCount", d.Number)
-		})
-		a.Attribute("data")
-	})
 })
 
 // fieldDefinition defines the possible values for a field in a work item type
@@ -268,21 +228,6 @@ var searchResponse = a.MediaType("application/vnd.search+json", func() {
 			a.Attribute("totalCount", d.Integer)
 		})
 		a.Attribute("data")
-	})
-})
-
-// JSONAPIErrors is an array of JSONAPI error objects
-var JSONAPIErrors = a.MediaType("application/vnd.jsonapierrors+json", func() {
-	a.UseTrait("jsonapi-media-type")
-	a.TypeName("JSONAPIErrors")
-	a.Description(``)
-	a.Attributes(func() {
-		a.Attribute("errors", a.ArrayOf(JSONAPIError))
-		a.Required("errors")
-	})
-	a.View("default", func() {
-		a.Attribute("errors")
-		a.Required("errors")
 	})
 })
 

@@ -160,3 +160,12 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	}
 	return &res, nil
 }
+
+// ValidIdentity validates that the IdentityID exists
+func (m *GormIdentityRepository) ValidIdentity(ctx context.Context, id uuid.UUID) bool {
+	_, err := m.Load(ctx, id)
+	if err != nil {
+		return false
+	}
+	return true
+}

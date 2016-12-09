@@ -41,6 +41,12 @@ type testSecureAPI struct {
 	jwtToken           string
 }
 
+func (t testSecureAPI) String() string {
+	return fmt.Sprintf(
+		"TestSecureAPI { method: %v, url: %v, expectedStatusCode: %v, expectedErrorCode: %v }",
+		t.method, t.url, t.expectedStatusCode, t.expectedStatusCode)
+}
+
 // getExpiredAuthHeader returns a JWT bearer token with an expiration date that lies in the past
 func getExpiredAuthHeader(t *testing.T, key interface{}) string {
 	token := jwt.New(jwt.SigningMethodRS256)
@@ -125,7 +131,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 		// Hit the service with own request
 		service.Mux.ServeHTTP(rr, req)
 
-		require.Equal(t, testObject.expectedStatusCode, rr.Code)
+		require.Equal(t, testObject.expectedStatusCode, rr.Code, testObject.String())
 
 		// Below code tries to open Body response which is expected to be a JSON
 		// If could not parse it correctly into app.JSONAPIErrors
@@ -140,7 +146,7 @@ func UnauthorizeCreateUpdateDeleteTest(t *testing.T, getDataFunc func(t *testing
 		}
 		// Additional checks for 'more' confirmation
 		require.Equal(t, testObject.expectedErrorCode, *jerrors.Errors[0].Code)
-		require.Equal(t, strconv.Itoa(testObject.expectedStatusCode), *jerrors.Errors[0].Status)
+		require.Equal(t, strconv.Itoa(testObject.expectedStatusCode), *jerrors.Errors[0].Status, testObject.String())
 	}
 }
 
