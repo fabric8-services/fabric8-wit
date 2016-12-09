@@ -48,15 +48,36 @@ func getTypesOfLinks(appl application.Application, ctx context.Context, linksDat
 	return typeDataArr, nil
 }
 
+// getWorkItemsOfLinks returns an array of distinct work items as they appear as
+// source or target in the given work item links.
+func getWorkItemsOfLinks(appl application.Application, ctx context.Context, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItem2, error) {
+	// Build our "set" of distinct work item IDs already converted as strings
+	workItemIDMap := map[string]bool{}
+	for _, linkData := range linksDataArr {
+		workItemIDMap[linkData.Relationships.Source.Data.ID] = true
+		workItemIDMap[linkData.Relationships.Target.Data.ID] = true
+	}
+	// Now include the optional work item data in the work item link "included" array
+	workItemArr := []*app.WorkItem2{}
+	for workItemID := range workItemIDMap {
+		wi, err := appl.WorkItems().Load(ctx, workItemID)
+		if err != nil {
+			return nil, err
+		}
+		workItemArr = append(workItemArr, ConvertWorkItemToJSONAPI(wi))
+	}
+	return workItemArr, nil
+}
+
 // getCategoriesOfLinkTypes returns an array of distinct work item link
 // categories for the given work item link types
 func getCategoriesOfLinkTypes(appl application.Application, ctx context.Context, linkTypeDataArr []*app.WorkItemLinkTypeData) ([]*app.WorkItemLinkCategoryData, error) {
-	// Build our "set" of distinct link IDs already converted as strings
+	// Build our "set" of distinct category IDs already converted as strings
 	catIDMap := map[string]bool{}
 	for _, linkTypeData := range linkTypeDataArr {
 		catIDMap[linkTypeData.Relationships.LinkCategory.Data.ID] = true
 	}
-	// Now include the optional link type data in the work item link "included" array
+	// Now include the optional link category data in the work item link "included" array
 	catDataArr := []*app.WorkItemLinkCategoryData{}
 	for catID := range catIDMap {
 		linkType, err := appl.WorkItemLinkCategories().Load(ctx, catID)
@@ -99,19 +120,19 @@ func enrichLink(appl application.Application, ctx context.Context, link *app.Wor
 	// }
 	// link.Included = append(link.Included, targetWit.Data)
 
-	// TODO(kwk): include source work item (once #559 is merged)
-	// sourceWi, err := appl.WorkItems().Load(ctx, link.Data.Relationships.Source.Data.ID)
-	// if err != nil {
-	// 	return err
-	// }
-	// link.Included = append(link.Included, sourceWi.Data)
+	// TODO(kwk): include source work item
+	sourceWi, err := appl.WorkItems().Load(ctx, link.Data.Relationships.Source.Data.ID)
+	if err != nil {
+		return err
+	}
+	link.Included = append(link.Included, ConvertWorkItemToJSONAPI(sourceWi))
 
-	// TODO(kwk): include target work item (once #559 is merged)
-	// sourceWi, err := appl.WorkItems().Load(ctx, link.Data.Relationships.Target.Data.ID)
-	// if err != nil {
-	// 	return err
-	// }
-	// link.Included = append(link.Included, sourceWi.Data)
+	// TODO(kwk): include target work item
+	targetWi, err := appl.WorkItems().Load(ctx, link.Data.Relationships.Target.Data.ID)
+	if err != nil {
+		return err
+	}
+	link.Included = append(link.Included, ConvertWorkItemToJSONAPI(targetWi))
 
 	return nil
 }
@@ -143,8 +164,18 @@ func enrichLinkArray(appl application.Application, ctx context.Context, linkArr 
 	}
 	linkArr.Included = append(linkArr.Included, interfaceArr...)
 
-	// TODO(kwk): Include source WIs (once #559 is merged)
-	// TODO(kwk): Include target WIs (once #559 is merged)
+	// TODO(kwk): Include WIs from source and target
+	workItemDataArr, err := getWorkItemsOfLinks(appl, ctx, linkArr.Data)
+	if err != nil {
+		return err
+	}
+	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
+	interfaceArr = make([]interface{}, len(workItemDataArr))
+	for i, v := range workItemDataArr {
+		interfaceArr[i] = v
+	}
+	linkArr.Included = append(linkArr.Included, interfaceArr...)
+
 	// TODO(kwk): Include WITs (once #559 is merged)
 
 	return nil
