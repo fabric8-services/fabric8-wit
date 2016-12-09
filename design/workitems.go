@@ -84,8 +84,8 @@ var workItemSingle = JSONSingle(
 	workItemLinks)
 
 // new version of "list" for migration
-var _ = a.Resource("workitem.2", func() {
-	a.BasePath("/workitems.2")
+var _ = a.Resource("workitem", func() {
+	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
 			a.GET("/:id"),

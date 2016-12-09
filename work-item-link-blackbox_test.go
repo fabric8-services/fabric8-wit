@@ -171,34 +171,34 @@ func (s *workItemLinkSuite) SetupTest() {
 	bug1Payload := CreateWorkItem(workitem.SystemBug, "bug1")
 	_, bug1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug1Payload)
 	require.NotNil(s.T(), bug1)
-	s.deleteWorkItems = append(s.deleteWorkItems, bug1.ID)
-	s.bug1ID, err = strconv.ParseUint(bug1.ID, 10, 64)
+	s.deleteWorkItems = append(s.deleteWorkItems, *bug1.Data.ID)
+	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created bug1 with ID: %s\n", bug1.ID)
+	fmt.Printf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
 	bug2Payload := CreateWorkItem(workitem.SystemBug, "bug2")
 	_, bug2 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug2Payload)
 	require.NotNil(s.T(), bug2)
-	s.deleteWorkItems = append(s.deleteWorkItems, bug2.ID)
-	s.bug2ID, err = strconv.ParseUint(bug2.ID, 10, 64)
+	s.deleteWorkItems = append(s.deleteWorkItems, *bug2.Data.ID)
+	s.bug2ID, err = strconv.ParseUint(*bug2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created bug2 with ID: %s\n", bug2.ID)
+	fmt.Printf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
 	bug3Payload := CreateWorkItem(workitem.SystemBug, "bug3")
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug3Payload)
 	require.NotNil(s.T(), bug3)
-	s.deleteWorkItems = append(s.deleteWorkItems, bug3.ID)
-	s.bug3ID, err = strconv.ParseUint(bug3.ID, 10, 64)
+	s.deleteWorkItems = append(s.deleteWorkItems, *bug3.Data.ID)
+	s.bug3ID, err = strconv.ParseUint(*bug3.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created bug3 with ID: %s\n", bug3.ID)
+	fmt.Printf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
 	feature1Payload := CreateWorkItem(workitem.SystemFeature, "feature1")
 	_, feature1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, feature1Payload)
 	require.NotNil(s.T(), feature1)
-	s.deleteWorkItems = append(s.deleteWorkItems, feature1.ID)
-	s.feature1ID, err = strconv.ParseUint(feature1.ID, 10, 64)
+	s.deleteWorkItems = append(s.deleteWorkItems, *feature1.Data.ID)
+	s.feature1ID, err = strconv.ParseUint(*feature1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created feature with ID: %s\n", feature1.ID)
+	fmt.Printf("Created feature with ID: %s\n", *feature1.Data.ID)
 
 	// Create a work item link category
 	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
@@ -242,13 +242,23 @@ func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayl
 }
 
 // CreateWorkItem defines a work item link
-func CreateWorkItem(workItemType string, title string) *app.CreateWorkItemPayload {
-	payload := app.CreateWorkItemPayload{
-		Type: workItemType,
-		Fields: map[string]interface{}{
-			workitem.SystemTitle:   title,
-			workitem.SystemCreator: "konrad",
-			workitem.SystemState:   "closed"},
+func CreateWorkItem(workItemType string, title string) *app.CreateWorkitemPayload {
+	payload := app.CreateWorkitemPayload{
+		Data: &app.WorkItem2{
+			Attributes: map[string]interface{}{
+				workitem.SystemTitle: title,
+				workitem.SystemState: workitem.SystemStateClosed,
+			},
+			Relationships: &app.WorkItemRelationships{
+				BaseType: &app.RelationBaseType{
+					Data: &app.BaseTypeData{
+						ID:   workItemType,
+						Type: "workitemtypes",
+					},
+				},
+			},
+			Type: "workitems",
+		},
 	}
 	return &payload
 }
