@@ -38,6 +38,9 @@ func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Project
 // Delete deletes the project with the given id
 // returns NotFoundError or InternalError
 func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
+	if ID == satoriuuid.Nil {
+		return errors.NewNotFoundError("project", ID.String())
+	}
 	project := Project{ID: ID}
 	tx := r.db.Delete(project)
 
