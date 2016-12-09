@@ -124,6 +124,7 @@ func JSONList(name, description string, data *d.UserTypeDefinition, links *d.Use
 			a.Attribute("meta", meta)
 		}
 		a.Attribute("data", a.ArrayOf(data))
+		a.Attribute("included", a.ArrayOf(d.Any), "An array of mixed types")
 		a.Required("data")
 
 		a.View("default", func() {
@@ -134,6 +135,7 @@ func JSONList(name, description string, data *d.UserTypeDefinition, links *d.Use
 				a.Attribute("meta")
 			}
 			a.Attribute("data")
+			a.Attribute("included")
 			a.Required("data")
 		})
 	})
@@ -151,12 +153,14 @@ func JSONSingle(name, description string, data *d.UserTypeDefinition, links *d.U
 			a.Attribute("links", links)
 		}
 		a.Attribute("data", data)
+		a.Attribute("included", a.ArrayOf(d.Any), "An array of mixed types")
 		a.Required("data")
 		a.View("default", func() {
 			if links != nil {
 				a.Attribute("links")
 			}
 			a.Attribute("data")
+			a.Attribute("included")
 			a.Required("data")
 		})
 	})
