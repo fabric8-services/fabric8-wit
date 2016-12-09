@@ -55,7 +55,7 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 func ParseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
 	wiID, err := strconv.ParseUint(wiIDStr, 10, 64)
 	if err != nil {
-		return 0, errors.NewBadParameterError("work item ID", wiIDStr)
+		return 0, errors.NewNotFoundError("work item ID", wiIDStr)
 	}
 	return wiID, nil
 }
