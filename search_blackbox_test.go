@@ -60,7 +60,7 @@ func TestSearchPagination(t *testing.T) {
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
-			workitem.SystemTitle:       "specialwordforsearch",
+			workitem.SystemTitle:       "specialwordforsearch2",
 			workitem.SystemDescription: "",
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
