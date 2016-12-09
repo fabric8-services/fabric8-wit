@@ -61,6 +61,7 @@ func TestGetWorkItem(t *testing.T) {
 	if wi.ID != result.ID {
 		t.Errorf("Id should be %s, but is %s", result.ID, wi.ID)
 	}
+	assert.NotNil(t, wi.Fields[workitem.SystemCreatedAt])
 
 	if wi.Fields[workitem.SystemCreator] != account.TestIdentity.ID.String() {
 		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Fields[workitem.SystemCreator])

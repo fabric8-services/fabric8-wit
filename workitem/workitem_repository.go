@@ -62,6 +62,9 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, errors.NewConversionError(err.Error())
 	}
+	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
+		result.Fields[SystemCreatedAt] = res.CreatedAt
+	}
 	return result, nil
 }
 
@@ -122,6 +125,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt {
+			continue
+		}
 		fieldValue := wi.Fields[fieldName]
 		var err error
 		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
@@ -159,6 +165,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	}
 	fields[SystemCreator] = creator
 	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt {
+			continue
+		}
 		fieldValue := fields[fieldName]
 		var err error
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
@@ -167,7 +176,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		}
 	}
 	tx := r.db
-
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -273,6 +281,9 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		res[index], err = wiType.ConvertFromModel(value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
+		}
+		if _, ok := wiType.Fields[SystemCreatedAt]; ok {
+			res[index].Fields[SystemCreatedAt] = value.CreatedAt
 		}
 	}
 

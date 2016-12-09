@@ -20,6 +20,7 @@ const (
 	SystemState        = "system.state"
 	SystemAssignee     = "system.assignee"
 	SystemCreator      = "system.creator"
+	SystemCreatedAt    = "system.created_at"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem = "system.planneritem"
@@ -103,6 +104,9 @@ func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, erro
 
 	for name, field := range wit.Fields {
 		var err error
+		if name == SystemCreatedAt {
+			continue
+		}
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
 			return nil, err
