@@ -302,6 +302,32 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
+
+	// Test if related resources are included in the response
+	toBeFound := 2
+	for i := 0; i < len(workItemLink.Included) && toBeFound > 0; i++ {
+		switch v := workItemLink.Included[i].(type) {
+		case *app.WorkItemLinkCategoryData:
+			if *v.ID == s.userLinkCategoryID {
+				s.T().Log("Found work item link category in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
+		case *app.WorkItemLinkTypeData:
+			if *v.ID == s.bugBlockerLinkTypeID {
+				s.T().Log("Found work item link type in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
+		// TODO(kwk): Check for source WI (once #559 is merged)
+		// TODO(kwk): Check for target WI (once #559 is merged)
+		// case *app.WorkItemData:
+		// TODO(kwk): Check for WITs (once #559 is merged)
+		// case *app.WorkItemTypeData:
+		default:
+			s.T().Errorf("Object of unknown type included in work item link list response: %T", workItemLink.Included[i])
+		}
+	}
+	require.Exactly(s.T(), 0, toBeFound, "Not all required included elements where found.")
+
 	_ = test.DeleteWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *workItemLink.Data.ID)
 }
 
@@ -542,7 +568,8 @@ func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLink, *app.WorkItemL
 	return workItemLink1, workItemLink2
 }
 
-// validateSomeLinks validates that workItemLink1 and workItemLink2 are in the linkCollection
+// validateSomeLinks validates that workItemLink1 and workItemLink2 are in the
+// linkCollection and that all resources are included
 func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkArray, workItemLink1, workItemLink2 *app.WorkItemLink) {
 	require.NotNil(s.T(), linkCollection)
 	require.Nil(s.T(), linkCollection.Validate())
@@ -575,16 +602,40 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkAr
 			require.Equal(s.T(), expectedLink.Relationships.LinkType.Data.ID, actualLink.Relationships.LinkType.Data.ID)
 			require.Equal(s.T(), expectedLink.Relationships.LinkType.Data.Type, actualLink.Relationships.LinkType.Data.Type)
 
-			// Check source
+			// Check source type
 			require.Equal(s.T(), expectedLink.Relationships.Source.Data.ID, actualLink.Relationships.Source.Data.ID, "Wrong source ID for the link")
 			require.Equal(s.T(), expectedLink.Relationships.Source.Data.Type, actualLink.Relationships.Source.Data.Type, "Wrong source JSONAPI type for the link")
 
-			// Check target
+			// Check target type
 			require.Equal(s.T(), expectedLink.Relationships.Target.Data.ID, actualLink.Relationships.Target.Data.ID, "Wrong target ID for the link")
 			require.Equal(s.T(), expectedLink.Relationships.Target.Data.Type, actualLink.Relationships.Target.Data.Type, "Wrong target JSONAPI type for the link")
 		}
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item links (%s and %s) where found.", *workItemLink1.Data.ID, *workItemLink2.Data.ID)
+
+	toBeFound = 2
+	for i := 0; i < len(linkCollection.Included) && toBeFound > 0; i++ {
+		switch v := linkCollection.Included[i].(type) {
+		case *app.WorkItemLinkCategoryData:
+			if *v.ID == s.userLinkCategoryID {
+				s.T().Log("Found work item link category in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
+		case *app.WorkItemLinkTypeData:
+			if *v.ID == s.bugBlockerLinkTypeID {
+				s.T().Log("Found work item link type in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
+		// TODO(kwk): Check for source WIs (once #559 is merged)
+		// TODO(kwk): Check for target WI (once #559 is merged)
+		// case *app.WorkItemData:
+		// TODO(kwk): Check for WITs (once #559 is merged)
+		// case *app.WorkItemTypeData:
+		default:
+			s.T().Errorf("Object of unknown type included in work item link list response: %T", linkCollection.Included[i])
+		}
+	}
+	require.Exactly(s.T(), 0, toBeFound, "Not all required included elements where found.")
 }
 
 // TestListWorkItemLinkOK tests if we can find the work item links
