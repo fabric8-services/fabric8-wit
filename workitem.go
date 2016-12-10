@@ -343,9 +343,6 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
 		resp := &app.WorkItem2Single{
 			Data: wi2,
-			Links: &app.WorkItemLinks{
-				Self: buildAbsoluteURL(ctx.RequestData),
-			},
 		}
 		return ctx.OK(resp)
 	})
@@ -438,7 +435,7 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
 	// construct default values from input WI
-
+	selfURL := AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -452,6 +449,9 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Type: APIStringTypeWorkItemType,
 				},
 			},
+		},
+		Links: &app.GenericLinks{
+			Self: &selfURL,
 		},
 	}
 	// Move fields into Relationships or Attributes as needed
