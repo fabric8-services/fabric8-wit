@@ -104,8 +104,8 @@ func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, da
 
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{
-			Type: parentType,
-			ID:   comment.ParentID,
+			Type: &parentType,
+			ID:   &comment.ParentID,
 		},
 		Links: &app.GenericLinks{
 			Self: &parentSelf,

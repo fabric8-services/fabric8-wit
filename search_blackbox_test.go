@@ -46,7 +46,7 @@ func TestSearch(t *testing.T) {
 	q := "specialwordforsearch"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	r := sr.Data[0]
-	assert.Equal(t, "specialwordforsearch", r.Fields[workitem.SystemTitle])
+	assert.Equal(t, "specialwordforsearch", r.Attributes[workitem.SystemTitle])
 }
 
 func TestSearchPagination(t *testing.T) {
@@ -73,7 +73,7 @@ func TestSearchPagination(t *testing.T) {
 	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
 	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
 	r := sr.Data[0]
-	assert.Equal(t, "specialwordforsearch2", r.Fields[workitem.SystemTitle])
+	assert.Equal(t, "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
 }
 
 func TestSearchWithEmptyValue(t *testing.T) {
@@ -121,7 +121,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Fields[workitem.SystemDescription])
+	assert.Equal(t, expectedDescription, r.Attributes[workitem.SystemDescription])
 }
 
 func TestSearchURLWithoutPort(t *testing.T) {
@@ -147,7 +147,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Fields[workitem.SystemDescription])
+	assert.Equal(t, expectedDescription, r.Attributes[workitem.SystemDescription])
 }
 
 func TestUnregisteredURLWithPort(t *testing.T) {
@@ -173,7 +173,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.NotEqual(t, 0, len(sr.Data))
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Fields[workitem.SystemDescription])
+	assert.Equal(t, expectedDescription, r.Attributes[workitem.SystemDescription])
 }
 
 func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {

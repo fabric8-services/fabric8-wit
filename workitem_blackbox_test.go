@@ -61,8 +61,8 @@ func TestGetWorkItem(t *testing.T) {
 	}
 	assert.NotNil(t, wi.Data.Attributes[workitem.SystemCreatedAt])
 
-	if wi.Data.Relationships.Creator.Data.ID != account.TestIdentity.ID.String() {
-		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Data.Relationships.Creator.Data.ID)
+	if *wi.Data.Relationships.Creator.Data.ID != account.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
 	}
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 
@@ -103,7 +103,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
-	assert.Equal(t, created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
+	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
 }
 
 func TestCreateWorkItemWithoutContext(t *testing.T) {

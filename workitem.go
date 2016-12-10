@@ -454,6 +454,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			Self: &selfURL,
 		},
 	}
+	userType := APIStringTypeUser
 	// Move fields into Relationships or Attributes as needed
 	for name, val := range wi.Fields {
 		switch name {
@@ -472,8 +473,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				valStr := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
 					Data: &app.GenericData{
-						ID:   valStr,
-						Type: APIStringTypeUser,
+						ID:   &valStr,
+						Type: &userType,
 					},
 				}
 			}

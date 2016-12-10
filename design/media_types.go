@@ -206,31 +206,6 @@ var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
 	})
 })
 
-var searchResponse = a.MediaType("application/vnd.search+json", func() {
-	a.TypeName("SearchResponse")
-	a.Description("Holds the paginated response to a search request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", meta)
-	a.Attribute("data", a.CollectionOf(workItem))
-
-	a.Required("links")
-	a.Required("meta")
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("links", func() {
-			a.Attribute("prev", d.String)
-			a.Attribute("next", d.String)
-			a.Attribute("first", d.String)
-			a.Attribute("last", d.String)
-		})
-		a.Attribute("meta", func() {
-			a.Attribute("totalCount", d.Integer)
-		})
-		a.Attribute("data")
-	})
-})
-
 // WorkItemLinkCategory puts a category on a link between two work items.
 // The category is attached to a work item link type.
 var WorkItemLinkCategory = a.MediaType("application/vnd.work-item-link-category+json", func() {

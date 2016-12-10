@@ -128,7 +128,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 		})
 	}()
 	return func(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
-		commentsSelf := buildAbsoluteURL(request) + "/comments"
+		commentsSelf := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 		wi2.Relationships.Comments = &app.RelationGeneric{
 			Links: &app.GenericLinks{
 				Self: &commentsSelf,
@@ -142,7 +142,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 
 // WorkItemIncludeComments adds relationship about comments to workitem (include totalCount)
 func WorkItemIncludeComments(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
-	commentsSelf := buildAbsoluteURL(request) + "/comments"
+	commentsSelf := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 	wi2.Relationships.Comments = &app.RelationGeneric{
 		Links: &app.GenericLinks{
 			Self: &commentsSelf,
