@@ -206,6 +206,10 @@ func main() {
 	workItemRelationshipsLinksCtrl := NewWorkItemRelationshipsLinksController(service, appDB)
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
+	// Mount "comments" controller
+	commentsCtrl := NewCommentsController(service, appDB)
+	app.MountCommentsController(service, commentsCtrl)
+
 	// Mount "tracker" controller
 	c5 := NewTrackerController(service, appDB, scheduler)
 	app.MountTrackerController(service, c5)

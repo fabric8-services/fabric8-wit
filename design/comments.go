@@ -15,6 +15,7 @@ var comment = a.Type("Comment", func() {
 	})
 	a.Attribute("attributes", commentAttributes)
 	a.Attribute("relationships", commentRelationships)
+	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })
 
@@ -48,6 +49,7 @@ var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
 
 var commentRelationships = a.Type("CommentRelations", func() {
 	a.Attribute("created-by", commentCreatedBy, "This defines the created by relation")
+	a.Attribute("parent", relationGeneric, "This defines the owning resource of the comment")
 })
 
 var commentCreatedBy = a.Type("CommentCreatedBy", func() {
@@ -101,13 +103,45 @@ var createSingleComment = a.MediaType("application/vnd.comments-create+json", fu
 	})
 })
 
+var _ = a.Resource("comments", func() {
+	a.BasePath("/comments")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Description("Retrieve comment with given id.")
+		a.Response(d.OK, func() {
+			a.Media(commentSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+})
+
 var _ = a.Resource("work-item-comments", func() {
-	a.BasePath("/relationships/comments")
 	a.Parent("workitem")
 
 	a.Action("list", func() {
 		a.Routing(
-			a.GET(""),
+			a.GET("comments"),
+		)
+		a.Description("List comments associated with the given work item")
+		a.Response(d.OK, func() {
+			a.Media(commentArray)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
+	a.Action("relations", func() {
+		a.Routing(
+			a.GET("relationship/comments"),
 		)
 		a.Description("List comments associated with the given work item")
 		a.Response(d.OK, func() {
@@ -121,7 +155,7 @@ var _ = a.Resource("work-item-comments", func() {
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.POST(""),
+			a.POST("comments"),
 		)
 		a.Description("List comments associated with the given work item")
 		a.Response(d.OK, func() {

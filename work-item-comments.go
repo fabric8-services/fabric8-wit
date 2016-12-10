@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/net/context"
 )
 
 // WorkItemCommentsController implements the work-item-comments resource.
@@ -50,14 +51,14 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 			CreatedBy: currentUserID,
 		}
 
-		err = appl.WorkItemComments().Create(ctx, &newComment)
+		err = appl.Comments().Create(ctx, &newComment)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
 
 		res := &app.CommentSingle{
-			Data: toAPI(&newComment),
+			Data: ConvertComment(ctx.RequestData, &newComment),
 		}
 		return ctx.OK(res)
 	})
@@ -75,34 +76,66 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		res := &app.CommentArray{}
 		res.Data = []*app.Comment{}
 
-		comments, err := appl.WorkItemComments().List(ctx, ctx.ID)
+		comments, err := appl.Comments().List(ctx, ctx.ID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		for _, comment := range comments {
-			res.Data = append(res.Data, toAPI(comment))
-		}
+		res.Data = ConvertComments(ctx.RequestData, comments)
 
 		return ctx.OK(res)
 	})
 }
 
-func toAPI(comment *comment.Comment) *app.Comment {
-	return &app.Comment{
-		Type: "comments",
-		ID:   &comment.ID,
-		Attributes: &app.CommentAttributes{
-			Body:      &comment.Body,
-			CreatedAt: &comment.CreatedAt,
-		},
-		Relationships: &app.CommentRelations{
-			CreatedBy: &app.CommentCreatedBy{
-				Data: &app.IdentityRelationData{
-					Type: "identities",
-					ID:   &comment.CreatedBy,
-				},
+// Relations runs the relation action.
+// TODO: Should only return Resource Identifier Objects, not complete object (See List)
+func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemCommentsContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		_, err := appl.WorkItems().Load(ctx, ctx.ID)
+		if err != nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+			return ctx.NotFound(jerrors)
+		}
+
+		res := &app.CommentArray{}
+		res.Data = []*app.Comment{}
+
+		comments, err := appl.Comments().List(ctx, ctx.ID)
+		if err != nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+			return ctx.InternalServerError(jerrors)
+		}
+		res.Data = ConvertComments(ctx.RequestData, comments)
+
+		return ctx.OK(res)
+	})
+}
+
+// WorkItemIncludeComments adds relationship about comments to workitem (include totalCount)
+func WorkItemIncludeComments(ctx context.Context, db application.DB, parentID string) WorkItemConvertFunc {
+	// TODO: Wrap ctx in a Timeout context?
+	count := make(chan int)
+	go func() {
+		defer close(count)
+		application.Transactional(db, func(appl application.Application) error {
+			cs, err := appl.Comments().List(ctx, parentID)
+			if err != nil {
+				count <- 0
+				return err
+			}
+			count <- len(cs)
+			return nil
+		})
+	}()
+	return func(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+		commentsSelf := buildAbsoluteURL(request) + "/comments"
+		wi2.Relationships.Comments = &app.RelationGeneric{
+			Links: &app.GenericLinks{
+				Self: &commentsSelf,
 			},
-		},
+			Meta: map[string]interface{}{
+				"totalCount": <-count,
+			},
+		}
 	}
 }

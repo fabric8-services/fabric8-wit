@@ -65,6 +65,30 @@ var JSONAPIErrors = a.MediaType("application/vnd.jsonapierrors+json", func() {
 	})
 })
 
+// relationGeneric is a top level structure for 'other' relationships
+var relationGeneric = a.Type("RelationGeneric", func() {
+	a.Attribute("data", genericData)
+	a.Attribute("links", genericLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
+// genericData defines what is needed inside Generic Relationship
+var genericData = a.Type("GenericData", func() {
+	a.Attribute("type", d.String)
+	a.Attribute("id", d.String, "UUID of the object", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
+	})
+	a.Required("type")
+	a.Required("id")
+})
+
+// genericLinks defines generic relations links
+var genericLinks = a.Type("GenericLinks", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("related", d.String)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
 // JSONResourceObject creates a single resource object
 func JSONResourceObject(name string, attributes *d.UserTypeDefinition, relationships *d.UserTypeDefinition) *d.UserTypeDefinition {
 	return a.Type(name, func() {
