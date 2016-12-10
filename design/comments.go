@@ -141,7 +141,7 @@ var _ = a.Resource("work-item-comments", func() {
 
 	a.Action("relations", func() {
 		a.Routing(
-			a.GET("relationship/comments"),
+			a.GET("relationships/comments"),
 		)
 		a.Description("List comments associated with the given work item")
 		a.Response(d.OK, func() {
