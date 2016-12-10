@@ -319,7 +319,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 
-		comments := WorkItemIncludeComments(ctx, c.db, ctx.ID)
+		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.ID)
 
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
@@ -474,6 +474,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	if op.Relationships.Assignee == nil {
 		op.Relationships.Assignee = &app.RelationAssignee{Data: nil}
 	}
+	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
+	WorkItemIncludeComments(request, wi, op)
 	for _, add := range additional {
 		add(request, wi, op)
 	}
