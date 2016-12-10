@@ -17,7 +17,7 @@ var workItem2 = a.Type("WorkItem2", func() {
 		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
 	})
 	a.Attribute("relationships", workItemRelationships)
-	// relationships must be required becasue we MUST have workItemType during PATCh
+	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })
 

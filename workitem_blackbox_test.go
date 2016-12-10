@@ -814,8 +814,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.NotNil(s.T(), wi.Data.Type)
 	assert.NotNil(s.T(), wi.Data.Attributes)
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
-	assert.NotNil(s.T(), wi.Links)
-	assert.NotNil(s.T(), wi.Links.Self)
+	assert.NotNil(s.T(), wi.Data.Links)
+	assert.NotNil(s.T(), wi.Data.Links.Self)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
