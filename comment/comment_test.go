@@ -93,3 +93,29 @@ func (test *TestCommentRepository) TestListComments() {
 		t.Error("List returned unexpected comment")
 	}
 }
+
+func (test *TestCommentRepository) TestLoadComment() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := comment.NewCommentRepository(test.DB)
+
+	c := &comment.Comment{
+		ParentID:  "A",
+		Body:      "Test A",
+		CreatedBy: uuid.NewV4(),
+	}
+
+	repo.Create(context.Background(), c)
+
+	l, err := repo.Load(context.Background(), c.ID)
+	if err != nil {
+		t.Error("Error loading comment")
+	}
+	if l.ID != c.ID {
+		t.Errorf("Loaded comment was not same as requested")
+	}
+	if l.Body != c.Body {
+		t.Error("Loaded comment has different body")
+	}
+}

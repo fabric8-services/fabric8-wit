@@ -199,7 +199,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		response := app.WorkItem2List{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  c.ConvertWorkItemToJSONAPIArray(result),
+			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count)
@@ -248,7 +248,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			}
 		}
 
-		wi2 := c.ConvertWorkItemToJSONAPI(wi)
+		wi2 := ConvertWorkItem(ctx.RequestData, wi)
 		resp := &app.WorkItem2Single{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -303,7 +303,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			}
 		}
 
-		wi2 := c.ConvertWorkItemToJSONAPI(wi)
+		wi2 := ConvertWorkItem(ctx.RequestData, wi)
 		resp := &app.WorkItem2Single{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -318,6 +318,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
+
+		comments := WorkItemIncludeComments(ctx, c.db, ctx.ID)
 
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
@@ -338,7 +340,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			}
 		}
 
-		wi2 := c.ConvertWorkItemToJSONAPI(wi)
+		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
 		resp := &app.WorkItem2Single{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -373,60 +375,6 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		}
 		return ctx.OK([]byte{})
 	})
-}
-
-// ConvertWorkItemToJSONAPIArray is responsible for converting given []WorkItem model object into a
-// response resource object by jsonapi.org specifications
-func (c *WorkitemController) ConvertWorkItemToJSONAPIArray(wis []*app.WorkItem) []*app.WorkItem2 {
-	ops := []*app.WorkItem2{}
-	for _, wi := range wis {
-		ops = append(ops, c.ConvertWorkItemToJSONAPI(wi))
-	}
-	return ops
-}
-
-// ConvertWorkItemToJSONAPI is responsible for converting given WorkItem model object into a
-// response resource object by jsonapi.org specifications
-func (c *WorkitemController) ConvertWorkItemToJSONAPI(wi *app.WorkItem) *app.WorkItem2 {
-	// construct default values from input WI
-
-	op := &app.WorkItem2{
-		ID:   &wi.ID,
-		Type: APIStringTypeWorkItem,
-		Attributes: map[string]interface{}{
-			"version": wi.Version,
-		},
-		Relationships: &app.WorkItemRelationships{
-			BaseType: &app.RelationBaseType{
-				Data: &app.BaseTypeData{
-					ID:   wi.Type,
-					Type: APIStringTypeWorkItemType,
-				},
-			},
-		},
-	}
-	// Move fields into Relationships or Attributes as needed
-	for name, val := range wi.Fields {
-		switch name {
-		case workitem.SystemAssignee:
-			if val != nil {
-				valStr := val.(string)
-				op.Relationships.Assignee = &app.RelationAssignee{
-					Data: &app.AssigneeData{
-						ID:   valStr,
-						Type: APIStringTypeAssignee,
-					},
-				}
-			}
-		default:
-			op.Attributes[name] = val
-		}
-	}
-	if op.Relationships.Assignee == nil {
-		op.Relationships.Assignee = &app.RelationAssignee{Data: nil}
-	}
-
-	return op
 }
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
@@ -470,4 +418,64 @@ func (c *WorkitemController) ConvertJSONAPIToWorkItem(source app.WorkItem2, targ
 		target.Fields[key] = val
 	}
 	return nil
+}
+
+// WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
+// convertion from internal to API
+type WorkItemConvertFunc func(*goa.RequestData, *app.WorkItem, *app.WorkItem2)
+
+// ConvertWorkItems is responsible for converting given []WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem2 {
+	ops := []*app.WorkItem2{}
+	for _, wi := range wis {
+		ops = append(ops, ConvertWorkItem(request, wi, additional...))
+	}
+	return ops
+}
+
+// ConvertWorkItem is responsible for converting given WorkItem model object into a
+// response resource object by jsonapi.org specifications
+func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
+	// construct default values from input WI
+
+	op := &app.WorkItem2{
+		ID:   &wi.ID,
+		Type: APIStringTypeWorkItem,
+		Attributes: map[string]interface{}{
+			"version": wi.Version,
+		},
+		Relationships: &app.WorkItemRelationships{
+			BaseType: &app.RelationBaseType{
+				Data: &app.BaseTypeData{
+					ID:   wi.Type,
+					Type: APIStringTypeWorkItemType,
+				},
+			},
+		},
+	}
+	// Move fields into Relationships or Attributes as needed
+	for name, val := range wi.Fields {
+		switch name {
+		case workitem.SystemAssignee:
+			if val != nil {
+				valStr := val.(string)
+				op.Relationships.Assignee = &app.RelationAssignee{
+					Data: &app.AssigneeData{
+						ID:   valStr,
+						Type: APIStringTypeAssignee,
+					},
+				}
+			}
+		default:
+			op.Attributes[name] = val
+		}
+	}
+	if op.Relationships.Assignee == nil {
+		op.Relationships.Assignee = &app.RelationAssignee{Data: nil}
+	}
+	for _, add := range additional {
+		add(request, wi, op)
+	}
+	return op
 }

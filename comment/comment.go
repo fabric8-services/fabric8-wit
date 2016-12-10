@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -24,6 +25,7 @@ type Comment struct {
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	List(ctx context.Context, parent string) ([]*Comment, error)
+	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 }
 
 // NewCommentRepository creates a new storage type.
@@ -67,4 +69,19 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string) ([]*Com
 		return nil, err
 	}
 	return objs, nil
+}
+
+// Load a single comment regardless of parent
+func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Comment, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "comment", "get"}, time.Now())
+	var obj Comment
+
+	tx := m.db.Where("id=?", id).First(&obj)
+	if tx.RecordNotFound() {
+		return nil, errors.NewNotFoundError("comment", id.String())
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return &obj, nil
 }

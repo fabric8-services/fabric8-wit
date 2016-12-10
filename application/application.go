@@ -18,7 +18,7 @@ type Application interface {
 	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
-	WorkItemComments() comment.Repository
+	Comments() comment.Repository
 	Projects() project.Repository
 }
 

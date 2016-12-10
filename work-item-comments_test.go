@@ -82,7 +82,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 		t.Error(err)
 	}
 	application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.WorkItemComments()
+		repo := app.Comments()
 		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: uuid.NewV4()})
 		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: uuid.NewV4()})
 		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: uuid.NewV4()})

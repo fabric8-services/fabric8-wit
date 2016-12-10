@@ -103,8 +103,8 @@ func (g *GormBase) WorkItemLinks() link.WorkItemLinkRepository {
 	return link.NewWorkItemLinkRepository(g.db)
 }
 
-// WorkItemComments returns a work item comments repository
-func (g *GormBase) WorkItemComments() comment.Repository {
+// Comments returns a work item comments repository
+func (g *GormBase) Comments() comment.Repository {
 	return comment.NewCommentRepository(g.db)
 }
 
