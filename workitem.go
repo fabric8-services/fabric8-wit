@@ -23,7 +23,7 @@ const (
 	pageSizeDefault = 20
 	pageSizeMax     = 100
 
-	APIStringTypeAssignee     = "identities"
+	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"
 	APIStringTypeWorkItemType = "workitemtypes"
 )
@@ -463,7 +463,17 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Relationships.Assignee = &app.RelationAssignee{
 					Data: &app.AssigneeData{
 						ID:   valStr,
-						Type: APIStringTypeAssignee,
+						Type: APIStringTypeUser,
+					},
+				}
+			}
+		case workitem.SystemCreator:
+			if val != nil {
+				valStr := val.(string)
+				op.Relationships.Creator = &app.RelationGeneric{
+					Data: &app.GenericData{
+						ID:   valStr,
+						Type: APIStringTypeUser,
 					},
 				}
 			}
