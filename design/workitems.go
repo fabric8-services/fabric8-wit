@@ -24,6 +24,7 @@ var workItem2 = a.Type("WorkItem2", func() {
 // WorkItemRelationships defines only `assignee` as of now. To be updated
 var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("assignee", relationAssignee, "This deinfes assignees of the Work Item")
+	a.Attribute("creator", relationGeneric, "This deinfes assignees of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
 })

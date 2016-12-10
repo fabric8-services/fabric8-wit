@@ -61,8 +61,8 @@ func TestGetWorkItem(t *testing.T) {
 	}
 	assert.NotNil(t, wi.Data.Attributes[workitem.SystemCreatedAt])
 
-	if wi.Data.Attributes[workitem.SystemCreator] != account.TestIdentity.ID.String() {
-		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Data.Attributes[workitem.SystemCreator])
+	if wi.Data.Relationships.Creator.Data.ID != account.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), wi.Data.Relationships.Creator.Data.ID)
 	}
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 
@@ -102,8 +102,8 @@ func TestCreateWI(t *testing.T) {
 	if created.Data.ID == nil || *created.Data.ID == "" {
 		t.Error("no id")
 	}
-	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreator])
-	assert.Equal(t, created.Data.Attributes[workitem.SystemCreator], account.TestIdentity.ID.String())
+	assert.NotNil(t, created.Data.Relationships.Creator.Data)
+	assert.Equal(t, created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
 }
 
 func TestCreateWorkItemWithoutContext(t *testing.T) {
@@ -622,7 +622,7 @@ func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   invalidUserUUID,
-			Type: APIStringTypeAssignee,
+			Type: APIStringTypeUser,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -682,7 +682,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveAssignee() {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   tempUserUUID,
-			Type: APIStringTypeAssignee,
+			Type: APIStringTypeUser,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -714,7 +714,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyAssignee() {
 	assignee := &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   tempUserUUID,
-			Type: APIStringTypeAssignee,
+			Type: APIStringTypeUser,
 		},
 	}
 	s.minimumPayload.Data.Relationships.Assignee = assignee
@@ -765,7 +765,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   maliciousUUID,
-			Type: APIStringTypeAssignee,
+			Type: APIStringTypeUser,
 		},
 	}
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
@@ -773,7 +773,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
 		Data: &app.AssigneeData{
 			ID:   newUserUUID,
-			Type: APIStringTypeAssignee,
+			Type: APIStringTypeUser,
 		},
 	}
 	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
@@ -815,6 +815,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.NotNil(s.T(), wi.Data.Attributes)
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
+	assert.NotNil(s.T(), wi.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Links)
 	assert.NotNil(s.T(), wi.Data.Links.Self)
 }
@@ -896,6 +897,10 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 	assert.Equal(s.T(), *createdWi.Data.ID, *fetchedWi.Data.ID)
 	assert.NotNil(s.T(), fetchedWi.Data.Type)
 	assert.NotNil(s.T(), fetchedWi.Data.Attributes)
+	assert.NotNil(s.T(), fetchedWi.Data.Links.Self)
+	assert.NotNil(s.T(), fetchedWi.Data.Relationships.Creator.Data.ID)
+	assert.NotNil(s.T(), fetchedWi.Data.Relationships.BaseType.Data.ID)
+
 }
 
 func (s *WorkItem2Suite) TestWI2FailShowMissing() {
