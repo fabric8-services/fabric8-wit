@@ -878,6 +878,135 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	assert.NotNil(s.T(), wi.Data.Relationships.Assignee.Data.ID)
 }
 
+func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser3 := createOneRandomUserIdentity(s.svc.Context, s.db)
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(newUser.ID),
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(s.T(), wi.Data)
+	assert.NotNil(s.T(), wi.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Type)
+	assert.NotNil(s.T(), wi.Data.Attributes)
+	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
+	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
+
+	update := minimumRequiredUpdatePayload()
+	update.Data.ID = wi.Data.ID
+	update.Data.Type = wi.Data.Type
+	update.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	update.Data.Relationships = &app.WorkItemRelationships{
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(newUser2.ID),
+				ident(newUser3.ID),
+			},
+		},
+	}
+	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &update)
+
+	assert.Len(s.T(), wiu.Data.Relationships.Assignees.Data, 2)
+	assert.Equal(s.T(), newUser2.ID.String(), *wiu.Data.Relationships.Assignees.Data[0].ID)
+	assert.Equal(s.T(), newUser3.ID.String(), *wiu.Data.Relationships.Assignees.Data[1].ID)
+}
+
+func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(uuid.NewV4()),
+			},
+		},
+	}
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
+func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(newUser.ID),
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+
+	update := minimumRequiredUpdatePayload()
+	update.Data.ID = wi.Data.ID
+	update.Data.Type = wi.Data.Type
+	update.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	update.Data.Relationships = &app.WorkItemRelationships{
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(uuid.NewV4()),
+			},
+		},
+	}
+	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &update)
+}
+
+func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.db)
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(newUser.ID),
+				ident(newUser2.ID),
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(s.T(), wi.Data)
+	assert.NotNil(s.T(), wi.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Type)
+	assert.NotNil(s.T(), wi.Data.Attributes)
+	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 2)
+}
+
 func (s *WorkItem2Suite) TestWI2SuccessShow() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -933,4 +1062,13 @@ func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, new(WorkItem2Suite))
+}
+
+func ident(id uuid.UUID) *app.GenericData {
+	ut := APIStringTypeUser
+	i := id.String()
+	return &app.GenericData{
+		Type: &ut,
+		ID:   &i,
+	}
 }

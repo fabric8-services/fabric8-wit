@@ -19,6 +19,7 @@ const (
 	SystemDescription  = "system.description"
 	SystemState        = "system.state"
 	SystemAssignee     = "system.assignee"
+	SystemAssignees    = "system.assignees"
 	SystemCreator      = "system.creator"
 	SystemCreatedAt    = "system.created_at"
 

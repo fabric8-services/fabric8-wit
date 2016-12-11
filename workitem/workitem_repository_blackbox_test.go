@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
@@ -80,4 +81,24 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 
 	_, err = s.repo.Load(context.Background(), "0")
 	require.IsType(s.T(), errors.NotFoundError{}, err)
+}
+
+func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	wi, err := s.repo.Create(
+		context.Background(), "system.bug",
+		map[string]interface{}{
+			workitem.SystemTitle:     "Title",
+			workitem.SystemState:     workitem.SystemStateNew,
+			workitem.SystemAssignees: []string{"A", "B"},
+		}, "xx")
+
+	if err != nil {
+		s.T().Error("Could not create workitem", err)
+	}
+
+	wi, err = s.repo.Load(context.Background(), wi.ID)
+
+	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 }

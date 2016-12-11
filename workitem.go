@@ -406,6 +406,26 @@ func (c *WorkitemController) ConvertJSONAPIToWorkItem(source app.WorkItem2, targ
 			target.Fields[workitem.SystemAssignee] = source.Relationships.Assignee.Data.ID
 		}
 	}
+	if source.Relationships != nil && source.Relationships.Assignees != nil {
+		if source.Relationships.Assignees.Data == nil {
+			delete(target.Fields, workitem.SystemAssignees)
+		} else {
+			var ids []string
+			for _, d := range source.Relationships.Assignees.Data {
+				assigneeUUID, err := uuid.FromString(*d.ID)
+				if err != nil {
+					return errors.NewBadParameterError("data.relationships.assignee.data.id", *d.ID)
+				}
+				ok := c.db.Identities().ValidIdentity(context.Background(), assigneeUUID)
+				if !ok {
+					return errors.NewBadParameterError("data.relationships.assignee.data.id", *d.ID)
+				}
+				ids = append(ids, assigneeUUID.String())
+			}
+
+			target.Fields[workitem.SystemAssignees] = ids
+		}
+	}
 	if source.Relationships != nil && source.Relationships.BaseType != nil {
 		if source.Relationships.BaseType.Data != nil {
 			target.Type = source.Relationships.BaseType.Data.ID
@@ -466,6 +486,21 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 						ID:   valStr,
 						Type: APIStringTypeUser,
 					},
+				}
+			}
+		case workitem.SystemAssignees:
+			if val != nil {
+				valArr := val.([]interface{})
+				data := []*app.GenericData{}
+				for _, valInf := range valArr {
+					valStr := valInf.(string)
+					data = append(data, &app.GenericData{
+						ID:   &valStr,
+						Type: &userType,
+					})
+				}
+				op.Relationships.Assignees = &app.RelationGenericList{
+					Data: data,
 				}
 			}
 		case workitem.SystemCreator:

@@ -65,3 +65,32 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	assert.Nil(s.T(), field.Type.BaseType)
 	assert.Nil(s.T(), field.Type.Values)
 }
+
+func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
+	bt := "string"
+	wit, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{
+		"foo": app.FieldDefinition{
+			Required: true,
+			Type: &app.FieldType{
+				ComponentType: &bt,
+				Kind:          string(workitem.KindList),
+			},
+		},
+	})
+	assert.Nil(s.T(), err)
+	assert.NotNil(s.T(), wit)
+
+	wit3, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{})
+	assert.IsType(s.T(), errors.BadParameterError{}, err)
+	assert.Nil(s.T(), wit3)
+
+	wit2, err := s.repo.Load(context.Background(), "foo.bar")
+	assert.Nil(s.T(), err)
+	require.NotNil(s.T(), wit2)
+	field := wit2.Fields["foo"]
+	require.NotNil(s.T(), field)
+	assert.Equal(s.T(), string(workitem.KindList), field.Type.Kind)
+	assert.Equal(s.T(), true, field.Required)
+	assert.Nil(s.T(), field.Type.BaseType)
+	assert.Nil(s.T(), field.Type.Values)
+}

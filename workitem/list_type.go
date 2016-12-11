@@ -57,6 +57,9 @@ func convertList(converter converter, componentType SimpleType, value interface{
 	// the assumption is that work item types do not change over time...only new ones can be created
 	valueType := reflect.TypeOf(value)
 
+	if value == nil {
+		return nil, nil
+	}
 	if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
 		return nil, fmt.Errorf(stErrorNotArrayOrSlice, value, valueType.Name())
 	}
