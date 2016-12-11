@@ -129,6 +129,5 @@ func JSONErrorResponse(x InternalServerError, err error) error {
 	default:
 		return x.InternalServerError(jsonErr)
 	}
-
 	return nil
 }

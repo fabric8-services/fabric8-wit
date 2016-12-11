@@ -1002,6 +1002,143 @@ func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
 	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, "00000000")
 }
 
+func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
+	t := s.T()
+
+	iteration := createProjectAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationID := iteration.ID.String()
+	itType := "iterations"
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Iteration: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &itType,
+				ID:   &iterationID,
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(t, wi.Data.Relationships.Iteration)
+	assert.Equal(t, iterationID, *wi.Data.Relationships.Iteration.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
+	t := s.T()
+
+	iteration := createProjectAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationID := iteration.ID.String()
+	itType := "iterations"
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(t, wi.Data.Relationships.Iteration)
+	assert.Nil(t, wi.Data.Relationships.Iteration.Data)
+
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = wi.Data.ID
+	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	u.Data.Relationships = &app.WorkItemRelationships{
+		Iteration: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &itType,
+				ID:   &iterationID,
+			},
+		},
+	}
+
+	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
+	assert.NotNil(t, wiu.Data.Relationships.Iteration)
+	assert.NotNil(t, wiu.Data.Relationships.Iteration.Data)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
+	t := s.T()
+
+	t.Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
+
+	iteration := createProjectAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationID := iteration.ID.String()
+	itType := "iterations"
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Iteration: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &itType,
+				ID:   &iterationID,
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(t, wi.Data.Relationships.Iteration)
+	assert.NotNil(t, wi.Data.Relationships.Iteration.Data)
+
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = wi.Data.ID
+	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	u.Data.Relationships = &app.WorkItemRelationships{
+		Iteration: &app.RelationGeneric{
+			Data: nil,
+		},
+	}
+
+	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
+	assert.NotNil(t, wiu.Data.Relationships.Iteration)
+	assert.Nil(t, wiu.Data.Relationships.Iteration.Data)
+}
+
+func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
+	t := s.T()
+
+	itType := "iterations"
+	iterationID := uuid.NewV4().String()
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Iteration: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &itType,
+				ID:   &iterationID,
+			},
+		},
+	}
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
 // a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)

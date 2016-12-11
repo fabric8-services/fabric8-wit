@@ -279,6 +279,22 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			target.Fields[workitem.SystemAssignees] = ids
 		}
 	}
+	if source.Relationships != nil && source.Relationships.Iteration != nil {
+		if source.Relationships.Iteration.Data == nil {
+			delete(target.Fields, workitem.SystemIteration)
+		} else {
+			d := source.Relationships.Iteration.Data
+			iterationUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
+			}
+			_, err = appl.Iterations().Load(context.Background(), iterationUUID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
+			}
+			target.Fields[workitem.SystemIteration] = iterationUUID.String()
+		}
+	}
 	if source.Relationships != nil && source.Relationships.BaseType != nil {
 		if source.Relationships.BaseType.Data != nil {
 			target.Type = source.Relationships.BaseType.Data.ID
@@ -329,6 +345,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 
 	// Move fields into Relationships or Attributes as needed
+	// TODO: Loop based on WorKItemType and match against Field.Type instead of directly to field value
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
@@ -345,12 +362,22 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Data: ConvertUserSimple(request, valStr),
 				}
 			}
+		case workitem.SystemIteration:
+			if val != nil {
+				valStr := val.(string)
+				op.Relationships.Iteration = &app.RelationGeneric{
+					Data: ConvertIterationSimple(request, valStr),
+				}
+			}
 		default:
 			op.Attributes[name] = val
 		}
 	}
 	if op.Relationships.Assignees == nil {
 		op.Relationships.Assignees = &app.RelationGenericList{Data: nil}
+	}
+	if op.Relationships.Iteration == nil {
+		op.Relationships.Iteration = &app.RelationGeneric{Data: nil}
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)
