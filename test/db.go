@@ -1,6 +1,7 @@
 package test
 
 import (
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/project"
@@ -37,6 +38,9 @@ func (db *MockDB) SearchItems() application.SearchRepository {
 	return nil
 }
 func (db *MockDB) Identities() application.IdentityRepository {
+	return nil
+}
+func (db *MockDB) Users() account.IdentityRepository {
 	return nil
 }
 func (db *MockDB) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {

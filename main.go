@@ -230,6 +230,10 @@ func main() {
 	identityCtrl := NewIdentityController(service, appDB)
 	app.MountIdentityController(service, identityCtrl)
 
+	// Mount "users" controller
+	usersCtrl := NewUsersController(service, appDB)
+	app.MountUsersController(service, usersCtrl)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("UTC Start Time: ", StartTime)
