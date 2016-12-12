@@ -7,19 +7,17 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
-	testsupport "github.com/almighty/almighty-core/test"
-	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
 
 func TestShowUser(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	assert.NotNil(t, svc)
+	defer gormsupport.DeleteCreatedEntities(DB)()
+	svc := goa.New("test")
 	controller := NewUsersController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
 
@@ -36,17 +34,11 @@ func TestShowUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		DB.Unscoped().Delete(&identity)
-	}()
 	user1 := account.User{Email: email, Identity: identity}
 	err = userRepo.Create(ctx, &user1)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() {
-		DB.Unscoped().Delete(&user1)
-	}()
 
 	_, result := test.ShowUsersOK(t, nil, nil, controller, identity.ID.String())
 	assert.Equal(t, identity.ID.String(), *result.Data.ID)
