@@ -44,7 +44,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 					workitem.SystemDescription: `"description" for search test`,
 					workitem.SystemCreator:     "sbose78",
-					workitem.SystemAssignee:    "pranav",
+					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
 				},
 			},
@@ -57,7 +57,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
 					workitem.SystemDescription: `Make sure remoteworkitem can access..`,
 					workitem.SystemCreator:     "sbose78",
-					workitem.SystemAssignee:    "pranav",
+					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
 				},
 			},
@@ -70,7 +70,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 					workitem.SystemDescription: `"description" for search test`,
 					workitem.SystemCreator:     "sbose78",
-					workitem.SystemAssignee:    "pranav",
+					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
 				},
 			},
@@ -81,10 +81,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					workitem.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
-					workitem.SystemCreator:  "sbose78",
-					workitem.SystemAssignee: "pranav",
-					workitem.SystemState:    "closed",
+					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
+					workitem.SystemCreator:   "sbose78",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "closed",
 				},
 			},
 			searchString:   `sbose nofield `,
@@ -94,10 +94,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					workitem.SystemTitle:    "test should return 0 results'",
-					workitem.SystemCreator:  "sbose78",
-					workitem.SystemAssignee: "pranav",
-					workitem.SystemState:    "closed",
+					workitem.SystemTitle:     "test should return 0 results'",
+					workitem.SystemCreator:   "sbose78",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "closed",
 				},
 			},
 			searchString:   `negative case `,
@@ -209,7 +209,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			workitem.SystemTitle:       "Search Test Sbose",
 			workitem.SystemDescription: "Description",
 			workitem.SystemCreator:     "sbose78",
-			workitem.SystemAssignee:    "pranav",
+			workitem.SystemAssignees:   []string{"pranav"},
 			workitem.SystemState:       "closed",
 		}
 

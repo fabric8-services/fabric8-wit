@@ -614,21 +614,6 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemState], newStateValue)
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateInvalidUUID() {
-	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-	require.NotNil(s.T(), tempUser)
-	invalidUserUUID := fmt.Sprintf("%s-invalid", tempUser.ID.String())
-	assignee := &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   invalidUserUUID,
-			Type: APIStringTypeUser,
-		},
-	}
-	s.minimumPayload.Data.Relationships.Assignee = assignee
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
-}
-
 func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = 2398475203
@@ -673,57 +658,6 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	assert.Equal(s.T(), u.Data.Relationships.BaseType.Data.ID, updated.Data.Relationships.BaseType.Data.ID)
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateRemoveAssignee() {
-	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-
-	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-	require.NotNil(s.T(), tempUser)
-	tempUserUUID := tempUser.ID.String()
-	assignee := &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   tempUserUUID,
-			Type: APIStringTypeUser,
-		},
-	}
-	s.minimumPayload.Data.Relationships.Assignee = assignee
-
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
-	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
-
-	// Remove assignee
-	assignee = &app.RelationAssignee{
-		Data: nil,
-	}
-	s.minimumPayload.Data.Relationships.Assignee = assignee
-
-	// update version and then update assignee to NIL
-	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
-
-	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
-	require.NotNil(s.T(), updatedWI)
-	assert.Nil(s.T(), updatedWI.Data.Relationships.Assignee.Data)
-}
-
-func (s *WorkItem2Suite) TestWI2UpdateOnlyAssignee() {
-	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
-
-	tempUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-	require.NotNil(s.T(), tempUser)
-	tempUserUUID := tempUser.ID.String()
-	assignee := &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   tempUserUUID,
-			Type: APIStringTypeUser,
-		},
-	}
-	s.minimumPayload.Data.Relationships.Assignee = assignee
-
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
-	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Relationships.Assignee.Data.ID, tempUserUUID)
-}
-
 func (s *WorkItem2Suite) TestWI2UpdateOnlyDescription() {
 	modifiedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -760,25 +694,29 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	newUserUUID := newUser.ID.String()
 	s.minimumPayload.Data.Relationships = &app.WorkItemRelationships{}
 
+	userType := APIStringTypeUser
 	// update with invalid assignee string (non-UUID)
 	maliciousUUID := "non UUID string"
-	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   maliciousUUID,
-			Type: APIStringTypeUser,
-		},
+	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			&app.GenericData{
+				ID:   &maliciousUUID,
+				Type: &userType,
+			}},
 	}
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 
-	s.minimumPayload.Data.Relationships.Assignee = &app.RelationAssignee{
-		Data: &app.AssigneeData{
-			ID:   newUserUUID,
-			Type: APIStringTypeUser,
-		},
+	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			&app.GenericData{
+				ID:   &newUserUUID,
+				Type: &userType,
+			}},
 	}
+
 	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Relationships.Assignee.Data.ID, newUser.ID.String())
+	assert.Equal(s.T(), *updatedWI.Data.Relationships.Assignees.Data[0].ID, newUser.ID.String())
 
 	// update to wrong version
 	correctVersion := updatedWI.Data.Attributes["version"]
@@ -787,10 +725,10 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Attributes["version"] = correctVersion
 
 	// Add test to remove assignee for WI
-	s.minimumPayload.Data.Relationships.Assignee.Data = nil
+	s.minimumPayload.Data.Relationships.Assignees.Data = nil
 	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
-	require.Nil(s.T(), updatedWI.Data.Relationships.Assignee.Data)
+	require.Len(s.T(), updatedWI.Data.Relationships.Assignees.Data, 0)
 	// need to do in order to keep object future usage
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 }
@@ -833,7 +771,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemAssignee] = "34343"
+	c.Data.Attributes[workitem.SystemAssignees] = []string{"34343"}
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -847,11 +785,13 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
 	assert.NotNil(s.T(), wi.Data.Attributes)
-	assert.Nil(s.T(), wi.Data.Relationships.Assignee.Data)
+	assert.Nil(s.T(), wi.Data.Relationships.Assignees.Data)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
+	userType := "identities"
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUserId := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -862,11 +802,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 				ID:   "system.bug",
 			},
 		},
-		Assignee: &app.RelationAssignee{
-			Data: &app.AssigneeData{
-				Type: "identities",
-				ID:   newUser.ID.String(),
-			},
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				&app.GenericData{
+					Type: &userType,
+					ID:   &newUserId,
+				}},
 		},
 	}
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
@@ -874,8 +815,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
 	assert.NotNil(s.T(), wi.Data.Attributes)
-	assert.NotNil(s.T(), wi.Data.Relationships.Assignee.Data)
-	assert.NotNil(s.T(), wi.Data.Relationships.Assignee.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Relationships.Assignees.Data)
+	assert.NotNil(s.T(), wi.Data.Relationships.Assignees.Data[0].ID)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
