@@ -70,12 +70,12 @@ func TestCurrentAuthorizedOK(t *testing.T) {
 	controller := newUserControllerWithRepo(&TestIdentityRepository{Identity: &ident})
 	_, user := test.ShowUserOK(t, ctx, nil, controller)
 
-	if *user.FullName != ident.FullName {
-		t.Errorf("Expected FullName %v to match %v", user.FullName, ident.FullName)
+	if *user.Data.Attributes.FullName != ident.FullName {
+		t.Errorf("Expected FullName %v to match %v", user.Data.Attributes.FullName, ident.FullName)
 	}
 
-	if *user.ImageURL != ident.ImageURL {
-		t.Errorf("Expected ImageURL %v to match %v", user.ImageURL, ident.ImageURL)
+	if *user.Data.Attributes.ImageURL != ident.ImageURL {
+		t.Errorf("Expected ImageURL %v to match %v", user.Data.Attributes.ImageURL, ident.ImageURL)
 	}
 }
 
