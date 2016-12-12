@@ -10,6 +10,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
@@ -146,8 +147,12 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 // Last will always be present. Total Item count needs to be computed from the "Last" link.
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	// Workitem2Controller_List: start_implement
-
+	assignee := ctx.FilterAssignee
 	exp, err := query.Parse(ctx.Filter)
+	if ctx.FilterAssignee != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal(*assignee)))
+	}
+	fmt.Println("==============expr assignee============", exp)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
 		return ctx.BadRequest(jerrors)

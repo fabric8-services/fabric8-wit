@@ -151,5 +151,5 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	default:
 		return "", fmt.Errorf("unknown value type of %v: %T", value, value)
 	}
-	return result, nil
+	return "[" + result + "]", nil
 }
