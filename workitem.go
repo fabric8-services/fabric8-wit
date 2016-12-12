@@ -389,21 +389,24 @@ func (c *WorkitemController) ConvertJSONAPIToWorkItem(source app.WorkItem2, targ
 	}
 	target.Version = version
 
-	if source.Relationships != nil && source.Relationships.Assignee != nil {
-		if source.Relationships.Assignee.Data == nil {
-			delete(target.Fields, workitem.SystemAssignee)
+	if source.Relationships != nil && source.Relationships.Assignees != nil {
+		if source.Relationships.Assignees.Data == nil {
+			delete(target.Fields, workitem.SystemAssignees)
 		} else {
-			uuidStr := source.Relationships.Assignee.Data.ID
-			assigneeUUID, err := uuid.FromString(uuidStr)
-			if err != nil {
-				return errors.NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
-			}
-			ok := c.db.Identities().ValidIdentity(context.Background(), assigneeUUID)
-			if !ok {
-				return errors.NewBadParameterError("data.relationships.assignee.data.id", uuidStr)
+			var ids []string
+			for _, d := range source.Relationships.Assignees.Data {
+				assigneeUUID, err := uuid.FromString(*d.ID)
+				if err != nil {
+					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
+				}
+				ok := c.db.Identities().ValidIdentity(context.Background(), assigneeUUID)
+				if !ok {
+					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
+				}
+				ids = append(ids, assigneeUUID.String())
 			}
 
-			target.Fields[workitem.SystemAssignee] = source.Relationships.Assignee.Data.ID
+			target.Fields[workitem.SystemAssignees] = ids
 		}
 	}
 	if source.Relationships != nil && source.Relationships.BaseType != nil {
@@ -458,14 +461,19 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	// Move fields into Relationships or Attributes as needed
 	for name, val := range wi.Fields {
 		switch name {
-		case workitem.SystemAssignee:
+		case workitem.SystemAssignees:
 			if val != nil {
-				valStr := val.(string)
-				op.Relationships.Assignee = &app.RelationAssignee{
-					Data: &app.AssigneeData{
-						ID:   valStr,
-						Type: APIStringTypeUser,
-					},
+				valArr := val.([]interface{})
+				data := []*app.GenericData{}
+				for _, valInf := range valArr {
+					valStr := valInf.(string)
+					data = append(data, &app.GenericData{
+						ID:   &valStr,
+						Type: &userType,
+					})
+				}
+				op.Relationships.Assignees = &app.RelationGenericList{
+					Data: data,
 				}
 			}
 		case workitem.SystemCreator:
@@ -482,8 +490,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			op.Attributes[name] = val
 		}
 	}
-	if op.Relationships.Assignee == nil {
-		op.Relationships.Assignee = &app.RelationAssignee{Data: nil}
+	if op.Relationships.Assignees == nil {
+		op.Relationships.Assignees = &app.RelationGenericList{Data: nil}
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)

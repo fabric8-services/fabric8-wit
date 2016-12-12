@@ -40,7 +40,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
-		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignee])
+		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
 
 		wir := workitem.NewWorkItemRepository(db)
@@ -77,7 +77,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
-		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignee])
+		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
 		return err
 	})
@@ -94,7 +94,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItemUpdated.Fields[workitem.SystemCreator])
-		assert.Equal(t, "pranav", workItemUpdated.Fields[workitem.SystemAssignee])
+		assert.Equal(t, "pranav", workItemUpdated.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "closed", workItemUpdated.Fields[workitem.SystemState])
 
 		wir := workitem.NewWorkItemRepository(tx)
@@ -138,7 +138,7 @@ func TestConvertGithubIssue(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemCreator])
-		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemAssignee])
+		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "open", workItemGithub.Fields[workitem.SystemState])
 
 		return err

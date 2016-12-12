@@ -13,7 +13,7 @@ const (
 	SystemTitle        = "system.title"
 	SystemDescription  = "system.description"
 	SystemState        = "system.state"
-	SystemAssignee     = "system.assignee"
+	SystemAssignees    = "system.assignees"
 	SystemCreator      = "system.creator"
 
 	// The keys in the flattened response JSON of a typical Github issue.
@@ -41,20 +41,20 @@ const (
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:       workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), StringConverter{}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:  workitem.SystemState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:          workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:     workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(GithubAssignee), StringConverter{}}:    workitem.SystemAssignee,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:        workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), StringConverter{}}:  workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:   workitem.SystemState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:           workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:      workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}: workitem.SystemAssignees,
 	},
 	ProviderJira: WorkItemMap{
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:    workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:     workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}: workitem.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:       workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:  workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), StringConverter{}}: workitem.SystemAssignee,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:        workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:         workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:     workitem.SystemState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:           workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:      workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}: workitem.SystemAssignees,
 	},
 }
 
@@ -66,6 +66,8 @@ type StateConverter interface{}
 
 type StringConverter struct{}
 
+type ListStringConverter struct{}
+
 type GithubStateConverter struct{}
 
 type JiraStateConverter struct{}
@@ -73,6 +75,11 @@ type JiraStateConverter struct{}
 // Convert method map the external tracker item to ALM WorkItem
 func (sc StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	return value, nil
+}
+
+// Convert method map the external tracker item to ALM WorkItem
+func (sc ListStringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	return []interface{}{value}, nil
 }
 
 func (ghc GithubStateConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {

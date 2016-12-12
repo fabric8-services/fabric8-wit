@@ -23,26 +23,10 @@ var workItem2 = a.Type("WorkItem2", func() {
 
 // WorkItemRelationships defines only `assignee` as of now. To be updated
 var workItemRelationships = a.Type("WorkItemRelationships", func() {
-	a.Attribute("assignee", relationAssignee, "This deinfes assignees of the Work Item")
-	a.Attribute("creator", relationGeneric, "This deinfes assignees of the Work Item")
+	a.Attribute("assignees", relationGenericList, "This defines assignees of the Work Item")
+	a.Attribute("creator", relationGeneric, "This defines creator of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
-})
-
-// RelationAssignee is a top level structure for assignee relationship
-var relationAssignee = a.Type("RelationAssignee", func() {
-	a.Attribute("data", assigneeData)
-})
-
-// assigneeData defines what is needed inside Assignee Relationship
-var assigneeData = a.Type("AssigneeData", func() {
-	a.Attribute("type", d.String, func() {
-		a.Enum("identities")
-	})
-	a.Attribute("id", d.String, "UUID of the identity", func() {
-		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
-	})
-	a.Required("type", "id")
 })
 
 // relationBaseType is top level block for WorkItemType relationship

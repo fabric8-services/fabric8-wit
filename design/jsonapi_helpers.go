@@ -72,6 +72,13 @@ var relationGeneric = a.Type("RelationGeneric", func() {
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
 })
 
+// relationGeneric is a top level structure for 'other' relationships
+var relationGenericList = a.Type("RelationGenericList", func() {
+	a.Attribute("data", a.ArrayOf(genericData))
+	a.Attribute("links", genericLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
 // genericData defines what is needed inside Generic Relationship
 var genericData = a.Type("GenericData", func() {
 	a.Attribute("type", d.String)

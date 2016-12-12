@@ -144,7 +144,6 @@ func TestTempConvertFieldsToModels(t *testing.T) {
 		SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
 		SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-		SystemAssignee:     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
 		SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		SystemState: app.FieldDefinition{
 			Type: &app.FieldType{
@@ -162,7 +161,7 @@ func TestTempConvertFieldsToModels(t *testing.T) {
 		},
 	}
 
-	expectedJSON := `{"system.assignee":{"Required":false,"Type":{"Kind":"user"}},"system.creator":{"Required":true,"Type":{"Kind":"user"}},"system.description":{"Required":false,"Type":{"Kind":"string"}},"system.remote_item_id":{"Required":false,"Type":{"Kind":"string"}},"system.state":{"Required":true,"Type":{"Kind":"enum","BaseType":{"Kind":"string"},"Values":["new","open","in progress","resolved","closed"]}},"system.title":{"Required":true,"Type":{"Kind":"string"}}}`
+	expectedJSON := `{"system.creator":{"Required":true,"Type":{"Kind":"user"}},"system.description":{"Required":false,"Type":{"Kind":"string"}},"system.remote_item_id":{"Required":false,"Type":{"Kind":"string"}},"system.state":{"Required":true,"Type":{"Kind":"enum","BaseType":{"Kind":"string"},"Values":["new","open","in progress","resolved","closed"]}},"system.title":{"Required":true,"Type":{"Kind":"string"}}}`
 
 	convertedFields, err := TEMPConvertFieldTypesToModel(newFields)
 	jsonArray, err := json.Marshal(convertedFields)

@@ -320,13 +320,20 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	typeName := workitem.SystemPlannerItem
 	stString := "string"
+	stUser := "user"
 	workItemTypeFields := map[string]app.FieldDefinition{
 		workitem.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
 		workitem.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		workitem.SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-		workitem.SystemAssignee:     app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: false},
 		workitem.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		workitem.SystemCreatedAt:    app.FieldDefinition{Type: &app.FieldType{Kind: "instant"}, Required: false},
+		workitem.SystemAssignees: app.FieldDefinition{
+			Type: &app.FieldType{
+				ComponentType: &stUser,
+				Kind:          "list",
+			},
+			Required: false,
+		},
 		workitem.SystemState: app.FieldDefinition{
 			Type: &app.FieldType{
 				BaseType: &stString,
