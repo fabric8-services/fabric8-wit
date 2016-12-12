@@ -66,7 +66,7 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 			ctx.Payload.Data.Relationships.Source.Data.ID = ctx.ID
 			ctx.Payload.Data.Relationships.Source.Data.Type = link.EndpointWorkItems
 		}
-		return createWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.Payload)
+		return createWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.Payload)
 	})
 }
 
@@ -84,14 +84,14 @@ func (c *WorkItemRelationshipsLinksController) Delete(ctx *app.DeleteWorkItemRel
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source of work item link"))
 			return ctx.BadRequest(jerrors)
 		}
-		return deleteWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.LinkID)
+		return deleteWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.LinkID)
 	})
 }
 
 // List runs the list action.
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return listWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, &ctx.ID)
+		return listWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, &ctx.ID)
 	})
 }
 
@@ -110,7 +110,7 @@ func (c *WorkItemRelationshipsLinksController) Show(ctx *app.ShowWorkItemRelatio
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source nor target of the work item link to show"))
 			return ctx.BadRequest(jerrors)
 		}
-		return showWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.LinkID)
+		return showWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.LinkID)
 	})
 }
 
@@ -135,7 +135,7 @@ func (c *WorkItemRelationshipsLinksController) Update(ctx *app.UpdateWorkItemRel
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source of the new work item link update payload"))
 			return ctx.BadRequest(jerrors)
 		}
-		return updateWorkItemLink(appl, ctx.Context, c.db, ctx.ResponseData, ctx, ctx.Payload)
+		return updateWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.Payload)
 	})
 }
 
