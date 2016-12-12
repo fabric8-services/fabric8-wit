@@ -16,7 +16,7 @@ var comment = a.Type("Comment", func() {
 	a.Attribute("attributes", commentAttributes)
 	a.Attribute("relationships", commentRelationships)
 	a.Attribute("links", genericLinks)
-	a.Required("type", "attributes")
+	a.Required("type")
 })
 
 var createComment = a.Type("CreateComment", func() {
@@ -70,12 +70,14 @@ var commentArray = a.MediaType("application/vnd.comments+json", func() {
 	a.Description("Holds the response of comments")
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
 	a.Attribute("data", a.ArrayOf(comment))
+	a.Attribute("links", genericLinks)
 
 	a.Required("data")
 
 	a.View("default", func() {
 		a.Attribute("data")
 		a.Attribute("meta")
+		a.Attribute("links")
 	})
 })
 

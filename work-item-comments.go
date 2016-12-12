@@ -91,21 +91,22 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 // TODO: Should only return Resource Identifier Objects, not complete object (See List)
 func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemCommentsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.WorkItems().Load(ctx, ctx.ID)
+		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
-
-		res := &app.CommentArray{}
-		res.Data = []*app.Comment{}
 
 		comments, err := appl.Comments().List(ctx, ctx.ID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		res.Data = ConvertComments(ctx.RequestData, comments)
+
+		res := &app.CommentArray{}
+		res.Data = []*app.Comment{}
+		res.Data = ConvertCommentsResourceID(ctx.RequestData, comments)
+		res.Links = CreateCommentsRelationLinks(ctx.RequestData, wi)
 
 		return ctx.OK(res)
 	})
@@ -128,24 +129,31 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 		})
 	}()
 	return func(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
-		commentsSelf := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
-		wi2.Relationships.Comments = &app.RelationGeneric{
-			Links: &app.GenericLinks{
-				Self: &commentsSelf,
-			},
-			Meta: map[string]interface{}{
-				"totalCount": <-count,
-			},
+		wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
+		wi2.Relationships.Comments.Meta = map[string]interface{}{
+			"totalCount": <-count,
 		}
 	}
 }
 
 // WorkItemIncludeComments adds relationship about comments to workitem (include totalCount)
 func WorkItemIncludeComments(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
-	commentsSelf := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
-	wi2.Relationships.Comments = &app.RelationGeneric{
-		Links: &app.GenericLinks{
-			Self: &commentsSelf,
-		},
+	wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
+}
+
+// CreateCommentsRelation returns a RelationGeneric object representing the relation for a workitem to comment relation
+func CreateCommentsRelation(request *goa.RequestData, wi *app.WorkItem) *app.RelationGeneric {
+	return &app.RelationGeneric{
+		Links: CreateCommentsRelationLinks(request, wi),
+	}
+}
+
+// CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
+func CreateCommentsRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
+	commentsSelf := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
+	commentsRelated := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
+	return &app.GenericLinks{
+		Self:    &commentsSelf,
+		Related: &commentsRelated,
 	}
 }

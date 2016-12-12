@@ -60,6 +60,27 @@ func ConvertComments(request *goa.RequestData, comments []*comment.Comment, addi
 	return cs
 }
 
+// ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
+func ConvertCommentsResourceID(request *goa.RequestData, comments []*comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+	var cs = []*app.Comment{}
+	for _, c := range comments {
+		cs = append(cs, ConvertCommentResourceID(request, c, additional...))
+	}
+	return cs
+}
+
+// ConvertCommentResourceID converts between internal and external REST representation, ResourceIdentificationObject only
+func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+	c := &app.Comment{
+		Type: "comments",
+		ID:   &comment.ID,
+	}
+	for _, add := range additional {
+		add(request, comment, c)
+	}
+	return c
+}
+
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := AbsoluteURL(request, app.CommentsHref(comment.ID))
