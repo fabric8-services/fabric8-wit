@@ -639,7 +639,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 		case *app.WorkItem2:
 			wid, err := strconv.ParseUint(*v.ID, 10, 64)
 			require.Nil(s.T(), err)
-			if wid == s.bug2ID || wid == s.bug3ID {
+			if wid == s.bug1ID || wid == s.bug2ID || wid == s.bug3ID {
 				s.T().Log("Found work item in \"included\" element: ", *v.ID)
 				toBeFound--
 			}

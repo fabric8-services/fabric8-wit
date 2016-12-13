@@ -117,6 +117,9 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		res.Included = append(res.Included, linkCat.Data)
+		res.Links = &app.WorkItemLinkTypeLinks{
+			Self: AbsoluteURL(ctx.RequestData, app.WorkItemLinkTypeHref(ctx.ID)),
+		}
 		return ctx.OK(res)
 	})
 	// WorkItemLinkTypeController_Show: end_implement

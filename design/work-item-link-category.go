@@ -6,9 +6,9 @@ import (
 )
 
 // workItemLinkCategoryLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
-var workItemLinkCategoryLinks = a.Type("WorkItemLinkCateogoryLinks", func() {
+var workItemLinkCategoryLinks = a.Type("WorkItemLinkCategoryLinks", func() {
 	a.Attribute("self", d.String, func() {
-		a.Example("http://api.almighty.io/api/work-item-link-categories/2d98c73d-6969-4ea6-958a-812c832b6c18")
+		a.Example("http://api.almighty.io/api/workitemlinkcategories/2d98c73d-6969-4ea6-958a-812c832b6c18")
 	})
 	a.Required("self")
 })

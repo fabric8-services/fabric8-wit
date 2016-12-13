@@ -46,6 +46,9 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		res.Links = &app.WorkItemLinkCategoryLinks{
+			Self: AbsoluteURL(ctx.RequestData, app.WorkItemLinkCategoryHref(ctx.ID)),
+		}
 		return ctx.OK(res)
 	})
 }
