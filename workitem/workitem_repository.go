@@ -58,14 +58,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	result, err := wiType.ConvertFromModel(*res)
-	if err != nil {
-		return nil, errors.NewConversionError(err.Error())
-	}
-	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
-		result.Fields[SystemCreatedAt] = res.CreatedAt
-	}
-	return result, nil
+	return convertWorkItemModelToApp(wiType, res)
 }
 
 // Delete deletes the work item with the given id
@@ -145,14 +138,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.Printf("updated item to %v\n", newWi)
-	result, err := wiType.ConvertFromModel(newWi)
-	if err != nil {
-		return nil, errors.NewInternalError(err.Error())
-	}
-	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
-		result.Fields[SystemCreatedAt] = newWi.CreatedAt
-	}
-	return result, nil
+	return convertWorkItemModelToApp(wiType, &newWi)
 }
 
 // Create creates a new work item in the repository
@@ -183,7 +169,11 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		return nil, errors.NewInternalError(err.Error())
 	}
 	log.Printf("created item %v\n", wi)
-	result, err := wiType.ConvertFromModel(wi)
+	return convertWorkItemModelToApp(wiType, &wi)
+}
+
+func convertWorkItemModelToApp(wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
+	result, err := wiType.ConvertFromModel(*wi)
 	if err != nil {
 		return nil, errors.NewConversionError(err.Error())
 	}
@@ -191,6 +181,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		result.Fields[SystemCreatedAt] = wi.CreatedAt
 	}
 	return result, nil
+
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
@@ -283,13 +274,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		res[index], err = wiType.ConvertFromModel(value)
-		if err != nil {
-			return nil, 0, errors.NewConversionError(err.Error())
-		}
-		if _, ok := wiType.Fields[SystemCreatedAt]; ok {
-			res[index].Fields[SystemCreatedAt] = value.CreatedAt
-		}
+		res[index], err = convertWorkItemModelToApp(wiType, &value)
 	}
 
 	return res, count, nil
