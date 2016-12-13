@@ -30,7 +30,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 	// WorkItemLinkTypeController_Create: start_implement
 	// Convert payload from app to model representation
 	model := link.WorkItemLinkType{}
-	in := app.WorkItemLinkType{
+	in := app.WorkItemLinkTypeSingle{
 		Data: ctx.Payload.Data,
 	}
 	err := link.ConvertLinkTypeToModel(in, &model)
@@ -126,7 +126,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeContext) error {
 	// WorkItemLinkTypeController_Update: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		toSave := app.WorkItemLinkType{
+		toSave := app.WorkItemLinkTypeSingle{
 			Data: ctx.Payload.Data,
 		}
 		linkType, err := appl.WorkItemLinkTypes().Save(ctx.Context, toSave)

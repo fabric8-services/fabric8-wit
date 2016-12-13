@@ -224,7 +224,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.NotFound(jerrors)
 		}
-		err = ConvertJSONAPIToWorkItem(*ctx.Payload.Data, wi)
+		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.BadRequest(jerrors)
@@ -283,9 +283,9 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
-	ConvertJSONAPIToWorkItem(*ctx.Payload.Data, &wi)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
+		ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
@@ -376,7 +376,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(source app.WorkItem2, target *app.WorkItem) error {
+func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2, target *app.WorkItem) error {
 	// construct default values from input WI
 
 	var version = -1
@@ -399,7 +399,7 @@ func ConvertJSONAPIToWorkItem(source app.WorkItem2, target *app.WorkItem) error 
 				if err != nil {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
-				ok := c.db.Identities().ValidIdentity(context.Background(), assigneeUUID)
+				ok := appl.Identities().ValidIdentity(context.Background(), assigneeUUID)
 				if !ok {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}

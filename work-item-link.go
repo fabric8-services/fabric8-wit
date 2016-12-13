@@ -28,6 +28,12 @@ func NewWorkItemLinkController(service *goa.Service, db application.DB) *WorkIte
 	}
 }
 
+// Instead of using app.WorkItemLinkHref directly, we store a function object
+// inside the WorkItemLinkContext in order to generate proper links nomatter
+// from which controller the context is being used. For example one could use
+// app.WorkItemRelationshipsLinksHref.
+type hrefLinkFunc func(obj interface{}) string
+
 // workItemLinkContext bundles objects that are needed by most of the functions.
 // It can easily be extended.
 type workItemLinkContext struct {
@@ -36,16 +42,18 @@ type workItemLinkContext struct {
 	Application  application.Application
 	Context      context.Context
 	DB           application.DB
+	LinkFunc     hrefLinkFunc
 }
 
 // newWorkItemLinkContext returns a new workItemLinkContext
-func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, requestData *goa.RequestData, responseData *goa.ResponseData) *workItemLinkContext {
+func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, requestData *goa.RequestData, responseData *goa.ResponseData, linkFunc hrefLinkFunc) *workItemLinkContext {
 	return &workItemLinkContext{
 		RequestData:  requestData,
 		ResponseData: responseData,
 		Application:  appl,
 		Context:      ctx,
 		DB:           db,
+		LinkFunc:     linkFunc,
 	}
 }
 
@@ -111,7 +119,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 }
 
 // enrichLink includes related resources in the link's "included" array
-func enrichLink(ctx *workItemLinkContext, link *app.WorkItemLink) error {
+func enrichLink(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) error {
 
 	// include link type
 	linkType, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, link.Data.Relationships.LinkType.Data.ID)
@@ -159,7 +167,7 @@ func enrichLink(ctx *workItemLinkContext, link *app.WorkItemLink) error {
 }
 
 // enrichLinkArray includes related resources in the linkArr's "included" element
-func enrichLinkArray(ctx *workItemLinkContext, linkArr *app.WorkItemLinkArray) error {
+func enrichLinkArray(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) error {
 
 	// include link types
 	typeDataArr, err := getTypesOfLinks(ctx, linkArr.Data)
@@ -204,13 +212,13 @@ func enrichLinkArray(ctx *workItemLinkContext, linkArr *app.WorkItemLinkArray) e
 
 type createWorkItemLinkFuncs interface {
 	BadRequest(r *app.JSONAPIErrors) error
-	Created(r *app.WorkItemLink) error
+	Created(r *app.WorkItemLinkSingle) error
 }
 
 func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
 	// Convert payload from app to model representation
 	model := link.WorkItemLink{}
-	in := app.WorkItemLink{
+	in := app.WorkItemLinkSingle{
 		Data: payload.Data,
 	}
 	err := link.ConvertLinkToModel(in, &model)
@@ -240,7 +248,7 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 // Create runs the create action.
 func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return createWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.Payload)
+		return createWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
 	})
 }
 
@@ -260,12 +268,12 @@ func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs,
 // Delete runs the delete action
 func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return deleteWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.LinkID)
+		return deleteWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.LinkID)
 	})
 }
 
 type listWorkItemLinkFuncs interface {
-	OK(r *app.WorkItemLinkArray) error
+	OK(r *app.WorkItemLinkList) error
 }
 
 func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiIDStr *string) error {
@@ -284,12 +292,12 @@ func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiI
 // List runs the list action.
 func (c *WorkItemLinkController) List(ctx *app.ListWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return listWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, nil)
+		return listWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, nil)
 	})
 }
 
 type showWorkItemLinkFuncs interface {
-	OK(r *app.WorkItemLink) error
+	OK(r *app.WorkItemLinkSingle) error
 }
 
 func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, linkID string) error {
@@ -302,22 +310,26 @@ func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, lin
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
+	// construct default values from input WIL
+	link.Links = &app.WorkItemLinkLinks{
+		Self: AbsoluteURL(ctx.RequestData, ctx.LinkFunc(linkID)),
+	}
 	return funcs.OK(link)
 }
 
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return showWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.LinkID)
+		return showWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.LinkID)
 	})
 }
 
 type updateWorkItemLinkFuncs interface {
-	OK(r *app.WorkItemLink) error
+	OK(r *app.WorkItemLinkSingle) error
 }
 
 func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs, payload *app.UpdateWorkItemLinkPayload) error {
-	toSave := app.WorkItemLink{
+	toSave := app.WorkItemLinkSingle{
 		Data: payload.Data,
 	}
 	link, err := ctx.Application.WorkItemLinks().Save(ctx.Context, toSave)
@@ -335,6 +347,6 @@ func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs,
 // Update runs the update action.
 func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return updateWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData), ctx, ctx.Payload)
+		return updateWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
 	})
 }

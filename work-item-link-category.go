@@ -77,7 +77,7 @@ func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCateg
 // Update runs the update action.
 func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		toSave := app.WorkItemLinkCategory{
+		toSave := app.WorkItemLinkCategorySingle{
 			Data: ctx.Payload.Data,
 		}
 		linkCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, toSave)

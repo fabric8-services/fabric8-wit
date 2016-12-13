@@ -23,11 +23,11 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
-	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error)
-	Load(ctx context.Context, ID string) (*app.WorkItemLink, error)
-	List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkArray, error)
+	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
+	Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error)
+	List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkList, error)
 	Delete(ctx context.Context, ID string) error
-	Save(ctx context.Context, linkCat app.WorkItemLink) (*app.WorkItemLink, error)
+	Save(ctx context.Context, linkCat app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -87,7 +87,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(sourceID
 
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -110,7 +110,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error) {
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
@@ -134,7 +134,7 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 // List returns all work item links if wiID is nil; otherwise the work item links are returned
 // that have wiID as source or target.
 // TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkArray, error) {
+func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkList, error) {
 	var rows []WorkItemLink
 	db := r.db
 	if wiIDStr == nil {
@@ -156,7 +156,7 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) 
 		}
 	}
 
-	res := app.WorkItemLinkArray{}
+	res := app.WorkItemLinkList{}
 	res.Data = make([]*app.WorkItemLinkData, len(rows))
 	for index, value := range rows {
 		cat := ConvertLinkFromModel(value)
@@ -164,7 +164,7 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) 
 	}
 	// TODO: When adding pagination, this must not be len(rows) but
 	// the overall total number of elements from all pages.
-	res.Meta = &app.WorkItemLinkArrayMeta{
+	res.Meta = &app.WorkItemLinkListMeta{
 		TotalCount: len(rows),
 	}
 	return &res, nil
@@ -195,7 +195,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLink) (*app.WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error) {
 	res := WorkItemLink{}
 	if lt.Data.ID == nil {
 		return nil, errors.NewBadParameterError("work item link", nil)

@@ -558,7 +558,7 @@ func (s *workItemLinkSuite) TestShowWorkItemRelationshipsLinksNotFound() {
 	test.ShowWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), "88727441-4a21-4b35-aabe-007f8273cd19")
 }
 
-func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLink, *app.WorkItemLink) {
+func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.WorkItemLinkSingle) {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
@@ -580,7 +580,7 @@ func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLink, *app.WorkItemL
 
 // validateSomeLinks validates that workItemLink1 and workItemLink2 are in the
 // linkCollection and that all resources are included
-func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkArray, workItemLink1, workItemLink2 *app.WorkItemLink) {
+func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkList, workItemLink1, workItemLink2 *app.WorkItemLinkSingle) {
 	require.NotNil(s.T(), linkCollection)
 	require.Nil(s.T(), linkCollection.Validate())
 	// Check the number of found work item links

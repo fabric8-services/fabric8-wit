@@ -142,9 +142,9 @@ func CheckValidTopology(t string) error {
 }
 
 // ConvertLinkTypeFromModel converts a work item link type from model to REST representation
-func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkType {
+func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	id := t.ID.String()
-	var converted = app.WorkItemLinkType{
+	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
 			Type: EndpointWorkItemLinkTypes,
 			ID:   &id,
@@ -183,7 +183,7 @@ func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkType {
 
 // ConvertLinkTypeToModel converts the incoming app representation of a work item link type to the model layout.
 // Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
-func ConvertLinkTypeToModel(in app.WorkItemLinkType, out *WorkItemLinkType) error {
+func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType) error {
 	attrs := in.Data.Attributes
 	rel := in.Data.Relationships
 	var err error
