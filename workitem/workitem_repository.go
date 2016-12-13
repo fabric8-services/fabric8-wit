@@ -149,6 +149,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
+	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
+		result.Fields[SystemCreatedAt] = newWi.CreatedAt
+	}
 	return result, nil
 }
 
@@ -184,7 +187,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err != nil {
 		return nil, errors.NewConversionError(err.Error())
 	}
-
+	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
+		result.Fields[SystemCreatedAt] = wi.CreatedAt
+	}
 	return result, nil
 }
 
