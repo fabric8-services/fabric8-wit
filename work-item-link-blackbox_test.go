@@ -623,7 +623,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item links (%s and %s) where found.", *workItemLink1.Data.ID, *workItemLink2.Data.ID)
 
-	toBeFound = 2
+	toBeFound = 5 // 1 x link category, 1 x link type, 3 x work items
 	for i := 0; i < len(linkCollection.Included) && toBeFound > 0; i++ {
 		switch v := linkCollection.Included[i].(type) {
 		case *app.WorkItemLinkCategoryData:
@@ -636,9 +636,13 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 				s.T().Log("Found work item link type in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
-		// TODO(kwk): Check for source WIs (once #559 is merged)
-		// TODO(kwk): Check for target WI (once #559 is merged)
-		// case *app.WorkItemData:
+		case *app.WorkItem2:
+			wid, err := strconv.ParseUint(*v.ID, 10, 64)
+			require.Nil(s.T(), err)
+			if wid == s.bug2ID || wid == s.bug3ID {
+				s.T().Log("Found work item in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
 		// TODO(kwk): Check for WITs (once #559 is merged)
 		// case *app.WorkItemTypeData:
 		default:
