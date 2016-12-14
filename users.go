@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -32,6 +35,51 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		return ctx.OK(result.ConvertIdentityFromModel())
+		return ctx.OK(ConvertUser(ctx.RequestData, result))
 	})
+}
+
+// ConvertUser converts a complete Identity object into REST representation
+func ConvertUser(request *goa.RequestData, account *account.Identity) *app.Identity {
+	id := account.ID.String()
+	converted := app.Identity{
+		Data: &app.IdentityData{
+			ID:   &id,
+			Type: "identities",
+			Attributes: &app.IdentityDataAttributes{
+				FullName: &account.FullName,
+				ImageURL: &account.ImageURL,
+			},
+			Links: createUserLinks(request, account.ID),
+		},
+	}
+	return &converted
+
+}
+
+// ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
+func ConvertUsersSimple(request *goa.RequestData, ids []interface{}) []*app.GenericData {
+	ops := []*app.GenericData{}
+	for _, id := range ids {
+		ops = append(ops, ConvertUserSimple(request, id))
+	}
+	return ops
+}
+
+// ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
+func ConvertUserSimple(request *goa.RequestData, id interface{}) *app.GenericData {
+	t := "identities"
+	i := fmt.Sprint(id)
+	return &app.GenericData{
+		Type:  &t,
+		ID:    &i,
+		Links: createUserLinks(request, id),
+	}
+}
+
+func createUserLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
+	selfURL := AbsoluteURL(request, app.UsersHref(id))
+	return &app.GenericLinks{
+		Self: &selfURL,
+	}
 }
