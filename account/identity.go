@@ -27,6 +27,7 @@ func (m Identity) TableName() string {
 
 }
 
+// TODO: Remove. Data layer should not know about the REST layer. Moved to /users.go
 // ConvertIdentityFromModel convert identity from model to app representation
 func (m Identity) ConvertIdentityFromModel() *app.Identity {
 	id := m.ID.String()

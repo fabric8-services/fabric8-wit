@@ -50,6 +50,7 @@ func TestGetWorkItem(t *testing.T) {
 
 	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -71,6 +72,7 @@ func TestGetWorkItem(t *testing.T) {
 	payload2.Data.Attributes = wi.Data.Attributes
 
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
+	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
 
 	if updated.Data.Attributes["version"] != (result.Data.Attributes["version"].(int) + 1) {
 		t.Errorf("expected version %d, but got %d", (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
@@ -102,6 +104,7 @@ func TestCreateWI(t *testing.T) {
 	if created.Data.ID == nil || *created.Data.ID == "" {
 		t.Error("no id")
 	}
+	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
 }
