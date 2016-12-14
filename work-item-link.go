@@ -118,8 +118,8 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 	return catDataArr, nil
 }
 
-// enrichLink includes related resources in the link's "included" array
-func enrichLink(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) error {
+// enrichLinkSingle includes related resources in the link's "included" array
+func enrichLinkSingle(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) error {
 
 	// include link type
 	linkType, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, link.Data.Relationships.LinkType.Data.ID)
@@ -163,11 +163,17 @@ func enrichLink(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) error {
 	}
 	link.Included = append(link.Included, ConvertWorkItem(ctx.RequestData, targetWi))
 
+	// Add links to individual link data element
+	selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.Data.ID))
+	link.Data.Links = &app.GenericLinks{
+		Self: &selfURL,
+	}
+
 	return nil
 }
 
-// enrichLinkArray includes related resources in the linkArr's "included" element
-func enrichLinkArray(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) error {
+// enrichLinkList includes related resources in the linkArr's "included" element
+func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) error {
 
 	// include link types
 	typeDataArr, err := getTypesOfLinks(ctx, linkArr.Data)
@@ -207,6 +213,14 @@ func enrichLinkArray(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) er
 
 	// TODO(kwk): Include WITs (once #559 is merged)
 
+	// Add links to individual link data element
+	for _, link := range linkArr.Data {
+		selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
+		link.Links = &app.GenericLinks{
+			Self: &selfURL,
+		}
+	}
+
 	return nil
 }
 
@@ -237,10 +251,11 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 	}
-	if err := enrichLink(ctx, link); err != nil {
+	if err := enrichLinkSingle(ctx, link); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
+
 	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkHref(link.Data.ID))
 	return funcs.Created(link)
 }
@@ -282,7 +297,7 @@ func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiI
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
-	if err := enrichLinkArray(ctx, linkArr); err != nil {
+	if err := enrichLinkList(ctx, linkArr); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
@@ -306,13 +321,9 @@ func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, lin
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
-	if err := enrichLink(ctx, link); err != nil {
+	if err := enrichLinkSingle(ctx, link); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-	}
-	// construct default values from input WIL
-	link.Links = &app.WorkItemLinkLinks{
-		Self: AbsoluteURL(ctx.RequestData, ctx.LinkFunc(linkID)),
 	}
 	return funcs.OK(link)
 }
@@ -337,7 +348,7 @@ func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs,
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
-	if err := enrichLink(ctx, link); err != nil {
+	if err := enrichLinkSingle(ctx, link); err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}

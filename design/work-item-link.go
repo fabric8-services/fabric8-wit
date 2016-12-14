@@ -45,6 +45,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	})
 	a.Attribute("attributes", workItemLinkAttributes)
 	a.Attribute("relationships", workItemLinkRelationships)
+	a.Attribute("links", genericLinks)
 	a.Required("type", "relationships")
 })
 

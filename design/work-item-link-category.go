@@ -44,6 +44,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Attribute("attributes", workItemLinkCategoryAttributes)
+	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })
 

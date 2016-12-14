@@ -292,7 +292,8 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	_, linkCat2 := test.ShowWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCat.Data.ID)
 
 	require.NotNil(s.T(), linkCat2)
-	require.NotNil(s.T(), linkCat2.Links, "The link category should include a self link")
+	require.NotNil(s.T(), linkCat2.Data.Links, "The link category MUST include a self link")
+	require.NotEmpty(s.T(), linkCat2.Data.Links.Self, "The link category MUST include a self link that's not empty")
 	require.Len(s.T(), linkCat2.Included, 0, "The link category has nothing to include")
 	require.EqualValues(s.T(), linkCat.Data, linkCat2.Data)
 }
