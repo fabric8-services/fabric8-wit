@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	satoriuuid "github.com/satori/go.uuid"
@@ -101,6 +102,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	}
 	db := r.db.Create(link)
 	if db.Error != nil {
+		if gormsupport.IsUniqueViolation(db.Error, "work_item_links_unique_idx") {
+			// TODO(kwk): Make NewBadParameterError a variadic function to avoid this ugliness ;)
+			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
+		}
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	// Convert the created link type entry into a JSONAPI response
