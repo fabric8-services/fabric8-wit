@@ -85,6 +85,7 @@ var genericData = a.Type("GenericData", func() {
 	a.Attribute("id", d.String, "UUID of the object", func() {
 		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
+	a.Attribute("links", genericLinks)
 })
 
 // genericLinks defines generic relations links

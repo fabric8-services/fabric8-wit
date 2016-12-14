@@ -457,33 +457,22 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			Self: &selfURL,
 		},
 	}
-	userType := APIStringTypeUser
+
 	// Move fields into Relationships or Attributes as needed
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
 				valArr := val.([]interface{})
-				data := []*app.GenericData{}
-				for _, valInf := range valArr {
-					valStr := valInf.(string)
-					data = append(data, &app.GenericData{
-						ID:   &valStr,
-						Type: &userType,
-					})
-				}
 				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: data,
+					Data: ConvertUsersSimple(request, valArr),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
 				valStr := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: &app.GenericData{
-						ID:   &valStr,
-						Type: &userType,
-					},
+					Data: ConvertUserSimple(request, valStr),
 				}
 			}
 		default:
