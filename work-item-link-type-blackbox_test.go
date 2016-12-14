@@ -250,6 +250,7 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	categoryData, ok := readIn.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	require.NotNil(s.T(), readIn.Data.Links, "The link type should include a self link")
 }
 
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
