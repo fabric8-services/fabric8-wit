@@ -25,6 +25,51 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB) *Wor
 	}
 }
 
+// enrichLinkTypeSingle includes related resources in the single's "included" array
+func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
+	// Add "links" element
+	selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
+	single.Data.Links = &app.GenericLinks{
+		Self: &selfURL,
+	}
+
+	// Now include the optional link category data in the work item link type "included" array
+	linkCat, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, single.Data.Relationships.LinkCategory.Data.ID)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+	}
+	single.Included = append(single.Included, linkCat.Data)
+
+	return nil
+}
+
+// enrichLinkTypeList includes related resources in the list's "included" array
+func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
+	// Add "links" element
+	for _, data := range list.Data {
+		selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
+		data.Links = &app.GenericLinks{
+			Self: &selfURL,
+		}
+	}
+	// Build our "set" of distinct category IDs already converted as strings
+	categoryIDMap := map[string]bool{}
+	for _, typeData := range list.Data {
+		categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
+	}
+	// Now include the optional link category data in the work item link type "included" array
+	for categoryID := range categoryIDMap {
+		linkCat, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, categoryID)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		list.Included = append(list.Included, linkCat.Data)
+	}
+	return nil
+}
+
 // Create runs the create action.
 func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
 	// WorkItemLinkTypeController_Create: start_implement
@@ -44,14 +89,13 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		// Now include the optional link category data in the work item link type "included" array
-		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, linkType.Data.Relationships.LinkCategory.Data.ID)
+		// Enrich
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref)
+		err = enrichLinkTypeSingle(linkCtx, linkType)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
-		linkType.Included = append(linkType.Included, linkCat.Data)
-
 		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(linkType.Data.ID))
 		return ctx.Created(linkType)
 	})
@@ -81,19 +125,12 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		// Build our "set" of distinct category IDs already converted as strings
-		categoryIDMap := map[string]bool{}
-		for _, typeData := range result.Data {
-			categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
-		}
-		// Now include the optional link category data in the work item link type "included" array
-		for categoryID := range categoryIDMap {
-			linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, categoryID)
-			if err != nil {
-				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-			}
-			result.Included = append(result.Included, linkCat.Data)
+		// Enrich
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref)
+		err = enrichLinkTypeList(linkCtx, result)
+		if err != nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(result)
 	})
@@ -109,16 +146,12 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-
-		// Now include the optional link category data in the work item link type "included" array
-		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, res.Data.Relationships.LinkCategory.Data.ID)
+		// Enrich
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref)
+		err = enrichLinkTypeSingle(linkCtx, res)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-		}
-		res.Included = append(res.Included, linkCat.Data)
-		res.Links = &app.WorkItemLinkTypeLinks{
-			Self: AbsoluteURL(ctx.RequestData, app.WorkItemLinkTypeHref(ctx.ID)),
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(res)
 	})
@@ -137,13 +170,13 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		// Now include the optional link category data in the work item link type "included" array
-		linkCat, err := appl.WorkItemLinkCategories().Load(ctx.Context, linkType.Data.Relationships.LinkCategory.Data.ID)
+		// Enrich
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref)
+		err = enrichLinkTypeSingle(linkCtx, linkType)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
-		linkType.Included = append(linkType.Included, linkCat.Data)
 		return ctx.OK(linkType)
 	})
 	// WorkItemLinkTypeController_Update: end_implement
