@@ -45,6 +45,8 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 	item := make(chan TrackerItemContent)
 	go func() {
 		opts := &github.SearchOptions{
+			Sort:  "updated",
+			Order: "desc",
 			ListOptions: github.ListOptions{
 				PerPage: 20,
 			},
