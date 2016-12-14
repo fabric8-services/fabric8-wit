@@ -520,7 +520,8 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	require.Nil(s.T(), link.ConvertLinkToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 
-	require.NotNil(s.T(), readIn.Data.Links, "The link should include a self link")
+	require.NotNil(s.T(), readIn.Data.Links, "The link MUST include a self link")
+	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link MUST include a self link that's not empty")
 }
 
 // Same for /api/workitems/:id/relationships/links
