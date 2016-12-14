@@ -46,6 +46,9 @@ func (c *WorkItemLinkCategoryController) Show(ctx *app.ShowWorkItemLinkCategoryC
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		res.Links = &app.WorkItemLinkCategoryLinks{
+			Self: AbsoluteURL(ctx.RequestData, app.WorkItemLinkCategoryHref(ctx.ID)),
+		}
 		return ctx.OK(res)
 	})
 }
@@ -77,7 +80,7 @@ func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCateg
 // Update runs the update action.
 func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		toSave := app.WorkItemLinkCategory{
+		toSave := app.WorkItemLinkCategorySingle{
 			Data: ctx.Payload.Data,
 		}
 		linkCategory, err := appl.WorkItemLinkCategories().Save(ctx.Context, toSave)

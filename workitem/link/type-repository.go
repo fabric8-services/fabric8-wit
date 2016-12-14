@@ -14,11 +14,11 @@ import (
 
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
-	Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategory satoriuuid.UUID) (*app.WorkItemLinkType, error)
-	Load(ctx context.Context, ID string) (*app.WorkItemLinkType, error)
-	List(ctx context.Context) (*app.WorkItemLinkTypeArray, error)
+	Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategory satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
+	Load(ctx context.Context, ID string) (*app.WorkItemLinkTypeSingle, error)
+	List(ctx context.Context) (*app.WorkItemLinkTypeList, error)
 	Delete(ctx context.Context, ID string) error
-	Save(ctx context.Context, linkCat app.WorkItemLinkType) (*app.WorkItemLinkType, error)
+	Save(ctx context.Context, linkCat app.WorkItemLinkTypeSingle) (*app.WorkItemLinkTypeSingle, error)
 }
 
 // NewWorkItemLinkTypeRepository creates a work item link type repository based on gorm
@@ -33,7 +33,7 @@ type GormWorkItemLinkTypeRepository struct {
 
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategoryID satoriuuid.UUID) (*app.WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategoryID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
 	linkType := &WorkItemLinkType{
 		Name:           name,
 		Description:    description,
@@ -68,7 +68,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 
 // Load returns the work item link type for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkTypeSingle, error) {
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
@@ -123,14 +123,14 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) 
 
 // List returns all work item link types
 // TODO: Handle pagination
-func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkItemLinkTypeArray, error) {
+func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkItemLinkTypeList, error) {
 	// We don't have any where clause or paging at the moment.
 	var rows []WorkItemLinkType
 	db := r.db.Find(&rows)
 	if db.Error != nil {
 		return nil, db.Error
 	}
-	res := app.WorkItemLinkTypeArray{}
+	res := app.WorkItemLinkTypeList{}
 	res.Data = make([]*app.WorkItemLinkTypeData, len(rows))
 	for index, value := range rows {
 		linkType := ConvertLinkTypeFromModel(value)
@@ -138,7 +138,7 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkIte
 	}
 	// TODO: When adding pagination, this must not be len(rows) but
 	// the overall total number of elements from all pages.
-	res.Meta = &app.WorkItemLinkTypeArrayMeta{
+	res.Meta = &app.WorkItemLinkTypeListMeta{
 		TotalCount: len(rows),
 	}
 	return &res, nil
@@ -168,7 +168,7 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 
 // Save updates the given work item link type in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkItemLinkType) (*app.WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkItemLinkTypeSingle) (*app.WorkItemLinkTypeSingle, error) {
 	res := WorkItemLinkType{}
 	if lt.Data.ID == nil {
 		return nil, errors.NewBadParameterError("work item link type", nil)

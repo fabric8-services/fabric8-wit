@@ -98,7 +98,7 @@ func (s *workItemLinkCategorySuite) TearDownTest() {
 //-----------------------------------------------------------------------------
 
 // createWorkItemLinkCategorySystem defines a work item link category "test-system"
-func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.ResponseWriter, *app.WorkItemLinkCategory) {
+func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.ResponseWriter, *app.WorkItemLinkCategorySingle) {
 	name := "test-system"
 	description := "This work item link category is reserved for the core system."
 	id := "0e671e36-871b-43a6-9166-0c4bd573e231"
@@ -119,7 +119,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.Res
 }
 
 // createWorkItemLinkCategoryUser defines a work item link category "test-user"
-func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.ResponseWriter, *app.WorkItemLinkCategory) {
+func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.ResponseWriter, *app.WorkItemLinkCategorySingle) {
 	name := "test-user"
 	description := "This work item link category is managed by an admin user."
 	id := "bf30167a-9446-42de-82be-6b3815152051"
@@ -292,7 +292,9 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	_, linkCat2 := test.ShowWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCat.Data.ID)
 
 	require.NotNil(s.T(), linkCat2)
-	require.EqualValues(s.T(), linkCat, linkCat2)
+	require.NotNil(s.T(), linkCat2.Links, "The link category should include a self link")
+	require.Len(s.T(), linkCat2.Included, 0, "The link category has nothing to include")
+	require.EqualValues(s.T(), linkCat.Data, linkCat2.Data)
 }
 
 func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFoundDueToBadID() {

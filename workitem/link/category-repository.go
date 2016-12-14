@@ -13,11 +13,11 @@ import (
 
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
-	Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategory, error)
-	Load(ctx context.Context, ID string) (*app.WorkItemLinkCategory, error)
-	List(ctx context.Context) (*app.WorkItemLinkCategoryArray, error)
+	Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategorySingle, error)
+	Load(ctx context.Context, ID string) (*app.WorkItemLinkCategorySingle, error)
+	List(ctx context.Context) (*app.WorkItemLinkCategoryList, error)
 	Delete(ctx context.Context, ID string) error
-	Save(ctx context.Context, linkCat app.WorkItemLinkCategory) (*app.WorkItemLinkCategory, error)
+	Save(ctx context.Context, linkCat app.WorkItemLinkCategorySingle) (*app.WorkItemLinkCategorySingle, error)
 }
 
 // NewWorkItemLinkCategoryRepository creates a work item link category repository based on gorm
@@ -32,7 +32,7 @@ type GormWorkItemLinkCategoryRepository struct {
 
 // Create creates a new work item link category in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategory, error) {
+func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategorySingle, error) {
 	if name == nil || *name == "" {
 		return nil, errors.NewBadParameterError("name", name)
 	}
@@ -52,7 +52,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *s
 
 // Load returns the work item link category for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkCategory, error) {
+func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkCategorySingle, error) {
 	id, err := satoriuuid.FromString(ID)
 	if err != nil {
 		// treat as not found: clients don't know it must be a UUID
@@ -91,13 +91,13 @@ func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Cont
 
 // List returns all work item link categories
 // TODO: Handle pagination
-func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.WorkItemLinkCategoryArray, error) {
+func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.WorkItemLinkCategoryList, error) {
 	var rows []WorkItemLinkCategory
 	db := r.db.Find(&rows)
 	if db.Error != nil {
 		return nil, db.Error
 	}
-	res := app.WorkItemLinkCategoryArray{}
+	res := app.WorkItemLinkCategoryList{}
 	res.Data = make([]*app.WorkItemLinkCategoryData, len(rows))
 	for index, value := range rows {
 		cat := ConvertLinkCategoryFromModel(value)
@@ -105,7 +105,7 @@ func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.Wor
 	}
 	// TODO: When adding pagination, this must not be len(rows) but
 	// the overall total number of elements from all pages.
-	res.Meta = &app.WorkItemLinkCategoryArrayMeta{
+	res.Meta = &app.WorkItemLinkCategoryListMeta{
 		TotalCount: len(rows),
 	}
 	return &res, nil
@@ -139,7 +139,7 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 
 // Save updates the given work item link category in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat app.WorkItemLinkCategory) (*app.WorkItemLinkCategory, error) {
+func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat app.WorkItemLinkCategorySingle) (*app.WorkItemLinkCategorySingle, error) {
 	res := WorkItemLinkCategory{}
 	if linkCat.Data.ID == nil {
 		return nil, errors.NewBadParameterError("data.id", linkCat.Data.ID)
