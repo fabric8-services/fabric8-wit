@@ -26,7 +26,8 @@ const (
 type WorkItemLinkRepository interface {
 	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
 	Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error)
-	List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkList, error)
+	List(ctx context.Context) (*app.WorkItemLinkList, error)
+	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error)
 }
@@ -136,31 +137,13 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 	return &result, nil
 }
 
-// List returns all work item links if wiID is nil; otherwise the work item links are returned
-// that have wiID as source or target.
-// TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) (*app.WorkItemLinkList, error) {
-	var rows []WorkItemLink
-	db := r.db
-	if wiIDStr == nil {
-		// When no work item ID is given, return all links
-		db = db.Find(&rows)
-		if db.Error != nil {
-			return nil, db.Error
-		}
-	} else {
-		// When work item ID is given, filter by it
-		wi, err := workitem.CheckWorkItemExists(r.db, *wiIDStr)
-		if err != nil {
-			return nil, err
-		}
-		// Now fetch all links for that work item
-		db = r.db.Model(&WorkItemLink{}).Where("? IN (source_id, target_id)", wi.ID).Find(&rows)
-		if db.Error != nil {
-			return nil, db.Error
-		}
-	}
+type fetchLinksFunc func() ([]WorkItemLink, error)
 
+func (r *GormWorkItemLinkRepository) list(ctx context.Context, fetchFunc fetchLinksFunc) (*app.WorkItemLinkList, error) {
+	rows, err := fetchFunc()
+	if err != nil {
+		return nil, err
+	}
 	res := app.WorkItemLinkList{}
 	res.Data = make([]*app.WorkItemLinkData, len(rows))
 	for index, value := range rows {
@@ -173,6 +156,40 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context, wiIDStr *string) 
 		TotalCount: len(rows),
 	}
 	return &res, nil
+}
+
+// ListByWorkItemID returns the work item links that have wiID as source or target.
+// TODO: Handle pagination
+func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error) {
+	fetchFunc := func() ([]WorkItemLink, error) {
+		var rows []WorkItemLink
+		wi, err := r.workItemRepo.LoadFromDB(wiIDStr)
+		if err != nil {
+			return nil, err
+		}
+		// Now fetch all links for that work item
+		db := r.db.Model(&WorkItemLink{}).Where("? IN (source_id, target_id)", wi.ID).Find(&rows)
+		if db.Error != nil {
+			return nil, db.Error
+		}
+		return rows, nil
+	}
+	return r.list(ctx, fetchFunc)
+}
+
+// List returns all work item links if wiID is nil; otherwise the work item links are returned
+// that have wiID as source or target.
+// TODO: Handle pagination
+func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLinkList, error) {
+	fetchFunc := func() ([]WorkItemLink, error) {
+		var rows []WorkItemLink
+		db := r.db.Find(&rows)
+		if db.Error != nil {
+			return nil, db.Error
+		}
+		return rows, nil
+	}
+	return r.list(ctx, fetchFunc)
 }
 
 // Delete deletes the work item link with the given id

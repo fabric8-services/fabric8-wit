@@ -279,27 +279,3 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 
 	return res, count, nil
 }
-
-// CheckWorkItemExists returns nil if no work item ID string is given or if work
-// item ID string could be converted into a number and looked up in the
-// database; otherwise it returns an error.
-func CheckWorkItemExists(db *gorm.DB, wiIDStr string) (*WorkItem, error) {
-	if db == nil {
-		return nil, errors.NewInternalError("db must not be nil")
-	}
-	// When work item ID is given, filter by it
-	wiID, err := ParseWorkItemIDToUint64(wiIDStr)
-	if err != nil {
-		return nil, err
-	}
-	// Check that work item exists or return NotFoundError
-	wi := WorkItem{}
-	db = db.Model(&WorkItem{}).Where("id=?", wiID).Find(&wi)
-	if db.RecordNotFound() {
-		return nil, errors.NewNotFoundError("work item", wiIDStr)
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &wi, nil
-}

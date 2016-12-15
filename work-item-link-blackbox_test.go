@@ -686,9 +686,9 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
 	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
 }
 
-func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksBadRequest() {
+func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInvalidID() {
 	filterByWorkItemID := "invalid uint64"
-	_, _ = test.ListWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
 }
 
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
