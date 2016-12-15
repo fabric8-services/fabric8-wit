@@ -111,6 +111,9 @@ func getMigrations() migrations {
 
 	// Version 11
 	m = append(m, steps{executeSQLFile("011-projects.sql")})
+
+	// Version 12
+	m = append(m, steps{executeSQLFile("012-unique-work-item-links.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

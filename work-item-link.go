@@ -246,6 +246,9 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 		case errors.NotFoundError:
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 			return funcs.BadRequest(jerrors)
+		case errors.BadParameterError:
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+			return funcs.BadRequest(jerrors)
 		default:
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -262,9 +265,7 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 
 // Create runs the create action.
 func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		return createWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
-	})
+	return createWorkItemLink(newWorkItemLinkContext(ctx.Context, c.db, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
 }
 
 type deleteWorkItemLinkFuncs interface {
