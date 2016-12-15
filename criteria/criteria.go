@@ -2,6 +2,8 @@
 // This package serves to decouple the concrete query language from the execution of the queries against the database
 package criteria
 
+import "fmt"
+
 // Expression is used to express conditions for selecting an entity
 type Expression interface {
 	// Accept calls the visitor callback of the appropriate type
@@ -95,6 +97,7 @@ func Field(id string) Expression {
 // A ParameterExpression represents a parameter to be passed upon evaluation of the expression
 type ParameterExpression struct {
 	expression
+	FieldKey string
 }
 
 // Accept implements ExpressionVisitor
@@ -103,8 +106,8 @@ func (t *ParameterExpression) Accept(visitor ExpressionVisitor) interface{} {
 }
 
 // Parameter constructs a value expression.
-func Parameter() Expression {
-	return &ParameterExpression{}
+func Parameter(key string) Expression {
+	return &ParameterExpression{expression{}, key}
 }
 
 // literal value
@@ -198,5 +201,7 @@ func (t *EqualsExpression) Accept(visitor ExpressionVisitor) interface{} {
 
 // Equals constructs an EqualsExpression
 func Equals(left Expression, right Expression) Expression {
+	fmt.Println("=====left exp=======", left)
+	fmt.Println("=====Right exp=======", right)
 	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
 }

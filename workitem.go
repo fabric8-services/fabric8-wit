@@ -10,6 +10,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
@@ -81,7 +82,7 @@ func buildAbsoluteURL(req *goa.RequestData) string {
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
 }
 
-func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int) {
+func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int, assignee *string) {
 
 	// prev link
 	if offset > 0 && count > 0 {
@@ -107,8 +108,13 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	nextStart := offset + resultLen
 	if nextStart < count {
 		// we have a next link
-		next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, nextStart, limit)
-		links.Next = &next
+		if assignee != nil {
+			next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d&filter[assignee]=%v", path, nextStart, limit, *assignee)
+			links.Next = &next
+		} else {
+			next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, nextStart, limit)
+			links.Next = &next
+		}
 	}
 
 	// first link
@@ -146,8 +152,14 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 // Last will always be present. Total Item count needs to be computed from the "Last" link.
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	// Workitem2Controller_List: start_implement
-
+	assignee := ctx.FilterAssignee
 	exp, err := query.Parse(ctx.Filter)
+	if ctx.FilterAssignee != nil {
+		// val := criteria.Parameter("system.assignees", *assignee)
+		// fmt.Printf("=============val=============== %#v", val)
+		exp = criteria.And(exp, criteria.Equals(criteria.Parameter("system.assignees"), criteria.Literal(*assignee)))
+	}
+	fmt.Println("==============expr assignee============", exp)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
 		return ctx.BadRequest(jerrors)
@@ -202,7 +214,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, assignee)
 
 		return ctx.OK(&response)
 	})

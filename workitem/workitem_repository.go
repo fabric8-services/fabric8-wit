@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -186,14 +187,13 @@ func convertWorkItemModelToApp(wiType *WorkItemType, wi *WorkItem) (*app.WorkIte
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
-	where, parameters, compileError := Compile(criteria)
+func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria1 criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
+	where, parameters, compileError := Compile(criteria1)
 	if compileError != nil {
-		return nil, 0, errors.NewBadParameterError("expression", criteria)
+		return nil, 0, errors.NewBadParameterError("expression", criteria1)
 	}
 
 	log.Printf("executing query: '%s' with params %v", where, parameters)
-
 	db := r.db.Model(&WorkItem{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
@@ -209,7 +209,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *")
-
+	fmt.Printf("============db============= %#v", db)
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, 0, err
@@ -266,7 +266,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	if err != nil {
 		return nil, 0, err
 	}
-
+	fmt.Printf("================result============== %#v", result)
 	res := make([]*app.WorkItem, len(result))
 
 	for index, value := range result {

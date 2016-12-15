@@ -19,6 +19,7 @@ func Compile(where criteria.Expression) (whereClause string, parameters []interf
 
 	compiler := newExpressionCompiler()
 	compiled := where.Accept(&compiler)
+	fmt.Printf("================para============ %#v", compiler.parameters)
 
 	return compiled.(string), compiler.parameters, compiler.err
 }
@@ -95,9 +96,22 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 	return c.binary(e, "=")
 }
 
+func (c *expressionCompiler) JSONEquals(e *criteria.EqualsExpression) interface{} {
+	return c.binary(e, ":")
+}
+
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {
-	c.err = append(c.err, fmt.Errorf("Parameter expression not supported"))
-	return nil
+	if !isJSONField(v.FieldKey) {
+		return v.FieldKey
+	}
+	if strings.Contains(v.FieldKey, "'") {
+		// beware of injection, it's a reasonable restriction for field names, make sure it's not allowed when creating wi types
+		c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
+		return nil
+	}
+	// return "Fields->'" + v.FieldKey + "'"
+	return "Fields@>'{" + v.FieldKey
+	// select * from work_items where fields @> '{"system.assignees": ["0bdfebf3-d2d5-4e9b-8b2c-f2c0e0f15462"]}'::jsonb;
 }
 
 // iterate the parent chain to see if this expression references json fields
@@ -118,6 +132,7 @@ func isInJSONContext(exp criteria.Expression) bool {
 // you can write "a->'foo' < '5'" and it will return true for the json object { "a": 40 }.
 func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} {
 	json := isInJSONContext(v)
+	fmt.Printf("======value type===== %T", v)
 	if json {
 		stringVal, err := c.convertToString(v.Value)
 		if err == nil {
@@ -151,5 +166,5 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 	default:
 		return "", fmt.Errorf("unknown value type of %v: %T", value, value)
 	}
-	return result, nil
+	return "[" + result + "]}'", nil
 }
