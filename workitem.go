@@ -155,7 +155,9 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	assignee := ctx.FilterAssignee
 	exp, err := query.Parse(ctx.Filter)
 	if ctx.FilterAssignee != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal(*assignee)))
+		// val := criteria.Parameter("system.assignees", *assignee)
+		// fmt.Printf("=============val=============== %#v", val)
+		exp = criteria.And(exp, criteria.Equals(criteria.Parameter("system.assignees"), criteria.Literal(*assignee)))
 	}
 	fmt.Println("==============expr assignee============", exp)
 	if err != nil {
