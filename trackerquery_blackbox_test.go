@@ -11,17 +11,17 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/resource"
+	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -147,7 +147,7 @@ func TestUnauthorizeTrackerQueryCUD(t *testing.T) {
 func TestCreateTrackerQueryREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -161,7 +161,7 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	}
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, controller, &payload)
 
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM((configuration.GetTokenPublicKey()))
+	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(almtoken.RSAPublicKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
