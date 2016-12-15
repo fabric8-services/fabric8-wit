@@ -292,7 +292,14 @@ type listWorkItemLinkFuncs interface {
 }
 
 func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiIDStr *string) error {
-	linkArr, err := ctx.Application.WorkItemLinks().List(ctx.Context, wiIDStr)
+	var linkArr *app.WorkItemLinkList
+	var err error
+	if wiIDStr != nil {
+		linkArr, err = ctx.Application.WorkItemLinks().ListByWorkItemID(ctx.Context, *wiIDStr)
+	} else {
+		linkArr, err = ctx.Application.WorkItemLinks().List(ctx.Context)
+	}
+
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
