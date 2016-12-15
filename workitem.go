@@ -82,7 +82,7 @@ func buildAbsoluteURL(req *goa.RequestData) string {
 	return fmt.Sprintf("%s://%s%s", scheme, req.Host, req.URL.Path)
 }
 
-func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int) {
+func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int, assignee *string) {
 
 	// prev link
 	if offset > 0 && count > 0 {
@@ -108,8 +108,13 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	nextStart := offset + resultLen
 	if nextStart < count {
 		// we have a next link
-		next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, nextStart, limit)
-		links.Next = &next
+		if assignee != nil {
+			next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d&filter[assignee]=%v", path, nextStart, limit, *assignee)
+			links.Next = &next
+		} else {
+			next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, nextStart, limit)
+			links.Next = &next
+		}
 	}
 
 	// first link
@@ -207,7 +212,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, assignee)
 
 		return ctx.OK(&response)
 	})
