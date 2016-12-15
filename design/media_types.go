@@ -161,19 +161,6 @@ var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
 	})
 })
 
-// User represents a user object (TODO: add better description)
-var User = a.MediaType("application/vnd.user+json", func() {
-	a.TypeName("User")
-	a.Description("ALM User")
-	a.Attribute("fullName", d.String, "The users full name")
-	a.Attribute("imageURL", d.String, "The avatar image for the user")
-
-	a.View("default", func() {
-		a.Attribute("fullName")
-		a.Attribute("imageURL")
-	})
-})
-
 // identity represents an identified user object
 var identity = a.MediaType("application/vnd.identity+json", func() {
 	a.UseTrait("jsonapi-media-type")

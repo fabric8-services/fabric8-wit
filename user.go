@@ -36,9 +36,5 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 		return ctx.Unauthorized(jerrors)
 	}
 
-	res := app.User{
-		FullName: &ident.FullName,
-		ImageURL: &ident.ImageURL,
-	}
-	return ctx.OK(&res)
+	return ctx.OK(ident.ConvertIdentityFromModel())
 }

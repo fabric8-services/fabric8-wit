@@ -65,7 +65,7 @@ var _ = a.Resource("user", func() {
 		)
 		a.Description("Get the authenticated user")
 		a.Response(d.OK, func() {
-			a.Media(User)
+			a.Media(identity)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
