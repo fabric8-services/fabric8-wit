@@ -224,7 +224,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.NotFound(jerrors)
 		}
-		err = c.ConvertJSONAPIToWorkItem(*ctx.Payload.Data, wi)
+		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.BadRequest(jerrors)
@@ -283,9 +283,9 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
-	c.ConvertJSONAPIToWorkItem(*ctx.Payload.Data, &wi)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
+		ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
@@ -376,7 +376,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func (c *WorkitemController) ConvertJSONAPIToWorkItem(source app.WorkItem2, target *app.WorkItem) error {
+func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2, target *app.WorkItem) error {
 	// construct default values from input WI
 
 	var version = -1
@@ -399,7 +399,7 @@ func (c *WorkitemController) ConvertJSONAPIToWorkItem(source app.WorkItem2, targ
 				if err != nil {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
-				ok := c.db.Identities().ValidIdentity(context.Background(), assigneeUUID)
+				ok := appl.Identities().ValidIdentity(context.Background(), assigneeUUID)
 				if !ok {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
@@ -457,33 +457,22 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			Self: &selfURL,
 		},
 	}
-	userType := APIStringTypeUser
+
 	// Move fields into Relationships or Attributes as needed
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
 				valArr := val.([]interface{})
-				data := []*app.GenericData{}
-				for _, valInf := range valArr {
-					valStr := valInf.(string)
-					data = append(data, &app.GenericData{
-						ID:   &valStr,
-						Type: &userType,
-					})
-				}
 				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: data,
+					Data: ConvertUsersSimple(request, valArr),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
 				valStr := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: &app.GenericData{
-						ID:   &valStr,
-						Type: &userType,
-					},
+					Data: ConvertUserSimple(request, valStr),
 				}
 			}
 		default:

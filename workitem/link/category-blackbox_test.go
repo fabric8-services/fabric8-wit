@@ -80,7 +80,7 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 	}
 
 	id := m.ID.String()
-	expected := app.WorkItemLinkCategory{
+	expected := app.WorkItemLinkCategorySingle{
 		Data: &app.WorkItemLinkCategoryData{
 			Type: link.EndpointWorkItemLinkCategories,
 			ID:   &id,

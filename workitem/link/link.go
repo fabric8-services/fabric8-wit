@@ -63,9 +63,9 @@ func (t *WorkItemLink) CheckValidForCreation() error {
 }
 
 // ConvertLinkFromModel converts a work item from model to REST representation
-func ConvertLinkFromModel(t WorkItemLink) app.WorkItemLink {
+func ConvertLinkFromModel(t WorkItemLink) app.WorkItemLinkSingle {
 	id := t.ID.String()
-	var converted = app.WorkItemLink{
+	var converted = app.WorkItemLinkSingle{
 		Data: &app.WorkItemLinkData{
 			Type: EndpointWorkItemLinks,
 			ID:   &id,
@@ -101,7 +101,7 @@ func ConvertLinkFromModel(t WorkItemLink) app.WorkItemLink {
 // Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
 // NOTE: Only the LinkTypeID, SourceID, and TargetID fields will be set.
 //       You need to preload the elements after calling this function.
-func ConvertLinkToModel(in app.WorkItemLink, out *WorkItemLink) error {
+func ConvertLinkToModel(in app.WorkItemLinkSingle, out *WorkItemLink) error {
 	attrs := in.Data.Attributes
 	rel := in.Data.Relationships
 	var err error

@@ -141,5 +141,6 @@ var identityData = a.Type("IdentityData", func() {
 	a.Attribute("id", d.String, "unique id for the user identity")
 	a.Attribute("type", d.String, "type of the user identity")
 	a.Attribute("attributes", identityDataAttributes, "Attributes of the user identity")
+	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })

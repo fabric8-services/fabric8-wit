@@ -519,6 +519,9 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	actual := link.WorkItemLink{}
 	require.Nil(s.T(), link.ConvertLinkToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
+
+	require.NotNil(s.T(), readIn.Data.Links, "The link MUST include a self link")
+	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link MUST include a self link that's not empty")
 }
 
 // Same for /api/workitems/:id/relationships/links
@@ -558,7 +561,7 @@ func (s *workItemLinkSuite) TestShowWorkItemRelationshipsLinksNotFound() {
 	test.ShowWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), "88727441-4a21-4b35-aabe-007f8273cd19")
 }
 
-func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLink, *app.WorkItemLink) {
+func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.WorkItemLinkSingle) {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
@@ -580,7 +583,7 @@ func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLink, *app.WorkItemL
 
 // validateSomeLinks validates that workItemLink1 and workItemLink2 are in the
 // linkCollection and that all resources are included
-func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkArray, workItemLink1, workItemLink2 *app.WorkItemLink) {
+func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkList, workItemLink1, workItemLink2 *app.WorkItemLinkSingle) {
 	require.NotNil(s.T(), linkCollection)
 	require.Nil(s.T(), linkCollection.Validate())
 	// Check the number of found work item links
@@ -623,7 +626,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkAr
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item links (%s and %s) where found.", *workItemLink1.Data.ID, *workItemLink2.Data.ID)
 
-	toBeFound = 2
+	toBeFound = 5 // 1 x link category, 1 x link type, 3 x work items
 	for i := 0; i < len(linkCollection.Included) && toBeFound > 0; i++ {
 		switch v := linkCollection.Included[i].(type) {
 		case *app.WorkItemLinkCategoryData:
@@ -636,9 +639,13 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkAr
 				s.T().Log("Found work item link type in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
-		// TODO(kwk): Check for source WIs (once #559 is merged)
-		// TODO(kwk): Check for target WI (once #559 is merged)
-		// case *app.WorkItemData:
+		case *app.WorkItem2:
+			wid, err := strconv.ParseUint(*v.ID, 10, 64)
+			require.Nil(s.T(), err)
+			if wid == s.bug1ID || wid == s.bug2ID || wid == s.bug3ID {
+				s.T().Log("Found work item in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
 		// TODO(kwk): Check for WITs (once #559 is merged)
 		// case *app.WorkItemTypeData:
 		default:
