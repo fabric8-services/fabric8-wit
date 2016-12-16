@@ -2,6 +2,7 @@ package remoteworkitem
 
 import (
 	"log"
+	"time"
 
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
@@ -11,11 +12,13 @@ import (
 
 // TrackerSchedule capture all configuration
 type trackerSchedule struct {
-	TrackerID   int
-	URL         string
-	TrackerType string
-	Query       string
-	Schedule    string
+	TrackerID      int
+	URL            string
+	TrackerType    string
+	TrackerQueryID int
+	Query          string
+	Schedule       string
+	LastUpdated    string
 }
 
 // Scheduler represents scheduler
@@ -48,6 +51,7 @@ func (s *Scheduler) ScheduleAllQueries() {
 
 	trackerQueries := fetchTrackerQueries(s.db)
 	for _, tq := range trackerQueries {
+		var lu *time.Time
 		cr.AddFunc(tq.Schedule, func() {
 			tr := lookupProvider(tq)
 			for i := range tr.Fetch() {
@@ -61,15 +65,33 @@ func (s *Scheduler) ScheduleAllQueries() {
 					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
 					return err
 				})
+				lu = i.LastUpdated
+			}
+			if lu != nil {
+				err := s.updateTrackerQueryWithLastUpdated(tq.TrackerQueryID, lu)
+				if err != nil {
+					log.Println("Couldn't update the last updated value", err)
+				}
 			}
 		})
 	}
 	cr.Start()
 }
 
+func (s *Scheduler) updateTrackerQueryWithLastUpdated(tqID int, lu *time.Time) error {
+	models.Transactional(s.db, func(tx *gorm.DB) error {
+		err := updateTrackerQuery(tx, tqID, lu)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return nil
+}
+
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
-	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
+	err := db.Debug().Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.id as tracker_query_id, tracker_queries.query, tracker_queries.schedule, tracker_queries.last_updated").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
 		log.Printf("Fetch failed %v\n", err)
 	}
@@ -80,7 +102,13 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 func lookupProvider(ts trackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
 	case ProviderGithub:
-		return &GithubTracker{URL: ts.URL, Query: ts.Query}
+		var q string
+		if ts.LastUpdated != "" {
+			q = ts.Query + " updated:>=" + ts.LastUpdated
+		} else {
+			q = ts.Query
+		}
+		return &GithubTracker{URL: ts.URL, Query: q}
 	case ProviderJira:
 		return &JiraTracker{URL: ts.URL, Query: ts.Query}
 	}
@@ -89,8 +117,9 @@ func lookupProvider(ts trackerSchedule) TrackerProvider {
 
 // TrackerItemContent represents a remote tracker item with it's content and unique ID
 type TrackerItemContent struct {
-	ID      string
-	Content []byte
+	ID          string
+	Content     []byte
+	LastUpdated *time.Time
 }
 
 // TrackerProvider represents a remote tracker

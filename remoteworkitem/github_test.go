@@ -72,7 +72,7 @@ func TestGithubFetchWithRecording(t *testing.T) {
 	defer r.Stop()
 
 	h := &http.Client{
-		Timeout:   1000 * time.Second,
+		Timeout:   1 * time.Second,
 		Transport: r.Transport,
 	}
 
