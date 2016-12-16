@@ -16,6 +16,7 @@ const (
 	KindInstant           Kind = "instant"
 	KindDuration          Kind = "duration"
 	KindURL               Kind = "url"
+	KindIteration         Kind = "iteration"
 	KindWorkitemReference Kind = "workitem"
 	KindUser              Kind = "user"
 	KindEnum              Kind = "enum"

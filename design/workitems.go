@@ -27,6 +27,7 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("creator", relationGeneric, "This defines creator of the Work Item")
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
+	a.Attribute("iteration", relationGeneric, "This defines the iteration this work item belong to")
 })
 
 // relationBaseType is top level block for WorkItemType relationship

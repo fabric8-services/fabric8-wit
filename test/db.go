@@ -4,6 +4,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
@@ -53,6 +54,10 @@ func (db *MockDB) WorkItemLinks() link.WorkItemLinkRepository {
 	return nil
 }
 func (db *MockDB) Comments() comment.Repository {
+	return nil
+}
+
+func (db *MockDB) Iterations() iteration.Repository {
 	return nil
 }
 

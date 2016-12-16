@@ -21,6 +21,7 @@ const (
 	SystemAssignees    = "system.assignees"
 	SystemCreator      = "system.creator"
 	SystemCreatedAt    = "system.created_at"
+	SystemIteration    = "system.iteration"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem = "system.planneritem"

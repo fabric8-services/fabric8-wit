@@ -8,12 +8,13 @@ import (
 )
 
 var (
-	stString   = SimpleType{Kind: KindString}
-	stInt      = SimpleType{Kind: KindInteger}
-	stFloat    = SimpleType{Kind: KindFloat}
-	stDuration = SimpleType{Kind: KindDuration}
-	stURL      = SimpleType{Kind: KindURL}
-	stList     = SimpleType{Kind: KindList}
+	stString    = SimpleType{Kind: KindString}
+	stIteration = SimpleType{Kind: KindIteration}
+	stInt       = SimpleType{Kind: KindInteger}
+	stFloat     = SimpleType{Kind: KindFloat}
+	stDuration  = SimpleType{Kind: KindDuration}
+	stURL       = SimpleType{Kind: KindURL}
+	stList      = SimpleType{Kind: KindList}
 )
 
 type input struct {
@@ -32,6 +33,12 @@ func TestSimpleTypeConversion(t *testing.T) {
 		{stString, "", "", false},
 		{stString, 100, nil, true},
 		{stString, 1.90, nil, true},
+
+		{stIteration, "3434", "3434", false},
+		{stIteration, "", "", false},
+		{stIteration, 1, nil, true},
+		{stIteration, 1.9, nil, true},
+		{stIteration, true, nil, true},
 
 		{stInt, 100.0, nil, true},
 		{stInt, 100, 100, false},

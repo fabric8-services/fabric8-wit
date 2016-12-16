@@ -238,6 +238,13 @@ func main() {
 	usersCtrl := NewUsersController(service, appDB)
 	app.MountUsersController(service, usersCtrl)
 
+	// Mount "iterations" controller
+	iterationCtrl := NewIterationController(service, appDB)
+	app.MountIterationController(service, iterationCtrl)
+
+	projectIterationCtrl := NewProjectIterationsController(service, appDB)
+	app.MountProjectIterationsController(service, projectIterationCtrl)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("UTC Start Time: ", StartTime)

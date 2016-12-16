@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/search"
@@ -110,6 +111,11 @@ func (g *GormBase) WorkItemLinks() link.WorkItemLinkRepository {
 // Comments returns a work item comments repository
 func (g *GormBase) Comments() comment.Repository {
 	return comment.NewCommentRepository(g.db)
+}
+
+// Iterations returns a iteration repository
+func (g *GormBase) Iterations() iteration.Repository {
+	return iteration.NewIterationRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {

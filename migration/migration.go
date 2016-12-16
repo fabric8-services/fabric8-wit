@@ -114,6 +114,10 @@ func getMigrations() migrations {
 
 	// Version 12
 	m = append(m, steps{executeSQLFile("012-unique-work-item-links.sql")})
+
+	// version 13
+	m = append(m, steps{executeSQLFile("013-iterations.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -330,6 +334,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
 		workitem.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		workitem.SystemCreatedAt:    app.FieldDefinition{Type: &app.FieldType{Kind: "instant"}, Required: false},
+		workitem.SystemIteration:    app.FieldDefinition{Type: &app.FieldType{Kind: "iteration"}, Required: false},
 		workitem.SystemAssignees: app.FieldDefinition{
 			Type: &app.FieldType{
 				ComponentType: &stUser,
