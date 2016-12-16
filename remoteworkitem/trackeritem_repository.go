@@ -2,6 +2,8 @@ package remoteworkitem
 
 import (
 	"fmt"
+	"log"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -26,6 +28,21 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 	}
 	ti.Item = content
 	return db.Save(&ti).Error
+}
+
+func updateTrackerQuery(db *gorm.DB, tqID int, lu *time.Time) error {
+	tq := TrackerQuery{}
+	tx := db.First(&tq, tqID)
+	if tx.RecordNotFound() {
+		log.Printf("not found, res=%v", tq)
+		return NotFoundError{entity: "tracker_query", ID: string(tq.ID)}
+	}
+	tq.LastUpdated = lu
+	if err := tx.Save(&tq).Error; err != nil {
+		log.Print(err.Error())
+		return InternalError{simpleError{err.Error()}}
+	}
+	return nil
 }
 
 // Map a remote work item into an ALM work item and persist it into the database.

@@ -3,6 +3,7 @@ package remoteworkitem
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/google/go-github/github"
@@ -60,8 +61,10 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 			issues := result.Issues
 			for _, l := range issues {
 				id, _ := json.Marshal(l.URL)
+				lu, _ := json.Marshal(l.UpdatedAt)
+				lut, _ := time.Parse("2016-12-16 12:38:17.541405 +0530 IST", string(lu))
 				content, _ := json.Marshal(l)
-				item <- TrackerItemContent{ID: string(id), Content: content}
+				item <- TrackerItemContent{ID: string(id), Content: content, LastUpdated: &lut}
 			}
 			if response.NextPage == 0 {
 				break
