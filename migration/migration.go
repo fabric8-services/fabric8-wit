@@ -118,6 +118,9 @@ func getMigrations() migrations {
 	// version 13
 	m = append(m, steps{executeSQLFile("013-iterations.sql")})
 
+	// version 14
+	m = append(m, steps{executeSQLFile("014-prevent-invalid-work-item-links.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
