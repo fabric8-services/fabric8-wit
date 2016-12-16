@@ -45,7 +45,7 @@ select is_type_or_subtype_of_test(TRUE, '/foo', 'foo', '/foo');
 select is_type_or_subtype_of_test(TRUE, '/foo/', 'foo', '/foo');
 select is_type_or_subtype_of_test(TRUE, 'foo/', 'foo', '/foo');
 -- We no longer need the test function
-DROP FUNCTION is_type_or_subtype_of_test;
+DROP FUNCTION is_type_or_subtype_of_test(expected BOOLEAN, typeName TEXT, witName TEXT, witPath TEXT)
 
 
 
@@ -59,7 +59,7 @@ DECLARE link work_item_links%rowtype;
 DECLARE wit work_item_types%rowtype;
 BEGIN
         RAISE NOTICE 'Detected work item type change on work item.';
-        RAISE NOTICE 'Checking all work item links associated with work item % for potential type violations', NEW.id;
+        RAISE NOTICE 'Checking all links associated with work item % for potential type violations.', NEW.id;
         -- Iterate over every link that is associated with this work item
         FOR link IN SELECT * FROM work_item_links
         WHERE NEW.id IN (source_id, target_id)
@@ -87,8 +87,7 @@ BEGIN
                 -- Check that the new type of the work item is actually a subtype
                 -- of the link's target or source WIT.
                 IF is_type_or_subtype_of(NEW.type, wit.name, wit.path) = FALSE THEN
-                        RAISE EXCEPTION 'New WI type renders work item link % invalid because the new type is not a subtype of %', link.id, wit.path
-                        USING HINT = 'Attention when changing type of work item';
+                        RAISE EXCEPTION 'New WI type renders work item link % invalid because the new type is not a subtype of %', link.id, wit.path USING HINT = 'Attention when changing type of work item';
                 END IF;
         END LOOP;
         RAISE NOTICE 'All work item links for work item % checked.', NEW.id;
