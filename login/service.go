@@ -101,21 +101,23 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			return ctx.TemporaryRedirect()
 		}
 		var identity account.Identity
+		ghUser, err := gh.getUser(ctx, ghtoken)
+		if err != nil {
+			fmt.Println(err)
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+			return ctx.Unauthorized(jerrors)
+		}
+		fmt.Println(ghUser)
 		if len(users) == 0 {
 			// No User found, create new User and Identity
-			ghUser, err := gh.getUser(ctx, ghtoken)
-			if err != nil {
-				fmt.Println(err)
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-				return ctx.Unauthorized(jerrors)
-			}
-			fmt.Println(ghUser)
-
 			identity = createIdentity(*ghUser)
 			gh.identities.Create(ctx, &identity)
 			gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: identity})
 		} else {
 			identity = users[0].Identity
+			// let's update the current identity with the fullname and avatar from GitHub,
+			// in case the user changed them since the last time he logged in here
+			gh.identities.Save(ctx, &identity)
 		}
 
 		fmt.Println("Identity: ", identity)
