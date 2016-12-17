@@ -363,6 +363,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		workitem.SystemCreatedAt:    app.FieldDefinition{Type: &app.FieldType{Kind: "instant"}, Required: false},
 		workitem.SystemIteration:    app.FieldDefinition{Type: &app.FieldType{Kind: "iteration"}, Required: false},
+		workitem.Order:              app.FieldDefinition{Type: &app.FieldType{Kind: "integer"}, Required: false},
 		workitem.SystemAssignees: app.FieldDefinition{
 			Type: &app.FieldType{
 				ComponentType: &stUser,

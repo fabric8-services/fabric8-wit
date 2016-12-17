@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 
@@ -62,6 +63,21 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	return convertWorkItemModelToApp(wiType, res)
 }
 
+// LoadHighestOrder returns the highest order
+func (r *GormWorkItemRepository) LoadHighestOrder() (int, error) {
+	res := WorkItem{}
+	tx := r.db.Order("fields->'order' desc").Last(&res)
+	if tx.RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return 0, nil
+	}
+	if tx.Error != nil {
+		return 0, errors.NewInternalError(tx.Error.Error())
+	}
+	order, _ := strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+	return order, nil
+}
+
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
@@ -114,6 +130,26 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
+	// Order
+	previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
+	prev, _ := r.LoadFromDB(previtem)
+	prevorder, _ := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+
+	nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
+	next, _ := r.LoadFromDB(nextitem)
+	nextorder, _ := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+
+	order := (prevorder + nextorder) / 2
+
+	//order, _ := strconv.Atoi(fmt.Sprintf("%v", wi.Fields[Order]))
+	wi.Fields[Order] = order
+
+	newWi := WorkItem{
+		ID:      id,
+		Type:    wi.Type,
+		Version: wi.Version + 1,
+		Fields:  Fields{},
+	}
 
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
@@ -150,6 +186,10 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		Type:   typeID,
 		Fields: Fields{},
 	}
+	// Order
+	position, _ := r.LoadHighestOrder()
+	fields[Order] = position + 1000
+
 	fields[SystemCreator] = creator
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
