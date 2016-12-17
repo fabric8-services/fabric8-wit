@@ -131,17 +131,20 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	res.Type = wi.Type
 	res.Fields = Fields{}
 	// Order
-	previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
-	prev, _ := r.LoadFromDB(previtem)
-	prevorder, _ := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+	var order int
+	if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] == nil {
+		order, _ = strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+	} else {
+		previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
+		prev, _ := r.LoadFromDB(previtem)
+		prevorder, _ := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
 
-	nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
-	next, _ := r.LoadFromDB(nextitem)
-	nextorder, _ := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
+		next, _ := r.LoadFromDB(nextitem)
+		nextorder, _ := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
 
-	order := (prevorder + nextorder) / 2
-
-	//order, _ := strconv.Atoi(fmt.Sprintf("%v", wi.Fields[Order]))
+		order = (prevorder + nextorder) / 2
+	}
 	wi.Fields[Order] = order
 
 	newWi := WorkItem{
