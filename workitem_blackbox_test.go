@@ -73,18 +73,10 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	updatedDescription := "= Updated Test WI description"
 	wi.Data.Attributes[workitem.SystemDescription] = updatedDescription
 
-	/* Order
-	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-	r2, _ := strconv.Atoi(fmt.Sprintf("%v", *result2.Data.ID))
-	r3, _ := strconv.Atoi(fmt.Sprintf("%v", *result3.Data.ID))*/
-
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
 
-	//payload2.Data.Attributes["previousitem"] = r2
-	//payload2.Data.Attributes["nextitem"] = r3
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
 
@@ -94,7 +86,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	//expectedDescription := workitem.MarkupContent{Content: "= Updated Test WI description", Markup: workitem.SystemMarkupDefault}
 	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 
-	// Testing order
+	// Testing order of workitems
 	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	r2, _ := strconv.Atoi(fmt.Sprintf("%v", *result2.Data.ID))

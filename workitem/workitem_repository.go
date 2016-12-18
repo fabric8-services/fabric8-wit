@@ -71,9 +71,6 @@ func (r *GormWorkItemRepository) LoadHighestOrder() (int, error) {
 		log.Printf("not found, res=%v", res)
 		return 0, nil
 	}
-	if tx.Error != nil {
-		return 0, errors.NewInternalError(tx.Error.Error())
-	}
 	order, _ := strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
 	return order, nil
 }
@@ -135,7 +132,10 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] == nil {
 
 		// order is not changed
-		order, _ = strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+		order, err = strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+		if err != nil {
+			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[Order])
+		}
 	} else if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] != nil {
 
 		// move to top
@@ -146,7 +146,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		}
 		nextorder, err := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
 		if err != nil {
-			log.Println(err)
+			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[Order])
 		}
 
 		order = (0 + nextorder) / 2
@@ -161,9 +161,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		}
 		prevorder, err := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
 		if err != nil {
-			log.Println(err)
+			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[Order])
 		}
-
 		order = prevorder + 1000
 
 	} else {
@@ -174,7 +173,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		}
 		prevorder, err := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
 		if err != nil {
-			log.Println(err)
+			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[Order])
 		}
 
 		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
@@ -184,7 +183,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		}
 		nextorder, err := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
 		if err != nil {
-			log.Println(err)
+			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[Order])
 		}
 
 		order = (prevorder + nextorder) / 2
