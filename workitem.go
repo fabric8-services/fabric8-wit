@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
@@ -42,12 +43,17 @@ func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemCon
 // Prev and Next links will be present only when there actually IS a next or previous page.
 // Last will always be present. Total Item count needs to be computed from the "Last" link.
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
-	// Workitem2Controller_List: start_implement
+	var additionalQuery []string
 
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
 		return ctx.BadRequest(jerrors)
+	}
+	if ctx.FilterAssignee != nil {
+		assignee := ctx.FilterAssignee
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
+		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
 	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
@@ -72,12 +78,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
 
 		return ctx.OK(&response)
 	})
 
-	// Workitem2Controller_List: end_implement
 }
 
 // Update does PATCH workitem

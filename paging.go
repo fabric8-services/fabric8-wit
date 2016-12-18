@@ -45,7 +45,14 @@ func computePagingLimts(offsetParam *string, limitParam *int) (offset int, limit
 	return offset, limit
 }
 
-func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int) {
+func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int, additionalQuery ...string) {
+
+	format := func(additional []string) string {
+		if len(additional) > 0 {
+			return "&" + strings.Join(additional, "&")
+		}
+		return ""
+	}
 
 	// prev link
 	if offset > 0 && count > 0 {
@@ -63,7 +70,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 			realLimit = limit + prevStart
 			prevStart = 0
 		}
-		prev := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, prevStart, realLimit)
+		prev := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d%s", path, prevStart, realLimit, format(additionalQuery))
 		links.Prev = &prev
 	}
 
@@ -71,7 +78,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 	nextStart := offset + resultLen
 	if nextStart < count {
 		// we have a next link
-		next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, nextStart, limit)
+		next := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d%s", path, nextStart, limit, format(additionalQuery))
 		links.Next = &next
 	}
 
@@ -83,7 +90,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 		// offset == 0, first == current
 		firstEnd = limit
 	}
-	first := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, 0, firstEnd)
+	first := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d%s", path, 0, firstEnd, format(additionalQuery))
 	links.First = &first
 
 	// last link
@@ -101,7 +108,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 		realLimit = limit + lastStart
 		lastStart = 0
 	}
-	last := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d", path, lastStart, realLimit)
+	last := fmt.Sprintf("%s?page[offset]=%d&page[limit]=%d%s", path, lastStart, realLimit, format(additionalQuery))
 	links.Last = &last
 }
 
