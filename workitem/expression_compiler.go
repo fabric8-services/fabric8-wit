@@ -70,7 +70,7 @@ func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 		c.err = append(c.err, fmt.Errorf("single quote not allowed in field name"))
 		return nil
 	}
-	return "Fields->'" + f.FieldName + "'"
+	return "Fields@>'{\"" + f.FieldName + "\""
 }
 
 func (c *expressionCompiler) And(a *criteria.AndExpression) interface{} {
@@ -92,6 +92,9 @@ func (c *expressionCompiler) Or(a *criteria.OrExpression) interface{} {
 }
 
 func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
+	if isInJSONContext(e.Left()) {
+		return c.binary(e, ":")
+	}
 	return c.binary(e, "=")
 }
 
@@ -122,13 +125,25 @@ func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} 
 		stringVal, err := c.convertToString(v.Value)
 		if err == nil {
 			c.parameters = append(c.parameters, stringVal)
-			return "?::jsonb"
+			return "?}'"
+		}
+		if stringArr, ok := v.Value.([]string); ok {
+			//c.parameters = append(c.parameters, v.Value)
+			return "[" + c.wrapStrings(stringArr) + "]}'"
 		}
 		c.err = append(c.err, err)
 		return nil
 	}
 	c.parameters = append(c.parameters, v.Value)
 	return "?"
+}
+
+func (c *expressionCompiler) wrapStrings(value []string) string {
+	wrapped := []string{}
+	for i := 0; i < len(value); i++ {
+		wrapped = append(wrapped, "\""+value[i]+"\"")
+	}
+	return strings.Join(wrapped, ",")
 }
 
 func (c *expressionCompiler) convertToString(value interface{}) (string, error) {
