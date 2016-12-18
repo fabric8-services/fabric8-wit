@@ -54,6 +54,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
+	assert.NotNil(t, result.Data.Attributes[workitem.Order])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -72,10 +73,18 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	updatedDescription := "= Updated Test WI description"
 	wi.Data.Attributes[workitem.SystemDescription] = updatedDescription
 
+	/* Order
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+	r2, _ := strconv.Atoi(fmt.Sprintf("%v", *result2.Data.ID))
+	r3, _ := strconv.Atoi(fmt.Sprintf("%v", *result3.Data.ID))*/
+
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
 
+	//payload2.Data.Attributes["previousitem"] = r2
+	//payload2.Data.Attributes["nextitem"] = r3
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
 
@@ -84,6 +93,29 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	assert.Equal(t, wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
 	//expectedDescription := workitem.MarkupContent{Content: "= Updated Test WI description", Markup: workitem.SystemMarkupDefault}
 	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
+
+	// Testing order
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
+	r2, _ := strconv.Atoi(fmt.Sprintf("%v", *result2.Data.ID))
+	r3, _ := strconv.Atoi(fmt.Sprintf("%v", *result3.Data.ID))
+	payload2 = minimumRequiredUpdatePayload()
+	payload2.Data.ID = updated.Data.ID
+	payload2.Data.Attributes = updated.Data.Attributes
+	payload2.Data.Attributes["previousitem"] = r2
+	payload2.Data.Attributes["nextitem"] = r3
+	_, updated1 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated.Data.ID, &payload2)
+	assert.NotNil(t, updated1.Data.Attributes[workitem.SystemCreatedAt])
+
+	if updated1.Data.Attributes["version"] != (updated.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (updated.Data.Attributes["version"].(int) + 1), updated1.Data.Attributes["version"])
+	}
+	if *updated1.Data.ID != *updated.Data.ID {
+		t.Errorf("id has changed from %s to %s", *updated.Data.ID, *updated1.Data.ID)
+	}
+	if updated1.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated1.Data.Attributes[workitem.SystemTitle])
+	}
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
@@ -106,6 +138,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, created.Data.Attributes[workitem.Order])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
 }

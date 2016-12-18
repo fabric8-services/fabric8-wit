@@ -133,15 +133,59 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	// Order
 	var order int
 	if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] == nil {
+
+		// order is not changed
 		order, _ = strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+	} else if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] != nil {
+
+		// move to top
+		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
+		next, err := r.LoadFromDB(nextitem)
+		if err != nil {
+			return nil, err
+		}
+		nextorder, err := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+		if err != nil {
+			log.Println(err)
+		}
+
+		order = (0 + nextorder) / 2
+
+	} else if wi.Fields[Previousitem] != nil && wi.Fields[Nextitem] == nil {
+
+		// move to bottom
+		previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
+		prev, err := r.LoadFromDB(previtem)
+		if err != nil {
+			return nil, err
+		}
+		prevorder, err := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+		if err != nil {
+			log.Println(err)
+		}
+
+		order = prevorder + 1000
+
 	} else {
 		previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
-		prev, _ := r.LoadFromDB(previtem)
-		prevorder, _ := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+		prev, err := r.LoadFromDB(previtem)
+		if err != nil {
+			return nil, err
+		}
+		prevorder, err := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+		if err != nil {
+			log.Println(err)
+		}
 
 		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
-		next, _ := r.LoadFromDB(nextitem)
-		nextorder, _ := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+		next, err := r.LoadFromDB(nextitem)
+		if err != nil {
+			return nil, err
+		}
+		nextorder, err := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+		if err != nil {
+			log.Println(err)
+		}
 
 		order = (prevorder + nextorder) / 2
 	}
