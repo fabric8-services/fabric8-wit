@@ -124,11 +124,9 @@ func (c *expressionCompiler) Literal(v *criteria.LiteralExpression) interface{} 
 	if json {
 		stringVal, err := c.convertToString(v.Value)
 		if err == nil {
-			c.parameters = append(c.parameters, stringVal)
-			return "?}'"
+			return stringVal + "}'"
 		}
 		if stringArr, ok := v.Value.([]string); ok {
-			//c.parameters = append(c.parameters, v.Value)
 			return "[" + c.wrapStrings(stringArr) + "]}'"
 		}
 		c.err = append(c.err, err)

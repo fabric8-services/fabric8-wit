@@ -141,7 +141,7 @@ func TestListByFields(t *testing.T) {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, &limit, &offset)
 
 	if result == nil {
 		t.Errorf("nil result")
@@ -152,7 +152,7 @@ func TestListByFields(t *testing.T) {
 	}
 
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestIdentity.ID.String())
-	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, &limit, &offset)
 
 	if result == nil {
 		t.Errorf("nil result")
@@ -308,7 +308,7 @@ func createPagingTest(t *testing.T, controller *WorkitemController, repo *testsu
 		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
-		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -387,28 +387,28 @@ func TestPagingErrors(t *testing.T) {
 
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -418,7 +418,7 @@ func TestPagingErrors(t *testing.T) {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -439,7 +439,7 @@ func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
 	}
@@ -465,18 +465,18 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	limit = 1000
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(t, "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 
 	limit = 50
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
 	}
@@ -867,6 +867,41 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	assert.Len(s.T(), wiu.Data.Relationships.Assignees.Data, 2)
 	assert.Equal(s.T(), newUser2.ID.String(), *wiu.Data.Relationships.Assignees.Data[0].ID)
 	assert.Equal(s.T(), newUser3.ID.String(), *wiu.Data.Relationships.Assignees.Data[1].ID)
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   "system.bug",
+			},
+		},
+		Assignees: &app.RelationGenericList{
+			Data: []*app.GenericData{
+				ident(newUser.ID),
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(s.T(), wi.Data)
+	assert.NotNil(s.T(), wi.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Type)
+	assert.NotNil(s.T(), wi.Data.Attributes)
+	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
+	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
+
+	newUserID := newUser.ID.String()
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &newUserID, nil, nil)
+
+	assert.Len(s.T(), list.Data, 1)
+	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
+	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {

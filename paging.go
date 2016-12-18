@@ -48,7 +48,10 @@ func computePagingLimts(offsetParam *string, limitParam *int) (offset int, limit
 func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limit, count int, additionalQuery ...string) {
 
 	format := func(additional []string) string {
-		return "&" + strings.Join(additional, "&")
+		if len(additional) > 0 {
+			return "&" + strings.Join(additional, "&")
+		}
+		return ""
 	}
 
 	// prev link
