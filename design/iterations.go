@@ -96,11 +96,13 @@ var _ = a.Resource("project-iterations", func() {
 			a.GET("iterations"),
 		)
 		a.Description("List iterations.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
-		})
+		/*
+			a.Params(func() {
+				a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+				a.Param("page[offset]", d.String, "Paging start position")
+				a.Param("page[limit]", d.Integer, "Paging size")
+			})
+		*/
 		a.Response(d.OK, func() {
 			a.Media(iterationList)
 		})

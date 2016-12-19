@@ -108,7 +108,7 @@ func (rest *TestProjectIterationREST) TestListIterationsByProject() {
 	})
 
 	svc, ctrl := rest.UnSecuredController()
-	_, cs := test.ListProjectIterationsOK(t, svc.Context, svc, ctrl, projectID.String(), nil, nil, nil)
+	_, cs := test.ListProjectIterationsOK(t, svc.Context, svc, ctrl, projectID.String())
 	assert.Len(t, cs.Data, 3)
 }
 
@@ -137,7 +137,7 @@ func (rest *TestProjectIterationREST) TestFailListIterationsByMissingProject() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ListProjectIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil, nil)
+	test.ListProjectIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
 func createProjectIteration(name string) *app.CreateProjectIterationsPayload {
