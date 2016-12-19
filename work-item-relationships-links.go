@@ -36,14 +36,6 @@ func parseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
 	return wiID, nil
 }
 
-// getLinkFunc returns a function to be used be used with a single link ID
-// argument from the work item link controller functions.
-func (c *WorkItemRelationshipsLinksController) getLinkFunc(id interface{}) hrefLinkFunc {
-	return func(obj interface{}) string {
-		return app.WorkItemRelationshipsLinksHref(id, obj)
-	}
-}
-
 // Create runs the create action.
 func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -74,76 +66,14 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 			ctx.Payload.Data.Relationships.Source.Data.ID = ctx.ID
 			ctx.Payload.Data.Relationships.Source.Data.Type = link.EndpointWorkItems
 		}
-		return createWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, c.getLinkFunc(ctx.ID)), ctx, ctx.Payload)
-	})
-}
-
-func (c *WorkItemRelationshipsLinksController) Delete(ctx *app.DeleteWorkItemRelationshipsLinksContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		// Check work item link exists
-		wil, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-		}
-		// Only allow deletion if the current work item is at the source of the link
-		src, _ := getSrcTgt(wil.Data)
-		if *src != ctx.ID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source of work item link"))
-			return ctx.BadRequest(jerrors)
-		}
-		return deleteWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, c.getLinkFunc(ctx.ID)), ctx, ctx.LinkID)
+		return createWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
 	})
 }
 
 // List runs the list action.
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return listWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, c.getLinkFunc(ctx.ID)), ctx, &ctx.ID)
-	})
-}
-
-// Show runs the show action.
-func (c *WorkItemRelationshipsLinksController) Show(ctx *app.ShowWorkItemRelationshipsLinksContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		// Check work item link exists
-		wil, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-		}
-		// Only allow showing if the current work item is at the source or at the target of the link
-		src, tgt := getSrcTgt(wil.Data)
-		if *src != ctx.ID && *tgt != ctx.ID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source nor target of the work item link to show"))
-			return ctx.BadRequest(jerrors)
-		}
-		return showWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, c.getLinkFunc(ctx.ID)), ctx, ctx.LinkID)
-	})
-}
-
-// Update runs the update action.
-func (c *WorkItemRelationshipsLinksController) Update(ctx *app.UpdateWorkItemRelationshipsLinksContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		// Check work item link exists
-		wil, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-		}
-		// Only allow updating if the current work item is at the source of the current link
-		src, _ := getSrcTgt(wil.Data)
-		if *src != ctx.ID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source of the existing work item link to update"))
-			return ctx.BadRequest(jerrors)
-		}
-		// Only allow updating if the current work item is also at the source of the new link in the payload
-		src, _ = getSrcTgt(ctx.Payload.Data)
-		if src != nil && *src != ctx.ID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Current work item is not at source of the new work item link update payload"))
-			return ctx.BadRequest(jerrors)
-		}
-		return updateWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, c.getLinkFunc(ctx.ID)), ctx, ctx.Payload)
+		return listWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, &ctx.ID)
 	})
 }
 

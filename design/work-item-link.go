@@ -129,9 +129,6 @@ var _ = a.Resource("work-item-link", func() {
 var _ = a.Resource("work-item-relationships-links", func() {
 	a.BasePath("/relationships/links")
 	a.Parent("workitem")
-	a.Action("show", showWorkItemLink)
-	a.Action("delete", deleteWorkItemLink)
-	a.Action("update", updateWorkItemLink)
 	a.Action("list", func() {
 		listWorkItemLinks()
 		a.Description("List work item links associated with the given work item (either as source or as target work item).")
