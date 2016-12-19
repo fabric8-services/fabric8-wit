@@ -45,7 +45,7 @@ const (
 	SystemMarkupMarkdown  = "Markdown"
 	SystemMarkupJiraWiki  = "JiraWiki"
 	SystemMarkupDefault   = SystemMarkupPlainText
-	Order                 = "order"
+	SystemOrder           = "order"
 	Previousitem          = "previousitem"
 	Nextitem              = "nextitem"
 )

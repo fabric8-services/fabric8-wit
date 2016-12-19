@@ -64,14 +64,14 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 }
 
 // LoadHighestOrder returns the highest order
-func (r *GormWorkItemRepository) LoadHighestOrder() (int, error) {
+func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	res := WorkItem{}
 	tx := r.db.Order("fields->'order' desc").Last(&res)
 	if tx.RecordNotFound() {
 		log.Printf("not found, res=%v", res)
 		return 0, nil
 	}
-	order, _ := strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+	order, _ := strconv.ParseFloat(fmt.Sprintf("%v", res.Fields[SystemOrder]), 64)
 	return order, nil
 }
 
@@ -127,12 +127,11 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
-	// Order
-	var order int
+	var order float64
 	if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] == nil {
-		order, err = strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
+		order, err = strconv.ParseFloat(fmt.Sprintf("%v", res.Fields[SystemOrder]), 64)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[Order])
+			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
 		}
 	} else if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] != nil {
 		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
@@ -140,9 +139,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		if err != nil {
 			return nil, err
 		}
-		nextorder, err := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+		nextorder, err := strconv.ParseFloat(fmt.Sprintf("%v", next.Fields[SystemOrder]), 64)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[Order])
+			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[SystemOrder])
 		}
 
 		order = (0 + nextorder) / 2
@@ -153,9 +152,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		if err != nil {
 			return nil, err
 		}
-		prevorder, err := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+		prevorder, err := strconv.ParseFloat(fmt.Sprintf("%v", prev.Fields[SystemOrder]), 64)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[Order])
+			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[SystemOrder])
 		}
 		order = prevorder + 1000
 
@@ -165,9 +164,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		if err != nil {
 			return nil, err
 		}
-		prevorder, err := strconv.Atoi(fmt.Sprintf("%v", prev.Fields[Order]))
+		prevorder, err := strconv.ParseFloat(fmt.Sprintf("%v", prev.Fields[SystemOrder]), 64)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[Order])
+			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[SystemOrder])
 		}
 
 		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
@@ -175,14 +174,14 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		if err != nil {
 			return nil, err
 		}
-		nextorder, err := strconv.Atoi(fmt.Sprintf("%v", next.Fields[Order]))
+		nextorder, err := strconv.ParseFloat(fmt.Sprintf("%v", next.Fields[SystemOrder]), 64)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[Order])
+			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[SystemOrder])
 		}
 
 		order = (prevorder + nextorder) / 2
 	}
-	wi.Fields[Order] = order
+	wi.Fields[SystemOrder] = order
 
 	newWi := WorkItem{
 		ID:      id,
@@ -228,7 +227,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	}
 	// Order
 	position, _ := r.LoadHighestOrder()
-	fields[Order] = position + 1000
+	fields[SystemOrder] = position + 1000
 
 	fields[SystemCreator] = creator
 	for fieldName, fieldDef := range wiType.Fields {

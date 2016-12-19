@@ -54,7 +54,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
-	assert.NotNil(t, result.Data.Attributes[workitem.Order])
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemOrder])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -79,6 +79,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, updated.Data.Attributes[workitem.SystemOrder])
 
 	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
@@ -97,6 +98,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	payload2.Data.Attributes["nextitem"] = r3
 	_, updated1 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated.Data.ID, &payload2)
 	assert.NotNil(t, updated1.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, updated1.Data.Attributes[workitem.SystemOrder])
 
 	if updated1.Data.Attributes["version"] != (updated.Data.Attributes["version"].(int) + 1) {
 		t.Errorf("expected version %d, but got %d", (updated.Data.Attributes["version"].(int) + 1), updated1.Data.Attributes["version"])
@@ -115,6 +117,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	payload2.Data.Attributes["nextitem"] = r2
 	_, updated2 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated1.Data.ID, &payload2)
 	assert.NotNil(t, updated2.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, updated2.Data.Attributes[workitem.SystemOrder])
 
 	if updated2.Data.Attributes["version"] != (updated1.Data.Attributes["version"].(int) + 1) {
 		t.Errorf("expected version %d, but got %d", (updated1.Data.Attributes["version"].(int) + 1), updated2.Data.Attributes["version"])
@@ -133,6 +136,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	payload2.Data.Attributes["nextitem"] = nil
 	_, updated3 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated2.Data.ID, &payload2)
 	assert.NotNil(t, updated3.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, updated3.Data.Attributes[workitem.SystemOrder])
 
 	if updated3.Data.Attributes["version"] != (updated2.Data.Attributes["version"].(int) + 1) {
 		t.Errorf("expected version %d, but got %d", (updated2.Data.Attributes["version"].(int) + 1), updated3.Data.Attributes["version"])
@@ -164,7 +168,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, created.Data.Attributes[workitem.Order])
+	assert.NotNil(t, created.Data.Attributes[workitem.SystemOrder])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
 }
