@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 )
 
@@ -32,8 +33,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	if tqresult.ID == "" {
 		t.Error("no id")
 	}
-	DB.Unscoped().Delete(&tqresult)
-	DB.Unscoped().Delete(&result)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 func TestGetTrackerQuery(t *testing.T) {
@@ -63,8 +63,7 @@ func TestGetTrackerQuery(t *testing.T) {
 	if tqr.ID != tqresult.ID {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
-	DB.Unscoped().Delete(&tqresult)
-	DB.Unscoped().Delete(&result)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 func TestUpdateTrackerQuery(t *testing.T) {
@@ -111,8 +110,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	if updated.Schedule != tqresult.Schedule {
 		t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
 	}
-	DB.Unscoped().Delete(&updated)
-	DB.Unscoped().Delete(&result)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that List does not return NIL items.
@@ -132,8 +130,8 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 		Schedule:  "15 * * * * *",
 		TrackerID: result.ID,
 	}
-	_, item1 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
-	_, item2 := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	_, _ = test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	_, _ = test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 
 	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController)
 	for _, tq := range list {
@@ -141,9 +139,7 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker Query found nil")
 		}
 	}
-	DB.Unscoped().Delete(&item1)
-	DB.Unscoped().Delete(&item2)
-	DB.Unscoped().Delete(&result)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -169,6 +165,5 @@ func TestCreateTrackerQueryValidId(t *testing.T) {
 	if created != nil && created.ID != trackerquery.ID {
 		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
 	}
-	DB.Unscoped().Delete(&trackerquery)
-	DB.Unscoped().Delete(&result)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 )
 
@@ -21,7 +22,7 @@ func TestCreateTracker(t *testing.T) {
 	if created.ID == "" {
 		t.Error("no id")
 	}
-	DB.Unscoped().Delete(&created)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 func TestGetTracker(t *testing.T) {
@@ -57,8 +58,7 @@ func TestGetTracker(t *testing.T) {
 		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
 	}
 
-	DB.Unscoped().Delete(&result)
-	DB.Unscoped().Delete(&updated)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that List does not return NIL items.
@@ -70,9 +70,9 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
 	}
-	_, item1 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	_, _ = test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
-	_, item2 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	_, _ = test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)
 
@@ -81,8 +81,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker found nil")
 		}
 	}
-	DB.Unscoped().Delete(&item1)
-	DB.Unscoped().Delete(&item2)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -100,6 +99,5 @@ func TestCreateTrackerValidId(t *testing.T) {
 	if created != nil && created.ID != tracker.ID {
 		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
 	}
-	DB.Unscoped().Delete(&tracker)
-	DB.Unscoped().Delete(&created)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 }
