@@ -108,6 +108,41 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated1.Data.Attributes[workitem.SystemTitle])
 	}
 
+	payload2 = minimumRequiredUpdatePayload()
+	payload2.Data.ID = updated1.Data.ID
+	payload2.Data.Attributes = updated1.Data.Attributes
+	payload2.Data.Attributes["previousitem"] = nil
+	payload2.Data.Attributes["nextitem"] = r2
+	_, updated2 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated1.Data.ID, &payload2)
+	assert.NotNil(t, updated2.Data.Attributes[workitem.SystemCreatedAt])
+
+	if updated2.Data.Attributes["version"] != (updated1.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (updated1.Data.Attributes["version"].(int) + 1), updated2.Data.Attributes["version"])
+	}
+	if *updated2.Data.ID != *updated1.Data.ID {
+		t.Errorf("id has changed from %s to %s", *updated1.Data.ID, *updated2.Data.ID)
+	}
+	if updated2.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated2.Data.Attributes[workitem.SystemTitle])
+	}
+
+	payload2 = minimumRequiredUpdatePayload()
+	payload2.Data.ID = updated1.Data.ID
+	payload2.Data.Attributes = updated2.Data.Attributes
+	payload2.Data.Attributes["previousitem"] = r3
+	payload2.Data.Attributes["nextitem"] = nil
+	_, updated3 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated2.Data.ID, &payload2)
+	assert.NotNil(t, updated3.Data.Attributes[workitem.SystemCreatedAt])
+
+	if updated3.Data.Attributes["version"] != (updated2.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (updated2.Data.Attributes["version"].(int) + 1), updated3.Data.Attributes["version"])
+	}
+	if *updated3.Data.ID != *updated2.Data.ID {
+		t.Errorf("id has changed from %s to %s", *updated2.Data.ID, *updated3.Data.ID)
+	}
+	if updated3.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated3.Data.Attributes[workitem.SystemTitle])
+	}
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
 
