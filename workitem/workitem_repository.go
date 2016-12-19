@@ -130,15 +130,11 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	// Order
 	var order int
 	if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] == nil {
-
-		// order is not changed
 		order, err = strconv.Atoi(fmt.Sprintf("%v", res.Fields[Order]))
 		if err != nil {
 			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[Order])
 		}
 	} else if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] != nil {
-
-		// move to top
 		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
 		next, err := r.LoadFromDB(nextitem)
 		if err != nil {
@@ -152,8 +148,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		order = (0 + nextorder) / 2
 
 	} else if wi.Fields[Previousitem] != nil && wi.Fields[Nextitem] == nil {
-
-		// move to bottom
 		previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
 		prev, err := r.LoadFromDB(previtem)
 		if err != nil {

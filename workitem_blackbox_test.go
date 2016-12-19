@@ -86,7 +86,6 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	//expectedDescription := workitem.MarkupContent{Content: "= Updated Test WI description", Markup: workitem.SystemMarkupDefault}
 	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 
-	// Testing order of workitems
 	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	r2, _ := strconv.Atoi(fmt.Sprintf("%v", *result2.Data.ID))
