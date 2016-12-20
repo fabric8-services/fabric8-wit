@@ -41,7 +41,8 @@ function cleanup {
   make integration-test-env-tear-down
 }
 trap cleanup EXIT
-make docker-test-migration-no-coverage
+make docker-test-migration
+make docker-test-integration-no-coverage
 
 # Run the tests that generate coverage information
 make docker-test-unit

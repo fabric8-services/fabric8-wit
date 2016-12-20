@@ -41,7 +41,8 @@ function cleanup {
   echo 'CICO: Exiting with $EXIT_CODE'
 }
 trap cleanup EXIT
-make docker-test-migration-no-coverage
+make docker-test-migration
+make docker-test-integration-no-coverage
 
 # Run the tests that generate coverage information
 make docker-test-unit
