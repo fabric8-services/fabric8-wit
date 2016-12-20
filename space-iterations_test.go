@@ -108,7 +108,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	})
 
 	svc, ctrl := rest.UnSecuredController()
-	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String(), nil, nil, nil)
+	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
 	assert.Len(t, cs.Data, 3)
 }
 
@@ -137,7 +137,7 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ListSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil, nil)
+	test.ListSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
 func createSpaceIteration(name string) *app.CreateSpaceIterationsPayload {
