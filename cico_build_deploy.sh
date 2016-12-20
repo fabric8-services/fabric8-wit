@@ -29,17 +29,23 @@ make docker-start
 make docker-deps
 make docker-generate
 make docker-build
-make docker-test-unit
+
+# Run the test without generating coverage information (for faster feedback
+# cycles).
+make docker-test-unit-no-coverage
 make integration-test-env-prepare
+echo 'CICO: app tests OK'
 function cleanup {
   EXIT_CODE=$?
   make integration-test-env-tear-down
   echo 'CICO: Exiting with $EXIT_CODE'
 }
 trap cleanup EXIT
-make docker-test-migration
+make docker-test-migration-no-coverage
+
+# Run the tests that generate coverage information
+make docker-test-unit
 make docker-test-integration
-echo 'CICO: app tests OK'
 
 # Output coverage
 make docker-coverage-all

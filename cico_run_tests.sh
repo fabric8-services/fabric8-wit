@@ -32,16 +32,19 @@ make docker-start
 make docker-deps
 make docker-generate
 make docker-build
-make docker-test-unit
 
+# Run the test without generating coverage information (for faster feedback
+# cycles).
+make docker-test-unit-no-coverage
 make integration-test-env-prepare
-
 function cleanup {
   make integration-test-env-tear-down
 }
 trap cleanup EXIT
+make docker-test-migration-no-coverage
 
-make docker-test-migration
+# Run the tests that generate coverage information
+make docker-test-unit
 make docker-test-integration
 
 # Output coverage
