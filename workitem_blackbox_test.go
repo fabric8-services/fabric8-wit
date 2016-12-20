@@ -1040,7 +1040,7 @@ func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	t := s.T()
 
-	iteration := createProjectAndIteration(t, gormapplication.NewGormDB(s.db))
+	iteration := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
 	iterationID := iteration.ID.String()
 	itType := "iterations"
 
@@ -1069,7 +1069,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	t := s.T()
 
-	iteration := createProjectAndIteration(t, gormapplication.NewGormDB(s.db))
+	iteration := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
 	iterationID := iteration.ID.String()
 	itType := "iterations"
 
@@ -1110,7 +1110,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 
 	t.Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 
-	iteration := createProjectAndIteration(t, gormapplication.NewGormDB(s.db))
+	iteration := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
 	iterationID := iteration.ID.String()
 	itType := "iterations"
 

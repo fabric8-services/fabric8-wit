@@ -45,10 +45,10 @@ func (test *TestIterationRepository) TestCreateIteration() {
 	name := "Sprint #24"
 
 	i := iteration.Iteration{
-		Name:      name,
-		ProjectID: uuid.NewV4(),
-		StartAt:   &start,
-		EndAt:     &end,
+		Name:    name,
+		SpaceID: uuid.NewV4(),
+		StartAt: &start,
+		EndAt:   &end,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -76,19 +76,19 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	name2 := "Sprint #24.1"
 
 	i := iteration.Iteration{
-		Name:      name,
-		ProjectID: uuid.NewV4(),
-		StartAt:   &start,
-		EndAt:     &end,
+		Name:    name,
+		SpaceID: uuid.NewV4(),
+		StartAt: &start,
+		EndAt:   &end,
 	}
 	repo.Create(context.Background(), &i)
 
 	i2 := iteration.Iteration{
-		Name:      name2,
-		ProjectID: uuid.NewV4(),
-		StartAt:   &start,
-		EndAt:     &end,
-		ParentID:  i.ID,
+		Name:     name2,
+		SpaceID:  uuid.NewV4(),
+		StartAt:  &start,
+		EndAt:    &end,
+		ParentID: i.ID,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -98,13 +98,13 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	assert.Equal(t, i2.ParentID, i2L.ParentID)
 }
 
-func (test *TestIterationRepository) TestListIterationByProject() {
+func (test *TestIterationRepository) TestListIterationBySpace() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 
 	repo := iteration.NewIterationRepository(test.DB)
 
-	projectID := uuid.NewV4()
+	spaceID := uuid.NewV4()
 
 	for i := 0; i < 3; i++ {
 		start := time.Now()
@@ -112,19 +112,19 @@ func (test *TestIterationRepository) TestListIterationByProject() {
 		name := "Sprint #2" + strconv.Itoa(i)
 
 		i := iteration.Iteration{
-			Name:      name,
-			ProjectID: projectID,
-			StartAt:   &start,
-			EndAt:     &end,
+			Name:    name,
+			SpaceID: spaceID,
+			StartAt: &start,
+			EndAt:   &end,
 		}
 		repo.Create(context.Background(), &i)
 	}
 	repo.Create(context.Background(), &iteration.Iteration{
-		Name:      "Other Spring #2",
-		ProjectID: uuid.NewV4(),
+		Name:    "Other Spring #2",
+		SpaceID: uuid.NewV4(),
 	})
 
-	its, err := repo.List(context.Background(), projectID)
+	its, err := repo.List(context.Background(), spaceID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 }

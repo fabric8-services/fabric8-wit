@@ -48,11 +48,11 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 
 		newItr := iteration.Iteration{
-			ProjectID: parent.ProjectID,
-			ParentID:  parentID,
-			Name:      *reqIter.Attributes.Name,
-			StartAt:   reqIter.Attributes.StartAt,
-			EndAt:     reqIter.Attributes.EndAt,
+			SpaceID:  parent.SpaceID,
+			ParentID: parentID,
+			Name:     *reqIter.Attributes.Name,
+			StartAt:  reqIter.Attributes.StartAt,
+			EndAt:    reqIter.Attributes.EndAt,
 		}
 
 		err = appl.Iterations().Create(ctx, &newItr)
@@ -106,12 +106,12 @@ func ConvertIterations(request *goa.RequestData, Iterations []*iteration.Iterati
 // ConvertIteration converts between internal and external REST representation
 func ConvertIteration(request *goa.RequestData, iteration *iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := "iterations"
-	projectType := "projects"
+	spaceType := "spaces"
 
-	projectID := iteration.ProjectID.String()
+	spaceID := iteration.SpaceID.String()
 
 	selfURL := AbsoluteURL(request, app.IterationHref(iteration.ID))
-	projectSelfURL := AbsoluteURL(request, "/api/projects/"+projectID)
+	spaceSelfURL := AbsoluteURL(request, "/api/spaces/"+spaceID)
 
 	i := &app.Iteration{
 		Type: iterationType,
@@ -122,13 +122,13 @@ func ConvertIteration(request *goa.RequestData, iteration *iteration.Iteration, 
 			EndAt:   iteration.EndAt,
 		},
 		Relationships: &app.IterationRelations{
-			Project: &app.RelationGeneric{
+			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &projectType,
-					ID:   &projectID,
+					Type: &spaceType,
+					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{
-					Self: &projectSelfURL,
+					Self: &spaceSelfURL,
 				},
 			},
 		},

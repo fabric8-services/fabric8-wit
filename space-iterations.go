@@ -11,24 +11,24 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// ProjectIterationsController implements the project-iterations resource.
-type ProjectIterationsController struct {
+// SpaceIterationsController implements the space-iterations resource.
+type SpaceIterationsController struct {
 	*goa.Controller
 	db application.DB
 }
 
-// NewProjectIterationsController creates a project-iterations controller.
-func NewProjectIterationsController(service *goa.Service, db application.DB) *ProjectIterationsController {
-	return &ProjectIterationsController{Controller: service.NewController("ProjectIterationsController"), db: db}
+// NewSpaceIterationsController creates a space-iterations controller.
+func NewSpaceIterationsController(service *goa.Service, db application.DB) *SpaceIterationsController {
+	return &SpaceIterationsController{Controller: service.NewController("SpaceIterationsController"), db: db}
 }
 
 // Create runs the create action.
-func (c *ProjectIterationsController) Create(ctx *app.CreateProjectIterationsContext) error {
+func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	projectID, err := uuid.FromString(ctx.ID)
+	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -43,16 +43,16 @@ func (c *ProjectIterationsController) Create(ctx *app.CreateProjectIterationsCon
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Projects().Load(ctx, projectID)
+		_, err = appl.Spaces().Load(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
 		newItr := iteration.Iteration{
-			ProjectID: projectID,
-			Name:      *reqIter.Attributes.Name,
-			StartAt:   reqIter.Attributes.StartAt,
-			EndAt:     reqIter.Attributes.EndAt,
+			SpaceID: spaceID,
+			Name:    *reqIter.Attributes.Name,
+			StartAt: reqIter.Attributes.StartAt,
+			EndAt:   reqIter.Attributes.EndAt,
 		}
 
 		err = appl.Iterations().Create(ctx, &newItr)
@@ -69,20 +69,20 @@ func (c *ProjectIterationsController) Create(ctx *app.CreateProjectIterationsCon
 }
 
 // List runs the list action.
-func (c *ProjectIterationsController) List(ctx *app.ListProjectIterationsContext) error {
-	projectID, err := uuid.FromString(ctx.ID)
+func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 
-		_, err = appl.Projects().Load(ctx, projectID)
+		_, err = appl.Spaces().Load(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
-		iterations, err := appl.Iterations().List(ctx, projectID)
+		iterations, err := appl.Iterations().List(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

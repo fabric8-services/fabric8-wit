@@ -6,48 +6,48 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/project"
+	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
-// ProjectController implements the project resource.
-type ProjectController struct {
+// SpaceController implements the space resource.
+type SpaceController struct {
 	*goa.Controller
 	db application.DB
 }
 
-// NewProjectController creates a project controller.
-func NewProjectController(service *goa.Service, db application.DB) *ProjectController {
-	return &ProjectController{Controller: service.NewController("ProjectController"), db: db}
+// NewSpaceController creates a space controller.
+func NewSpaceController(service *goa.Service, db application.DB) *SpaceController {
+	return &SpaceController{Controller: service.NewController("SpaceController"), db: db}
 }
 
 // Create runs the create action.
-func (c *ProjectController) Create(ctx *app.CreateProjectContext) error {
+func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	err = validateCreateProject(ctx)
+	err = validateCreateSpace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		project, err := appl.Projects().Create(ctx, *ctx.Payload.Data.Attributes.Name)
+		space, err := appl.Spaces().Create(ctx, *ctx.Payload.Data.Attributes.Name)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		res := &app.ProjectSingle{
-			Data: ConvertProject(ctx.RequestData, project),
+		res := &app.SpaceSingle{
+			Data: ConvertSpace(ctx.RequestData, space),
 		}
-		ctx.ResponseData.Header().Set("Location", AbsoluteURL(ctx.RequestData, app.ProjectHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
 
 // Delete runs the delete action.
-func (c *ProjectController) Delete(ctx *app.DeleteProjectContext) error {
+func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
@@ -57,7 +57,7 @@ func (c *ProjectController) Delete(ctx *app.DeleteProjectContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err = appl.Projects().Delete(ctx.Context, id)
+		err = appl.Spaces().Delete(ctx.Context, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -67,22 +67,22 @@ func (c *ProjectController) Delete(ctx *app.DeleteProjectContext) error {
 }
 
 // List runs the list action.
-func (c *ProjectController) List(ctx *app.ListProjectContext) error {
+func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		projects, c, err := appl.Projects().List(ctx.Context, &offset, &limit)
+		spaces, c, err := appl.Spaces().List(ctx.Context, &offset, &limit)
 		count := int(c)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		response := app.ProjectList{
+		response := app.SpaceList{
 			Links: &app.PagingLinks{},
-			Meta:  &app.ProjectListMeta{TotalCount: count},
-			Data:  ConvertProjects(ctx.RequestData, projects),
+			Meta:  &app.SpaceListMeta{TotalCount: count},
+			Data:  ConvertSpaces(ctx.RequestData, spaces),
 		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(projects), offset, limit, count)
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
 
 		return ctx.OK(&response)
 	})
@@ -90,20 +90,20 @@ func (c *ProjectController) List(ctx *app.ListProjectContext) error {
 }
 
 // Show runs the show action.
-func (c *ProjectController) Show(ctx *app.ShowProjectContext) error {
+func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 	id, err := satoriuuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		p, err := appl.Projects().Load(ctx.Context, id)
+		s, err := appl.Spaces().Load(ctx.Context, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		resp := app.ProjectSingle{
-			Data: ConvertProject(ctx.RequestData, p),
+		resp := app.SpaceSingle{
+			Data: ConvertSpace(ctx.RequestData, s),
 		}
 
 		return ctx.OK(&resp)
@@ -111,7 +111,7 @@ func (c *ProjectController) Show(ctx *app.ShowProjectContext) error {
 }
 
 // Update runs the update action.
-func (c *ProjectController) Update(ctx *app.UpdateProjectContext) error {
+func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
@@ -121,35 +121,35 @@ func (c *ProjectController) Update(ctx *app.UpdateProjectContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	err = validateUpdateProject(ctx)
+	err = validateUpdateSpace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		p, err := appl.Projects().Load(ctx.Context, id)
+		s, err := appl.Spaces().Load(ctx.Context, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		p.Version = *ctx.Payload.Data.Attributes.Version
+		s.Version = *ctx.Payload.Data.Attributes.Version
 		if ctx.Payload.Data.Attributes.Name != nil {
-			p.Name = *ctx.Payload.Data.Attributes.Name
+			s.Name = *ctx.Payload.Data.Attributes.Name
 		}
 
-		p, err = appl.Projects().Save(ctx.Context, *p)
+		s, err = appl.Spaces().Save(ctx.Context, *s)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		response := app.ProjectSingle{
-			Data: ConvertProject(ctx.RequestData, p),
+		response := app.SpaceSingle{
+			Data: ConvertSpace(ctx.RequestData, s),
 		}
 
 		return ctx.OK(&response)
 	})
 }
 
-func validateCreateProject(ctx *app.CreateProjectContext) error {
+func validateCreateSpace(ctx *app.CreateSpaceContext) error {
 	if ctx.Payload.Data == nil {
 		return errors.NewBadParameterError("data", nil).Expected("not nil")
 	}
@@ -162,7 +162,7 @@ func validateCreateProject(ctx *app.CreateProjectContext) error {
 	return nil
 }
 
-func validateUpdateProject(ctx *app.UpdateProjectContext) error {
+func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {
 	if ctx.Payload.Data == nil {
 		return errors.NewBadParameterError("data", nil).Expected("not nil")
 	}
@@ -178,26 +178,26 @@ func validateUpdateProject(ctx *app.UpdateProjectContext) error {
 	return nil
 }
 
-// ProjectConvertFunc is a open ended function to add additional links/data/relations to a Project during
+// SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
 // convertion from internal to API
-type ProjectConvertFunc func(*goa.RequestData, *project.Project, *app.Project)
+type SpaceConvertFunc func(*goa.RequestData, *space.Space, *app.Space)
 
-// ConvertProjects converts between internal and external REST representation
-func ConvertProjects(request *goa.RequestData, projects []*project.Project, additional ...ProjectConvertFunc) []*app.Project {
-	var ps = []*app.Project{}
-	for _, p := range projects {
-		ps = append(ps, ConvertProject(request, p, additional...))
+// ConvertSpaces converts between internal and external REST representation
+func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional ...SpaceConvertFunc) []*app.Space {
+	var ps = []*app.Space{}
+	for _, p := range spaces {
+		ps = append(ps, ConvertSpace(request, p, additional...))
 	}
 	return ps
 }
 
-// ConvertProject converts between internal and external REST representation
-func ConvertProject(request *goa.RequestData, p *project.Project, additional ...ProjectConvertFunc) *app.Project {
-	selfURL := AbsoluteURL(request, app.ProjectHref(p.ID))
-	return &app.Project{
+// ConvertSpace converts between internal and external REST representation
+func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
+	selfURL := AbsoluteURL(request, app.SpaceHref(p.ID))
+	return &app.Space{
 		ID:   p.ID,
-		Type: "projects",
-		Attributes: &app.ProjectAttributes{
+		Type: "spaces",
+		Attributes: &app.SpaceAttributes{
 			Name:      &p.Name,
 			CreatedAt: &p.CreatedAt,
 			UpdatedAt: &p.UpdatedAt,

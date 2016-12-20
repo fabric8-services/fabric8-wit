@@ -59,7 +59,7 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	parentID := createProjectAndIteration(t, rest.db).ID
+	parentID := createSpaceAndIteration(t, rest.db).ID
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
 
@@ -73,7 +73,7 @@ func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	parentID := createProjectAndIteration(t, rest.db).ID
+	parentID := createSpaceAndIteration(t, rest.db).ID
 	ci := createChildIteration(nil)
 
 	svc, ctrl := rest.SecuredController()
@@ -95,7 +95,7 @@ func (rest *TestIterationREST) TestFailCreateChildIterationNotAuthorized() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	parentID := createProjectAndIteration(t, rest.db).ID
+	parentID := createSpaceAndIteration(t, rest.db).ID
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
 
@@ -107,7 +107,7 @@ func (rest *TestIterationREST) TestSuccessShowIteration() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	itrID := createProjectAndIteration(t, rest.db)
+	itrID := createSpaceAndIteration(t, rest.db)
 
 	svc, ctrl := rest.SecuredController()
 	_, created := test.ShowIterationOK(t, svc.Context, svc, ctrl, itrID.ID.String())
@@ -140,12 +140,12 @@ func createChildIteration(name *string) *app.CreateChildIterationPayload {
 	}
 }
 
-func createProjectAndIteration(t *testing.T, db *gormapplication.GormDB) iteration.Iteration {
+func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration.Iteration {
 	var itr iteration.Iteration
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Projects().Create(context.Background(), "Test 1"+uuid.NewV4().String())
+		p, err := app.Spaces().Create(context.Background(), "Test 1"+uuid.NewV4().String())
 		if err != nil {
 			t.Error(err)
 		}
@@ -155,10 +155,10 @@ func createProjectAndIteration(t *testing.T, db *gormapplication.GormDB) iterati
 		name := "Sprint #2"
 
 		i := iteration.Iteration{
-			Name:      name,
-			ProjectID: p.ID,
-			StartAt:   &start,
-			EndAt:     &end,
+			Name:    name,
+			SpaceID: p.ID,
+			StartAt: &start,
+			EndAt:   &end,
 		}
 		repo.Create(context.Background(), &i)
 		itr = i
@@ -172,8 +172,8 @@ func assertIterationLinking(t *testing.T, target *app.Iteration) {
 	assert.Equal(t, "iterations", target.Type)
 	assert.NotNil(t, target.Links.Self)
 	assert.NotNil(t, target.Relationships)
-	assert.NotNil(t, target.Relationships.Project)
-	assert.NotNil(t, target.Relationships.Project.Links.Self)
+	assert.NotNil(t, target.Relationships.Space)
+	assert.NotNil(t, target.Relationships.Space.Links.Self)
 }
 
 func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
