@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type TestProjectREST struct {
+type TestSpaceREST struct {
 	gormsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
@@ -26,62 +26,62 @@ type TestProjectREST struct {
 }
 
 func TestRunProjectREST(t *testing.T) {
-	suite.Run(t, &TestProjectREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
 }
 
-func (rest *TestProjectREST) SetupTest() {
+func (rest *TestSpaceREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
 }
 
-func (rest *TestProjectREST) TearDownTest() {
+func (rest *TestSpaceREST) TearDownTest() {
 	rest.clean()
 }
 
-func (rest *TestProjectREST) SecuredController() (*goa.Service, *ProjectController) {
+func (rest *TestSpaceREST) SecuredController() (*goa.Service, *SpaceController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Project-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	return svc, NewProjectController(svc, rest.db)
+	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	return svc, NewSpaceController(svc, rest.db)
 }
 
-func (rest *TestProjectREST) UnSecuredController() (*goa.Service, *ProjectController) {
-	svc := goa.New("Project-Service")
-	return svc, NewProjectController(svc, rest.db)
+func (rest *TestSpaceREST) UnSecuredController() (*goa.Service, *SpaceController) {
+	svc := goa.New("Space-Service")
+	return svc, NewSpaceController(svc, rest.db)
 }
 
-func (rest *TestProjectREST) TestFailCreateProjectUnsecure() {
+func (rest *TestSpaceREST) TestFailCreateSpaceUnsecure() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateProjectUnauthorized(t, svc.Context, svc, ctrl, p)
+	test.CreateSpaceUnauthorized(t, svc.Context, svc, ctrl, p)
 }
 
-func (rest *TestProjectREST) TestFailCreateProjectMissingName() {
+func (rest *TestSpaceREST) TestFailCreateSpaceMissingName() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 
 	svc, ctrl := rest.SecuredController()
-	test.CreateProjectBadRequest(t, svc.Context, svc, ctrl, p)
+	test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
 }
 
-func (rest *TestProjectREST) TestSuccessCreateProject() {
+func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 24"
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
 	svc, ctrl := rest.SecuredController()
-	_, created := test.CreateProjectCreated(t, svc.Context, svc, ctrl, p)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 	assert.NotNil(t, created.Data)
 	assert.NotNil(t, created.Data.Attributes)
 	assert.NotNil(t, created.Data.Attributes.CreatedAt)
@@ -92,39 +92,39 @@ func (rest *TestProjectREST) TestSuccessCreateProject() {
 	assert.NotNil(t, created.Data.Links.Self)
 }
 
-func (rest *TestProjectREST) TestSuccessUpdateProject() {
+func (rest *TestSpaceREST) TestSuccessUpdateProject() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 25"
 	newName := "Test 26"
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
 	svc, ctrl := rest.SecuredController()
-	_, created := test.CreateProjectCreated(t, svc.Context, svc, ctrl, p)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
-	u := minimumRequiredUpdateProject()
+	u := minimumRequiredUpdateSpace()
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Version = created.Data.Attributes.Version
 	u.Data.Attributes.Name = &newName
 
-	_, updated := test.UpdateProjectOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	_, updated := test.UpdateSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
 	assert.Equal(t, newName, *updated.Data.Attributes.Name)
 }
 
-func (rest *TestProjectREST) TestFailUpdateProjectUnSecure() {
+func (rest *TestSpaceREST) TestFailUpdateProjectUnSecure() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	u := minimumRequiredUpdateProject()
+	u := minimumRequiredUpdateSpace()
 
 	svc, ctrl := rest.UnSecuredController()
-	test.UpdateProjectUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), u)
+	test.UpdateSpaceUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), u)
 }
 
-func (rest *TestProjectREST) TestFailUpdateProjectNotFound() {
+func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
@@ -132,117 +132,117 @@ func (rest *TestProjectREST) TestFailUpdateProjectNotFound() {
 	version := 0
 	id := uuid.NewV4()
 
-	u := minimumRequiredUpdateProject()
+	u := minimumRequiredUpdateSpace()
 	u.Data.Attributes.Name = &name
 	u.Data.Attributes.Version = &version
 	u.Data.ID = id
 
 	svc, ctrl := rest.SecuredController()
-	test.UpdateProjectNotFound(t, svc.Context, svc, ctrl, id.String(), u)
+	test.UpdateSpaceNotFound(t, svc.Context, svc, ctrl, id.String(), u)
 }
 
-func (rest *TestProjectREST) TestFailUpdateProjectMissingName() {
+func (rest *TestSpaceREST) TestFailUpdateSpaceMissingName() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 25"
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
 	svc, ctrl := rest.SecuredController()
-	_, created := test.CreateProjectCreated(t, svc.Context, svc, ctrl, p)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
-	u := minimumRequiredUpdateProject()
+	u := minimumRequiredUpdateSpace()
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Version = created.Data.Attributes.Version
 
-	test.UpdateProjectBadRequest(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	test.UpdateSpaceBadRequest(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
 }
 
-func (rest *TestProjectREST) TestFailUpdateProjectMissingVersion() {
+func (rest *TestSpaceREST) TestFailUpdateSpaceMissingVersion() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 25"
 	newName := "Test 26"
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
 	svc, ctrl := rest.SecuredController()
-	_, created := test.CreateProjectCreated(t, svc.Context, svc, ctrl, p)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
-	u := minimumRequiredUpdateProject()
+	u := minimumRequiredUpdateSpace()
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Name = &newName
 
-	test.UpdateProjectBadRequest(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	test.UpdateSpaceBadRequest(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
 }
 
-func (rest *TestProjectREST) TestSuccessShowProject() {
+func (rest *TestSpaceREST) TestSuccessShowProject() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 27"
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
 	svc, ctrl := rest.SecuredController()
-	_, created := test.CreateProjectCreated(t, svc.Context, svc, ctrl, p)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
-	_, fetched := test.ShowProjectOK(t, svc.Context, svc, ctrl, created.Data.ID.String())
+	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String())
 	assert.Equal(t, created.Data.ID, fetched.Data.ID)
 	assert.Equal(t, *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
 	assert.Equal(t, *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 }
 
-func (rest *TestProjectREST) TestFailShowProjectNotFound() {
+func (rest *TestSpaceREST) TestFailShowSpaceNotFound() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ShowProjectNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
+	test.ShowSpaceNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
-func (rest *TestProjectREST) TestFailShowProjectNotFoundBadID() {
+func (rest *TestSpaceREST) TestFailShowSpaceNotFoundBadID() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ShowProjectNotFound(t, svc.Context, svc, ctrl, "asfasfsaf")
+	test.ShowSpaceNotFound(t, svc.Context, svc, ctrl, "asfasfsaf")
 }
 
-func (rest *TestProjectREST) TestSuccessListProjects() {
+func (rest *TestSpaceREST) TestSuccessListSpaces() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 24"
 
-	p := minimumRequiredCreateProject()
+	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
 	svc, ctrl := rest.SecuredController()
-	test.CreateProjectCreated(t, svc.Context, svc, ctrl, p)
+	test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
-	_, list := test.ListProjectOK(t, svc.Context, svc, ctrl, nil, nil)
+	_, list := test.ListSpaceOK(t, svc.Context, svc, ctrl, nil, nil)
 	assert.True(t, len(list.Data) > 0)
 }
 
-func minimumRequiredCreateProject() *app.CreateProjectPayload {
-	return &app.CreateProjectPayload{
-		Data: &app.Project{
-			Type:       "projects",
-			Attributes: &app.ProjectAttributes{},
+func minimumRequiredCreateSpace() *app.CreateSpacePayload {
+	return &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type:       "spaces",
+			Attributes: &app.SpaceAttributes{},
 		},
 	}
 }
 
-func minimumRequiredUpdateProject() *app.UpdateProjectPayload {
-	return &app.UpdateProjectPayload{
-		Data: &app.Project{
-			Type:       "projects",
-			Attributes: &app.ProjectAttributes{},
+func minimumRequiredUpdateSpace() *app.UpdateSpacePayload {
+	return &app.UpdateSpacePayload{
+		Data: &app.Space{
+			Type:       "spaces",
+			Attributes: &app.SpaceAttributes{},
 		},
 	}
 }

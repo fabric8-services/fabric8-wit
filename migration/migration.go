@@ -121,6 +121,9 @@ func getMigrations() migrations {
 	// Version 14
 	m = append(m, steps{executeSQLFile("014-wi-fields-index.sql")})
 
+	// Version 15
+	m = append(m, steps{executeSQLFile("015-rename-projects-to-spaces.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

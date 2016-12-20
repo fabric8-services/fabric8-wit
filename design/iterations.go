@@ -33,7 +33,7 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 })
 
 var iterationRelationships = a.Type("IterationRelations", func() {
-	a.Attribute("project", relationGeneric, "This defines the owning project")
+	a.Attribute("space", relationGeneric, "This defines the owning space")
 	a.Attribute("parent", relationGeneric, "This defines the parent iteration")
 	a.Attribute("workitems", relationGeneric, "This defines the workitems associated with the iteration")
 })
@@ -88,8 +88,8 @@ var _ = a.Resource("iteration", func() {
 })
 
 // new version of "list" for migration
-var _ = a.Resource("project-iterations", func() {
-	a.Parent("project")
+var _ = a.Resource("space-iterations", func() {
+	a.Parent("space")
 
 	a.Action("list", func() {
 		a.Routing(

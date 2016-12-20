@@ -4,7 +4,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/project"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 )
@@ -21,7 +21,7 @@ type Application interface {
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository
-	Projects() project.Repository
+	Spaces() space.Repository
 	Iterations() iteration.Repository
 	Users() account.IdentityRepository
 }

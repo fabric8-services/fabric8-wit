@@ -8,9 +8,9 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
@@ -70,8 +70,8 @@ func (g *GormBase) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return workitem.NewWorkItemTypeRepository(g.db)
 }
 
-func (g *GormBase) Projects() project.Repository {
-	return project.NewRepository(g.db)
+func (g *GormBase) Spaces() space.Repository {
+	return space.NewRepository(g.db)
 }
 
 func (g *GormBase) Trackers() application.TrackerRepository {
