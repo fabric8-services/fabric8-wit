@@ -13,7 +13,7 @@ import (
 type fakeJiraIssueFetcher struct{}
 
 func (f *fakeJiraIssueFetcher) listIssues(jql string, options *jira.SearchOptions) ([]jira.Issue, *jira.Response, error) {
-	return []jira.Issue{{}}, &jira.Response{}, nil
+	return []jira.Issue{jira.Issue{Fields: &jira.IssueFields{Updated: "2016-01-09"}}}, &jira.Response{}, nil
 }
 
 func (f *fakeJiraIssueFetcher) getIssue(issueID string) (*jira.Issue, *jira.Response, error) {
