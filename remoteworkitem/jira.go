@@ -2,6 +2,7 @@ package remoteworkitem
 
 import (
 	"encoding/json"
+	"time"
 
 	jira "github.com/andygrunwald/go-jira"
 )
@@ -44,8 +45,9 @@ func (j *JiraTracker) fetch(f jiraFetcher) chan TrackerItemContent {
 		for _, l := range issues {
 			id, _ := json.Marshal(l.Key)
 			issue, _, _ := f.getIssue(l.Key)
+			lu, _ := time.Parse("2006-02-02", l.Fields.Updated)
 			content, _ := json.Marshal(issue)
-			item <- TrackerItemContent{ID: string(id), Content: content}
+			item <- TrackerItemContent{ID: string(id), Content: content, LastUpdated: &lu}
 		}
 		close(item)
 	}()
