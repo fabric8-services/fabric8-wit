@@ -18,7 +18,7 @@ type trackerSchedule struct {
 	TrackerQueryID int
 	Query          string
 	Schedule       string
-	LastUpdated    string
+	LastUpdated    *time.Time
 }
 
 // Scheduler represents scheduler
@@ -103,8 +103,8 @@ func lookupProvider(ts trackerSchedule) TrackerProvider {
 	switch ts.TrackerType {
 	case ProviderGithub:
 		var q string
-		if ts.LastUpdated != "" {
-			q = ts.Query + " updated:>=" + ts.LastUpdated
+		if ts.LastUpdated != nil {
+			q = ts.Query + " updated:>=" + ts.LastUpdated.Format("2006-01-02")
 		} else {
 			q = ts.Query
 		}
