@@ -104,13 +104,21 @@ func lookupProvider(ts trackerSchedule) TrackerProvider {
 	case ProviderGithub:
 		var q string
 		if ts.LastUpdated != nil {
+			// Use the special date for formatting: https://golang.org/pkg/time/#Time.Format
 			q = ts.Query + " updated:>=" + ts.LastUpdated.Format("2006-01-02")
 		} else {
 			q = ts.Query
 		}
 		return &GithubTracker{URL: ts.URL, Query: q}
 	case ProviderJira:
-		return &JiraTracker{URL: ts.URL, Query: ts.Query}
+		var q string
+		if ts.LastUpdated != nil {
+			// Use the special date for formatting: https://golang.org/pkg/time/#Time.Format
+			q = ts.Query + " and updated:>=" + ts.LastUpdated.Format("2006-01-02")
+		} else {
+			q = ts.Query
+		}
+		return &JiraTracker{URL: ts.URL, Query: q}
 	}
 	return nil
 }
