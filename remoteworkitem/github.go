@@ -62,7 +62,7 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 			for _, l := range issues {
 				id, _ := json.Marshal(l.URL)
 				lu, _ := json.Marshal(l.UpdatedAt)
-				lut, _ := time.Parse("2016-12-16 12:38:17.541405 +0530 IST", string(lu))
+				lut, _ := time.Parse("\"2006-01-02T15:04:05Z\"", string(lu))
 				content, _ := json.Marshal(l)
 				item <- TrackerItemContent{ID: string(id), Content: content, LastUpdated: &lut}
 			}
