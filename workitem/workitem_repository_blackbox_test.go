@@ -102,3 +102,24 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 
 	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 }
+
+func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	wi, err := s.repo.Create(
+		context.Background(), "system.bug",
+		map[string]interface{}{
+			workitem.SystemTitle: "Title",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, "xx")
+
+	if err != nil {
+		s.T().Error("Could not create workitem", err)
+	}
+
+	wi, err = s.repo.Load(context.Background(), wi.ID)
+
+	wiNew, err := s.repo.Save(context.Background(), *wi)
+
+	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
+}

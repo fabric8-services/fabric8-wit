@@ -112,6 +112,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	res.Version = res.Version + 1
 	res.Type = wi.Type
+	res.Fields = Fields{}
 
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
