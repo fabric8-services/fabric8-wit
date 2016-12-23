@@ -75,7 +75,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	path := pathSep + name
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
-		db := r.db.First(&extendedType, extendedTypeName)
+		db := r.db.First(&extendedType, "name = ?", extendedTypeName)
 		if db.RecordNotFound() {
 			log.Printf("not found, res=%v", extendedType)
 			return nil, errors.NewBadParameterError("extendedTypeName", *extendedTypeName)

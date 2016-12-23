@@ -94,3 +94,32 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	assert.Nil(s.T(), field.Type.BaseType)
 	assert.Nil(s.T(), field.Type.Values)
 }
+
+func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
+	bt := "string"
+	basetype := "foo.bar"
+	baseWit, err := s.repo.Create(context.Background(), nil, basetype, map[string]app.FieldDefinition{
+		"foo": app.FieldDefinition{
+			Required: true,
+			Type: &app.FieldType{
+				ComponentType: &bt,
+				Kind:          string(workitem.KindList),
+			},
+		},
+	})
+	assert.Nil(s.T(), err)
+	assert.NotNil(s.T(), baseWit)
+	extendedWit, err := s.repo.Create(context.Background(), &basetype, "foo.baz", map[string]app.FieldDefinition{})
+	assert.Nil(s.T(), err)
+	assert.NotNil(s.T(), extendedWit)
+	// the Field 'foo' must exist since it is inherited from the base work item type
+	assert.NotNil(s.T(), extendedWit.Fields["foo"])
+}
+
+func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
+	basetype := "unknown"
+	extendedWit, err := s.repo.Create(context.Background(), &basetype, "foo.baz", map[string]app.FieldDefinition{})
+	// expect an error as the given base type does not exist
+	assert.NotNil(s.T(), err)
+	assert.Nil(s.T(), extendedWit)
+}
