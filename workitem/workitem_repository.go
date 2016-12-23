@@ -110,12 +110,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
 
-	newWi := WorkItem{
-		ID:      id,
-		Type:    wi.Type,
-		Version: wi.Version + 1,
-		Fields:  Fields{},
-	}
+	res.Version = res.Version + 1
+	res.Type = wi.Type
 
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
@@ -123,13 +119,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		}
 		fieldValue := wi.Fields[fieldName]
 		var err error
-		newWi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
 
-	tx = tx.Where("Version = ?", wi.Version).Save(&newWi)
+	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
 		log.Print(err.Error())
 		return nil, errors.NewInternalError(err.Error())
@@ -137,8 +133,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Printf("updated item to %v\n", newWi)
-	return convertWorkItemModelToApp(wiType, &newWi)
+	log.Printf("updated item to %v\n", res)
+	return convertWorkItemModelToApp(wiType, &res)
 }
 
 // Create creates a new work item in the repository
