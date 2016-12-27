@@ -289,7 +289,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order' desc")
+	db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order'")
 	//db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order' desc")
 
 	rows, err := db.Rows()
