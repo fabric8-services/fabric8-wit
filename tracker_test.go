@@ -19,10 +19,10 @@ func TestCreateTracker(t *testing.T) {
 	}
 
 	_, created := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	if created.ID == "" {
 		t.Error("no id")
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 func TestGetTracker(t *testing.T) {
@@ -34,6 +34,7 @@ func TestGetTracker(t *testing.T) {
 	}
 
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
 	_, tr := test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
 	if tr == nil {
@@ -58,7 +59,6 @@ func TestGetTracker(t *testing.T) {
 		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
 	}
 
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that List does not return NIL items.
@@ -73,6 +73,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 	_, _ = test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	_, _ = test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)
 
@@ -81,7 +82,6 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker found nil")
 		}
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -94,10 +94,10 @@ func TestCreateTrackerValidId(t *testing.T) {
 		Type: "jira",
 	}
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, created := test.ShowTrackerOK(t, nil, nil, &controller, tracker.ID)
 	if created != nil && created.ID != tracker.ID {
 		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }

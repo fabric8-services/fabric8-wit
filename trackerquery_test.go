@@ -29,11 +29,11 @@ func TestCreateTrackerQuery(t *testing.T) {
 	}
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	t.Log(tqresult)
 	if tqresult.ID == "" {
 		t.Error("no id")
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 func TestGetTrackerQuery(t *testing.T) {
@@ -54,6 +54,7 @@ func TestGetTrackerQuery(t *testing.T) {
 	}
 	fmt.Printf("tq payload %#v", tqpayload)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 
@@ -63,7 +64,6 @@ func TestGetTrackerQuery(t *testing.T) {
 	if tqr.ID != tqresult.ID {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 func TestUpdateTrackerQuery(t *testing.T) {
@@ -84,6 +84,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	}
 
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 
@@ -110,7 +111,6 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	if updated.Schedule != tqresult.Schedule {
 		t.Errorf("Type has changed has from %s to %s", tqresult.Schedule, updated.Schedule)
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that List does not return NIL items.
@@ -132,6 +132,7 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	}
 	_, _ = test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	_, _ = test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController)
 	for _, tq := range list {
@@ -139,7 +140,6 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker Query found nil")
 		}
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -161,9 +161,9 @@ func TestCreateTrackerQueryValidId(t *testing.T) {
 		TrackerID: result.ID,
 	}
 	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	_, created := test.ShowTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
 	if created != nil && created.ID != trackerquery.ID {
 		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
 	}
-	defer gormsupport.DeleteCreatedEntities(DB)()
 }
