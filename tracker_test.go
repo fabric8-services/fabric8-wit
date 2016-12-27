@@ -98,8 +98,9 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
 	})
-	test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	_, item1 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+
+	_, item2 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)
 
