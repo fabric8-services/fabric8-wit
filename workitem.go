@@ -19,6 +19,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// List of TYPEs for jsonapi based APIs
 const (
 	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"

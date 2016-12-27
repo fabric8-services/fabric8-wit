@@ -9,16 +9,33 @@ import (
 	"github.com/almighty/almighty-core/resource"
 )
 
+type trackerAttr struct {
+	Type string
+	URL  string
+}
+
+func getTrackerPayload(attr trackerAttr) app.CreateTrackerPayload {
+	return app.CreateTrackerPayload{
+		Data: &app.TrackerData{
+			Type: APIStringTypeTracker,
+			Attributes: &app.TrackerAttributes{
+				Type: attr.Type,
+				URL:  attr.URL,
+			},
+		},
+	}
+}
+
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
-	payload := app.CreateTrackerAlternatePayload{
+
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
-	}
-
+	})
 	_, created := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	if created.ID == "" {
+	if *created.Data.ID == "" {
 		t.Error("no id")
 	}
 }
@@ -26,19 +43,20 @@ func TestCreateTracker(t *testing.T) {
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
-	}
+	})
 
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
-	_, tr := test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
+	resultID := *result.Data.ID
+	test.ShowTrackerOK(t, nil, nil, &controller, resultID)
+	_, tr := test.ShowTrackerOK(t, nil, nil, &controller, resultID)
 	if tr == nil {
-		t.Fatalf("Tracker '%s' not present", result.ID)
+		t.Fatalf("Tracker '%s' not present", resultID)
 	}
-	if tr.ID != result.ID {
-		t.Errorf("Id should be %s, but is %s", result.ID, tr.ID)
+	if tr.ID != resultID {
+		t.Errorf("Id should be %s, but is %s", resultID, tr.ID)
 	}
 
 	payload2 := app.UpdateTrackerAlternatePayload{
@@ -46,17 +64,19 @@ func TestGetTracker(t *testing.T) {
 		Type: tr.Type,
 	}
 	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, tr.ID, &payload2)
-	if updated.ID != result.ID {
-		t.Errorf("Id has changed from %s to %s", result.ID, updated.ID)
+	if updated.ID != resultID {
+		t.Errorf("Id has changed from %s to %s", resultID, updated.ID)
 	}
-	if updated.URL != result.URL {
-		t.Errorf("URL has changed from %s to %s", result.URL, updated.URL)
+	resultURL := result.Data.Attributes.URL
+	if updated.URL != resultURL {
+		t.Errorf("URL has changed from %s to %s", resultURL, updated.URL)
 	}
-	if updated.Type != result.Type {
-		t.Errorf("Type has changed has from %s to %s", result.Type, updated.Type)
+	resultType := result.Data.Attributes.Type
+	if updated.Type != resultType {
+		t.Errorf("Type has changed has from %s to %s", resultType, updated.Type)
 	}
 
-	test.DeleteTrackerOK(t, nil, nil, &controller, result.ID)
+	test.DeleteTrackerOK(t, nil, nil, &controller, resultID)
 }
 
 // This test ensures that List does not return NIL items.
@@ -64,10 +84,10 @@ func TestGetTracker(t *testing.T) {
 func TestTrackerListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
-	}
+	})
 	_, item1 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	_, item2 := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
@@ -79,8 +99,8 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 			t.Error("Returned Tracker found nil")
 		}
 	}
-	test.DeleteTrackerOK(t, nil, nil, &controller, item1.ID)
-	test.DeleteTrackerOK(t, nil, nil, &controller, item2.ID)
+	test.DeleteTrackerOK(t, nil, nil, &controller, *item1.Data.ID)
+	test.DeleteTrackerOK(t, nil, nil, &controller, *item2.Data.ID)
 }
 
 // This test ensures that ID returned by Show is valid.
@@ -88,15 +108,15 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
-	}
+	})
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-
-	_, created := test.ShowTrackerOK(t, nil, nil, &controller, tracker.ID)
-	if created != nil && created.ID != tracker.ID {
-		t.Error("Failed because fetched Tracker not same as requested. Found: ", tracker.ID, " Expected, ", created.ID)
+	trackerID := *tracker.Data.ID
+	_, created := test.ShowTrackerOK(t, nil, nil, &controller, trackerID)
+	if created != nil && created.ID != trackerID {
+		t.Error("Failed because fetched Tracker not same as requested. Found: ", trackerID, " Expected, ", created.ID)
 	}
-	test.DeleteTrackerOK(t, nil, nil, &controller, tracker.ID)
+	test.DeleteTrackerOK(t, nil, nil, &controller, trackerID)
 }
