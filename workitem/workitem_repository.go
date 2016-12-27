@@ -134,15 +134,16 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	res.Type = wi.Type
 	res.Fields = Fields{}
 	var order float64
-	if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] == nil {
+
+	if wi.Fields[PreviousItem] == nil && wi.Fields[NextItem] == nil {
 		// Order is not changed
 		order, err = strconv.ParseFloat(fmt.Sprintf("%v", wi.Fields[SystemOrder]), 64)
 		if err != nil {
 			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
 		}
-	} else if wi.Fields[Previousitem] == nil && wi.Fields[Nextitem] != nil {
+	} else if wi.Fields[PreviousItem] == nil && wi.Fields[NextItem] != nil {
 		// WorkItem is moved to the first position
-		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
+		nextitem := fmt.Sprintf("%v", wi.Fields[NextItem])
 		next, err := r.LoadFromDB(nextitem)
 		if err != nil {
 			return nil, err
@@ -154,9 +155,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 		order = (0 + nextorder) / 2
 
-	} else if wi.Fields[Previousitem] != nil && wi.Fields[Nextitem] == nil {
+	} else if wi.Fields[PreviousItem] != nil && wi.Fields[NextItem] == nil {
 		// WorkItem is moved to the last position
-		previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
+		previtem := fmt.Sprintf("%v", wi.Fields[PreviousItem])
 		prev, err := r.LoadFromDB(previtem)
 		if err != nil {
 			return nil, err
@@ -168,7 +169,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		order = prevorder + 1000
 
 	} else {
-		previtem := fmt.Sprintf("%v", wi.Fields[Previousitem])
+		previtem := fmt.Sprintf("%v", wi.Fields[PreviousItem])
 		prev, err := r.LoadFromDB(previtem)
 		if err != nil {
 			return nil, err
@@ -178,7 +179,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[SystemOrder])
 		}
 
-		nextitem := fmt.Sprintf("%v", wi.Fields[Nextitem])
+		nextitem := fmt.Sprintf("%v", wi.Fields[NextItem])
 		next, err := r.LoadFromDB(nextitem)
 		if err != nil {
 			return nil, err
@@ -288,7 +289,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order' desc")
+	//db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order' desc")
 
 	rows, err := db.Rows()
 	if err != nil {
