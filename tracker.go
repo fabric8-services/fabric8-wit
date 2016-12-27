@@ -13,6 +13,11 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+const (
+	// APIStringTypeTracker to be used as a TYPE for jsonapi based tracker APIs
+	APIStringTypeTracker = "trackers"
+)
+
 // TrackerController implements the tracker resource.
 type TrackerController struct {
 	*goa.Controller
@@ -28,7 +33,7 @@ func NewTrackerController(service *goa.Service, db application.DB, scheduler *re
 // Create runs the create action.
 func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
-		t, err := appl.Trackers().Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
+		newTracker, err := appl.Trackers().Create(ctx.Context, ctx.Payload.Data.Attributes.URL, ctx.Payload.Data.Attributes.Type)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
@@ -40,8 +45,22 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 				return ctx.InternalServerError(jerrors)
 			}
 		}
-		ctx.ResponseData.Header().Set("Location", app.TrackerHref(t.ID))
-		return ctx.Created(t)
+		trackerData := app.TrackerData{
+			ID:   &newTracker.ID,
+			Type: APIStringTypeTracker,
+			Attributes: &app.TrackerAttributes{
+				Type: newTracker.Type,
+				URL:  newTracker.URL,
+			},
+		}
+		respTracker := app.TrackerObjectSingle{
+			Data: &trackerData,
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		ctx.ResponseData.Header().Set("Location", app.TrackerHref(respTracker.Data.ID))
+		return ctx.Created(&respTracker)
 	})
 	c.scheduler.ScheduleAllQueries()
 	return result

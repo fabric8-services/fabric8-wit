@@ -20,6 +20,23 @@ import (
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
+type trackerAttr struct {
+	Type string
+	URL  string
+}
+
+func getTrackerPayload(attr trackerAttr) app.CreateTrackerPayload {
+	return app.CreateTrackerPayload{
+		Data: &app.TrackerData{
+			Type: APIStringTypeTracker,
+			Attributes: &app.TrackerAttributes{
+				Type: attr.Type,
+				URL:  attr.URL,
+			},
+		},
+	}
+}
+
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
 	if err != nil {
@@ -155,10 +172,10 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	service := goa.New("API")
 
 	controller := NewTrackerController(service, gormapplication.NewGormDB(DB), RwiScheduler)
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, controller, &payload)
 
 	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(almtoken.RSAPublicKey))
@@ -172,7 +189,7 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	app.MountTrackerqueryController(service, controller2)
 
 	server := httptest.NewServer(service.Mux)
-	tqPayload := fmt.Sprintf(`{"query": "abcdefgh", "schedule": "1 1 * * * *", "trackerID": "%s"}`, tracker.ID)
+	tqPayload := fmt.Sprintf(`{"query": "abcdefgh", "schedule": "1 1 * * * *", "trackerID": "%s"}`, *tracker.Data.ID)
 	trackerQueryCreateURL := "/api/trackerqueries"
 	req, _ := http.NewRequest("POST", server.URL+trackerQueryCreateURL, strings.NewReader(tqPayload))
 
