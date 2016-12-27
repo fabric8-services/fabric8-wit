@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/jinzhu/gorm"
@@ -18,6 +19,21 @@ type GormTrackerQueryRepository struct {
 // NewTrackerQueryRepository constructs a TrackerQueryRepository
 func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 	return &GormTrackerQueryRepository{db}
+}
+
+func updateTrackerQuery(db *gorm.DB, tqID int, lu *time.Time) error {
+	tq := TrackerQuery{}
+	tx := db.First(&tq, tqID)
+	if tx.RecordNotFound() {
+		log.Printf("not found, res=%v", tq)
+		return NotFoundError{entity: "tracker_query", ID: string(tq.ID)}
+	}
+	tq.LastUpdated = lu
+	if err := tx.Save(&tq).Error; err != nil {
+		log.Print(err.Error())
+		return InternalError{simpleError{err.Error()}}
+	}
+	return nil
 }
 
 // Create creates a new tracker query in the repository
