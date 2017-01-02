@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/dnaeon/go-vcr/recorder"
+	"github.com/stretchr/testify/require"
 )
 
 type fakeJiraIssueFetcher struct{}
@@ -34,9 +35,7 @@ func TestJiraFetch(t *testing.T) {
 func TestJiraFetchWithRecording(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	r, err := recorder.New("../test/data/jira_fetch_test")
-	if err != nil {
-		t.Error(err)
-	}
+	require.Nil(t, err)
 	defer r.Stop()
 
 	h := &http.Client{

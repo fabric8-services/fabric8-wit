@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConvertNewWorkItem(t *testing.T) {
@@ -37,7 +38,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 		workItem, err := convert(db, int(tq.ID), remoteItemData, ProviderGithub)
 
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
 		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
@@ -74,7 +75,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 		workItem, err := convert(tx, int(tq.ID), remoteItemData, ProviderGithub)
 
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
 		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
@@ -91,7 +92,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		}
 		workItemUpdated, err := convert(tx, int(tq.ID), remoteItemDataUpdated, ProviderGithub)
 
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		assert.Equal(t, "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItemUpdated.Fields[workitem.SystemCreator])
 		assert.Equal(t, "pranav", workItemUpdated.Fields[workitem.SystemAssignees].([]interface{})[0])
@@ -135,7 +136,7 @@ func TestConvertGithubIssue(t *testing.T) {
 
 		workItemGithub, err := convert(tx, int(tq.ID), remoteItemDataGithub, ProviderGithub)
 
-		assert.Nil(t, err)
+		require.Nil(t, err)
 		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemCreator])
 		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])

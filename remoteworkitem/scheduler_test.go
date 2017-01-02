@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 )
 
 var db *gorm.DB
@@ -44,17 +45,11 @@ func TestLookupProvider(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts1 := trackerSchedule{TrackerType: ProviderGithub}
 	tp1 := lookupProvider(ts1)
-	if tp1 == nil {
-		t.Error("nil provider")
-	}
+	assert.NotNil(t, tp1, "nil provider")
 	ts2 := trackerSchedule{TrackerType: ProviderJira}
 	tp2 := lookupProvider(ts2)
-	if tp2 == nil {
-		t.Error("nil provider")
-	}
+	assert.NotNil(t, tp2, "nil provider")
 	ts3 := trackerSchedule{TrackerType: "unknown"}
 	tp3 := lookupProvider(ts3)
-	if tp3 != nil {
-		t.Error("non-nil provider")
-	}
+	assert.Nil(t, tp3, "non-nil provider")
 }
