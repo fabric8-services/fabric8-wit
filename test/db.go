@@ -5,7 +5,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/project"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 )
@@ -25,7 +25,7 @@ func (db *MockDB) WorkItemTypes() workitem.WorkItemTypeRepository {
 	return nil
 }
 
-func (db *MockDB) Projects() project.Repository {
+func (db *MockDB) Spaces() space.Repository {
 	return nil
 }
 

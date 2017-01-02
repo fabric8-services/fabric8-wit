@@ -15,8 +15,8 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/project"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -25,71 +25,71 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type TestProjectIterationREST struct {
+type TestSpaceIterationREST struct {
 	gormsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
 }
 
-func TestRunProjectIterationREST(t *testing.T) {
-	suite.Run(t, &TestProjectIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+func TestRunSpaceIterationREST(t *testing.T) {
+	suite.Run(t, &TestSpaceIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
 }
 
-func (rest *TestProjectIterationREST) SetupTest() {
+func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
 }
 
-func (rest *TestProjectIterationREST) TearDownTest() {
+func (rest *TestSpaceIterationREST) TearDownTest() {
 	rest.clean()
 }
 
-func (rest *TestProjectIterationREST) SecuredController() (*goa.Service, *ProjectIterationsController) {
+func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIterationsController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
-	return svc, NewProjectIterationsController(svc, rest.db)
+	return svc, NewSpaceIterationsController(svc, rest.db)
 }
 
-func (rest *TestProjectIterationREST) UnSecuredController() (*goa.Service, *ProjectIterationsController) {
+func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceIterationsController) {
 	svc := goa.New("Iteration-Service")
-	return svc, NewProjectIterationsController(svc, rest.db)
+	return svc, NewSpaceIterationsController(svc, rest.db)
 }
 
-func (rest *TestProjectIterationREST) TestSuccessCreateIteration() {
+func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	var p *project.Project
-	ci := createProjectIteration("Sprint #21")
+	var p *space.Space
+	ci := createSpaceIteration("Sprint #21")
 
 	application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Projects()
+		repo := app.Spaces()
 		p, _ = repo.Create(context.Background(), "Test 1")
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateProjectIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
+	_, c := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
 	assert.NotNil(t, c.Data.ID)
-	assert.NotNil(t, c.Data.Relationships.Project)
-	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Project.Data.ID)
+	assert.NotNil(t, c.Data.Relationships.Space)
+	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
 }
 
-func (rest *TestProjectIterationREST) TestListIterationsByProject() {
+func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	var projectID uuid.UUID
+	var spaceID uuid.UUID
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Projects().Create(context.Background(), "Test 1")
+		p, err := app.Spaces().Create(context.Background(), "Test 1")
 		if err != nil {
 			t.Error(err)
 		}
-		projectID = p.ID
+		spaceID = p.ID
 
 		for i := 0; i < 3; i++ {
 			start := time.Now()
@@ -97,10 +97,10 @@ func (rest *TestProjectIterationREST) TestListIterationsByProject() {
 			name := "Sprint #2" + strconv.Itoa(i)
 
 			i := iteration.Iteration{
-				Name:      name,
-				ProjectID: projectID,
-				StartAt:   &start,
-				EndAt:     &end,
+				Name:    name,
+				SpaceID: spaceID,
+				StartAt: &start,
+				EndAt:   &end,
 			}
 			repo.Create(context.Background(), &i)
 		}
@@ -108,43 +108,43 @@ func (rest *TestProjectIterationREST) TestListIterationsByProject() {
 	})
 
 	svc, ctrl := rest.UnSecuredController()
-	_, cs := test.ListProjectIterationsOK(t, svc.Context, svc, ctrl, projectID.String())
+	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
 	assert.Len(t, cs.Data, 3)
 }
 
-func (rest *TestProjectIterationREST) TestCreateIterationMissingProject() {
+func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	ci := createProjectIteration("Sprint #21")
+	ci := createSpaceIteration("Sprint #21")
 
 	svc, ctrl := rest.SecuredController()
-	test.CreateProjectIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	test.CreateSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
 }
 
-func (rest *TestProjectIterationREST) TestFailCreateIterationNotAuthorized() {
+func (rest *TestSpaceIterationREST) TestFailCreateIterationNotAuthorized() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	ci := createProjectIteration("Sprint #21")
+	ci := createSpaceIteration("Sprint #21")
 
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateProjectIterationsUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	test.CreateSpaceIterationsUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
 }
 
-func (rest *TestProjectIterationREST) TestFailListIterationsByMissingProject() {
+func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ListProjectIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
+	test.ListSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
-func createProjectIteration(name string) *app.CreateProjectIterationsPayload {
+func createSpaceIteration(name string) *app.CreateSpaceIterationsPayload {
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
-	return &app.CreateProjectIterationsPayload{
+	return &app.CreateSpaceIterationsPayload{
 		Data: &app.Iteration{
 			Type: "iterations",
 			Attributes: &app.IterationAttributes{

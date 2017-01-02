@@ -218,9 +218,9 @@ func main() {
 	c6 := NewTrackerqueryController(service, appDB, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
-	// Mount "project" controller
-	projectCtrl := NewProjectController(service, appDB)
-	app.MountProjectController(service, projectCtrl)
+	// Mount "space" controller
+	spaceCtrl := NewSpaceController(service, appDB)
+	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
 	userCtrl := NewUserController(service, identityRepository, tokenManager)
@@ -242,8 +242,8 @@ func main() {
 	iterationCtrl := NewIterationController(service, appDB)
 	app.MountIterationController(service, iterationCtrl)
 
-	projectIterationCtrl := NewProjectIterationsController(service, appDB)
-	app.MountProjectIterationsController(service, projectIterationCtrl)
+	spaceIterationCtrl := NewSpaceIterationsController(service, appDB)
+	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

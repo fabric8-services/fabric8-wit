@@ -1,4 +1,4 @@
-package project
+package space
 
 import (
 	"log"
@@ -11,8 +11,8 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Project represents a project on the domain and db layer
-type Project struct {
+// Space represents a Space on the domain and db layer
+type Space struct {
 	gormsupport.Lifecycle
 	ID      satoriuuid.UUID
 	Version int
@@ -20,12 +20,12 @@ type Project struct {
 }
 
 // Ensure Fields implements the Equaler interface
-var _ convert.Equaler = Project{}
-var _ convert.Equaler = (*Project)(nil)
+var _ convert.Equaler = Space{}
+var _ convert.Equaler = (*Space)(nil)
 
-// Equal returns true if two Project objects are equal; otherwise false is returned.
-func (p Project) Equal(u convert.Equaler) bool {
-	other, ok := u.(Project)
+// Equal returns true if two Space objects are equal; otherwise false is returned.
+func (p Space) Equal(u convert.Equaler) bool {
+	other, ok := u.(Space)
 	if !ok {
 		return false
 	}
@@ -42,32 +42,32 @@ func (p Project) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// Repository encapsulate storage & retrieval of projects
+// Repository encapsulate storage & retrieval of spaces
 type Repository interface {
-	Create(ctx context.Context, name string) (*Project, error)
-	Save(ctx context.Context, project Project) (*Project, error)
-	Load(ctx context.Context, ID satoriuuid.UUID) (*Project, error)
+	Create(ctx context.Context, name string) (*Space, error)
+	Save(ctx context.Context, space Space) (*Space, error)
+	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
-	List(ctx context.Context, start *int, length *int) ([]*Project, uint64, error)
+	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
 }
 
-// NewRepository creates a new project repo
+// NewRepository creates a new space repo
 func NewRepository(db *gorm.DB) *GormRepository {
 	return &GormRepository{db}
 }
 
-// GormRepository implements ProjectRepository using gorm
+// GormRepository implements SpaceRepository using gorm
 type GormRepository struct {
 	db *gorm.DB
 }
 
-// Load returns the project for the given id
+// Load returns the space for the given id
 // returns NotFoundError or InternalError
-func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Project, error) {
-	res := Project{}
+func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error) {
+	res := Space{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
-		return nil, errors.NewNotFoundError("project", ID.String())
+		return nil, errors.NewNotFoundError("space", ID.String())
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(tx.Error.Error())
@@ -75,45 +75,45 @@ func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Project
 	return &res, nil
 }
 
-// Delete deletes the project with the given id
+// Delete deletes the space with the given id
 // returns NotFoundError or InternalError
 func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	if ID == satoriuuid.Nil {
-		return errors.NewNotFoundError("project", ID.String())
+		return errors.NewNotFoundError("space", ID.String())
 	}
-	project := Project{ID: ID}
-	tx := r.db.Delete(project)
+	space := Space{ID: ID}
+	tx := r.db.Delete(space)
 
 	if err := tx.Error; err != nil {
 		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
-		return errors.NewNotFoundError("project", ID.String())
+		return errors.NewNotFoundError("space", ID.String())
 	}
 
 	return nil
 }
 
-// Save updates the given project in the db. Version must be the same as the one in the stored version
+// Save updates the given space in the db. Version must be the same as the one in the stored version
 // returns NotFoundError, BadParameterError, VersionConflictError or InternalError
-func (r *GormRepository) Save(ctx context.Context, p Project) (*Project, error) {
-	pr := Project{}
+func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
+	pr := Space{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	oldVersion := p.Version
 	p.Version++
 	if tx.RecordNotFound() {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, errors.NewNotFoundError("project", p.ID.String())
+		return nil, errors.NewNotFoundError("space", p.ID.String())
 	}
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
 	tx = tx.Where("Version = ?", oldVersion).Save(&p)
 	if err := tx.Error; err != nil {
-		if gormsupport.IsCheckViolation(tx.Error, "projects_name_check") {
+		if gormsupport.IsCheckViolation(tx.Error, "spaces_name_check") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("not empty")
 		}
-		if gormsupport.IsUniqueViolation(tx.Error, "projects_name_idx") {
+		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("unique")
 		}
 		return nil, errors.NewInternalError(err.Error())
@@ -121,36 +121,36 @@ func (r *GormRepository) Save(ctx context.Context, p Project) (*Project, error) 
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Printf("updated project to %v\n", p)
+	log.Printf("updated space to %v\n", p)
 	return &p, nil
 }
 
-// Create creates a new Project in the db
+// Create creates a new Space in the db
 // returns BadParameterError or InternalError
-func (r *GormRepository) Create(ctx context.Context, name string) (*Project, error) {
-	newProject := Project{
+func (r *GormRepository) Create(ctx context.Context, name string) (*Space, error) {
+	newSpace := Space{
 		Name: name,
 	}
 
-	tx := r.db.Create(&newProject)
+	tx := r.db.Create(&newSpace)
 	if err := tx.Error; err != nil {
-		if gormsupport.IsCheckViolation(tx.Error, "projects_name_check") {
+		if gormsupport.IsCheckViolation(tx.Error, "spaces_name_check") {
 			return nil, errors.NewBadParameterError("Name", name).Expected("not empty")
 		}
-		if gormsupport.IsUniqueViolation(tx.Error, "projects_name_idx") {
+		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
 			return nil, errors.NewBadParameterError("Name", name).Expected("unique")
 		}
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created project %v\n", newProject)
-	return &newProject, nil
+	log.Printf("created space %v\n", newSpace)
+	return &newSpace, nil
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listProjectFromDB(ctx context.Context, start *int, limit *int) ([]*Project, uint64, error) {
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
 
-	db := r.db.Model(&Project{})
+	db := r.db.Model(&Space{})
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
@@ -172,8 +172,8 @@ func (r *GormRepository) listProjectFromDB(ctx context.Context, start *int, limi
 	}
 	defer rows.Close()
 
-	result := []*Project{}
-	value := Project{}
+	result := []*Space{}
+	value := Space{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -217,8 +217,8 @@ func (r *GormRepository) listProjectFromDB(ctx context.Context, start *int, limi
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Project, uint64, error) {
-	result, count, err := r.listProjectFromDB(ctx, start, limit)
+func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
+	result, count, err := r.listSpaceFromDB(ctx, start, limit)
 	if err != nil {
 		return nil, 0, err
 	}

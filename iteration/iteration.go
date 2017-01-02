@@ -14,12 +14,12 @@ import (
 // Iteration describes a single iteration
 type Iteration struct {
 	gormsupport.Lifecycle
-	ID        uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	ProjectID uuid.UUID `sql:"type:uuid"`
-	ParentID  uuid.UUID `sql:"type:uuid"` // TODO: This should be * to support nil ?
-	StartAt   *time.Time
-	EndAt     *time.Time
-	Name      string
+	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	SpaceID  uuid.UUID `sql:"type:uuid"`
+	ParentID uuid.UUID `sql:"type:uuid"` // TODO: This should be * to support nil ?
+	StartAt  *time.Time
+	EndAt    *time.Time
+	Name     string
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -31,7 +31,7 @@ func (m *Iteration) TableName() string {
 // Repository describes interactions with Iterations
 type Repository interface {
 	Create(ctx context.Context, u *Iteration) error
-	List(ctx context.Context, projectID uuid.UUID) ([]*Iteration, error)
+	List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 }
 
@@ -61,11 +61,11 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 }
 
 // List all Iterations related to a single item
-func (m *GormIterationRepository) List(ctx context.Context, projectID uuid.UUID) ([]*Iteration, error) {
+func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var objs []*Iteration
 
-	err := m.db.Where("project_id = ?", projectID).Find(&objs).Error
+	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
