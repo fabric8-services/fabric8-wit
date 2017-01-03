@@ -15,6 +15,7 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/mitchellh/mapstructure"
 	"github.com/almighty/almighty-core/workitem"
+	"time"
 )
 
 type Api struct {
@@ -272,13 +273,12 @@ func (a *Api) theCreatorOfTheWorkItemMustBeTheSaidUser() error {
 	return godog.ErrPending
 }
 
-func (a *Api) theUserCreatesANewIteration() error {
+func (a *Api) theUserCreatesANewIterationWithStartDateAndEndDate(startDate string, endDate string) error {
 	spaceIterationsPath := fmt.Sprintf("/api/spaces/%v/iterations", a.space.Data.ID)
-	resp, err := a.c.CreateSpaceIterations(context.Background(), spaceIterationsPath, a.createSpaceIterationPayload())
+	resp, err := a.c.CreateSpaceIterations(context.Background(), spaceIterationsPath, a.createSpaceIterationPayload(startDate, endDate))
 	a.resp = resp
 	a.err = err
 	dec := json.NewDecoder(a.resp.Body)
-	fmt.Println("Decoding space iteration")
 	if err := dec.Decode(&a.iteration); err == io.EOF {
 		return nil
 	} else if err != nil {
@@ -287,13 +287,18 @@ func (a *Api) theUserCreatesANewIteration() error {
 	return nil
 }
 
-func (a *Api) createSpaceIterationPayload() *client.CreateSpaceIterationsPayload {
+func (a *Api) createSpaceIterationPayload(startDate string, endDate string) *client.CreateSpaceIterationsPayload {
 	iterationName := "Test iteration"
 	a.iterationName = iterationName
+	const longForm = "2006-01-02"
+	t1, _ := time.Parse(longForm, startDate)
+	t2, _ := time.Parse(longForm, endDate)
 	return &client.CreateSpaceIterationsPayload{
 		Data: &client.Iteration{
 			Attributes: &client.IterationAttributes{
 				Name: &iterationName,
+				StartAt: &t1,
+				EndAt: &t2,
 			},
 			Type: "iterations",
 		},
@@ -330,7 +335,7 @@ func FeatureContext(s *godog.Suite) {
 	s.Step(`^the creator of the work item must be the said user\.$`, a.theCreatorOfTheWorkItemMustBeTheSaidUser)
 
 	s.Step(`^a user with permissions to create iterations in a space,$`, a.aUserWithPermissions)
-	s.Step(`^the user creates a new iteration,$`, a.theUserCreatesANewIteration)
+	s.Step(`^the user creates a new iteration with start date "([^"]*)" and end date "([^"]*)"$`, a.theUserCreatesANewIterationWithStartDateAndEndDate)
 	s.Step(`^a new iteration should be created\.$`, a.aNewIterationShouldBeCreated)
 
 	s.Step(`^a user with permissions to comment on work items,$`, a.aUserWithPermissions)
