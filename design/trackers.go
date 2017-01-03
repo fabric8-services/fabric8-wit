@@ -27,6 +27,13 @@ var trackerLinks = a.Type("TrackerLinks", func() {
 // Defines a Media Type for Single Tracker Object
 var TrackerObject = JSONSingle("TrackerObject", "Single Tracker Payload", trackerData, trackerLinks)
 
+// TrackerObjectList contains paged results for listing work items and paging links
+var TrackerObjectList = JSONList(
+	"TrackerObject", "Holds the paginated response to a work item list request",
+	trackerData,
+	trackerLinks,
+	nil)
+
 var trackerAttributes = a.Type("TrackerAttributes", func() {
 	a.Attribute("url", d.String, "URL of the tracker", func() {
 		a.Example("https://api.github.com/")
@@ -53,11 +60,10 @@ var _ = a.Resource("tracker", func() {
 			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 		})
 		a.Response(d.OK, func() {
-			a.Media(a.CollectionOf(Tracker))
+			a.Media(TrackerObjectList)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
 	a.Action("show", func() {
@@ -69,7 +75,7 @@ var _ = a.Resource("tracker", func() {
 			a.Param("id", d.String, "id")
 		})
 		a.Response(d.OK, func() {
-			a.Media(Tracker)
+			a.Media(TrackerObject)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)

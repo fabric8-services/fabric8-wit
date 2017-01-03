@@ -29,6 +29,7 @@ func getTrackerPayload(attr trackerAttr) app.CreateTrackerPayload {
 
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 
 	payload := getTrackerPayload(trackerAttr{
@@ -58,15 +59,15 @@ func TestGetTracker(t *testing.T) {
 	if tr == nil {
 		t.Fatalf("Tracker '%s' not present", resultID)
 	}
-	if tr.ID != resultID {
-		t.Errorf("Id should be %s, but is %s", resultID, tr.ID)
+	if *tr.Data.ID != resultID {
+		t.Errorf("Id should be %s, but is %s", resultID, *tr.Data.ID)
 	}
 
 	payload2 := app.UpdateTrackerAlternatePayload{
-		URL:  tr.URL,
-		Type: tr.Type,
+		URL:  tr.Data.Attributes.URL,
+		Type: tr.Data.Attributes.Type,
 	}
-	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, tr.ID, &payload2)
+	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, *tr.Data.ID, &payload2)
 	if updated.ID != resultID {
 		t.Errorf("Id has changed from %s to %s", resultID, updated.ID)
 	}
@@ -96,7 +97,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 
 	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)
 
-	for _, tracker := range list {
+	for _, tracker := range list.Data {
 		if tracker == nil {
 			t.Error("Returned Tracker found nil")
 		}
@@ -117,7 +118,7 @@ func TestCreateTrackerValidId(t *testing.T) {
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	trackerID := *tracker.Data.ID
 	_, created := test.ShowTrackerOK(t, nil, nil, &controller, trackerID)
-	if created != nil && created.ID != trackerID {
-		t.Error("Failed because fetched Tracker not same as requested. Found: ", trackerID, " Expected, ", created.ID)
+	if created != nil && *created.Data.ID != trackerID {
+		t.Error("Failed because fetched Tracker not same as requested. Found: ", trackerID, " Expected, ", *created.Data.ID)
 	}
 }

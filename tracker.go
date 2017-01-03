@@ -103,7 +103,13 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 			}
 		}
-		return ctx.OK(t)
+		jsonapiTrackerObject := app.TrackerObjectSingle{
+			Data: convertTracker(t),
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		return ctx.OK(&jsonapiTrackerObject)
 	})
 }
 
@@ -125,7 +131,17 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing trackers: %s", err.Error())))
 			return ctx.InternalServerError(jerrors)
 		}
-		return ctx.OK(result)
+		jsonapiData := make([]*app.TrackerData, len(result))
+		for i, tracker := range result {
+			jsonapiData[i] = convertTracker(tracker)
+		}
+		response := app.TrackerObjectList{
+			Data: jsonapiData,
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		return ctx.OK(&response)
 	})
 
 }
@@ -156,4 +172,16 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	})
 	c.scheduler.ScheduleAllQueries()
 	return result
+}
+
+// convertTracker converts app.Tracker object into jsonapi based app.TrackerData
+func convertTracker(t *app.Tracker) *app.TrackerData {
+	return &app.TrackerData{
+		ID:   &t.ID,
+		Type: APIStringTypeTracker,
+		Attributes: &app.TrackerAttributes{
+			Type: t.Type,
+			URL:  t.URL,
+		},
+	}
 }
