@@ -123,6 +123,25 @@ var _ = a.Resource("comments", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("update the comment with the given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(commentSingle)
+		a.Response(d.OK, func() {
+			a.Media(commentSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+
 })
 
 var _ = a.Resource("work-item-comments", func() {

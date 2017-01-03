@@ -47,6 +47,32 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	})
 }
 
+// Update does PATCH comment
+func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.BadRequest(jerrors)
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		cm, err := appl.Comments().Load(ctx.Context, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		cm.Body = *ctx.Payload.Data.Attributes.Body
+		cm, err = appl.Comments().Save(ctx.Context, *cm)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		res := &app.CommentSingle{
+			Data: ConvertComment(ctx.RequestData, cm, CommentIncludeParentWorkItem()),
+		}
+		return ctx.OK(res)
+	})
+}
+
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // convertion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)

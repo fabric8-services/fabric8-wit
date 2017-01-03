@@ -1,6 +1,7 @@
 package comment
 
 import (
+	"log"
 	"time"
 
 	"golang.org/x/net/context"
@@ -24,6 +25,7 @@ type Comment struct {
 // Repository describes interactions with comments
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
+	Save(ctx context.Context, comment Comment) (*Comment, error)
 	List(ctx context.Context, parent string) ([]*Comment, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 }
@@ -57,6 +59,25 @@ func (m *GormCommentRepository) Create(ctx context.Context, u *Comment) error {
 	}
 
 	return nil
+}
+
+// Save a single comment
+func (m *GormCommentRepository) Save(ctx context.Context, comment Comment) (*Comment, error) {
+	c := Comment{}
+	tx := m.db.Where("id=?", comment.ID).First(&c)
+	if tx.RecordNotFound() {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, errors.NewNotFoundError("comment", comment.ID.String())
+	}
+	if err := tx.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	tx = tx.Save(&comment)
+	if err := tx.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	log.Printf("updated comment to %v\n", comment)
+	return &comment, nil
 }
 
 // List all comments related to a single item
