@@ -70,9 +70,9 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
 	}
-	_, _ = test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
-	_, _ = test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
+	test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)

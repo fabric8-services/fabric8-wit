@@ -130,8 +130,8 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 		Schedule:  "15 * * * * *",
 		TrackerID: result.ID,
 	}
-	_, _ = test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
-	_, _ = test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
+	test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, list := test.ListTrackerqueryOK(t, nil, nil, &tqController)
