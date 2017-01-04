@@ -91,61 +91,61 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	r2, _ := strconv.Atoi(fmt.Sprintf("%v", *result2.Data.ID))
 	r3, _ := strconv.Atoi(fmt.Sprintf("%v", *result3.Data.ID))
-	payload2 = minimumRequiredUpdatePayload()
-	payload2.Data.ID = updated.Data.ID
-	payload2.Data.Attributes = updated.Data.Attributes
-	payload2.Data.Attributes["previousitem"] = r2
-	payload2.Data.Attributes["nextitem"] = r3
-	_, updated1 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated.Data.ID, &payload2)
-	assert.NotNil(t, updated1.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, updated1.Data.Attributes[workitem.SystemOrder])
+	payload3 := minimumRequiredReorderPayload()
+	payload3.Data.ID = updated.Data.ID
+	payload3.Data.Attributes = updated.Data.Attributes
+	payload3.Data.Attributes["previousitem"] = r2
+	payload3.Data.Attributes["nextitem"] = r3
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload3)
+	assert.NotNil(t, reordered1.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, reordered1.Data.Attributes[workitem.SystemOrder])
 
-	if updated1.Data.Attributes["version"] != (updated.Data.Attributes["version"].(int) + 1) {
-		t.Errorf("expected version %d, but got %d", (updated.Data.Attributes["version"].(int) + 1), updated1.Data.Attributes["version"])
+	if reordered1.Data.Attributes["version"] != (updated.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (updated.Data.Attributes["version"].(int) + 1), reordered1.Data.Attributes["version"])
 	}
-	if *updated1.Data.ID != *updated.Data.ID {
-		t.Errorf("id has changed from %s to %s", *updated.Data.ID, *updated1.Data.ID)
+	if *reordered1.Data.ID != *updated.Data.ID {
+		t.Errorf("id has changed from %s to %s", *updated.Data.ID, *reordered1.Data.ID)
 	}
-	if updated1.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated1.Data.Attributes[workitem.SystemTitle])
-	}
-
-	payload2 = minimumRequiredUpdatePayload()
-	payload2.Data.ID = updated1.Data.ID
-	payload2.Data.Attributes = updated1.Data.Attributes
-	payload2.Data.Attributes["previousitem"] = nil
-	payload2.Data.Attributes["nextitem"] = r2
-	_, updated2 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated1.Data.ID, &payload2)
-	assert.NotNil(t, updated2.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, updated2.Data.Attributes[workitem.SystemOrder])
-
-	if updated2.Data.Attributes["version"] != (updated1.Data.Attributes["version"].(int) + 1) {
-		t.Errorf("expected version %d, but got %d", (updated1.Data.Attributes["version"].(int) + 1), updated2.Data.Attributes["version"])
-	}
-	if *updated2.Data.ID != *updated1.Data.ID {
-		t.Errorf("id has changed from %s to %s", *updated1.Data.ID, *updated2.Data.ID)
-	}
-	if updated2.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated2.Data.Attributes[workitem.SystemTitle])
+	if reordered1.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", reordered1.Data.Attributes[workitem.SystemTitle])
 	}
 
-	payload2 = minimumRequiredUpdatePayload()
-	payload2.Data.ID = updated1.Data.ID
-	payload2.Data.Attributes = updated2.Data.Attributes
-	payload2.Data.Attributes["previousitem"] = r3
-	payload2.Data.Attributes["nextitem"] = nil
-	_, updated3 := test.UpdateWorkitemOK(t, nil, nil, controller, *updated2.Data.ID, &payload2)
-	assert.NotNil(t, updated3.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, updated3.Data.Attributes[workitem.SystemOrder])
+	payload3 = minimumRequiredReorderPayload()
+	payload3.Data.ID = updated.Data.ID
+	payload3.Data.Attributes = reordered1.Data.Attributes
+	payload3.Data.Attributes["previousitem"] = nil
+	payload3.Data.Attributes["nextitem"] = r2
+	_, reordered2 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload3)
+	assert.NotNil(t, reordered2.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, reordered2.Data.Attributes[workitem.SystemOrder])
 
-	if updated3.Data.Attributes["version"] != (updated2.Data.Attributes["version"].(int) + 1) {
-		t.Errorf("expected version %d, but got %d", (updated2.Data.Attributes["version"].(int) + 1), updated3.Data.Attributes["version"])
+	if reordered2.Data.Attributes["version"] != (reordered1.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (reordered1.Data.Attributes["version"].(int) + 1), reordered2.Data.Attributes["version"])
 	}
-	if *updated3.Data.ID != *updated2.Data.ID {
-		t.Errorf("id has changed from %s to %s", *updated2.Data.ID, *updated3.Data.ID)
+	if *reordered2.Data.ID != *reordered1.Data.ID {
+		t.Errorf("id has changed from %s to %s", *reordered1.Data.ID, *reordered2.Data.ID)
 	}
-	if updated3.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated3.Data.Attributes[workitem.SystemTitle])
+	if reordered2.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", reordered2.Data.Attributes[workitem.SystemTitle])
+	}
+
+	payload3 = minimumRequiredReorderPayload()
+	payload3.Data.ID = updated.Data.ID
+	payload3.Data.Attributes = reordered2.Data.Attributes
+	payload3.Data.Attributes["previousitem"] = r3
+	payload3.Data.Attributes["nextitem"] = nil
+	_, reordered3 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload3)
+	assert.NotNil(t, reordered3.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, reordered3.Data.Attributes[workitem.SystemOrder])
+
+	if reordered3.Data.Attributes["version"] != (reordered2.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (reordered2.Data.Attributes["version"].(int) + 1), reordered3.Data.Attributes["version"])
+	}
+	if *reordered3.Data.ID != *reordered2.Data.ID {
+		t.Errorf("id has changed from %s to %s", *reordered2.Data.ID, *reordered3.Data.ID)
+	}
+	if reordered3.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", reordered3.Data.Attributes[workitem.SystemTitle])
 	}
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
@@ -561,6 +561,15 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem2) *app.UpdateWorkitemPaylo
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 	return app.UpdateWorkitemPayload{
+		Data: &app.WorkItem2{
+			Type:       APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{},
+		},
+	}
+}
+
+func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
+	return app.ReorderWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},

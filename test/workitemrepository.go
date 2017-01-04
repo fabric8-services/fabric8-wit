@@ -31,6 +31,16 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
+	ReorderStub        func(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	reorderMutex       sync.RWMutex
+	reorderArgsForCall []struct {
+		ctx context.Context
+		wi  app.WorkItem
+	}
+	reorderReturns struct {
+		result1 *app.WorkItem
+		result2 error
+	}
 	DeleteStub        func(ctx context.Context, ID string) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
@@ -133,6 +143,41 @@ func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, app.Wor
 func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error) {
 	fake.SaveStub = nil
 	fake.saveReturns = struct {
+		result1 *app.WorkItem
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *WorkItemRepository) Reorder(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+	fake.reorderMutex.Lock()
+	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
+		ctx context.Context
+		wi  app.WorkItem
+	}{ctx, wi})
+	fake.recordInvocation("Reorder", []interface{}{ctx, wi})
+	fake.reorderMutex.Unlock()
+	if fake.ReorderStub != nil {
+		return fake.ReorderStub(ctx, wi)
+	} else {
+		return fake.reorderReturns.result1, fake.reorderReturns.result2
+	}
+}
+
+func (fake *WorkItemRepository) ReorderCallCount() int {
+	fake.reorderMutex.RLock()
+	defer fake.reorderMutex.RUnlock()
+	return len(fake.reorderArgsForCall)
+}
+
+func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, app.WorkItem) {
+	fake.reorderMutex.RLock()
+	defer fake.reorderMutex.RUnlock()
+	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].wi
+}
+
+func (fake *WorkItemRepository) ReorderReturns(result1 *app.WorkItem, result2 error) {
+	fake.ReorderStub = nil
+	fake.reorderReturns = struct {
 		result1 *app.WorkItem
 		result2 error
 	}{result1, result2}

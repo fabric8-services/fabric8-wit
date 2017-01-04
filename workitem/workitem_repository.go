@@ -18,6 +18,7 @@ import (
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	Reorder(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -103,9 +104,9 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	return nil
 }
 
-// Save updates the given work item in storage. Version must be the same as the one int the stored version
+// Reorder reorders the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil || id == 0 {
@@ -192,6 +193,60 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		order = (prevorder + nextorder) / 2
 	}
 	wi.Fields[SystemOrder] = order
+	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt {
+			continue
+		}
+		fieldValue := wi.Fields[fieldName]
+		var err error
+		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		if err != nil {
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		}
+	}
+
+	tx = tx.Where("Version = ?", wi.Version).Save(&res)
+	if err := tx.Error; err != nil {
+		log.Print(err.Error())
+		return nil, errors.NewInternalError(err.Error())
+	}
+	if tx.RowsAffected == 0 {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	log.Printf("reordered item to %v\n", res)
+	return convertWorkItemModelToApp(wiType, &res)
+}
+
+// Save updates the given work item in storage. Version must be the same as the one int the stored version
+// returns NotFoundError, VersionConflictError, ConversionError or InternalError
+func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+	res := WorkItem{}
+	id, err := strconv.ParseUint(wi.ID, 10, 64)
+	if err != nil || id == 0 {
+		return nil, errors.NewNotFoundError("work item", wi.ID)
+	}
+
+	log.Printf("looking for id %d", id)
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
+		log.Printf("not found, res=%v", res)
+		return nil, errors.NewNotFoundError("work item", wi.ID)
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	if res.Version != wi.Version {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+
+	wiType, err := r.wir.LoadTypeFromDB(wi.Type)
+	if err != nil {
+		return nil, errors.NewBadParameterError("Type", wi.Type)
+	}
+
+	res.Version = res.Version + 1
+	res.Type = wi.Type
+	res.Fields = Fields{}
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
