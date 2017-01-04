@@ -63,21 +63,27 @@ func TestGetTracker(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", resultID, *tr.Data.ID)
 	}
 
-	payload2 := app.UpdateTrackerAlternatePayload{
-		URL:  tr.Data.Attributes.URL,
-		Type: tr.Data.Attributes.Type,
+	payload2 := app.UpdateTrackerPayload{
+		Data: &app.TrackerUpdateData{
+			Attributes: &app.TrackerAttributesToUpdate{
+				URL:  &tr.Data.Attributes.URL,
+				Type: &tr.Data.Attributes.Type,
+			},
+			ID:   *tr.Data.ID,
+			Type: APIStringTypeTracker,
+		},
 	}
 	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, *tr.Data.ID, &payload2)
-	if updated.ID != resultID {
-		t.Errorf("Id has changed from %s to %s", resultID, updated.ID)
+	if *updated.Data.ID != resultID {
+		t.Errorf("Id has changed from %s to %s", resultID, *updated.Data.ID)
 	}
 	resultURL := result.Data.Attributes.URL
-	if updated.URL != resultURL {
-		t.Errorf("URL has changed from %s to %s", resultURL, updated.URL)
+	if updated.Data.Attributes.URL != resultURL {
+		t.Errorf("URL has changed from %s to %s", resultURL, updated.Data.Attributes.URL)
 	}
 	resultType := result.Data.Attributes.Type
-	if updated.Type != resultType {
-		t.Errorf("Type has changed has from %s to %s", resultType, updated.Type)
+	if updated.Data.Attributes.Type != resultType {
+		t.Errorf("Type has changed has from %s to %s", resultType, updated.Data.Attributes.Type)
 	}
 }
 

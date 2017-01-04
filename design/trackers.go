@@ -24,8 +24,34 @@ var trackerLinks = a.Type("TrackerLinks", func() {
 	a.Required("self")
 })
 
+var trackerUpdateData = a.Type("TrackerUpdateData", func() {
+	a.Attribute("attributes", trackerAttributesToUpdate)
+	a.Attribute("type", d.String, func() {
+		a.Enum("trackers")
+	})
+	a.Attribute("id", d.String, "ID of the tracker record", func() {
+		a.Example("42")
+	})
+	a.Required("type", "attributes", "id")
+})
+
+var trackerAttributesToUpdate = a.Type("TrackerAttributesToUpdate", func() {
+	a.Attribute("url", d.String, "URL of the tracker", func() {
+		a.Example("https://api.github.com/")
+		a.MinLength(1)
+	})
+	a.Attribute("type", d.String, "Type of the tracker", func() {
+		a.Example("github")
+		a.Pattern("^[\\p{L}]+$")
+		a.MinLength(1)
+	})
+})
+
 // Defines a Media Type for Single Tracker Object
 var TrackerObject = JSONSingle("TrackerObject", "Single Tracker Payload", trackerData, trackerLinks)
+
+// TrackerUpdate a Media Type for updating Single Tracker Object
+var TrackerUpdate = JSONSingle("TrackerUpdate", "Single Tracker Payload", trackerUpdateData, trackerLinks)
 
 // TrackerObjectList contains paged results for listing work items and paging links
 var TrackerObjectList = JSONList(
@@ -115,12 +141,12 @@ var _ = a.Resource("tracker", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PUT("/:id"),
+			a.PATCH("/:id"),
 		)
 		a.Description("Update tracker configuration.")
-		a.Payload(UpdateTrackerAlternatePayload)
+		a.Payload(TrackerUpdate)
 		a.Response(d.OK, func() {
-			a.Media(Tracker)
+			a.Media(TrackerObject)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
