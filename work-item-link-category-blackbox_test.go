@@ -11,7 +11,7 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -43,7 +43,8 @@ type workItemLinkCategorySuite struct {
 func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
@@ -346,6 +347,10 @@ func TestSuiteWorkItemLinkCategory(t *testing.T) {
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)

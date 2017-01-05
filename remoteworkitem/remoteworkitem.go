@@ -2,8 +2,10 @@ package remoteworkitem
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/almighty/almighty-core/app"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/workitem"
 )
 
@@ -181,4 +183,13 @@ func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
 		}
 	}
 	return workItem, nil
+}
+
+func getConfigurationData() *configurationHandler.ConfigurationData {
+	configFilePath := configurationHandler.GetConfigFilePath()
+	configuration, err := configurationHandler.Setup(configFilePath)
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	return configuration
 }
