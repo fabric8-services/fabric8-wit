@@ -61,7 +61,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		cm.Body = *ctx.Payload.Data.Attributes.Body
-		cm, err = appl.Comments().Save(ctx.Context, *cm)
+		cm, err = appl.Comments().Save(ctx.Context, cm)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
