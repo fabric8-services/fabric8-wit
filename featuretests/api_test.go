@@ -1,4 +1,4 @@
-package main
+package featuretests
 
 import (
 	"github.com/DATA-DOG/godog"
