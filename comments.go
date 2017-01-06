@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/login"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -51,8 +53,12 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 		return ctx.BadRequest(jerrors)
+	}
+	identity, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -60,6 +66,11 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		if identity != cm.CreatedBy.String() {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+		}
+
 		cm.Body = *ctx.Payload.Data.Attributes.Body
 		cm, err = appl.Comments().Save(ctx.Context, cm)
 		if err != nil {
