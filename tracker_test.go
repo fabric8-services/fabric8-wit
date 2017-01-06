@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/stretchr/testify/assert"
 )
 
 type trackerAttr struct {
@@ -54,7 +55,6 @@ func TestGetTracker(t *testing.T) {
 
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	resultID := *result.Data.ID
-	test.ShowTrackerOK(t, nil, nil, &controller, resultID)
 	_, tr := test.ShowTrackerOK(t, nil, nil, &controller, resultID)
 	if tr == nil {
 		t.Fatalf("Tracker '%s' not present", resultID)
@@ -73,18 +73,10 @@ func TestGetTracker(t *testing.T) {
 			Type: APIStringTypeTracker,
 		},
 	}
-	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, *tr.Data.ID, &payload2)
-	if *updated.Data.ID != resultID {
-		t.Errorf("Id has changed from %s to %s", resultID, *updated.Data.ID)
-	}
-	resultURL := result.Data.Attributes.URL
-	if updated.Data.Attributes.URL != resultURL {
-		t.Errorf("URL has changed from %s to %s", resultURL, updated.Data.Attributes.URL)
-	}
-	resultType := result.Data.Attributes.Type
-	if updated.Data.Attributes.Type != resultType {
-		t.Errorf("Type has changed has from %s to %s", resultType, updated.Data.Attributes.Type)
-	}
+	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, tr.ID, &payload2)
+	assert.Equal(t, *updated.Data.ID, resultID)
+	assert.Equal(t, result.Data.Attributes.URL, result.Data.Attributes.URL)
+	assert.Equal(t, updated.Data.Attributes.Type, result.Data.Attributes.Type)
 }
 
 // This test ensures that List does not return NIL items.
@@ -124,7 +116,6 @@ func TestCreateTrackerValidId(t *testing.T) {
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	trackerID := *tracker.Data.ID
 	_, created := test.ShowTrackerOK(t, nil, nil, &controller, trackerID)
-	if created != nil && *created.Data.ID != trackerID {
-		t.Error("Failed because fetched Tracker not same as requested. Found: ", trackerID, " Expected, ", *created.Data.ID)
-	}
+	assert.NotNil(t, created)
+	assert.Equal(t, created.ID, trackerID)
 }
