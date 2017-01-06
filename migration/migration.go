@@ -139,6 +139,9 @@ func getMigrations() migrations {
 	// Version 20
 	m = append(m, steps{executeSQLFile("020-work-item-description-update-search-index.sql")})
 
+	// version 21
+	m = append(m, steps{executeSQLFile("021-adds-order-to-existing-wi.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
