@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/workitem"
+	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -51,7 +52,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	assert.NotNil(s.T(), wit)
 
 	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
-	assert.IsType(s.T(), errors.BadParameterError{}, err)
+	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
 	assert.Nil(s.T(), wit3)
 
 	wit2, err := s.repo.Load(context.Background(), "foo_bar")
@@ -81,7 +82,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	assert.NotNil(s.T(), wit)
 
 	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
-	assert.IsType(s.T(), errors.BadParameterError{}, err)
+	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
 	assert.Nil(s.T(), wit3)
 
 	wit2, err := s.repo.Load(context.Background(), "foo_bar")
