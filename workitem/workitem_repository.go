@@ -18,7 +18,7 @@ import (
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
-	Reorder(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	Reorder(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -106,8 +106,11 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 
 // Reorder reorders the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error) {
+	var order float64
 	res := WorkItem{}
+	beforeItem := WorkItem{}
+	afterItem := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil || id == 0 {
 		return nil, errors.NewNotFoundError("work item", wi.ID)
@@ -131,67 +134,55 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, wi app.WorkItem) (
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
 
+	if before != nil {
+		beforeId, err := strconv.ParseUint(*before, 10, 64)
+		if err != nil || beforeId == 0 {
+			return nil, errors.NewNotFoundError("work item", *before)
+		}
+		log.Printf("looking for id %d", beforeId)
+		tx = r.db.First(&beforeItem, beforeId)
+		if tx.RecordNotFound() {
+			log.Printf("not found, res=%v", beforeItem)
+			return nil, errors.NewNotFoundError("work item", string(beforeId))
+		}
+		if tx.Error != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		beforeOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Fields[SystemOrder]), 64)
+		tx2 := r.db.Where("fields -> 'order' < ?", beforeItem.Fields[SystemOrder]).Order("fields->'order' desc", true).Last(&afterItem)
+		if afterItem.ID == 0 {
+			// The item is moved to first position
+			order = (0 + beforeOrder) / 2
+		} else {
+			if tx2.RecordNotFound() {
+				log.Printf("not found, res=%v", beforeItem)
+				return nil, errors.NewNotFoundError("work item", *before)
+			}
+			if tx2.Error != nil {
+				return nil, errors.NewInternalError(err.Error())
+			}
+		}
+		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Fields[SystemOrder]), 64)
+		order = (beforeOrder + afterOrder) / 2
+	} else {
+		// the item is moved at last position
+
+		tx2 := r.db.Order("fields->'order' desc", true).Last(&afterItem)
+		if tx2.RecordNotFound() {
+			log.Printf("not found, res=%v", afterItem)
+			return nil, errors.NewNotFoundError("work item", string(afterItem.ID))
+		}
+		if tx2.Error != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Fields[SystemOrder]), 64)
+		order = afterOrder + 1000
+	}
+
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
-	var order float64
 
-	if wi.Fields[PreviousItem] == nil && wi.Fields[NextItem] == nil {
-		// Order is not changed
-		order, err = strconv.ParseFloat(fmt.Sprintf("%v", wi.Fields[SystemOrder]), 64)
-		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
-		}
-	} else if wi.Fields[PreviousItem] == nil && wi.Fields[NextItem] != nil {
-		// WorkItem is moved to the first position
-		nextitem := fmt.Sprintf("%v", wi.Fields[NextItem])
-		next, err := r.LoadFromDB(nextitem)
-		if err != nil {
-			return nil, err
-		}
-		nextorder, err := strconv.ParseFloat(fmt.Sprintf("%v", next.Fields[SystemOrder]), 64)
-		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[SystemOrder])
-		}
-
-		order = (0 + nextorder) / 2
-
-	} else if wi.Fields[PreviousItem] != nil && wi.Fields[NextItem] == nil {
-		// WorkItem is moved to the last position
-		previtem := fmt.Sprintf("%v", wi.Fields[PreviousItem])
-		prev, err := r.LoadFromDB(previtem)
-		if err != nil {
-			return nil, err
-		}
-		prevorder, err := strconv.ParseFloat(fmt.Sprintf("%v", prev.Fields[SystemOrder]), 64)
-		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[SystemOrder])
-		}
-		order = prevorder + 1000
-
-	} else {
-		previtem := fmt.Sprintf("%v", wi.Fields[PreviousItem])
-		prev, err := r.LoadFromDB(previtem)
-		if err != nil {
-			return nil, err
-		}
-		prevorder, err := strconv.ParseFloat(fmt.Sprintf("%v", prev.Fields[SystemOrder]), 64)
-		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.previousitem", prev.Fields[SystemOrder])
-		}
-
-		nextitem := fmt.Sprintf("%v", wi.Fields[NextItem])
-		next, err := r.LoadFromDB(nextitem)
-		if err != nil {
-			return nil, err
-		}
-		nextorder, err := strconv.ParseFloat(fmt.Sprintf("%v", next.Fields[SystemOrder]), 64)
-		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.nextitem", next.Fields[SystemOrder])
-		}
-
-		order = (prevorder + nextorder) / 2
-	}
 	wi.Fields[SystemOrder] = order
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
@@ -345,7 +336,6 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order'")
-	//db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order' desc")
 
 	rows, err := db.Rows()
 	if err != nil {

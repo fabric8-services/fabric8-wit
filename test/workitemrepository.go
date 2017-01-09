@@ -31,11 +31,12 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	ReorderStub        func(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	ReorderStub        func(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error)
 	reorderMutex       sync.RWMutex
 	reorderArgsForCall []struct {
-		ctx context.Context
-		wi  app.WorkItem
+		ctx    context.Context
+		before *string
+		wi     app.WorkItem
 	}
 	reorderReturns struct {
 		result1 *app.WorkItem
@@ -148,16 +149,17 @@ func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Reorder(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Reorder(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error) {
 	fake.reorderMutex.Lock()
 	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
-		ctx context.Context
-		wi  app.WorkItem
-	}{ctx, wi})
-	fake.recordInvocation("Reorder", []interface{}{ctx, wi})
+		ctx    context.Context
+		before *string
+		wi     app.WorkItem
+	}{ctx, before, wi})
+	fake.recordInvocation("Reorder", []interface{}{ctx, before, wi})
 	fake.reorderMutex.Unlock()
 	if fake.ReorderStub != nil {
-		return fake.ReorderStub(ctx, wi)
+		return fake.ReorderStub(ctx, before, wi)
 	} else {
 		return fake.reorderReturns.result1, fake.reorderReturns.result2
 	}
@@ -169,10 +171,10 @@ func (fake *WorkItemRepository) ReorderCallCount() int {
 	return len(fake.reorderArgsForCall)
 }
 
-func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, app.WorkItem) {
+func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, *string, app.WorkItem) {
 	fake.reorderMutex.RLock()
 	defer fake.reorderMutex.RUnlock()
-	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].wi
+	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].before, fake.reorderArgsForCall[i].wi
 }
 
 func (fake *WorkItemRepository) ReorderReturns(result1 *app.WorkItem, result2 error) {

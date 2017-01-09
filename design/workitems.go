@@ -153,9 +153,13 @@ var _ = a.Resource("workitem", func() {
 	a.Action("reorder", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/reorder"),
+			a.PATCH("/reorder/:id?before=:before"),
 		)
 		a.Description("reorder the work item with the given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "ids")
+			a.Param("before", d.String, "before id")
+		})
 		a.Payload(workItemSingle)
 		a.Response(d.OK, func() {
 			a.Media(workItemSingle)

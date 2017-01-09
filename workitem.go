@@ -150,7 +150,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 // Reorder reorders the workitem
 func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("data.id", nil))
 			return ctx.NotFound(jerrors)
@@ -166,7 +165,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error reordering work item: %s", err.Error())))
 			return ctx.BadRequest(jerrors)
 		}
-		wi, err = appl.WorkItems().Reorder(ctx, *wi)
+		wi, err = appl.WorkItems().Reorder(ctx, ctx.Before, *wi)
 		if err != nil {
 			switch err := err.(type) {
 			case errors.BadParameterError:
