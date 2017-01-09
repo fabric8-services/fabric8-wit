@@ -85,5 +85,5 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 			fmt.Println("Error creating work item : ", err)
 		}
 	}
-	return newWorkItem, err
+	return newWorkItem, errors.WithStack(err)
 }

@@ -56,26 +56,26 @@ type GormWorkItemLinkRepository struct {
 func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(sourceID, targetID uint64, linkTypeID satoriuuid.UUID) error {
 	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(linkTypeID)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	// Fetch the source work item
 	source, err := r.workItemRepo.LoadFromDB(strconv.FormatUint(sourceID, 10))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	// Fetch the target work item
 	target, err := r.workItemRepo.LoadFromDB(strconv.FormatUint(targetID, 10))
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	// Fetch the concrete work item types of the target and the source.
 	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(source.Type)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(target.Type)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	// Check type paths
 	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeName) {
@@ -96,10 +96,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		LinkTypeID: linkTypeID,
 	}
 	if err := link.CheckValidForCreation(); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	if err := r.ValidateCorrectSourceAndTargetType(sourceID, targetID, linkTypeID); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	db := r.db.Create(link)
 	if db.Error != nil {
@@ -142,7 +142,7 @@ type fetchLinksFunc func() ([]WorkItemLink, error)
 func (r *GormWorkItemLinkRepository) list(ctx context.Context, fetchFunc fetchLinksFunc) (*app.WorkItemLinkList, error) {
 	rows, err := fetchFunc()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	res := app.WorkItemLinkList{}
 	res.Data = make([]*app.WorkItemLinkData, len(rows))
@@ -165,7 +165,7 @@ func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDS
 		var rows []WorkItemLink
 		wi, err := r.workItemRepo.LoadFromDB(wiIDStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		// Now fetch all links for that work item
 		db := r.db.Model(&WorkItemLink{}).Where("? IN (source_id, target_id)", wi.ID).Find(&rows)
@@ -235,11 +235,11 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	if err := ConvertLinkToModel(lt, &res); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	res.Version = res.Version + 1
 	if err := r.ValidateCorrectSourceAndTargetType(res.SourceID, res.TargetID, res.LinkTypeID); err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	db = r.db.Save(&res)
 	if db.Error != nil {

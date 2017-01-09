@@ -52,7 +52,7 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
 	res, err := r.LoadFromDB(ID)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	wiType, err := r.wir.LoadTypeFromDB(res.Type)
 	if err != nil {
@@ -209,7 +209,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -249,7 +249,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		rows2, err := orgDB.Rows()
 		defer rows2.Close()
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errors.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
 		rows2.Scan(&count)
@@ -261,7 +261,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
 	result, count, err := r.listItemsFromDB(ctx, criteria, start, limit)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.WithStack(err)
 	}
 
 	res := make([]*app.WorkItem, len(result))

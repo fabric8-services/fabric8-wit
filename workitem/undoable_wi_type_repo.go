@@ -41,5 +41,5 @@ func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, extendedTyp
 			return db.Error
 		})
 	}
-	return res, err
+	return res, errors.WithStack(err)
 }

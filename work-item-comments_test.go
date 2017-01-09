@@ -197,13 +197,13 @@ func createWorkItem(db *gormapplication.GormDB) (string, error) {
 			},
 			uuid.NewV4().String())
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		wiid = wi.ID
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	return wiid, nil
 }

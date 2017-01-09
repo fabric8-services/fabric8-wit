@@ -160,12 +160,12 @@ func (g *GormDB) BeginTransaction() (application.Transaction, error) {
 func (g *GormTransaction) Commit() error {
 	err := g.db.Commit().Error
 	g.db = nil
-	return err
+	return errors.WithStack(err)
 }
 
 // Rollback implements TransactionSupport
 func (g *GormTransaction) Rollback() error {
 	err := g.db.Rollback().Error
 	g.db = nil
-	return err
+	return errors.WithStack(err)
 }

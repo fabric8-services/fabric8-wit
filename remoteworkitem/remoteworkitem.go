@@ -138,7 +138,7 @@ func NewGitHubRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	var j map[string]interface{}
 	err := json.Unmarshal([]byte(item.Item), &j)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	j = Flatten(j)
 	return GitHubRemoteWorkItem{issue: j}, nil
@@ -159,7 +159,7 @@ func NewJiraRemoteWorkItem(item TrackerItem) (AttributeAccessor, error) {
 	var j map[string]interface{}
 	err := json.Unmarshal([]byte(item.Item), &j)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	j = Flatten(j)
 	return JiraRemoteWorkItem{issue: j}, nil

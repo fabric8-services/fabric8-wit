@@ -124,7 +124,7 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 		return errors.NewBadParameterError("reverse_name", t.ReverseName)
 	}
 	if err := CheckValidTopology(t.Topology); err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	if t.LinkCategoryID == satoriuuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
@@ -237,7 +237,7 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 
 		if attrs.Topology != nil {
 			if err := CheckValidTopology(*attrs.Topology); err != nil {
-				return err
+				return errors.WithStack(err)
 			}
 			out.Topology = *attrs.Topology
 		}

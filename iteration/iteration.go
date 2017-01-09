@@ -61,7 +61,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Iteration", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return objs, nil
 }

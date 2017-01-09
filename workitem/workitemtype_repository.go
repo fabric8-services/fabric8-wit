@@ -39,7 +39,7 @@ type GormWorkItemTypeRepository struct {
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
 	res, err := r.LoadTypeFromDB(name)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	result := convertTypeFromModels(res)
@@ -94,7 +94,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		existing, exists := allFields[field]
 		ct, err := convertFieldTypeToModels(*definition.Type)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		converted := FieldDefinition{
 			Required: definition.Required,
@@ -137,7 +137,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 		db = db.Limit(*limit)
 	}
 	if err := db.Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	result := make([]*app.WorkItemType, len(rows))
 
@@ -208,13 +208,13 @@ func convertStringToKind(k string) (*Kind, error) {
 func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 	kind, err := convertStringToKind(t.Kind)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	switch *kind {
 	case KindList:
 		componentType, err := convertAnyToKind(*t.ComponentType)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if !componentType.isSimpleType() {
 			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
@@ -223,7 +223,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 	case KindEnum:
 		bt, err := convertAnyToKind(*t.BaseType)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		if !bt.isSimpleType() {
 			return nil, fmt.Errorf("baseType type is not list type: %s", bt)
@@ -235,7 +235,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 			return ft.ConvertToModel(element)
 		}, baseType, values)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		return EnumType{SimpleType{*kind}, baseType, converted}, nil
 	default:
@@ -249,7 +249,7 @@ func TEMPConvertFieldTypesToModel(fields map[string]app.FieldDefinition) (map[st
 	for field, definition := range fields {
 		ct, err := convertFieldTypeToModels(*definition.Type)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		converted := FieldDefinition{
 			Required: definition.Required,

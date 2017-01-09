@@ -116,7 +116,7 @@ func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, erro
 		}
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 

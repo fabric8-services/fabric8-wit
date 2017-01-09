@@ -55,11 +55,11 @@ func (s *Scheduler) ScheduleAllQueries() {
 					// Save the remote items in a 'temporary' table.
 					err := upload(tx, tq.TrackerID, i)
 					if err != nil {
-						return err
+						return errors.WithStack(err)
 					}
 					// Convert the remote item into a local work item and persist in the DB.
 					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
-					return err
+					return errors.WithStack(err)
 				})
 			}
 		})

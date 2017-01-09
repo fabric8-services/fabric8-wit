@@ -61,7 +61,7 @@ func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) 
 		var err error
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 	}
 
@@ -295,7 +295,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -343,14 +343,14 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// ....
 	parsedSearchDict, err := parseSearchString(rawSearchString)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.WithStack(err)
 	}
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []workitem.WorkItem
 	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.WithStack(err)
 	}
 	result := make([]*app.WorkItem, len(rows))
 

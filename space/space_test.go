@@ -111,7 +111,7 @@ type spaceExpectation func(p *space.Space, err error)
 func expectSpace(f func() (*space.Space, error), e spaceExpectation) (*space.Space, error) {
 	p, err := f()
 	e(p, err)
-	return p, err
+	return p, errors.WithStack(err)
 }
 
 func (test *repoBBTest) requireOk(p *space.Space, err error) {

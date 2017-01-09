@@ -144,7 +144,7 @@ func (keycloak keycloakOAuthProvider) getUser(ctx context.Context, token *oauth2
 	client := keycloak.config.Client(ctx, token)
 	resp, err := client.Get(configuration.GetKeycloakEndpointUserinfo())
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var user openIDConnectUser
@@ -184,8 +184,8 @@ func ContextIdentity(ctx context.Context) (string, error) {
 	uuid, err := tm.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
-		log.Println("Geust User")
-		return "", err
+		log.Println("Guest User")
+		return "", errors.WithStack(err)
 	}
 	return uuid.String(), nil
 }

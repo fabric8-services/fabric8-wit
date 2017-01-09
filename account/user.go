@@ -64,7 +64,7 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 		return nil, nil
 	}
 
-	return &native, err
+	return &native, errors.WithStack(err)
 }
 
 // Create creates a new record.
@@ -76,7 +76,7 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding User", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -89,11 +89,11 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
 		goa.LogError(ctx, "error updating User", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	if err != nil {
 		goa.LogError(ctx, "error deleting User", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -121,7 +121,7 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return objs, nil
 }

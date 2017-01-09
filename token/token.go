@@ -39,7 +39,7 @@ func (mgm tokenManager) Generate(ident account.Identity) (string, error) {
 
 	tokenStr, err := token.SignedString(mgm.privateKey)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	return tokenStr, nil
 }
@@ -49,7 +49,7 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 		return mgm.publicKey, nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	if !token.Valid {
@@ -63,7 +63,7 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 	// in case of nil UUID, below type casting will fail hence we need above check
 	id, err := uuid.FromString(token.Claims.(jwt.MapClaims)["uuid"].(string))
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	ident := account.Identity{

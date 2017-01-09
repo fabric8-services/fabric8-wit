@@ -99,7 +99,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 		db = db.Limit(*limit)
 	}
 	if err := db.Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	result := make([]*app.Tracker, len(rows))
 

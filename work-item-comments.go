@@ -123,7 +123,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 			cs, err := appl.Comments().List(ctx, parentID)
 			if err != nil {
 				count <- 0
-				return err
+				return errors.WithStack(err)
 			}
 			count <- len(cs)
 			return nil

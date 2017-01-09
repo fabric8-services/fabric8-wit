@@ -55,7 +55,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
 			default:
-				return err
+				return errors.WithStack(err)
 			}
 		}
 		return ctx.OK(tq)

@@ -55,7 +55,7 @@ func (m *GormCommentRepository) Create(ctx context.Context, u *Comment) error {
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Comment", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -87,7 +87,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string) ([]*Com
 
 	err := m.db.Table(m.TableName()).Where("parent_id = ?", parent).Order("created_at").Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return objs, nil
 }

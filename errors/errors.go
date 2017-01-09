@@ -57,7 +57,7 @@ func (err BadParameterError) Error() string {
 func (err BadParameterError) Expected(expexcted interface{}) BadParameterError {
 	err.expectedValue = expexcted
 	err.hasExpectedValue = true
-	return err
+	return errors.WithStack(err)
 }
 
 // NewBadParameterError returns the custom defined error of type NewBadParameterError.

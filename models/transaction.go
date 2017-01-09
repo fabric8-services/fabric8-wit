@@ -11,7 +11,7 @@ func Transactional(db *gorm.DB, todo func(tx *gorm.DB) error) error {
 	}
 	if err := todo(tx); err != nil {
 		tx.Rollback()
-		return err
+		return errors.WithStack(err)
 	}
 	tx.Commit()
 	return tx.Error

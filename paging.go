@@ -126,7 +126,7 @@ func parseInts(s *string) ([]int, error) {
 	for index, value := range split {
 		converted, err := strconv.Atoi(value)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		result[index] = converted
 	}
@@ -136,7 +136,7 @@ func parseInts(s *string) ([]int, error) {
 func parseLimit(pageParameter *string) (s *int, l int, e error) {
 	params, err := parseInts(pageParameter)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errors.WithStack(err)
 	}
 
 	if len(params) > 1 {

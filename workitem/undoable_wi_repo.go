@@ -56,7 +56,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 			return db.Error
 		})
 	}
-	return res, err
+	return res, errors.WithStack(err)
 }
 
 // Delete implements application.WorkItemRepository
@@ -82,14 +82,14 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 			return db.Error
 		})
 	}
-	return err
+	return errors.WithStack(err)
 }
 
 // Create implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
 	result, err := r.wrapped.Create(ctx, typeID, fields, creator)
 	if err != nil {
-		return result, err
+		return result, errors.WithStack(err)
 	}
 	id, err := strconv.ParseUint(result.ID, 10, 64)
 	if err != nil {
@@ -104,7 +104,7 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 		return db.Error
 	})
 
-	return result, err
+	return result, errors.WithStack(err)
 }
 
 // List implements application.WorkItemRepository

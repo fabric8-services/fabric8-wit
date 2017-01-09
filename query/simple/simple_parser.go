@@ -18,7 +18,7 @@ func Parse(exp *string) (Expression, error) {
 	var unmarshalled map[string]interface{}
 	err := json.Unmarshal([]byte(*exp), &unmarshalled)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var result *Expression
 	if len(unmarshalled) > 0 {

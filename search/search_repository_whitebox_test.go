@@ -282,7 +282,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			s.T().Log("Found search result for ID Search ", workItemValue.ID)
 			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
 		}
-		return err
+		return errors.WithStack(err)
 	})
 }
 
