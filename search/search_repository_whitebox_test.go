@@ -115,7 +115,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 
 			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
-				s.T().Fatal("Couldnt create test data")
+				s.T().Fatal("Couldn't create test data: %s", err.Error())
 			}
 
 			defer wir.Delete(context.Background(), createdWorkItem.ID)
@@ -215,7 +215,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
-			s.T().Fatal("Couldnt create test data")
+			s.T().Fatal("Couldn't create test data: %s", err.Error())
 		}
 		defer wir.Delete(context.Background(), createdWorkItem.ID)
 
