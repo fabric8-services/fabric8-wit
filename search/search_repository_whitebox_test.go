@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"

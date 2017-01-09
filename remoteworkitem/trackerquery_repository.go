@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 

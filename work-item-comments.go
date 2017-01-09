@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )

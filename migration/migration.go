@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -166,10 +167,10 @@ func executeSQLFile(filename string) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 		_, err = db.Exec(string(data))
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 }
 
@@ -188,7 +189,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	// iterator variable "version"
 	currentVersion, err := getCurrentVersion(tx)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	*nextVersion = currentVersion + 1
 	if *nextVersion >= int64(len(m)) {
@@ -246,16 +247,16 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
 func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	return nil
 }
@@ -266,14 +267,14 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 	case errors.NotFoundError:
 		_, err := linkCatRepo.Create(ctx, &name, &description)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 	case nil:
 		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
 		cat.Description = &description
 		linkCat := link.ConvertLinkCategoryFromModel(*cat)
 		_, err = linkCatRepo.Save(ctx, linkCat)
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	return nil
 }
@@ -281,7 +282,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 
 	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(name, cat.ID)
@@ -300,14 +301,14 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	case errors.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 	case nil:
 		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
 		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(lt))
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	return nil
 }
@@ -316,29 +317,28 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
 
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
-<<<<<<< 7f9d0e129a6f2e5e2a6e451536b42c2f31824d6d
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, ctx, witr, db); err != nil {
-		return err
+		return errs.WithStack(err)
 	}
 	return nil
 }
@@ -392,7 +392,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 	case errors.NotFoundError:
 		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 	case nil:
 		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
@@ -402,19 +402,19 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
 			extendedWit, err := witr.LoadTypeFromDB(*extendedTypeName)
 			if err != nil {
-				return errors.WithStack(err)
+				return errs.WithStack(err)
 			}
 			path = extendedWit.Path + workitem.GetTypePathSeparator() + path
 
 			//load fields from the extended type
 			err = loadFields(ctx, extendedWit, convertedFields)
 			if err != nil {
-				return errors.WithStack(err)
+				return errs.WithStack(err)
 			}
 		}
 
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 		wit.Fields = convertedFields
 		wit.Path = path

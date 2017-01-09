@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	. "github.com/almighty/almighty-core/criteria"
+	"github.com/pkg/errors"
 )
 
 // Parse parses strings of the form { "attribute1":value1,"attribute2":value2} into an expression of the form "attribute1=value1 and attribute2=value2"

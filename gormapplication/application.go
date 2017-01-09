@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // A TXIsoLevel specifies the characteristics of the transaction

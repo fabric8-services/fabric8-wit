@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 )
 
 // TrackerqueryController implements the trackerquery resource.

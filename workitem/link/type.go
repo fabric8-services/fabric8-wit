@@ -5,6 +5,7 @@ import (
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
@@ -124,7 +125,7 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 		return errors.NewBadParameterError("reverse_name", t.ReverseName)
 	}
 	if err := CheckValidTopology(t.Topology); err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	if t.LinkCategoryID == satoriuuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
@@ -237,7 +238,7 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 
 		if attrs.Topology != nil {
 			if err := CheckValidTopology(*attrs.Topology); err != nil {
-				return errors.WithStack(err)
+				return errs.WithStack(err)
 			}
 			out.Topology = *attrs.Topology
 		}

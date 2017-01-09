@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/pkg/errors"
 )
 
 // String constants for the local work item types.

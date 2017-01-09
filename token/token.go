@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	jwt "github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -39,7 +40,7 @@ func (mgm tokenManager) Generate(ident account.Identity) (string, error) {
 
 	tokenStr, err := token.SignedString(mgm.privateKey)
 	if err != nil {
-		return "", errors.WithStack(err)
+		return "", errs.WithStack(err)
 	}
 	return tokenStr, nil
 }
@@ -49,7 +50,7 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 		return mgm.publicKey, nil
 	})
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 
 	if !token.Valid {
@@ -63,7 +64,7 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 	// in case of nil UUID, below type casting will fail hence we need above check
 	id, err := uuid.FromString(token.Claims.(jwt.MapClaims)["uuid"].(string))
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 
 	ident := account.Identity{

@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // upload imports the items into database

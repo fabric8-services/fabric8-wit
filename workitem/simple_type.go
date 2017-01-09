@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/convert"
 	"github.com/asaskevich/govalidator"
+	"github.com/pkg/errors"
 )
 
 // SimpleType is an unstructured FieldType

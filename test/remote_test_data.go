@@ -6,6 +6,8 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+
+	"github.com/pkg/errors"
 )
 
 // TestDataProvider defines the simple funcion for returning data from a remote provider

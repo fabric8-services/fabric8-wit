@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/almighty/almighty-core/convert"
+	"github.com/pkg/errors"
 )
 
 // constants for describing possible field types

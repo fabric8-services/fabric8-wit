@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/pkg/errors"
 )
 
 // List of supported attributes

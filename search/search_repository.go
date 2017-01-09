@@ -19,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 )
 
 const (
@@ -61,7 +62,7 @@ func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) 
 		var err error
 		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errs.WithStack(err)
 		}
 	}
 
@@ -295,7 +296,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, 0, errors.WithStack(err)
+		return nil, 0, errs.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -343,14 +344,14 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	// ....
 	parsedSearchDict, err := parseSearchString(rawSearchString)
 	if err != nil {
-		return nil, 0, errors.WithStack(err)
+		return nil, 0, errs.WithStack(err)
 	}
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
 	var rows []workitem.WorkItem
 	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit)
 	if err != nil {
-		return nil, 0, errors.WithStack(err)
+		return nil, 0, errs.WithStack(err)
 	}
 	result := make([]*app.WorkItem, len(rows))
 

@@ -1,5 +1,7 @@
 package application
 
+import "github.com/pkg/errors"
+
 // Transactional executes the given function in a transaction. If todo returns an error, the transaction is rolled back
 func Transactional(db DB, todo func(f Application) error) error {
 	var tx Transaction

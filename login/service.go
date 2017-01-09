@@ -2,10 +2,12 @@ package login
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
+
+	errs "github.com/pkg/errors"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -144,11 +146,10 @@ func (keycloak keycloakOAuthProvider) getUser(ctx context.Context, token *oauth2
 	client := keycloak.config.Client(ctx, token)
 	resp, err := client.Get(configuration.GetKeycloakEndpointUserinfo())
 	if err != nil {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 
 	var user openIDConnectUser
-
 	json.NewDecoder(resp.Body).Decode(&user)
 
 	return &user, nil
@@ -179,13 +180,13 @@ type openIDConnectUser struct {
 func ContextIdentity(ctx context.Context) (string, error) {
 	tm := ReadTokenManagerFromContext(ctx)
 	if tm == nil {
-		return "", errors.New("Missing token manager")
+		return "", errs.New("Missing token manager")
 	}
 	uuid, err := tm.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
-		log.Println("Guest User")
-		return "", errors.WithStack(err)
+		fmt.Println("Guest User")
+		return "", errs.WithStack(err)
 	}
 	return uuid.String(), nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )

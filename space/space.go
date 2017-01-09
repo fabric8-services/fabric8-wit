@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -169,7 +170,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, 0, errors.WithStack(err)
+		return nil, 0, errs.WithStack(err)
 	}
 	defer rows.Close()
 
@@ -208,7 +209,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 		rows2, err := orgDB.Rows()
 		defer rows2.Close()
 		if err != nil {
-			return nil, 0, errors.WithStack(err)
+			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
 		rows2.Scan(&count)
@@ -220,7 +221,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
 	result, count, err := r.listSpaceFromDB(ctx, start, limit)
 	if err != nil {
-		return nil, 0, errors.WithStack(err)
+		return nil, 0, errs.WithStack(err)
 	}
 
 	return result, count, nil

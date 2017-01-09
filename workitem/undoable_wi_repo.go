@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 )
 
 var _ WorkItemRepository = &UndoableWorkItemRepository{}
@@ -56,7 +57,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 			return db.Error
 		})
 	}
-	return res, errors.WithStack(err)
+	return res, errs.WithStack(err)
 }
 
 // Delete implements application.WorkItemRepository
@@ -82,14 +83,14 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 			return db.Error
 		})
 	}
-	return errors.WithStack(err)
+	return errs.WithStack(err)
 }
 
 // Create implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
 	result, err := r.wrapped.Create(ctx, typeID, fields, creator)
 	if err != nil {
-		return result, errors.WithStack(err)
+		return result, errs.WithStack(err)
 	}
 	id, err := strconv.ParseUint(result.ID, 10, 64)
 	if err != nil {
@@ -104,7 +105,7 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 		return db.Error
 	})
 
-	return result, errors.WithStack(err)
+	return result, errs.WithStack(err)
 }
 
 // List implements application.WorkItemRepository

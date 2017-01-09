@@ -1,6 +1,9 @@
 package models
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
+)
 
 // Transactional executes the given function in a transaction. If todo returns an error, the transaction is rolled back
 func Transactional(db *gorm.DB, todo func(tx *gorm.DB) error) error {
@@ -11,7 +14,7 @@ func Transactional(db *gorm.DB, todo func(tx *gorm.DB) error) error {
 	}
 	if err := todo(tx); err != nil {
 		tx.Rollback()
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	tx.Commit()
 	return tx.Error

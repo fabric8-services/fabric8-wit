@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
 )

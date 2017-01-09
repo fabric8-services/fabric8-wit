@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 var _ WorkItemTypeRepository = &UndoableWorkItemTypeRepository{}

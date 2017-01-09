@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -55,7 +56,7 @@ func (m *GormCommentRepository) Create(ctx context.Context, u *Comment) error {
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Comment", "error", err.Error())
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 
 	return nil
@@ -87,7 +88,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string) ([]*Com
 
 	err := m.db.Table(m.TableName()).Where("parent_id = ?", parent).Order("created_at").Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 	return objs, nil
 }

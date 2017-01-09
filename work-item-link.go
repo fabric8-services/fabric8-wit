@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // WorkItemLinkController implements the work-item-link resource.
@@ -71,7 +72,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 	for typeID := range typeIDMap {
 		linkType, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, typeID)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errs.WithStack(err)
 		}
 		typeDataArr = append(typeDataArr, linkType.Data)
 	}
@@ -92,7 +93,7 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 	for workItemID := range workItemIDMap {
 		wi, err := ctx.Application.WorkItems().Load(ctx.Context, workItemID)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errs.WithStack(err)
 		}
 		workItemArr = append(workItemArr, ConvertWorkItem(ctx.RequestData, wi))
 	}
@@ -112,7 +113,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 	for catID := range catIDMap {
 		linkType, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, catID)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errs.WithStack(err)
 		}
 		catDataArr = append(catDataArr, linkType.Data)
 	}
@@ -125,42 +126,42 @@ func enrichLinkSingle(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) er
 	// include link type
 	linkType, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, link.Data.Relationships.LinkType.Data.ID)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	link.Included = append(link.Included, linkType.Data)
 
 	// include link category
 	linkCat, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, linkType.Data.Relationships.LinkCategory.Data.ID)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	link.Included = append(link.Included, linkCat.Data)
 
 	// TODO(kwk): include source work item type (once #559 is merged)
 	// sourceWit, err := appl.WorkItemTypes().Load(ctx, linkType.Data.Relationships.SourceType.Data.ID)
 	// if err != nil {
-	// 	return errors.WithStack(err)
+	// 	return errs.WithStack(err)
 	// }
 	// link.Included = append(link.Included, sourceWit.Data)
 
 	// TODO(kwk): include target work item type (once #559 is merged)
 	// targetWit, err := appl.WorkItemTypes().Load(ctx, linkType.Data.Relationships.TargetType.Data.ID)
 	// if err != nil {
-	// 	return errors.WithStack(err)
+	// 	return errs.WithStack(err)
 	// }
 	// link.Included = append(link.Included, targetWit.Data)
 
 	// TODO(kwk): include source work item
 	sourceWi, err := ctx.Application.WorkItems().Load(ctx.Context, link.Data.Relationships.Source.Data.ID)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	link.Included = append(link.Included, ConvertWorkItem(ctx.RequestData, sourceWi))
 
 	// TODO(kwk): include target work item
 	targetWi, err := ctx.Application.WorkItems().Load(ctx.Context, link.Data.Relationships.Target.Data.ID)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	link.Included = append(link.Included, ConvertWorkItem(ctx.RequestData, targetWi))
 
@@ -179,7 +180,7 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 	// include link types
 	typeDataArr, err := getTypesOfLinks(ctx, linkArr.Data)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
 	interfaceArr := make([]interface{}, len(typeDataArr))
@@ -191,7 +192,7 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 	// include link categories
 	catDataArr, err := getCategoriesOfLinkTypes(ctx, typeDataArr)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
 	interfaceArr = make([]interface{}, len(catDataArr))
@@ -203,7 +204,7 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 	// TODO(kwk): Include WIs from source and target
 	workItemDataArr, err := getWorkItemsOfLinks(ctx, linkArr.Data)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	// Convert slice of objects to slice of interface (see https://golang.org/doc/faq#convert_slice_of_interface)
 	interfaceArr = make([]interface{}, len(workItemDataArr))

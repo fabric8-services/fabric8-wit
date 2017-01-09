@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
