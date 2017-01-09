@@ -3,10 +3,10 @@ package workitem
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"reflect"
 
 	"github.com/almighty/almighty-core/convert"
+	"github.com/pkg/errors"
 )
 
 type Fields map[string]interface{}
