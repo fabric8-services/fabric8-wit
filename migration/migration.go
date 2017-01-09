@@ -2,7 +2,6 @@ package migration
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 
 	"github.com/almighty/almighty-core/app"
@@ -34,7 +33,7 @@ func Migrate(db *sql.DB) error {
 	var err error
 
 	if db == nil {
-		return fmt.Errorf("Database handle is nil\n")
+		return errs.Errorf("Database handle is nil\n")
 	}
 
 	m := getMigrations()
@@ -44,7 +43,7 @@ func Migrate(db *sql.DB) error {
 
 		tx, err = db.Begin()
 		if err != nil {
-			return fmt.Errorf("Failed to start transaction: %s\n", err)
+			return errs.Errorf("Failed to start transaction: %s\n", err)
 		}
 
 		err = migrateToNextVersion(tx, &nextVersion, m)
@@ -53,19 +52,19 @@ func Migrate(db *sql.DB) error {
 			oldErr := err
 			log.Printf("Rolling back transaction due to: %s\n", err)
 			if err = tx.Rollback(); err != nil {
-				return fmt.Errorf("Error while rolling back transaction: %s\n", err)
+				return errs.Errorf("Error while rolling back transaction: %s\n", err)
 			}
 			return oldErr
 		}
 
 		if err = tx.Commit(); err != nil {
-			return fmt.Errorf("Error during transaction commit: %s\n", err)
+			return errs.Errorf("Error during transaction commit: %s\n", err)
 		}
 
 	}
 
 	if err != nil {
-		return fmt.Errorf("Migration failed with error: %s\n", err)
+		return errs.Errorf("Migration failed with error: %s\n", err)
 	}
 
 	return nil
@@ -182,7 +181,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
 	if _, err := tx.Exec("SELECT pg_advisory_xact_lock($1)", AdvisoryLockID); err != nil {
-		return fmt.Errorf("Failed to acquire lock: %s\n", err)
+		return errs.Errorf("Failed to acquire lock: %s\n", err)
 	}
 
 	// Determine current version and adjust the outmost loop
@@ -203,12 +202,12 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
 		if err := m[*nextVersion][j](tx); err != nil {
-			return fmt.Errorf("Failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
+			return errs.Errorf("Failed to execute migration of step %d of version %d: %s\n", j, *nextVersion, err)
 		}
 	}
 
 	if _, err := tx.Exec("INSERT INTO version(version) VALUES($1)", *nextVersion); err != nil {
-		return fmt.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
+		return errs.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
 	}
 
 	log.Printf("Successfully updated DB to version %d\n", *nextVersion)
@@ -226,7 +225,7 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
-		return -1, fmt.Errorf("Failed to scan if table \"version\" exists: %s\n", err)
+		return -1, errs.Errorf("Failed to scan if table \"version\" exists: %s\n", err)
 	}
 
 	if !exists {
@@ -238,7 +237,7 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 
 	var current int64 = -1
 	if err := row.Scan(&current); err != nil {
-		return -1, fmt.Errorf("Failed to scan max version in table \"version\": %s\n", err)
+		return -1, errs.Errorf("Failed to scan max version in table \"version\": %s\n", err)
 	}
 
 	return current, nil

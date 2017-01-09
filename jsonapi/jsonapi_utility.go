@@ -7,7 +7,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
-	pkgerrors "github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 )
 
 const (
@@ -30,7 +30,8 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var title, code string
 	var statusCode int
 	var id *string
-	switch err.(type) {
+	cause := errs.Cause(err)
+	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound
 		title = "Not found error"
@@ -56,7 +57,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 		title = "Unknown error"
 		statusCode = http.StatusInternalServerError
 
-		cause := pkgerrors.Cause(err)
+		cause := errs.Cause(err)
 		if err, ok := cause.(goa.ServiceError); ok {
 			statusCode = err.ResponseStatus()
 			idStr := err.Token()
@@ -116,18 +117,18 @@ func JSONErrorResponse(x InternalServerError, err error) error {
 	switch status {
 	case http.StatusBadRequest:
 		if ctx, ok := x.(BadRequest); ok {
-			return ctx.BadRequest(jsonErr)
+			return errs.WithStack(ctx.BadRequest(jsonErr))
 		}
 	case http.StatusNotFound:
 		if ctx, ok := x.(NotFound); ok {
-			return ctx.NotFound(jsonErr)
+			return errs.WithStack(ctx.NotFound(jsonErr))
 		}
 	case http.StatusUnauthorized:
 		if ctx, ok := x.(Unauthorized); ok {
-			return ctx.Unauthorized(jsonErr)
+			return errs.WithStack(ctx.Unauthorized(jsonErr))
 		}
 	default:
-		return x.InternalServerError(jsonErr)
+		return errs.WithStack(x.InternalServerError(jsonErr))
 	}
 	return nil
 }
