@@ -14,6 +14,7 @@ var trackerData = a.Type("TrackerData", func() {
 		a.Example("42")
 	})
 	a.Attribute("links", genericLinks)
+	a.Attribute("relationships", trackerRelationships)
 	a.Required("type", "attributes")
 })
 
@@ -44,6 +45,16 @@ var trackerAttributesToUpdate = a.Type("TrackerAttributesToUpdate", func() {
 		a.Example("github")
 		a.Pattern("^[\\p{L}]+$")
 		a.MinLength(1)
+	})
+})
+var trackerRelationships = a.Type("TrackerRelationships", func() {
+	a.Attribute("trackerqueries", trackerQueryData)
+})
+
+// this will be replaced/updated in future. Type can not be created empty hence added `id`
+var trackerQueryData = a.Type("TrackerQueryData", func() {
+	a.Attribute("id", d.String, "ID of the tracker query", func() {
+		a.Example("42")
 	})
 })
 

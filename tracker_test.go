@@ -73,7 +73,7 @@ func TestGetTracker(t *testing.T) {
 			Type: APIStringTypeTracker,
 		},
 	}
-	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, tr.ID, &payload2)
+	_, updated := test.UpdateTrackerOK(t, nil, nil, &controller, *tr.Data.ID, &payload2)
 	assert.Equal(t, *updated.Data.ID, resultID)
 	assert.Equal(t, result.Data.Attributes.URL, result.Data.Attributes.URL)
 	assert.Equal(t, updated.Data.Attributes.Type, result.Data.Attributes.Type)
@@ -117,5 +117,5 @@ func TestCreateTrackerValidId(t *testing.T) {
 	trackerID := *tracker.Data.ID
 	_, created := test.ShowTrackerOK(t, nil, nil, &controller, trackerID)
 	assert.NotNil(t, created)
-	assert.Equal(t, created.ID, trackerID)
+	assert.Equal(t, *created.Data.ID, trackerID)
 }
