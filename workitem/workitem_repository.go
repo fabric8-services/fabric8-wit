@@ -148,7 +148,10 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 		if tx.Error != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
-		beforeOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Fields[SystemOrder]), 64)
+		beforeOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Fields[SystemOrder]), 64)
+		if err != nil {
+			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
+		}
 		tx2 := r.db.Where("fields -> 'order' < ?", beforeItem.Fields[SystemOrder]).Order("fields->'order' desc", true).Last(&afterItem)
 		if afterItem.ID == 0 {
 			// The item is moved to first position
@@ -162,7 +165,10 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 				return nil, errors.NewInternalError(err.Error())
 			}
 		}
-		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Fields[SystemOrder]), 64)
+		afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Fields[SystemOrder]), 64)
+		if err != nil {
+			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
+		}
 		order = (beforeOrder + afterOrder) / 2
 	} else {
 		// the item is moved at last position

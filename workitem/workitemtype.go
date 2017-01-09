@@ -46,8 +46,6 @@ const (
 	SystemMarkupJiraWiki  = "JiraWiki"
 	SystemMarkupDefault   = SystemMarkupPlainText
 	SystemOrder           = "order"
-	PreviousItem          = "previousitem"
-	NextItem              = "nextitem"
 )
 
 // WorkItemType represents a work item type as it is stored in the db
