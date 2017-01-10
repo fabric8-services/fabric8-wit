@@ -34,7 +34,6 @@ type SearchTestDescriptor struct {
 }
 
 func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
-
 	wir := workitem.NewWorkItemRepository(s.DB)
 
 	testDataSet := []SearchTestDescriptor{
@@ -102,6 +101,30 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			},
 			searchString:   `negative case `,
 			minimumResults: 0,
+		}, {
+			wi: app.WorkItem{
+				// search stirng with braces should be acceptable case
+				Fields: map[string]interface{}{
+					workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
+					workitem.SystemCreator:   "pgore",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "new",
+				},
+			},
+			searchString:   `(value) `,
+			minimumResults: 1,
+		}, {
+			wi: app.WorkItem{
+				// search stirng with surrounding braces should be acceptable case
+				Fields: map[string]interface{}{
+					workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
+					workitem.SystemCreator:   "pgore",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "new",
+				},
+			},
+			searchString:   `(pranav) {shoubhik} [aslak] `,
+			minimumResults: 1,
 		},
 	}
 
