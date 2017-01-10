@@ -139,11 +139,9 @@ func trimProtocolFromURLString(urlString string) string {
 }
 
 func escapeCharFromURLString(urlString string) string {
-	// Would like to replace following statements with some better piece of code if any.
-	urlString = strings.Replace(urlString, ":", "\\:", -1)
-	urlString = strings.Replace(urlString, "(", "\\(", -1)
-	urlString = strings.Replace(urlString, ")", "\\)", -1)
-	return urlString
+	// Replacer will escape `:` and `)` `(`.
+	var replacer = strings.NewReplacer(":", "\\:", "(", "\\(", ")", "\\)")
+	return replacer.Replace(urlString)
 }
 
 // sanitizeURL does cleaning of URL
