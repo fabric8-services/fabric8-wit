@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // SearchController implements the search resource.
@@ -58,7 +59,8 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit)
 		count := int(c)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)

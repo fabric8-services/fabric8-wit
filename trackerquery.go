@@ -9,7 +9,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 )
 
 // TrackerqueryController implements the trackerquery resource.
@@ -29,7 +29,8 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
@@ -50,13 +51,14 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
 				log.Printf("not found, id=%s", ctx.ID)
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
 			default:
-				return errors.WithStack(err)
+				return errs.WithStack(err)
 			}
 		}
 		return ctx.OK(tq)
@@ -76,7 +78,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		tq, err := appl.TrackerQueries().Save(ctx.Context, toSave)
 
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
@@ -96,7 +99,8 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.TrackerQueries().Delete(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)

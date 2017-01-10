@@ -262,7 +262,8 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 
 func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, name string, description string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
-	switch err.(type) {
+	cause := errs.Cause(err)
+	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := linkCatRepo.Create(ctx, &name, &description)
 		if err != nil {
@@ -296,7 +297,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		LinkCategoryID: cat.ID,
 	}
 
-	switch err.(type) {
+	cause := errs.Cause(err)
+	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID)
 		if err != nil {
@@ -387,7 +389,8 @@ func createOrUpdatePlannerItemExtension(typeName string, ctx context.Context, wi
 
 func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	wit, err := witr.LoadTypeFromDB(typeName)
-	switch err.(type) {
+	cause := errs.Cause(err)
+	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := witr.Create(ctx, extendedTypeName, typeName, fields)
 		if err != nil {

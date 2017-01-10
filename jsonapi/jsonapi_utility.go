@@ -26,11 +26,11 @@ const (
 // This function knows about the models package and the errors from there
 // as well as goa error classes.
 func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
-	detail := err.Error()
+	cause := errs.Cause(err)
+	detail := cause.Error()
 	var title, code string
 	var statusCode int
 	var id *string
-	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound

@@ -244,7 +244,8 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 	}
 	link, err := ctx.Application.WorkItemLinks().Create(ctx.Context, model.SourceID, model.TargetID, model.LinkTypeID)
 	if err != nil {
-		switch err.(type) {
+		cause := errs.Cause(err)
+		switch cause.(type) {
 		case errors.NotFoundError:
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 			return funcs.BadRequest(jerrors)
