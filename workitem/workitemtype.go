@@ -31,6 +31,7 @@ const (
 	SystemFundamental      = "system.fundamental"
 	SystemExperience       = "system.experience"
 	SystemFeature          = "system.feature"
+	SystemScenario         = "system.scenario"
 	SystemBug              = "system.bug"
 
 	SystemStateOpen       = "open"
