@@ -59,9 +59,6 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 
 	// Querying the database
 	existingWorkItems, _, err := wir.List(context.Background(), sqlExpression, nil, nil)
-	if err != nil {
-		return nil, err
-	}
 
 	if len(existingWorkItems) != 0 {
 		fmt.Println("Workitem exists, will be updated")
