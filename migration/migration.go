@@ -324,6 +324,9 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createOrUpdatePlannerItemExtention(workitem.SystemExperience, ctx, witr, db); err != nil {
 		return err
 	}
+	if err := createOrUpdatePlannerItemExtention(workitem.SystemScenario, ctx, witr, db); err != nil {
+		return err
+	}
 	if err := createOrUpdatePlannerItemExtention(workitem.SystemFeature, ctx, witr, db); err != nil {
 		return err
 	}
