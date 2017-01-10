@@ -38,7 +38,7 @@ function cleanup_env {
   EXIT_CODE=$?
   echo "CICO: Cleanup environment: Tear down test environment"
   make integration-test-env-tear-down
-  echo 'CICO: Exiting with $EXIT_CODE'
+  echo "CICO: Exiting with $EXIT_CODE"
 }
 
 function prepare() {
