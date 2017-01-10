@@ -117,12 +117,10 @@ func TestConvertGithubIssue(t *testing.T) {
 
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
 	db = db.Create(&tr)
-	require.Nil(t, db.Error)
 	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db = db.Create(&tq)
-	require.Nil(t, db.Error)
 	defer db.Delete(&tq)
 
 	models.Transactional(db, func(tx *gorm.DB) error {
