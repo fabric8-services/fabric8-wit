@@ -312,25 +312,25 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemUserStory, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemValueProposition, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemFundamental, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemExperience, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemScenario, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemFeature, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, ctx, witr, db); err != nil {
 		return err
 	}
-	if err := createOrUpdatePlannerItemExtention(workitem.SystemBug, ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, ctx, witr, db); err != nil {
 		return err
 	}
 	return nil
@@ -373,7 +373,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	return createOrUpdateType(typeName, nil, workItemTypeFields, ctx, witr, db)
 }
 
-func createOrUpdatePlannerItemExtention(typeName string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdatePlannerItemExtension(typeName string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	workItemTypeFields := map[string]app.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
 	return createOrUpdateType(typeName, &extTypeName, workItemTypeFields, ctx, witr, db)
