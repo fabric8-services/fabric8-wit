@@ -5,10 +5,14 @@ import (
 	"os"
 
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
 )
 
 var _ suite.SetupAllSuite = &DBTestSuite{}
@@ -39,6 +43,14 @@ func (s *DBTestSuite) SetupSuite() {
 			panic("Failed to connect database: " + err.Error())
 		}
 
+		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+		if configuration.GetPopulateCommonTypes() {
+			if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+				return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			}); err != nil {
+				panic(err.Error())
+			}
+		}
 	}
 
 }
