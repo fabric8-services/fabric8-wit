@@ -135,7 +135,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
 	u := minimumRequiredUpdateSpace()
 	u.Data.Attributes.Name = &name
 	u.Data.Attributes.Version = &version
-	u.Data.ID = id
+	u.Data.ID = &id
 
 	svc, ctrl := rest.SecuredController()
 	test.UpdateSpaceNotFound(t, svc.Context, svc, ctrl, id.String(), u)
