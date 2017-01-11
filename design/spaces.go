@@ -14,7 +14,7 @@ var space = a.Type("Space", func() {
 	})
 	a.Attribute("attributes", spaceAttributes)
 	a.Attribute("links", genericLinks)
-	a.Required("type", "id")
+	a.Required("type", "attributes")
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
