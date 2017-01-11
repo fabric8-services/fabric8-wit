@@ -32,7 +32,7 @@ make docker-start
 make docker-deps
 make docker-generate
 make docker-build
-make docker-test-unit
+make docker-test-unit-no-coverage
 
 make integration-test-env-prepare
 
@@ -42,11 +42,4 @@ function cleanup {
 trap cleanup EXIT
 
 make docker-test-migration
-make docker-test-integration
-
-# Output coverage
-make docker-coverage-all
-
-# Upload coverage to codecov.io
-cp tmp/coverage.mode* coverage.txt
-bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt -t ad12dad7-ebdc-47bc-a016-8c05fa7356bc #-X fix
+make docker-test-integration-no-coverage
