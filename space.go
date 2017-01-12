@@ -195,7 +195,7 @@ func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional .
 func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
 	selfURL := AbsoluteURL(request, app.SpaceHref(p.ID))
 	return &app.Space{
-		ID:   p.ID,
+		ID:   &p.ID,
 		Type: "spaces",
 		Attributes: &app.SpaceAttributes{
 			Name:      &p.Name,
