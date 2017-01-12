@@ -152,11 +152,11 @@ test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 		github.com/almighty/almighty-core/migration \
 		github.com/almighty/almighty-core/models \
 		github.com/almighty/almighty-core/query/simple \
-		github.com/almighty/almighty-core/remoteworkitem
-# github.com/almighty/almighty-core/resource
-# github.com/almighty/almighty-core/search
-# github.com/almighty/almighty-core/space
-# github.com/almighty/almighty-core/token
+		github.com/almighty/almighty-core/remoteworkitem \
+		github.com/almighty/almighty-core/resource \
+		github.com/almighty/almighty-core/search \
+		github.com/almighty/almighty-core/space \
+		github.com/almighty/almighty-core/token
 # github.com/almighty/almighty-core/tool/alm-cli
 # github.com/almighty/almighty-core/workitem
 # github.com/almighty/almighty-core/workitem/link
