@@ -128,3 +128,54 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 }
+
+func (test *TestIterationRepository) TestUpdateIteration() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := iteration.NewIterationRepository(test.DB)
+
+	start := time.Now()
+	end := start.Add(time.Hour * (24 * 8 * 3))
+	name := "Sprint #24"
+
+	i := iteration.Iteration{
+		Name:    name,
+		SpaceID: uuid.NewV4(),
+		StartAt: &start,
+		EndAt:   &end,
+	}
+	// creates an iteration
+	repo.Create(context.Background(), &i)
+	if i.ID == uuid.Nil {
+		t.Errorf("Comment was not created, ID nil")
+	}
+
+	desc := "Updated item"
+	updatedName := "Sprint 25"
+	i2 := iteration.Iteration{
+		ID:          i.ID,
+		Version:     i.Version,
+		Description: desc,
+		Name:        updatedName,
+	}
+	// update iteration with new values of Name and Desc
+	updatedIteration, err := repo.Save(context.Background(), i2)
+	assert.Nil(t, err)
+	assert.Equal(t, updatedIteration.Name, updatedName)
+	assert.Equal(t, updatedIteration.Description, desc)
+
+	changedStart := start.Add(time.Hour)
+	changedEnd := start.Add(time.Hour * 2)
+	i3 := iteration.Iteration{
+		ID:      i.ID,
+		Version: updatedIteration.Version,
+		StartAt: &changedStart,
+		EndAt:   &changedEnd,
+	}
+	// update iteration with new values of StartAt, EndAt
+	updatedIteration, err = repo.Save(context.Background(), i3)
+	assert.Nil(t, err)
+	assert.Equal(t, changedStart, *updatedIteration.StartAt)
+	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
+}

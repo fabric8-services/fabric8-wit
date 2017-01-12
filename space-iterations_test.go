@@ -175,7 +175,7 @@ func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsP
 
 	return &app.CreateSpaceIterationsPayload{
 		Data: &app.Iteration{
-			Type: "iterations",
+			Type: iteration.APIStringTypeIteration,
 			Attributes: &app.IterationAttributes{
 				Name:        &name,
 				StartAt:     &start,

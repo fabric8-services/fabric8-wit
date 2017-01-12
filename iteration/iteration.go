@@ -1,6 +1,7 @@
 package iteration
 
 import (
+	"log"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -9,6 +10,11 @@ import (
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
+)
+
+// Defines "type" string to be used while validating jsonapi spec based payload
+const (
+	APIStringTypeIteration = "iterations"
 )
 
 // Iteration describes a single iteration
@@ -21,6 +27,7 @@ type Iteration struct {
 	EndAt       *time.Time
 	Name        string
 	Description string
+	Version     int
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -34,6 +41,7 @@ type Repository interface {
 	Create(ctx context.Context, u *Iteration) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
+	Save(ctx context.Context, i Iteration) (*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -86,4 +94,29 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
+}
+
+// Save updates the given iteration in the db. Version must be the same as the one in the stored version
+// returns NotFoundError, VersionConflictError or InternalError
+func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Iteration, error) {
+	itr := Iteration{}
+	tx := m.db.Where("id=?", i.ID).First(&itr)
+	oldVersion := i.Version
+	i.Version++
+	if tx.RecordNotFound() {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, errors.NewNotFoundError("iteration", i.ID.String())
+	}
+	if err := tx.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	tx = tx.Where("Version = ?", oldVersion).Save(&i)
+	if err := tx.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	if tx.RowsAffected == 0 {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	log.Printf("updated iteration to %v\n", i)
+	return &i, nil
 }

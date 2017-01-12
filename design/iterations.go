@@ -24,6 +24,9 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("name", d.String, "The iteration name", func() {
 		a.Example("Sprint #24")
 	})
+	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
+		a.Example(42)
+	})
 	a.Attribute("description", d.String, "Description of the iteration ", func() {
 		a.Example("this is the description of iteration")
 	})
@@ -86,6 +89,24 @@ var _ = a.Resource("iteration", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:id"),
+		)
+		a.Description("update the iteration with the given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Payload(iterationSingle)
+		a.Response(d.OK, func() {
+			a.Media(iterationSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

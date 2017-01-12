@@ -122,11 +122,103 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 	test.ShowIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
+func (rest *TestIterationREST) TestSuccessUpdateIteration() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	itr := createSpaceAndIteration(t, rest.db)
+
+	newName := "Sprint 1001"
+	newDesc := "New Description"
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Name:        &newName,
+				Version:     &itr.Version,
+				Description: &newDesc,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	assert.Equal(t, newName, *updated.Data.Attributes.Name)
+	assert.Equal(t, itr.Version+1, *updated.Data.Attributes.Version)
+	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
+}
+
+func (rest *TestIterationREST) TestFailUpdateIterationBadRequest() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	itr := createSpaceAndIteration(t, rest.db)
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{},
+			ID:         &itr.ID,
+			Type:       iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	// no attributes set in payload => version not specified
+	test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+
+	invalidVersion := itr.Version + 1
+	payload = app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Version: &invalidVersion,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	// invalid version set in payload
+	test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+
+}
+
+func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	itr := createSpaceAndIteration(t, rest.db)
+	itr.ID = uuid.NewV4()
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Version: &itr.Version,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	_, err := test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	assert.NotEmpty(t, err.Errors)
+}
+
+func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	itr := createSpaceAndIteration(t, rest.db)
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Version: &itr.Version,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.UnSecuredController()
+	test.UpdateIterationUnauthorized(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+}
+
 func createChildIteration(name *string) *app.CreateChildIterationPayload {
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
-	itType := "iterations"
+	itType := iteration.APIStringTypeIteration
 
 	return &app.CreateChildIterationPayload{
 		Data: &app.Iteration{
@@ -169,7 +261,7 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 
 func assertIterationLinking(t *testing.T, target *app.Iteration) {
 	assert.NotNil(t, target.ID)
-	assert.Equal(t, "iterations", target.Type)
+	assert.Equal(t, iteration.APIStringTypeIteration, target.Type)
 	assert.NotNil(t, target.Links.Self)
 	assert.NotNil(t, target.Relationships)
 	assert.NotNil(t, target.Relationships.Space)
