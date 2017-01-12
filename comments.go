@@ -53,8 +53,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
-		return ctx.BadRequest(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 	identity, err := login.ContextIdentity(ctx)
 	if err != nil {
