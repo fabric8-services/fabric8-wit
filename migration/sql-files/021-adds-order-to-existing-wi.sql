@@ -1,4 +1,5 @@
 CREATE OR REPLACE FUNCTION adds_order() RETURNS void as $$
+-- adds_order() function adds order to exitisting work_items in database
 	DECLARE 
 		i integer=1000;
 		r RECORD;
@@ -12,4 +13,7 @@ CREATE OR REPLACE FUNCTION adds_order() RETURNS void as $$
 		close xyz;
 END $$ LANGUAGE plpgsql;
 
-SELECT adds_order();
+DO $$ BEGIN
+	PERFORM adds_order();
+	DROP FUNCTION adds_order();
+END $$;
