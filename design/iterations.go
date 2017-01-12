@@ -24,6 +24,9 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("name", d.String, "The iteration name", func() {
 		a.Example("Sprint #24")
 	})
+	a.Attribute("description", d.String, "Description of the iteration ", func() {
+		a.Example("this is the description of iteration")
+	})
 	a.Attribute("startAt", d.DateTime, "When the iteration starts", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})

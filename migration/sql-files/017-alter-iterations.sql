@@ -1,0 +1,1 @@
+ALTER table iterations ADD description text;

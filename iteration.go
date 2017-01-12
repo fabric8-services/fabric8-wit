@@ -117,9 +117,10 @@ func ConvertIteration(request *goa.RequestData, iteration *iteration.Iteration, 
 		Type: iterationType,
 		ID:   &iteration.ID,
 		Attributes: &app.IterationAttributes{
-			Name:    &iteration.Name,
-			StartAt: iteration.StartAt,
-			EndAt:   iteration.EndAt,
+			Name:        &iteration.Name,
+			StartAt:     iteration.StartAt,
+			EndAt:       iteration.EndAt,
+			Description: &iteration.Description,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{

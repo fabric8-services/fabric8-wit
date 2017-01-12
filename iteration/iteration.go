@@ -14,12 +14,13 @@ import (
 // Iteration describes a single iteration
 type Iteration struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	SpaceID  uuid.UUID `sql:"type:uuid"`
-	ParentID uuid.UUID `sql:"type:uuid"` // TODO: This should be * to support nil ?
-	StartAt  *time.Time
-	EndAt    *time.Time
-	Name     string
+	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	SpaceID     uuid.UUID `sql:"type:uuid"`
+	ParentID    uuid.UUID `sql:"type:uuid"` // TODO: This should be * to support nil ?
+	StartAt     *time.Time
+	EndAt       *time.Time
+	Name        string
+	Description string
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

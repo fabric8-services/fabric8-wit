@@ -63,7 +63,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	resource.Require(t, resource.Database)
 
 	var p *space.Space
-	ci := createSpaceIteration("Sprint #21")
+	ci := createSpaceIteration("Sprint #21", nil)
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
@@ -75,6 +75,35 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	assert.NotNil(t, c.Data.ID)
 	assert.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+}
+
+func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	var p *space.Space
+	iterationName := "Sprint #22"
+	iterationDesc := "testing description"
+	ci := createSpaceIteration(iterationName, &iterationDesc)
+
+	application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Spaces()
+		p, _ = repo.Create(context.Background(), "Test 1")
+		return nil
+	})
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
+	assert.NotNil(t, c.Data.ID)
+	assert.NotNil(t, c.Data.Relationships.Space)
+	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(t, *c.Data.Attributes.Name, iterationName)
+	assert.Equal(t, *c.Data.Attributes.Description, iterationDesc)
+
+	iterationName2 := "Sprint #23"
+	ci = createSpaceIteration(iterationName2, nil)
+	_, c = test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
+	assert.Equal(t, *c.Data.Attributes.Name, iterationName2)
+	assert.Empty(t, *c.Data.Attributes.Description)
 }
 
 func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
@@ -116,7 +145,7 @@ func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	ci := createSpaceIteration("Sprint #21")
+	ci := createSpaceIteration("Sprint #21", nil)
 
 	svc, ctrl := rest.SecuredController()
 	test.CreateSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
@@ -126,7 +155,7 @@ func (rest *TestSpaceIterationREST) TestFailCreateIterationNotAuthorized() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	ci := createSpaceIteration("Sprint #21")
+	ci := createSpaceIteration("Sprint #21", nil)
 
 	svc, ctrl := rest.UnSecuredController()
 	test.CreateSpaceIterationsUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
@@ -140,7 +169,7 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 	test.ListSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
-func createSpaceIteration(name string) *app.CreateSpaceIterationsPayload {
+func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsPayload {
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
@@ -148,9 +177,10 @@ func createSpaceIteration(name string) *app.CreateSpaceIterationsPayload {
 		Data: &app.Iteration{
 			Type: "iterations",
 			Attributes: &app.IterationAttributes{
-				Name:    &name,
-				StartAt: &start,
-				EndAt:   &end,
+				Name:        &name,
+				StartAt:     &start,
+				EndAt:       &end,
+				Description: desc,
 			},
 		},
 	}

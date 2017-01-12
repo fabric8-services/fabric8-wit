@@ -54,7 +54,9 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			StartAt: reqIter.Attributes.StartAt,
 			EndAt:   reqIter.Attributes.EndAt,
 		}
-
+		if reqIter.Attributes.Description != nil {
+			newItr.Description = *reqIter.Attributes.Description
+		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
