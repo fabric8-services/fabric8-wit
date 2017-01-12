@@ -137,30 +137,7 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v \
-		github.com/almighty/almighty-core \
-		github.com/almighty/almighty-core/account \
-		github.com/almighty/almighty-core/comment \
-		github.com/almighty/almighty-core/configuration \
-		github.com/almighty/almighty-core/convert \
-		github.com/almighty/almighty-core/criteria \
-		github.com/almighty/almighty-core/errors \
-		github.com/almighty/almighty-core/gormsupport \
-		github.com/almighty/almighty-core/iteration \
-		github.com/almighty/almighty-core/jsonapi \
-		github.com/almighty/almighty-core/login \
-		github.com/almighty/almighty-core/migration \
-		github.com/almighty/almighty-core/models \
-		github.com/almighty/almighty-core/query/simple \
-		github.com/almighty/almighty-core/remoteworkitem \
-		github.com/almighty/almighty-core/resource \
-		github.com/almighty/almighty-core/search \
-		github.com/almighty/almighty-core/space \
-		github.com/almighty/almighty-core/token \
-		github.com/almighty/almighty-core/tool/alm-cli \
-		github.com/almighty/almighty-core/workitem \
-		github.com/almighty/almighty-core/workitem/link
-#ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
