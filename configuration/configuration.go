@@ -2,7 +2,9 @@ package configuration
 
 import (
 	"fmt"
+	"os"
 	"strings"
+	"sync"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
@@ -11,7 +13,7 @@ import (
 )
 
 // String returns the current configuration as a string
-func String() string {
+func (c *ConfigurationData) String() string {
 	allSettings := viper.AllSettings()
 	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
@@ -20,11 +22,16 @@ func String() string {
 	return fmt.Sprintf("%s\n", y)
 }
 
+var mapLock sync.RWMutex
+
 // Setup sets up defaults for viper configuration options and
 // overrides these values with the values from the given configuration file
 // if it is not empty. Those values again are overwritten by environment
 // variables.
-func Setup(configFilePath string) error {
+func Setup(configFilePath string) (*ConfigurationData, error) {
+	mapLock.Lock()
+	defer mapLock.Unlock()
+
 	viper.Reset()
 
 	// Expect environment variables to be prefix with "ALMIGHTY_".
@@ -49,11 +56,12 @@ func Setup(configFilePath string) error {
 		viper.SetConfigType("yaml")
 		err := viper.ReadInConfig() // Find and read the config file
 		if err != nil {             // Handle errors reading the config file
-			return fmt.Errorf("Fatal error config file: %s \n", err)
+			return nil, fmt.Errorf("Fatal error config file: %s \n", err)
 		}
 	}
 
-	return nil
+	configuration := NewConfigurationData()
+	return &configuration, nil
 }
 
 // Constants for viper variable names. Will be used to set
@@ -116,103 +124,91 @@ func setConfigDefaults() {
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
-func GetPostgresHost() string {
+func getPostgresHost() string {
 	return viper.GetString(varPostgresHost)
 }
 
 // GetPostgresPort returns the postgres port as set via default, config file, or environment variable
-func GetPostgresPort() int64 {
+func getPostgresPort() int64 {
 	return viper.GetInt64(varPostgresPort)
 }
 
 // GetPostgresUser returns the postgres user as set via default, config file, or environment variable
-func GetPostgresUser() string {
+func getPostgresUser() string {
 	return viper.GetString(varPostgresUser)
 }
 
 // GetPostgresDatabase returns the postgres database as set via default, config file, or environment variable
-func GetPostgresDatabase() string {
+func getPostgresDatabase() string {
 	return viper.GetString(varPostgresDatabase)
 }
 
 // GetPostgresPassword returns the postgres password as set via default, config file, or environment variable
-func GetPostgresPassword() string {
+func getPostgresPassword() string {
 	return viper.GetString(varPostgresPassword)
 }
 
 // GetPostgresSSLMode returns the postgres sslmode as set via default, config file, or environment variable
-func GetPostgresSSLMode() string {
+func getPostgresSSLMode() string {
 	return viper.GetString(varPostgresSSLMode)
 }
 
 // GetPostgresConnectionMaxRetries returns the number of times (as set via default, config file, or environment variable)
 // alm server will attempt to open a connection to the database before it gives up
-func GetPostgresConnectionMaxRetries() int {
+func getPostgresConnectionMaxRetries() int {
 	return viper.GetInt(varPostgresConnectionMaxRetries)
 }
 
 // GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
 // to wait before trying to connect again
-func GetPostgresConnectionRetrySleep() time.Duration {
+func getPostgresConnectionRetrySleep() time.Duration {
 	return viper.GetDuration(varPostgresConnectionRetrySleep)
-}
-
-// GetPostgresConfigString returns a ready to use string for usage in sql.Open()
-func GetPostgresConfigString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
-		GetPostgresHost(),
-		GetPostgresPort(),
-		GetPostgresUser(),
-		GetPostgresPassword(),
-		GetPostgresDatabase(),
-		GetPostgresSSLMode(),
-	)
 }
 
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
 // the common work item types such as system.bug or system.feature shall be created.
-func GetPopulateCommonTypes() bool {
+func getPopulateCommonTypes() bool {
 	return viper.GetBool(varPopulateCommonTypes)
 }
 
 // GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
 // that the alm server binds to (e.g. "0.0.0.0:8080")
-func GetHTTPAddress() string {
+func getHTTPAddress() string {
 	return viper.GetString(varHTTPAddress)
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
 // e.g. token generation endpoint are enabled
-func IsPostgresDeveloperModeEnabled() bool {
+func isPostgresDeveloperModeEnabled() bool {
 	return viper.GetBool(varDeveloperModeEnabled)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
-func GetTokenPrivateKey() []byte {
+func getTokenPrivateKey() []byte {
 	return []byte(viper.GetString(varTokenPrivateKey))
 }
 
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
 // that is used to decrypt the authentication token.
-func GetTokenPublicKey() []byte {
+func getTokenPublicKey() []byte {
 	return []byte(viper.GetString(varTokenPublicKey))
 }
 
 // GetGithubSecret returns the Github secret(as set via config file or environment variable)
 // that is used to make authorized Github API Calls.
-func GetGithubSecret() string {
+func getGithubSecret() string {
 	return viper.GetString(varGithubSecret)
 }
 
 // GetGithubClientID returns the Github Client ID(as set via config file or environment variable)
 // that is used to make authorized Github API Calls.
-func GetGithubClientID() string {
+func getGithubClientID() string {
 	return viper.GetString(varGithubClientID)
 }
 
 // GetGithubAuthToken returns the actual Github OAuth Access Token
-func GetGithubAuthToken() string {
+func getGithubAuthToken() string {
 	return viper.GetString(varGithubAuthToken)
 }
 
@@ -268,3 +264,174 @@ var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+
+func GetConfigFilePath() string {
+	path, _ := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH")
+	return path
+}
+
+// GetPostgresHost returns the postgres host as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresHost() string {
+	return c.postgresHost
+}
+
+// GetPostgresPort returns the postgres port as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresPort() int64 {
+	return c.postgresPort
+}
+
+// GetPostgresUser returns the postgres user as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresUser() string {
+	return c.postgresUser
+}
+
+// GetPostgresDatabase returns the postgres database as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresDatabase() string {
+	return c.postgresDatabase
+}
+
+// GetPostgresPassword returns the postgres password as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresPassword() string {
+	return c.postgresPassword
+}
+
+// GetPostgresSSLMode returns the postgres sslmode as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresSSLMode() string {
+	return c.postgresSSLMode
+}
+
+// GetPostgresConnectionMaxRetries returns the number of times (as set via default, config file, or environment variable)
+// alm server will attempt to open a connection to the database before it gives up
+func (c *ConfigurationData) GetPostgresConnectionMaxRetries() int {
+	return c.postgresConnectionMaxRetries
+}
+
+// GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
+// to wait before trying to connect again
+func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
+	return c.postgresConnectionRetrySleep
+}
+
+// GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
+// the common work item types such as system.bug or system.feature shall be created.
+func (c *ConfigurationData) GetPopulateCommonTypes() bool {
+	return c.populateCommonTypes
+}
+
+// GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
+// that the alm server binds to (e.g. "0.0.0.0:8080")
+func (c *ConfigurationData) GetHTTPAddress() string {
+	return c.httpAddress
+}
+
+// IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
+// e.g. token generation endpoint are enabled
+func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
+	return c.developerModeEnabled
+}
+
+// GetTokenPrivateKey returns the private key (as set via config file or environment variable)
+// that is used to sign the authentication token.
+func (c *ConfigurationData) GetTokenPrivateKey() []byte {
+	return c.tokenPrivateKey
+}
+
+// GetTokenPublicKey returns the public key (as set via config file or environment variable)
+// that is used to decrypt the authentication token.
+func (c *ConfigurationData) GetTokenPublicKey() []byte {
+	return c.tokenPublicKey
+}
+
+// GetGithubSecret returns the Github secret(as set via config file or environment variable)
+// that is used to make authorized Github API Calls.
+func (c *ConfigurationData) GetGithubSecret() string {
+	return c.githubSecret
+}
+
+// GetGithubClientID returns the Github Client ID(as set via config file or environment variable)
+// that is used to make authorized Github API Calls.
+func (c *ConfigurationData) GetGithubClientID() string {
+	return c.githubClientID
+}
+
+// GetGithubAuthToken returns the actual Github OAuth Access Token
+func (c *ConfigurationData) GetGithubAuthToken() string {
+	return c.githubAuthToken
+}
+
+// GetPostgresConfigString returns a ready to use string for usage in sql.Open()
+func (c *ConfigurationData) GetPostgresConfigString() string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
+		getPostgresHost(),
+		getPostgresPort(),
+		getPostgresUser(),
+		getPostgresPassword(),
+		getPostgresDatabase(),
+		getPostgresSSLMode(),
+	)
+}
+
+type ConfigurationData struct {
+	// List of configuration items
+	postgresHost                 string
+	postgresPort                 int64
+	postgresUser                 string
+	postgresDatabase             string
+	postgresPassword             string
+	postgresSSLMode              string
+	postgresConnectionMaxRetries int
+	postgresConnectionRetrySleep time.Duration
+	populateCommonTypes          bool
+	httpAddress                  string
+	developerModeEnabled         bool
+	githubSecret                 string
+	githubClientID               string
+	githubAuthToken              string
+	tokenPublicKey               []byte
+	tokenPrivateKey              []byte
+}
+
+// NewConfigurationData returns an instance of ConfigurationData which contains the configuration
+// information at the time of invokation of this method.
+func NewConfigurationData() ConfigurationData {
+	return ConfigurationData{
+		postgresHost:                 getPostgresHost(),
+		postgresPort:                 getPostgresPort(),
+		postgresUser:                 getPostgresUser(),
+		postgresDatabase:             getPostgresDatabase(),
+		postgresPassword:             getPostgresPassword(),
+		postgresSSLMode:              getPostgresSSLMode(),
+		postgresConnectionMaxRetries: getPostgresConnectionMaxRetries(),
+		postgresConnectionRetrySleep: getPostgresConnectionRetrySleep(),
+		populateCommonTypes:          getPopulateCommonTypes(),
+		httpAddress:                  getHTTPAddress(),
+		developerModeEnabled:         isPostgresDeveloperModeEnabled(),
+		githubSecret:                 getGithubSecret(),
+		githubClientID:               getGithubClientID(),
+		githubAuthToken:              getGithubAuthToken(),
+		tokenPublicKey:               getTokenPublicKey(),
+		tokenPrivateKey:              getTokenPrivateKey(),
+	}
+}
+
+// ConfigurationLookup defines what is needed for providing all the relevant configuration
+type ConfigurationLookup interface {
+	GetPostgresHost() string
+	GetPostgresPort() string
+	GetPostgresUser() string
+	GetPostgresDatabase() string
+	GetPostgresPassword() string
+	GetPostgresSSLMode() string
+	GetPostgresConfigString() string
+	GetPostgresConnectionMaxRetries() int
+	GetPostgresConnectionRetrySleep() time.Duration
+	GetPopulateCommonTypes() bool
+	GetHTTPAddress() string
+	GetDeveloperModeEnabled() bool
+	GetGithubSecret() string
+	GetGithubClientID() string
+	GetGithubAuthToken() string
+	GetTokenPublicKey() []byte
+	GetTokenPrivateKey() []byte
+	String() string
+}

@@ -19,7 +19,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
@@ -71,8 +71,8 @@ func main() {
 		}
 	}
 
-	var err error
-	if err = configuration.Setup(configFilePath); err != nil {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -259,4 +260,13 @@ func InjectTokenManager(tokenManager token.Manager) goa.Middleware {
 			return h(ctxWithTM, rw, req)
 		}
 	}
+}
+
+func getConfigurationData() *configurationHandler.ConfigurationData {
+	configFilePath := configurationHandler.GetConfigFilePath()
+	configuration, err := configurationHandler.Setup(configFilePath)
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	return configuration
 }

@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/configuration"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
@@ -18,11 +18,13 @@ import (
 )
 
 var db *gorm.DB
+var configuration *configurationHandler.ConfigurationData
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		var err error
-		if err = configuration.Setup(""); err != nil {
+		configuration, err := configurationHandler.Setup("")
+		if err != nil {
 			panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 		}
 

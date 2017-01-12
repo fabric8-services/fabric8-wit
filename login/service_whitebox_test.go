@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/configuration"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
 	_ "github.com/lib/pq"
@@ -18,11 +18,13 @@ import (
 )
 
 var loginService *gitHubOAuth
+var configuration *configurationHandler.ConfigurationData
 
 func setup() {
 
 	var err error
-	if err = configuration.Setup(""); err != nil {
+	configuration, err = configurationHandler.Setup("")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

@@ -14,7 +14,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -66,10 +66,10 @@ type workItemLinkSuite struct {
 func (s *workItemLinkSuite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-
 	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 
 	if err != nil {
@@ -622,6 +622,10 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInval
 }
 
 func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
@@ -781,6 +785,10 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
 func getWorkItemRelationshipLinksTestData(t *testing.T, wiID string) func(t *testing.T) []testSecureAPI {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	return func(t *testing.T) []testSecureAPI {
 		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 		if err != nil {

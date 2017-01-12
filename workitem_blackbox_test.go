@@ -16,7 +16,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	configurationHandler "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -34,6 +34,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+var configuration *configurationHandler.ConfigurationData
 
 func TestGetWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
@@ -166,6 +168,10 @@ func TestListByFields(t *testing.T) {
 }
 
 func getWorkItemTestData(t *testing.T) []testSecureAPI {
+	configuration, err := configurationHandler.Setup("")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
@@ -558,7 +564,8 @@ type WorkItem2Suite struct {
 func (s *WorkItem2Suite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err = configurationHandler.Setup("")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
