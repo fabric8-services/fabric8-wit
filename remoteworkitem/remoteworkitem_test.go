@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func provideRemoteData(dataURL string) ([]byte, error) {
@@ -38,13 +39,10 @@ func TestWorkItemMapping(t *testing.T) {
 
 	remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
 	gh, err := remoteWorkItemImpl(remoteTrackerItem)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
+
 	workItem, err := Map(gh, workItemMap)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.Nil(t, err)
 
 	assert.NotNil(t, workItem.Fields[workitem.SystemTitle], fmt.Sprintf("%s not mapped", workitem.SystemTitle))
 }
@@ -73,23 +71,17 @@ func TestGitHubIssueMapping(t *testing.T) {
 		content, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
 			return provideRemoteData(j.inputURL)
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		workItemMap := WorkItemKeyMaps[ProviderGithub]
 		remoteTrackerkItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
 
 		remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderGithub]
 		gh, err := remoteWorkItemImpl(remoteTrackerkItem)
+		require.Nil(t, err)
 
-		if err != nil {
-			t.Fatal(err)
-		}
 		workItem, err := Map(gh, workItemMap)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		for _, localWorkItemKey := range workItemMap {
 			t.Log("Mapping ", localWorkItemKey)
@@ -123,22 +115,16 @@ func TestJiraIssueMapping(t *testing.T) {
 		content, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
 			return provideRemoteData(j.inputURL)
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		workItemMap := WorkItemKeyMaps[ProviderJira]
 		remoteTrackerItem := TrackerItem{Item: string(content[:]), RemoteItemID: "xyz", TrackerID: uint64(0)}
 		remoteWorkItemImpl := RemoteWorkItemImplRegistry[ProviderJira]
 		ji, err := remoteWorkItemImpl(remoteTrackerItem)
 
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		workItem, err := Map(ji, workItemMap)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 
 		for _, localWorkItemKey := range workItemMap {
 			t.Log("Mapping ", localWorkItemKey)
@@ -176,9 +162,7 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
 			return provideRemoteData(j.inputURL)
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		var nestedMap map[string]interface{}
 		err = json.Unmarshal(testString, &nestedMap)
 
@@ -316,9 +300,7 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 		testString, err := test.LoadTestData(j.inputFile, func() ([]byte, error) {
 			return provideRemoteData(j.inputURL)
 		})
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.Nil(t, err)
 		var nestedMap map[string]interface{}
 		err = json.Unmarshal(testString, &nestedMap)
 
@@ -345,8 +327,8 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
 	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
 
-	githubRemoteWorkItem, ok := NewGitHubRemoteWorkItem(remoteTrackerItem)
-	assert.Nil(t, ok)
+	githubRemoteWorkItem, err := NewGitHubRemoteWorkItem(remoteTrackerItem)
+	require.Nil(t, err)
 	assert.Equal(t, githubRemoteWorkItem.Get("admins.0.name"), "aslak")
 	assert.Equal(t, githubRemoteWorkItem.Get("name"), "shoubhik")
 	assert.Equal(t, githubRemoteWorkItem.Get("assignee.complete"), true)
@@ -360,8 +342,8 @@ func TestNewJiraRemoteWorkItem(t *testing.T) {
 	jsonContent := `{"admins":[{"name":"aslak"}],"name":"shoubhik", "assignee":{"fixes": 2, "complete" : true,"foo":[ 1,2,3,4],"1":"sbose","2":"pranav","participants":{"4":"sbose56","5":"sbose78"}},"name":"shoubhik"}`
 	remoteTrackerItem := TrackerItem{Item: jsonContent, RemoteItemID: "xyz", TrackerID: uint64(0)}
 
-	jiraRemoteWorkItem, ok := NewJiraRemoteWorkItem(remoteTrackerItem)
-	assert.Nil(t, ok)
+	jiraRemoteWorkItem, err := NewJiraRemoteWorkItem(remoteTrackerItem)
+	require.Nil(t, err)
 	assert.Equal(t, jiraRemoteWorkItem.Get("admins.0.name"), "aslak")
 	assert.Equal(t, jiraRemoteWorkItem.Get("name"), "shoubhik")
 	assert.Equal(t, jiraRemoteWorkItem.Get("assignee.complete"), true)
@@ -372,9 +354,9 @@ func TestRemoteWorkItemImplRegistry(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	_, ok := RemoteWorkItemImplRegistry[ProviderGithub]
-	assert.Equal(t, ok, true)
+	assert.True(t, ok)
 
 	_, ok = RemoteWorkItemImplRegistry[ProviderJira]
-	assert.Equal(t, ok, true)
+	assert.True(t, ok)
 
 }
