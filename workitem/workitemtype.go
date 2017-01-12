@@ -34,6 +34,7 @@ const (
 	SystemFeature          = "feature"
 	SystemScenario         = "scenario"
 	SystemBug              = "bug"
+	SystemEpic             = "epic"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"
