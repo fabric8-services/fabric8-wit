@@ -156,10 +156,10 @@ test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 		github.com/almighty/almighty-core/resource \
 		github.com/almighty/almighty-core/search \
 		github.com/almighty/almighty-core/space \
-		github.com/almighty/almighty-core/token
-# github.com/almighty/almighty-core/tool/alm-cli
-# github.com/almighty/almighty-core/workitem
-# github.com/almighty/almighty-core/workitem/link
+		github.com/almighty/almighty-core/token \
+		github.com/almighty/almighty-core/tool/alm-cli \
+		github.com/almighty/almighty-core/workitem \
+		github.com/almighty/almighty-core/workitem/link
 #ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
 
 .PHONY: test-migration
