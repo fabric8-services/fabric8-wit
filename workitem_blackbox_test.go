@@ -81,33 +81,41 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemOrder])
 
-	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
-	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
-	assert.Equal(t, wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
-	//expectedDescription := workitem.MarkupContent{Content: "= Updated Test WI description", Markup: workitem.SystemMarkupDefault}
-	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
+	if updated.Data.Attributes["version"] != (result.Data.Attributes["version"].(int) + 1) {
+		t.Errorf("expected version %d, but got %d", (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	}
+	if *updated.Data.ID != *result.Data.ID {
+		t.Errorf("id has changed from %s to %s", *result.Data.ID, *updated.Data.ID)
+	}
+	if updated.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
+		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Data.Attributes[workitem.SystemTitle])
+	}
+	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
+}
 
-	// Reorder Tests
+func TestReorderWorkItem(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
-	// when the item is moved between two items
 	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 	payload3 := minimumRequiredReorderPayload()
-	payload3.Data.ID = updated.Data.ID
-	payload3.Data.Attributes = updated.Data.Attributes
+	payload3.Data.ID = result3.Data.ID
+	payload3.Data.Attributes = result3.Data.Attributes
 	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, *result3.Data.ID, result2.Data.ID, &payload3)
 	assert.NotNil(t, reordered1.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, reordered1.Data.Attributes[workitem.SystemOrder])
-
-	if reordered1.Data.Attributes["version"] != (updated.Data.Attributes["version"].(int) + 1) {
-		t.Errorf("expected version %d, but got %d", (updated.Data.Attributes["version"].(int) + 1), reordered1.Data.Attributes["version"])
-	}
-	if *reordered1.Data.ID != *updated.Data.ID {
-		t.Errorf("id has changed from %s to %s", *updated.Data.ID, *reordered1.Data.ID)
-	}
-	if reordered1.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", reordered1.Data.Attributes[workitem.SystemTitle])
-	}
+	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data.Attributes["version"])
+	assert.Equal(t, *result3.Data.ID, *reordered1.Data.ID)
+	assert.Equal(t, result3.Data.Attributes[workitem.SystemTitle], reordered1.Data.Attributes[workitem.SystemTitle])
 
 	payload3 = minimumRequiredReorderPayload()
 	payload3.Data.ID = reordered1.Data.ID
@@ -115,18 +123,12 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	_, reordered2 := test.ReorderWorkitemOK(t, nil, nil, controller, *result3.Data.ID, nil, &payload3)
 	assert.NotNil(t, reordered2.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, reordered2.Data.Attributes[workitem.SystemOrder])
+	assert.Equal(t, reordered1.Data.Attributes["version"].(int)+1, reordered2.Data.Attributes["version"])
+	assert.Equal(t, *reordered1.Data.ID, *reordered2.Data.ID)
+	assert.Equal(t, reordered1.Data.Attributes[workitem.SystemTitle], reordered2.Data.Attributes[workitem.SystemTitle])
 
-	if reordered2.Data.Attributes["version"] != (reordered1.Data.Attributes["version"].(int) + 1) {
-		t.Errorf("expected version %d, but got %d", (reordered1.Data.Attributes["version"].(int) + 1), reordered2.Data.Attributes["version"])
-	}
-	if *reordered2.Data.ID != *reordered1.Data.ID {
-		t.Errorf("id has changed from %s to %s", *reordered1.Data.ID, *reordered2.Data.ID)
-	}
-	if reordered2.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", reordered2.Data.Attributes[workitem.SystemTitle])
-	}
-
-	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
+	test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
+	test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 }
 
 func TestCreateWI(t *testing.T) {
