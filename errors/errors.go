@@ -85,7 +85,23 @@ func (err NotFoundError) Error() string {
 	return fmt.Sprintf(stNotFoundErrorMsg, err.entity, err.ID)
 }
 
-// NewNotFoundError returns the custom defined error of type NewNotFoundError.
+// NewNotFoundError returns the custom defined error of type NotFoundError.
 func NewNotFoundError(entity string, id string) NotFoundError {
 	return NotFoundError{entity: entity, ID: id}
+}
+
+// IdentityError is an error that can occur when the user identity could not be retrieved during the login
+type IdentityError struct {
+	Code    int
+	Message interface{}
+}
+
+// IdentityError implements the error interface
+func (err IdentityError) Error() string {
+	return fmt.Sprintf("%v", err.Message)
+}
+
+// NewIdentityError returns the custom defined error of type IdentityError.
+func NewIdentityError(code int, message interface{}) *IdentityError {
+	return &IdentityError{Code: code, Message: message}
 }
