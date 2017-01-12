@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
@@ -21,6 +23,20 @@ import (
 
 type searchRepositoryWhiteboxTest struct {
 	gormsupport.DBTestSuite
+}
+
+// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+func (s *searchRepositoryWhiteboxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+
+	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	if _, c := os.LookupEnv(resource.Database); c != false {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
 }
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {

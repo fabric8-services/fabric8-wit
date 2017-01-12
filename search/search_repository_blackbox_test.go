@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -27,10 +28,12 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
 	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
-	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
+	if _, c := os.LookupEnv(resource.Database); c != false {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
 }
 
