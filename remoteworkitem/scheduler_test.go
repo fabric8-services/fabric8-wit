@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
 
@@ -55,17 +56,13 @@ func TestLookupProvider(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts1 := trackerSchedule{TrackerType: ProviderGithub}
 	tp1 := lookupProvider(ts1)
-	if tp1 == nil {
-		t.Error("nil provider")
-	}
+	require.NotNil(t, tp1)
+
 	ts2 := trackerSchedule{TrackerType: ProviderJira}
 	tp2 := lookupProvider(ts2)
-	if tp2 == nil {
-		t.Error("nil provider")
-	}
+	require.NotNil(t, tp2)
+
 	ts3 := trackerSchedule{TrackerType: "unknown"}
 	tp3 := lookupProvider(ts3)
-	if tp3 != nil {
-		t.Error("non-nil provider")
-	}
+	require.Nil(t, tp3)
 }

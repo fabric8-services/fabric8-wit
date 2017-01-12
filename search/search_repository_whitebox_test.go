@@ -254,7 +254,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
-			s.T().Fatal("Couldnt create test data")
+			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
 		defer wir.Delete(context.Background(), createdWorkItem.ID)
 
@@ -264,7 +264,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
 		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 		if err != nil {
-			s.T().Fatal("Couldnt create test data")
+			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
 
 		sr := NewGormSearchRepository(tx)

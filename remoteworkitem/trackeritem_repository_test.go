@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConvertNewWorkItem(t *testing.T) {
@@ -18,11 +19,13 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 	// Setting up the dependent tracker query and tracker data in the Database
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
-	db.Create(&tr)
+	db = db.Create(&tr)
+	require.Nil(t, db.Error)
 	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
-	db.Create(&tq)
+	db = db.Create(&tq)
+	require.Nil(t, db.Error)
 	defer db.Delete(&tq)
 
 	t.Log("Created Tracker Query and Tracker")
@@ -55,11 +58,13 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 	// Setting up the dependent tracker query and tracker data in the Database
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
-	db.Create(&tr)
+	db = db.Create(&tr)
+	require.Nil(t, db.Error)
 	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
-	db.Create(&tq)
+	db = db.Create(&tq)
+	require.Nil(t, db.Error)
 	defer db.Delete(&tq)
 
 	t.Log("Created Tracker Query and Tracker")
@@ -113,7 +118,8 @@ func TestConvertGithubIssue(t *testing.T) {
 	t.Log("Scenario 3 : Mapping and persisting a Github issue")
 
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
-	db.Create(&tr)
+	db = db.Create(&tr)
+	require.Nil(t, db.Error)
 	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
