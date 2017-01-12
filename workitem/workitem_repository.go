@@ -69,7 +69,6 @@ func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	res := WorkItem{}
 	tx := r.db.Order("fields->'order' desc").Last(&res)
 	if tx.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
 		return 0, nil
 	}
 	if tx.Error != nil {
@@ -119,7 +118,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 	log.Printf("looking for id %d", id)
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if tx.Error != nil {
@@ -142,7 +140,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 		log.Printf("looking for id %d", beforeId)
 		tx = r.db.First(&beforeItem, beforeId)
 		if tx.RecordNotFound() {
-			log.Printf("not found, res=%v", beforeItem)
 			return nil, errors.NewNotFoundError("work item", string(beforeId))
 		}
 		if tx.Error != nil {
@@ -158,7 +155,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 			order = (0 + beforeOrder) / 2
 		} else {
 			if tx2.RecordNotFound() {
-				log.Printf("not found, res=%v", beforeItem)
 				return nil, errors.NewNotFoundError("work item", *before)
 			}
 			if tx2.Error != nil {
@@ -175,7 +171,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 
 		tx2 := r.db.Order("fields->'order' desc", true).Last(&afterItem)
 		if tx2.RecordNotFound() {
-			log.Printf("not found, res=%v", afterItem)
 			return nil, errors.NewNotFoundError("work item", string(afterItem.ID))
 		}
 		if tx2.Error != nil {
@@ -204,7 +199,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
-		log.Print(err.Error())
 		return nil, errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {

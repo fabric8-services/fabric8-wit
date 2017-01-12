@@ -167,21 +167,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 		}
 		wi, err = appl.WorkItems().Reorder(ctx, ctx.Before, *wi)
 		if err != nil {
-			switch err := err.(type) {
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error reordering work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.NotFoundError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
-				return ctx.NotFound(jerrors)
-			case errors.VersionConflictError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error reordering work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			default:
-				log.Printf("Error reordering work items: %s", err.Error())
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
-			}
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		wi2 := ConvertWorkItem(ctx.RequestData, wi)
