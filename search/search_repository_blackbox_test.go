@@ -6,9 +6,12 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -17,6 +20,18 @@ import (
 
 type searchRepositoryBlackboxTest struct {
 	gormsupport.DBTestSuite
+}
+
+// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+func (s *searchRepositoryBlackboxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+
+	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+	}); err != nil {
+		panic(err.Error())
+	}
 }
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
