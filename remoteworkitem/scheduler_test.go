@@ -6,9 +6,13 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"golang.org/x/net/context"
 )
 
 var db *gorm.DB
@@ -26,6 +30,13 @@ func TestMain(m *testing.M) {
 			panic("Failed to connect database: " + err.Error())
 		}
 		defer db.Close()
+
+		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+		if err := models.Transactional(db, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
 	os.Exit(m.Run())
 }

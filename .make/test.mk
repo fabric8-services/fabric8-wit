@@ -137,7 +137,8 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v github.com/almighty/almighty-core \
+	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v \
+		github.com/almighty/almighty-core \
 		github.com/almighty/almighty-core/account \
 		github.com/almighty/almighty-core/comment \
 		github.com/almighty/almighty-core/configuration \
