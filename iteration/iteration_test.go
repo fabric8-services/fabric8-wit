@@ -152,28 +152,21 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	}
 
 	desc := "Updated item"
+	i.Description = &desc
 	updatedName := "Sprint 25"
-	i2 := iteration.Iteration{
-		ID:          i.ID,
-		Description: &desc,
-		Name:        updatedName,
-	}
-
+	i.Name = updatedName
 	// update iteration with new values of Name and Desc
-	updatedIteration, err := repo.Save(context.Background(), i2)
+	updatedIteration, err := repo.Save(context.Background(), i)
 	assert.Nil(t, err)
 	assert.Equal(t, updatedIteration.Name, updatedName)
 	assert.Equal(t, *updatedIteration.Description, desc)
 
 	changedStart := start.Add(time.Hour)
+	i.StartAt = &changedStart
 	changedEnd := start.Add(time.Hour * 2)
-	i3 := iteration.Iteration{
-		ID:      i.ID,
-		StartAt: &changedStart,
-		EndAt:   &changedEnd,
-	}
+	i.EndAt = &changedEnd
 	// update iteration with new values of StartAt, EndAt
-	updatedIteration, err = repo.Save(context.Background(), i3)
+	updatedIteration, err = repo.Save(context.Background(), i)
 	assert.Nil(t, err)
 	assert.Equal(t, changedStart, *updatedIteration.StartAt)
 	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
