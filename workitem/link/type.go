@@ -20,7 +20,7 @@ const (
 	// hare are more human-readable.
 	SystemWorkItemLinkTypeBugBlocker       = "Bug blocker"
 	SystemWorkItemLinkPlannerItemRelated   = "Related planner item"
-	SystemWorkItemLinkEpicRelatedUserStory = "Epic related to User story"
+	SystemWorkItemLinkEpicRelatedUserStory = "Epic related to user story"
 )
 
 // returns true if the left hand and right hand side string

@@ -260,7 +260,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkEpicRelatedUserStory, "Epic includes User story and vice versa", link.TopologyNetwork, "includes", "is included in", workitem.SystemEpic, workitem.SystemUserStory, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkEpicRelatedUserStory, "Epic includes user story and vice versa", link.TopologyNetwork, "includes", "is included in", workitem.SystemEpic, workitem.SystemUserStory, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return err
 	}
 	return nil
