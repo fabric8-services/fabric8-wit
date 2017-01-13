@@ -1,7 +1,6 @@
 package iteration
 
 import (
-	"log"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -111,6 +110,5 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("updated iteration to %v\n", i)
 	return &i, nil
 }

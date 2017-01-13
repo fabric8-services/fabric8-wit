@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -147,9 +148,7 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	}
 	// creates an iteration
 	repo.Create(context.Background(), &i)
-	if i.ID == uuid.Nil {
-		t.Errorf("Comment was not created, ID nil")
-	}
+	require.NotEqual(t, uuid.Nil, i.ID, "Iteration was not created, ID nil")
 
 	desc := "Updated item"
 	i.Description = &desc
@@ -157,7 +156,7 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	i.Name = updatedName
 	// update iteration with new values of Name and Desc
 	updatedIteration, err := repo.Save(context.Background(), i)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, updatedIteration.Name, updatedName)
 	assert.Equal(t, *updatedIteration.Description, desc)
 
@@ -167,7 +166,7 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	i.EndAt = &changedEnd
 	// update iteration with new values of StartAt, EndAt
 	updatedIteration, err = repo.Save(context.Background(), i)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.Equal(t, changedStart, *updatedIteration.StartAt)
 	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
 }

@@ -159,8 +159,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 		},
 	}
 	svc, ctrl := rest.SecuredController()
-	_, err := test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
-	assert.NotEmpty(t, err.Errors)
+	test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
 }
 
 func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
