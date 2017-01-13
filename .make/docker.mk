@@ -97,7 +97,7 @@ endif
 
 # The targets in the following list all depend on a running database container.
 # Make sure you run "make integration-test-env-prepare" before you run any of these targets.
-DB_DEPENDENT_DOCKER_TARGETS = docker-test-migration docker-test-integration docker-coverage-all
+DB_DEPENDENT_DOCKER_TARGETS = docker-test-migration docker-test-integration docker-test-integration-no-coverage docker-coverage-all
 
 $(DB_DEPENDENT_DOCKER_TARGETS):
 	$(eval makecommand:=$(subst docker-,,$@))

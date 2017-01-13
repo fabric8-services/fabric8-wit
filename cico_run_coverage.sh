@@ -5,5 +5,3 @@
 cico_setup;
 
 run_tests_with_coverage;
-
-deploy;
