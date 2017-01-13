@@ -101,17 +101,11 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	err = validateUpdateIteration(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		itr, err := appl.Iterations().Load(ctx.Context, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		itr.Version = *ctx.Payload.Data.Attributes.Version
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name
 		}
@@ -122,7 +116,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			itr.EndAt = ctx.Payload.Data.Attributes.EndAt
 		}
 		if ctx.Payload.Data.Attributes.Description != nil {
-			itr.Description = *ctx.Payload.Data.Attributes.Description
+			itr.Description = ctx.Payload.Data.Attributes.Description
 		}
 
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
@@ -168,8 +162,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 			Name:        &itr.Name,
 			StartAt:     itr.StartAt,
 			EndAt:       itr.EndAt,
-			Description: &itr.Description,
-			Version:     &itr.Version,
+			Description: itr.Description,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
@@ -221,17 +214,4 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
-}
-
-func validateUpdateIteration(ctx *app.UpdateIterationContext) error {
-	if ctx.Payload.Data == nil {
-		return errors.NewBadParameterError("data", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes == nil {
-		return errors.NewBadParameterError("data.attributes", nil).Expected("not nil")
-	}
-	if ctx.Payload.Data.Attributes.Version == nil {
-		return errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil")
-	}
-	return nil
 }

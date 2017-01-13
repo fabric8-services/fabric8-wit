@@ -99,11 +99,12 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	assert.Equal(t, *c.Data.Attributes.Name, iterationName)
 	assert.Equal(t, *c.Data.Attributes.Description, iterationDesc)
 
+	// create another Iteration with nil description
 	iterationName2 := "Sprint #23"
 	ci = createSpaceIteration(iterationName2, nil)
 	_, c = test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
 	assert.Equal(t, *c.Data.Attributes.Name, iterationName2)
-	assert.Empty(t, *c.Data.Attributes.Description)
+	assert.Nil(t, c.Data.Attributes.Description)
 }
 
 func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {

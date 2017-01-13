@@ -26,8 +26,7 @@ type Iteration struct {
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string
-	Description string
-	Version     int
+	Description *string
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -101,8 +100,6 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Iteration, error) {
 	itr := Iteration{}
 	tx := m.db.Where("id=?", i.ID).First(&itr)
-	oldVersion := i.Version
-	i.Version++
 	if tx.RecordNotFound() {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("iteration", i.ID.String())
@@ -110,12 +107,9 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	tx = tx.Where("Version = ?", oldVersion).Save(&i)
+	tx = tx.Save(&i)
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
-	}
-	if tx.RowsAffected == 0 {
-		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.Printf("updated iteration to %v\n", i)
 	return &i, nil
