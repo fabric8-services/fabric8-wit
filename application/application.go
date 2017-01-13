@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/space"
@@ -24,6 +25,8 @@ type Application interface {
 	Spaces() space.Repository
 	Iterations() iteration.Repository
 	Users() account.UserRepository
+	Users() account.IdentityRepository
+	Areas() area.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction
