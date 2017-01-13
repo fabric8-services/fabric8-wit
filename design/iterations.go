@@ -57,11 +57,11 @@ var _ = a.Resource("iteration", func() {
 	a.BasePath("/iterations")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:iterationID"),
 		)
 		a.Description("Retrieve iteration with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("iterationID", d.String, "Iteration Identifier")
 		})
 		a.Response(d.OK, func() {
 			a.Media(iterationSingle)
@@ -73,10 +73,10 @@ var _ = a.Resource("iteration", func() {
 	a.Action("create-child", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.POST("/:id"),
+			a.POST("/:iterationID"),
 		)
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("iterationID", d.String, "Iteration Identifier")
 		})
 		a.Description("create child iteration.")
 		a.Payload(iterationSingle)
@@ -91,11 +91,11 @@ var _ = a.Resource("iteration", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:iterationID"),
 		)
 		a.Description("update the iteration for the given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("iterationID", d.String, "Iteration Identifier")
 		})
 		a.Payload(iterationSingle)
 		a.Response(d.OK, func() {

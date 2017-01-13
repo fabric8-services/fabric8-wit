@@ -30,7 +30,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	parentID, err := uuid.FromString(ctx.ID)
+	parentID, err := uuid.FromString(ctx.IterationID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -70,7 +70,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 
 // Show runs the show action.
 func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
-	id, err := uuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.IterationID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -96,7 +96,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	id, err := uuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.IterationID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
