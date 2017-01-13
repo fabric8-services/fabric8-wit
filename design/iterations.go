@@ -25,7 +25,7 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 		a.Example("Sprint #24")
 	})
 	a.Attribute("description", d.String, "Description of the iteration ", func() {
-		a.Example("this is the description of iteration")
+		a.Example("Sprint #42 focusing on UI and build process improvements")
 	})
 	a.Attribute("startAt", d.DateTime, "When the iteration starts", func() {
 		a.Example("2016-11-29T23:18:14Z")
@@ -93,7 +93,7 @@ var _ = a.Resource("iteration", func() {
 		a.Routing(
 			a.PATCH("/:id"),
 		)
-		a.Description("update the iteration with the given id.")
+		a.Description("update the iteration for the given id.")
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
