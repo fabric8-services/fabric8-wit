@@ -111,7 +111,7 @@ func lookupProvider(ts trackerSchedule) TrackerProvider {
 	case ProviderJira:
 		if ts.LastUpdated != nil {
 			// Use the special date for formatting: https://golang.org/pkg/time/#Time.Format
-			q = ts.Query + " and updated:>=" + ts.LastUpdated.Format("2006-01-02")
+			q = ts.Query + " and updated >= " + ts.LastUpdated.Format("2006-01-02")
 		}
 		return &JiraTracker{URL: ts.URL, Query: q}
 	}
