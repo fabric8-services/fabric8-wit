@@ -89,8 +89,8 @@ KnownURLs is set of KnownURLs will be used while searching on a URL
 URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
 e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
 knownURLs["work-item-details"] = KnownURL{
-urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`,
-compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`),
+urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`,
+compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`),
 groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
 }
 above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
@@ -178,7 +178,7 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 		}
 	}
 	// first value from FindStringSubmatch is always full input itself, hence ignored
-	// Join rest of the tokens to make query like "demo.almighty.io/work-item-list/detail/100"
+	// Join rest of the tokens to make query like "demo.almighty.io/work-item/list/detail/100"
 	if len(match) > 1 {
 		searchQueryString := strings.Join(match[1:], "")
 		searchQueryString = strings.Replace(searchQueryString, ":", "\\:", -1)
@@ -374,6 +374,8 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
 	// Please do not include trailing slashes becasue it will be removed before scanning starts
-	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`)
-	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/work-item-list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("work-item-board-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("localhost-work-item-board-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }
