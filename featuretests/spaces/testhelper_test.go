@@ -10,8 +10,9 @@ import (
 	"io/ioutil"
 	"golang.org/x/net/context"
 	"encoding/json"
-	"github.com/satori/go.uuid"
 	"io"
+	"bytes"
+	"github.com/goadesign/goa/uuid"
 )
 
 type Api struct {
@@ -30,12 +31,30 @@ func (a *Api) Reset() {
 	a.c.Host = "localhost:8080"
 }
 
+func (a *Api) parseErrorResponse(operationMessage string) error {
+	json.NewDecoder(a.resp.Body).Decode(&a.body)
+	errors := a.body["errors"].([]interface{})
+	if len(errors) == 1 {
+		firstError := errors[0].(map[string]interface {})
+		errorDetail :=  firstError["detail"]
+		return fmt.Errorf("%v due to: %v", operationMessage, errorDetail)
+	} else {
+		var buffer bytes.Buffer
+		for _, error := range errors {
+			errorInstance := error.(map[string]interface {})
+			buffer.WriteString(errorInstance["detail"].(string))
+			buffer.WriteString("\n")
+		}
+		return fmt.Errorf("%v due to: %v", operationMessage, buffer.String())
+	}
+}
+
 type IdentityHelper struct {
 	savedToken string
 }
 
 func (i *IdentityHelper) GenerateToken(a *Api) error {
-	resp, err := a.c.ShowStatus(context.Background(), "api/login/generate")
+	resp, err := a.c.ShowStatus(context.Background(), client.GenerateLoginPath())
 	a.resp = resp
 	a.err = err
 
@@ -73,7 +92,7 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 	})
 
 
-	userResp, userErr := a.c.ShowUser(context.Background(), "/api/user")
+	userResp, userErr := a.c.ShowUser(context.Background(), client.ShowUserPath())
 	var user map[string]interface{}
 	json.NewDecoder(userResp.Body).Decode(&user)
 
@@ -92,7 +111,50 @@ type SpaceContext struct {
 	api Api
 	identityHelper IdentityHelper
 	space client.SpaceSingle
+	spaces client.SpaceList
 	spaceName string
+}
+
+func (s *SpaceContext) CleanupDatabase() {
+	s.api.Reset()
+	s.generateToken()
+
+	a := s.api
+	a.c.Dump = true
+	// TODO handle paginated responses when too many spaces exist
+	listResp, listErr := a.c.ListSpace(context.Background(), client.ListSpacePath(), nil, nil)
+	defer listResp.Body.Close()
+
+	if listResp.StatusCode != http.StatusOK {
+		panic(fmt.Errorf("Failed to list spaces"))
+	}
+	if listErr != nil {
+		panic(fmt.Errorf("Failed to list spaces: %v", listErr))
+	}
+
+	// TODO Determine why Decoder.decode fails locally,
+	// and ioutil.ReadAll with json.Unmarshal is required
+	listRespBody , listRespBodyErr := ioutil.ReadAll(listResp.Body)
+	if listRespBodyErr == nil {
+		allSpaces := new(client.SpaceList)
+		json.Unmarshal(listRespBody, &allSpaces)
+
+		// Delete each space individually
+		s.api.Reset()
+		s.generateToken()
+		for _, aSpace := range allSpaces.Data {
+			itrSpaceId := (*aSpace).ID.String()
+			deleteResp, deleteErr := a.c.DeleteSpace(context.Background(), client.DeleteSpacePath(itrSpaceId))
+			if deleteResp.StatusCode != http.StatusOK {
+				panic(fmt.Errorf("Failed to delete space %v, due to error: %v", itrSpaceId, deleteResp.StatusCode))
+			}
+			if deleteErr != nil {
+				panic(fmt.Errorf("Failed to delete space %v: %v", itrSpaceId, deleteErr))
+			}
+		}
+	} else {
+		panic(listRespBodyErr)
+	}
 }
 
 func (s *SpaceContext) Reset(v interface{}) {
@@ -113,11 +175,14 @@ func (s *SpaceContext) generateToken() error {
 	return nil
 }
 
-func (s *SpaceContext) theUserCreatesANewSpace() error {
+func (s *SpaceContext) theUserCreatesANewSpace(spaceName string) error {
 	a := s.api
-	resp, err := a.c.CreateSpace(context.Background(), client.CreateSpacePath(), s.createSpacePayload())
+	resp, err := a.c.CreateSpace(context.Background(), client.CreateSpacePath(), s.createSpacePayload(spaceName))
 	a.resp = resp
 	a.err = err
+	if a.resp.StatusCode != http.StatusCreated {
+		return a.parseErrorResponse("Failed to create space")
+	}
 	dec := json.NewDecoder(a.resp.Body)
 	if err := dec.Decode(&s.space); err == io.EOF {
 		return nil
@@ -127,8 +192,8 @@ func (s *SpaceContext) theUserCreatesANewSpace() error {
 	return nil
 }
 
-func (s *SpaceContext) createSpacePayload() *client.CreateSpacePayload {
-	s.spaceName = "Test space" + uuid.NewV4().String()
+func (s *SpaceContext) createSpacePayload(spaceName string) *client.CreateSpacePayload {
+	s.spaceName = spaceName
 	return &client.CreateSpacePayload{
 		Data: &client.Space{
 			Attributes: &client.SpaceAttributes{
@@ -150,5 +215,63 @@ func (s *SpaceContext) aNewSpaceShouldBeCreated() error {
 		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle , *actualTitle)
 	}
 
+	return nil
+}
+
+func (s *SpaceContext) aSpaceAlreadyExistsWithTheSameUserAsOwner(spaceName string) error {
+	a := s.api
+	resp, err := a.c.ListSpace(context.Background(), client.ListSpacePath(), nil, nil)
+	a.resp = resp
+	a.err = err
+	if a.resp.StatusCode != http.StatusOK {
+		return a.parseErrorResponse("Failed to list spaces")
+	}
+	dec := json.NewDecoder(a.resp.Body)
+	if err := dec.Decode(&s.spaces); err == io.EOF {
+		for _, aSpace := range s.spaces.Data {
+			var itrSpaceName string
+			itrSpaceName = *aSpace.Attributes.Name
+			if itrSpaceName == spaceName {
+				return nil
+			}
+		}
+		return fmt.Errorf("Failed to locate space with name: %v under current user", spaceName)
+	} else if err != nil {
+		panic(err)
+	}
+	return nil
+}
+
+func (s *SpaceContext) aNewSpaceShouldNotBeCreated() error {
+	createdSpace := s.space
+	if *createdSpace.Data.ID != (uuid.UUID{}) {
+		return fmt.Errorf("A space with name %v, was created when it should not be.", createdSpace.Data.Attributes.Name)
+	}
+
+	return nil
+}
+
+func (s *SpaceContext) aSpaceAlreadyExistsWithADifferentUserAsOwner(spaceName string) error {
+	a := s.api
+	resp, err := a.c.ListSpace(context.Background(), client.ListSpacePath(), nil, nil)
+	a.resp = resp
+	a.err = err
+	if a.resp.StatusCode != http.StatusOK {
+		return a.parseErrorResponse("Failed to list spaces")
+	}
+	dec := json.NewDecoder(a.resp.Body)
+	if err := dec.Decode(&s.spaces); err == io.EOF {
+		for _, aSpace := range s.spaces.Data {
+			var itrSpaceName string
+			itrSpaceName = *aSpace.Attributes.Name
+			// TODO Verify the owner of the space is different from current identity of token
+			if itrSpaceName == spaceName {
+				return nil
+			}
+		}
+		return fmt.Errorf("Failed to locate space with name: %v under current user", spaceName)
+	} else if err != nil {
+		panic(err)
+	}
 	return nil
 }

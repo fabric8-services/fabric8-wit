@@ -36,11 +36,11 @@ type IdentityHelper struct {
 }
 
 func (i *IdentityHelper) GenerateToken(a *Api) error {
-	resp, err := a.c.ShowStatus(context.Background(), "api/login/generate")
+	resp, err := a.c.ShowStatus(context.Background(), client.GenerateLoginPath())
 	a.resp = resp
 	a.err = err
 
-	// Option 1 - Extarct the 1st token from the html Data in the reponse
+	// Option 1 - Extract the 1st token from the html Data in the response
 	defer a.resp.Body.Close()
 	htmlData, err := ioutil.ReadAll(a.resp.Body)
 	if err != nil {
@@ -65,7 +65,6 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 	}
 	i.savedToken = token
 
-	//key := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJmdWxsTmFtZSI6IlRlc3QgRGV2ZWxvcGVyIiwiaW1hZ2VVUkwiOiIiLCJ1dWlkIjoiNGI4Zjk0YjUtYWQ4OS00NzI1LWI1ZTUtNDFkNmJiNzdkZjFiIn0.ML2N_P2qm-CMBliUA1Mqzn0KKAvb9oVMbyynVkcyQq3myumGeCMUI2jy56KPuwIHySv7i-aCUl4cfIjG-8NCuS4EbFSp3ja0zpsv1UDyW6tr-T7jgAGk-9ALWxcUUEhLYSnxJoEwZPQUFNTWLYGWJiIOgM86__OBQV6qhuVwjuMlikYaHIKPnetCXqLTMe05YGrbxp7xgnWMlk9tfaxgxAJF5W6WmOlGaRg01zgvoxkRV-2C6blimddiaOlK0VIsbOiLQ04t9QA8bm9raLWX4xOkXN4ubpdsobEzcJaTD7XW0pOeWPWZY2cXCQulcAxfIy6UmCXA14C07gyuRs86Rw" // call api to get key
 	a.c.SetJWTSigner(&goaclient.APIKeySigner{
 		SignQuery: false,
 		KeyName:   "Authorization",
@@ -74,7 +73,7 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 	})
 
 
-	userResp, userErr := a.c.ShowUser(context.Background(), "/api/user")
+	userResp, userErr := a.c.ShowUser(context.Background(), client.ShowUserPath())
 	var user map[string]interface{}
 	json.NewDecoder(userResp.Body).Decode(&user)
 
@@ -161,8 +160,8 @@ func (i *IterationContext) createSpacePayload() *client.CreateSpacePayload {
 
 func (i *IterationContext) theUserCreatesANewIterationWithStartDateAndEndDate(startDate string, endDate string) error {
 	a := i.api
-	spaceIterationsPath := fmt.Sprintf("/api/spaces/%v/iterations", i.space.Data.ID)
-	resp, err := a.c.CreateSpaceIterations(context.Background(), spaceIterationsPath, i.createSpaceIterationPayload(startDate, endDate))
+	spaceId := i.space.Data.ID.String()
+	resp, err := a.c.CreateSpaceIterations(context.Background(), client.CreateSpaceIterationsPath(spaceId), i.createSpaceIterationPayload(startDate, endDate))
 	a.resp = resp
 	a.err = err
 	dec := json.NewDecoder(a.resp.Body)
