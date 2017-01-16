@@ -72,7 +72,7 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+		panic(fmt.Sprintf("ERROR: Failed to setup the configuration: \n%+v", err))
 	}
 
 	if printConfig {
@@ -95,7 +95,7 @@ func main() {
 		}
 	}
 	if err != nil {
-		panic("Could not open connection to database")
+		panic(fmt.Sprintf("ERROR: Could not open connection to database: \n%+v", err))
 	}
 
 	if configuration.IsPostgresDeveloperModeEnabled() {
@@ -105,7 +105,7 @@ func main() {
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Sprintf("ERROR: Failed migration: \n%+v", err))
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -118,12 +118,12 @@ func main() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			panic(err.Error())
+			panic(fmt.Sprintf("ERROR: Failed to populate common types: \n%+v", err))
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
-			panic(err.Error())
+			panic(fmt.Sprintf("ERROR: Failed to bootstap work item linking: \n%+v", err))
 		}
 	}
 
@@ -144,11 +144,11 @@ func main() {
 
 	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("ERROR: Failed to parse private key: \n%+v", err))
 	}
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("ERROR: Failed to parse public token: \n%+v", err))
 	}
 
 	// Setup Account/Login/Security
@@ -266,7 +266,7 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		log.Printf("Failed to get current user: %s", err.Error())
+		fmt.Printf("ERROR: Failed to get current user: \n%+v", err)
 	} else {
 		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
 		/*
