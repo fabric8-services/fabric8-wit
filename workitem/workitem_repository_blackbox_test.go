@@ -123,3 +123,24 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
 }
+
+// TestTypeChangeIsProhibited tests that you cannot change the type of a work
+// item (see https://github.com/fabric8io/fabric8-planner/issues/635).
+func (s *workItemRepoBlackBoxTest) TestTypeChangeIsProhibited() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	// Create at least 1 item to avoid RowsEffectedCheck
+	wi, err := s.repo.Create(
+		context.Background(), "system.bug",
+		map[string]interface{}{
+			workitem.SystemTitle: "Title",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, "xx")
+
+	require.Nil(s.T(), err)
+
+	wi.Type = "system.feature"
+
+	_, err = s.repo.Save(context.Background(), *wi)
+	require.IsType(s.T(), errors.BadParameterError{}, err)
+}

@@ -104,6 +104,10 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	if res.Version != wi.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
+	// Changing the type of a work item is prohibited.
+	if res.Type != wi.Type {
+		return nil, errors.NewBadParameterError("type", wi.Type).Expected(res.Type)
+	}
 
 	wiType, err := r.wir.LoadTypeFromDB(wi.Type)
 	if err != nil {
