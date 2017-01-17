@@ -30,7 +30,7 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("startAt", d.DateTime, "When the iteration starts", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
-	a.Attribute("endAt", d.DateTime, "When the iteration starts", func() {
+	a.Attribute("endAt", d.DateTime, "When the iteration ends", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
 })
