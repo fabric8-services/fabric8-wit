@@ -40,21 +40,25 @@ CREATE INDEX wit_path_idx ON work_item_types USING BTREE (path);
 ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_source_type_name_fkey;
 ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_target_type_name_fkey;
 
-UPDATE
-    work_item_link_types wilt
-    LEFT JOIN work_item_types wit_source ON wit_source.name = wilt.source_type_name
-    LEFT JOIN work_item_types wit_target ON wit_target.name = wilt.target_type_name
+UPDATE work_item_link_types
 SET
-    wilt.source_type_name = subpath(wit_source.path,-1,1)
-    wilt.target_type_name = subpath(wit_target.path,-1,1)
+    source_type_name = subpath(wit_source.path, -1, 1),
+    target_type_name = subpath(wit_target.path, -1, 1)
+FROM
+    work_item_types AS wit_source,
+    work_item_types AS wit_target
+WHERE
+    source_type_name = wit_source.name
+    AND target_type_name = wit_target.name;
 
-UPDATE
-    work_item wi
-    LEFT JOIN work_item_types wit ON wit.type = wi.type
-SET wi.type = subpath(wit.path,-1,1);
+-- Update work item's type
+UPDATE work_items
+SET type = subpath(wit.path, -1, 1)
+FROM work_item_types AS wit
+WHERE type = wit.name;
 
 -- Use the leaf of the path "tree" as the name of the work item type
-UPDATE work_item_types SET name = subpath(path,-1,1);
+UPDATE work_item_types SET name = subpath(path, -1, 1);
 
 -- Add foreign keys back in
 ALTER TABLE work_item_link_types
