@@ -52,7 +52,7 @@ SET
 UPDATE
     work_item AS wi
     INNER JOIN work_item_types AS wit ON wit.name = wi.type
-SET wi.name = subpath(wit.path,-1,1);
+SET wi.type = subpath(wit.path,-1,1);
 
 -- Use the leaf of the path "tree" as the name of the work item type
 UPDATE work_item_types SET name = subpath(path,-1,1);
