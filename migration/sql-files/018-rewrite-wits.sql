@@ -5,8 +5,7 @@ CREATE EXTENSION IF NOT EXISTS "ltree";
 
 -- The following update needs to be done in order to get the WIT storage in a
 -- good shape for it to be migrated to an ltree
-UPDATE work_item_types
-SET
+UPDATE work_item_types SET
     -- Remove any leading '/' from the WIT's path.
     -- Remove any occurence of 'system.'.
     -- Replace '/' with '.' as the new path separator for use with ltree.
@@ -42,16 +41,16 @@ ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_source_typ
 ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_target_type_name_fkey;
 
 UPDATE
-    work_item_link_types AS wilt
-    INNER JOIN work_item_types AS wit_source ON wit_source.name = wilt.source_type_name
-    INNER JOIN work_item_types AS wit_target ON wit_source.name = wilt.target_type_name
+    work_item_link_types wilt
+    LEFT JOIN work_item_types wit_source ON wit_source.name = wilt.source_type_name
+    LEFT JOIN work_item_types wit_target ON wit_target.name = wilt.target_type_name
 SET
     wilt.source_type_name = subpath(wit_source.path,-1,1)
     wilt.target_type_name = subpath(wit_target.path,-1,1)
 
 UPDATE
-    work_item AS wi
-    INNER JOIN work_item_types AS wit ON wit.type = wi.type
+    work_item wi
+    LEFT JOIN work_item_types wit ON wit.type = wi.type
 SET wi.type = subpath(wit.path,-1,1);
 
 -- Use the leaf of the path "tree" as the name of the work item type
