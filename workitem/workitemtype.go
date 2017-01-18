@@ -24,15 +24,15 @@ const (
 	SystemIteration    = "system.iteration"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
-	SystemPlannerItem = "system.planneritem"
+	SystemPlannerItem = "system_planneritem"
 
-	SystemUserStory        = "system.userstory"
-	SystemValueProposition = "system.valueproposition"
-	SystemFundamental      = "system.fundamental"
-	SystemExperience       = "system.experience"
-	SystemFeature          = "system.feature"
-	SystemScenario         = "system.scenario"
-	SystemBug              = "system.bug"
+	SystemUserStory        = "system_userstory"
+	SystemValueProposition = "system_valueproposition"
+	SystemFundamental      = "system_fundamental"
+	SystemExperience       = "system_experience"
+	SystemFeature          = "system_feature"
+	SystemScenario         = "system_scenario"
+	SystemBug              = "system_bug"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"

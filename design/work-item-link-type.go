@@ -93,7 +93,7 @@ var relationWorkItemTypeData = a.Type("RelationWorkItemTypeData", func() {
 		a.Enum("workitemtypes")
 	})
 	a.Attribute("id", d.String, "Name work item type", func() {
-		a.Example("system.bug")
+		a.Example("system_bug")
 	})
 	a.Required("type", "id")
 })

@@ -76,7 +76,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 		panic("Failed to connect database: " + err.Error())
 	}
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. system_bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	}); err != nil {

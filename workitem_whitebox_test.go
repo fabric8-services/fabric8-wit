@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 		}
 		defer DB.Close()
 
-		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+		// Make sure the database is populated with the correct types (e.g. system_bug etc.)
 		if configuration.GetPopulateCommonTypes() {
 			if err := models.Transactional(DB, func(tx *gorm.DB) error {
 				return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))

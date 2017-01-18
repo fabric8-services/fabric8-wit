@@ -29,7 +29,7 @@ type searchRepositoryWhiteboxTest struct {
 func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. system_bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
