@@ -4,6 +4,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
 )
@@ -28,7 +29,7 @@ func NewWorkItemLinkTypeController(service *goa.Service, db application.DB) *Wor
 // enrichLinkTypeSingle includes related resources in the single's "included" array
 func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkTypeSingle) error {
 	// Add "links" element
-	selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
+	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
 		Self: &selfURL,
 	}
@@ -48,7 +49,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
+		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
 			Self: &selfURL,
 		}
