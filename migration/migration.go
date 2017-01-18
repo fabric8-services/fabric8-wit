@@ -131,7 +131,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("017-alter-iterations.sql")})
 
 	// Version 18
-	m = append(m, steps{executeSQLFile("018-drop-wi-links-trigger.sql")})
+	m = append(m, steps{executeSQLFile("018-rewrite-wits.sql")})
 
 	// Version N
 	//
