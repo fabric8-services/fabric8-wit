@@ -12,7 +12,7 @@ import (
 // String constants for the local work item types.
 const (
 	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
-	pathSep = "/"
+	pathSep = "."
 
 	SystemRemoteItemID = "system.remote_item_id"
 	SystemTitle        = "system.title"
