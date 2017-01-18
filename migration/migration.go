@@ -395,7 +395,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		}
 	case nil:
 		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
-		path := "/" + typeName
+		path := typeName
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
