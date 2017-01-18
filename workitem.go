@@ -21,6 +21,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Defines the constants to be used in json api "type" attribute
 const (
 	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"

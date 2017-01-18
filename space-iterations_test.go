@@ -22,6 +22,7 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -72,9 +73,10 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	})
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
-	assert.NotNil(t, c.Data.ID)
-	assert.NotNil(t, c.Data.Relationships.Space)
+	require.NotNil(t, c.Data.ID)
+	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(t, iteration.IterationStateNew, *c.Data.Attributes.State)
 }
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {

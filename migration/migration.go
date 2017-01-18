@@ -133,6 +133,9 @@ func getMigrations() migrations {
 	// Version 18
 	m = append(m, steps{executeSQLFile("018-rewrite-wits.sql")})
 
+	// Version 19
+	m = append(m, steps{executeSQLFile("019-add-state-iterations.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
