@@ -121,18 +121,18 @@ func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, erro
 // IsTypeOrSubtypeOf returns true if the work item type is of the given type name,
 // or a subtype; otherwise false is returned.
 func (wit WorkItemType) IsTypeOrSubtypeOf(typeName string) bool {
-	// Remove any prefixed "/"
+	// Remove any prefixed "."
 	for strings.HasPrefix(typeName, pathSep) && len(typeName) > 0 {
 		typeName = strings.TrimPrefix(typeName, pathSep)
 	}
-	// Remove any trailing "/"
+	// Remove any trailing "."
 	for strings.HasSuffix(typeName, pathSep) && len(typeName) > 0 {
 		typeName = strings.TrimSuffix(typeName, pathSep)
 	}
 	if len(typeName) <= 0 {
 		return false
 	}
-	// Check for complete inclusion (e.g. "/bar/" is contained in "/foo/bar/cake")
-	// and for suffix (e.g. "/cake" is the suffix of "/foo/bar/cake").
+	// Check for complete inclusion (e.g. "bar" is contained in "foo.bar.cake")
+	// and for suffix (e.g. ".cake" is the suffix of "foo.bar.cake").
 	return wit.Name == typeName || strings.Contains(wit.Path, pathSep+typeName+pathSep)
 }
