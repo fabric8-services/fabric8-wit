@@ -26,7 +26,7 @@ http.address: 0.0.0.0:8080
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
 
-# Whether you want to create the common work item types such as system_bug, system_feature, ...
+# Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true
 
 # ----------------------------

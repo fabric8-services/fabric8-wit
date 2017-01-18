@@ -55,7 +55,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 		panic("Failed to connect database: " + err.Error())
 	}
 
-	// Make sure the database is populated with the correct types (e.g. system_bug etc.)
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	}); err != nil {
@@ -324,8 +324,8 @@ func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
 				},
 				"relationships": {
 					"link_category": {"data": {"type":"workitemlinkcategories", "id": "a75ea296-6378-4578-8573-90f11b8efb00"}},
-					"source_type": {"data": {"type":"workitemtypes", "id": "system_bug"}},
-					"target_type": {"data": {"type":"workitemtypes", "id": "system_bug"}}
+					"source_type": {"data": {"type":"workitemtypes", "id": "bug"}},
+					"target_type": {"data": {"type":"workitemtypes", "id": "bug"}}
 				}
 			}
 		}

@@ -42,7 +42,7 @@ var baseTypeData = a.Type("BaseTypeData", func() {
 		a.Enum("workitemtypes")
 	})
 	a.Attribute("id", d.String, func() {
-		a.Example("system_userstory")
+		a.Example("userstory")
 	})
 	a.Required("type", "id")
 })

@@ -309,7 +309,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	return nil
 }
 
-// PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system_bug etc.)
+// PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
 
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {

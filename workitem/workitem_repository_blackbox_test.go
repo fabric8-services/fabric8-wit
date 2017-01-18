@@ -30,7 +30,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
-		context.Background(), "system_bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -49,7 +49,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	wi, err := s.repo.Create(
-		context.Background(), "system_bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -69,7 +69,7 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
-		context.Background(), "system_bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -87,7 +87,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
-		context.Background(), "system_bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
@@ -107,7 +107,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
-		context.Background(), "system_bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
