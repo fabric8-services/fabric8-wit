@@ -284,7 +284,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		// restrict to all given types and their subtypes
 		query := fmt.Sprintf("%[1]s.type in ("+
 			"select distinct subtype.name from %[2]s subtype "+
-			"join %[2]s supertype on subtype.path like (supertype.path || '%%') "+
+			"join %[2]s supertype on subtype.path <@ supertype.path "+
 			"where supertype.name in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
 		db = db.Where(query, workItemTypes)
 	}

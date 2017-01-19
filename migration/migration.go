@@ -130,6 +130,9 @@ func getMigrations() migrations {
 	// Version 17
 	m = append(m, steps{executeSQLFile("017-alter-iterations.sql")})
 
+	// Version 18
+	m = append(m, steps{executeSQLFile("018-rewrite-wits.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -309,7 +312,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	return nil
 }
 
-// PopulateCommonTypes makes sure the database is populated with the correct types (e.g. system.bug etc.)
+// PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
 
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
@@ -392,7 +395,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		}
 	case nil:
 		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
-		path := "/" + typeName
+		path := typeName
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
@@ -400,7 +403,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			if err != nil {
 				return err
 			}
-			path = extendedWit.Path + path
+			path = extendedWit.Path + workitem.GetTypePathSeparator() + path
 
 			//load fields from the extended type
 			err = loadFields(ctx, extendedWit, convertedFields)
