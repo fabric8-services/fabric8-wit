@@ -87,3 +87,6 @@ import:
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - recorder
+- package: github.com/apriendeau/go-testcolorize
+  subpackages:
+  - cmd/gtc

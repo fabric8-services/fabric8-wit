@@ -121,10 +121,10 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 
 .PHONY: test-unit-no-coverage
 ## Runs the unit tests and WITHOUT producing coverage files for each package.
-test-unit-no-coverage: prebuild-check $(SOURCES)
+test-unit-no-coverage: prebuild-check $(SOURCES) $(GTC_BIN)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v $(TEST_PACKAGES) | $(GTC_BIN)
 
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
@@ -134,10 +134,10 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 .PHONY: test-integration-no-coverage
 ## Runs the integration tests WITHOUT producing coverage files for each package.
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
-test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
+test-integration-no-coverage: prebuild-check migrate-database $(SOURCES) $(GTC_BIN)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES) | $(GTC_BIN)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
@@ -359,6 +359,7 @@ $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(C
 		-covermode=$(COVERAGE_MODE) \
 		-timeout 10m \
 		$(EXTRA_TEST_PARAMS) \
+	| $(GTC_BIN)
 	|| echo $(PACKAGE_NAME) >> $(ERRORS_FILE)
 
 @if [ -e "$(COV_OUT_FILE)" ]; then \
@@ -388,7 +389,7 @@ endef
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
-$(COV_PATH_UNIT): $(SOURCES) $(GOCOVMERGE_BIN)
+$(COV_PATH_UNIT): $(SOURCES) $(GOCOVMERGE_BIN) $(GTC_BIN)
 	$(eval TEST_NAME := unit)
 	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
 	$(call log-info,"Running test: $(TEST_NAME)")
@@ -402,7 +403,7 @@ $(COV_PATH_UNIT): $(SOURCES) $(GOCOVMERGE_BIN)
 
 # NOTE: We don't have prebuild-check as a dependency here because it would cause
 #       the recipe to be always executed.
-$(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
+$(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN) $(GTC_BIN)
 	$(eval TEST_NAME := integration)
 	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
 	$(call log-info,"Running test: $(TEST_NAME)")
@@ -423,6 +424,9 @@ $(GOCOV_BIN): prebuild-check
 
 $(GOCOVMERGE_BIN): prebuild-check
 	@cd $(VENDOR_DIR)/github.com/wadey/gocovmerge && go build
+
+$(GTC_BIN): prebuild-check
+	@cd $(GTC_DIR) && go build
 
 #-------------------------------------------------------------------------------
 # Clean targets
