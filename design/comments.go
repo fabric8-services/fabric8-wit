@@ -152,6 +152,10 @@ var _ = a.Resource("work-item-comments", func() {
 			a.GET("comments"),
 		)
 		a.Description("List comments associated with the given work item")
+		a.Params(func() {
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+		})
 		a.Response(d.OK, func() {
 			a.Media(commentArray)
 		})

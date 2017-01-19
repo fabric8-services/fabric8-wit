@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
@@ -68,6 +70,8 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 
 // List runs the list action.
 func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) error {
+	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	fmt.Println("offset", offset, limit)
 	return application.Transactional(c.db, func(appl application.Application) error {
 		_, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
@@ -78,11 +82,14 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		res := &app.CommentArray{}
 		res.Data = []*app.Comment{}
 
-		comments, err := appl.Comments().List(ctx, ctx.ID)
+		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
+		count := int(tc)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
+		_ = count
+		//res.Meta = map[string]interface{}{"totalCount": count}
 		res.Data = ConvertComments(ctx.RequestData, comments)
 
 		return ctx.OK(res)
@@ -99,7 +106,7 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 			return ctx.NotFound(jerrors)
 		}
 
-		comments, err := appl.Comments().List(ctx, ctx.ID)
+		comments, err := appl.Comments().ListAll(ctx, ctx.ID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.InternalServerError(jerrors)
@@ -121,7 +128,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 	go func() {
 		defer close(count)
 		application.Transactional(db, func(appl application.Application) error {
-			cs, err := appl.Comments().List(ctx, parentID)
+			cs, err := appl.Comments().ListAll(ctx, parentID)
 			if err != nil {
 				count <- 0
 				return errors.WithStack(err)

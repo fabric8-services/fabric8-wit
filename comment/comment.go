@@ -27,7 +27,8 @@ type Comment struct {
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	Save(ctx context.Context, comment *Comment) (*Comment, error)
-	List(ctx context.Context, parent string) ([]*Comment, error)
+	List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error)
+	ListAll(ctx context.Context, parent string) ([]*Comment, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 }
 
@@ -82,7 +83,85 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 }
 
 // List all comments related to a single item
-func (m *GormCommentRepository) List(ctx context.Context, parent string) ([]*Comment, error) {
+func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
+	//var objs []*Comment
+
+	db := m.db.Model(&Comment{}).Where("parent_id = ?", parent) //.Order("created_at")
+	orgDB := db
+	if start != nil {
+		if *start < 0 {
+			return nil, 0, errors.NewBadParameterError("start", *start)
+		}
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		if *limit <= 0 {
+			return nil, 0, errors.NewBadParameterError("limit", *limit)
+		}
+		db = db.Limit(*limit)
+	}
+	db = db.Select("count(*) over () as cnt2 , *")
+
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	result := []Comment{}
+	value := Comment{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, errors.NewInternalError(err.Error())
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count uint64
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	first := true
+
+	for rows.Next() {
+		db.ScanRows(rows, &value)
+		if first {
+			first = false
+			if err = rows.Scan(columnValues...); err != nil {
+				return nil, 0, errors.NewInternalError(err.Error())
+			}
+		}
+		result = append(result, value)
+
+	}
+	if first {
+		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// need to do a count(*) to find out total
+		orgDB := orgDB.Select("count(*)")
+		rows2, err := orgDB.Rows()
+		defer rows2.Close()
+		if err != nil {
+			return nil, 0, err
+		}
+		rows2.Next() // count(*) will always return a row
+		rows2.Scan(&count)
+	}
+	return result, count, nil
+	/*
+		err := m.db.Table(m.TableName()).Where("parent_id = ?", parent).Order("created_at").Find(&objs).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+		return objs, nil
+	*/
+}
+
+// ListAll all comments related to a single item
+func (m *GormCommentRepository) ListAll(ctx context.Context, parent string) ([]*Comment, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 	var objs []*Comment
 

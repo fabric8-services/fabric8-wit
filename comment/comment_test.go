@@ -74,7 +74,9 @@ func (test *TestCommentRepository) TestSaveComment() {
 	c.Body = "Test AB"
 	repo.Save(context.Background(), c)
 
-	cl, err := repo.List(context.Background(), parentID)
+	offset := 0
+	limit := 1
+	cl, _, err := repo.List(context.Background(), parentID, &offset, &limit)
 	if err != nil {
 		t.Error("Failed to List", err.Error())
 	}
@@ -116,7 +118,9 @@ func (test *TestCommentRepository) TestListComments() {
 		repo.Create(context.Background(), c)
 	}
 
-	cl, err := repo.List(context.Background(), parentID)
+	offset := 0
+	limit := 1
+	cl, _, err := repo.List(context.Background(), parentID, &offset, &limit)
 	if err != nil {
 		t.Error("Failed to List", err.Error())
 	}
