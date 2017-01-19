@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -63,7 +64,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		res := &app.IterationSingle{
 			Data: ConvertIteration(ctx.RequestData, &newItr),
 		}
-		ctx.ResponseData.Header().Set("Location", AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -152,8 +153,8 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 
 	spaceID := itr.SpaceID.String()
 
-	selfURL := AbsoluteURL(request, app.IterationHref(itr.ID))
-	spaceSelfURL := AbsoluteURL(request, "/api/spaces/"+spaceID)
+	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
+	spaceSelfURL := rest.AbsoluteURL(request, "/api/spaces/"+spaceID)
 
 	i := &app.Iteration{
 		Type: iterationType,
@@ -180,7 +181,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		},
 	}
 	if itr.ParentID != uuid.Nil {
-		parentSelfURL := AbsoluteURL(request, app.IterationHref(itr.ParentID))
+		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ParentID))
 		parentID := itr.ParentID.String()
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
@@ -210,7 +211,7 @@ func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.Gener
 }
 
 func createIterationLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := AbsoluteURL(request, app.IterationHref(id))
+	selfURL := rest.AbsoluteURL(request, app.IterationHref(id))
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}

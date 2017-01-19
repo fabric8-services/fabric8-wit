@@ -213,7 +213,6 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	defer rows.Close()
 
 	result := []WorkItem{}
-	value := WorkItem{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -231,6 +230,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	first := true
 
 	for rows.Next() {
+		value := WorkItem{}
 		db.ScanRows(rows, &value)
 		if first {
 			first = false

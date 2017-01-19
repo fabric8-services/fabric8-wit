@@ -15,6 +15,11 @@ var space = a.Type("Space", func() {
 	a.Attribute("attributes", spaceAttributes)
 	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
+	a.Attribute("relationships", spaceRelationships)
+})
+
+var spaceRelationships = a.Type("SpaceRelationships", func() {
+	a.Attribute("iterations", relationGeneric, "Space can have one or many iterations")
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
