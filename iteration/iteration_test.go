@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -127,4 +128,45 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 	its, err := repo.List(context.Background(), spaceID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
+}
+
+func (test *TestIterationRepository) TestUpdateIteration() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := iteration.NewIterationRepository(test.DB)
+
+	start := time.Now()
+	end := start.Add(time.Hour * (24 * 8 * 3))
+	name := "Sprint #24"
+
+	i := iteration.Iteration{
+		Name:    name,
+		SpaceID: uuid.NewV4(),
+		StartAt: &start,
+		EndAt:   &end,
+	}
+	// creates an iteration
+	repo.Create(context.Background(), &i)
+	require.NotEqual(t, uuid.Nil, i.ID, "Iteration was not created, ID nil")
+
+	desc := "Updated item"
+	i.Description = &desc
+	updatedName := "Sprint 25"
+	i.Name = updatedName
+	// update iteration with new values of Name and Desc
+	updatedIteration, err := repo.Save(context.Background(), i)
+	require.Nil(t, err)
+	assert.Equal(t, updatedIteration.Name, updatedName)
+	assert.Equal(t, *updatedIteration.Description, desc)
+
+	changedStart := start.Add(time.Hour)
+	i.StartAt = &changedStart
+	changedEnd := start.Add(time.Hour * 2)
+	i.EndAt = &changedEnd
+	// update iteration with new values of StartAt, EndAt
+	updatedIteration, err = repo.Save(context.Background(), i)
+	require.Nil(t, err)
+	assert.Equal(t, changedStart, *updatedIteration.StartAt)
+	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
 }

@@ -127,6 +127,9 @@ func getMigrations() migrations {
 	// Version 16
 	m = append(m, steps{executeSQLFile("016-drop-wi-links-trigger.sql")})
 
+	// Version 17
+	m = append(m, steps{executeSQLFile("017-alter-iterations.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
