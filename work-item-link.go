@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
 )
@@ -164,7 +165,7 @@ func enrichLinkSingle(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) er
 	link.Included = append(link.Included, ConvertWorkItem(ctx.RequestData, targetWi))
 
 	// Add links to individual link data element
-	selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.Data.ID))
+	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.Data.ID))
 	link.Data.Links = &app.GenericLinks{
 		Self: &selfURL,
 	}
@@ -215,7 +216,7 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 
 	// Add links to individual link data element
 	for _, link := range linkArr.Data {
-		selfURL := AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
+		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*link.ID))
 		link.Links = &app.GenericLinks{
 			Self: &selfURL,
 		}
