@@ -1,10 +1,12 @@
-hash: 4b5111873c460ed25092b77df966f3c28f7c18bf133cc838292cc7337ea6f096
-updated: 2016-12-11T02:14:05.868106896+01:00
+hash: 69db78bbafe49e494ee155e2204210816a552f4a4e0bc2f3574ce72348deb3c4
+updated: 2017-01-19T12:22:12.144376789+01:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
+- name: github.com/apriendeau/go-testcolorize
+  version: e3fd2188e2ab5eeea4516031b3a56f127c57cbbd
 - name: github.com/armon/go-metrics
   version: 97c69685293dce4c0a2d0b19535179bbc976e4d2
 - name: github.com/asaskevich/govalidator
@@ -22,12 +24,12 @@ imports:
 - name: github.com/dimfeld/httppath
   version: c8e499c3ef3c3e272ed8bdcc1ccf39f73c88debc
 - name: github.com/dimfeld/httptreemux
-  version: 5cb0ec25af2dd6a7d3718b5aa05dc48e192473bc
+  version: a12c89c2c0f23f880dfd74af4832a23bae6e837a
 - name: github.com/dnaeon/go-vcr
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
-  - recorder
   - cassette
+  - recorder
 - name: github.com/elazarl/go-bindata-assetfs
   version: 9a6736ed45b44bf3835afeebb3034b57ed329f3e
   subpackages:
@@ -37,23 +39,23 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
-  version: 7fc6b55040a7f8a800500c44c547692a0d7aed77
+  version: 8f0fdca409904318050f9e03579c3878f8928826
   vcs: git
   subpackages:
   - client
   - cors
   - design
   - design/apidsl
+  - dslengine
   - goagen
   - goagen/codegen
   - goagen/gen_app
   - goagen/utils
   - goatest
   - middleware
-  - middleware/security/jwt
   - middleware/gzip
+  - middleware/security/jwt
   - uuid
-  - dslengine
 - name: github.com/golang/protobuf
   version: 8ee79997227bf9b34611aee7946ae64735e6fd93
   subpackages:
@@ -71,10 +73,10 @@ imports:
   subpackages:
   - hcl/ast
   - hcl/parser
-  - hcl/token
-  - json/parser
   - hcl/scanner
   - hcl/strconv
+  - hcl/token
+  - json/parser
   - json/scanner
   - json/token
 - name: github.com/howeyc/fsnotify
@@ -89,6 +91,8 @@ imports:
   version: bbd0c6e271208dce66d8fda4bc536453cd27fc4a
   subpackages:
   - '...'
+- name: github.com/jwaldrip/tint
+  version: 7cc9d45a1522f939f6e689092b3f393a58668d38
 - name: github.com/kr/pretty
   version: cfb55aafdaf3ec08f0db22699ab822c50091b1c4
 - name: github.com/kr/text
@@ -145,8 +149,8 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-  - suite
   - require
+  - suite
 - name: github.com/trivago/tgo
   version: 4a656addb20609ba4cb4d20219a2f6c27aeb142c
   subpackages:
@@ -181,13 +185,13 @@ imports:
 - name: google.golang.org/appengine
   version: ca59ef35f409df61fa4a5f8290ff289b37eccfb8
   subpackages:
-  - urlfetch
   - internal
-  - internal/urlfetch
   - internal/base
   - internal/datastore
   - internal/log
   - internal/remote_api
+  - internal/urlfetch
+  - urlfetch
 - name: gopkg.in/asaskevich/govalidator.v4
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
