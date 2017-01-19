@@ -87,8 +87,3 @@ import:
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - recorder
-- package: github.com/apriendeau/go-testcolorize
-  subpackages:
-  - cmd/gtc
-- packages: github.com/dimfeld/httptreemux
-  version: 5cb0ec25af2dd6a7d3718b5aa05dc48e192473bc
