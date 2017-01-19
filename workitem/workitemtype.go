@@ -54,6 +54,11 @@ type WorkItemType struct {
 	Fields FieldDefinitions `sql:"type:jsonb"`
 }
 
+// GetTypePathSeparator returns the work item type's path separator "."
+func GetTypePathSeparator() string {
+	return pathSep
+}
+
 // TableName implements gorm.tabler
 func (wit WorkItemType) TableName() string {
 	return "work_item_types"

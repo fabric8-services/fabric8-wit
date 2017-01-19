@@ -403,7 +403,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			if err != nil {
 				return err
 			}
-			path = extendedWit.Path + path
+			path = extendedWit.Path + workitem.GetTypePathSeparator() + path
 
 			//load fields from the extended type
 			err = loadFields(ctx, extendedWit, convertedFields)
