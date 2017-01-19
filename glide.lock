@@ -1,10 +1,14 @@
-hash: 4b5111873c460ed25092b77df966f3c28f7c18bf133cc838292cc7337ea6f096
-updated: 2016-12-11T02:14:05.868106896+01:00
+hash: a59adedafee1bc34045d108e1c0464e4629f771be2f1b735c4810796b1c89f5c
+updated: 2017-01-19T10:14:13.359237964+01:00
 imports:
 - name: bitbucket.org/pkg/inflect
   version: 8961c3750a47b8c0b3e118d52513b97adf85a7e8
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
+- name: github.com/apriendeau/go-testcolorize
+  version: e3fd2188e2ab5eeea4516031b3a56f127c57cbbd
+  subpackages:
+  - cmd/gtc
 - name: github.com/armon/go-metrics
   version: 97c69685293dce4c0a2d0b19535179bbc976e4d2
 - name: github.com/asaskevich/govalidator

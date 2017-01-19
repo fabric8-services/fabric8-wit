@@ -90,3 +90,5 @@ import:
 - package: github.com/apriendeau/go-testcolorize
   subpackages:
   - cmd/gtc
+- packages: github.com/dimfeld/httptreemux
+  version: 5cb0ec25af2dd6a7d3718b5aa05dc48e192473bc
