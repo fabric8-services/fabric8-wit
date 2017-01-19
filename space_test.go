@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
@@ -227,6 +228,10 @@ func (rest *TestSpaceREST) TestSuccessListSpaces() {
 
 	_, list := test.ListSpaceOK(t, svc.Context, svc, ctrl, nil, nil)
 	assert.True(t, len(list.Data) > 0)
+	for _, spc := range list.Data {
+		subString := fmt.Sprintf("/%s/iterations", spc.ID.String())
+		assert.Contains(t, *spc.Relationships.Iterations.Links.Related, subString)
+	}
 }
 
 func minimumRequiredCreateSpace() *app.CreateSpacePayload {
