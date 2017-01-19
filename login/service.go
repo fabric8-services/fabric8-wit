@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -20,8 +21,9 @@ import (
 const (
 	// InvalidCodeError could occure when the OAuth Exchange with GitHub return no valid AccessToken
 	InvalidCodeError string = "Invalid OAuth2.0 code"
-	// PrimaryEmailNotFoundError could occure if no primary email was returned by GitHub
+	// PrimaryEmailNotFoundError could occur if no primary email was returned by GitHub
 	PrimaryEmailNotFoundError string = "Primary email not found"
+	AssociatedUserNotFound    string = "Associated user not found"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -86,46 +88,31 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			return ctx.TemporaryRedirect()
 		}
 
-		emails, err := gh.getUserEmails(ctx, ghtoken)
-		fmt.Println(emails)
-
-		primaryEmail := filterPrimaryEmail(emails)
-		if primaryEmail == "" {
-			fmt.Println("No primary email found?! ", emails)
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+PrimaryEmailNotFoundError)
+		identity, err := gh.retrieveUserIdentity(ctx, ghtoken)
+		if err != nil {
+			switch err.(type) {
+			case errs.IdentityError:
+				identityErr := err.(errs.IdentityError)
+				switch identityErr.Code {
+				case noPrimaryEmail:
+					ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+identityErr.Message.(string))
+					return ctx.TemporaryRedirect()
+				case unauthorizedGitHubRequest:
+					return ctx.Unauthorized(identityErr.Message.(*app.JSONAPIErrors))
+				case remoteAPIError:
+					ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+identityErr.Message.(string))
+					fmt.Println("Failed to retrieve user identity:", err.Error())
+					return ctx.InternalServerError()
+				}
+			default:
+				ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+AssociatedUserNotFound+": "+err.Error())
+			}
 			return ctx.TemporaryRedirect()
 		}
-		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
-		if err != nil {
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Associated user not found "+err.Error())
-			return ctx.TemporaryRedirect()
-		}
-		var identity account.Identity
-		ghUser, err := gh.getUser(ctx, ghtoken)
-		if err != nil {
-			fmt.Println(err)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.Unauthorized(jerrors)
-		}
-		fmt.Println(ghUser)
-		if len(users) == 0 {
-			// No User found, create new User and Identity
-			identity = createIdentity(*ghUser)
-			gh.identities.Create(ctx, &identity)
-			gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: identity})
-		} else {
-			identity = users[0].Identity
-			// let's update the current identity with the fullname and avatar from GitHub,
-			// in case the user changed them since the last time he logged in here
-			gh.identities.Save(ctx, &identity)
-		}
-
-		fmt.Println("Identity: ", identity)
-
 		// register other emails in User table?
 
 		// generate token
-		almtoken, err := gh.tokenManager.Generate(identity)
+		almtoken, err := gh.tokenManager.Generate(*identity)
 		if err != nil {
 			fmt.Println("Failed to generate token", err)
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
@@ -152,6 +139,49 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	return ctx.TemporaryRedirect()
 }
 
+const (
+	noPrimaryEmail = iota
+	unauthorizedGitHubRequest
+	remoteAPIError
+)
+
+// retrieveUserIdentity retrieves the user identity on GitHub, then creates or updates the corresponding identity in the DB.
+func (gh *gitHubOAuth) retrieveUserIdentity(ctx context.Context, ghtoken *oauth2.Token) (*account.Identity, error) {
+	emails, err := gh.getUserEmails(ctx, ghtoken)
+	if err != nil {
+		return nil, errs.NewIdentityError(remoteAPIError, fmt.Sprintf("Failed to retrieve user emails: %v", err))
+	}
+	primaryEmail := filterPrimaryEmail(emails)
+	if primaryEmail == "" {
+		fmt.Println("No primary email found?! ", emails)
+		return nil, errs.NewIdentityError(noPrimaryEmail, PrimaryEmailNotFoundError)
+	}
+	users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
+	if err != nil {
+		return nil, errs.NewIdentityError(remoteAPIError, fmt.Sprintf("Failed to retrieve user by primary email: %v", err))
+	}
+	ghUser, err := gh.getUser(ctx, ghtoken)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return nil, errs.NewIdentityError(unauthorizedGitHubRequest, jerrors)
+	}
+	var identity account.Identity
+	if len(users) == 0 {
+		// No User found, create new User and Identity
+		identity := new(account.Identity)
+		fillIdentity(ghUser, identity)
+		gh.identities.Create(ctx, identity)
+		gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: *identity})
+	} else {
+		identity = users[0].Identity
+		// let's update the current identity with the fullname and avatar from GitHub,
+		// in case the user changed them since the last time he logged in here
+		fillIdentity(ghUser, &identity)
+		gh.identities.Save(ctx, &identity)
+	}
+	return &identity, nil
+}
+
 func (gh gitHubOAuth) getUserEmails(ctx context.Context, token *oauth2.Token) ([]ghEmail, error) {
 	client := gh.config.Client(ctx, token)
 	resp, err := client.Get("https://api.github.com/user/emails")
@@ -176,16 +206,14 @@ func (gh gitHubOAuth) getUser(ctx context.Context, token *oauth2.Token) (*ghUser
 	return &user, nil
 }
 
-func createIdentity(ghUser ghUser) account.Identity {
+func fillIdentity(ghUser *ghUser, identity *account.Identity) {
 	// Use login as name if 'name' is not set #391
-	name := ghUser.Name
-	if name == "" {
-		name = ghUser.Login
+	if ghUser.Name == "" {
+		identity.FullName = ghUser.Login
+	} else {
+		identity.FullName = ghUser.Name
 	}
-	return account.Identity{
-		FullName: name,
-		ImageURL: ghUser.AvatarURL,
-	}
+	identity.ImageURL = ghUser.AvatarURL
 }
 
 func filterPrimaryEmail(emails []ghEmail) string {
