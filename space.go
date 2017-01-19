@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -194,6 +196,7 @@ func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional .
 // ConvertSpace converts between internal and external REST representation
 func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
 	selfURL := AbsoluteURL(request, app.SpaceHref(p.ID))
+	relatedIterationList := AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", p.ID.String()))
 	return &app.Space{
 		ID:   &p.ID,
 		Type: "spaces",
@@ -205,6 +208,13 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 		},
 		Links: &app.GenericLinks{
 			Self: &selfURL,
+		},
+		Relationships: &app.SpaceRelationships{
+			Iterations: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedIterationList,
+				},
+			},
 		},
 	}
 }
