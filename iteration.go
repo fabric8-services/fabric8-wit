@@ -30,7 +30,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	parentID, err := uuid.FromString(ctx.ID)
+	parentID, err := uuid.FromString(ctx.IterationID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -70,7 +70,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 
 // Show runs the show action.
 func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
-	id, err := uuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.IterationID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -90,6 +90,48 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 	})
 }
 
+// Update runs the update action.
+func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+	id, err := uuid.FromString(ctx.IterationID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		itr, err := appl.Iterations().Load(ctx.Context, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if ctx.Payload.Data.Attributes.Name != nil {
+			itr.Name = *ctx.Payload.Data.Attributes.Name
+		}
+		if ctx.Payload.Data.Attributes.StartAt != nil {
+			itr.StartAt = ctx.Payload.Data.Attributes.StartAt
+		}
+		if ctx.Payload.Data.Attributes.EndAt != nil {
+			itr.EndAt = ctx.Payload.Data.Attributes.EndAt
+		}
+		if ctx.Payload.Data.Attributes.Description != nil {
+			itr.Description = ctx.Payload.Data.Attributes.Description
+		}
+
+		itr, err = appl.Iterations().Save(ctx.Context, *itr)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		response := app.IterationSingle{
+			Data: ConvertIteration(ctx.RequestData, itr),
+		}
+
+		return ctx.OK(&response)
+	})
+}
+
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
 // convertion from internal to API
 type IterationConvertFunc func(*goa.RequestData, *iteration.Iteration, *app.Iteration)
@@ -104,22 +146,23 @@ func ConvertIterations(request *goa.RequestData, Iterations []*iteration.Iterati
 }
 
 // ConvertIteration converts between internal and external REST representation
-func ConvertIteration(request *goa.RequestData, iteration *iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
-	iterationType := "iterations"
+func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
+	iterationType := iteration.APIStringTypeIteration
 	spaceType := "spaces"
 
-	spaceID := iteration.SpaceID.String()
+	spaceID := itr.SpaceID.String()
 
-	selfURL := AbsoluteURL(request, app.IterationHref(iteration.ID))
+	selfURL := AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := AbsoluteURL(request, "/api/spaces/"+spaceID)
 
 	i := &app.Iteration{
 		Type: iterationType,
-		ID:   &iteration.ID,
+		ID:   &itr.ID,
 		Attributes: &app.IterationAttributes{
-			Name:    &iteration.Name,
-			StartAt: iteration.StartAt,
-			EndAt:   iteration.EndAt,
+			Name:        &itr.Name,
+			StartAt:     itr.StartAt,
+			EndAt:       itr.EndAt,
+			Description: itr.Description,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
@@ -136,9 +179,9 @@ func ConvertIteration(request *goa.RequestData, iteration *iteration.Iteration, 
 			Self: &selfURL,
 		},
 	}
-	if iteration.ParentID != uuid.Nil {
-		parentSelfURL := AbsoluteURL(request, app.IterationHref(iteration.ParentID))
-		parentID := iteration.ParentID.String()
+	if itr.ParentID != uuid.Nil {
+		parentSelfURL := AbsoluteURL(request, app.IterationHref(itr.ParentID))
+		parentID := itr.ParentID.String()
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &iterationType,
@@ -150,7 +193,7 @@ func ConvertIteration(request *goa.RequestData, iteration *iteration.Iteration, 
 		}
 	}
 	for _, add := range additional {
-		add(request, iteration, i)
+		add(request, itr, i)
 	}
 	return i
 }

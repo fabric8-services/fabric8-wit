@@ -19,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -1042,9 +1043,9 @@ func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	t := s.T()
 
-	iteration := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
-	iterationID := iteration.ID.String()
-	itType := "iterations"
+	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationID := iterationInstance.ID.String()
+	itType := iteration.APIStringTypeIteration
 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1071,9 +1072,9 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	t := s.T()
 
-	iteration := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
-	iterationID := iteration.ID.String()
-	itType := "iterations"
+	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationID := iterationInstance.ID.String()
+	itType := iteration.APIStringTypeIteration
 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1112,9 +1113,9 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 
 	t.Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 
-	iteration := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
-	iterationID := iteration.ID.String()
-	itType := "iterations"
+	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationID := iterationInstance.ID.String()
+	itType := iteration.APIStringTypeIteration
 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1154,7 +1155,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 	t := s.T()
 
-	itType := "iterations"
+	itType := iteration.APIStringTypeIteration
 	iterationID := uuid.NewV4().String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"

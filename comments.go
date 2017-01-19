@@ -1,12 +1,14 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/login"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -43,6 +45,40 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 			c,
 			CommentIncludeParentWorkItem())
 
+		return ctx.OK(res)
+	})
+}
+
+// Update does PATCH comment
+func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+	identity, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		cm, err := appl.Comments().Load(ctx.Context, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		if identity != cm.CreatedBy.String() {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+		}
+
+		cm.Body = *ctx.Payload.Data.Attributes.Body
+		cm, err = appl.Comments().Save(ctx.Context, cm)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		res := &app.CommentSingle{
+			Data: ConvertComment(ctx.RequestData, cm, CommentIncludeParentWorkItem()),
+		}
 		return ctx.OK(res)
 	})
 }
