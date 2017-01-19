@@ -98,6 +98,14 @@ func (test *repoBBTest) TestList() {
 	assert.Equal(test.T(), orgCount+1, newCount)
 }
 
+func (test *repoBBTest) TestListDoNotReturnPointerToSameObject() {
+	expectSpace(test.create(testSpace), test.requireOk)
+	expectSpace(test.create(testSpace2), test.requireOk)
+	spaces, newCount, _ := test.list(nil, nil)
+	assert.True(test.T(), newCount >= 2)
+	assert.True(test.T(), spaces[0].Name != spaces[1].Name)
+}
+
 type spaceExpectation func(p *space.Space, err error)
 
 func expectSpace(f func() (*space.Space, error), e spaceExpectation) (*space.Space, error) {
