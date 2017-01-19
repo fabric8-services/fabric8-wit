@@ -77,6 +77,8 @@ import:
 - package: github.com/mitchellh/mapstructure
 - package: github.com/pelletier/go-toml
   version: ^0.3.5
+- package: github.com/pkg/errors
+  version: ^0.8.0
 - package: github.com/spf13/afero
 - package: github.com/spf13/cast
 - package: github.com/spf13/jwalterweatherman

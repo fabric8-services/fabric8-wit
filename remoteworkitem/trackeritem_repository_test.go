@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +50,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 		wir := workitem.NewWorkItemRepository(db)
 		wir.Delete(context.Background(), workItem.ID)
 
-		return err
+		return errors.WithStack(err)
 	})
 }
 
@@ -84,7 +85,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
 		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
-		return err
+		return errors.WithStack(err)
 	})
 
 	t.Log("Updating the existing work item when it's reimported.")
@@ -105,7 +106,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		wir := workitem.NewWorkItemRepository(tx)
 		wir.Delete(context.Background(), workItemUpdated.ID)
 
-		return err
+		return errors.WithStack(err)
 	})
 
 }
@@ -147,7 +148,7 @@ func TestConvertGithubIssue(t *testing.T) {
 		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "open", workItemGithub.Fields[workitem.SystemState])
 
-		return err
+		return errors.WithStack(err)
 	})
 
 }

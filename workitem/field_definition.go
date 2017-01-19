@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/almighty/almighty-core/convert"
+	"github.com/pkg/errors"
 )
 
 // constants for describing possible field types
@@ -113,7 +114,7 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	rawType := map[string]interface{}{}
 	json.Unmarshal(*temp.Type, &rawType)
@@ -121,28 +122,28 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 	kind, err := convertAnyToKind(rawType["Kind"])
 
 	if err != nil {
-		return err
+		return errors.WithStack(err)
 	}
 	switch *kind {
 	case KindList:
 		theType := ListType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required}
 	case KindEnum:
 		theType := EnumType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required}
 	default:
 		theType := SimpleType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required}
 	}

@@ -9,7 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
-	goaerrors "github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +37,7 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 			if e == nil {
 				return nil
 			}
-			cause := goaerrors.Cause(e)
+			cause := errs.Cause(e)
 			status := http.StatusInternalServerError
 			var respBody interface{}
 			respBody, status = ErrorToJSONAPIErrors(e)

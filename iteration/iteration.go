@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -61,7 +62,7 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Iteration", "error", err.Error())
-		return err
+		return errs.WithStack(err)
 	}
 
 	return nil
@@ -74,7 +75,7 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return objs, nil
 }

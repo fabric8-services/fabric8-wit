@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -123,7 +124,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 			cs, err := appl.Comments().List(ctx, parentID)
 			if err != nil {
 				count <- 0
-				return err
+				return errors.WithStack(err)
 			}
 			count <- len(cs)
 			return nil
