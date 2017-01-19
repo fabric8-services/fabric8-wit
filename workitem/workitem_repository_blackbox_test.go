@@ -129,7 +129,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 func (s *workItemRepoBlackBoxTest) TestTypeChangeIsProhibited() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
-	// Create at least 1 item to avoid RowsEffectedCheck
+	// Create at least 1 item to avoid RowsAffectedCheck
 	wi, err := s.repo.Create(
 		context.Background(), "system.bug",
 		map[string]interface{}{
@@ -141,6 +141,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsProhibited() {
 
 	wi.Type = "system.feature"
 
-	_, err = s.repo.Save(context.Background(), *wi)
-	require.IsType(s.T(), errors.BadParameterError{}, err)
+	newWi, err := s.repo.Save(context.Background(), *wi)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), "system.bug", newWi.Type, "Type change must be silently ignored")
 }

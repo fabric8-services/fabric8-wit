@@ -657,7 +657,10 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 		},
 	}
 
-	_, _ = test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, &u)
+	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, &u)
+
+	// Ensure the type wasn't updated
+	require.Equal(s.T(), workitem.SystemBug, newWi.Data.Relationships.BaseType.Data.ID)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyDescription() {
