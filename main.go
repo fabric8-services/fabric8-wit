@@ -12,7 +12,6 @@ import (
 	"golang.org/x/net/context"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -162,13 +161,16 @@ func main() {
 
 	// Mount "login" controller
 	oauth := &oauth2.Config{
-		ClientID:     configuration.GetGithubClientID(),
-		ClientSecret: configuration.GetGithubSecret(),
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint:     github.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  configuration.GetKeycloakEndpointAuth(),
+			TokenURL: configuration.GetKeycloakEndpointToken(),
+		},
 	}
 
-	loginService := login.NewGitHubOAuth(oauth, identityRepository, userRepository, tokenManager)
+	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager)
 	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 

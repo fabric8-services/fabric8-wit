@@ -130,6 +130,7 @@ func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
 func (r *GormRepository) Create(ctx context.Context, name string) (*Space, error) {
 	newSpace := Space{
 		Name: name,
+		ID:   satoriuuid.NewV4(),
 	}
 
 	tx := r.db.Create(&newSpace)
@@ -173,7 +174,6 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 	defer rows.Close()
 
 	result := []*Space{}
-	value := Space{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -191,6 +191,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 	first := true
 
 	for rows.Next() {
+		value := Space{}
 		db.ScanRows(rows, &value)
 		if first {
 			first = false
@@ -199,7 +200,6 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 			}
 		}
 		result = append(result, &value)
-
 	}
 	if first {
 		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
