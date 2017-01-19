@@ -90,6 +90,8 @@ func (s *workItemLinkTypeSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
+	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-epic-relates-userstory"})
+	require.Nil(s.T(), db.Error)
 	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
 
 }
@@ -140,6 +142,19 @@ func TestSuiteWorkItemLinkType(t *testing.T) {
 // TestCreateWorkItemLinkType tests if we can create the "test-bug-blocker" work item link type
 func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	createPayload := s.createDemoLinkType("test-bug-blocker")
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
+	require.NotNil(s.T(), workItemLinkType)
+	// Check that the link category is included in the response in the "included" array
+	require.Len(s.T(), workItemLinkType.Included, 1, "The work item link type should include it's work item link category.")
+	categoryData, ok := workItemLinkType.Included[0].(*app.WorkItemLinkCategoryData)
+	require.True(s.T(), ok)
+	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
+}
+
+// TestCreateWorkItemLinkType tests if we can create the "test-epic-relates-userstory" work item link type
+func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemEpicUserStoryLinkType() {
+	createPayload := s.createDemoLinkType("test-epic-relates-userstory")
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 	// Check that the link category is included in the response in the "included" array

@@ -49,12 +49,13 @@ type workItemLinkSuite struct {
 	workItemSvc              *goa.Service
 
 	// These IDs can safely be used by all tests
-	bug1ID               uint64
-	bug2ID               uint64
-	bug3ID               uint64
-	feature1ID           uint64
-	userLinkCategoryID   string
-	bugBlockerLinkTypeID string
+	bug1ID                     uint64
+	bug2ID                     uint64
+	bug3ID                     uint64
+	feature1ID                 uint64
+	userLinkCategoryID         string
+	bugBlockerLinkTypeID       string
+	epicRelatesUserStoryTypeID string
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	deleteWorkItemLinks []string
@@ -145,6 +146,8 @@ func (s *workItemLinkSuite) cleanup() {
 	// rather than ID, unlike the work items or work item links.
 	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-bug-blocker"})
 	require.Nil(s.T(), db.Error)
+	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-epic-relates-userstory"})
+	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
 
@@ -215,6 +218,12 @@ func (s *workItemLinkSuite) SetupTest() {
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
 	fmt.Printf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+	// Create work item link type payload
+	createEpicLinkTypePayload := CreateWorkItemLinkType("test-epic-userstory", workitem.SystemEpic, workitem.SystemUserStory, s.userLinkCategoryID)
+	_, workItemEpicLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createEpicLinkTypePayload)
+	require.NotNil(s.T(), workItemLinkType)
+	s.epicRelatesUserStoryTypeID = *workItemEpicLinkType.Data.ID
+	fmt.Printf("Created link type with ID: %s\n", *workItemEpicLinkType.Data.ID)
 }
 
 // The TearDownTest method will be run after every test in the suite.
