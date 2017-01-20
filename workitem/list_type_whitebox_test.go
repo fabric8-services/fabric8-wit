@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/resource"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConvertList(t *testing.T) {

@@ -30,27 +30,32 @@ var _ convert.Equaler = WorkItemLinkCategory{}
 var _ convert.Equaler = (*WorkItemLinkCategory)(nil)
 
 // Equal returns true if two WorkItemLinkCategory objects are equal; otherwise false is returned.
-func (self WorkItemLinkCategory) Equal(u convert.Equaler) bool {
+func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemLinkCategory)
 	if !ok {
 		return false
 	}
-	if !self.Lifecycle.Equal(other.Lifecycle) {
+	if !c.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if self.ID != other.ID {
+	if c.ID != other.ID {
 		return false
 	}
-	if self.Name != other.Name {
+	if c.Name != other.Name {
 		return false
 	}
-	if self.Version != other.Version {
+	if c.Version != other.Version {
 		return false
 	}
-	if !strPtrIsNilOrContentIsEqual(self.Description, other.Description) {
+	if !strPtrIsNilOrContentIsEqual(c.Description, other.Description) {
 		return false
 	}
 	return true
+}
+
+// TableName implements gorm.tabler
+func (c WorkItemLinkCategory) TableName() string {
+	return "work_item_link_categories"
 }
 
 // ConvertLinkCategoryFromModel converts work item link category from model to app representation
