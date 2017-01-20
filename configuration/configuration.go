@@ -176,7 +176,7 @@ func GetPostgresConfigString() string {
 }
 
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
-// the common work item types such as system.bug or system.feature shall be created.
+// the common work item types such as bug or feature shall be created.
 func GetPopulateCommonTypes() bool {
 	return viper.GetBool(varPopulateCommonTypes)
 }

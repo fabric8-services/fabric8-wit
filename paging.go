@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 const (
@@ -126,7 +127,7 @@ func parseInts(s *string) ([]int, error) {
 	for index, value := range split {
 		converted, err := strconv.Atoi(value)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		result[index] = converted
 	}
@@ -136,7 +137,7 @@ func parseInts(s *string) ([]int, error) {
 func parseLimit(pageParameter *string) (s *int, l int, e error) {
 	params, err := parseInts(pageParameter)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errs.WithStack(err)
 	}
 
 	if len(params) > 1 {

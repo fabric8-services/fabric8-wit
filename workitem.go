@@ -17,9 +17,11 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
+// Defines the constants to be used in json api "type" attribute
 const (
 	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"
@@ -62,7 +64,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
@@ -112,7 +115,8 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
@@ -170,7 +174,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
@@ -204,7 +209,8 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
@@ -235,7 +241,8 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 		err := appl.WorkItems().Delete(ctx, ctx.ID)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)

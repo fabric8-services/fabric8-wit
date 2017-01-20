@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/workitem"
+	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,13 +27,17 @@ func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
 
 func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
 	s.undoScript = &gormsupport.DBScript{}
-	s.repo = workitem.NewUndoableWorkItemTypeRepository(workitem.NewWorkItemTypeRepository(s.DB), s.undoScript)
-	db2 := s.DB.Unscoped().Delete(workitem.WorkItemType{Name: "foo.bar"})
+
+	gWitRepo := workitem.NewWorkItemTypeRepository(s.DB)
+	s.repo = workitem.NewUndoableWorkItemTypeRepository(gWitRepo, s.undoScript)
+
+	db2 := s.DB.Unscoped().Delete(workitem.WorkItemType{Name: "foo_bar"})
 
 	if db2.Error != nil {
 		s.T().Fatalf("Could not setup test %s", db2.Error.Error())
 		return
 	}
+	gWitRepo.ClearCache()
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
@@ -41,7 +46,7 @@ func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 
-	wit, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{
+	wit, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{
 		"foo": app.FieldDefinition{
 			Required: true,
 			Type:     &app.FieldType{Kind: string(workitem.KindFloat)},
@@ -50,11 +55,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	assert.Nil(s.T(), err)
 	assert.NotNil(s.T(), wit)
 
-	wit3, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{})
-	assert.IsType(s.T(), errors.BadParameterError{}, err)
+	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
+	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
 	assert.Nil(s.T(), wit3)
 
-	wit2, err := s.repo.Load(context.Background(), "foo.bar")
+	wit2, err := s.repo.Load(context.Background(), "foo_bar")
 	assert.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	field := wit2.Fields["foo"]
@@ -68,7 +73,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	bt := "string"
-	wit, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{
+	wit, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{
 		"foo": app.FieldDefinition{
 			Required: true,
 			Type: &app.FieldType{
@@ -80,11 +85,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	assert.Nil(s.T(), err)
 	assert.NotNil(s.T(), wit)
 
-	wit3, err := s.repo.Create(context.Background(), nil, "foo.bar", map[string]app.FieldDefinition{})
-	assert.IsType(s.T(), errors.BadParameterError{}, err)
+	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
+	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
 	assert.Nil(s.T(), wit3)
 
-	wit2, err := s.repo.Load(context.Background(), "foo.bar")
+	wit2, err := s.repo.Load(context.Background(), "foo_bar")
 	assert.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	field := wit2.Fields["foo"]

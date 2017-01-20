@@ -8,6 +8,11 @@ const (
 	stNotFoundErrorMsg             = "%s with id '%s' not found"
 )
 
+// Constants that can be used to identify internal server errors
+const (
+	ErrInternalDatabase = "database_error"
+)
+
 type simpleError struct {
 	message string
 }

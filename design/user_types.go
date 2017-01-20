@@ -8,7 +8,7 @@ import (
 // CreateWorkItemPayload defines the structure of work item payload
 var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 	a.Attribute("type", d.String, "The type of the newly created work item", func() {
-		a.Example("system.userstory")
+		a.Example("userstory")
 		a.MinLength(1)
 		a.Pattern("^[\\p{L}.]+$")
 	})
@@ -24,7 +24,7 @@ var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 // which ideally should be optional. The ID should be passed on to REST URL.
 var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("type", d.String, "The type of the newly created work item", func() {
-		a.Example("system.userstory")
+		a.Example("userstory")
 		a.MinLength(1)
 		a.Pattern("^[\\p{L}.]+$")
 	})

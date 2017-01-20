@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // A TXIsoLevel specifies the characteristics of the transaction
@@ -160,12 +161,12 @@ func (g *GormDB) BeginTransaction() (application.Transaction, error) {
 func (g *GormTransaction) Commit() error {
 	err := g.db.Commit().Error
 	g.db = nil
-	return err
+	return errors.WithStack(err)
 }
 
 // Rollback implements TransactionSupport
 func (g *GormTransaction) Rollback() error {
 	err := g.db.Rollback().Error
 	g.db = nil
-	return err
+	return errors.WithStack(err)
 }

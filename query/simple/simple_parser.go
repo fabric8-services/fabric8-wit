@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 
 	. "github.com/almighty/almighty-core/criteria"
+	"github.com/pkg/errors"
 )
 
 // Parse parses strings of the form { "attribute1":value1,"attribute2":value2} into an expression of the form "attribute1=value1 and attribute2=value2"
@@ -18,7 +19,7 @@ func Parse(exp *string) (Expression, error) {
 	var unmarshalled map[string]interface{}
 	err := json.Unmarshal([]byte(*exp), &unmarshalled)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	var result *Expression
 	if len(unmarshalled) > 0 {

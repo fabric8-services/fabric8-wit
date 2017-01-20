@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
@@ -45,7 +46,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 		LinkCategoryID: linkCategoryID,
 	}
 	if err := linkType.CheckValidForCreation(); err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	// Check link category exists
@@ -186,7 +187,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkIt
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	if err := ConvertLinkTypeToModel(lt, &res); err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	res.Version = res.Version + 1
 	db = db.Save(&res)

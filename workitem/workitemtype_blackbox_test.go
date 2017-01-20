@@ -202,21 +202,21 @@ func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	// Test types and subtypes
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("foo"))
-	assert.True(t, workitem.WorkItemType{Name: "bar", Path: "/foo/bar"}.IsTypeOrSubtypeOf("foo"))
-	assert.True(t, workitem.WorkItemType{Name: "bar", Path: "/foo/bar"}.IsTypeOrSubtypeOf("bar"))
-	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("foo"))
-	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("bar"))
-	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("cake"))
+	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("foo"))
+	assert.True(t, workitem.WorkItemType{Name: "bar", Path: "foo.bar"}.IsTypeOrSubtypeOf("foo"))
+	assert.True(t, workitem.WorkItemType{Name: "bar", Path: "foo.bar"}.IsTypeOrSubtypeOf("bar"))
+	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("foo"))
+	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("bar"))
+	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("cake"))
 
 	// Test we actually do return false sometimes
-	assert.False(t, workitem.WorkItemType{Name: "cake", Path: "/foo/bar/cake"}.IsTypeOrSubtypeOf("fo"))
-	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("fo"))
+	assert.False(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("fo"))
+	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("fo"))
 
 	// Test wrong argument with prefixed and trailing slashes
-	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf(""))
-	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/"))
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/foo"))
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("/foo/"))
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "/foo"}.IsTypeOrSubtypeOf("foo/"))
+	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf(""))
+	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("."))
+	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("foo."))
+	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf(".foo"))
+	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf(".foo."))
 }

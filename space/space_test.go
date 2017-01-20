@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/space"
+	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,7 +112,7 @@ type spaceExpectation func(p *space.Space, err error)
 func expectSpace(f func() (*space.Space, error), e spaceExpectation) (*space.Space, error) {
 	p, err := f()
 	e(p, err)
-	return p, err
+	return p, errs.WithStack(err)
 }
 
 func (test *repoBBTest) requireOk(p *space.Space, err error) {

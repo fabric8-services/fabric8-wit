@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/workitem"
+	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -30,7 +31,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -41,7 +42,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 	}
 
 	err = s.repo.Delete(context.Background(), "0")
-	require.IsType(s.T(), errors.NotFoundError{}, err)
+	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
@@ -49,19 +50,17 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, "xx")
 
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create workitem")
 	wi.ID = "0"
 
 	_, err = s.repo.Save(context.Background(), *wi)
-	require.IsType(s.T(), errors.NotFoundError{}, err)
+	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
@@ -69,34 +68,30 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, "xx")
 
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create workitem")
 
 	_, err = s.repo.Load(context.Background(), "0")
-	require.IsType(s.T(), errors.NotFoundError{}, err)
+	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
 			workitem.SystemAssignees: []string{"A", "B"},
 		}, "xx")
 
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 
@@ -107,7 +102,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,

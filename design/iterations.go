@@ -33,6 +33,9 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("endAt", d.DateTime, "When the iteration ends", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
+	a.Attribute("state", d.String, "State of an iteration", func() {
+		a.Enum("new", "start", "close")
+	})
 })
 
 var iterationRelationships = a.Type("IterationRelations", func() {
