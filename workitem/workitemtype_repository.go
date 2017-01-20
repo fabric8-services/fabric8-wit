@@ -13,6 +13,8 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+var cache = NewWorkItemTypeCache()
+
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, name string) (*app.WorkItemType, error)
@@ -50,18 +52,28 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
 	log.Printf("loading work item type %s", name)
-	res := WorkItemType{}
+	res, ok := cache.Get(name)
+	if !ok {
+		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
+		res = WorkItemType{}
 
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return nil, errors.NewNotFoundError("work item type", name)
-	}
-	if err := db.Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		db := r.db.Model(&res).Where("name=?", name).First(&res)
+		if db.RecordNotFound() {
+			log.Printf("not found, res=%v", res)
+			return nil, errors.NewNotFoundError("work item type", name)
+		}
+		if err := db.Error; err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		cache.Put(res)
 	}
 
 	return &res, nil
+}
+
+// ClearCache clears the work item type cache
+func (r *GormWorkItemTypeRepository) ClearCache() {
+	cache.Clear()
 }
 
 // Create creates a new work item in the repository
