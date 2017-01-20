@@ -69,10 +69,6 @@ func TestInvalidOAuthAccessToken(t *testing.T) {
 	setup()
 	defer tearDown()
 
-	if loginService == nil {
-		setup()
-	}
-
 	invalidAccessToken := "7423742yuuiy-INVALID-73842342389h"
 
 	accessToken := &oauth2.Token{
@@ -89,4 +85,11 @@ func TestGetUser(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	t.Skip("Not implemented")
+}
+
+func TestGravatarURLGeneration(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	grURL, err := generateGravatarURL("alkazako@redhat.com")
+	assert.Nil(t, err)
+	assert.Equal(t, "https://www.gravatar.com/avatar/0fa6cfaa2812a200c566f671803cdf2d.jpg", grURL)
 }
