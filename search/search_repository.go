@@ -374,7 +374,6 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
 	// Please do not include trailing slashes becasue it will be removed before scanning starts
-
 	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
 	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }
