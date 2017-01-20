@@ -152,19 +152,6 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 }
 
-// TestCreateWorkItemLinkType tests if we can create the "test-epic-relates-userstory" work item link type
-func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemEpicUserStoryLinkType() {
-	createPayload := s.createDemoLinkType("test-epic-relates-userstory")
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-	require.NotNil(s.T(), workItemLinkType)
-	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), workItemLinkType.Included, 1, "The work item link type should include it's work item link category.")
-	categoryData, ok := workItemLinkType.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
-	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
-}
-
 //func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequest() {
 //	createPayload := s.createDemoLinkType("") // empty name causes bad request
 //	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
