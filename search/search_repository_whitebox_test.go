@@ -413,7 +413,7 @@ func TestRegisterAsKnownURL(t *testing.T) {
 	groupNames := compiledRegex.SubexpNames()
 	var expected = make(map[string]KnownURL)
 	expected[routeName] = KnownURL{
-		urlRegex:          urlRegex,
+		URLRegex:          urlRegex,
 		compiledRegex:     regexp.MustCompile(urlRegex),
 		groupNamesInRegex: groupNames,
 	}
