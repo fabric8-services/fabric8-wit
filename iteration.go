@@ -119,7 +119,15 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if ctx.Payload.Data.Attributes.Description != nil {
 			itr.Description = ctx.Payload.Data.Attributes.Description
 		}
-
+		if ctx.Payload.Data.Attributes.State != nil {
+			if *ctx.Payload.Data.Attributes.State == iteration.IterationStateStart {
+				res, err := appl.Iterations().CanStartIteration(ctx, itr)
+				if res == false && err != nil {
+					return jsonapi.JSONErrorResponse(ctx, err)
+				}
+			}
+			itr.State = *ctx.Payload.Data.Attributes.State
+		}
 		itr, err = appl.Iterations().Save(ctx.Context, *itr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -164,6 +172,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 			StartAt:     itr.StartAt,
 			EndAt:       itr.EndAt,
 			Description: itr.Description,
+			State:       &itr.State,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
