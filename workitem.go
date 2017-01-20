@@ -100,11 +100,16 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.NotFound(jerrors)
 		}
+		// Type changes of WI are not allowed which is why we overwrite it the
+		// type with the old one after the WI has been converted.
+		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.BadRequest(jerrors)
 		}
+		wi.Type = oldType
+
 		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
 			switch err := err.(type) {
