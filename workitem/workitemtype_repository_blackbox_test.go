@@ -27,13 +27,17 @@ func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
 
 func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
 	s.undoScript = &gormsupport.DBScript{}
-	s.repo = workitem.NewUndoableWorkItemTypeRepository(workitem.NewWorkItemTypeRepository(s.DB), s.undoScript)
+
+	gWitRepo := workitem.NewWorkItemTypeRepository(s.DB)
+	s.repo = workitem.NewUndoableWorkItemTypeRepository(gWitRepo, s.undoScript)
+
 	db2 := s.DB.Unscoped().Delete(workitem.WorkItemType{Name: "foo_bar"})
 
 	if db2.Error != nil {
 		s.T().Fatalf("Could not setup test %s", db2.Error.Error())
 		return
 	}
+	gWitRepo.ClearCache()
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
