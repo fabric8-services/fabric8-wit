@@ -127,7 +127,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 
 	// Create at least 1 item to avoid RowsAffectedCheck
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -135,9 +135,9 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 
 	require.Nil(s.T(), err)
 
-	wi.Type = "system.feature"
+	wi.Type = "feature"
 
 	newWi, err := s.repo.Save(context.Background(), *wi)
 	require.Nil(s.T(), err)
-	require.Equal(s.T(), "system.feature", newWi.Type)
+	require.Equal(s.T(), "feature", newWi.Type)
 }
