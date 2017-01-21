@@ -118,3 +118,26 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
 }
+
+// TestTypeChangeIsNotProhibitedOnDBLayer tests that you can change the type of
+// a work item. NOTE: This functionality only works on the DB layer and is not
+// exposed to REST.
+func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	// Create at least 1 item to avoid RowsAffectedCheck
+	wi, err := s.repo.Create(
+		context.Background(), "bug",
+		map[string]interface{}{
+			workitem.SystemTitle: "Title",
+			workitem.SystemState: workitem.SystemStateNew,
+		}, "xx")
+
+	require.Nil(s.T(), err)
+
+	wi.Type = "feature"
+
+	newWi, err := s.repo.Save(context.Background(), *wi)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), "feature", newWi.Type)
+}
