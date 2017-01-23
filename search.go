@@ -7,8 +7,10 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/search"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -53,6 +55,16 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("offset must be >= 0, but is: %d", offset)))
 		return ctx.BadRequest(jerrors)
 	}
+
+	// ToDo : Keep URL registeration central somehow.
+	hostString := ctx.RequestData.Host
+	if hostString == "" {
+		hostString = configuration.GetHTTPAddress()
+	}
+	urlRegexString := fmt.Sprintf("(?P<domain>%s)(?P<path>/work-item/list/detail/)(?P<id>\\d*)", hostString)
+	search.RegisterAsKnownURL(search.HostRegistrationKeyForListWI, urlRegexString)
+	urlRegexString = fmt.Sprintf("(?P<domain>%s)(?P<path>/work-item/board/detail/)(?P<id>\\d*)", hostString)
+	search.RegisterAsKnownURL(search.HostRegistrationKeyForBoardtWI, urlRegexString)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//return transaction.Do(c.ts, func() error {

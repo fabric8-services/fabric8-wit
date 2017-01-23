@@ -1,18 +1,27 @@
 package main_test
 
 import (
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
+
+	"fmt"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/search"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	"github.com/goadesign/goa/goatest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -215,4 +224,104 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	require.NotNil(t, sr.Data)
 	assert.Empty(t, sr.Data)
+}
+
+func getWICreatePayload() *app.CreateWorkitemPayload {
+	c := app.CreateWorkitemPayload{
+		Data: &app.WorkItem2{
+			Type:       APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{},
+			Relationships: &app.WorkItemRelationships{
+				BaseType: &app.RelationBaseType{
+					Data: &app.BaseTypeData{
+						Type: APIStringTypeWorkItemType,
+						ID:   workitem.SystemUserStory,
+					},
+				},
+			},
+		},
+	}
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	return &c
+}
+
+// searchByURL copies much of the codebase from search_testing.go->ShowSearchOK
+// and customises the values to add custom Host in the call.
+func searchByURL(t *testing.T, customHost, queryString string) *app.SearchWorkItemList {
+	service := getServiceAsUser()
+	var resp interface{}
+	var respSetter goatest.ResponseSetterFunc = func(r interface{}) { resp = r }
+	newEncoder := func(io.Writer) goa.Encoder { return respSetter }
+	service.Encoder = goa.NewHTTPEncoder()
+	service.Encoder.Register(newEncoder, "*/*")
+	rw := httptest.NewRecorder()
+	query := url.Values{}
+	u := &url.URL{
+		Path:     fmt.Sprintf("/api/search"),
+		RawQuery: query.Encode(),
+		Host:     customHost,
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+	prms := url.Values{}
+	prms["q"] = []string{queryString} // any value will do
+	ctx := service.Context
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "SearchTest"), rw, req, prms)
+	showCtx, err := app.NewShowSearchContext(goaCtx, service)
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+	ctrl := NewSearchController(service, gormapplication.NewGormDB(DB))
+	// Perform action
+	err = ctrl.Show(showCtx)
+
+	// Validate response
+	if err != nil {
+		t.Fatalf("controller returned %s", err)
+	}
+	if rw.Code != 200 {
+		t.Fatalf("invalid response status code: got %+v, expected 200", rw.Code)
+	}
+	mt, ok := resp.(*app.SearchWorkItemList)
+	if !ok {
+		t.Fatalf("invalid response media: got %+v, expected instance of app.SearchWorkItemList", resp)
+	}
+	return mt
+}
+
+// verifySearchByKnownURLs performs actual tests on search result and knwonURL map
+func verifySearchByKnownURLs(t *testing.T, wi *app.WorkItem2Single, host, searchQuery string) {
+	result := searchByURL(t, host, searchQuery)
+	assert.NotEmpty(t, result.Data)
+	assert.Equal(t, *wi.Data.ID, *result.Data[0].ID)
+
+	known := search.GetAllRegisteredURLs()
+	require.NotNil(t, known)
+	assert.NotEmpty(t, known)
+	assert.Contains(t, known[search.HostRegistrationKeyForListWI].URLRegex, host)
+	assert.Contains(t, known[search.HostRegistrationKeyForBoardtWI].URLRegex, host)
+}
+
+// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
+// Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
+func TestAutoRegisterHostURL(t *testing.T) {
+	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(DB)()
+	service := getServiceAsUser()
+	wiCtrl := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+	// create a WI, search by `list view URL` of newly created item
+	newWI := getWICreatePayload()
+	_, wi := test.CreateWorkitemCreated(t, service.Context, service, wiCtrl, newWI)
+	require.NotNil(t, wi)
+	customHost := "own.domain.one"
+	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
+	verifySearchByKnownURLs(t, wi, customHost, queryString)
+
+	// Search by `board view URL` of newly created item
+	customHost2 := "own.domain.two"
+	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
+	verifySearchByKnownURLs(t, wi, customHost2, queryString2)
 }

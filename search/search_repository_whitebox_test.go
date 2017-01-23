@@ -151,7 +151,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			workItem := testData.wi
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
-			workItemURLInSearchString := "http://demo.almighty.io/work-item-list/detail/"
+			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
 
 			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
@@ -326,32 +326,56 @@ func TestParseSearchString(t *testing.T) {
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
+type searchTestData struct {
+	query    string
+	expected searchKeyword
+}
+
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/work-item-list/detail/100"
-	op, _ := parseSearchString(input)
+	inputSet := []searchTestData{searchTestData{
+		query: "http://demo.almighty.io/work-item/list/detail/100",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
+		},
+	}, searchTestData{
+		query: "http://demo.almighty.io/work-item/board/detail/100",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
+		},
+	}}
 
-	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"(100:* | demo.almighty.io/work-item-list/detail/100:*)"},
+	for _, input := range inputSet {
+		op, _ := parseSearchString(input.query)
+		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
-
-	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/work-item-list/detail/"
-	op, _ := parseSearchString(input)
+	inputSet := []searchTestData{searchTestData{
+		query: "http://demo.almighty.io/work-item/list/detail/",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"demo.almighty.io/work-item/list/detail:*"},
+		},
+	}, searchTestData{
+		query: "http://demo.almighty.io/work-item/board/detail/",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"demo.almighty.io/work-item/board/detail:*"},
+		},
+	}}
 
-	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"demo.almighty.io/work-item-list/detail:*"},
+	for _, input := range inputSet {
+		op, _ := parseSearchString(input.query)
+		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
 
-	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringDifferentURL(t *testing.T) {
@@ -371,11 +395,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/work-item-list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
 	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300:*A", "900:*A"},
-		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item-list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
@@ -390,7 +414,7 @@ func TestRegisterAsKnownURL(t *testing.T) {
 	groupNames := compiledRegex.SubexpNames()
 	var expected = make(map[string]KnownURL)
 	expected[routeName] = KnownURL{
-		urlRegex:          urlRegex,
+		URLRegex:          urlRegex,
 		compiledRegex:     regexp.MustCompile(urlRegex),
 		groupNamesInRegex: groupNames,
 	}
