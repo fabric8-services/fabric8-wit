@@ -97,10 +97,10 @@ func ConvertComments(request *goa.RequestData, comments []comment.Comment, addit
 }
 
 // ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func ConvertCommentsResourceID(request *goa.RequestData, comments []*comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertCommentsResourceID(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
-		cs = append(cs, ConvertCommentResourceID(request, c, additional...))
+		cs = append(cs, ConvertCommentResourceID(request, &c, additional...))
 	}
 	return cs
 }

@@ -28,8 +28,8 @@ type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	Save(ctx context.Context, comment *Comment) (*Comment, error)
 	List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error)
-	ListAll(ctx context.Context, parent string) ([]*Comment, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
+	Count(ctx context.Context, parent string) (int, error)
 }
 
 // NewCommentRepository creates a new storage type.
@@ -85,9 +85,8 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 // List all comments related to a single item
 func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
-	//var objs []*Comment
 
-	db := m.db.Model(&Comment{}).Where("parent_id = ?", parent) //.Order("created_at")
+	db := m.db.Model(&Comment{}).Where("parent_id = ?", parent)
 	orgDB := db
 	if start != nil {
 		if *start < 0 {
@@ -101,7 +100,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("created_at")
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -110,7 +109,6 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 	defer rows.Close()
 
 	result := []Comment{}
-	value := Comment{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -128,6 +126,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 	first := true
 
 	for rows.Next() {
+		value := Comment{}
 		db.ScanRows(rows, &value)
 		if first {
 			first = false
@@ -151,25 +150,16 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 		rows2.Scan(&count)
 	}
 	return result, count, nil
-	/*
-		err := m.db.Table(m.TableName()).Where("parent_id = ?", parent).Order("created_at").Find(&objs).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
-			return nil, err
-		}
-		return objs, nil
-	*/
 }
 
-// ListAll all comments related to a single item
-func (m *GormCommentRepository) ListAll(ctx context.Context, parent string) ([]*Comment, error) {
+// Count all comments related to a single item
+func (m *GormCommentRepository) Count(ctx context.Context, parent string) (int, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
-	var objs []*Comment
+	var count int
 
-	err := m.db.Table(m.TableName()).Where("parent_id = ?", parent).Order("created_at").Find(&objs).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errs.WithStack(err)
-	}
-	return objs, nil
+	m.db.Raw("select count(*) as cnt from comment").Scan(&count)
+
+	return count, nil
 }
 
 // Load a single comment regardless of parent

@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
@@ -71,12 +69,10 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 // List runs the list action.
 func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
-	fmt.Println("offset", offset, limit)
 	return application.Transactional(c.db, func(appl application.Application) error {
 		_, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.NotFound(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
 		res := &app.CommentArray{}
@@ -85,11 +81,9 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.InternalServerError(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 		}
-		_ = count
-		//res.Meta = map[string]interface{}{"totalCount": count}
+		res.Meta = map[string]interface{}{"totalCount": count}
 		res.Data = ConvertComments(ctx.RequestData, comments)
 
 		return ctx.OK(res)
@@ -99,6 +93,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 // Relations runs the relation action.
 // TODO: Should only return Resource Identifier Objects, not complete object (See List)
 func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemCommentsContext) error {
+	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
@@ -106,7 +101,7 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 			return ctx.NotFound(jerrors)
 		}
 
-		comments, err := appl.Comments().ListAll(ctx, ctx.ID)
+		comments, _, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.InternalServerError(jerrors)
@@ -128,12 +123,12 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 	go func() {
 		defer close(count)
 		application.Transactional(db, func(appl application.Application) error {
-			cs, err := appl.Comments().ListAll(ctx, parentID)
+			cs, err := appl.Comments().Count(ctx, parentID)
 			if err != nil {
 				count <- 0
 				return errors.WithStack(err)
 			}
-			count <- len(cs)
+			count <- cs
 			return nil
 		})
 	}()
