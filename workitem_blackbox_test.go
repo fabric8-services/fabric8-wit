@@ -767,7 +767,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -793,7 +793,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "system.bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -815,7 +815,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "system.bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -838,7 +838,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "system.bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -861,7 +861,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "system.bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -892,7 +892,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -915,7 +915,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -946,7 +946,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -992,7 +992,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -1025,7 +1025,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -1046,7 +1046,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -1081,7 +1081,7 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -1107,7 +1107,7 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -1136,7 +1136,7 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -1164,7 +1164,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{
@@ -1193,7 +1193,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -1234,7 +1234,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{
@@ -1274,7 +1274,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{
