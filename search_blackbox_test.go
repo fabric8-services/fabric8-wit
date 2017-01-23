@@ -302,7 +302,7 @@ func verifySearchByKnownURLs(t *testing.T, wi *app.WorkItem2Single, host, search
 	require.NotNil(t, known)
 	assert.NotEmpty(t, known)
 	assert.Contains(t, known[search.HostRegistrationKeyForListWI].URLRegex, host)
-	assert.Contains(t, known[search.HostRegistrationKeyForBoardtWI].URLRegex, host)
+	assert.Contains(t, known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
 }
 
 // TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not

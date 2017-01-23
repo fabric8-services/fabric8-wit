@@ -24,8 +24,8 @@ import (
 
 // KnownURL registration key constants
 const (
-	HostRegistrationKeyForListWI   = "work-item-list-details"
-	HostRegistrationKeyForBoardtWI = "work-item-board-details"
+	HostRegistrationKeyForListWI  = "work-item-list-details"
+	HostRegistrationKeyForBoardWI = "work-item-board-details"
 )
 
 // GormSearchRepository provides a Gorm based repository
