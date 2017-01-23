@@ -18,6 +18,7 @@ type Space struct {
 	ID      satoriuuid.UUID
 	Version int
 	Name    string
+	Description string
 }
 
 // Ensure Fields implements the Equaler interface
@@ -40,12 +41,15 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Name != other.Name {
 		return false
 	}
+	if p.Description != other.Description {
+		return false
+	}
 	return true
 }
 
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
-	Create(ctx context.Context, name string) (*Space, error)
+	Create(ctx context.Context, name string, description string) (*Space, error)
 	Save(ctx context.Context, space Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
@@ -128,10 +132,11 @@ func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
 
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
-func (r *GormRepository) Create(ctx context.Context, name string) (*Space, error) {
+func (r *GormRepository) Create(ctx context.Context, name string, description string) (*Space, error) {
 	newSpace := Space{
 		Name: name,
 		ID:   satoriuuid.NewV4(),
+		Description: description,
 	}
 
 	tx := r.db.Create(&newSpace)

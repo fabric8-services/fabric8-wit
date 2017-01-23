@@ -93,15 +93,43 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	assert.NotNil(t, created.Data.Links.Self)
 }
 
+func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	name := "Test 24"
+	description := "Space for Test 24"
+
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+
+	svc, ctrl := rest.SecuredController()
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+	assert.NotNil(t, created.Data)
+	assert.NotNil(t, created.Data.Attributes)
+	assert.NotNil(t, created.Data.Attributes.CreatedAt)
+	assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+	assert.NotNil(t, created.Data.Attributes.Name)
+	assert.Equal(t, name, *created.Data.Attributes.Name)
+	assert.NotNil(t, created.Data.Attributes.Description)
+	assert.Equal(t, name, *created.Data.Attributes.Description)
+	assert.NotNil(t, created.Data.Links)
+	assert.NotNil(t, created.Data.Links.Self)
+}
+
 func (rest *TestSpaceREST) TestSuccessUpdateProject() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
 	name := "Test 25"
+	description := "Space for Test 25"
 	newName := "Test 26"
+	newDescription := "Space for Test 25"
 
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
 
 	svc, ctrl := rest.SecuredController()
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -110,9 +138,11 @@ func (rest *TestSpaceREST) TestSuccessUpdateProject() {
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Version = created.Data.Attributes.Version
 	u.Data.Attributes.Name = &newName
+	u.Data.Attributes.Description = &newDescription
 
 	_, updated := test.UpdateSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
 	assert.Equal(t, newName, *updated.Data.Attributes.Name)
+	assert.Equal(t, newDescription, *updated.Data.Attributes.Description)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateProjectUnSecure() {
@@ -186,8 +216,10 @@ func (rest *TestSpaceREST) TestSuccessShowProject() {
 	resource.Require(t, resource.Database)
 
 	name := "Test 27"
+	description := "Space for Test 27"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
 
 	svc, ctrl := rest.SecuredController()
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
@@ -195,6 +227,7 @@ func (rest *TestSpaceREST) TestSuccessShowProject() {
 	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String())
 	assert.Equal(t, created.Data.ID, fetched.Data.ID)
 	assert.Equal(t, *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
+	assert.Equal(t, *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
 	assert.Equal(t, *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 }
 

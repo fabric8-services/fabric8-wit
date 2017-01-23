@@ -251,7 +251,7 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Spaces().Create(context.Background(), "Test 1"+uuid.NewV4().String())
+		p, err := app.Spaces().Create(context.Background(), "Test 1"+uuid.NewV4().String(), "")
 		if err != nil {
 			t.Error(err)
 		}

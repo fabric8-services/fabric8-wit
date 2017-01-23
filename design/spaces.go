@@ -26,6 +26,9 @@ var spaceAttributes = a.Type("SpaceAttributes", func() {
 	a.Attribute("name", d.String, "Name of the space", func() {
 		a.Example("foobar")
 	})
+	a.Attribute("description", d.String, "Description for the space", func() {
+		a.Example("This is the foobar collaboration space")
+	})
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(23)
 	})

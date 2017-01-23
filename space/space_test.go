@@ -142,7 +142,7 @@ func (test *repoBBTest) requireErrorType(e error) func(p *space.Space, err error
 }
 
 func (test *repoBBTest) create(name string) func() (*space.Space, error) {
-	return func() (*space.Space, error) { return test.repo.Create(context.Background(), name) }
+	return func() (*space.Space, error) { return test.repo.Create(context.Background(), name, "") }
 }
 
 func (test *repoBBTest) save(p space.Space) func() (*space.Space, error) {
