@@ -64,7 +64,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	urlRegexString := fmt.Sprintf("(?P<domain>%s)(?P<path>/work-item/list/detail/)(?P<id>\\d*)", hostString)
 	search.RegisterAsKnownURL(search.HostRegistrationKeyForListWI, urlRegexString)
 	urlRegexString = fmt.Sprintf("(?P<domain>%s)(?P<path>/work-item/board/detail/)(?P<id>\\d*)", hostString)
-	search.RegisterAsKnownURL(search.HostRegistrationKeyForBoardtWI, urlRegexString)
+	search.RegisterAsKnownURL(search.HostRegistrationKeyForBoardWI, urlRegexString)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//return transaction.Do(c.ts, func() error {
