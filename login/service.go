@@ -2,14 +2,18 @@ package login
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 
+	errs "github.com/pkg/errors"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -18,10 +22,10 @@ import (
 )
 
 const (
-	// InvalidCodeError could occure when the OAuth Exchange with GitHub return no valid AccessToken
+	// InvalidCodeError could occure when the OAuth Exchange with Keycloak returns no valid AccessToken
 	InvalidCodeError string = "Invalid OAuth2.0 code"
-	// PrimaryEmailNotFoundError could occure if no primary email was returned by GitHub
-	PrimaryEmailNotFoundError string = "Primary email not found"
+	// EmailNotFoundError could occure if no email was returned by Keycloak
+	EmailNotFoundError string = "Email not found"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -29,9 +33,9 @@ type Service interface {
 	Perform(ctx *app.AuthorizeLoginContext) error
 }
 
-// NewGitHubOAuth creates a new login.Service capable of using GitHub for authorization
-func NewGitHubOAuth(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager) Service {
-	return &gitHubOAuth{
+// NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
+func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager) Service {
+	return &keycloakOAuthProvider{
 		config:       config,
 		identities:   identities,
 		users:        users,
@@ -39,7 +43,7 @@ func NewGitHubOAuth(config *oauth2.Config, identities account.IdentityRepository
 	}
 }
 
-type gitHubOAuth struct {
+type keycloakOAuthProvider struct {
 	config       *oauth2.Config
 	identities   account.IdentityRepository
 	users        account.UserRepository
@@ -50,7 +54,7 @@ type gitHubOAuth struct {
 var stateReferer = map[string]string{}
 var mapLock sync.RWMutex
 
-func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
+func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 	referer := ctx.RequestData.Header.Get("Referer")
@@ -70,64 +74,47 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 			return ctx.Unauthorized(jerrors)
 		}
 
-		ghtoken, err := gh.config.Exchange(ctx, code)
+		keycloakToken, err := keycloak.config.Exchange(ctx, code)
 
-		/*
-
-			In case of invalid code, this is what we get in the ghtoken object
-
-			&oauth2.Token{AccessToken:"", TokenType:"", RefreshToken:"", Expiry:time.Time{sec:0, nsec:0, loc:(*time.Location)(nil)}, raw:url.Values{"error":[]string{"bad_verification_code"}, "error_description":[]string{"The code passed is incorrect or expired."}, "error_uri":[]string{"https://developer.github.com/v3/oauth/#bad-verification-code"}}}
-
-		*/
-
-		if err != nil || ghtoken.AccessToken == "" {
-			fmt.Println(err)
+		if err != nil || keycloakToken.AccessToken == "" {
+			log.Println(err)
 			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+InvalidCodeError)
 			return ctx.TemporaryRedirect()
 		}
 
-		emails, err := gh.getUserEmails(ctx, ghtoken)
-		fmt.Println(emails)
+		keycloakUser, err := keycloak.getUser(ctx, keycloakToken)
 
-		primaryEmail := filterPrimaryEmail(emails)
-		if primaryEmail == "" {
-			fmt.Println("No primary email found?! ", emails)
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+PrimaryEmailNotFoundError)
+		email := keycloakUser.Email
+		if email == "" {
+			log.Println("No email found?! ", keycloakUser)
+			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+EmailNotFoundError)
 			return ctx.TemporaryRedirect()
 		}
-		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
+		users, err := keycloak.users.Query(account.UserByEmails([]string{email}), account.UserWithIdentity())
 		if err != nil {
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Associated user not found "+err.Error())
+			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Error during querying for a user "+err.Error())
 			return ctx.TemporaryRedirect()
 		}
 		var identity account.Identity
-		ghUser, err := gh.getUser(ctx, ghtoken)
-		if err != nil {
-			fmt.Println(err)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.Unauthorized(jerrors)
-		}
-		fmt.Println(ghUser)
+
 		if len(users) == 0 {
 			// No User found, create new User and Identity
-			identity = createIdentity(*ghUser)
-			gh.identities.Create(ctx, &identity)
-			gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: identity})
+			identity = createIdentityForUser(*keycloakUser)
+			keycloak.identities.Create(ctx, &identity)
+			keycloak.users.Create(ctx, &account.User{Email: email, Identity: identity})
 		} else {
 			identity = users[0].Identity
-			// let's update the current identity with the fullname and avatar from GitHub,
+			// let's update the current identity with the fullname and avatar from Keycloak,
 			// in case the user changed them since the last time he logged in here
-			gh.identities.Save(ctx, &identity)
+			keycloak.identities.Save(ctx, &identity)
 		}
 
-		fmt.Println("Identity: ", identity)
-
-		// register other emails in User table?
+		// log.Println("Identity: ", identity)
 
 		// generate token
-		almtoken, err := gh.tokenManager.Generate(identity)
+		almtoken, err := keycloak.tokenManager.Generate(identity)
 		if err != nil {
-			fmt.Println("Failed to generate token", err)
+			log.Println("Failed to generate token", err)
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.Unauthorized(jerrors)
 		}
@@ -139,7 +126,7 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 	// First time access, redirect to oauth provider
 
 	// store referer id to state for redirect later
-	fmt.Println("Got Request from: ", referer)
+	log.Println("Got Request from: ", referer)
 	state = uuid.NewV4().String()
 
 	mapLock.Lock()
@@ -147,68 +134,45 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 	stateReferer[state] = referer
 
-	redirectURL := gh.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
+	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
+
+	redirectURL := keycloak.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
+
 	ctx.ResponseData.Header().Set("Location", redirectURL)
 	return ctx.TemporaryRedirect()
 }
 
-func (gh gitHubOAuth) getUserEmails(ctx context.Context, token *oauth2.Token) ([]ghEmail, error) {
-	client := gh.config.Client(ctx, token)
-	resp, err := client.Get("https://api.github.com/user/emails")
+func (keycloak keycloakOAuthProvider) getUser(ctx context.Context, token *oauth2.Token) (*openIDConnectUser, error) {
+	client := keycloak.config.Client(ctx, token)
+	resp, err := client.Get(configuration.GetKeycloakEndpointUserinfo())
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
-	var emails []ghEmail
-	json.NewDecoder(resp.Body).Decode(&emails)
-	return emails, nil
-}
-
-func (gh gitHubOAuth) getUser(ctx context.Context, token *oauth2.Token) (*ghUser, error) {
-	client := gh.config.Client(ctx, token)
-	resp, err := client.Get("https://api.github.com/user")
-	if err != nil {
-		return nil, err
-	}
-
-	var user ghUser
+	var user openIDConnectUser
 	json.NewDecoder(resp.Body).Decode(&user)
+
 	return &user, nil
 }
 
-func createIdentity(ghUser ghUser) account.Identity {
+func createIdentityForUser(openIDConnectUser openIDConnectUser) account.Identity {
 	// Use login as name if 'name' is not set #391
-	name := ghUser.Name
+	name := openIDConnectUser.Name
 	if name == "" {
-		name = ghUser.Login
+		name = openIDConnectUser.Login
 	}
 	return account.Identity{
 		FullName: name,
-		ImageURL: ghUser.AvatarURL,
+		ImageURL: openIDConnectUser.AvatarURL,
 	}
 }
 
-func filterPrimaryEmail(emails []ghEmail) string {
-	for _, email := range emails {
-		if email.Primary {
-			return email.Email
-		}
-	}
-	return ""
-}
-
-// ghEmail represents the needed response from api.github.com/user/emails
-type ghEmail struct {
-	Email    string `json:"email"`
-	Primary  bool   `json:"primary"`
-	Verified bool   `json:"verified"`
-}
-
-// ghUser represents the needed response from api.github.com/user
-type ghUser struct {
+// openIDConnectUser represents the needed response in OpenID Connect format from /protocol/openid-connect/userinfo endpoint.
+type openIDConnectUser struct {
 	Name      string `json:"name"`
-	Login     string `json:"login"`
-	AvatarURL string `json:"avatar_url"`
+	Login     string `json:"preferred_username"`
+	AvatarURL string `json:"picture"`
+	Email     string `json:"email"`
 }
 
 // ContextIdentity returns the identity's ID found in given context
@@ -216,13 +180,13 @@ type ghUser struct {
 func ContextIdentity(ctx context.Context) (string, error) {
 	tm := ReadTokenManagerFromContext(ctx)
 	if tm == nil {
-		return "", errors.New("Missing token manager")
+		return "", errs.New("Missing token manager")
 	}
 	uuid, err := tm.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
-		fmt.Println("Geust User")
-		return "", err
+		fmt.Println("Guest User")
+		return "", errs.WithStack(err)
 	}
 	return uuid.String(), nil
 }

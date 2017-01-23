@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )
 
@@ -150,7 +151,7 @@ func (r *GormTrackerQueryRepository) Delete(ctx context.Context, ID string) erro
 func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQuery, error) {
 	var rows []TrackerQuery
 	if err := r.db.Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	result := make([]*app.TrackerQuery, len(rows))
 	for i, tq := range rows {

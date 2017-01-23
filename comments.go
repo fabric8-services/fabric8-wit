@@ -2,13 +2,13 @@ package main
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -119,7 +119,7 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
-	selfURL := AbsoluteURL(request, app.CommentsHref(comment.ID))
+	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
@@ -157,7 +157,7 @@ func CommentIncludeParentWorkItem() CommentConvertFunc {
 
 // CommentIncludeParent adds the "parent" relationship to this Comment
 func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
-	parentSelf := AbsoluteURL(request, ref(comment.ParentID))
+	parentSelf := rest.AbsoluteURL(request, ref(comment.ParentID))
 
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{
@@ -168,13 +168,4 @@ func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, da
 			Self: &parentSelf,
 		},
 	}
-}
-
-// AbsoluteURL prefixes a relative URL with absolute address
-func AbsoluteURL(req *goa.RequestData, relative string) string {
-	scheme := "http"
-	if req.TLS != nil { // isHTTPS
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s%s", scheme, req.Host, relative)
 }

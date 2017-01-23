@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -14,6 +15,9 @@ import (
 // Defines "type" string to be used while validating jsonapi spec based payload
 const (
 	APIStringTypeIteration = "iterations"
+	IterationStateNew      = "new"
+	IterationStateStart    = "start"
+	IterationStateClose    = "close"
 )
 
 // Iteration describes a single iteration
@@ -26,6 +30,7 @@ type Iteration struct {
 	EndAt       *time.Time
 	Name        string
 	Description *string
+	State       string // this tells if iteration is currently running or not
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -40,6 +45,7 @@ type Repository interface {
 	List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
+	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -57,11 +63,12 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
 	u.ID = uuid.NewV4()
+	u.State = IterationStateNew
 
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Iteration", "error", err.Error())
-		return err
+		return errs.WithStack(err)
 	}
 
 	return nil
@@ -74,7 +81,7 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	return objs, nil
 }
@@ -111,4 +118,15 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 		return nil, errors.NewInternalError(err.Error())
 	}
 	return &i, nil
+}
+
+// CanStartIteration checks the rule - Only one iteration from a space can have state=start at a time.
+// More rules can be added as needed in this function
+func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iteration) (bool, error) {
+	var count int64
+	m.db.Model(&Iteration{}).Where("space_id=? and state=?", i.SpaceID, IterationStateStart).Count(&count)
+	if count != 0 {
+		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
+	}
+	return true, nil
 }

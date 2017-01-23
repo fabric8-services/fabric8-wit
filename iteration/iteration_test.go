@@ -94,7 +94,7 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	repo.Create(context.Background(), &i2)
 
 	i2L, err := repo.Load(context.Background(), i2.ID)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	assert.NotEqual(t, uuid.Nil, i2.ParentID)
 	assert.Equal(t, i2.ParentID, i2L.ParentID)
 }

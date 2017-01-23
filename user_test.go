@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -14,6 +13,7 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 

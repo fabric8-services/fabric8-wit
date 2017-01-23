@@ -19,6 +19,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -197,13 +198,13 @@ func createWorkItem(db *gormapplication.GormDB) (string, error) {
 			},
 			uuid.NewV4().String())
 		if err != nil {
-			return err
+			return errors.WithStack(err)
 		}
 		wiid = wi.ID
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 	return wiid, nil
 }

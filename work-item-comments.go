@@ -6,7 +6,9 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -122,7 +124,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 			cs, err := appl.Comments().List(ctx, parentID)
 			if err != nil {
 				count <- 0
-				return err
+				return errors.WithStack(err)
 			}
 			count <- len(cs)
 			return nil
@@ -150,8 +152,8 @@ func CreateCommentsRelation(request *goa.RequestData, wi *app.WorkItem) *app.Rel
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
 func CreateCommentsRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
-	commentsSelf := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
-	commentsRelated := AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
+	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
+	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 	return &app.GenericLinks{
 		Self:    &commentsSelf,
 		Related: &commentsRelated,

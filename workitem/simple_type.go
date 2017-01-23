@@ -74,7 +74,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		idValue, err := strconv.Atoi(value.(string))
-		return idValue, err
+		return idValue, errors.WithStack(err)
 	case KindList:
 		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
 			return nil, fmt.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())

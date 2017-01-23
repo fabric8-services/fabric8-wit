@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,13 +18,13 @@ import (
 func provideRemoteData(dataURL string) ([]byte, error) {
 	response, err := http.Get(dataURL)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	defer response.Body.Close()
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return responseData, nil
 }

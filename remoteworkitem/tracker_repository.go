@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 	govalidator "gopkg.in/asaskevich/govalidator.v4"
 )
@@ -99,7 +100,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 		db = db.Limit(*limit)
 	}
 	if err := db.Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	result := make([]*app.Tracker, len(rows))
 

@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
@@ -29,7 +30,7 @@ type searchRepositoryWhiteboxTest struct {
 func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
@@ -283,7 +284,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			s.T().Log("Found search result for ID Search ", workItemValue.ID)
 			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
 		}
-		return err
+		return errors.WithStack(err)
 	})
 }
 
