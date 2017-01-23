@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -27,17 +27,17 @@ func NewAreaController(service *goa.Service, db application.DB) *AreaController 
 
 // CreateChild runs the create-child action.
 func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
-	_, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
-	}
+	/*
+		_, err := login.ContextIdentity(ctx)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+		}*/
 	parentID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-
 		parent, err := appl.Areas().Load(ctx, parentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
@@ -50,8 +50,13 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 
 		newItr := area.Area{
 			SpaceID: parent.SpaceID,
-			Path:    parentID.String(),
+
+			// the ltree data type doesn't support the "-" character.
+			// hence everything is being saved as "_".
+			// TODO: Move the replacement to a different method?
 			// TODO: Get all parents of the parent if present and create a "." delimited path
+			Path: strings.Replace(parentID.String(), "-", "_", -1),
+
 			Name: *reqIter.Attributes.Name,
 		}
 
@@ -138,10 +143,18 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
 	if area.Path != "" {
-		// Only the immediate parent's URL.
-		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(area.Path))
+
 		// Parent ID of the immediate parent.
-		parentID := area.Path
+		// the ltree data type doesn't support the "-" character.
+		// hence everything is being saved as "_". After retrieving the data
+		// convert this back to "-".
+		// TODO: Move the replacement to a different method?
+
+		parentID := strings.Replace(area.Path, "_", "-", -1)
+
+		// Only the immediate parent's URL.
+		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
+
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &areaType,

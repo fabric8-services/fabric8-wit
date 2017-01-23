@@ -23,7 +23,7 @@ type Area struct {
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m *Area) TableName() string {
-	return "area"
+	return "areas"
 }
 
 // Repository describes interactions with Areas
@@ -45,7 +45,7 @@ type GormAreaRepository struct {
 
 // Create creates a new record.
 func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
-	defer goa.MeasureSince([]string{"goa", "db", "Area", "create"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
 
 	u.ID = uuid.NewV4()
 

@@ -62,7 +62,7 @@ var _ = a.Resource("area", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 	a.Action("create-child", func() {
-		a.Security("jwt")
+		//a.Security("jwt")
 		a.Routing(
 			a.POST("/:id"),
 		)
@@ -98,7 +98,7 @@ var _ = a.Resource("space-areas", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 	a.Action("create", func() {
-		a.Security("jwt")
+		//a.Security("jwt")
 		a.Routing(
 			a.POST("Areas"),
 		)
