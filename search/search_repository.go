@@ -22,15 +22,10 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+// KnownURL registration key constants
 const (
-/*
-	- The SQL queries do a case-insensitive search.
-	- English words are normalized during search which means words like qualifying === qualify
-	- To disable the above normalization change "to_tsquery('english',$1)" to "to_tsquery($1)"
-	- Create GIN indexes : https://www.postgresql.org/docs/9.5/static/textsearch-tables.html#TEXTSEARCH-TABLES-INDEX
-	- To perform "LIKE" query we are appending ":*" to the search token
-
-*/
+	HostRegistrationKeyForListWI   = "work-item-list-details"
+	HostRegistrationKeyForBoardtWI = "work-item-board-details"
 )
 
 // GormSearchRepository provides a Gorm based repository
@@ -78,7 +73,7 @@ type searchKeyword struct {
 
 // KnownURL has a regex string format URL and compiled regex for the same
 type KnownURL struct {
-	urlRegex          string         // regex for URL
+	URLRegex          string         // regex for URL, Exposed to make the code testable
 	compiledRegex     *regexp.Regexp // valid output of regexp.MustCompile()
 	groupNamesInRegex []string       // Valid output of SubexpNames called on compliedRegex
 }
@@ -89,8 +84,8 @@ KnownURLs is set of KnownURLs will be used while searching on a URL
 URLs in this slice will be considered while searching to match search string and decouple it into multiple searchable parts
 e.g> Following example defines work-item-detail-page URL on client side, with its compiled version
 knownURLs["work-item-details"] = KnownURL{
-urlRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`,
-compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`),
+URLRegex:      `^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`,
+compiledRegex: regexp.MustCompile(`^(?P<protocol>http[s]?)://(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`),
 groupNamesInRegex: []string{"protocol", "domain", "path", "id"}
 }
 above url will be decoupled into two parts "ID:* | domain+path+id:*" while performing search query
@@ -105,10 +100,15 @@ func RegisterAsKnownURL(name, urlRegex string) {
 	knownURLLock.Lock()
 	defer knownURLLock.Unlock()
 	knownURLs[name] = KnownURL{
-		urlRegex:          urlRegex,
+		URLRegex:          urlRegex,
 		compiledRegex:     regexp.MustCompile(urlRegex),
 		groupNamesInRegex: groupNames,
 	}
+}
+
+// GetAllRegisteredURLs returns all known URLs
+func GetAllRegisteredURLs() map[string]KnownURL {
+	return knownURLs
 }
 
 /*
@@ -178,7 +178,7 @@ func getSearchQueryFromURLPattern(patternName, stringToMatch string) string {
 		}
 	}
 	// first value from FindStringSubmatch is always full input itself, hence ignored
-	// Join rest of the tokens to make query like "demo.almighty.io/work-item-list/detail/100"
+	// Join rest of the tokens to make query like "demo.almighty.io/work-item/list/detail/100"
 	if len(match) > 1 {
 		searchQueryString := strings.Join(match[1:], "")
 		searchQueryString = strings.Replace(searchQueryString, ":", "\\:", -1)
@@ -374,6 +374,6 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 func init() {
 	// While registering URLs do not include protocol becasue it will be removed before scanning starts
 	// Please do not include trailing slashes becasue it will be removed before scanning starts
-	RegisterAsKnownURL("work-item-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item-list/detail/)(?P<id>\d*)`)
-	RegisterAsKnownURL("localhost-work-item-details", `(?P<domain>localhost)(?P<port>:\d+){0,1}(?P<path>/work-item-list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
+	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }
