@@ -39,6 +39,11 @@ const (
 	SystemStateInProgress = "in progress"
 	SystemStateResolved   = "resolved"
 	SystemStateClosed     = "closed"
+
+	SystemMarkupPlainText = "PlainText"
+	SystemMarkupMarkdown  = "Markdown"
+	SystemMarkupJiraWiki  = "JiraWiki"
+	SystemMarkupDefault   = SystemMarkupPlainText
 )
 
 // WorkItemType represents a work item type as it is stored in the db
@@ -96,7 +101,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// ConvertFromModel serializes a database persisted workitem.
+// ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
 func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),

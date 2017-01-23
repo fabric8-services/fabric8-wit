@@ -130,6 +130,9 @@ func getMigrations() migrations {
 	// Version 17
 	m = append(m, steps{executeSQLFile("017-alter-iterations.sql")})
 
+	// Version 18
+	m = append(m, steps{executeSQLFile("018-work-item-description-update-search-index.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -345,7 +348,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	stUser := "user"
 	workItemTypeFields := map[string]app.FieldDefinition{
 		workitem.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-		workitem.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		workitem.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "markup"}, Required: false},
 		workitem.SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
 		workitem.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		workitem.SystemCreatedAt:    app.FieldDefinition{Type: &app.FieldType{Kind: "instant"}, Required: false},
@@ -414,7 +417,6 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		}
 		wit.Fields = convertedFields
 		wit.Path = path
-
 		db = db.Save(wit)
 		return db.Error
 	}

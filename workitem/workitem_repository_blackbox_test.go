@@ -30,15 +30,12 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, "xx")
-
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create work item")
 
 	err = s.repo.Delete(context.Background(), "0")
 	require.IsType(s.T(), errors.NotFoundError{}, err)
@@ -49,17 +46,14 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, "xx")
+	require.Nil(s.T(), err, "Could not create work item")
 
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
 	wi.ID = "0"
-
 	_, err = s.repo.Save(context.Background(), *wi)
 	require.IsType(s.T(), errors.NotFoundError{}, err)
 }
@@ -69,15 +63,12 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, "xx")
-
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create work item")
 
 	_, err = s.repo.Load(context.Background(), "0")
 	require.IsType(s.T(), errors.NotFoundError{}, err)
@@ -87,16 +78,13 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
 			workitem.SystemAssignees: []string{"A", "B"},
 		}, "xx")
-
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create work item")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 
@@ -107,19 +95,48 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	defer gormsupport.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
-		context.Background(), "system.bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, "xx")
-
-	if err != nil {
-		s.T().Error("Could not create workitem", err)
-	}
+	require.Nil(s.T(), err, "Could not create work item")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 
 	wiNew, err := s.repo.Save(context.Background(), *wi)
 
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
+}
+
+func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	wi, err := s.repo.Create(
+		context.Background(), workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle:       "Title",
+			workitem.SystemDescription: workitem.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemState:       workitem.SystemStateNew,
+		}, "xx")
+	require.Nil(s.T(), err, "Could not create work item")
+
+	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// app.WorkItem does not contain the markup associated with the description (yet)
+	assert.Equal(s.T(), workitem.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
+}
+
+func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	wi, err := s.repo.Create(
+		context.Background(), workitem.SystemBug,
+		map[string]interface{}{
+			workitem.SystemTitle:       "Title",
+			workitem.SystemDescription: workitem.NewMarkupContent("Description", workitem.SystemMarkupMarkdown),
+			workitem.SystemState:       workitem.SystemStateNew,
+		}, "xx")
+	require.Nil(s.T(), err, "Could not create work item")
+	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// app.WorkItem does not contain the markup associated with the description (yet)
+	assert.Equal(s.T(), workitem.NewMarkupContent("Description", workitem.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
