@@ -222,7 +222,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	createEpicLinkTypePayload := CreateWorkItemLinkType("test-epic-userstory", workitem.SystemEpic, workitem.SystemUserStory, s.userLinkCategoryID)
 	_, workItemEpicLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createEpicLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
-	s.epicRelatesUserStoryTypeID = *workItemEpicLinkType.Data.ID
+	s.epicParentOfUserStoryTypeID = *workItemEpicLinkType.Data.ID
 	fmt.Printf("Created link type with ID: %s\n", *workItemEpicLinkType.Data.ID)
 }
 
