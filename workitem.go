@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
@@ -172,7 +173,13 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Error creating work item: %s", err.Error())
+			fmt.Println(errorMessage)
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(errorMessage))
+			return ctx.BadRequest(jerrors)
+		}
 
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
@@ -268,7 +275,6 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2, target *app.WorkItem) error {
 	// construct default values from input WI
-
 	var version = -1
 	if source.Attributes["version"] != nil {
 		v, err := strconv.Atoi(fmt.Sprintf("%v", source.Attributes["version"]))
@@ -323,8 +329,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
-			description := workitem.NewMarkupContentFromLegacy(val.(string))
-			target.Fields[key] = description
+			target.Fields[key] = workitem.NewMarkupContentFromLegacy(val.(string))
 		} else {
 			target.Fields[key] = val
 		}
@@ -397,13 +402,26 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			}
 
 		case workitem.SystemDescription:
-			switch val.(type) {
-			case string:
-				op.Attributes[name] = val
-			case workitem.MarkupContent:
-				description := val.(workitem.MarkupContent)
-				op.Attributes[name] = description.Content
+			if val != nil {
+				fmt.Println("Converting '", val, "' description")
+				switch val.(type) {
+				case string:
+					op.Attributes[name] = val
+					op.Attributes[workitem.SystemDescriptionMarkup] = workitem.SystemMarkupDefault
+				case workitem.MarkupContent:
+					description := val.(workitem.MarkupContent)
+					op.Attributes[name] = description.Content
+					op.Attributes[workitem.SystemDescriptionMarkup] = description.Markup
+				}
+				// let's include the rendered description
+				rendering, err := rendering.RenderMarkupToHTML(op.Attributes[name].(string), op.Attributes[workitem.SystemDescriptionMarkup].(string))
+				if err != nil {
+					fmt.Println("Error while rendering description:", err.Error)
+				} else if rendering != nil {
+					op.Attributes[workitem.SystemDescriptionRendered] = *rendering
+				}
 			}
+
 		default:
 			op.Attributes[name] = val
 		}

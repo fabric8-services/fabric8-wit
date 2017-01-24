@@ -196,7 +196,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupDefault}
+	expectedDescription := workitem.NewMarkupContent("description", workitem.SystemMarkupDefault)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
@@ -204,7 +204,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: workitem.MarkupContent{Content: "description"},
+		workitem.SystemDescription: workitem.NewMarkupContentFromLegacy("description"),
 	}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
@@ -212,7 +212,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.MarkupContent{Content: "description"}
+	expectedDescription := workitem.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
@@ -220,7 +220,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupMarkdown},
+		workitem.SystemDescription: workitem.NewMarkupContent("description", workitem.SystemMarkupMarkdown),
 	}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
@@ -228,6 +228,6 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupMarkdown}
+	expectedDescription := workitem.NewMarkupContent("description", workitem.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }

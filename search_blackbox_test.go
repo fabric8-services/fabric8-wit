@@ -121,7 +121,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
-	expectedDescription := workitem.MarkupContent{Content: description, Markup: workitem.SystemMarkupDefault}
+	expectedDescription := workitem.NewMarkupContent(description, workitem.SystemMarkupDefault)
 	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
@@ -148,7 +148,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
 	description := "This issue is related to http://localhost/detail/876394"
-	expectedDescription := workitem.MarkupContent{Content: description, Markup: workitem.SystemMarkupDefault}
+	expectedDescription := workitem.NewMarkupContent(description, workitem.SystemMarkupDefault)
 	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
@@ -176,7 +176,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
-	expectedDescription := workitem.MarkupContent{Content: description, Markup: workitem.SystemMarkupDefault}
+	expectedDescription := workitem.NewMarkupContent(description, workitem.SystemMarkupDefault)
 	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
@@ -203,8 +203,7 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	expectedDescription := workitem.MarkupContent{Content: "Related to http://example-domain:8080/different-path/ok issue",
-		Markup: workitem.SystemMarkupDefault}
+	expectedDescription := workitem.NewMarkupContent("Related to http://example-domain:8080/different-path/ok issue", workitem.SystemMarkupDefault)
 
 	_, err := wiRepo.Create(
 		context.Background(),
