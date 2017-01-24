@@ -101,32 +101,27 @@ func TestReorderWorkItem(t *testing.T) {
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
-	payload := minimumRequiredCreateWithType(workitem.SystemBug)
-	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
-	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-	payload3 := minimumRequiredReorderPayload()
-	payload3.Data.ID = result3.Data.ID
-	payload3.Data.Attributes = result3.Data.Attributes
-	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, *result3.Data.ID, result2.Data.ID, &payload3)
-	assert.NotNil(t, reordered1.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, reordered1.Data.Attributes[workitem.SystemOrder])
-	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data.Attributes["version"])
-	assert.Equal(t, *result3.Data.ID, *reordered1.Data.ID)
-	assert.Equal(t, result3.Data.Attributes[workitem.SystemTitle], reordered1.Data.Attributes[workitem.SystemTitle])
+	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	payload2 := minimumRequiredReorderPayload()
+	var dataArray []*app.WorkItem2
+	dataArray = append(dataArray, result2.Data, result3.Data)
+	payload2.Data = dataArray
+	payload2.Position.Above = *result1.Data.ID
 
-	payload3 = minimumRequiredReorderPayload()
-	payload3.Data.ID = reordered1.Data.ID
-	payload3.Data.Attributes = reordered1.Data.Attributes
-	_, reordered2 := test.ReorderWorkitemOK(t, nil, nil, controller, *result3.Data.ID, nil, &payload3)
-	assert.NotNil(t, reordered2.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, reordered2.Data.Attributes[workitem.SystemOrder])
-	assert.Equal(t, reordered1.Data.Attributes["version"].(int)+1, reordered2.Data.Attributes["version"])
-	assert.Equal(t, *reordered1.Data.ID, *reordered2.Data.ID)
-	assert.Equal(t, reordered1.Data.Attributes[workitem.SystemTitle], reordered2.Data.Attributes[workitem.SystemTitle])
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2)
+	assert.NotNil(t, reordered1.Data)
+	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
+	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
+	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
 
+	test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 }
@@ -551,9 +546,9 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 
 func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 	return app.ReorderWorkitemPayload{
-		Data: &app.WorkItem2{
-			Type:       APIStringTypeWorkItem,
-			Attributes: map[string]interface{}{},
+		Data: []*app.WorkItem2{},
+		Position: &app.WorkItemReorderPosition{
+			Above: "",
 		},
 	}
 }

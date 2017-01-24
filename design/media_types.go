@@ -72,6 +72,12 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Required("totalCount")
 })
 
+var position = a.Type("workItemReorderPosition", func() {
+	a.Attribute("above", d.String)
+
+	a.Required("above")
+})
+
 // fieldDefinition defines the possible values for a field in a work item type
 var fieldDefinition = a.Type("fieldDefinition", func() {
 	a.Description("A fieldDescription aggregates a fieldType and additional field metadata")

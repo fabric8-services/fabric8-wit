@@ -150,32 +150,33 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 // Reorder reorders the workitem
 func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("data.id", nil))
+		var dataArray []*app.WorkItem2
+		if ctx.Payload == nil || ctx.Payload.Data == nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("data", nil))
 			return ctx.NotFound(jerrors)
 		}
+		for i := 0; i < len(ctx.Payload.Data); i++ {
+			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)
+			if err != nil {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error reordering work item: %s", err.Error())))
+				return ctx.NotFound(jerrors)
+			}
 
-		wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data.ID)
-		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error reordering work item: %s", err.Error())))
-			return ctx.NotFound(jerrors)
-		}
-		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
-		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error reordering work item: %s", err.Error())))
-			return ctx.BadRequest(jerrors)
-		}
-		wi, err = appl.WorkItems().Reorder(ctx, ctx.Before, *wi)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
+			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi)
+			if err != nil {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error reordering work item: %s", err.Error())))
+				return ctx.BadRequest(jerrors)
+			}
 
-		wi2 := ConvertWorkItem(ctx.RequestData, wi)
-		resp := &app.WorkItem2Single{
-			Data: wi2,
-			Links: &app.WorkItemLinks{
-				Self: buildAbsoluteURL(ctx.RequestData),
-			},
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.Payload.Position.Above, *wi)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			wi2 := ConvertWorkItem(ctx.RequestData, wi)
+			dataArray = append(dataArray, wi2)
+		}
+		resp := &app.WorkItem2Reorder{
+			Data: dataArray,
 		}
 
 		return ctx.OK(resp)

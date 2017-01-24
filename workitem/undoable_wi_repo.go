@@ -61,7 +61,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 }
 
 // Reorder implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error) {
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail

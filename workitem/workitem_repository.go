@@ -18,7 +18,7 @@ import (
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
-	Reorder(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error)
+	Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -105,7 +105,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 
 // Reorder reorders the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error) {
 	var order float64
 	res := WorkItem{}
 	beforeItem := WorkItem{}
@@ -132,10 +132,10 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
 
-	if before != nil {
-		beforeId, err := strconv.ParseUint(*before, 10, 64)
+	if before != "" {
+		beforeId, err := strconv.ParseUint(before, 10, 64)
 		if err != nil || beforeId == 0 {
-			return nil, errors.NewNotFoundError("work item", *before)
+			return nil, errors.NewNotFoundError("work item", before)
 		}
 		log.Printf("looking for id %d", beforeId)
 		tx = r.db.First(&beforeItem, beforeId)
@@ -155,7 +155,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before *string, wi
 			order = (0 + beforeOrder) / 2
 		} else {
 			if tx2.RecordNotFound() {
-				return nil, errors.NewNotFoundError("work item", *before)
+				return nil, errors.NewNotFoundError("work item", before)
 			}
 			if tx2.Error != nil {
 				return nil, errors.NewInternalError(err.Error())
