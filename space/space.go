@@ -49,7 +49,7 @@ func (p Space) Equal(u convert.Equaler) bool {
 
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
-	Create(ctx context.Context, name string, description string) (*Space, error)
+	Create(ctx context.Context, space Space) (*Space, error)
 	Save(ctx context.Context, space Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
@@ -132,25 +132,21 @@ func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
 
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
-func (r *GormRepository) Create(ctx context.Context, name string, description string) (*Space, error) {
-	newSpace := Space{
-		Name: name,
-		ID:   satoriuuid.NewV4(),
-		Description: description,
-	}
+func (r *GormRepository) Create(ctx context.Context, space Space) (*Space, error) {
+	space.ID = satoriuuid.NewV4()
 
-	tx := r.db.Create(&newSpace)
+	tx := r.db.Create(&space)
 	if err := tx.Error; err != nil {
 		if gormsupport.IsCheckViolation(tx.Error, "spaces_name_check") {
-			return nil, errors.NewBadParameterError("Name", name).Expected("not empty")
+			return nil, errors.NewBadParameterError("Name", space.Name).Expected("not empty")
 		}
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
-			return nil, errors.NewBadParameterError("Name", name).Expected("unique")
+			return nil, errors.NewBadParameterError("Name", space.Name).Expected("unique")
 		}
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created space %v\n", newSpace)
-	return &newSpace, nil
+	log.Printf("created space %v\n", space)
+	return &space, nil
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability

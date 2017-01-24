@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
+	"github.com/almighty/almighty-core/space"
 )
 
 type TestIterationREST struct {
@@ -251,7 +252,10 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Spaces().Create(context.Background(), "Test 1"+uuid.NewV4().String(), "")
+		newSpace := space.Space{
+			Name: "Test 1"+uuid.NewV4().String(),
+		}
+		p, err := app.Spaces().Create(context.Background(), newSpace)
 		if err != nil {
 			t.Error(err)
 		}

@@ -37,7 +37,16 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Create(ctx, *ctx.Payload.Data.Attributes.Name, *ctx.Payload.Data.Attributes.Description)
+		reqSpace := ctx.Payload.Data
+
+		newSpace := space.Space{
+			Name: *reqSpace.Attributes.Name,
+		}
+		if reqSpace.Attributes.Description != nil {
+			newSpace.Description = *reqSpace.Attributes.Description
+		}
+
+		space, err := appl.Spaces().Create(ctx, newSpace)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

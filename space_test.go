@@ -113,7 +113,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
 	assert.NotNil(t, created.Data.Attributes.Name)
 	assert.Equal(t, name, *created.Data.Attributes.Name)
 	assert.NotNil(t, created.Data.Attributes.Description)
-	assert.Equal(t, name, *created.Data.Attributes.Description)
+	assert.Equal(t, description, *created.Data.Attributes.Description)
 	assert.NotNil(t, created.Data.Links)
 	assert.NotNil(t, created.Data.Links.Self)
 }
