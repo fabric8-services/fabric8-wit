@@ -11,6 +11,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+const APIStringTypeAreas = "areas"
+
 // Area describes a single Area
 type Area struct {
 	gormsupport.Lifecycle

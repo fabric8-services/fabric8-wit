@@ -45,8 +45,8 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
-		reqIter := ctx.Payload.Data
-		if reqIter.Attributes.Name == nil {
+		reqArea := ctx.Payload.Data
+		if reqArea.Attributes.Name == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
@@ -54,7 +54,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		if parent.Path != "" {
 			childPath = parent.Path + pathSep + childPath
 		}
-		newItr := area.Area{
+		newArea := area.Area{
 			SpaceID: parent.SpaceID,
 
 			// the ltree data type doesn't support the "-" character.
@@ -62,16 +62,16 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			// TODO: Move the replacement to a different method?
 			// TODO: Get all parents of the parent if present and create a "." delimited path
 			Path: childPath,
-			Name: *reqIter.Attributes.Name,
+			Name: *reqArea.Attributes.Name,
 		}
 
-		err = appl.Areas().Create(ctx, &newItr)
+		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		res := &app.AreaSingle{
-			Data: ConvertArea(ctx.RequestData, &newItr),
+			Data: ConvertArea(ctx.RequestData, &newArea),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
