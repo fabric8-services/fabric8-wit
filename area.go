@@ -20,6 +20,8 @@ type AreaController struct {
 	db application.DB
 }
 
+const pathSep = "."
+
 // NewAreaController creates a area controller.
 func NewAreaController(service *goa.Service, db application.DB) *AreaController {
 	return &AreaController{Controller: service.NewController("AreaController"), db: db}
@@ -48,6 +50,10 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
+		childPath := strings.Replace(parentID.String(), "-", "_", -1)
+		if parent.Path != "" {
+			childPath = parent.Path + pathSep + childPath
+		}
 		newItr := area.Area{
 			SpaceID: parent.SpaceID,
 
@@ -55,8 +61,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			// hence everything is being saved as "_".
 			// TODO: Move the replacement to a different method?
 			// TODO: Get all parents of the parent if present and create a "." delimited path
-			Path: strings.Replace(parentID.String(), "-", "_", -1),
-
+			Path: childPath,
 			Name: *reqIter.Attributes.Name,
 		}
 
@@ -150,7 +155,8 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 		// convert this back to "-".
 		// TODO: Move the replacement to a different method?
 
-		parentID := strings.Replace(area.Path, "_", "-", -1)
+		allParents := strings.Split(strings.Replace(area.Path, "_", "-", -1), ".")
+		parentID := allParents[len(allParents)-1]
 
 		// Only the immediate parent's URL.
 		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
