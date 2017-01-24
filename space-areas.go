@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -24,11 +25,11 @@ func NewSpaceAreasController(service *goa.Service, db application.DB) *SpaceArea
 
 // Create runs the create action.
 func (c *SpaceAreasController) Create(ctx *app.CreateSpaceAreasContext) error {
-	/*
-		_, err := login.ContextIdentity(ctx)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
-		}*/
+
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))

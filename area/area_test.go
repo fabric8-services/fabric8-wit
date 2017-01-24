@@ -75,6 +75,7 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 	}
 	repo.Create(context.Background(), &i)
 
+	// ltree field doesnt accept "-" , so we will save them as "_"
 	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
 	area2 := area.Area{
 		Name:    name2,
@@ -88,6 +89,7 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 	require.Nil(t, err)
 	assert.NotEqual(t, uuid.Nil, area2.Path)
 	assert.Equal(t, expectedPath, actualPath)
+
 }
 
 func (test *TestAreaRepository) TestListAreaBySpace() {
