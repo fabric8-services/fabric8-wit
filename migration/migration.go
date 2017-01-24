@@ -154,8 +154,8 @@ func getMigrations() migrations {
 	// Version 25
 	m = append(m, steps{executeSQLFile("025-refactor-identities-users.sql")})
 
-	// version 23
-	m = append(m, steps{executeSQLFile("025-areas.sql")})
+	// version 26
+	m = append(m, steps{executeSQLFile("026-areas.sql")})
 
 	// Version N
 	//
