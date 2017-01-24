@@ -110,8 +110,6 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 		return errors.WithStack(err)
 	})
-	db.Unscoped().Delete(&tq)
-	db.Unscoped().Delete(&tr)
 }
 
 var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
