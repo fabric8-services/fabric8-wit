@@ -41,20 +41,21 @@ func TestSearch(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	wiRepo.Create(
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch",
-			workitem.SystemDescription: "",
+			workitem.SystemDescription: nil,
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
 		"")
-
+	require.Nil(t, err)
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	require.NotEmpty(t, sr.Data)
 	r := sr.Data[0]
 	assert.Equal(t, "specialwordforsearch", r.Attributes[workitem.SystemTitle])
 }
@@ -66,22 +67,24 @@ func TestSearchPagination(t *testing.T) {
 
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	wiRepo.Create(
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch2",
-			workitem.SystemDescription: "",
+			workitem.SystemDescription: nil,
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
 		"")
+	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch2"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
 	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
+	require.NotEmpty(t, sr.Data)
 	r := sr.Data[0]
 	assert.Equal(t, "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
 }
@@ -92,21 +95,23 @@ func TestSearchWithEmptyValue(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	wiRepo.Create(
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch",
-			workitem.SystemDescription: "",
+			workitem.SystemDescription: nil,
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
 		"")
+	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := ""
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.Equal(t, 0, len(sr.Data))
+	require.NotNil(t, sr.Data)
+	assert.Empty(t, sr.Data)
 }
 
 func TestSearchWithDomainPortCombination(t *testing.T) {
@@ -115,8 +120,9 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	expectedDescription := "http://localhost:8080/detail/154687364529310 is related issue"
-	wiRepo.Create(
+	description := "http://localhost:8080/detail/154687364529310 is related issue"
+	expectedDescription := workitem.MarkupContent{Content: description, Markup: workitem.SystemMarkupDefault}
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -125,13 +131,14 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 			workitem.SystemCreator:     "baijum", workitem.SystemState: workitem.SystemStateClosed,
 		},
 		"")
+	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := `"http://localhost:8080/detail/154687364529310"`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.NotEqual(t, 0, len(sr.Data))
+	require.NotEmpty(t, sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Attributes[workitem.SystemDescription])
+	assert.Equal(t, description, r.Attributes[workitem.SystemDescription])
 }
 
 func TestSearchURLWithoutPort(t *testing.T) {
@@ -140,8 +147,9 @@ func TestSearchURLWithoutPort(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	expectedDescription := "This issue is related to http://localhost/detail/876394"
-	wiRepo.Create(
+	description := "This issue is related to http://localhost/detail/876394"
+	expectedDescription := workitem.MarkupContent{Content: description, Markup: workitem.SystemMarkupDefault}
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -151,13 +159,14 @@ func TestSearchURLWithoutPort(t *testing.T) {
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
 		"")
+	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := `"http://localhost/detail/876394"`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.NotEqual(t, 0, len(sr.Data))
+	require.NotEmpty(t, sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Attributes[workitem.SystemDescription])
+	assert.Equal(t, description, r.Attributes[workitem.SystemDescription])
 }
 
 func TestUnregisteredURLWithPort(t *testing.T) {
@@ -166,8 +175,9 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	expectedDescription := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
-	wiRepo.Create(
+	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
+	expectedDescription := workitem.MarkupContent{Content: description, Markup: workitem.SystemMarkupDefault}
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -177,13 +187,14 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
 		"")
+	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := `http://some-other-domain:8080/different-path/`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.NotEqual(t, 0, len(sr.Data))
+	require.NotEmpty(t, sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, expectedDescription, r.Attributes[workitem.SystemDescription])
+	assert.Equal(t, description, r.Attributes[workitem.SystemDescription])
 }
 
 func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
@@ -192,8 +203,10 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
-	expectedDescription := "Related to http://example-domain:8080/different-path/ok issue"
-	wiRepo.Create(
+	expectedDescription := workitem.MarkupContent{Content: "Related to http://example-domain:8080/different-path/ok issue",
+		Markup: workitem.SystemMarkupDefault}
+
+	_, err := wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
 		map[string]interface{}{
@@ -203,12 +216,14 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
 		"")
+	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.Equal(t, 0, len(sr.Data))
+	require.NotNil(t, sr.Data)
+	assert.Empty(t, sr.Data)
 }
 
 func getWICreatePayload() *app.CreateWorkitemPayload {
