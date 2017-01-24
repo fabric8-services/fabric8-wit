@@ -1,10 +1,13 @@
 package login
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"sync"
 
 	errs "github.com/pkg/errors"
@@ -95,24 +98,24 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Error during querying for a user "+err.Error())
 			return ctx.TemporaryRedirect()
 		}
-		var identity account.Identity
+		var identity *account.Identity
 
 		if len(users) == 0 {
-			// No User found, create new User and Identity
-			identity = createIdentityForUser(*keycloakUser)
-			keycloak.identities.Create(ctx, &identity)
-			keycloak.users.Create(ctx, &account.User{Email: email, Identity: identity})
+			// No User found, create a new User and Identity
+			identity = new(account.Identity)
+			fillIdentity(keycloakUser, identity)
+			keycloak.identities.Create(ctx, identity)
+			keycloak.users.Create(ctx, &account.User{Email: email, Identity: *identity})
 		} else {
-			identity = users[0].Identity
+			identity = &users[0].Identity
 			// let's update the current identity with the fullname and avatar from Keycloak,
-			// in case the user changed them since the last time he logged in here
-			keycloak.identities.Save(ctx, &identity)
+			// in case the user changed them since the last time he/she logged in here
+			fillIdentity(keycloakUser, identity)
+			keycloak.identities.Save(ctx, identity)
 		}
 
-		// log.Println("Identity: ", identity)
-
 		// generate token
-		almtoken, err := keycloak.tokenManager.Generate(identity)
+		almtoken, err := keycloak.tokenManager.Generate(*identity)
 		if err != nil {
 			log.Println("Failed to generate token", err)
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
@@ -151,20 +154,48 @@ func (keycloak keycloakOAuthProvider) getUser(ctx context.Context, token *oauth2
 
 	var user openIDConnectUser
 	json.NewDecoder(resp.Body).Decode(&user)
+	if user.AvatarURL == "" {
+		// Use gravatar
+		grURL, err := generateGravatarURL(user.Email)
+		if err != nil {
+			log.Println(err) // Something wrong with generating gravatart URL. Not critical. We can proceed.
+		}
+		user.AvatarURL = grURL
+	}
 
 	return &user, nil
 }
 
-func createIdentityForUser(openIDConnectUser openIDConnectUser) account.Identity {
+func generateGravatarURL(email string) (string, error) {
+	if email == "" {
+		return "", nil
+	}
+	grURL, err := url.Parse("https://www.gravatar.com/avatar/")
+	if err != nil {
+		return "", errs.WithStack(err)
+	}
+	hash := md5.New()
+	hash.Write([]byte(email))
+	grURL.Path += fmt.Sprintf("%v", hex.EncodeToString(hash.Sum(nil))) + ".jpg"
+
+	// We can use our own default image if there is no gravatar available for this email
+	// defaultImage := "someDefaultImageURL.jpg"
+	// parameters := url.Values{}
+	// parameters.Add("d", fmt.Sprintf("%v", defaultImage))
+	// grURL.RawQuery = parameters.Encode()
+
+	urlStr := grURL.String()
+	return urlStr, nil
+}
+
+func fillIdentity(openIDConnectUser *openIDConnectUser, identity *account.Identity) {
 	// Use login as name if 'name' is not set #391
-	name := openIDConnectUser.Name
-	if name == "" {
-		name = openIDConnectUser.Login
+	if openIDConnectUser.Name == "" {
+		identity.FullName = openIDConnectUser.Login
+	} else {
+		identity.FullName = openIDConnectUser.Name
 	}
-	return account.Identity{
-		FullName: name,
-		ImageURL: openIDConnectUser.AvatarURL,
-	}
+	identity.ImageURL = openIDConnectUser.AvatarURL
 }
 
 // openIDConnectUser represents the needed response in OpenID Connect format from /protocol/openid-connect/userinfo endpoint.
