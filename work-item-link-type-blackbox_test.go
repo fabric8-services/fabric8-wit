@@ -90,7 +90,7 @@ func (s *workItemLinkTypeSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-epic-relates-userstory"})
+	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-epic-parent-of-userstory"})
 	require.Nil(s.T(), db.Error)
 	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
 

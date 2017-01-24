@@ -49,13 +49,13 @@ type workItemLinkSuite struct {
 	workItemSvc              *goa.Service
 
 	// These IDs can safely be used by all tests
-	bug1ID                     uint64
-	bug2ID                     uint64
-	bug3ID                     uint64
-	feature1ID                 uint64
-	userLinkCategoryID         string
-	bugBlockerLinkTypeID       string
-	epicRelatesUserStoryTypeID string
+	bug1ID                      uint64
+	bug2ID                      uint64
+	bug3ID                      uint64
+	feature1ID                  uint64
+	userLinkCategoryID          string
+	bugBlockerLinkTypeID        string
+	epicParentOfUserStoryTypeID string
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	deleteWorkItemLinks []string
@@ -146,7 +146,7 @@ func (s *workItemLinkSuite) cleanup() {
 	// rather than ID, unlike the work items or work item links.
 	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-bug-blocker"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-epic-relates-userstory"})
+	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-epic-parent-of-userstory"})
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
