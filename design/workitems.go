@@ -96,7 +96,7 @@ var _ = a.Resource("workitem", func() {
 			a.Param("page[offset]", d.String, "Paging start position")
 			a.Param("page[limit]", d.Integer, "Paging size")
 			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
-			a.Param("filter[iteration]", d.String, "IterationID to filter Work items")
+			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemList)
