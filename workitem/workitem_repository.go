@@ -166,7 +166,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created item %v\n", wi)
 	return convertWorkItemModelToApp(wiType, &wi)
 }
 

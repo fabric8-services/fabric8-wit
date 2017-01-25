@@ -36,7 +36,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestGetWorkItem(t *testing.T) {
+func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
@@ -48,10 +48,12 @@ func TestGetWorkItem(t *testing.T) {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	payload.Data.Attributes[workitem.SystemDescription] = "Test WI description"
 
 	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -67,6 +69,8 @@ func TestGetWorkItem(t *testing.T) {
 		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
 	}
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	updatedDescription := "= Updated Test WI description"
+	wi.Data.Attributes[workitem.SystemDescription] = updatedDescription
 
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
@@ -75,15 +79,11 @@ func TestGetWorkItem(t *testing.T) {
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
 
-	if updated.Data.Attributes["version"] != (result.Data.Attributes["version"].(int) + 1) {
-		t.Errorf("expected version %d, but got %d", (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
-	}
-	if *updated.Data.ID != *result.Data.ID {
-		t.Errorf("id has changed from %s to %s", *result.Data.ID, *updated.Data.ID)
-	}
-	if updated.Data.Attributes[workitem.SystemTitle] != "Updated Test WI" {
-		t.Errorf("expected title %s, but got %s", "Updated Test WI", updated.Data.Attributes[workitem.SystemTitle])
-	}
+	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
+	assert.Equal(t, wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	//expectedDescription := workitem.MarkupContent{Content: "= Updated Test WI description", Markup: workitem.SystemMarkupDefault}
+	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
@@ -677,13 +677,33 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	require.Equal(s.T(), workitem.SystemBug, newWi.Data.Relationships.BaseType.Data.ID)
 }
 
-func (s *WorkItem2Suite) TestWI2UpdateOnlyDescription() {
+func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	modifiedDescription := "Only Description is modified"
+	expectedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
 
 	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
-	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemDescription], modifiedDescription)
+	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
+	modifiedDescription := workitem.MarkupContent{Content: "Only Description is modified"}
+	expectedDescription := "Only Description is modified"
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
+	modifiedDescription := workitem.MarkupContent{Content: "Only Description is modified", Markup: workitem.SystemMarkupMarkdown}
+	expectedDescription := "Only Description is modified"
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
@@ -760,7 +780,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -775,6 +795,96 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.NotNil(s.T(), wi.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Links)
 	assert.NotNil(s.T(), wi.Data.Links.Self)
+}
+
+// TestWI2SuccessCreateWorkItemWithoutDescription verifies that the `workitem.SystemDescription` attribute is not set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is not provided
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	assert.Nil(s.T(), wi.Data.Attributes[workitem.SystemDescription])
+}
+
+// TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Attributes[workitem.SystemDescription] = "Description"
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	// for now, we keep the legacy format in the output
+	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
+}
+
+// TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Attributes[workitem.SystemDescription] = workitem.MarkupContent{Content: "Description", Markup: workitem.SystemMarkupMarkdown}
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	// for now, we keep the legacy format in the output
+	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
+}
+
+// TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set as a MarkupContent element
+func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Attributes[workitem.SystemDescription] = workitem.MarkupContent{Content: "Description"}
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	assert.Equal(s.T(), c.Data.Attributes[workitem.SystemTitle], wi.Data.Attributes[workitem.SystemTitle])
+	// for now, we keep the legacy format in the output
+	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
@@ -795,7 +905,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -818,7 +928,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -849,7 +959,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -895,7 +1005,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -962,7 +1072,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -983,7 +1093,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -1018,7 +1128,7 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Assignees: &app.RelationGenericList{
@@ -1044,7 +1154,7 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -1073,7 +1183,7 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -1101,7 +1211,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{
@@ -1130,7 +1240,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
@@ -1171,7 +1281,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{
@@ -1211,7 +1321,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{

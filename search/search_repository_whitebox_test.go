@@ -58,7 +58,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemDescription: workitem.MarkupContent{Content: `"description" for search test`},
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -71,7 +71,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: `Make sure remoteworkitem can access..`,
+					workitem.SystemDescription: workitem.MarkupContent{Content: `Make sure remoteworkitem can access..`},
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -84,7 +84,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemDescription: workitem.MarkupContent{Content: `"description" for search test`},
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -206,7 +206,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					}
 					workItemDescription := ""
 					if workItemValue.Fields[workitem.SystemDescription] != nil {
-						workItemDescription = strings.ToLower(workItemValue.Fields[workitem.SystemDescription].(string))
+						descriptionField := workItemValue.Fields[workitem.SystemDescription].(workitem.MarkupContent)
+						workItemDescription = strings.ToLower(descriptionField.Content)
 					}
 					keyWord = strings.ToLower(keyWord)
 
@@ -247,7 +248,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		workItem.Fields = map[string]interface{}{
 			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: "Description",
+			workitem.SystemDescription: workitem.MarkupContent{Content: "Description"},
 			workitem.SystemCreator:     "sbose78",
 			workitem.SystemAssignees:   []string{"pranav"},
 			workitem.SystemState:       "closed",
