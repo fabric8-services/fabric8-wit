@@ -55,7 +55,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 
 		err = appl.Comments().Create(ctx, &newComment)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
 
@@ -81,10 +81,13 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+			return ctx.InternalServerError(jerrors)
 		}
 		res.Meta = map[string]interface{}{"totalCount": count}
 		res.Data = ConvertComments(ctx.RequestData, comments)
+		res.Links = &app.PagingLinks{}
+		setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(comments), offset, limit, count)
 
 		return ctx.OK(res)
 	})
@@ -101,14 +104,16 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 			return ctx.NotFound(jerrors)
 		}
 
-		comments, _, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
+		count := int(tc)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-
-		res := &app.CommentArray{}
-		res.Data = []*app.Comment{}
+		_ = wi
+		_ = comments
+		res := &app.CommentRelationshipsArray{}
+		res.Meta = map[string]interface{}{"totalCount": count}
 		res.Data = ConvertCommentsResourceID(ctx.RequestData, comments)
 		res.Links = CreateCommentsRelationLinks(ctx.RequestData, wi)
 

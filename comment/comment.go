@@ -27,7 +27,7 @@ type Comment struct {
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	Save(ctx context.Context, comment *Comment) (*Comment, error)
-	List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error)
+	List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 	Count(ctx context.Context, parent string) (int, error)
 }
@@ -83,7 +83,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 }
 
 // List all comments related to a single item
-func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error) {
+func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 
 	db := m.db.Model(&Comment{}).Where("parent_id = ?", parent)
@@ -108,7 +108,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 	}
 	defer rows.Close()
 
-	result := []Comment{}
+	result := []*Comment{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -126,8 +126,8 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 	first := true
 
 	for rows.Next() {
-		value := Comment{}
-		db.ScanRows(rows, &value)
+		value := &Comment{}
+		db.ScanRows(rows, value)
 		if first {
 			first = false
 			if err = rows.Scan(columnValues...); err != nil {
@@ -157,7 +157,7 @@ func (m *GormCommentRepository) Count(ctx context.Context, parent string) (int, 
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 	var count int
 
-	m.db.Raw("select count(*) as cnt from comment").Scan(&count)
+	m.db.Raw("select count(*) as cnt from comment").Where("parent_id = ?", parent).Scan(&count)
 
 	return count, nil
 }

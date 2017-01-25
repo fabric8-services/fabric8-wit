@@ -88,19 +88,19 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
-func ConvertComments(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertComments(request *goa.RequestData, comments []*comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
-		cs = append(cs, ConvertComment(request, &c, additional...))
+		cs = append(cs, ConvertComment(request, c, additional...))
 	}
 	return cs
 }
 
 // ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func ConvertCommentsResourceID(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertCommentsResourceID(request *goa.RequestData, comments []*comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
-		cs = append(cs, ConvertCommentResourceID(request, &c, additional...))
+		cs = append(cs, ConvertCommentResourceID(request, c, additional...))
 	}
 	return cs
 }

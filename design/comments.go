@@ -65,12 +65,29 @@ var identityRelationData = a.Type("IdentityRelationData", func() {
 	a.Required("type")
 })
 
+var commentRelationshipsArray = a.MediaType("application/vnd.comment-relationships+json", func() {
+	a.TypeName("CommentRelationshipsArray")
+	a.Description("Holds the response of comment relationships")
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+	a.Attribute("data", a.ArrayOf(comment))
+	a.Attribute("links", genericLinks)
+
+	a.Required("data")
+
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Attribute("meta")
+		a.Attribute("links")
+	})
+
+})
+
 var commentArray = a.MediaType("application/vnd.comments+json", func() {
 	a.TypeName("CommentArray")
 	a.Description("Holds the response of comments")
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
 	a.Attribute("data", a.ArrayOf(comment))
-	a.Attribute("links", genericLinks)
+	a.Attribute("links", pagingLinks)
 
 	a.Required("data")
 
@@ -153,8 +170,9 @@ var _ = a.Resource("work-item-comments", func() {
 		)
 		a.Description("List comments associated with the given work item")
 		a.Params(func() {
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to
+			the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
 		a.Response(d.OK, func() {
 			a.Media(commentArray)
@@ -163,18 +181,18 @@ var _ = a.Resource("work-item-comments", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
-
 	a.Action("relations", func() {
 		a.Routing(
 			a.GET("relationships/comments"),
 		)
 		a.Description("List comments associated with the given work item")
 		a.Params(func() {
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to
+				the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
 		a.Response(d.OK, func() {
-			a.Media(commentArray)
+			a.Media(commentRelationshipsArray)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
