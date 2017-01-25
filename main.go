@@ -247,6 +247,9 @@ func main() {
 	spaceIterationCtrl := NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
+	userspaceCtrl := NewUserspaceController(service, db)
+	app.MountUserspaceController(service, userspaceCtrl)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("UTC Start Time: ", StartTime)
