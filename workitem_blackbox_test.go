@@ -1040,8 +1040,8 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   "bug",
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
 			},
 		},
 		Iteration: &app.RelationGeneric{
@@ -1059,7 +1059,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
 	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &iterationID, nil, nil)
-	assert.Len(s.T(), list.Data, 1)
+	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
 }
