@@ -75,7 +75,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
-		res := &app.CommentArray{}
+		res := &app.CommentList{}
 		res.Data = []*app.Comment{}
 
 		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
@@ -84,7 +84,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		res.Meta = map[string]interface{}{"totalCount": count}
+		res.Meta = &app.CommentListMeta{TotalCount: count}
 		res.Data = ConvertComments(ctx.RequestData, comments)
 		res.Links = &app.PagingLinks{}
 		setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(comments), offset, limit, count)
@@ -112,8 +112,8 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 		}
 		_ = wi
 		_ = comments
-		res := &app.CommentRelationshipsArray{}
-		res.Meta = map[string]interface{}{"totalCount": count}
+		res := &app.CommentRelationshipList{}
+		res.Meta = &app.CommentListMeta{TotalCount: count}
 		res.Data = ConvertCommentsResourceID(ctx.RequestData, comments)
 		res.Links = CreateCommentsRelationLinks(ctx.RequestData, wi)
 

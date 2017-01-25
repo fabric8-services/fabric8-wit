@@ -65,62 +65,35 @@ var identityRelationData = a.Type("IdentityRelationData", func() {
 	a.Required("type")
 })
 
-var commentRelationshipsArray = a.MediaType("application/vnd.comment-relationships+json", func() {
-	a.TypeName("CommentRelationshipsArray")
-	a.Description("Holds the response of comment relationships")
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("data", a.ArrayOf(comment))
-	a.Attribute("links", genericLinks)
+var commentRelationshipsArray = JSONList(
+	"CommentRelationship", "Holds the response of comments",
+	comment,
+	genericLinks,
+	commentListMeta,
+)
 
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-		a.Attribute("meta")
-		a.Attribute("links")
-	})
-
+var commentListMeta = a.Type("CommentListMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
 })
 
-var commentArray = a.MediaType("application/vnd.comments+json", func() {
-	a.TypeName("CommentArray")
-	a.Description("Holds the response of comments")
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("data", a.ArrayOf(comment))
-	a.Attribute("links", pagingLinks)
+var commentArray = JSONList(
+	"Comment", "Holds the response of comments",
+	comment,
+	pagingLinks,
+	commentListMeta,
+)
 
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-		a.Attribute("meta")
-		a.Attribute("links")
-	})
-})
-
-var commentSingle = a.MediaType("application/vnd.comment+json", func() {
-	a.TypeName("CommentSingle")
-	a.Description("Holds the response of a single comment")
-	a.Attribute("data", comment)
-
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-	})
-})
-
-var createSingleComment = a.MediaType("application/vnd.comments-create+json", func() {
-	a.TypeName("CreateSingleComment")
-	a.Description("Holds the create data for a comment")
-	a.Attribute("data", createComment)
-
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-	})
-})
+var commentSingle = JSONSingle(
+	"Comment", "Holds the response of a single comment",
+	comment,
+	nil,
+)
+var createSingleComment = JSONSingle(
+	"CreateSingle", "Holds the create data for a comment",
+	createComment,
+	nil,
+)
 
 var _ = a.Resource("comments", func() {
 	a.BasePath("/comments")
