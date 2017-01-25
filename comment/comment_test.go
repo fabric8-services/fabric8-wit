@@ -92,6 +92,46 @@ func (test *TestCommentRepository) TestSaveComment() {
 
 }
 
+func (test *TestCommentRepository) TestCountComments() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := comment.NewCommentRepository(test.DB)
+
+	parentID := "A"
+	body := "Test A"
+
+	cs := []*comment.Comment{
+		&comment.Comment{
+			ParentID:  parentID,
+			Body:      body,
+			CreatedBy: uuid.NewV4(),
+		},
+		&comment.Comment{
+			ParentID:  "B",
+			Body:      "Test B",
+			CreatedBy: uuid.NewV4(),
+		},
+	}
+
+	for _, c := range cs {
+		err := repo.Create(context.Background(), c)
+		if err != nil {
+			t.Error("Failed to Create", err.Error())
+		}
+
+	}
+
+	count, err := repo.Count(context.Background(), parentID)
+	if err != nil {
+		t.Error("Failed to Count", err.Error())
+	}
+
+	if count != 1 {
+		t.Error("expected count is 1 but got:", count)
+	}
+}
+
 func (test *TestCommentRepository) TestListComments() {
 	t := test.T()
 	resource.Require(t, resource.Database)

@@ -157,7 +157,7 @@ func (m *GormCommentRepository) Count(ctx context.Context, parent string) (int, 
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 	var count int
 
-	m.db.Raw("select count(*) as cnt from comment").Where("parent_id = ?", parent).Scan(&count)
+	m.db.Model(&Comment{}).Where("parent_id = ?", parent).Count(&count)
 
 	return count, nil
 }
