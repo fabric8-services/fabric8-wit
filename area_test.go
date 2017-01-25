@@ -59,12 +59,41 @@ func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	resource.Require(t, resource.Database)
 
 	parentID := createSpaceAndArea(t, rest.db).ID
-	name := "Sprint #21"
+	name := "Area 21"
 	ci := createChildArea(&name)
 
 	svc, ctrl := rest.SecuredController()
 	_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+
+}
+
+func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	/*
+		Area 2 ---> Area 21-0 ----> Area 21-0-0
+	*/
+
+	parentID := createSpaceAndArea(t, rest.db).ID
+	name := "Area 21-0"
+	ci := createChildArea(&name)
+
+	svc, ctrl := rest.SecuredController()
+	_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
+	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+
+	// Create a child of the child created above.
+	name = "Area 21-0-0"
+	ci = createChildArea(&name)
+	newParentID := *created.Data.Relationships.Parent.Data.ID
+	_, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ci)
+	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+
 }
 
 func createChildArea(name *string) *app.CreateChildAreaPayload {
