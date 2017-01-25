@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
@@ -196,7 +197,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.NewMarkupContent("description", workitem.SystemMarkupDefault)
+	expectedDescription := workitem.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
@@ -220,7 +221,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: workitem.NewMarkupContent("description", workitem.SystemMarkupMarkdown),
+		workitem.SystemDescription: workitem.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
 	}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
@@ -228,6 +229,6 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.NewMarkupContent("description", workitem.SystemMarkupMarkdown)
+	expectedDescription := workitem.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }

@@ -175,25 +175,19 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Error creating work item: %s", err.Error())
-			fmt.Println(errorMessage)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(errorMessage))
-			return ctx.BadRequest(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
+			message := fmt.Sprintf("Error creating work item: %s", err.Error())
 			cause := errs.Cause(err)
 			switch cause.(type) {
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.VersionConflictError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+			case errors.BadParameterError, errors.VersionConflictError, errors.ConversionError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(message))
 				return ctx.BadRequest(jerrors)
 			default:
-				log.Printf("Error updating work items: %s", err.Error())
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(message))
 				return ctx.InternalServerError(jerrors)
 			}
 		}
@@ -402,24 +396,13 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			}
 
 		case workitem.SystemDescription:
-			if val != nil {
-				fmt.Println("Converting '", val, "' description")
-				switch val.(type) {
-				case string:
-					op.Attributes[name] = val
-					op.Attributes[workitem.SystemDescriptionMarkup] = workitem.SystemMarkupDefault
-				case workitem.MarkupContent:
-					description := val.(workitem.MarkupContent)
-					op.Attributes[name] = description.Content
-					op.Attributes[workitem.SystemDescriptionMarkup] = description.Markup
-				}
+			description := workitem.NewMarkupContentFromValue(val)
+			if description != nil {
+				op.Attributes[name] = (*description).Content
+				op.Attributes[workitem.SystemDescriptionMarkup] = (*description).Markup
 				// let's include the rendered description
-				rendering, err := rendering.RenderMarkupToHTML(op.Attributes[name].(string), op.Attributes[workitem.SystemDescriptionMarkup].(string))
-				if err != nil {
-					fmt.Println("Error while rendering description:", err.Error)
-				} else if rendering != nil {
-					op.Attributes[workitem.SystemDescriptionRendered] = *rendering
-				}
+				op.Attributes[workitem.SystemDescriptionRendered] =
+					rendering.RenderMarkupToHTML((*description).Content, (*description).Markup)
 			}
 
 		default:

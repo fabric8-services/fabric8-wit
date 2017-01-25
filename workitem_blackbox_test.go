@@ -23,6 +23,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -673,7 +674,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), workitem.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
@@ -685,11 +686,11 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), workitem.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
-	modifiedDescription := workitem.NewMarkupContent("Only Description is modified", workitem.SystemMarkupMarkdown)
+	modifiedDescription := workitem.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -698,7 +699,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), workitem.SystemMarkupMarkdown, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
@@ -844,7 +845,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 	// for now, we keep the legacy format in the output
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), workitem.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), rendering.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
@@ -853,7 +854,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContent("Description", workitem.SystemMarkupMarkdown)
+	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -871,7 +872,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	// for now, we keep the legacy format in the output
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "<p>Description</p>\n", wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), workitem.SystemMarkupMarkdown, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set as a MarkupContent element
@@ -898,7 +899,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	// for now, we keep the legacy format in the output
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), "Description", wi.Data.Attributes[workitem.SystemDescriptionRendered])
-	assert.Equal(s.T(), workitem.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
+	assert.Equal(s.T(), rendering.SystemMarkupDefault, wi.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
 // TestWI2SuccessCreateWorkItemWithDescription verifies that the `workitem.SystemDescription` attribute is set, as well as its pair workitem.SystemDescriptionMarkup when the work item description is provided
@@ -907,28 +908,30 @@ func (s *WorkItem2Suite) TestWI2FailCreateWorkItemWithDescriptionAndUnsupportedM
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContent("Description", "Asciidoc")
+	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContent("Description", "foo")
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
 				Type: "workitemtypes",
-				ID:   "system.bug",
+				ID:   workitem.SystemBug,
 			},
 		},
 	}
-	// when
+	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
+	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
+	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
 
-func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
+func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
+	// given
 	s.T().Skip("Not working.. require WIT understanding on server side")
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -942,7 +945,9 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 			},
 		},
 	}
+	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
@@ -951,6 +956,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
+	// given
 	userType := "identities"
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
 	newUserId := newUser.ID.String()
@@ -972,7 +978,9 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 				}},
 		},
 	}
+	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
@@ -982,6 +990,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
+	// given
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
 	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.db)
 	newUser3 := createOneRandomUserIdentity(s.svc.Context, s.db)
@@ -1001,14 +1010,15 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 			},
 		},
 	}
+	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
 	assert.NotNil(s.T(), wi.Data.Attributes)
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
-
 	update := minimumRequiredUpdatePayload()
 	update.Data.ID = wi.Data.ID
 	update.Data.Type = wi.Data.Type
@@ -1022,15 +1032,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 		},
 	}
 	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &update)
-
 	assert.Len(s.T(), wiu.Data.Relationships.Assignees.Data, 2)
 	assert.Equal(s.T(), newUser2.ID.String(), *wiu.Data.Relationships.Assignees.Data[0].ID)
 	assert.Equal(s.T(), newUser3.ID.String(), *wiu.Data.Relationships.Assignees.Data[1].ID)
 }
 
 func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
+	// given
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1047,23 +1056,24 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 			},
 		},
 	}
+	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
 	assert.NotNil(s.T(), wi.Data.Attributes)
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
-
 	newUserID := newUser.ID.String()
 	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &newUserID, nil, nil)
-
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
+	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1080,6 +1090,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 			},
 		},
 	}
+	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
 

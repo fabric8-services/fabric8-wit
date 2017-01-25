@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/pkg/errors"
 )
@@ -35,21 +36,21 @@ const (
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
 	ProviderGithub: WorkItemMap{
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                            workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: workitem.SystemMarkupMarkdown}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                       workitem.SystemState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                               workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                          workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}:                                     workitem.SystemAssignees,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        workitem.SystemState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}:                                      workitem.SystemAssignees,
 	},
 	ProviderJira: WorkItemMap{
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                     workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:                                      workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: workitem.SystemMarkupJiraWiki}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                  workitem.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                        workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                   workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}:                              workitem.SystemAssignees,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:                                       workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   workitem.SystemState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}:                               workitem.SystemAssignees,
 	},
 }
 
