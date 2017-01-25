@@ -51,19 +51,14 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		childPath := strings.Replace(parentID.String(), "-", "_", -1)
+		childPath := ConvertToLtreeFormat(parentID.String())
 		if parent.Path != "" {
 			childPath = parent.Path + pathSep + childPath
 		}
 		newArea := area.Area{
 			SpaceID: parent.SpaceID,
-
-			// the ltree data type doesn't support the "-" character.
-			// hence everything is being saved as "_".
-			// TODO: Move the replacement to a different method?
-			// TODO: Get all parents of the parent if present and create a "." delimited path
-			Path: childPath,
-			Name: *reqArea.Attributes.Name,
+			Path:    childPath,
+			Name:    *reqArea.Attributes.Name,
 		}
 
 		err = appl.Areas().Create(ctx, &newArea)
@@ -150,13 +145,7 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 	// in a specific space.
 	if area.Path != "" {
 
-		// Parent ID of the immediate parent.
-		// the ltree data type doesn't support the "-" character.
-		// hence everything is being saved as "_". After retrieving the data
-		// convert this back to "-".
-		// TODO: Move the replacement to a different method?
-
-		allParents := strings.Split(strings.Replace(area.Path, "_", "-", -1), ".")
+		allParents := strings.Split(ConvertFromLtreeFormat(area.Path), ".")
 		parentID := allParents[len(allParents)-1]
 
 		// Only the immediate parent's URL.
@@ -194,4 +183,16 @@ func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
+}
+
+// ConvertToLtreeFormat converts data in UUID format to ltree format.
+func ConvertToLtreeFormat(uuid string) string {
+	//Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "-", "_", -1)
+}
+
+// ConvertFromLtreeFormat converts data to UUID format from ltree format.
+func ConvertFromLtreeFormat(uuid string) string {
+	// Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "_", "-", -1)
 }
