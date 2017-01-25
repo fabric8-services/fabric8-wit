@@ -12,6 +12,7 @@ import (
 
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -19,7 +20,6 @@ func TestCreateTracker(t *testing.T) {
 	}
 
 	_, created := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	defer gormsupport.DeleteCreatedEntities(DB)()
 	if created.ID == "" {
 		t.Error("no id")
 	}
@@ -27,6 +27,7 @@ func TestCreateTracker(t *testing.T) {
 
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -34,7 +35,6 @@ func TestGetTracker(t *testing.T) {
 	}
 
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	defer gormsupport.DeleteCreatedEntities(DB)()
 	test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
 	_, tr := test.ShowTrackerOK(t, nil, nil, &controller, result.ID)
 	if tr == nil {
@@ -65,6 +65,7 @@ func TestGetTracker(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/191
 func TestTrackerListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -73,7 +74,6 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 	test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, list := test.ListTrackerOK(t, nil, nil, &controller, nil, nil)
 
@@ -88,13 +88,13 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/189
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
 	}
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	defer gormsupport.DeleteCreatedEntities(DB)()
 
 	_, created := test.ShowTrackerOK(t, nil, nil, &controller, tracker.ID)
 	if created != nil && created.ID != tracker.ID {

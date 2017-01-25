@@ -28,8 +28,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db = db.Create(&tq)
 	require.Nil(t, db.Error)
-	defer  gormsupport.DeleteCreatedEntities(db)()
-
+	defer gormsupport.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -116,6 +115,7 @@ var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-t
 
 func TestConvertGithubIssue(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer gormsupport.DeleteCreatedEntities(db)()
 
 	t.Log("Scenario 3 : Mapping and persisting a Github issue")
 
@@ -126,7 +126,6 @@ func TestConvertGithubIssue(t *testing.T) {
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db.Create(&tq)
-	defer gormsupport.DeleteCreatedEntities(db)()
 
 	models.Transactional(db, func(tx *gorm.DB) error {
 		content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
