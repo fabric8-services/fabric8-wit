@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"strconv"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -73,6 +74,47 @@ func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
 	require.NotNil(t, c.Data.ID)
 	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+}
+
+func (rest *TestSpaceAreaREST) TestListAreas() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	// Create a new space where we'll create 3 areas
+	var s *space.Space
+
+	// Create another space where we'll create 1 area.
+	var anotherSpace *space.Space
+
+	application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Spaces()
+		s, _ = repo.Create(context.Background(), "Test 1")
+		anotherSpace, _ = repo.Create(context.Background(), "Another space")
+		return nil
+	})
+
+	svc, ctrl := rest.SecuredController()
+	spaceId := s.ID
+	anotherSpaceId := anotherSpace.ID
+
+	for i := 0; i < 3; i++ {
+		name := "Test Area #20" + strconv.Itoa(i)
+		spaceAreaContext := createSpaceArea(name, &name)
+		_, c := test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, spaceId.String(), spaceAreaContext)
+		require.NotNil(t, c.Data.ID)
+		require.NotNil(t, c.Data.Relationships.Space)
+	}
+
+	name := "area in a different space"
+	anotherSpaceAreaContext := createSpaceArea(name, &name)
+	test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, anotherSpaceId.String(), anotherSpaceAreaContext)
+
+	_, areaList := test.ListSpaceAreasOK(t, svc.Context, svc, ctrl, spaceId.String())
+	assert.Len(t, areaList.Data, 3)
+
+	_, anotherAreaList := test.ListSpaceAreasOK(t, svc.Context, svc, ctrl, anotherSpaceId.String())
+	assert.Len(t, anotherAreaList.Data, 1)
+
 }
 
 func createSpaceArea(name string, desc *string) *app.CreateSpaceAreasPayload {

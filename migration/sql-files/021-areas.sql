@@ -9,3 +9,5 @@ CREATE TABLE areas (
     path ltree,
     name text
 );
+
+CREATE INDEX ax_space_id ON areas USING btree (space_id);
