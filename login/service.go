@@ -2,8 +2,9 @@ package login
 
 import (
 	"crypto/md5"
+	"crypto/rsa"
 	"encoding/hex"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,10 +15,10 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
@@ -27,8 +28,6 @@ import (
 const (
 	// InvalidCodeError could occure when the OAuth Exchange with Keycloak returns no valid AccessToken
 	InvalidCodeError string = "Invalid OAuth2.0 code"
-	// EmailNotFoundError could occure if no email was returned by Keycloak
-	EmailNotFoundError string = "Email not found"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -51,6 +50,16 @@ type keycloakOAuthProvider struct {
 	identities   account.IdentityRepository
 	users        account.UserRepository
 	tokenManager token.Manager
+}
+
+// keycloakTokenClaims represents standard Keycloak token claims
+type keycloakTokenClaims struct {
+	Name       string `json:"name"`
+	Username   string `json:"preferred_username"`
+	GivenName  string `json:"given_name"`
+	FamilyName string `json:"family_name"`
+	Email      string `json:"email"`
+	jwt.StandardClaims
 }
 
 // TEMP: This will leak memory in the long run with many 'failed' redirect attempts
@@ -81,48 +90,36 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 		if err != nil || keycloakToken.AccessToken == "" {
 			log.Println(err)
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+InvalidCodeError)
-			return ctx.TemporaryRedirect()
+			return redirectWithError(ctx, knownReferer, InvalidCodeError)
 		}
 
-		keycloakUser, err := keycloak.getUser(ctx, keycloakToken)
-
-		email := keycloakUser.Email
-		if email == "" {
-			log.Println("No email found?! ", keycloakUser)
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+EmailNotFoundError)
-			return ctx.TemporaryRedirect()
+		claims, err := parseToken(keycloakToken.AccessToken, keycloak.tokenManager.PublicKey())
+		if err != nil || checkClaims(claims) != nil {
+			return redirectWithError(ctx, knownReferer, "Error when parsing token "+err.Error())
 		}
+
+		email := claims.Email
 		users, err := keycloak.users.Query(account.UserByEmails([]string{email}), account.UserWithIdentity())
 		if err != nil {
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Error during querying for a user "+err.Error())
-			return ctx.TemporaryRedirect()
+			return redirectWithError(ctx, knownReferer, "Error during querying for a user "+err.Error())
 		}
 		var identity *account.Identity
 
 		if len(users) == 0 {
 			// No User found, create a new User and Identity
 			identity = new(account.Identity)
-			fillIdentity(keycloakUser, identity)
+			fillIdentity(claims, identity)
 			keycloak.identities.Create(ctx, identity)
 			keycloak.users.Create(ctx, &account.User{Email: email, Identity: *identity})
 		} else {
 			identity = &users[0].Identity
 			// let's update the current identity with the fullname and avatar from Keycloak,
 			// in case the user changed them since the last time he/she logged in here
-			fillIdentity(keycloakUser, identity)
+			fillIdentity(claims, identity)
 			keycloak.identities.Save(ctx, identity)
 		}
 
-		// generate token
-		almtoken, err := keycloak.tokenManager.Generate(*identity)
-		if err != nil {
-			log.Println("Failed to generate token", err)
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.Unauthorized(jerrors)
-		}
-
-		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+almtoken)
+		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+keycloakToken.AccessToken)
 		return ctx.TemporaryRedirect()
 	}
 
@@ -145,25 +142,23 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 	return ctx.TemporaryRedirect()
 }
 
-func (keycloak keycloakOAuthProvider) getUser(ctx context.Context, token *oauth2.Token) (*openIDConnectUser, error) {
-	client := keycloak.config.Client(ctx, token)
-	resp, err := client.Get(configuration.GetKeycloakEndpointUserinfo())
+func redirectWithError(ctx *app.AuthorizeLoginContext, knownReferer string, errorString string) error {
+	ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+errorString)
+	return ctx.TemporaryRedirect()
+}
+
+func parseToken(tokenString string, publicKey *rsa.PublicKey) (*keycloakTokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &keycloakTokenClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return publicKey, nil
+	})
 	if err != nil {
-		return nil, errs.WithStack(err)
+		return nil, err
 	}
-
-	var user openIDConnectUser
-	json.NewDecoder(resp.Body).Decode(&user)
-	if user.AvatarURL == "" {
-		// Use gravatar
-		grURL, err := generateGravatarURL(user.Email)
-		if err != nil {
-			log.Println(err) // Something wrong with generating gravatart URL. Not critical. We can proceed.
-		}
-		user.AvatarURL = grURL
+	claims := token.Claims.(*keycloakTokenClaims)
+	if token.Valid {
+		return claims, nil
 	}
-
-	return &user, nil
+	return nil, errs.WithStack(errors.New("Token is not valid"))
 }
 
 func generateGravatarURL(email string) (string, error) {
@@ -188,22 +183,33 @@ func generateGravatarURL(email string) (string, error) {
 	return urlStr, nil
 }
 
-func fillIdentity(openIDConnectUser *openIDConnectUser, identity *account.Identity) {
-	// Use login as name if 'name' is not set #391
-	if openIDConnectUser.Name == "" {
-		identity.FullName = openIDConnectUser.Login
-	} else {
-		identity.FullName = openIDConnectUser.Name
+func checkClaims(claims *keycloakTokenClaims) error {
+	if claims.Subject == "" {
+		return errors.New("Subject claim not found in token")
 	}
-	identity.ImageURL = openIDConnectUser.AvatarURL
+	_, err := uuid.FromString(claims.Subject)
+	if err != nil {
+		return errors.New("Subject claim from token is not UUID " + err.Error())
+	}
+	if claims.Username == "" {
+		return errors.New("Username claim not found in token")
+	}
+	if claims.Email == "" {
+		return errors.New("Email claim not found in token")
+	}
+	return nil
 }
 
-// openIDConnectUser represents the needed response in OpenID Connect format from /protocol/openid-connect/userinfo endpoint.
-type openIDConnectUser struct {
-	Name      string `json:"name"`
-	Login     string `json:"preferred_username"`
-	AvatarURL string `json:"picture"`
-	Email     string `json:"email"`
+func fillIdentity(claims *keycloakTokenClaims, identity *account.Identity) error {
+	identity.FullName = claims.Name
+	id, _ := uuid.FromString(claims.Subject)
+	identity.ID = id
+	image, err := generateGravatarURL(claims.Email)
+	if err != nil {
+		return errors.New("Error when generating gravatar " + err.Error())
+	}
+	identity.ImageURL = image
+	return nil
 }
 
 // ContextIdentity returns the identity's ID found in given context

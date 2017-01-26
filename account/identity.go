@@ -15,7 +15,7 @@ import (
 // Identity ddenDescribes a unique Person with the ALM
 type Identity struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	ID       uuid.UUID `sql:"type:uuid" gorm:"primary_key"` // This is the ID PK field
 	Emails   []User    // has many Users
 	FullName string    // The fullname of the Identity
 	ImageURL string    // The image URL for this Identity
@@ -91,8 +91,6 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 // Create creates a new record.
 func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "create"}, time.Now())
-
-	model.ID = uuid.NewV4()
 
 	err := m.db.Create(model).Error
 	if err != nil {

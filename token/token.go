@@ -16,6 +16,7 @@ type Manager interface {
 	Generate(account.Identity) (string, error)
 	Extract(string) (*account.Identity, error)
 	Locate(ctx context.Context) (uuid.UUID, error)
+	PublicKey() *rsa.PublicKey
 }
 
 type tokenManager struct {
@@ -31,6 +32,7 @@ func NewManager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
 	}
 }
 
+// Generate generates a new JWT token. For tests only.
 func (mgm tokenManager) Generate(ident account.Identity) (string, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
@@ -56,20 +58,20 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 		return nil, errors.New("Token not valid")
 	}
 
-	claimedUUID := token.Claims.(jwt.MapClaims)["uuid"]
+	claimedUUID := token.Claims.(jwt.MapClaims)["sub"]
 	if claimedUUID == nil {
-		return nil, errors.New("UUID can not be nil")
+		return nil, errors.New("Subject can not be nil")
 	}
 	// in case of nil UUID, below type casting will fail hence we need above check
-	id, err := uuid.FromString(token.Claims.(jwt.MapClaims)["uuid"].(string))
+	id, err := uuid.FromString(token.Claims.(jwt.MapClaims)["sub"].(string))
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 
 	ident := account.Identity{
 		ID:       id,
-		FullName: token.Claims.(jwt.MapClaims)["fullName"].(string),
-		ImageURL: token.Claims.(jwt.MapClaims)["imageURL"].(string),
+		FullName: token.Claims.(jwt.MapClaims)["name"].(string),
+		ImageURL: "",
 	}
 
 	return &ident, nil
@@ -80,15 +82,19 @@ func (mgm tokenManager) Locate(ctx context.Context) (uuid.UUID, error) {
 	if token == nil {
 		return uuid.UUID{}, errors.New("Missing token") // TODO, make specific tokenErrors
 	}
-	id := token.Claims.(jwt.MapClaims)["uuid"]
+	id := token.Claims.(jwt.MapClaims)["sub"]
 	if id == nil {
-		return uuid.UUID{}, errors.New("Missing uuid")
+		return uuid.UUID{}, errors.New("Missing sub")
 	}
 	idTyped, err := uuid.FromString(id.(string))
 	if err != nil {
 		return uuid.UUID{}, errors.New("uuid not of type string")
 	}
 	return idTyped, nil
+}
+
+func (mgm tokenManager) PublicKey() *rsa.PublicKey {
+	return mgm.publicKey
 }
 
 // ParsePublicKey parses a []byte representation of a public key into a rsa.PublicKey instance
