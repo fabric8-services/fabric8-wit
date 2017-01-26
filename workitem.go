@@ -60,6 +60,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
 		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
 	}
+	if ctx.FilterIteration != nil {
+		iteration := ctx.FilterIteration
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
+	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(tx application.Application) error {
