@@ -122,22 +122,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.NotFoundError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
-				return ctx.NotFound(jerrors)
-			case errors.VersionConflictError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			default:
-				log.Printf("Error updating work items: %s", err.Error())
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
-				return ctx.InternalServerError(jerrors)
-			}
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error updating work item")))
 		}
 
 		wi2 := ConvertWorkItem(ctx.RequestData, wi)
