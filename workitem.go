@@ -322,9 +322,6 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 		}
 	}
 
-	if title, ok := source.Attributes[workitem.SystemTitle]; !ok || title == "" {
-		return errors.NewBadParameterError("data.attributes["+workitem.SystemTitle+"]", source.Attributes[workitem.SystemTitle])
-	}
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {

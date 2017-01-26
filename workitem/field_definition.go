@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"strings"
+
 	"github.com/almighty/almighty-core/convert"
 	"github.com/pkg/errors"
 )
@@ -68,7 +70,8 @@ func (self FieldDefinition) Equal(u convert.Equaler) bool {
 
 // ConvertToModel converts a field value for use in the persistence layer
 func (f FieldDefinition) ConvertToModel(name string, value interface{}) (interface{}, error) {
-	if f.Required && value == nil {
+	fmt.Println(fmt.Sprintf("Converting attribute '%s' (required: %t) with value: '%v'", name, f.Required, value))
+	if f.Required && (value == nil || (f.Type.GetKind() == KindString && strings.TrimSpace(value.(string)) == "")) {
 		return nil, fmt.Errorf("Value %s is required", name)
 	}
 	return f.Type.ConvertToModel(value)

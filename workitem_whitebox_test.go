@@ -10,7 +10,6 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -249,23 +248,27 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 }
 
 func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
+	// given
 	appl := new(application.Application)
 	attributes := map[string]interface{}{}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	// when
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
-	require.NotNil(t, err)
-	assert.IsType(t, errors.BadParameterError{}, err)
+	// then: no error expected at this level, even though the title is missing
+	require.Nil(t, err)
 }
 
 func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
+	// given
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: "",
 	}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	// when
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
-	require.NotNil(t, err)
-	assert.IsType(t, errors.BadParameterError{}, err)
+	// then: no error expected at this level, even though the title is missing
+	require.Nil(t, err)
 }
