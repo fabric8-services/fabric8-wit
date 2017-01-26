@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -230,4 +231,41 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	require.NotNil(t, target.Fields)
 	expectedDescription := workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupMarkdown}
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
+	title := "title"
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle: title,
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
+}
+
+func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.NotNil(t, err)
+	assert.IsType(t, errors.BadParameterError{}, err)
+}
+
+func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle: "",
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.NotNil(t, err)
+	assert.IsType(t, errors.BadParameterError{}, err)
 }

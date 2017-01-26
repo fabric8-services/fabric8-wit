@@ -609,6 +609,7 @@ func (s *WorkItem2Suite) SetupTest() {
 
 // ========== Actual Test functions ==========
 func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	newStateValue := "closed"
@@ -619,6 +620,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = 2398475203
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
@@ -647,6 +649,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
 
 	u := minimumRequiredUpdatePayload()
+	u.Data.Attributes[workitem.SystemTitle] = "Test title"
 	u.Data.Attributes["version"] = created.Data.Attributes["version"]
 	u.Data.ID = created.Data.ID
 	u.Data.Relationships = &app.WorkItemRelationships{
@@ -665,6 +668,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := "Only Description is modified"
 	expectedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -675,6 +679,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := workitem.MarkupContent{Content: "Only Description is modified"}
 	expectedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -684,6 +689,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := workitem.MarkupContent{Content: "Only Description is modified", Markup: workitem.SystemMarkupMarkdown}
 	expectedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -694,6 +700,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	// update title attribute
 	modifiedTitle := "Is the model updated?"
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = modifiedTitle
@@ -711,6 +718,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	}
 	// clean up and keep version updated in order to keep object future usage
 	delete(s.minimumPayload.Data.Attributes, workitem.SystemTitle)
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 
 	// update assignee relationship and verify
@@ -904,6 +912,39 @@ func (s *WorkItem2Suite) TestWI2FailCreateWtihAssigneeAsField() {
 	assert.Nil(s.T(), wi.Data.Relationships.Assignees.Data)
 }
 
+func (s *WorkItem2Suite) TestWI2FailCreateWithMissingTitle() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	// when/then
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
+func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = ""
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	// when/then
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	userType := "identities"
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
@@ -966,6 +1007,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	update := minimumRequiredUpdatePayload()
 	update.Data.ID = wi.Data.ID
 	update.Data.Type = wi.Data.Type
+	update.Data.Attributes[workitem.SystemTitle] = "Title"
 	update.Data.Attributes["version"] = wi.Data.Attributes["version"]
 	update.Data.Relationships = &app.WorkItemRelationships{
 		Assignees: &app.RelationGenericList{
@@ -1203,6 +1245,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title"
 	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
 	u.Data.Relationships = &app.WorkItemRelationships{
 		Iteration: &app.RelationGeneric{
