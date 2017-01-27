@@ -46,7 +46,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			newSpace.Description = *reqSpace.Attributes.Description
 		}
 
-		space, err := appl.Spaces().Create(ctx, newSpace)
+		space, err := appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -151,7 +151,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			s.Description = *ctx.Payload.Data.Attributes.Description
 		}
 
-		s, err = appl.Spaces().Save(ctx.Context, *s)
+		s, err = appl.Spaces().Save(ctx.Context, s)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

@@ -255,7 +255,7 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 		newSpace := space.Space{
 			Name: "Test 1"+uuid.NewV4().String(),
 		}
-		p, err := app.Spaces().Create(context.Background(), newSpace)
+		p, err := app.Spaces().Create(context.Background(), &newSpace)
 		if err != nil {
 			t.Error(err)
 		}

@@ -73,7 +73,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		newSpace := space.Space{
 			Name: "Test 1",
 		}
-		p, _ = repo.Create(context.Background(), newSpace)
+		p, _ = repo.Create(context.Background(), &newSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -98,7 +98,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 		testSpace := space.Space{
 			Name:"Test 1",
 		}
-		p, _ = repo.Create(context.Background(), testSpace)
+		p, _ = repo.Create(context.Background(), &testSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -128,7 +128,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		newSpace := space.Space{
 			Name: "Test 1",
 		}
-		p, err := app.Spaces().Create(context.Background(), newSpace)
+		p, err := app.Spaces().Create(context.Background(), &newSpace)
 		if err != nil {
 			t.Error(err)
 		}
