@@ -82,10 +82,11 @@ import:
 - package: github.com/spf13/afero
 - package: github.com/spf13/cast
 - package: github.com/spf13/jwalterweatherman
-- package: github.com/dimfeld/httptreemux
-  version: ^3.1.0
 - package: golang.org/x/oauth2
 - package: github.com/dnaeon/go-vcr
   version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - recorder
+- package: github.com/apriendeau/go-testcolorize
+- package: github.com/spf13/pflag
+- package: github.com/jwaldrip/tint
