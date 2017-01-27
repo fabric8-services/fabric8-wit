@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"reflect"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
@@ -57,6 +59,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		assignee := ctx.FilterAssignee
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
 		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
+	}
+	if ctx.FilterIteration != nil {
+		iteration := ctx.FilterIteration
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
 	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
@@ -319,7 +326,13 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 		}
 	}
 	for key, val := range source.Attributes {
-		target.Fields[key] = val
+		// convert legacy description to markup content
+		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
+			description := workitem.NewMarkupContentFromLegacy(val.(string))
+			target.Fields[key] = description
+		} else {
+			target.Fields[key] = val
+		}
 	}
 	return nil
 }
@@ -386,6 +399,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Relationships.Iteration = &app.RelationGeneric{
 					Data: ConvertIterationSimple(request, valStr),
 				}
+			}
+
+		case workitem.SystemDescription:
+			switch val.(type) {
+			case string:
+				op.Attributes[name] = val
+			case workitem.MarkupContent:
+				description := val.(workitem.MarkupContent)
+				op.Attributes[name] = description.Content
 			}
 		default:
 			op.Attributes[name] = val

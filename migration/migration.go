@@ -136,6 +136,9 @@ func getMigrations() migrations {
 	// Version 19
 	m = append(m, steps{executeSQLFile("019-add-state-iterations.sql")})
 
+	// Version 20
+	m = append(m, steps{executeSQLFile("020-work-item-description-update-search-index.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -323,6 +326,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
+	witr.ClearCache() // Clear the WIT cache after updating existing WITs
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
@@ -354,7 +358,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	stUser := "user"
 	workItemTypeFields := map[string]app.FieldDefinition{
 		workitem.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-		workitem.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
+		workitem.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "markup"}, Required: false},
 		workitem.SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
 		workitem.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
 		workitem.SystemCreatedAt:    app.FieldDefinition{Type: &app.FieldType{Kind: "instant"}, Required: false},
@@ -424,7 +428,6 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		}
 		wit.Fields = convertedFields
 		wit.Path = path
-
 		db = db.Save(wit)
 		return db.Error
 	}
