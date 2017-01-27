@@ -29,20 +29,17 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 	return application.Transactional(c.db, func(appl application.Application) error {
 		_, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.NotFound(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
 		currentUser, err := login.ContextIdentity(ctx)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.Unauthorized(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 		}
 
 		currentUserID, err := uuid.FromString(currentUser)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.Unauthorized(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 		}
 
 		reqComment := ctx.Payload.Data
@@ -55,8 +52,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 
 		err = appl.Comments().Create(ctx, &newComment)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
-			return ctx.InternalServerError(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
 
 		res := &app.CommentSingle{
@@ -81,8 +77,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
-			return ctx.InternalServerError(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
 		res.Meta = &app.CommentListMeta{TotalCount: count}
 		res.Data = ConvertComments(ctx.RequestData, comments)
@@ -100,15 +95,13 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 	return application.Transactional(c.db, func(appl application.Application) error {
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-			return ctx.NotFound(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
 		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
-			return ctx.InternalServerError(jerrors)
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
 		_ = wi
 		_ = comments

@@ -100,7 +100,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("created_at")
+	db = db.Select("count(*) over () as cnt2 , *").Order("created_at desc")
 
 	rows, err := db.Rows()
 	if err != nil {
