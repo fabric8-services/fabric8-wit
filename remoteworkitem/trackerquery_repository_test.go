@@ -89,7 +89,7 @@ func TestTrackerQueryList(t *testing.T) {
 
 		tracker1, _ := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		queryRepo.Create(context.Background(), "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID)
-		queryRepo.Create(context.Background(), "is:close is:issue user:arquillian author:aslakknutsen", "", tracker1.ID)
+		queryRepo.Create(context.Background(), "is:close is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID)
 
 		tracker2, _ := trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
 		queryRepo.Create(context.Background(), "project = ARQ AND text ~ 'arquillian'", "15 * * * * *", tracker2.ID)
