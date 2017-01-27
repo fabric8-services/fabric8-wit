@@ -26,9 +26,9 @@ func TestRenderMarkdownContentWithFence(t *testing.T) {
 }
 
 func TestIsMarkupSupported(t *testing.T) {
-	assert.True(t, rendering.IsMarkupSupported(""))
 	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupDefault))
 	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupPlainText))
 	assert.True(t, rendering.IsMarkupSupported(rendering.SystemMarkupMarkdown))
+	assert.False(t, rendering.IsMarkupSupported(""))
 	assert.False(t, rendering.IsMarkupSupported("foo"))
 }

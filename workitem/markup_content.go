@@ -26,12 +26,18 @@ func (markupContent *MarkupContent) toMap() map[string]interface{} {
 	return result
 }
 
-// NewMarkupContentFromMap creates a MarkupContent from the given Map, filling the 'Markup' field with the default value if no entry was found in the input.
+// NewMarkupContentFromMap creates a MarkupContent from the given Map,
+// filling the 'Markup' field with the default value if no entry was found in the input or if the given markup is not supported.
+// This avoids filling the DB with invalid markup types.
 func NewMarkupContentFromMap(value map[string]interface{}) MarkupContent {
 	content := value[ContentKey].(string)
 	markup := rendering.SystemMarkupDefault
 	if m, ok := value[MarkupKey]; ok {
 		markup = m.(string)
+		// use default markup if the input is not supported
+		if !rendering.IsMarkupSupported(markup) {
+			markup = rendering.SystemMarkupDefault
+		}
 	}
 	return MarkupContent{Content: content, Markup: markup}
 }

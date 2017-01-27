@@ -328,6 +328,12 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			target.Fields[key] = val
 		}
 	}
+	if description, ok := target.Fields[workitem.SystemDescription].(workitem.MarkupContent); ok {
+		// verify the description markup
+		if !rendering.IsMarkupSupported(description.Markup) {
+			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
+		}
+	}
 	return nil
 }
 

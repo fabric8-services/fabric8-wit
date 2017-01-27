@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/rendering"
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 )
@@ -120,9 +119,6 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
 		markupContent := NewMarkupContentFromMap(value.(map[string]interface{}))
-		if !rendering.IsMarkupSupported(markupContent.Markup) {
-			return nil, errors.Errorf("Unsupported markup type: %s", markupContent.Markup)
-		}
 		return markupContent, nil
 	default:
 		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())

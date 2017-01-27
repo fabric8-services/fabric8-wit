@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
@@ -41,11 +42,16 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 		workItem, err := convert(db, int(tq.ID), remoteItemData, ProviderGithub)
 
-		assert.Nil(t, err)
+		require.Nil(t, err)
+		require.NotNil(t, workItem.Fields)
 		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
 		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
 		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
+		require.NotNil(t, workItem.Fields[workitem.SystemDescription])
+		description := workItem.Fields[workitem.SystemDescription].(workitem.MarkupContent)
+		assert.Equal(t, "body of issue", description.Content)
+		assert.Equal(t, rendering.SystemMarkupMarkdown, description.Markup)
 
 		wir := workitem.NewWorkItemRepository(db)
 		wir.Delete(context.Background(), workItem.ID)

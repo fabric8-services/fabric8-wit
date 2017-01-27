@@ -9,9 +9,7 @@ import (
 
 // IsMarkupSupported indicates if the given markup is supported
 func IsMarkupSupported(markup string) bool {
-	if markup == "" || // assume same as default
-		markup == SystemMarkupDefault ||
-		markup == SystemMarkupMarkdown {
+	if markup == SystemMarkupDefault || markup == SystemMarkupMarkdown {
 		return true
 	}
 	return false
