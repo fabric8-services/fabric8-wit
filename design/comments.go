@@ -65,45 +65,35 @@ var identityRelationData = a.Type("IdentityRelationData", func() {
 	a.Required("type")
 })
 
-var commentArray = a.MediaType("application/vnd.comments+json", func() {
-	a.TypeName("CommentArray")
-	a.Description("Holds the response of comments")
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("data", a.ArrayOf(comment))
-	a.Attribute("links", genericLinks)
+var commentRelationshipsArray = JSONList(
+	"CommentRelationship", "Holds the response of comments",
+	comment,
+	genericLinks,
+	commentListMeta,
+)
 
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-		a.Attribute("meta")
-		a.Attribute("links")
-	})
+var commentListMeta = a.Type("CommentListMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
 })
 
-var commentSingle = a.MediaType("application/vnd.comment+json", func() {
-	a.TypeName("CommentSingle")
-	a.Description("Holds the response of a single comment")
-	a.Attribute("data", comment)
+var commentArray = JSONList(
+	"Comment", "Holds the response of comments",
+	comment,
+	pagingLinks,
+	commentListMeta,
+)
 
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-	})
-})
-
-var createSingleComment = a.MediaType("application/vnd.comments-create+json", func() {
-	a.TypeName("CreateSingleComment")
-	a.Description("Holds the create data for a comment")
-	a.Attribute("data", createComment)
-
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("data")
-	})
-})
+var commentSingle = JSONSingle(
+	"Comment", "Holds the response of a single comment",
+	comment,
+	nil,
+)
+var createSingleComment = JSONSingle(
+	"CreateSingle", "Holds the create data for a comment",
+	createComment,
+	nil,
+)
 
 var _ = a.Resource("comments", func() {
 	a.BasePath("/comments")
@@ -152,6 +142,11 @@ var _ = a.Resource("work-item-comments", func() {
 			a.GET("comments"),
 		)
 		a.Description("List comments associated with the given work item")
+		a.Params(func() {
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to
+			the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
+		})
 		a.Response(d.OK, func() {
 			a.Media(commentArray)
 		})
@@ -159,14 +154,18 @@ var _ = a.Resource("work-item-comments", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
-
 	a.Action("relations", func() {
 		a.Routing(
 			a.GET("relationships/comments"),
 		)
 		a.Description("List comments associated with the given work item")
+		a.Params(func() {
+			a.Param("page[offset]", d.String, `Paging start position is a string pointing to
+				the beginning of pagination.  The value starts from 0 onwards.`)
+			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
+		})
 		a.Response(d.OK, func() {
-			a.Media(commentArray)
+			a.Media(commentRelationshipsArray)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
