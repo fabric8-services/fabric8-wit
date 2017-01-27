@@ -70,7 +70,10 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
-		p, _ = repo.Create(context.Background(), "Test 1")
+		newSpace := space.Space{
+			Name: "Test 1",
+		}
+		p, _ = repo.Create(context.Background(), &newSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -92,7 +95,10 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
-		p, _ = repo.Create(context.Background(), "Test 1")
+		testSpace := space.Space{
+			Name:"Test 1",
+		}
+		p, _ = repo.Create(context.Background(), &testSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -119,7 +125,10 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Spaces().Create(context.Background(), "Test 1")
+		newSpace := space.Space{
+			Name: "Test 1",
+		}
+		p, err := app.Spaces().Create(context.Background(), &newSpace)
 		if err != nil {
 			t.Error(err)
 		}
