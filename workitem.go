@@ -61,6 +61,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
 		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
 	}
+	if ctx.FilterIteration != nil {
+		iteration := ctx.FilterIteration
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
+	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(tx application.Application) error {
@@ -217,10 +222,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.VersionConflictError:
+			case errors.BadParameterError, errors.VersionConflictError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
@@ -249,14 +251,11 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.VersionConflictError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+			case errors.BadParameterError, errors.VersionConflictError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error deleting work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
-				log.Printf("Error updating work items: %s", err.Error())
+				log.Printf("Error deleting work items: %s", err.Error())
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 				return ctx.InternalServerError(jerrors)
 			}
@@ -320,6 +319,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			target.Type = source.Relationships.BaseType.Data.ID
 		}
 	}
+
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {

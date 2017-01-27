@@ -232,3 +232,44 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	expectedDescription := workitem.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
+
+func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
+	title := "title"
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle: title,
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
+}
+
+func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
+	// given
+	appl := new(application.Application)
+	attributes := map[string]interface{}{}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	// when
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	// then: no error expected at this level, even though the title is missing
+	require.Nil(t, err)
+}
+
+func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
+	// given
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle: "",
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	// when
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	// then: no error expected at this level, even though the title is missing
+	require.Nil(t, err)
+}

@@ -80,7 +80,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 
 	wiid, err := createWorkItem(rest.db)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
@@ -92,11 +92,22 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 	})
 
 	svc, ctrl := rest.UnSecuredController()
-	_, cs := test.ListWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid)
+	offset := "0"
+	limit := 3
+	_, cs := test.ListWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid, &limit, &offset)
 	if len(cs.Data) != 3 {
-		t.Error("Listed comments of wrong length")
+		t.Fatal("Listed comments of wrong length")
 	}
 	assertComment(t, cs.Data[0])
+
+	wiid2, err := createWorkItem(rest.db)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, cs2 := test.ListWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid2, &limit, &offset)
+	if len(cs2.Data) != 0 {
+		t.Fatal("Listed comments of wrong length")
+	}
 }
 
 func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
@@ -109,7 +120,9 @@ func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
 	}
 
 	svc, ctrl := rest.UnSecuredController()
-	_, cs := test.ListWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid)
+	offset := "0"
+	limit := 1
+	_, cs := test.ListWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid, &limit, &offset)
 	if len(cs.Data) != 0 {
 		t.Error("Listed comments of wrong length")
 	}
@@ -158,7 +171,9 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.SecuredController()
-	test.ListWorkItemCommentsNotFound(t, svc.Context, svc, ctrl, "0000000")
+	offset := "0"
+	limit := 1
+	test.ListWorkItemCommentsNotFound(t, svc.Context, svc, ctrl, "0000000", &limit, &offset)
 }
 
 func assertComment(t *testing.T, c *app.Comment) {

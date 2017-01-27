@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"fmt"
+
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -142,6 +144,10 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
 	assert.Len(t, cs.Data, 3)
+	for _, iterationItem := range cs.Data {
+		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
+		assert.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
+	}
 }
 
 func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {

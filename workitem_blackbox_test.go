@@ -142,7 +142,7 @@ func TestListByFields(t *testing.T) {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, &limit, &offset)
 
 	if result == nil {
 		t.Errorf("nil result")
@@ -153,7 +153,7 @@ func TestListByFields(t *testing.T) {
 	}
 
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestIdentity.ID.String())
-	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, &limit, &offset)
 
 	if result == nil {
 		t.Errorf("nil result")
@@ -309,7 +309,7 @@ func createPagingTest(t *testing.T, controller *WorkitemController, repo *testsu
 		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
-		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -388,28 +388,28 @@ func TestPagingErrors(t *testing.T) {
 
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -419,7 +419,7 @@ func TestPagingErrors(t *testing.T) {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -440,7 +440,7 @@ func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
 	}
@@ -466,18 +466,18 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	limit = 1000
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(t, "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 
 	limit = 50
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
 	}
@@ -540,6 +540,19 @@ func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Iden
 		return nil
 	}
 	return &identity
+}
+
+func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Iteration {
+	iterationRepo := iteration.NewIterationRepository(db)
+	itr := iteration.Iteration{
+		Name: "Sprint 101",
+	}
+	err := iterationRepo.Create(ctx, &itr)
+	if err != nil {
+		fmt.Println("Failed to create iteration.")
+		return nil
+	}
+	return &itr
 }
 
 // ========== WorkItem2Suite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
@@ -609,6 +622,7 @@ func (s *WorkItem2Suite) SetupTest() {
 
 // ========== Actual Test functions ==========
 func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	newStateValue := "closed"
@@ -619,6 +633,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = 2398475203
 	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
@@ -647,6 +662,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
 
 	u := minimumRequiredUpdatePayload()
+	u.Data.Attributes[workitem.SystemTitle] = "Test title"
 	u.Data.Attributes["version"] = created.Data.Attributes["version"]
 	u.Data.ID = created.Data.ID
 	u.Data.Relationships = &app.WorkItemRelationships{
@@ -665,6 +681,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := "Only Description is modified"
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
@@ -678,6 +695,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
+  s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := workitem.NewMarkupContentFromLegacy("Only Description is modified")
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
@@ -690,6 +708,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := workitem.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
@@ -703,6 +722,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	// update title attribute
 	modifiedTitle := "Is the model updated?"
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = modifiedTitle
@@ -720,6 +740,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	}
 	// clean up and keep version updated in order to keep object future usage
 	delete(s.minimumPayload.Data.Attributes, workitem.SystemTitle)
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 
 	// update assignee relationship and verify
@@ -955,6 +976,39 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
 	assert.Nil(s.T(), wi.Data.Relationships.Assignees.Data)
 }
 
+func (s *WorkItem2Suite) TestWI2FailCreateWithMissingTitle() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	// when/then
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
+func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = ""
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	// when/then
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	// given
 	userType := "identities"
@@ -1022,6 +1076,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	update := minimumRequiredUpdatePayload()
 	update.Data.ID = wi.Data.ID
 	update.Data.Type = wi.Data.Type
+	update.Data.Attributes[workitem.SystemTitle] = "Title"
 	update.Data.Attributes["version"] = wi.Data.Attributes["version"]
 	update.Data.Relationships = &app.WorkItemRelationships{
 		Assignees: &app.RelationGenericList{
@@ -1066,10 +1121,44 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &newUserID, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &newUserID, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
+}
+
+func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
+	tempIteration := createOneRandomIteration(s.svc.Context, s.db)
+	require.NotNil(s.T(), tempIteration)
+	iterationID := tempIteration.ID.String()
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		},
+		Iteration: &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &iterationID,
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.ID)
+	require.NotNil(s.T(), wi.Data.Type)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
+
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &iterationID, nil, nil)
+	require.Len(s.T(), list.Data, 1)
+	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
+	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
@@ -1260,6 +1349,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title"
 	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
 	u.Data.Relationships = &app.WorkItemRelationships{
 		Iteration: &app.RelationGeneric{
