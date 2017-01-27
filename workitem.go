@@ -177,21 +177,29 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
-
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
+		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
+			message := fmt.Sprintf("Error creating work item: %s", err.Error())
 			cause := errs.Cause(err)
 			switch cause.(type) {
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.VersionConflictError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+			case errors.BadParameterError, errors.VersionConflictError, errors.ConversionError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(message))
 				return ctx.BadRequest(jerrors)
 			default:
-				log.Printf("Error updating work items: %s", err.Error())
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(message))
+				return ctx.InternalServerError(jerrors)
+			}
+		}
+		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
+		if err != nil {
+			message := fmt.Sprintf("Error creating work item: %s", err.Error())
+			cause := errs.Cause(err)
+			switch cause.(type) {
+			case errors.BadParameterError, errors.VersionConflictError, errors.ConversionError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(message))
+				return ctx.BadRequest(jerrors)
+			default:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(message))
 				return ctx.InternalServerError(jerrors)
 			}
 		}
@@ -221,10 +229,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.VersionConflictError:
+			case errors.BadParameterError, errors.VersionConflictError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
@@ -253,14 +258,11 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
-			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
-				return ctx.BadRequest(jerrors)
-			case errors.VersionConflictError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
+			case errors.BadParameterError, errors.VersionConflictError:
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error deleting work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
-				log.Printf("Error updating work items: %s", err.Error())
+				log.Printf("Error deleting work items: %s", err.Error())
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 				return ctx.InternalServerError(jerrors)
 			}
@@ -273,7 +275,6 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 // response resource object by jsonapi.org specifications
 func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2, target *app.WorkItem) error {
 	// construct default values from input WI
-
 	var version = -1
 	if source.Attributes["version"] != nil {
 		v, err := strconv.Atoi(fmt.Sprintf("%v", source.Attributes["version"]))
@@ -325,6 +326,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			target.Type = source.Relationships.BaseType.Data.ID
 		}
 	}
+
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
