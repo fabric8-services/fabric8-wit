@@ -175,6 +175,76 @@ func (test *TestCommentRepository) TestListComments() {
 	}
 }
 
+func (test *TestCommentRepository) TestListCommentsWrongOffset() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := comment.NewCommentRepository(test.DB)
+
+	parentID := "A"
+	body := "Test A"
+
+	cs := []*comment.Comment{
+		&comment.Comment{
+			ParentID:  parentID,
+			Body:      body,
+			CreatedBy: uuid.NewV4(),
+		},
+		&comment.Comment{
+			ParentID:  "B",
+			Body:      "Test B",
+			CreatedBy: uuid.NewV4(),
+		},
+	}
+
+	for _, c := range cs {
+		repo.Create(context.Background(), c)
+	}
+
+	offset := -1
+	limit := 1
+	_, _, err := repo.List(context.Background(), parentID, &offset, &limit)
+	if err == nil {
+		t.Error("Expected an error to List")
+	}
+
+}
+
+func (test *TestCommentRepository) TestListCommentsWrongLimit() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := comment.NewCommentRepository(test.DB)
+
+	parentID := "A"
+	body := "Test A"
+
+	cs := []*comment.Comment{
+		&comment.Comment{
+			ParentID:  parentID,
+			Body:      body,
+			CreatedBy: uuid.NewV4(),
+		},
+		&comment.Comment{
+			ParentID:  "B",
+			Body:      "Test B",
+			CreatedBy: uuid.NewV4(),
+		},
+	}
+
+	for _, c := range cs {
+		repo.Create(context.Background(), c)
+	}
+
+	offset := 0
+	limit := -1
+	_, _, err := repo.List(context.Background(), parentID, &offset, &limit)
+	if err == nil {
+		t.Error("Expected an error to List")
+	}
+
+}
+
 func (test *TestCommentRepository) TestLoadComment() {
 	t := test.T()
 	resource.Require(t, resource.Database)
