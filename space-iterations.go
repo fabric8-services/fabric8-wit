@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -54,7 +55,9 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			StartAt: reqIter.Attributes.StartAt,
 			EndAt:   reqIter.Attributes.EndAt,
 		}
-
+		if reqIter.Attributes.Description != nil {
+			newItr.Description = reqIter.Attributes.Description
+		}
 		err = appl.Iterations().Create(ctx, &newItr)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -63,7 +66,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		res := &app.IterationSingle{
 			Data: ConvertIteration(ctx.RequestData, &newItr),
 		}
-		ctx.ResponseData.Header().Set("Location", AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }

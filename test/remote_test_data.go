@@ -6,6 +6,8 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+
+	"github.com/pkg/errors"
 )
 
 // TestDataProvider defines the simple funcion for returning data from a remote provider
@@ -22,11 +24,11 @@ func LoadTestData(filename string, provider TestDataProvider) ([]byte, error) {
 	refreshLocalData := func(path string, refresh TestDataProvider) ([]byte, error) {
 		content, err := refresh()
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		err = ioutil.WriteFile(path, content, 0644)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 		return content, nil
 	}
@@ -41,7 +43,7 @@ func LoadTestData(filename string, provider TestDataProvider) ([]byte, error) {
 	targetDir := filepath.FromSlash(path.Dir(packagefilename) + "/../test/data/")
 	err := os.MkdirAll(targetDir, 0777)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	targetPath := filepath.FromSlash(targetDir + filename)

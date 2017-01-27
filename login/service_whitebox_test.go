@@ -3,7 +3,6 @@ package login
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/configuration"
@@ -13,11 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-
-	"golang.org/x/oauth2/github"
 )
 
-var loginService *gitHubOAuth
+var loginService *keycloakOAuthProvider
 
 func setup() {
 
@@ -27,10 +24,13 @@ func setup() {
 	}
 
 	oauth := &oauth2.Config{
-		ClientID:     configuration.GetGithubClientID(),
-		ClientSecret: configuration.GetGithubSecret(),
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint:     github.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth",
+			TokenURL: "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token",
+		},
 	}
 
 	publicKey, err := token.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
@@ -46,7 +46,7 @@ func setup() {
 	tokenManager := token.NewManager(publicKey, privateKey)
 	userRepository := account.NewUserRepository(nil)
 	identityRepository := account.NewIdentityRepository(nil)
-	loginService = &gitHubOAuth{
+	loginService = &keycloakOAuthProvider{
 		config:       oauth,
 		identities:   identityRepository,
 		users:        userRepository,
@@ -60,40 +60,14 @@ func tearDown() {
 
 func TestValidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	setup()
-	defer tearDown()
 
-	accessToken := &oauth2.Token{
-		AccessToken: configuration.GetGithubAuthToken(),
-		TokenType:   "Bearer",
-	}
-	emails, err := loginService.getUserEmails(context.Background(), accessToken)
-	var trials int // Number of tries to reach GitHub
-	if err != nil {
-		for trials = 0; trials < 10; trials++ {
-			emails, err = loginService.getUserEmails(context.Background(), accessToken)
-			if err == nil {
-				assert.NotEmpty(t, emails)
-				break
-			}
-			time.Sleep(5 * time.Second) // Pause before the next retry
-		}
-		if trials == 10 {
-			t.Error("Test failed, Maximum Retry limit reached", err) // Test failed after trial for 10 times
-		}
-	} else {
-		assert.NotEmpty(t, emails)
-	}
+	t.Skip("Not implemented")
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	setup()
 	defer tearDown()
-
-	if loginService == nil {
-		setup()
-	}
 
 	invalidAccessToken := "7423742yuuiy-INVALID-73842342389h"
 
@@ -102,47 +76,20 @@ func TestInvalidOAuthAccessToken(t *testing.T) {
 		TokenType:   "Bearer",
 	}
 
-	emails, err := loginService.getUserEmails(context.Background(), accessToken)
+	u, err := loginService.getUser(context.Background(), accessToken)
 	assert.Nil(t, err)
-	assert.Empty(t, emails)
-}
-
-func TestGetUserEmails(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-
-	setup()
-	defer tearDown()
-
-	accessToken := &oauth2.Token{
-		AccessToken: configuration.GetGithubAuthToken(),
-		TokenType:   "Bearer",
-	}
-
-	githubEmails, err := loginService.getUserEmails(context.Background(), accessToken)
-	t.Log(githubEmails)
-	assert.Nil(t, err)
-	assert.NotNil(t, githubEmails)
-	assert.NotEmpty(t, githubEmails)
+	assert.Equal(t, &openIDConnectUser{}, u)
 }
 
 func TestGetUser(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	setup()
-	defer tearDown()
-
-	accessToken := &oauth2.Token{
-		AccessToken: configuration.GetGithubAuthToken(),
-		TokenType:   "Bearer",
-	}
-
-	githubUser, err := loginService.getUser(context.Background(), accessToken)
-	assert.Nil(t, err)
-	assert.NotNil(t, githubUser)
-	t.Log(githubUser)
-}
-
-func TestFilterPrimaryEmail(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
 
 	t.Skip("Not implemented")
+}
+
+func TestGravatarURLGeneration(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	grURL, err := generateGravatarURL("alkazako@redhat.com")
+	assert.Nil(t, err)
+	assert.Equal(t, "https://www.gravatar.com/avatar/0fa6cfaa2812a200c566f671803cdf2d.jpg", grURL)
 }

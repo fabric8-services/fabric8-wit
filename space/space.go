@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -130,6 +131,7 @@ func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
 func (r *GormRepository) Create(ctx context.Context, name string) (*Space, error) {
 	newSpace := Space{
 		Name: name,
+		ID:   satoriuuid.NewV4(),
 	}
 
 	tx := r.db.Create(&newSpace)
@@ -168,12 +170,11 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errs.WithStack(err)
 	}
 	defer rows.Close()
 
 	result := []*Space{}
-	value := Space{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -191,6 +192,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 	first := true
 
 	for rows.Next() {
+		value := Space{}
 		db.ScanRows(rows, &value)
 		if first {
 			first = false
@@ -199,7 +201,6 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 			}
 		}
 		result = append(result, &value)
-
 	}
 	if first {
 		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
@@ -208,7 +209,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 		rows2, err := orgDB.Rows()
 		defer rows2.Close()
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
 		rows2.Scan(&count)
@@ -220,7 +221,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
 	result, count, err := r.listSpaceFromDB(ctx, start, limit)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errs.WithStack(err)
 	}
 
 	return result, count, nil

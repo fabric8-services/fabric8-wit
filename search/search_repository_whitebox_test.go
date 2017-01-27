@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
@@ -29,7 +30,7 @@ type searchRepositoryWhiteboxTest struct {
 func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
@@ -57,7 +58,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemDescription: workitem.MarkupContent{Content: `"description" for search test`},
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -70,7 +71,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: `Make sure remoteworkitem can access..`,
+					workitem.SystemDescription: workitem.MarkupContent{Content: `Make sure remoteworkitem can access..`},
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -83,7 +84,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemDescription: workitem.MarkupContent{Content: `"description" for search test`},
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -150,7 +151,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			workItem := testData.wi
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
-			workItemURLInSearchString := "http://demo.almighty.io/work-item-list/detail/"
+			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
 
 			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
 			if err != nil {
@@ -205,7 +206,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					}
 					workItemDescription := ""
 					if workItemValue.Fields[workitem.SystemDescription] != nil {
-						workItemDescription = strings.ToLower(workItemValue.Fields[workitem.SystemDescription].(string))
+						descriptionField := workItemValue.Fields[workitem.SystemDescription].(workitem.MarkupContent)
+						workItemDescription = strings.ToLower(descriptionField.Content)
 					}
 					keyWord = strings.ToLower(keyWord)
 
@@ -246,7 +248,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		workItem.Fields = map[string]interface{}{
 			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: "Description",
+			workitem.SystemDescription: workitem.MarkupContent{Content: "Description"},
 			workitem.SystemCreator:     "sbose78",
 			workitem.SystemAssignees:   []string{"pranav"},
 			workitem.SystemState:       "closed",
@@ -282,7 +284,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			s.T().Log("Found search result for ID Search ", workItemValue.ID)
 			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
 		}
-		return err
+		return errors.WithStack(err)
 	})
 }
 
@@ -324,32 +326,56 @@ func TestParseSearchString(t *testing.T) {
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
+type searchTestData struct {
+	query    string
+	expected searchKeyword
+}
+
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/work-item-list/detail/100"
-	op, _ := parseSearchString(input)
+	inputSet := []searchTestData{searchTestData{
+		query: "http://demo.almighty.io/work-item/list/detail/100",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
+		},
+	}, searchTestData{
+		query: "http://demo.almighty.io/work-item/board/detail/100",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
+		},
+	}}
 
-	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"(100:* | demo.almighty.io/work-item-list/detail/100:*)"},
+	for _, input := range inputSet {
+		op, _ := parseSearchString(input.query)
+		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
-
-	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/work-item-list/detail/"
-	op, _ := parseSearchString(input)
+	inputSet := []searchTestData{searchTestData{
+		query: "http://demo.almighty.io/work-item/list/detail/",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"demo.almighty.io/work-item/list/detail:*"},
+		},
+	}, searchTestData{
+		query: "http://demo.almighty.io/work-item/board/detail/",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"demo.almighty.io/work-item/board/detail:*"},
+		},
+	}}
 
-	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"demo.almighty.io/work-item-list/detail:*"},
+	for _, input := range inputSet {
+		op, _ := parseSearchString(input.query)
+		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
 
-	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringDifferentURL(t *testing.T) {
@@ -369,11 +395,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/work-item-list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
 	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300:*A", "900:*A"},
-		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item-list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
@@ -388,7 +414,7 @@ func TestRegisterAsKnownURL(t *testing.T) {
 	groupNames := compiledRegex.SubexpNames()
 	var expected = make(map[string]KnownURL)
 	expected[routeName] = KnownURL{
-		urlRegex:          urlRegex,
+		URLRegex:          urlRegex,
 		compiledRegex:     regexp.MustCompile(urlRegex),
 		groupNamesInRegex: groupNames,
 	}

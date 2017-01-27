@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"reflect"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
@@ -14,11 +16,14 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
+// Defines the constants to be used in json api "type" attribute
 const (
 	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"
@@ -55,13 +60,19 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
 		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
 	}
+	if ctx.FilterIteration != nil {
+		iteration := ctx.FilterIteration
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
+	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(tx application.Application) error {
 		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
@@ -99,14 +110,20 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.NotFound(jerrors)
 		}
+		// Type changes of WI are not allowed which is why we overwrite it the
+		// type with the old one after the WI has been converted.
+		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 			return ctx.BadRequest(jerrors)
 		}
+		wi.Type = oldType
+
 		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
@@ -164,7 +181,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.BadParameterError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error updating work item: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
@@ -198,7 +216,8 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
@@ -229,7 +248,8 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 
 		err := appl.WorkItems().Delete(ctx, ctx.ID)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case errors.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
@@ -306,7 +326,13 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 		}
 	}
 	for key, val := range source.Attributes {
-		target.Fields[key] = val
+		// convert legacy description to markup content
+		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
+			description := workitem.NewMarkupContentFromLegacy(val.(string))
+			target.Fields[key] = description
+		} else {
+			target.Fields[key] = val
+		}
 	}
 	return nil
 }
@@ -329,7 +355,7 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
 	// construct default values from input WI
-	selfURL := AbsoluteURL(request, app.WorkitemHref(wi.ID))
+	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -373,6 +399,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Relationships.Iteration = &app.RelationGeneric{
 					Data: ConvertIterationSimple(request, valStr),
 				}
+			}
+
+		case workitem.SystemDescription:
+			switch val.(type) {
+			case string:
+				op.Attributes[name] = val
+			case workitem.MarkupContent:
+				description := val.(workitem.MarkupContent)
+				op.Attributes[name] = description.Content
 			}
 		default:
 			op.Attributes[name] = val

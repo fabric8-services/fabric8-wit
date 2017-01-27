@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -81,10 +82,10 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 	var native Identity
 	err := m.db.Table(m.TableName()).Where("id = ?", id).Find(&native).Error
 	if err == gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
-	return &native, err
+	return &native, errors.WithStack(err)
 }
 
 // Create creates a new record.
@@ -96,7 +97,7 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	err := m.db.Create(model).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Identity", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -109,11 +110,11 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
 		goa.LogError(ctx, "error updating Identity", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 
-	return err
+	return errors.WithStack(err)
 }
 
 // Delete removes a single record.
@@ -126,7 +127,7 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 
 	if err != nil {
 		goa.LogError(ctx, "error deleting Identity", "error", err.Error())
-		return err
+		return errors.WithStack(err)
 	}
 
 	return nil
@@ -139,7 +140,7 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	return objs, nil
 }
@@ -151,7 +152,7 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 
 	err := m.db.Model(&Identity{}).Order("full_name").Find(&rows).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 	res := app.IdentityArray{}
 	res.Data = make([]*app.IdentityData, len(rows))

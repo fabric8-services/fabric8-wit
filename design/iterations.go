@@ -24,11 +24,17 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("name", d.String, "The iteration name", func() {
 		a.Example("Sprint #24")
 	})
+	a.Attribute("description", d.String, "Description of the iteration ", func() {
+		a.Example("Sprint #42 focusing on UI and build process improvements")
+	})
 	a.Attribute("startAt", d.DateTime, "When the iteration starts", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
-	a.Attribute("endAt", d.DateTime, "When the iteration starts", func() {
+	a.Attribute("endAt", d.DateTime, "When the iteration ends", func() {
 		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Attribute("state", d.String, "State of an iteration", func() {
+		a.Enum("new", "start", "close")
 	})
 })
 
@@ -54,11 +60,11 @@ var _ = a.Resource("iteration", func() {
 	a.BasePath("/iterations")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:iterationID"),
 		)
 		a.Description("Retrieve iteration with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("iterationID", d.String, "Iteration Identifier")
 		})
 		a.Response(d.OK, func() {
 			a.Media(iterationSingle)
@@ -70,10 +76,10 @@ var _ = a.Resource("iteration", func() {
 	a.Action("create-child", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.POST("/:id"),
+			a.POST("/:iterationID"),
 		)
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("iterationID", d.String, "Iteration Identifier")
 		})
 		a.Description("create child iteration.")
 		a.Payload(iterationSingle)
@@ -83,6 +89,24 @@ var _ = a.Resource("iteration", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/:iterationID"),
+		)
+		a.Description("update the iteration for the given id.")
+		a.Params(func() {
+			a.Param("iterationID", d.String, "Iteration Identifier")
+		})
+		a.Payload(iterationSingle)
+		a.Response(d.OK, func() {
+			a.Media(iterationSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

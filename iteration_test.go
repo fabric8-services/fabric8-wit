@@ -18,6 +18,7 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
@@ -122,11 +123,116 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 	test.ShowIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
 }
 
+func (rest *TestIterationREST) TestSuccessUpdateIteration() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	itr := createSpaceAndIteration(t, rest.db)
+
+	newName := "Sprint 1001"
+	newDesc := "New Description"
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Name:        &newName,
+				Description: &newDesc,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	assert.Equal(t, newName, *updated.Data.Attributes.Name)
+	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
+}
+
+func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	itr := createSpaceAndIteration(t, rest.db)
+	itr.ID = uuid.NewV4()
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{},
+			ID:         &itr.ID,
+			Type:       iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+}
+
+func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	itr := createSpaceAndIteration(t, rest.db)
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{},
+			ID:         &itr.ID,
+			Type:       iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.UnSecuredController()
+	test.UpdateIterationUnauthorized(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+}
+
+func (rest *TestIterationREST) TestIterationStateTransitions() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	itr1 := createSpaceAndIteration(t, rest.db)
+	assert.Equal(t, iteration.IterationStateNew, itr1.State)
+
+	startState := iteration.IterationStateStart
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				State: &startState,
+			},
+			ID:   &itr1.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	assert.Equal(t, startState, *updated.Data.Attributes.State)
+
+	// create another iteration in same space and then change State to start
+	itr2 := iteration.Iteration{
+		Name:    "Spring 123",
+		SpaceID: itr1.SpaceID,
+	}
+	err := rest.db.Iterations().Create(context.Background(), &itr2)
+	require.Nil(t, err)
+	payload2 := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				State: &startState,
+			},
+			ID:   &itr2.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
+
+	// now close first iteration
+	closeState := iteration.IterationStateClose
+	payload.Data.Attributes.State = &closeState
+	_, updated = test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	assert.Equal(t, closeState, *updated.Data.Attributes.State)
+
+	// try to start iteration 2 now
+	_, updated2 := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
+	assert.Equal(t, startState, *updated2.Data.Attributes.State)
+}
+
 func createChildIteration(name *string) *app.CreateChildIterationPayload {
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
-	itType := "iterations"
+	itType := iteration.APIStringTypeIteration
 
 	return &app.CreateChildIterationPayload{
 		Data: &app.Iteration{
@@ -149,7 +255,6 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 		if err != nil {
 			t.Error(err)
 		}
-
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #2"
@@ -169,7 +274,7 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 
 func assertIterationLinking(t *testing.T, target *app.Iteration) {
 	assert.NotNil(t, target.ID)
-	assert.Equal(t, "iterations", target.Type)
+	assert.Equal(t, iteration.APIStringTypeIteration, target.Type)
 	assert.NotNil(t, target.Links.Self)
 	assert.NotNil(t, target.Relationships)
 	assert.NotNil(t, target.Relationships.Space)

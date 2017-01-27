@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -78,7 +79,7 @@ func ConvertUserSimple(request *goa.RequestData, id interface{}) *app.GenericDat
 }
 
 func createUserLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := AbsoluteURL(request, app.UsersHref(id))
+	selfURL := rest.AbsoluteURL(request, app.UsersHref(id))
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}

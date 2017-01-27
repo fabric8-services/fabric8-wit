@@ -10,7 +10,10 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 )
+
+var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
@@ -39,7 +42,7 @@ type GormWorkItemTypeRepository struct {
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
 	res, err := r.LoadTypeFromDB(name)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 
 	result := convertTypeFromModels(res)
@@ -49,18 +52,28 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
 	log.Printf("loading work item type %s", name)
-	res := WorkItemType{}
+	res, ok := cache.Get(name)
+	if !ok {
+		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
+		res = WorkItemType{}
 
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
-	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
-		return nil, errors.NewNotFoundError("work item type", name)
-	}
-	if err := db.Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		db := r.db.Model(&res).Where("name=?", name).First(&res)
+		if db.RecordNotFound() {
+			log.Printf("not found, res=%v", res)
+			return nil, errors.NewNotFoundError("work item type", name)
+		}
+		if err := db.Error; err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		cache.Put(res)
 	}
 
 	return &res, nil
+}
+
+// ClearCache clears the work item type cache
+func (r *GormWorkItemTypeRepository) ClearCache() {
+	cache.Clear()
 }
 
 // Create creates a new work item in the repository
@@ -72,12 +85,11 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		return nil, errors.NewBadParameterError("name", name)
 	}
 	allFields := map[string]FieldDefinition{}
-	path := pathSep + name
+	path := name
 	if extendedTypeName != nil {
 		extendedType := WorkItemType{}
-		db := r.db.First(&extendedType, extendedTypeName)
+		db := r.db.First(&extendedType, "name = ?", extendedTypeName)
 		if db.RecordNotFound() {
-			log.Printf("not found, res=%v", extendedType)
 			return nil, errors.NewBadParameterError("extendedTypeName", *extendedTypeName)
 		}
 		if err := db.Error; err != nil {
@@ -95,7 +107,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		existing, exists := allFields[field]
 		ct, err := convertFieldTypeToModels(*definition.Type)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		converted := FieldDefinition{
 			Required: definition.Required,
@@ -138,7 +150,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 		db = db.Limit(*limit)
 	}
 	if err := db.Find(&rows).Error; err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	result := make([]*app.WorkItemType, len(rows))
 
@@ -200,7 +212,7 @@ func convertAnyToKind(any interface{}) (*Kind, error) {
 func convertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration:
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup:
 		return &kind, nil
 	}
 	return nil, fmt.Errorf("Not a simple type")
@@ -209,13 +221,13 @@ func convertStringToKind(k string) (*Kind, error) {
 func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 	kind, err := convertStringToKind(t.Kind)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	switch *kind {
 	case KindList:
 		componentType, err := convertAnyToKind(*t.ComponentType)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		if !componentType.isSimpleType() {
 			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
@@ -224,7 +236,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 	case KindEnum:
 		bt, err := convertAnyToKind(*t.BaseType)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		if !bt.isSimpleType() {
 			return nil, fmt.Errorf("baseType type is not list type: %s", bt)
@@ -236,7 +248,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 			return ft.ConvertToModel(element)
 		}, baseType, values)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		return EnumType{SimpleType{*kind}, baseType, converted}, nil
 	default:
@@ -250,7 +262,7 @@ func TEMPConvertFieldTypesToModel(fields map[string]app.FieldDefinition) (map[st
 	for field, definition := range fields {
 		ct, err := convertFieldTypeToModels(*definition.Type)
 		if err != nil {
-			return nil, err
+			return nil, errs.WithStack(err)
 		}
 		converted := FieldDefinition{
 			Required: definition.Required,

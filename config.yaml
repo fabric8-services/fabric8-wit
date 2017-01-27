@@ -26,7 +26,7 @@ http.address: 0.0.0.0:8080
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
 
-# Whether you want to create the common work item types such as system.bug, system.feature, ...
+# Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true
 
 # ----------------------------
@@ -74,8 +74,11 @@ token.publickey : >
                     -----END PUBLIC KEY-----
 
 # ----------------------------
-# Github OAuth2.0 configuration
+# Keycloak OAuth2.0 configuration
 # ----------------------------
 
-github.client.id : 875da0d2113ba0a6951d
-github.secret : 2fe6736e90a9283036a37059d75ac0c82f4f5288
+keycloak.client.id : fabric8-online-platform
+keycloak.secret : 08a8bcd1-f362-446a-9d2b-d34b8d464185
+keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth
+keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token
+keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo

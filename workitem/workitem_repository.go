@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
 )
 
 // WorkItemRepository encapsulates storage & retrieval of work items
@@ -52,7 +53,7 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
 	res, err := r.LoadFromDB(ID)
 	if err != nil {
-		return nil, err
+		return nil, errs.WithStack(err)
 	}
 	wiType, err := r.wir.LoadTypeFromDB(res.Type)
 	if err != nil {
@@ -165,7 +166,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created item %v\n", wi)
 	return convertWorkItemModelToApp(wiType, &wi)
 }
 
@@ -209,12 +209,11 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 
 	rows, err := db.Rows()
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errs.WithStack(err)
 	}
 	defer rows.Close()
 
 	result := []WorkItem{}
-	value := WorkItem{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -232,6 +231,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	first := true
 
 	for rows.Next() {
+		value := WorkItem{}
 		db.ScanRows(rows, &value)
 		if first {
 			first = false
@@ -249,7 +249,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		rows2, err := orgDB.Rows()
 		defer rows2.Close()
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errs.WithStack(err)
 		}
 		rows2.Next() // count(*) will always return a row
 		rows2.Scan(&count)
@@ -261,7 +261,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
 	result, count, err := r.listItemsFromDB(ctx, criteria, start, limit)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, errs.WithStack(err)
 	}
 
 	res := make([]*app.WorkItem, len(result))

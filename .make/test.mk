@@ -348,7 +348,6 @@ $(eval COMBINED_OUT_FILE := $(3))
 $(eval ERRORS_FILE := $(4))
 $(eval ENV_VAR := $(5))
 $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
-
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
 @$(ENV_VAR) ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
@@ -448,6 +447,6 @@ clean-coverage-unit:
 
 CLEAN_TARGETS += clean-coverage-integration
 .PHONY: clean-coverage-integration
-## Removes integreation test coverage file
+## Removes integration test coverage file
 clean-coverage-integration:
 	-@rm -f $(COV_PATH_INTEGRATION)

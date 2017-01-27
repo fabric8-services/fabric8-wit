@@ -12,7 +12,6 @@ import (
 	"golang.org/x/net/context"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -73,7 +72,7 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+		panic(fmt.Sprintf("ERROR: Failed to setup the configuration: \n%+v", err))
 	}
 
 	if printConfig {
@@ -96,7 +95,7 @@ func main() {
 		}
 	}
 	if err != nil {
-		panic("Could not open connection to database")
+		panic(fmt.Sprintf("ERROR: Could not open connection to database: \n%+v", err))
 	}
 
 	if configuration.IsPostgresDeveloperModeEnabled() {
@@ -106,7 +105,7 @@ func main() {
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Sprintf("ERROR: Failed migration: \n%+v", err))
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -114,17 +113,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			panic(err.Error())
+			panic(fmt.Sprintf("ERROR: Failed to populate common types: \n%+v", err))
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
-			panic(err.Error())
+			panic(fmt.Sprintf("ERROR: Failed to bootstap work item linking: \n%+v", err))
 		}
 	}
 
@@ -145,11 +144,11 @@ func main() {
 
 	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("ERROR: Failed to parse private key: \n%+v", err))
 	}
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("ERROR: Failed to parse public token: \n%+v", err))
 	}
 
 	// Setup Account/Login/Security
@@ -162,13 +161,16 @@ func main() {
 
 	// Mount "login" controller
 	oauth := &oauth2.Config{
-		ClientID:     configuration.GetGithubClientID(),
-		ClientSecret: configuration.GetGithubSecret(),
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint:     github.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  configuration.GetKeycloakEndpointAuth(),
+			TokenURL: configuration.GetKeycloakEndpointToken(),
+		},
 	}
 
-	loginService := login.NewGitHubOAuth(oauth, identityRepository, userRepository, tokenManager)
+	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager)
 	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 
@@ -245,6 +247,9 @@ func main() {
 	spaceIterationCtrl := NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
+	userspaceCtrl := NewUserspaceController(service, db)
+	app.MountUserspaceController(service, userspaceCtrl)
+
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
 	fmt.Println("UTC Start Time: ", StartTime)
@@ -264,7 +269,7 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		log.Printf("Failed to get current user: %s", err.Error())
+		fmt.Printf("ERROR: Failed to get current user: \n%+v", err)
 	} else {
 		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
 		/*

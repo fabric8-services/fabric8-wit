@@ -70,9 +70,12 @@ const (
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
-	varGithubSecret                 = "github.secret"
-	varGithubClientID               = "github.client.id"
 	varGithubAuthToken              = "github.auth.token"
+	varKeycloakSecret               = "keycloak.secret"
+	varKeycloakClientID             = "keycloak.client.id"
+	varKeycloakEndpointAuth         = "keycloak.endpoint.auth"
+	varKeycloakEndpointToken        = "keycloak.endpoint.token"
+	varKeycloakEndpointUserinfo     = "keycloak.endpoint.userinfo"
 	varTokenPublicKey               = "token.publickey"
 	varTokenPrivateKey              = "token.privatekey"
 )
@@ -110,9 +113,12 @@ func setConfigDefaults() {
 	// Auth-related defaults
 	viper.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
 	viper.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
-	viper.SetDefault(varGithubClientID, defaultGithubClientID)
-	viper.SetDefault(varGithubSecret, defaultGithubSecret)
+	viper.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
+	viper.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	viper.SetDefault(varGithubAuthToken, defaultActualToken)
+	viper.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
+	viper.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
+	viper.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -170,7 +176,7 @@ func GetPostgresConfigString() string {
 }
 
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
-// the common work item types such as system.bug or system.feature shall be created.
+// the common work item types such as bug or feature shall be created.
 func GetPopulateCommonTypes() bool {
 	return viper.GetBool(varPopulateCommonTypes)
 }
@@ -199,21 +205,36 @@ func GetTokenPublicKey() []byte {
 	return []byte(viper.GetString(varTokenPublicKey))
 }
 
-// GetGithubSecret returns the Github secret(as set via config file or environment variable)
-// that is used to make authorized Github API Calls.
-func GetGithubSecret() string {
-	return viper.GetString(varGithubSecret)
-}
-
-// GetGithubClientID returns the Github Client ID(as set via config file or environment variable)
-// that is used to make authorized Github API Calls.
-func GetGithubClientID() string {
-	return viper.GetString(varGithubClientID)
-}
-
 // GetGithubAuthToken returns the actual Github OAuth Access Token
 func GetGithubAuthToken() string {
 	return viper.GetString(varGithubAuthToken)
+}
+
+// GetKeycloakSecret returns the keycloak client secret (as set via config file or environment variable)
+// that is used to make authorized Keycloak API Calls.
+func GetKeycloakSecret() string {
+	return viper.GetString(varKeycloakSecret)
+}
+
+// GetKeycloakClientID returns the keycloak client ID (as set via config file or environment variable)
+// that is used to make authorized Keycloak API Calls.
+func GetKeycloakClientID() string {
+	return viper.GetString(varKeycloakClientID)
+}
+
+// GetKeycloakEndpointAuth returns the keycloak auth endpoint (as set via config file or environment variable)
+func GetKeycloakEndpointAuth() string {
+	return viper.GetString(varKeycloakEndpointAuth)
+}
+
+// GetKeycloakEndpointToken returns the keycloak token endpoint (as set via config file or environment variable)
+func GetKeycloakEndpointToken() string {
+	return viper.GetString(varKeycloakEndpointToken)
+}
+
+// GetKeycloakEndpointUserinfo returns the keycloak userinfo endpoint (as set via config file or environment variable)
+func GetKeycloakEndpointUserinfo() string {
+	return viper.GetString(varKeycloakEndpointUserinfo)
 }
 
 // Auth-related defaults
@@ -260,8 +281,12 @@ enbR9Q59d88lbnEeHKgSMe2RQpFR3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWm
 PwIDAQAB
 -----END PUBLIC KEY-----`
 
-var defaultGithubClientID = "875da0d2113ba0a6951d"
-var defaultGithubSecret = "2fe6736e90a9283036a37059d75ac0c82f4f5288"
+var defaultKeycloakClientID = "fabric8-online-platform"
+var defaultKeycloakSecret = "08a8bcd1-f362-446a-9d2b-d34b8d464185"
+
+var defaultKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth"
+var defaultKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
+var defaultKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
 
 // Github doesnot allow commiting actual OAuth tokens no matter how less priviledge the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"

@@ -1,1 +1,1 @@
-{"type": "system.userstory" ,"fields": { "system.creator": "tmaeder", "system.state": "new", "system.title": "My special story", "system.description": "description" }}
+{"type": "userstory" ,"fields": { "system.creator": "tmaeder", "system.state": "new", "system.title": "My special story", "system.description": "description" }}

@@ -10,6 +10,7 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // TrackerController implements the tracker resource.
@@ -29,7 +30,8 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)
@@ -50,7 +52,8 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Trackers().Delete(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
@@ -70,7 +73,8 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
 				log.Printf("not found, id=%s", ctx.ID)
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
@@ -119,7 +123,8 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 		t, err := appl.Trackers().Save(ctx.Context, toSave)
 
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 				return ctx.BadRequest(jerrors)

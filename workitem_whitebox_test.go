@@ -5,7 +5,10 @@ import (
 	"os"
 	"testing"
 
+	"net/http"
+
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -15,6 +18,7 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
 
@@ -37,7 +41,7 @@ func TestMain(m *testing.M) {
 		}
 		defer DB.Close()
 
-		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+		// Make sure the database is populated with the correct types (e.g. bug etc.)
 		if configuration.GetPopulateCommonTypes() {
 			if err := models.Transactional(DB, func(tx *gorm.DB) error {
 				return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
@@ -147,4 +151,83 @@ func TestSetPagingLinks(t *testing.T) {
 	assert.Equal(t, "?page[offset]=3&page[limit]=4", *links.Last)
 	assert.Equal(t, "?page[offset]=3&page[limit]=4", *links.Next)
 	assert.Equal(t, "?page[offset]=0&page[limit]=3", *links.Prev)
+}
+
+func TestConvertWorkItemWithDescription(t *testing.T) {
+	request := http.Request{Host: "localhost"}
+	requestData := &goa.RequestData{Request: &request}
+	// map[string]interface{}
+	fields := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: "description",
+	}
+	wi := app.WorkItem{
+		Fields: fields,
+	}
+	wi2 := ConvertWorkItem(requestData, &wi)
+	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
+	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
+}
+
+func TestConvertWorkItemWithoutDescription(t *testing.T) {
+	request := http.Request{Host: "localhost"}
+	requestData := &goa.RequestData{Request: &request}
+	// map[string]interface{}
+	fields := map[string]interface{}{
+		workitem.SystemTitle: "title",
+	}
+	wi := app.WorkItem{
+		Fields: fields,
+	}
+	wi2 := ConvertWorkItem(requestData, &wi)
+	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
+	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: "description",
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	expectedDescription := workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupDefault}
+	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: workitem.MarkupContent{Content: "description"},
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	expectedDescription := workitem.MarkupContent{Content: "description"}
+	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupMarkdown},
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	expectedDescription := workitem.MarkupContent{Content: "description", Markup: workitem.SystemMarkupMarkdown}
+	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }

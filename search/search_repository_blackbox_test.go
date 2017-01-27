@@ -27,7 +27,7 @@ type searchRepositoryBlackboxTest struct {
 func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
@@ -59,7 +59,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 
 	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "base"})
 	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "sub1"})
-	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "sub two"})
+	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "subtwo"})
 
 	extended := workitem.SystemBug
 	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{})
@@ -71,7 +71,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.NotNil(s.T(), sub1)
 	require.Nil(s.T(), err)
 
-	sub2, err := typeRepo.Create(ctx, &extended, "sub two", map[string]app.FieldDefinition{})
+	sub2, err := typeRepo.Create(ctx, &extended, "subtwo", map[string]app.FieldDefinition{})
 	require.NotNil(s.T(), sub2)
 	require.Nil(s.T(), err)
 
@@ -82,7 +82,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
-	wi2, err := wiRepo.Create(ctx, "sub two", map[string]interface{}{
+	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
 	}, account.TestIdentity.ID.String())
@@ -100,7 +100,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 		assert.Equal(s.T(), wi1.ID, res[0].ID)
 	}
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub+two", nil, nil)
+	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:subtwo", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
@@ -111,7 +111,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub+two type:sub1", nil, nil)
+	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:subtwo type:sub1", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 

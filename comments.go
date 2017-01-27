@@ -1,12 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -47,6 +49,40 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	})
 }
 
+// Update does PATCH comment
+func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+	identity, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		cm, err := appl.Comments().Load(ctx.Context, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		if identity != cm.CreatedBy.String() {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+		}
+
+		cm.Body = *ctx.Payload.Data.Attributes.Body
+		cm, err = appl.Comments().Save(ctx.Context, cm)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		res := &app.CommentSingle{
+			Data: ConvertComment(ctx.RequestData, cm, CommentIncludeParentWorkItem()),
+		}
+		return ctx.OK(res)
+	})
+}
+
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // convertion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
@@ -83,7 +119,7 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
-	selfURL := AbsoluteURL(request, app.CommentsHref(comment.ID))
+	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
@@ -121,7 +157,7 @@ func CommentIncludeParentWorkItem() CommentConvertFunc {
 
 // CommentIncludeParent adds the "parent" relationship to this Comment
 func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
-	parentSelf := AbsoluteURL(request, ref(comment.ParentID))
+	parentSelf := rest.AbsoluteURL(request, ref(comment.ParentID))
 
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{
@@ -132,13 +168,4 @@ func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, da
 			Self: &parentSelf,
 		},
 	}
-}
-
-// AbsoluteURL prefixes a relative URL with absolute address
-func AbsoluteURL(req *goa.RequestData, relative string) string {
-	scheme := "http"
-	if req.TLS != nil { // isHTTPS
-		scheme = "https"
-	}
-	return fmt.Sprintf("%s://%s%s", scheme, req.Host, relative)
 }
