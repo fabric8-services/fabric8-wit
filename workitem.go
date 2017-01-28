@@ -133,11 +133,13 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		Fields: make(map[string]interface{}),
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
-
+		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
+		}
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error updating work item")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi)
 		resp := &app.WorkItem2Single{
@@ -226,6 +228,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			target.Type = source.Relationships.BaseType.Data.ID
 		}
 	}
+
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {

@@ -18,6 +18,7 @@ type Space struct {
 	ID      satoriuuid.UUID
 	Version int
 	Name    string
+	Description string
 }
 
 // Ensure Fields implements the Equaler interface
@@ -40,13 +41,16 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Name != other.Name {
 		return false
 	}
+	if p.Description != other.Description {
+		return false
+	}
 	return true
 }
 
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
-	Create(ctx context.Context, name string) (*Space, error)
-	Save(ctx context.Context, space Space) (*Space, error)
+	Create(ctx context.Context, space *Space) (*Space, error)
+	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
@@ -97,7 +101,7 @@ func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 
 // Save updates the given space in the db. Version must be the same as the one in the stored version
 // returns NotFoundError, BadParameterError, VersionConflictError or InternalError
-func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
+func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 	pr := Space{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	oldVersion := p.Version
@@ -109,7 +113,7 @@ func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	tx = tx.Where("Version = ?", oldVersion).Save(&p)
+	tx = tx.Where("Version = ?", oldVersion).Save(p)
 	if err := tx.Error; err != nil {
 		if gormsupport.IsCheckViolation(tx.Error, "spaces_name_check") {
 			return nil, errors.NewBadParameterError("Name", p.Name).Expected("not empty")
@@ -123,29 +127,26 @@ func (r *GormRepository) Save(ctx context.Context, p Space) (*Space, error) {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.Printf("updated space to %v\n", p)
-	return &p, nil
+	return p, nil
 }
 
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
-func (r *GormRepository) Create(ctx context.Context, name string) (*Space, error) {
-	newSpace := Space{
-		Name: name,
-		ID:   satoriuuid.NewV4(),
-	}
+func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, error) {
+	space.ID = satoriuuid.NewV4()
 
-	tx := r.db.Create(&newSpace)
+	tx := r.db.Create(space)
 	if err := tx.Error; err != nil {
 		if gormsupport.IsCheckViolation(tx.Error, "spaces_name_check") {
-			return nil, errors.NewBadParameterError("Name", name).Expected("not empty")
+			return nil, errors.NewBadParameterError("Name", space.Name).Expected("not empty")
 		}
 		if gormsupport.IsUniqueViolation(tx.Error, "spaces_name_idx") {
-			return nil, errors.NewBadParameterError("Name", name).Expected("unique")
+			return nil, errors.NewBadParameterError("Name", space.Name).Expected("unique")
 		}
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created space %v\n", newSpace)
-	return &newSpace, nil
+	log.Printf("created space %v\n", space)
+	return space, nil
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
