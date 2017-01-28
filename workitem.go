@@ -87,6 +87,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data.ID)
 		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(fmt.Sprintf("Fail to load work item with id %v", *ctx.Payload.Data.ID)))
 		}
 		if wi == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("work item", *ctx.Payload.Data.ID))
