@@ -58,7 +58,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: workitem.MarkupContent{Content: `"description" for search test`},
+					workitem.SystemDescription: workitem.NewMarkupContentFromLegacy(`"description" for search test`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -71,7 +71,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: workitem.MarkupContent{Content: `Make sure remoteworkitem can access..`},
+					workitem.SystemDescription: workitem.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -84,7 +84,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: workitem.MarkupContent{Content: `"description" for search test`},
+					workitem.SystemDescription: workitem.NewMarkupContentFromLegacy(`"description" for search test`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -248,7 +248,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		workItem.Fields = map[string]interface{}{
 			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: workitem.MarkupContent{Content: "Description"},
+			workitem.SystemDescription: workitem.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemCreator:     "sbose78",
 			workitem.SystemAssignees:   []string{"pranav"},
 			workitem.SystemState:       "closed",

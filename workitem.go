@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
@@ -177,19 +178,11 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
-			message := fmt.Sprintf("Error creating work item: %s", err.Error())
-			cause := errs.Cause(err)
-			switch cause.(type) {
-			case errors.BadParameterError, errors.VersionConflictError, errors.ConversionError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(message))
-				return ctx.BadRequest(jerrors)
-			default:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(message))
-				return ctx.InternalServerError(jerrors)
-			}
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
 		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, currentUser)
 		if err != nil {
 			message := fmt.Sprintf("Error creating work item: %s", err.Error())
@@ -330,10 +323,15 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
-			description := workitem.NewMarkupContentFromLegacy(val.(string))
-			target.Fields[key] = description
+			target.Fields[key] = workitem.NewMarkupContentFromLegacy(val.(string))
 		} else {
 			target.Fields[key] = val
+		}
+	}
+	if description, ok := target.Fields[workitem.SystemDescription].(workitem.MarkupContent); ok {
+		// verify the description markup
+		if !rendering.IsMarkupSupported(description.Markup) {
+			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
 		}
 	}
 	return nil
@@ -404,13 +402,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			}
 
 		case workitem.SystemDescription:
-			switch val.(type) {
-			case string:
-				op.Attributes[name] = val
-			case workitem.MarkupContent:
-				description := val.(workitem.MarkupContent)
-				op.Attributes[name] = description.Content
+			description := workitem.NewMarkupContentFromValue(val)
+			if description != nil {
+				op.Attributes[name] = (*description).Content
+				op.Attributes[workitem.SystemDescriptionMarkup] = (*description).Markup
+				// let's include the rendered description
+				op.Attributes[workitem.SystemDescriptionRendered] =
+					rendering.RenderMarkupToHTML((*description).Content, (*description).Markup)
 			}
+
 		default:
 			op.Attributes[name] = val
 		}
