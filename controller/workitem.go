@@ -3,7 +3,9 @@ package controller
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"strconv"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -83,6 +85,18 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
+
+		lastMod := findLastModified(result)
+
+		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
+			ifModSince, err := http.ParseTime(ifMod[0])
+			if err == nil {
+				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
+					return ctx.NotModified()
+				}
+			}
+		}
+
 		response := app.WorkItem2List{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
@@ -90,6 +104,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
 		addFilterLinks(response.Links, ctx.RequestData)
+
+		ctx.ResponseData.Header().Set("Last-Modified", lastModifiedTime(lastMod))
 		return ctx.OK(&response)
 	})
 }
@@ -128,6 +144,8 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 				Self: buildAbsoluteURL(ctx.RequestData),
 			},
 		}
+
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
 		return ctx.OK(resp)
 	})
 }
@@ -181,6 +199,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 				Self: buildAbsoluteURL(ctx.RequestData),
 			},
 		}
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
 		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
 		return ctx.Created(resp)
 	})
@@ -194,10 +213,21 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.ID)))
 		}
+
+		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
+			ifModSince, err := http.ParseTime(ifMod[0])
+			if err == nil {
+				lastMod := updatedAt(wi)
+				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
+					return ctx.NotModified()
+				}
+			}
+		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
 		resp := &app.WorkItem2Single{
 			Data: wi2,
 		}
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
 		return ctx.OK(resp)
 	})
 }
@@ -219,6 +249,34 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		}
 		return ctx.OK([]byte{})
 	})
+}
+
+// Time is default value if no UpdatedAt field is found
+func updatedAt(wi *app.WorkItem) time.Time {
+	var t time.Time
+	if ua, ok := wi.Fields[workitem.SystemUpdatedAt]; ok {
+		t = ua.(time.Time)
+	}
+	return t.Truncate(time.Second)
+}
+
+func lastModified(wi *app.WorkItem) string {
+	return lastModifiedTime(updatedAt(wi))
+}
+
+func lastModifiedTime(t time.Time) string {
+	return t.Format(time.RFC850)
+}
+
+func findLastModified(wis []*app.WorkItem) time.Time {
+	var t time.Time
+	for _, wi := range wis {
+		lm := updatedAt(wi)
+		if lm.After(t) {
+			t = lm
+		}
+	}
+	return t
 }
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
