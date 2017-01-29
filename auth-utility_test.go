@@ -28,7 +28,9 @@ const (
 	endpointWorkItemLinkTypes      = "/api/workitemlinktypes"
 	endpointWorkItemLinks          = "/api/workitemlinks"
 
-	endpointWorkItemRelationshipsLinks = endpointWorkItems + "/%s/relationships/links"
+	endpointWorkItemRelationshipsLinks   = endpointWorkItems + "/%s/relationships/links"
+	endpointWorkItemTypesSourceLinkTypes = endpointWorkItemLinkTypes + "/%s/source-link-types"
+	endpointWorkItemTypesTargetLinkTypes = endpointWorkItemLinkTypes + "/%s/target-link-types"
 )
 
 // testSecureAPI defines how a Test object is.

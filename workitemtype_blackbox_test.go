@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -30,35 +31,28 @@ import (
 
 // The WorkItemTypeTestSuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
-type WorkItemTypeSuite struct {
-	suite.Suite
-	db       *gorm.DB
+type workItemTypeSuite struct {
+	gormsupport.DBTestSuite
 	typeCtrl *WorkitemtypeController
+}
+
+// In order for 'go test' to run this suite, we need to create
+// a normal test function and pass our suite to suite.Run
+func TestSuiteWorkItemType(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, &workItemTypeSuite{
+		DBTestSuite: gormsupport.NewDBTestSuite(""),
+	})
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *WorkItemTypeSuite) SetupSuite() {
-	var err error
-
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
-
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
-
-	svc := goa.New("WorkItemTypeSuite-Service")
-	assert.NotNil(s.T(), svc)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db))
-	assert.NotNil(s.T(), s.typeCtrl)
+func (s *workItemTypeSuite) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
@@ -66,31 +60,12 @@ func (s *WorkItemTypeSuite) SetupSuite() {
 	}
 }
 
-// The TearDownSuite method will run after all the tests in the suite have been run
-// It tears down the database connection for all the tests in this suite.
-func (s *WorkItemTypeSuite) TearDownSuite() {
-	if s.db != nil {
-		s.db.Close()
-	}
-}
-
-// removeWorkItemTypes removes all work item types from the db that will be created
-// during these tests. We need to remove them completely and not only set the
-// "deleted_at" field, which is why we need the Unscoped() function.
-func (s *WorkItemTypeSuite) removeWorkItemTypes() {
-	s.db.Unscoped().Delete(&workitem.WorkItemType{Name: "person"})
-	s.db.Unscoped().Delete(&workitem.WorkItemType{Name: "animal"})
-}
-
 // The SetupTest method will be run before every test in the suite.
-// SetupTest ensures that non of the work item types that we will create already exist.
-func (s *WorkItemTypeSuite) SetupTest() {
-	s.removeWorkItemTypes()
-}
-
-// The TearDownTest method will be run after every test in the suite.
-func (s *WorkItemTypeSuite) TearDownTest() {
-	s.removeWorkItemTypes()
+func (s *workItemTypeSuite) SetupTest() {
+	svc := goa.New("workItemTypeSuite-Service")
+	assert.NotNil(s.T(), svc)
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB))
+	assert.NotNil(s.T(), s.typeCtrl)
 }
 
 //-----------------------------------------------------------------------------
@@ -99,7 +74,7 @@ func (s *WorkItemTypeSuite) TearDownTest() {
 
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
-func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemType) {
+func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemType) {
 
 	// Create an enumeration of animal names
 	typeStrings := []string{"elephant", "blue whale", "Tyrannosaurus rex"}
@@ -143,7 +118,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 
 // createWorkItemTypePerson defines a work item type "person" that consists of
 // a required "name" field.
-func (s *WorkItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemType) {
+func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemType) {
 
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
@@ -169,7 +144,9 @@ func (s *WorkItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 //-----------------------------------------------------------------------------
 
 // TestCreateWorkItemType tests if we can create two work item types: "animal" and "person"
-func (s *WorkItemTypeSuite) TestCreateWorkItemType() {
+func (s *workItemTypeSuite) TestCreateWorkItemType() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
 	_, wit := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), wit)
 	assert.Equal(s.T(), "animal", wit.Name)
@@ -180,7 +157,9 @@ func (s *WorkItemTypeSuite) TestCreateWorkItemType() {
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
-func (s *WorkItemTypeSuite) TestShowWorkItemType() {
+func (s *workItemTypeSuite) TestShowWorkItemType() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), wit)
@@ -193,7 +172,9 @@ func (s *WorkItemTypeSuite) TestShowWorkItemType() {
 
 // TestListWorkItemType tests if we can find the work item types
 // "person" and "animal" in the list of work item types
-func (s *WorkItemTypeSuite) TestListWorkItemType() {
+func (s *workItemTypeSuite) TestListWorkItemType() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), witAnimal)
@@ -222,13 +203,6 @@ func (s *WorkItemTypeSuite) TestListWorkItemType() {
 		}
 	}
 	assert.Exactly(s.T(), 0, toBeFound, "Not all required work item types (animal and person) where found.")
-}
-
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
-func TestSuiteWorkItemType(t *testing.T) {
-	resource.Require(t, resource.Database)
-	suite.Run(t, new(WorkItemTypeSuite))
 }
 
 func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
@@ -276,6 +250,20 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 		{
 			method:             http.MethodGet,
 			url:                endpointWorkItemTypes + "/someRandomTestWIT8712",
+			expectedStatusCode: http.StatusNotFound,
+			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+			payload:            nil,
+			jwtToken:           "",
+		}, {
+			method:             http.MethodGet,
+			url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, "someNotExistingWIT"),
+			expectedStatusCode: http.StatusNotFound,
+			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+			payload:            nil,
+			jwtToken:           "",
+		}, {
+			method:             http.MethodGet,
+			url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, "someNotExistingWIT"),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
