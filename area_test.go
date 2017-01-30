@@ -99,6 +99,48 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 
 }
 
+func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	parentID := createSpaceAndArea(t, rest.db).ID
+	childArea := createChildArea(nil)
+
+	svc, ctrl := rest.SecuredController()
+	test.CreateChildAreaBadRequest(t, svc.Context, svc, ctrl, parentID.String(), childArea)
+}
+
+func (rest *TestAreaREST) TestFailCreateChildAreaWithInvalidsParent() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	name := "Sprint #21"
+	childArea := createChildArea(&name)
+
+	svc, ctrl := rest.SecuredController()
+	test.CreateChildAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), childArea)
+}
+
+func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	parentID := createSpaceAndArea(t, rest.db).ID
+	name := "Area #73467834"
+	childArea := createChildArea(&name)
+
+	svc, ctrl := rest.UnSecuredController()
+	test.CreateChildAreaUnauthorized(t, svc.Context, svc, ctrl, parentID.String(), childArea)
+}
+
+func (rest *TestAreaREST) TestFailShowAreaNotFound() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	svc, ctrl := rest.SecuredController()
+	test.ShowAreaNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
+}
+
 func createChildArea(name *string) *app.CreateChildAreaPayload {
 	areaType := area.APIStringTypeAreas
 
