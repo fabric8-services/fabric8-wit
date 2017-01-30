@@ -24,6 +24,12 @@ var areaAttributes = a.Type("AreaAttributes", func() {
 	a.Attribute("name", d.String, "The Area name", func() {
 		a.Example("Area for Build related stuff")
 	})
+	a.Attribute("created-at", d.DateTime, "When the area was created", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
+		a.Example(23)
+	})
 })
 
 var areaRelationships = a.Type("AreaRelations", func() {

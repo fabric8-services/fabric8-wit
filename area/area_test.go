@@ -73,7 +73,8 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 		Name:    name,
 		SpaceID: uuid.NewV4(),
 	}
-	repo.Create(context.Background(), &i)
+	err := repo.Create(context.Background(), &i)
+	assert.Nil(t, err)
 
 	// ltree field doesnt accept "-" , so we will save them as "_"
 	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
@@ -82,7 +83,8 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 		SpaceID: uuid.NewV4(),
 		Path:    expectedPath,
 	}
-	repo.Create(context.Background(), &area2)
+	err = repo.Create(context.Background(), &area2)
+	assert.Nil(t, err)
 
 	actualArea, err := repo.Load(context.Background(), area2.ID)
 	actualPath := actualArea.Path

@@ -6,6 +6,7 @@ CREATE TABLE areas (
     deleted_at timestamp with time zone,
     id uuid primary key DEFAULT uuid_generate_v4() NOT NULL,
     space_id uuid,
+    version integer DEFAULT 0 NOT NULL,
     path ltree,
     name text
 );

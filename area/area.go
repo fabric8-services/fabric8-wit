@@ -20,6 +20,7 @@ type Area struct {
 	SpaceID uuid.UUID `sql:"type:uuid"`
 	Path    string
 	Name    string
+	Version int
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

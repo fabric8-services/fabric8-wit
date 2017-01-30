@@ -123,7 +123,9 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 		Type: areaType,
 		ID:   &area.ID,
 		Attributes: &app.AreaAttributes{
-			Name: &area.Name,
+			Name:      &area.Name,
+			CreatedAt: &area.CreatedAt,
+			Version:   &area.Version,
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{

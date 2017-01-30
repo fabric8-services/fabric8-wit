@@ -93,6 +93,8 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	_, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ci)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.NotNil(t, *created.Data.Attributes.CreatedAt)
+	assert.NotNil(t, *created.Data.Attributes.Version)
 	assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
 
 }
