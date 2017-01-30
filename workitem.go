@@ -88,10 +88,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(fmt.Sprintf("Fail to load work item with id %v", *ctx.Payload.Data.ID)))
-		}
-		if wi == nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("work item", *ctx.Payload.Data.ID))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", *ctx.Payload.Data.ID)))
 		}
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
@@ -162,7 +159,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.ID)
 		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error showing work item")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.ID)))
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
 		resp := &app.WorkItem2Single{
