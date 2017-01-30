@@ -19,6 +19,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -66,7 +67,10 @@ func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
-		p, _ = repo.Create(context.Background(), "Test 1")
+		newSpace := &space.Space{
+			Name: "Test 1" + uuid.NewV4().String(),
+		}
+		p, _ = repo.Create(context.Background(), newSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -88,8 +92,15 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
-		s, _ = repo.Create(context.Background(), "Test 1")
-		anotherSpace, _ = repo.Create(context.Background(), "Another space")
+		newSpace := &space.Space{
+			Name: "Test Space 1" + uuid.NewV4().String(),
+		}
+		s, _ = repo.Create(context.Background(), newSpace)
+
+		newSpace = &space.Space{
+			Name: "Another space" + uuid.NewV4().String(),
+		}
+		anotherSpace, _ = repo.Create(context.Background(), newSpace)
 		return nil
 	})
 

@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -114,7 +115,10 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) area.Area {
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Areas()
 
-		p, err := app.Spaces().Create(context.Background(), "Test Space 1"+uuid.NewV4().String())
+		newSpace := &space.Space{
+			Name: "Test Space 1" + uuid.NewV4().String(),
+		}
+		p, err := app.Spaces().Create(context.Background(), newSpace)
 		if err != nil {
 			t.Error(err)
 		}

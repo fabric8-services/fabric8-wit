@@ -117,7 +117,7 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 	spaceID := area.SpaceID.String()
 
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(area.ID))
-	spaceSelfURL := rest.AbsoluteURL(request, "/api/spaces/"+spaceID)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
 	i := &app.Area{
 		Type: areaType,
