@@ -21,6 +21,7 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
@@ -33,7 +34,9 @@ import (
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemTypeSuite struct {
 	gormsupport.DBTestSuite
-	typeCtrl *WorkitemtypeController
+	typeCtrl     *WorkitemtypeController
+	linkTypeCtrl *WorkItemLinkTypeController
+	linkCatCtrl  *WorkItemLinkCategoryController
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -66,6 +69,10 @@ func (s *workItemTypeSuite) SetupTest() {
 	assert.NotNil(s.T(), svc)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB))
 	assert.NotNil(s.T(), s.typeCtrl)
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkTypeCtrl)
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkCatCtrl)
 }
 
 //-----------------------------------------------------------------------------
@@ -203,6 +210,82 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 		}
 	}
 	assert.Exactly(s.T(), 0, toBeFound, "Not all required work item types (animal and person) where found.")
+}
+
+// TestListSourceAndTargetLinkTypes tests if we can find the work item link
+// types for a given WIT.
+func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	// Create the work item type first and try to read it back in
+	_, witAnimal := s.createWorkItemTypeAnimal()
+	assert.NotNil(s.T(), witAnimal)
+	_, witPerson := s.createWorkItemTypePerson()
+	assert.NotNil(s.T(), witPerson)
+
+	// Create work item link category
+	linkCatPayload := CreateWorkItemLinkCategory("some-link-category")
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
+	require.NotNil(s.T(), linkCat)
+
+	// Create work item link type
+	animalLinksToBugStr := "animal-links-to-bug"
+	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, "animal", workitem.SystemBug, *linkCat.Data.ID)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	require.NotNil(s.T(), linkType)
+
+	// Create another work item link type
+	bugLinksToAnimalStr := "bug-links-to-animal"
+	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, "animal", *linkCat.Data.ID)
+	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	require.NotNil(s.T(), linkType)
+
+	// Fetch source link types
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "animal")
+	assert.NotNil(s.T(), wiltCollection)
+	assert.Nil(s.T(), wiltCollection.Validate())
+	// Check the number of found work item link types
+	require.Len(s.T(), wiltCollection.Data, 1)
+	require.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
+
+	// Fetch target link types
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "animal")
+	assert.NotNil(s.T(), wiltCollection)
+	assert.Nil(s.T(), wiltCollection.Validate())
+	// Check the number of found work item link types
+	require.Len(s.T(), wiltCollection.Data, 1)
+	require.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
+}
+
+// TestListSourceAndTargetLinkTypesEmpty tests that no link type is returned for
+// WITs that don't have link types associated to them
+func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	_, witPerson := s.createWorkItemTypePerson()
+	assert.NotNil(s.T(), witPerson)
+
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "person")
+	assert.NotNil(s.T(), wiltCollection)
+	assert.Nil(s.T(), wiltCollection.Validate())
+	require.Len(s.T(), wiltCollection.Data, 0)
+
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "person")
+	assert.NotNil(s.T(), wiltCollection)
+	assert.Nil(s.T(), wiltCollection.Validate())
+	require.Len(s.T(), wiltCollection.Data, 0)
+}
+
+// TestListSourceAndTargetLinkTypesNotFound tests that a NotFound error is
+// returned when you query a non existing WIT.
+func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
+	defer gormsupport.DeleteCreatedEntities(s.DB)()
+
+	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
+	assert.NotNil(s.T(), jerrors)
+
+	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
+	assert.NotNil(s.T(), jerrors)
 }
 
 func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
