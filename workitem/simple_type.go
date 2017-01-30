@@ -118,7 +118,8 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		if valueType.Kind() != reflect.Map {
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
-		return NewMarkupContentFromMap(value.(map[string]interface{})), nil
+		markupContent := NewMarkupContentFromMap(value.(map[string]interface{}))
+		return markupContent, nil
 	default:
 		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())
 	}
