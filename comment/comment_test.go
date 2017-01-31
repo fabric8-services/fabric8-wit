@@ -24,7 +24,7 @@ func TestRunCommentRepository(t *testing.T) {
 }
 
 func (test *TestCommentRepository) SetupTest() {
-	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
+	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
 func (test *TestCommentRepository) TearDownTest() {

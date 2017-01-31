@@ -29,7 +29,7 @@ type repoBBTest struct {
 
 func (test *repoBBTest) SetupTest() {
 	test.repo = space.NewRepository(test.DB)
-	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
+	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
 func (test *repoBBTest) TearDownTest() {

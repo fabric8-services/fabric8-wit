@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
@@ -12,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -54,7 +56,7 @@ func (s *workItemTypeSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if configuration.GetPopulateCommonTypes() {
+	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
@@ -152,7 +154,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 
 // TestCreateWorkItemType tests if we can create two work item types: "animal" and "person"
 func (s *workItemTypeSuite) TestCreateWorkItemType() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, wit := s.createWorkItemTypeAnimal()
 	assert.NotNil(s.T(), wit)
@@ -165,7 +167,7 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
 func (s *workItemTypeSuite) TestShowWorkItemType() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
@@ -180,7 +182,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType() {
 // TestListWorkItemType tests if we can find the work item types
 // "person" and "animal" in the list of work item types
 func (s *workItemTypeSuite) TestListWorkItemType() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
@@ -215,7 +217,7 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 // TestListSourceAndTargetLinkTypes tests if we can find the work item link
 // types for a given WIT.
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
@@ -260,7 +262,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 // TestListSourceAndTargetLinkTypesEmpty tests that no link type is returned for
 // WITs that don't have link types associated to them
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, witPerson := s.createWorkItemTypePerson()
 	assert.NotNil(s.T(), witPerson)
@@ -279,7 +281,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 // TestListSourceAndTargetLinkTypesNotFound tests that a NotFound error is
 // returned when you query a non existing WIT.
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
 	assert.NotNil(s.T(), jerrors)

@@ -27,7 +27,7 @@ func (s *trackerQueryRepoBlackBoxTest) SetupTest() {
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
@@ -52,7 +52,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
@@ -78,7 +78,7 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(

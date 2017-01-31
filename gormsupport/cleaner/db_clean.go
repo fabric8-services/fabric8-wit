@@ -1,14 +1,18 @@
-package gormsupport
+package cleaner
 
 import (
-	"fmt"
+	"log"
 
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 )
 
 // DeleteCreatedEntities records all created entities on the gorm.DB connection
-// and returns a function which can be called on defer to delete created entities
-// in reverse order on function exit.
+// and returns a function which can be called on defer to delete created
+// entities in reverse order on function exit.
+//
+// In addition to that, the WIT cache is cleared as well in order to respect any
+// deletions made to the db.
 //
 // Usage:
 //
@@ -27,9 +31,9 @@ import (
 //
 // Output:
 //
-// Deleting from x 6d143405-1232-40de-bc73-835b543cd972
-// Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
-// Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
+// 2017/01/31 12:08:08 Deleting from x 6d143405-1232-40de-bc73-835b543cd972
+// 2017/01/31 12:08:08 Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
+// 2017/01/31 12:08:08 Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
 func DeleteCreatedEntities(db *gorm.DB) func() {
 	hookName := "mighti:record"
 	type entity struct {
@@ -46,9 +50,14 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		tx := db.Begin()
 		for i := len(entires) - 1; i >= 0; i-- {
 			entry := entires[i]
-			fmt.Println("Deleting from", entry.table, entry.key)
+			log.Println("Deleting from", entry.table, entry.key)
 			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
 		}
+
+		// Delete the work item cache as well
+		// NOTE: Feel free to add more cache freeing calls here as needed.
+		workitem.NewWorkItemTypeRepository(tx).ClearCache()
+
 		tx.Commit()
 	}
 }

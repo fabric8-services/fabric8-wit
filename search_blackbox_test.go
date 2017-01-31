@@ -14,7 +14,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -36,7 +36,7 @@ func getServiceAsUser() *goa.Service {
 
 func TestSearch(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
@@ -62,7 +62,7 @@ func TestSearch(t *testing.T) {
 
 func TestSearchPagination(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 
 	wiRepo := workitem.NewWorkItemRepository(DB)
@@ -91,7 +91,7 @@ func TestSearchPagination(t *testing.T) {
 
 func TestSearchWithEmptyValue(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
@@ -116,7 +116,7 @@ func TestSearchWithEmptyValue(t *testing.T) {
 
 func TestSearchWithDomainPortCombination(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
@@ -143,7 +143,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 
 func TestSearchURLWithoutPort(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
@@ -171,7 +171,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 
 func TestUnregisteredURLWithPort(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
@@ -199,7 +199,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 
 func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 	wiRepo := workitem.NewWorkItemRepository(DB)
 
@@ -308,7 +308,7 @@ func verifySearchByKnownURLs(t *testing.T, wi *app.WorkItem2Single, host, search
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func TestAutoRegisterHostURL(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	service := getServiceAsUser()
 	wiCtrl := NewWorkitemController(service, gormapplication.NewGormDB(DB))
 	// create a WI, search by `list view URL` of newly created item

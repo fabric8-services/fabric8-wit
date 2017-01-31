@@ -7,7 +7,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ import (
 
 func TestShowUser(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	svc := goa.New("test")
 	controller := NewUsersController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
