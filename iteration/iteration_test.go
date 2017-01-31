@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"

@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/space"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"

@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
