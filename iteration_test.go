@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -283,7 +284,8 @@ func assertIterationLinking(t *testing.T, target *app.Iteration) {
 	assert.NotNil(t, target.Links.Self)
 	assert.NotNil(t, target.Relationships)
 	assert.NotNil(t, target.Relationships.Space)
-	assert.NotNil(t, target.Relationships.Space.Links.Self)
+	require.NotNil(t, target.Relationships.Space.Links.Self) // check for non-nil before comparison in the next statement
+	assert.True(t, strings.Contains(*target.Relationships.Space.Links.Self, "/api/spaces/"))
 }
 
 func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
