@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -110,22 +111,22 @@ func ConvertAreas(request *goa.RequestData, areas []*area.Area, additional ...Ar
 }
 
 // ConvertArea converts between internal and external REST representation
-func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaConvertFunc) *app.Area {
-	areaType := "areas"
-	spaceType := "spaces"
+func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConvertFunc) *app.Area {
+	areaType := area.APIStringTypeAreas
+	spaceType := space.APIStringTypeSpaces
 
-	spaceID := area.SpaceID.String()
+	spaceID := ar.SpaceID.String()
 
-	selfURL := rest.AbsoluteURL(request, app.AreaHref(area.ID))
+	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
 	i := &app.Area{
 		Type: areaType,
-		ID:   &area.ID,
+		ID:   &ar.ID,
 		Attributes: &app.AreaAttributes{
-			Name:      &area.Name,
-			CreatedAt: &area.CreatedAt,
-			Version:   &area.Version,
+			Name:      &ar.Name,
+			CreatedAt: &ar.CreatedAt,
+			Version:   &ar.Version,
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
@@ -145,9 +146,9 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
-	if area.Path != "" {
+	if ar.Path != "" {
 
-		allParents := strings.Split(ConvertFromLtreeFormat(area.Path), ".")
+		allParents := strings.Split(ConvertFromLtreeFormat(ar.Path), ".")
 		parentID := allParents[len(allParents)-1]
 
 		// Only the immediate parent's URL.
@@ -164,14 +165,14 @@ func ConvertArea(request *goa.RequestData, area *area.Area, additional ...AreaCo
 		}
 	}
 	for _, add := range additional {
-		add(request, area, i)
+		add(request, ar, i)
 	}
 	return i
 }
 
 // ConvertAreaSimple converts a simple area ID into a Generic Reletionship
 func ConvertAreaSimple(request *goa.RequestData, id interface{}) *app.GenericData {
-	t := "areas"
+	t := area.APIStringTypeAreas
 	i := fmt.Sprint(id)
 	return &app.GenericData{
 		Type:  &t,
