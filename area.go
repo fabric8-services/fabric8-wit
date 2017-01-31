@@ -11,7 +11,6 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -113,7 +112,7 @@ func ConvertAreas(request *goa.RequestData, areas []*area.Area, additional ...Ar
 // ConvertArea converts between internal and external REST representation
 func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConvertFunc) *app.Area {
 	areaType := area.APIStringTypeAreas
-	spaceType := space.APIStringTypeSpaces
+	spaceType := "spaces"
 
 	spaceID := ar.SpaceID.String()
 
