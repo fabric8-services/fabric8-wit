@@ -216,7 +216,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 
 // ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
 func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.GenericData {
-	t := "identities"
+	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
 	return &app.GenericData{
 		Type:  &t,
