@@ -86,7 +86,7 @@ func (converter MarkupConverter) Convert(value interface{}, item AttributeAccess
 	}
 	switch value.(type) {
 	case string:
-		return workitem.NewMarkupContent(value.(string), converter.markup), nil
+		return rendering.NewMarkupContent(value.(string), converter.markup), nil
 	default:
 		return nil, errors.Errorf("Unexpected type of value to convert: %T", value)
 	}
