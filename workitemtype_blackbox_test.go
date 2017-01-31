@@ -157,12 +157,12 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, wit := s.createWorkItemTypeAnimal()
-	assert.NotNil(s.T(), wit)
-	assert.Equal(s.T(), "animal", wit.Name)
+	require.NotNil(s.T(), wit)
+	require.Equal(s.T(), "animal", wit.Name)
 
 	_, wit = s.createWorkItemTypePerson()
-	assert.NotNil(s.T(), wit)
-	assert.Equal(s.T(), "person", wit.Name)
+	require.NotNil(s.T(), wit)
+	require.Equal(s.T(), "person", wit.Name)
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
@@ -171,12 +171,12 @@ func (s *workItemTypeSuite) TestShowWorkItemType() {
 
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
-	assert.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit)
 
 	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, wit.Name)
 
-	assert.NotNil(s.T(), wit2)
-	assert.EqualValues(s.T(), wit, wit2)
+	require.NotNil(s.T(), wit2)
+	require.EqualValues(s.T(), wit, wit2)
 }
 
 // TestListWorkItemType tests if we can find the work item types
@@ -186,20 +186,20 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
-	assert.NotNil(s.T(), witAnimal)
+	require.NotNil(s.T(), witAnimal)
 	_, witPerson := s.createWorkItemTypePerson()
-	assert.NotNil(s.T(), witPerson)
+	require.NotNil(s.T(), witPerson)
 
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
 	page := "0,-1"
 	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page)
 
-	assert.NotNil(s.T(), witCollection)
-	assert.Nil(s.T(), witCollection.Validate())
+	require.NotNil(s.T(), witCollection)
+	require.Nil(s.T(), witCollection.Validate())
 
 	// Check the number of found work item types
-	assert.Condition(s.T(), func() bool {
+	require.Condition(s.T(), func() bool {
 		return (len(witCollection) >= 2)
 	}, "At least two work item types must exist (animal and person), but only %d exist.", len(witCollection))
 
@@ -211,7 +211,7 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 			toBeFound--
 		}
 	}
-	assert.Exactly(s.T(), 0, toBeFound, "Not all required work item types (animal and person) where found.")
+	require.Exactly(s.T(), 0, toBeFound, "Not all required work item types (animal and person) where found.")
 }
 
 // TestListSourceAndTargetLinkTypes tests if we can find the work item link
@@ -221,9 +221,9 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
-	assert.NotNil(s.T(), witAnimal)
+	require.NotNil(s.T(), witAnimal)
 	_, witPerson := s.createWorkItemTypePerson()
-	assert.NotNil(s.T(), witPerson)
+	require.NotNil(s.T(), witPerson)
 
 	// Create work item link category
 	linkCatPayload := CreateWorkItemLinkCategory("some-link-category")
@@ -244,7 +244,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 
 	// Fetch source link types
 	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "animal")
-	assert.NotNil(s.T(), wiltCollection)
+	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
@@ -252,8 +252,8 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 
 	// Fetch target link types
 	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "animal")
-	assert.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
+	require.NotNil(s.T(), wiltCollection)
+	require.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	require.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
@@ -265,16 +265,16 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, witPerson := s.createWorkItemTypePerson()
-	assert.NotNil(s.T(), witPerson)
+	require.NotNil(s.T(), witPerson)
 
 	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "person")
-	assert.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
+	require.NotNil(s.T(), wiltCollection)
+	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
 
 	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "person")
-	assert.NotNil(s.T(), wiltCollection)
-	assert.Nil(s.T(), wiltCollection.Validate())
+	require.NotNil(s.T(), wiltCollection)
+	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
 }
 
@@ -284,10 +284,10 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
-	assert.NotNil(s.T(), jerrors)
+	require.NotNil(s.T(), jerrors)
 
 	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
-	assert.NotNil(s.T(), jerrors)
+	require.NotNil(s.T(), jerrors)
 }
 
 func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
