@@ -74,8 +74,8 @@ func TestSimpleTypeConversion(t *testing.T) {
 		// {stList, []int{}, []int{}, false}, need to find out the way for empty array.
 		// because slices do not have equality operator.
 
-		{stMarkup, NewMarkupContent("## description", rendering.SystemMarkupDefault), markupContent1, false},
-		{stMarkup, NewMarkupContent("## description", rendering.SystemMarkupMarkdown), markupContent2, false},
+		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupDefault), markupContent1, false},
+		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupMarkdown), markupContent2, false},
 		{stMarkup, nil, nil, false},
 		{stMarkup, 1, nil, true},
 	}

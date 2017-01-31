@@ -4,53 +4,52 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/workitem"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMarkupContentFromMapWithValidMarkup(t *testing.T) {
 	// given
 	input := make(map[string]interface{})
-	input[workitem.ContentKey] = "foo"
-	input[workitem.MarkupKey] = rendering.SystemMarkupMarkdown
+	input[rendering.ContentKey] = "foo"
+	input[rendering.MarkupKey] = rendering.SystemMarkupMarkdown
 	// when
-	result := workitem.NewMarkupContentFromMap(input)
+	result := rendering.NewMarkupContentFromMap(input)
 	// then
-	assert.Equal(t, input[workitem.ContentKey].(string), result.Content)
-	assert.Equal(t, input[workitem.MarkupKey].(string), result.Markup)
+	assert.Equal(t, input[rendering.ContentKey].(string), result.Content)
+	assert.Equal(t, input[rendering.MarkupKey].(string), result.Markup)
 }
 
 func TestNewMarkupContentFromMapWithInvalidMarkup(t *testing.T) {
 	// given
 	input := make(map[string]interface{})
-	input[workitem.ContentKey] = "foo"
-	input[workitem.MarkupKey] = "bar"
+	input[rendering.ContentKey] = "foo"
+	input[rendering.MarkupKey] = "bar"
 	// when
-	result := workitem.NewMarkupContentFromMap(input)
+	result := rendering.NewMarkupContentFromMap(input)
 	// then
-	assert.Equal(t, input[workitem.ContentKey].(string), result.Content)
+	assert.Equal(t, input[rendering.ContentKey].(string), result.Content)
 	assert.Equal(t, rendering.SystemMarkupDefault, result.Markup)
 }
 
 func TestNewMarkupContentFromMapWithMissingMarkup(t *testing.T) {
 	// given
 	input := make(map[string]interface{})
-	input[workitem.ContentKey] = "foo"
+	input[rendering.ContentKey] = "foo"
 	// when
-	result := workitem.NewMarkupContentFromMap(input)
+	result := rendering.NewMarkupContentFromMap(input)
 	// then
-	assert.Equal(t, input[workitem.ContentKey].(string), result.Content)
+	assert.Equal(t, input[rendering.ContentKey].(string), result.Content)
 	assert.Equal(t, rendering.SystemMarkupDefault, result.Markup)
 }
 
 func TestNewMarkupContentFromMapWithEmptyMarkup(t *testing.T) {
 	// given
 	input := make(map[string]interface{})
-	input[workitem.ContentKey] = "foo"
-	input[workitem.MarkupKey] = ""
+	input[rendering.ContentKey] = "foo"
+	input[rendering.MarkupKey] = ""
 	// when
-	result := workitem.NewMarkupContentFromMap(input)
+	result := rendering.NewMarkupContentFromMap(input)
 	// then
-	assert.Equal(t, input[workitem.ContentKey].(string), result.Content)
+	assert.Equal(t, input[rendering.ContentKey].(string), result.Content)
 	assert.Equal(t, rendering.SystemMarkupDefault, result.Markup)
 }
