@@ -68,7 +68,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error listing work items")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		response := app.WorkItem2List{
 			Links: &app.PagingLinks{},
@@ -88,19 +88,19 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", *ctx.Payload.Data.ID)))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID)))
 		}
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
 		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Error updating work item", err))
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		wi.Type = oldType
 		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error updating work item")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi)
 		resp := &app.WorkItem2Single{
@@ -126,7 +126,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		wit = &ctx.Payload.Data.Relationships.BaseType.Data.ID
 	}
 	if wit == nil { // TODO Figure out path source etc. Should be a required relation
-		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Missing Data.Relationships.BaseType.Data.ID element in request", err))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.BaseType.Data.ID", err))
 	}
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
