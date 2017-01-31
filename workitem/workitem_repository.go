@@ -163,7 +163,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
-			description := NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
+			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
 			if !rendering.IsMarkupSupported(description.Markup) {
 				return nil, errors.NewBadParameterError(fieldName, fieldValue)
 			}

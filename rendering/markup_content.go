@@ -1,6 +1,4 @@
-package workitem
-
-import "github.com/almighty/almighty-core/rendering"
+package rendering
 
 // MarkupContent defines the raw content of a field along with the markup language used to input the content.
 type MarkupContent struct {
@@ -15,11 +13,11 @@ const (
 	MarkupKey = "markup"
 )
 
-func (markupContent *MarkupContent) toMap() map[string]interface{} {
+func (markupContent *MarkupContent) ToMap() map[string]interface{} {
 	result := make(map[string]interface{})
 	result[ContentKey] = markupContent.Content
 	if markupContent.Markup == "" {
-		result[MarkupKey] = rendering.SystemMarkupDefault
+		result[MarkupKey] = SystemMarkupDefault
 	} else {
 		result[MarkupKey] = markupContent.Markup
 	}
@@ -31,12 +29,12 @@ func (markupContent *MarkupContent) toMap() map[string]interface{} {
 // This avoids filling the DB with invalid markup types.
 func NewMarkupContentFromMap(value map[string]interface{}) MarkupContent {
 	content := value[ContentKey].(string)
-	markup := rendering.SystemMarkupDefault
+	markup := SystemMarkupDefault
 	if m, ok := value[MarkupKey]; ok {
 		markup = m.(string)
 		// use default markup if the input is not supported
-		if !rendering.IsMarkupSupported(markup) {
-			markup = rendering.SystemMarkupDefault
+		if !IsMarkupSupported(markup) {
+			markup = SystemMarkupDefault
 		}
 	}
 	return MarkupContent{Content: content, Markup: markup}
@@ -44,7 +42,7 @@ func NewMarkupContentFromMap(value map[string]interface{}) MarkupContent {
 
 // NewMarkupContentFromLegacy creates a MarkupContent from the given content, using the default markup.
 func NewMarkupContentFromLegacy(content string) MarkupContent {
-	return MarkupContent{Content: content, Markup: rendering.SystemMarkupDefault}
+	return MarkupContent{Content: content, Markup: SystemMarkupDefault}
 }
 
 // NewMarkupContent creates a MarkupContent from the given content, using the default markup.

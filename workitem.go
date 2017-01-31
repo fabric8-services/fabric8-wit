@@ -232,12 +232,12 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
-			target.Fields[key] = workitem.NewMarkupContentFromLegacy(val.(string))
+			target.Fields[key] = rendering.NewMarkupContentFromLegacy(val.(string))
 		} else {
 			target.Fields[key] = val
 		}
 	}
-	if description, ok := target.Fields[workitem.SystemDescription].(workitem.MarkupContent); ok {
+	if description, ok := target.Fields[workitem.SystemDescription].(rendering.MarkupContent); ok {
 		// verify the description markup
 		if !rendering.IsMarkupSupported(description.Markup) {
 			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
@@ -322,7 +322,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 			}
 
 		case workitem.SystemDescription:
-			description := workitem.NewMarkupContentFromValue(val)
+			description := rendering.NewMarkupContentFromValue(val)
 			if description != nil {
 				op.Attributes[name] = (*description).Content
 				op.Attributes[workitem.SystemDescriptionMarkup] = (*description).Markup

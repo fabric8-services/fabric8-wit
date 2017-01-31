@@ -49,7 +49,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
 		require.NotNil(t, workItem.Fields[workitem.SystemDescription])
-		description := workItem.Fields[workitem.SystemDescription].(workitem.MarkupContent)
+		description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 		assert.Equal(t, "body of issue", description.Content)
 		assert.Equal(t, rendering.SystemMarkupMarkdown, description.Markup)
 
