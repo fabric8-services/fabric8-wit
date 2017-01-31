@@ -695,7 +695,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
-  s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := workitem.NewMarkupContentFromLegacy("Only Description is modified")
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
@@ -1361,8 +1361,10 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	}
 
 	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
-	assert.NotNil(t, wiu.Data.Relationships.Iteration)
-	assert.NotNil(t, wiu.Data.Relationships.Iteration.Data)
+	require.NotNil(t, wiu.Data.Relationships.Iteration)
+	require.NotNil(t, wiu.Data.Relationships.Iteration.Data)
+	assert.Equal(t, iterationID, *wiu.Data.Relationships.Iteration.Data.ID)
+	assert.Equal(t, itType, *wiu.Data.Relationships.Iteration.Data.Type)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
