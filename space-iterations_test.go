@@ -21,6 +21,7 @@ import (
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -96,7 +97,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		testSpace := space.Space{
-			Name:"Test 1",
+			Name: "Test 1",
 		}
 		p, _ = repo.Create(context.Background(), &testSpace)
 		return nil
@@ -155,7 +156,9 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	assert.Len(t, cs.Data, 3)
 	for _, iterationItem := range cs.Data {
 		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
-		assert.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
+		require.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
+		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["total"])
+		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
 	}
 }
 
@@ -185,6 +188,91 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 
 	svc, ctrl := rest.UnSecuredController()
 	test.ListSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
+}
+
+func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	// create seed data
+	spaceRepo := space.NewRepository(rest.DB)
+	spaceInstance := space.Space{
+		Name: "Testing space",
+	}
+	spaceRepo.Create(context.Background(), &spaceInstance)
+	fmt.Println("space id = ", spaceInstance.ID)
+	assert.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
+
+	iterationRepo := iteration.NewIterationRepository(rest.DB)
+	iteration1 := iteration.Iteration{
+		Name:    "Sprint 1",
+		SpaceID: spaceInstance.ID,
+	}
+	iterationRepo.Create(context.Background(), &iteration1)
+	fmt.Println("iteration1 id = ", iteration1.ID)
+	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
+
+	iteration2 := iteration.Iteration{
+		Name:    "Sprint 2",
+		SpaceID: spaceInstance.ID,
+	}
+	iterationRepo.Create(context.Background(), &iteration2)
+	fmt.Println("iteration2 id = ", iteration2.ID)
+	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
+
+	wirepo := workitem.NewWorkItemRepository(rest.DB)
+
+	for i := 0; i < 3; i++ {
+		wirepo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: iteration1.ID.String(),
+			}, "xx")
+	}
+	for i := 0; i < 2; i++ {
+		wirepo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: iteration1.ID.String(),
+			}, "xx")
+	}
+
+	svc, ctrl := rest.UnSecuredController()
+	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
+	assert.Len(t, cs.Data, 2)
+	for _, iterationItem := range cs.Data {
+		if iterationItem.ID.String() == iteration1.ID.String() {
+			assert.Equal(t, 5, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(t, 2, iterationItem.Relationships.Workitems.Meta["closed"])
+		} else if iterationItem.ID.String() == iteration2.ID.String() {
+			assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
+		}
+	}
+	// seed 5 WI to iteration2
+	for i := 0; i < 5; i++ {
+		wirepo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: iteration2.ID.String(),
+			}, "xx")
+	}
+	_, cs = test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
+	assert.Len(t, cs.Data, 2)
+	for _, iterationItem := range cs.Data {
+		if iterationItem.ID.String() == iteration1.ID.String() {
+			assert.Equal(t, 5, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(t, 2, iterationItem.Relationships.Workitems.Meta["closed"])
+		} else if iterationItem.ID.String() == iteration2.ID.String() {
+			assert.Equal(t, 5, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
+		}
+	}
 }
 
 func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsPayload {
