@@ -56,7 +56,7 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 
 		// Delete the work item cache as well
 		// NOTE: Feel free to add more cache freeing calls here as needed.
-		workitem.NewWorkItemTypeRepository(tx).ClearCache()
+		workitem.ClearGlobalWorkItemTypeCache()
 
 		tx.Commit()
 	}

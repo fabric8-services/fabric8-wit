@@ -71,8 +71,8 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	return &res, nil
 }
 
-// ClearCache clears the work item type cache
-func (r *GormWorkItemTypeRepository) ClearCache() {
+// ClearGlobalWorkItemTypeCache removes all work items from the global cache
+func ClearGlobalWorkItemTypeCache() {
 	cache.Clear()
 }
 
