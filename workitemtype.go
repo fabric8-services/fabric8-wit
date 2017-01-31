@@ -9,6 +9,11 @@ import (
 	"github.com/goadesign/goa"
 )
 
+const (
+	sourceLinkTypesRouteEnd = "/source-link-types"
+	targetLinkTypesRouteEnd = "/target-link-types"
+)
+
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller

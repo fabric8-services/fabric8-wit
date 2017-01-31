@@ -356,6 +356,8 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
 	// construct default values from input WI
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
+	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
+	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -370,8 +372,10 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				},
 			},
 		},
-		Links: &app.GenericLinks{
-			Self: &selfURL,
+		Links: &app.GenericLinksForWorkItem{
+			Self:            &selfURL,
+			SourceLinkTypes: &sourceLinkTypesURL,
+			TargetLinkTypes: &targetLinkTypesURL,
 		},
 	}
 
