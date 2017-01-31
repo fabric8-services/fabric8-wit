@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
@@ -20,6 +21,7 @@ type TestCommentRepository struct {
 }
 
 func TestRunCommentRepository(t *testing.T) {
+	resource.Require(t, resource.Database)
 	suite.Run(t, &TestCommentRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
