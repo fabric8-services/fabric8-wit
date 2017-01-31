@@ -5,47 +5,36 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
-// MarkupRenderingPayloadData is the media type representing a rendering input.
-var markupRenderingPayloadData = a.Type("MarkupRenderingPayloadData", func() {
-	a.Description("A render type describes the values a render type instance can hold.")
-	a.Attribute("id", d.String, "an ID to conform to the JSON-API spec, even though it is meaningless in the case of the rendering endpoint. Can be null", func() {
-		a.Example("42")
-	})
-	a.Attribute("type", d.String, func() {
-		a.Enum("rendering")
-	})
-	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
-		a.Example(map[string]interface{}{"markup": "Markdown", "content": "# foo"})
-	})
-	a.Required("id")
-	a.Required("type")
-	a.Required("attributes")
-})
-
 // MarkupRenderingPayload wraps the data in a JSONAPI compliant request
 var markupRenderingPayload = a.Type("MarkupRenderingPayload", func() {
+	a.Description("A MarkupRenderingPayload describes the values that a render request can hold.")
 	a.Attribute("data", markupRenderingPayloadData)
 	a.Required("data")
 })
 
-// MarkupRenderingMediaType is the media type representing a rendering result.
-var markupRenderingMediaTypeData = a.Type("MarkupRendering", func() {
-	a.Description("A MarkupRendering type describes the values a render type instance can hold.")
-	a.Attribute("id", d.String, "an ID to conform to the JSON-API spec, even though it is meaningless in the case of the rendering endpoint. Can be null", func() {
-		a.Example("42")
-	})
+// MarkupRenderingPayloadData is the media type representing a rendering input.
+var markupRenderingPayloadData = a.Type("MarkupRenderingPayloadData", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("rendering")
 	})
-	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
-		a.Example(map[string]interface{}{"renderedContent": "<h1>foo</h1>"})
-	})
-	a.Required("id")
+	a.Attribute("attributes", markupRenderingPayloadDataAttributes)
 	a.Required("type")
 	a.Required("attributes")
 })
 
-// workItemLinkCategory is the media type for work item link categories
+// MarkupRenderingPayloadData is the media type representing a rendering input.
+var markupRenderingPayloadDataAttributes = a.Type("MarkupRenderingPayloadDataAttributes", func() {
+	a.Attribute("content", d.String, "The content to render", func() {
+		a.Example("# foo")
+	})
+	a.Attribute("markup", d.String, "The markup language associated with the content to render", func() {
+		a.Example("Markdown")
+	})
+	a.Required("content")
+	a.Required("markup")
+})
+
+// MarkupRenderingMediaType is the media type for rendering result
 var markupRenderingMediaType = JSONSingle(
 	"MarkupRendering",
 	`MarkupRenderingMediaType contains the  
@@ -54,6 +43,28 @@ var markupRenderingMediaType = JSONSingle(
 	markupRenderingMediaTypeData,
 	nil,
 )
+
+// MarkupRenderingMediaType is the data included in the rendering result response.
+var markupRenderingMediaTypeData = a.Type("MarkupRenderingData", func() {
+	a.Attribute("id", d.String, "an ID to conform to the JSON-API spec, even though it is meaningless in the case of the rendering endpoint. Can be null", func() {
+		a.Example("42")
+	})
+	a.Attribute("type", d.String, func() {
+		a.Enum("rendering")
+	})
+	a.Attribute("attributes", markupRenderingMediaTypeDataAttributes)
+	a.Required("id")
+	a.Required("type")
+	a.Required("attributes")
+})
+
+// MarkupRenderingMediaType is the data included in the rendering result response.
+var markupRenderingMediaTypeDataAttributes = a.Type("MarkupRenderingDataAttributes", func() {
+	a.Attribute("renderedContent", d.String, "The rendered content", func() {
+		a.Example("<h1>foo</h1>")
+	})
+	a.Required("renderedContent")
+})
 
 var _ = a.Resource("render", func() {
 	a.BasePath("/render")
