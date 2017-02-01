@@ -155,18 +155,18 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before string, wi 
 			// The item is moved to first position
 			order = (0 + beforeOrder) / 2
 		} else {
+			afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Fields[SystemOrder]), 64)
+			if err != nil {
+				return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
+			}
 			if tx2.RecordNotFound() {
 				return nil, errors.NewNotFoundError("work item", before)
 			}
 			if tx2.Error != nil {
 				return nil, errors.NewInternalError(err.Error())
 			}
+			order = (beforeOrder + afterOrder) / 2
 		}
-		afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Fields[SystemOrder]), 64)
-		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.order", res.Fields[SystemOrder])
-		}
-		order = (beforeOrder + afterOrder) / 2
 	} else {
 		// the item is moved at last position
 
