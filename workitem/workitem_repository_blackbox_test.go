@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -116,14 +117,14 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: workitem.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemState:       workitem.SystemStateNew,
 		}, "xx")
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	// app.WorkItem does not contain the markup associated with the description (yet)
-	assert.Equal(s.T(), workitem.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
+	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
@@ -132,13 +133,13 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: workitem.NewMarkupContent("Description", workitem.SystemMarkupMarkdown),
+			workitem.SystemDescription: rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
 			workitem.SystemState:       workitem.SystemStateNew,
 		}, "xx")
 	require.Nil(s.T(), err, "Could not create workitem")
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	// app.WorkItem does not contain the markup associated with the description (yet)
-	assert.Equal(s.T(), workitem.NewMarkupContent("Description", workitem.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
+	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
 
 // TestTypeChangeIsNotProhibitedOnDBLayer tests that you can change the type of

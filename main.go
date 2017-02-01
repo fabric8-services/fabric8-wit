@@ -244,11 +244,17 @@ func main() {
 	iterationCtrl := NewIterationController(service, appDB)
 	app.MountIterationController(service, iterationCtrl)
 
+	// Mount "spaceiterations" controller
 	spaceIterationCtrl := NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
+	// Mount "userspace" controller
 	userspaceCtrl := NewUserspaceController(service, db)
 	app.MountUserspaceController(service, userspaceCtrl)
+
+	// Mount "render" controller
+	renderCtrl := NewRenderController(service)
+	app.MountRenderController(service, renderCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

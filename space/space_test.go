@@ -142,11 +142,14 @@ func (test *repoBBTest) requireErrorType(e error) func(p *space.Space, err error
 }
 
 func (test *repoBBTest) create(name string) func() (*space.Space, error) {
-	return func() (*space.Space, error) { return test.repo.Create(context.Background(), name) }
+	newSpace := space.Space{
+		Name: name,
+	}
+	return func() (*space.Space, error) { return test.repo.Create(context.Background(), &newSpace) }
 }
 
 func (test *repoBBTest) save(p space.Space) func() (*space.Space, error) {
-	return func() (*space.Space, error) { return test.repo.Save(context.Background(), p) }
+	return func() (*space.Space, error) { return test.repo.Save(context.Background(), &p) }
 }
 
 func (test *repoBBTest) load(id satoriuuid.UUID) func() (*space.Space, error) {
