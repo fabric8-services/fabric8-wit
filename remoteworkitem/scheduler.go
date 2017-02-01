@@ -52,8 +52,8 @@ func (s *Scheduler) ScheduleAllQueries() {
 
 	trackerQueries := fetchTrackerQueries(s.db)
 	for _, tq := range trackerQueries {
-		var lu *time.Time
 		cr.AddFunc(tq.Schedule, func() {
+			var lu *time.Time
 			tr := lookupProvider(tq)
 			for i := range tr.Fetch() {
 				models.Transactional(s.db, func(tx *gorm.DB) error {
@@ -69,25 +69,17 @@ func (s *Scheduler) ScheduleAllQueries() {
 				lu = i.LastUpdated
 			}
 			if lu != nil {
-				err := s.updateTrackerQueryWithLastUpdated(tq.TrackerQueryID, lu)
-				if err != nil {
-					log.Println("Couldn't update the last updated value", err)
-				}
+				models.Transactional(s.db, func(tx *gorm.DB) error {
+					err := updateTrackerQuery(tx, tq.TrackerQueryID, lu)
+					if err != nil {
+						log.Println("Couldn't update the last updated value", err)
+					}
+					return errors.WithStack(err)
+				})
 			}
 		})
 	}
 	cr.Start()
-}
-
-func (s *Scheduler) updateTrackerQueryWithLastUpdated(tqID int, lu *time.Time) error {
-	models.Transactional(s.db, func(tx *gorm.DB) error {
-		err := updateTrackerQuery(tx, tqID, lu)
-		if err != nil {
-			return err
-		}
-		return nil
-	})
-	return nil
 }
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
@@ -106,13 +98,13 @@ func lookupProvider(ts trackerSchedule) TrackerProvider {
 	case ProviderGithub:
 		if ts.LastUpdated != nil {
 			// Use the special date for formatting: https://golang.org/pkg/time/#Time.Format
-			q = ts.Query + " updated:>=" + ts.LastUpdated.Format("2006-01-02")
+			q = ts.Query + " updated:>=" + ts.LastUpdated.Format("2006-01-02T15:04:05")
 		}
 		return &GithubTracker{URL: ts.URL, Query: q}
 	case ProviderJira:
 		if ts.LastUpdated != nil {
 			// Use the special date for formatting: https://golang.org/pkg/time/#Time.Format
-			q = ts.Query + " and updated >= " + ts.LastUpdated.Format("2006-01-02")
+			q = ts.Query + " and updated >= \"" + ts.LastUpdated.Format("2006-01-02 15:04") + "\""
 		}
 		return &JiraTracker{URL: ts.URL, Query: q}
 	}
