@@ -163,6 +163,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, "/api/spaces/"+spaceID)
+	workitemsRelatedURL := rest.AbsoluteURL(request, "/api/workitems?filter[iteration]="+itr.ID.String())
 
 	i := &app.Iteration{
 		Type: iterationType,
@@ -182,6 +183,11 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 				},
 				Links: &app.GenericLinks{
 					Self: &spaceSelfURL,
+				},
+			},
+			Workitems: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &workitemsRelatedURL,
 				},
 			},
 		},
@@ -210,7 +216,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 
 // ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
 func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.GenericData {
-	t := "identities"
+	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
 	return &app.GenericData{
 		Type:  &t,

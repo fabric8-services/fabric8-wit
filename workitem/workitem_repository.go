@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -290,6 +291,12 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		wi.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		}
+		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
+			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
+			if !rendering.IsMarkupSupported(description.Markup) {
+				return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			}
 		}
 	}
 	tx := r.db

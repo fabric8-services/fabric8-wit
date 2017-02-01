@@ -139,8 +139,14 @@ func getMigrations() migrations {
 	// Version 20
 	m = append(m, steps{executeSQLFile("020-work-item-description-update-search-index.sql")})
 
-	// version 21
-	m = append(m, steps{executeSQLFile("021-adds-order-to-existing-wi.sql")})
+	// Version 21
+	m = append(m, steps{executeSQLFile("021-add-space-description.sql")})
+
+	// Version 22
+	m = append(m, steps{executeSQLFile("022-work-item-description-update.sql")})
+
+	// version 23
+	m = append(m, steps{executeSQLFile("023-adds-order-to-existing-wi.sql")})
 
 	// Version N
 	//
