@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	errs "github.com/pkg/errors"
@@ -28,7 +29,7 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
@@ -44,7 +45,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	wi, err := s.repo.Create(
@@ -60,7 +61,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
@@ -76,7 +77,7 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
@@ -93,7 +94,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
@@ -111,7 +112,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
@@ -128,7 +129,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
@@ -146,7 +147,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 // a work item. NOTE: This functionality only works on the DB layer and is not
 // exposed to REST.
 func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsAffectedCheck
 	wi, err := s.repo.Create(
