@@ -33,15 +33,13 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Description("A work item type describes the values a work item type instance can hold.")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("name", d.String, "User Readable Name of this item type")
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type")
 
 	a.Required("version")
-	a.Required("name")
 	a.Required("fields")
 })
 
-var workItemType = a.Type("WorkItemType", func() {
+var workItemTypeData = a.Type("WorkItemTypeData", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemtypes")
 	})
@@ -72,14 +70,14 @@ var workItemTypeListMeta = a.Type("WorkItemTypeListMeta", func() {
 // workItemTypeList contains paged results for listing work item types and paging links
 var workItemTypeList = JSONList(
 	"WorkItemType", "Holds the paginated response to a work item type list request",
-	workItemType,
+	workItemTypeData,
 	pagingLinks,
 	workItemTypeListMeta)
 
 // workItemTypeSingle is the media type for work item types
 var workItemTypeSingle = JSONSingle(
 	"WorkItemType", "A work item type describes the values a work item type instance can hold.",
-	workItemType,
+	workItemTypeData,
 	workItemTypeLinks)
 
 var _ = a.Resource("workitemtype", func() {

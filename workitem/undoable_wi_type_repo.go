@@ -24,17 +24,17 @@ type UndoableWorkItemTypeRepository struct {
 }
 
 // Load implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
+func (r *UndoableWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemTypeSingle, error) {
 	return r.wrapped.Load(ctx, name)
 }
 
 // List implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) List(ctx context.Context, start *int, length *int) ([]*app.WorkItemType, error) {
+func (r *UndoableWorkItemTypeRepository) List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error) {
 	return r.wrapped.List(ctx, start, length)
 }
 
 // Create implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
+func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
 	res, err := r.wrapped.Create(ctx, extendedTypeID, name, fields)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {

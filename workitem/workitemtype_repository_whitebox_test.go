@@ -68,16 +68,21 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
-	expected := app.WorkItemType{
-		Name:    "foo",
-		Version: 42,
-		Fields: map[string]*app.FieldDefinition{
-			"aListType": {
-				Required: true,
-				Type: &app.FieldType{
-					BaseType: &stString,
-					Kind:     "enum",
-					Values:   typeEnum,
+	expected := app.WorkItemTypeSingle{
+		Data: &app.WorkItemTypeData{
+			ID:   "foo",
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Version: 42,
+				Fields: map[string]*app.FieldDefinition{
+					"aListType": &app.FieldDefinition{
+						Required: true,
+						Type: &app.FieldType{
+							BaseType: &stString,
+							Kind:     "enum",
+							Values:   typeEnum,
+						},
+					},
 				},
 			},
 		},
@@ -85,10 +90,10 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	result := convertTypeFromModels(&a)
 
-	assert.Equal(t, expected.Name, result.Name)
-	assert.Equal(t, expected.Version, result.Version)
-	assert.Len(t, result.Fields, len(expected.Fields))
-	assert.Equal(t, expected.Fields, result.Fields)
+	assert.Equal(t, expected.Data.ID, result.Data.ID)
+	assert.Equal(t, expected.Data.Attributes.Version, result.Data.Attributes.Version)
+	assert.Len(t, expected.Data.Attributes.Fields, result.Data.Attributes.Fields)
+	assert.Equal(t, expected.Data.Attributes.Fields, result.Data.Attributes.Fields)
 }
 
 func TestConvertAnyToKind(t *testing.T) {

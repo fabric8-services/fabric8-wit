@@ -52,15 +52,16 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 			Type:     &app.FieldType{Kind: string(workitem.KindFloat)},
 		},
 	})
-	assert.Nil(s.T(), err)
-	assert.NotNil(s.T(), wit)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), wit)
 
 	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
+	require.NotNil(s.T(), err)
+	require.Nil(s.T(), wit3)
 	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
-	assert.Nil(s.T(), wit3)
 
 	wit2, err := s.repo.Load(context.Background(), "foo_bar")
-	assert.Nil(s.T(), err)
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	field := wit2.Fields["foo"]
 	require.NotNil(s.T(), field)
