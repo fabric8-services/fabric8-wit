@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -49,11 +50,11 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 
 		newItr := iteration.Iteration{
-			SpaceID:  parent.SpaceID,
-			ParentID: parentID,
-			Name:     *reqIter.Attributes.Name,
-			StartAt:  reqIter.Attributes.StartAt,
-			EndAt:    reqIter.Attributes.EndAt,
+			SpaceID:    parent.SpaceID,
+			ParentPath: parentID.String(),
+			Name:       *reqIter.Attributes.Name,
+			StartAt:    reqIter.Attributes.StartAt,
+			EndAt:      reqIter.Attributes.EndAt,
 		}
 
 		err = appl.Iterations().Create(ctx, &newItr)
@@ -195,9 +196,10 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 			Self: &selfURL,
 		},
 	}
-	if itr.ParentID != uuid.Nil {
-		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ParentID))
-		parentID := itr.ParentID.String()
+	if itr.ParentPath != "" {
+		allParents := strings.Split(ConvertFromLtreeFormat(itr.ParentPath), ".")
+		parentID := allParents[len(allParents)-1]
+		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &iterationType,
@@ -230,4 +232,10 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
+}
+
+// ConvertFromLtreeFormat converts data to UUID format from ltree format.
+func ConvertFromLtreeFormat(uuid string) string {
+	// Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "_", "-", -1)
 }

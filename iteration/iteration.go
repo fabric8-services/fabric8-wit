@@ -1,6 +1,7 @@
 package iteration
 
 import (
+	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -25,7 +26,7 @@ type Iteration struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
-	ParentID    uuid.UUID `sql:"type:uuid"` // TODO: This should be * to support nil ?
+	ParentPath  string
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string
@@ -58,13 +59,22 @@ type GormIterationRepository struct {
 	db *gorm.DB
 }
 
+func ConvertToLtreeFormat(uuid string) string {
+	//Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "-", "_", -1)
+}
+
 // Create creates a new record.
 func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
 	u.ID = uuid.NewV4()
 	u.State = IterationStateNew
-
+	if u.ParentPath == "" {
+		u.ParentPath = ConvertToLtreeFormat(u.ID.String())
+	} else {
+		u.ParentPath = ConvertToLtreeFormat(u.ParentPath + "." + u.ID.String())
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Iteration", "error", err.Error())

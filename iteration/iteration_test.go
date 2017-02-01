@@ -1,6 +1,7 @@
 package iteration_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -85,18 +86,19 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	repo.Create(context.Background(), &i)
 
 	i2 := iteration.Iteration{
-		Name:     name2,
-		SpaceID:  uuid.NewV4(),
-		StartAt:  &start,
-		EndAt:    &end,
-		ParentID: i.ID,
+		Name:       name2,
+		SpaceID:    uuid.NewV4(),
+		StartAt:    &start,
+		EndAt:      &end,
+		ParentPath: i.ParentPath,
 	}
 	repo.Create(context.Background(), &i2)
 
 	i2L, err := repo.Load(context.Background(), i2.ID)
 	require.Nil(t, err)
-	assert.NotEqual(t, uuid.Nil, i2.ParentID)
-	assert.Equal(t, i2.ParentID, i2L.ParentID)
+	assert.NotEmpty(t, i2.ParentPath)
+	expectedPath := i.ParentPath + "." + strings.Replace(i2.ID.String(), "-", "_", -1)
+	assert.Equal(t, expectedPath, i2L.ParentPath)
 }
 
 func (test *TestIterationRepository) TestListIterationBySpace() {

@@ -96,7 +96,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		testSpace := space.Space{
-			Name:"Test 1",
+			Name: "Test 1",
 		}
 		p, _ = repo.Create(context.Background(), &testSpace)
 		return nil
@@ -122,6 +122,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	resource.Require(t, resource.Database)
 
 	var spaceID uuid.UUID
+	var fatherIteration, childIteration *iteration.Iteration
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 
@@ -147,15 +148,35 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 			}
 			repo.Create(context.Background(), &i)
 		}
+
+		// create one child iteration and test for relationships.Parent
+		i := iteration.Iteration{
+			Name:    "Parent Iteration",
+			SpaceID: spaceID,
+		}
+		fatherIteration = &i
+		repo.Create(context.Background(), fatherIteration)
+		i = iteration.Iteration{
+			Name:       "Child Iteration",
+			SpaceID:    spaceID,
+			ParentPath: fatherIteration.ID.String(),
+		}
+		childIteration = &i
+		repo.Create(context.Background(), childIteration)
+
 		return nil
 	})
 
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
-	assert.Len(t, cs.Data, 3)
+	assert.Len(t, cs.Data, 5)
 	for _, iterationItem := range cs.Data {
 		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
 		assert.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
+		if *iterationItem.ID == childIteration.ID {
+			require.NotNil(t, iterationItem.Relationships.Parent)
+			assert.Equal(t, fatherIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
+		}
 	}
 }
 
