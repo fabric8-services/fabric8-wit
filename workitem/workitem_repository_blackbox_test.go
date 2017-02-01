@@ -121,14 +121,14 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: workitem.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemState:       workitem.SystemStateNew,
 		}, "xx")
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	// app.WorkItem does not contain the markup associated with the description (yet)
-	assert.Equal(s.T(), workitem.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
+	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
@@ -137,13 +137,13 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
-			workitem.SystemDescription: workitem.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
+			workitem.SystemDescription: rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
 			workitem.SystemState:       workitem.SystemStateNew,
 		}, "xx")
 	require.Nil(s.T(), err, "Could not create workitem")
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	// app.WorkItem does not contain the markup associated with the description (yet)
-	assert.Equal(s.T(), workitem.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
+	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
 
 // TestTypeChangeIsNotProhibitedOnDBLayer tests that you can change the type of

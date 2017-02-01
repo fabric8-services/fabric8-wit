@@ -696,7 +696,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
-	modifiedDescription := workitem.NewMarkupContentFromLegacy("Only Description is modified")
+	modifiedDescription := rendering.NewMarkupContentFromLegacy("Only Description is modified")
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -709,7 +709,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
-	modifiedDescription := workitem.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
+	modifiedDescription := rendering.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
@@ -875,7 +875,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
+	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -902,7 +902,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContentFromLegacy("Description")
+	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("Description")
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -929,7 +929,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWorkItemWithDescriptionAndUnsupportedM
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Attributes[workitem.SystemDescription] = workitem.NewMarkupContent("Description", "foo")
+	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", "foo")
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{

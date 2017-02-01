@@ -197,7 +197,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.NewMarkupContentFromLegacy("description")
+	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
@@ -205,7 +205,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: workitem.NewMarkupContentFromLegacy("description"),
+		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
 	}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
@@ -213,7 +213,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.NewMarkupContentFromLegacy("description")
+	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
@@ -221,7 +221,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
-		workitem.SystemDescription: workitem.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
+		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
 	}
 	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
@@ -229,7 +229,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	expectedDescription := workitem.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
+	expectedDescription := rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
 
