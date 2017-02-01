@@ -11,8 +11,10 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -21,7 +23,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
-	"github.com/almighty/almighty-core/space"
 )
 
 type TestIterationREST struct {
@@ -37,7 +38,7 @@ func TestRunIterationREST(t *testing.T) {
 
 func (rest *TestIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestIterationREST) TearDownTest() {
@@ -253,7 +254,7 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 		repo := app.Iterations()
 
 		newSpace := space.Space{
-			Name: "Test 1"+uuid.NewV4().String(),
+			Name: "Test 1" + uuid.NewV4().String(),
 		}
 		p, err := app.Spaces().Create(context.Background(), &newSpace)
 		if err != nil {
