@@ -22,6 +22,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.Media(workItemType)
 		})
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -51,6 +52,38 @@ var _ = a.Resource("workitemtype", func() {
 			a.Media(a.CollectionOf(workItemType))
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("list-source-link-types", func() {
+		a.Routing(
+			a.GET("/:name/source-link-types"),
+		)
+		a.Params(func() {
+			a.Param("name", d.String, "name")
+		})
+		a.Description(`Retrieve work item link types where the
+given work item type can be used in the source of the link.`)
+		a.Response(d.OK, func() {
+			a.Media(workItemLinkTypeList)
+		})
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("list-target-link-types", func() {
+		a.Routing(
+			a.GET("/:name/target-link-types"),
+		)
+		a.Params(func() {
+			a.Param("name", d.String, "name")
+		})
+		a.Description(`Retrieve work item link types where the
+given work item type can be used in the target of the link.`)
+		a.Response(d.OK, func() {
+			a.Media(workItemLinkTypeList)
+		})
+		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

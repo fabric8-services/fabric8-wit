@@ -332,7 +332,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	witr.ClearCache() // Clear the WIT cache after updating existing WITs
+	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
@@ -354,7 +354,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	witr.ClearCache() // Clear the WIT cache after updating existing WITs
+	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
 	return nil
 }
 

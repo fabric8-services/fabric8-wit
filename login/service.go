@@ -12,9 +12,10 @@ import (
 
 	errs "github.com/pkg/errors"
 
+	c "github.com/almighty/almighty-core/configuration"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
@@ -147,6 +148,10 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 func (keycloak keycloakOAuthProvider) getUser(ctx context.Context, token *oauth2.Token) (*openIDConnectUser, error) {
 	client := keycloak.config.Client(ctx, token)
+	configuration, err := c.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	resp, err := client.Get(configuration.GetKeycloakEndpointUserinfo())
 	if err != nil {
 		return nil, errs.WithStack(err)

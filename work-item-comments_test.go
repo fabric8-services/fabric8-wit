@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -33,12 +35,14 @@ type TestCommentREST struct {
 }
 
 func TestRunCommentREST(t *testing.T) {
+	os.Setenv("ALMIGHTY_CONFIG_FILE_PATH", "../config.yaml")
+
 	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
 }
 
 func (rest *TestCommentREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestCommentREST) TearDownTest() {

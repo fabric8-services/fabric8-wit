@@ -11,7 +11,7 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -43,9 +43,8 @@ type workItemLinkTypeSuite struct {
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkTypeSuite) SetupSuite() {
-	var err error
-
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.NewConfigurationData("config.yaml")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
@@ -301,6 +300,10 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 }
 
 func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
+	configuration, err := config.NewConfigurationData("config.yaml")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)

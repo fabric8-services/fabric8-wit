@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -41,7 +42,7 @@ func TestRunSpaceIterationREST(t *testing.T) {
 
 func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestSpaceIterationREST) TearDownTest() {
@@ -96,7 +97,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		testSpace := space.Space{
-			Name:"Test 1",
+			Name: "Test 1",
 		}
 		p, _ = repo.Create(context.Background(), &testSpace)
 		return nil

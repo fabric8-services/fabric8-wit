@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/almighty/almighty-core/configuration"
+	c "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
@@ -29,7 +29,8 @@ type DBTestSuite struct {
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
 	var err error
-	if err = configuration.Setup(s.configFile); err != nil {
+	configuration, err := c.NewConfigurationData(s.configFile)
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
