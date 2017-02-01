@@ -29,7 +29,12 @@ func updateTrackerQuery(db *gorm.DB, tqID int, lu *time.Time) error {
 		log.Printf("not found, res=%v", tq)
 		return NotFoundError{entity: "tracker_query", ID: string(tq.ID)}
 	}
-	tq.LastUpdated = lu
+	if tq.LastUpdated == nil {
+		tq.LastUpdated = lu
+	} else if tq.LastUpdated.Before(*lu) {
+		tq.LastUpdated = lu
+	}
+
 	if err := tx.Save(&tq).Error; err != nil {
 		log.Print(err.Error())
 		return InternalError{simpleError{err.Error()}}

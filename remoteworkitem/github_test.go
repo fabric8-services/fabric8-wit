@@ -81,7 +81,7 @@ func TestGithubFetchWithRecording(t *testing.T) {
 	g := &GithubTracker{URL: "", Query: "is:open is:issue user:almighty-test"}
 	fetch := g.fetch(&f)
 	i := <-fetch
-	if !strings.Contains(string(i.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/3"`) {
+	if !strings.Contains(string(i.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/1"`) {
 		t.Errorf("Content is not matching: %#v", string(i.Content))
 	}
 	i2 := <-fetch
