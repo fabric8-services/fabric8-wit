@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/application"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -18,7 +19,7 @@ type trackerRepoBlackBoxTest struct {
 }
 
 func TestRunTrackerRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &trackerRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &trackerRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 func (s *trackerRepoBlackBoxTest) SetupTest() {

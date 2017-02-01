@@ -9,12 +9,14 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -33,7 +35,7 @@ type TestIterationREST struct {
 }
 
 func TestRunIterationREST(t *testing.T) {
-	suite.Run(t, &TestIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestIterationREST{DBTestSuite: gormsupport.NewDBTestSuite(config.GetDefaultConfigurationFile())})
 }
 
 func (rest *TestIterationREST) SetupTest() {

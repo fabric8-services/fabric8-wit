@@ -13,7 +13,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
@@ -28,11 +28,12 @@ var db *gorm.DB
 var loginService Service
 
 func TestMain(m *testing.M) {
+	configuration, err := config.NewConfigurationData("../" + config.GetDefaultConfigurationFile())
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		var err error
-		if err = configuration.Setup(""); err != nil {
-			panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-		}
 
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
@@ -77,6 +78,12 @@ func TestMain(m *testing.M) {
 }
 
 func TestKeycloakAuthorizationRedirect(t *testing.T) {
+
+	configuration, err := config.NewConfigurationData("")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	resource.Require(t, resource.UnitTest)
 
 	rw := httptest.NewRecorder()

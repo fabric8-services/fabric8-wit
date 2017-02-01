@@ -9,7 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -27,9 +27,9 @@ var DB *gorm.DB
 var RwiScheduler *remoteworkitem.Scheduler
 
 func TestMain(m *testing.M) {
-	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.NewConfigurationData(config.GetDefaultConfigurationFile())
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

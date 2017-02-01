@@ -18,7 +18,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
@@ -61,6 +61,7 @@ func main() {
 	configSwitchIsSet := false
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == "config" {
+			os.Setenv("ALMIGHTY_CONFIG_FILE_PATH", configFilePath)
 			configSwitchIsSet = true
 		}
 	})
@@ -70,19 +71,25 @@ func main() {
 		}
 	}
 
-	var err error
-	if err = configuration.Setup(configFilePath); err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to setup the configuration: \n%+v", err))
+	configuration, err := config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
 	if printConfig {
-		fmt.Printf("%s\n", configuration.String())
+		configurationString, err := configuration.String()
+		if err != nil {
+			log.Printf("Failed to convert configuration to string: %+v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n", configurationString)
 		os.Exit(0)
 	}
 
 	printUserInfo()
 
 	var db *gorm.DB
+	fmt.Println(configuration.GetPostgresConnectionMaxRetries())
 	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
 		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())

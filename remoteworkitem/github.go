@@ -2,10 +2,12 @@ package remoteworkitem
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/google/go-github/github"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -32,6 +34,12 @@ func (f *githubIssueFetcher) listIssues(query string, opts *github.SearchOptions
 
 // Fetch tracker items from Github
 func (g *GithubTracker) Fetch() chan TrackerItemContent {
+	configuration, err := config.GetConfigurationData()
+	if err != nil {
+		fmt.Print(errors.Wrap(err, "Failed to setup the configuration"))
+		return nil
+	}
+
 	f := githubIssueFetcher{}
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: configuration.GetGithubAuthToken()},

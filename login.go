@@ -5,11 +5,12 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -32,6 +33,10 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 
 // Generate runs the authorize action.
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
+	configuration, err := config.GetConfigurationData()
+	if err != nil {
+		return errors.Wrap(err, "Failed to setup configuration")
+	}
 	if !configuration.IsPostgresDeveloperModeEnabled() {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
 		return ctx.Unauthorized(jerrors)

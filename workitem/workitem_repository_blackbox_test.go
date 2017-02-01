@@ -3,6 +3,7 @@ package workitem_test
 import (
 	"testing"
 
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -21,7 +22,7 @@ type workItemRepoBlackBoxTest struct {
 }
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 func (s *workItemRepoBlackBoxTest) SetupTest() {
