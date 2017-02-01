@@ -8,7 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -19,7 +19,7 @@ import (
 
 func TestListIdentities(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 
 	service := goa.New("Test-Identities")
 	identityController := NewIdentityController(service, gormapplication.NewGormDB(DB))
