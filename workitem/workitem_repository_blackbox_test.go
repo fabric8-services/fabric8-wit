@@ -173,7 +173,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 // TestGetCountsPerIteration makes sure that the query being executed is correctly returning
 // the counts of work items
 func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 	// create seed data
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
