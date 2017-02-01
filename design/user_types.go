@@ -38,32 +38,6 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Required("type", "fields", "version")
 })
 
-// CreateWorkItemTypePayload explains how input payload should look like
-var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
-	a.Attribute("name", d.String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
-		a.Example("Epic")
-		a.Pattern("^[\\p{L}.]+$")
-		a.MinLength(1)
-	})
-	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Type fields those must be followed by respective Work Items.", func() {
-		a.Example(map[string]interface{}{
-			"system.administrator": map[string]interface{}{
-				"Type": map[string]interface{}{
-					"Kind": "string",
-				},
-				"Required": true,
-			},
-		})
-		a.MinLength(1)
-	})
-	a.Attribute("extendedTypeName", d.String, "If newly created type extends any existing type", func() {
-		a.Example("(optional field)Parent type name")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}.]+$")
-	})
-	a.Required("name", "fields")
-})
-
 // CreateTrackerAlternatePayload defines the structure of tracker payload for create
 var CreateTrackerAlternatePayload = a.Type("CreateTrackerAlternatePayload", func() {
 	a.Attribute("url", d.String, "URL of the tracker", func() {

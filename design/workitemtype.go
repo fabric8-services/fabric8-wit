@@ -33,7 +33,24 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Description("A work item type describes the values a work item type instance can hold.")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type")
+	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
+		a.Example(map[string]interface{}{
+			"system.administrator": map[string]interface{}{
+				"Type": map[string]interface{}{
+					"Kind": "string",
+				},
+				"Required": true,
+			},
+		})
+		a.MinLength(1)
+	})
+
+	// TODO: Maybe this needs to be abandoned at some point
+	a.Attribute("extendedTypeName", d.String, "If newly created type extends any existing type (This is never present in any response and is only optional when creating.)", func() {
+		a.Example("(optional) parent work item type")
+		a.Pattern("^[a-zA-Z0-9_]+$")
+		a.MinLength(1)
+	})
 
 	a.Required("version")
 	a.Required("fields")
@@ -44,7 +61,9 @@ var workItemTypeData = a.Type("WorkItemTypeData", func() {
 		a.Enum("workitemtypes")
 	})
 	a.Attribute("id", d.String, "The name of the work item type (not optional)", func() {
-		a.Example("bug")
+		a.Example("Epic")
+		a.Pattern("^[a-zA-Z0-9_]+$")
+		a.MinLength(1)
 	})
 	a.Attribute("attributes", workItemTypeAttributes)
 	a.Attribute("links", genericLinks)
