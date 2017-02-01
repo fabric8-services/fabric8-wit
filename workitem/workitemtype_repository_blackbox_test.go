@@ -37,7 +37,7 @@ func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
 		s.T().Fatalf("Could not setup test %s", db2.Error.Error())
 		return
 	}
-	gWitRepo.ClearCache()
+	workitem.ClearGlobalWorkItemTypeCache()
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {

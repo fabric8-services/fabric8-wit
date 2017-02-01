@@ -18,7 +18,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -645,7 +645,7 @@ func (s *WorkItem2Suite) SetupSuite() {
 			panic(err.Error())
 		}
 	}
-	s.clean = gormsupport.DeleteCreatedEntities(s.db)
+	s.clean = cleaner.DeleteCreatedEntities(s.db)
 }
 
 func (s *WorkItem2Suite) TearDownSuite() {

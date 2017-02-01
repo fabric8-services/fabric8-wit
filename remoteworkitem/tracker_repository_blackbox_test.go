@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -25,7 +26,7 @@ func (s *trackerRepoBlackBoxTest) SetupTest() {
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
@@ -42,7 +43,7 @@ func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailSaveZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.repo.Create(
@@ -60,7 +61,7 @@ func (s *trackerRepoBlackBoxTest) TestFailSaveZeroID() {
 }
 
 func (s *trackerRepoBlackBoxTest) TestFaiLoadZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(

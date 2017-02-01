@@ -9,6 +9,11 @@ import (
 	"github.com/goadesign/goa"
 )
 
+const (
+	sourceLinkTypesRouteEnd = "/source-link-types"
+	targetLinkTypesRouteEnd = "/target-link-types"
+)
+
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
@@ -28,8 +33,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.OK(res)
 	})
@@ -68,5 +72,53 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			return ctx.BadRequest(jerrors)
 		}
 		return ctx.OK(result)
+	})
+}
+
+// ListSourceLinkTypes runs the list-source-link-types action.
+func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkTypesWorkitemtypeContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		// Test that work item type exists
+		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// Fetch all link types where this work item type can be used in the
+		// source of the link
+		res, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.Name)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// Enrich link types
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref)
+		err = enrichLinkTypeList(linkCtx, res)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK(res)
+	})
+}
+
+// ListTargetLinkTypes runs the list-target-link-types action.
+func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkTypesWorkitemtypeContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		// Test that work item type exists
+		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// Fetch all link types where this work item type can be used in the
+		// target of the linkg
+		res, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.Name)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// Enrich link types
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref)
+		err = enrichLinkTypeList(linkCtx, res)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK(res)
 	})
 }

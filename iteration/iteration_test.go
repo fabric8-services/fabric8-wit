@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
@@ -28,7 +29,7 @@ func TestRunIterationRepository(t *testing.T) {
 }
 
 func (test *TestIterationRepository) SetupTest() {
-	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
+	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
 func (test *TestIterationRepository) TearDownTest() {
