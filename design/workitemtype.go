@@ -25,14 +25,12 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 	a.Required("required")
 	a.Required("type")
 
-	a.View("default", func() {
-		a.Attribute("kind")
-	})
+	//	a.View("default", func() {
+	//		a.Attribute("kind")
+	//	})
 })
 
-// workItemType is the media type representing a work item type.
-var workItemType = a.MediaType("application/vnd.workitemtype+json", func() {
-	a.TypeName("WorkItemType")
+var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Description("A work item type describes the values a work item type instance can hold.")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("name", d.String, "User Readable Name of this item type")
@@ -41,53 +39,80 @@ var workItemType = a.MediaType("application/vnd.workitemtype+json", func() {
 	a.Required("version")
 	a.Required("name")
 	a.Required("fields")
-
-	a.View("default", func() {
-		a.Attribute("version")
-		a.Attribute("name")
-		a.Attribute("fields")
-	})
-	a.View("link", func() {
-		a.Attribute("name")
-	})
-
 })
 
+var workItemType = a.Type("WorkItemType", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("workitemtypes")
+	})
+	a.Attribute("id", d.String, "The name of the work item type (not optional)", func() {
+		a.Example("bug")
+	})
+	a.Attribute("attributes", workItemTypeAttributes)
+	a.Attribute("links", genericLinks)
+	a.Required("type", "attributes")
+	// NOTICE: for now the id attribute is not optional because it is just the
+	// WIT's name. This might change in the future but not at this point.
+	a.Required("id")
+})
+
+// workItemTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
+var workItemTypeLinks = a.Type("WorkItemTypeLinks", func() {
+	a.Attribute("self", d.String, func() {
+		a.Example("http://api.almighty.io/api/workitemtypes/bug")
+	})
+	a.Required("self")
+})
+
+var workItemTypeListMeta = a.Type("WorkItemTypeListMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
+})
+
+// workItemTypeList contains paged results for listing work item types and paging links
+var workItemTypeList = JSONList(
+	"WorkItemType", "Holds the paginated response to a work item type list request",
+	workItemType,
+	pagingLinks,
+	workItemTypeListMeta)
+
+// workItemTypeSingle is the media type for work item types
+var workItemTypeSingle = JSONSingle(
+	"WorkItemType", "A work item type describes the values a work item type instance can hold.",
+	workItemType,
+	workItemTypeLinks)
+
 var _ = a.Resource("workitemtype", func() {
-
 	a.BasePath("/workitemtypes")
-
 	a.Action("show", func() {
-
 		a.Routing(
-			a.GET("/:name"),
+			a.GET("/:id"),
 		)
-		a.Description("Retrieve work item type with given name.")
+		a.Description("Retrieve work item type with given ID.")
 		a.Params(func() {
-			a.Param("name", d.String, "name")
+			a.Param("id", d.String, "The name of the work item type")
 		})
 		a.Response(d.OK, func() {
-			a.Media(workItemType)
+			a.Media(workItemTypeSingle)
 		})
+		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
 		)
 		a.Description("Create work item type.")
-		a.Payload(CreateWorkItemTypePayload)
+		a.Payload(workItemTypeSingle)
 		a.Response(d.Created, "/workitemtypes/.*", func() {
-			a.Media(workItemType)
+			a.Media(workItemTypeSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
-
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
@@ -95,12 +120,27 @@ var _ = a.Resource("workitemtype", func() {
 		a.Description("List work item types.")
 		a.Params(func() {
 			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+			// TODO: Support same params as in work item list-action?
 		})
 		a.Response(d.OK, func() {
-			a.Media(a.CollectionOf(workItemType))
+			a.Media(workItemTypeList)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST(""),
+		)
+		a.Description("Create work item type.")
+		a.Payload(workItemTypeSingle)
+		a.Response(d.Created, "/workitemtypes/.*", func() {
+			a.Media(workItemTypeSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("list-source-link-types", func() {
