@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
@@ -20,6 +21,12 @@ type WorkItemLinkTypeRepository interface {
 	List(ctx context.Context) (*app.WorkItemLinkTypeList, error)
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkTypeSingle) (*app.WorkItemLinkTypeSingle, error)
+	// ListSourceLinkTypes returns the possible link types for where the given
+	// WIT can be used in the source.
+	ListSourceLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error)
+	// ListSourceLinkTypes returns the possible link types for where the given
+	// WIT can be used in the target.
+	ListTargetLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error)
 }
 
 // NewWorkItemLinkTypeRepository creates a work item link type repository based on gorm
@@ -198,4 +205,75 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkIt
 	log.Printf("updated work item link type to %v\n", res)
 	result := ConvertLinkTypeFromModel(res)
 	return &result, nil
+}
+
+type fetchLinkTypesFunc func() ([]WorkItemLinkType, error)
+
+func (r *GormWorkItemLinkTypeRepository) listLinkTypes(ctx context.Context, fetchFunc fetchLinkTypesFunc) (*app.WorkItemLinkTypeList, error) {
+	rows, err := fetchFunc()
+	if err != nil {
+		return nil, errs.WithStack(err)
+	}
+	res := app.WorkItemLinkTypeList{}
+	res.Data = make([]*app.WorkItemLinkTypeData, len(rows))
+	for index, value := range rows {
+		lt := ConvertLinkTypeFromModel(value)
+		res.Data[index] = lt.Data
+	}
+	// TODO: When adding pagination, this must not be len(rows) but
+	// the overall total number of elements from all pages.
+	res.Meta = &app.WorkItemLinkTypeListMeta{
+		TotalCount: len(rows),
+	}
+	return &res, nil
+}
+
+func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error) {
+	return r.listLinkTypes(ctx, func() ([]WorkItemLinkType, error) {
+		db := r.db.Model(WorkItemLinkType{})
+		query := fmt.Sprintf(`
+			-- Get link types we can use with a specific WIT if the WIT is at the
+			-- source of the link.
+			(SELECT path FROM %[2]s WHERE name = %[1]s.source_type_name LIMIT 1)
+			@>
+			(SELECT path FROM %[2]s WHERE name = ? LIMIT 1)`,
+			WorkItemLinkType{}.TableName(),
+			workitem.WorkItemType{}.TableName(),
+		)
+		db = db.Where(query, witName)
+		var rows []WorkItemLinkType
+		db = db.Find(&rows)
+		if db.RecordNotFound() {
+			return nil, nil
+		}
+		if db.Error != nil {
+			return nil, errs.WithStack(db.Error)
+		}
+		return rows, nil
+	})
+}
+
+func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error) {
+	return r.listLinkTypes(ctx, func() ([]WorkItemLinkType, error) {
+		db := r.db.Model(WorkItemLinkType{})
+		query := fmt.Sprintf(`
+			-- Get link types we can use with a specific WIT if the WIT is at the
+			-- target of the link.
+			(SELECT path FROM %[2]s WHERE name = %[1]s.target_type_name LIMIT 1)
+			@>
+			(SELECT path FROM %[2]s WHERE name = ? LIMIT 1)`,
+			WorkItemLinkType{}.TableName(),
+			workitem.WorkItemType{}.TableName(),
+		)
+		db = db.Where(query, witName)
+		var rows []WorkItemLinkType
+		db = db.Find(&rows)
+		if db.RecordNotFound() {
+			return nil, nil
+		}
+		if db.Error != nil {
+			return nil, errs.WithStack(db.Error)
+		}
+		return rows, nil
+	})
 }
