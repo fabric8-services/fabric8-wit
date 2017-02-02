@@ -90,10 +90,10 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	result := convertTypeFromModels(&a)
 
-	assert.Equal(t, expected.Data.ID, result.Data.ID)
-	assert.Equal(t, expected.Data.Attributes.Version, result.Data.Attributes.Version)
-	assert.Len(t, expected.Data.Attributes.Fields, result.Data.Attributes.Fields)
-	assert.Equal(t, expected.Data.Attributes.Fields, result.Data.Attributes.Fields)
+	assert.Equal(t, expected.Data.ID, result.ID)
+	assert.Equal(t, expected.Data.Attributes.Version, result.Attributes.Version)
+	assert.Len(t, result.Attributes.Fields, len(expected.Data.Attributes.Fields))
+	assert.Equal(t, expected.Data.Attributes.Fields, result.Attributes.Fields)
 }
 
 func TestConvertAnyToKind(t *testing.T) {

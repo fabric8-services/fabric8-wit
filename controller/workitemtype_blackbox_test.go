@@ -135,7 +135,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
-	payload := app.WorkItemTypeSingle{
+	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
 			ID:   "animal",
@@ -154,7 +154,6 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 // createWorkItemTypePerson defines a work item type "person" that consists of
 // a required "name" field.
 func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemType) {
-
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
 		Required: true,
@@ -164,7 +163,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
-	payload := app.WorkItemTypeSingle{
+	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   "person",
 			Type: "workitemtypes",
@@ -188,12 +187,21 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, wit := s.createWorkItemTypeAnimal()
+<<<<<<< 2b8426e215b96bddf51a05f93c8025c03c954fce
 	require.NotNil(s.T(), wit)
 	require.Equal(s.T(), "animal", wit.Name)
 
 	_, wit = s.createWorkItemTypePerson()
 	require.NotNil(s.T(), wit)
 	require.Equal(s.T(), "person", wit.Name)
+=======
+	assert.NotNil(s.T(), wit)
+	assert.Equal(s.T(), "animal", wit.Data.ID)
+
+	_, wit = s.createWorkItemTypePerson()
+	assert.NotNil(s.T(), wit)
+	assert.Equal(s.T(), "person", wit.Data.ID)
+>>>>>>> fixup - working rewrite to JSONAPI
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
@@ -204,7 +212,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType() {
 	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
 
-	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, wit.Name)
+	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, wit.Data.ID)
 
 	require.NotNil(s.T(), wit2)
 	require.EqualValues(s.T(), wit, wit2)
