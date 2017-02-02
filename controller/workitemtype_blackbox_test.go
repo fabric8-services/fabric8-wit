@@ -104,7 +104,7 @@ func (s *workItemTypeSuite) SetupTest() {
 
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
-func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemType) {
+func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
 
 	// Create an enumeration of animal names
 	typeStrings := []string{"elephant", "blue whale", "Tyrannosaurus rex"}
@@ -135,12 +135,17 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
-	payload := app.CreateWorkItemTypePayload{
-		Fields: map[string]*app.FieldDefinition{
-			"animal_type": &typeFieldDef,
-			"color":       &colorFieldDef,
+	payload := app.WorkItemTypeSingle{
+		Data: &app.WorkItemTypeData{
+			Type: "workitemtypes",
+			ID:   "animal",
+			Attributes: &app.WorkItemTypeAttributes{
+				Fields: map[string]*app.FieldDefinition{
+					"animal_type": &typeFieldDef,
+					"color":       &colorFieldDef,
+				},
+			},
 		},
-		Name: "animal",
 	}
 
 	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
@@ -159,11 +164,16 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
-	payload := app.CreateWorkItemTypePayload{
-		Fields: map[string]*app.FieldDefinition{
-			"name": &nameFieldDef,
+	payload := app.WorkItemTypeSingle{
+		Data: &app.WorkItemTypeData{
+			ID:   "person",
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Fields: map[string]*app.FieldDefinition{
+					"name": &nameFieldDef,
+				},
+			},
 		},
-		Name: "person",
 	}
 
 	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
@@ -220,15 +230,15 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 	require.Nil(s.T(), witCollection.Validate())
 
 	// Check the number of found work item types
-	require.Condition(s.T(), func() bool {
-		return (len(witCollection) >= 2)
-	}, "At least two work item types must exist (animal and person), but only %d exist.", len(witCollection))
+	assert.Condition(s.T(), func() bool {
+		return (len(witCollection.Data) >= 2)
+	}, "At least two work item types must exist (animal and person), but only %d exist.", len(witCollection.Data))
 
 	// Search for the work item types that must exist at minimum
 	toBeFound := 2
-	for i := 0; i < len(witCollection) && toBeFound > 0; i++ {
-		if witCollection[i].Name == "person" || witCollection[i].Name == "animal" {
-			s.T().Log("Found work item type in collection: ", witCollection[i].Name)
+	for i := 0; i < len(witCollection.Data) && toBeFound > 0; i++ {
+		if witCollection.Data[i].ID == "person" || witCollection.Data[i].ID == "animal" {
+			s.T().Log("Found work item type in collection: ", witCollection.Data[i].ID)
 			toBeFound--
 		}
 	}
