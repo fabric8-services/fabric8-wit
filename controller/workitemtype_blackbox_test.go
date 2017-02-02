@@ -187,6 +187,12 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, wit := s.createWorkItemTypeAnimal()
+	assrequireert.NotNil(s.T(), wit)
+	require.Equal(s.T(), "animal", wit.Data.ID)
+
+	_, wit = s.createWorkItemTypePerson()
+	require.NotNil(s.T(), wit)
+	require.Equal(s.T(), "person", wit.Data.ID)
 	assert.NotNil(s.T(), wit)
 	assert.Equal(s.T(), "animal", wit.Data.ID)
 
