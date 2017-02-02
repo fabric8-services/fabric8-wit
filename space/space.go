@@ -15,9 +15,9 @@ import (
 // Space represents a Space on the domain and db layer
 type Space struct {
 	gormsupport.Lifecycle
-	ID      satoriuuid.UUID
-	Version int
-	Name    string
+	ID          satoriuuid.UUID
+	Version     int
+	Name        string
 	Description string
 }
 
