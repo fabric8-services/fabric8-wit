@@ -44,6 +44,7 @@ function cleanup_env {
 function prepare() {
   # Let's test
   make docker-start
+  make docker-check-go-format
   make docker-deps
   make docker-generate
   make docker-build
