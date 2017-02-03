@@ -107,11 +107,11 @@ var _ = a.Resource("workitemtype", func() {
 	a.BasePath("/workitemtypes")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:name"),
+			a.GET("/:witId"),
 		)
 		a.Description("Retrieve work item type with given ID.")
 		a.Params(func() {
-			a.Param("name", d.String, "The name of the work item type")
+			a.Param("witId", d.String, "The name of the work item type")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemTypeSingle)
@@ -152,10 +152,10 @@ var _ = a.Resource("workitemtype", func() {
 
 	a.Action("list-source-link-types", func() {
 		a.Routing(
-			a.GET("/:name/source-link-types"),
+			a.GET("/:witdId/source-link-types"),
 		)
 		a.Params(func() {
-			a.Param("name", d.String, "name")
+			a.Param("witId", d.String, "ID of the work item type")
 		})
 		a.Description(`Retrieve work item link types where the
 given work item type can be used in the source of the link.`)
@@ -168,10 +168,10 @@ given work item type can be used in the source of the link.`)
 
 	a.Action("list-target-link-types", func() {
 		a.Routing(
-			a.GET("/:name/target-link-types"),
+			a.GET("/:witId/target-link-types"),
 		)
 		a.Params(func() {
-			a.Param("name", d.String, "name")
+			a.Param("witId", d.String, "ID of work item type")
 		})
 		a.Description(`Retrieve work item link types where the
 given work item type can be used in the target of the link.`)
