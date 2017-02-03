@@ -193,8 +193,6 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	_, wit = s.createWorkItemTypePerson()
 	require.NotNil(s.T(), wit)
 	require.Equal(s.T(), "person", wit.Data.ID)
-	assert.NotNil(s.T(), wit)
-	assert.Equal(s.T(), "animal", wit.Data.ID)
 
 	_, wit = s.createWorkItemTypePerson()
 	assert.NotNil(s.T(), wit)
