@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/models"
@@ -10,7 +12,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Identity ddenDescribes a unique Person with the ALM
+// Data describes a single resource in usersapce
 type Data struct {
 	gormsupport.Lifecycle
 	ID   uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
@@ -31,7 +33,7 @@ type UserspaceController struct {
 
 // NewUserspaceController creates a userspace controller.
 func NewUserspaceController(service *goa.Service, db *gorm.DB) *UserspaceController {
-	db.AutoMigrate(&Data{})
+	db.AutoMigrate(&Data{}).AddUniqueIndex("idx_userspace_path", "path")
 
 	return &UserspaceController{Controller: service.NewController("UserspaceController"), db: db}
 }
@@ -39,18 +41,45 @@ func NewUserspaceController(service *goa.Service, db *gorm.DB) *UserspaceControl
 // Create runs the create action.
 func (c *UserspaceController) Create(ctx *app.CreateUserspaceContext) error {
 	return models.Transactional(c.db, func(db *gorm.DB) error {
-		data := Data{
-			ID:   uuid.NewV4(),
-			Path: ctx.RequestURI,
-			Data: workitem.Fields(ctx.Payload),
-		}
 
-		err := c.db.Create(&data).Error
+		path := ctx.RequestURI
+
+		data := Data{}
+		err := c.db.Where("path = ?", path).First(&data).Error
+		fmt.Println(err)
 		if err != nil {
-			goa.LogError(ctx, "error adding Identity", "error", err.Error())
-			return ctx.InternalServerError()
+			data = Data{
+				ID:   uuid.NewV4(),
+				Path: ctx.RequestURI,
+				Data: workitem.Fields(ctx.Payload),
+			}
+			err := c.db.Create(&data).Error
+			if err != nil {
+				goa.LogError(ctx, "error adding data", "error", err.Error())
+				return ctx.InternalServerError()
+			}
+		} else {
+			err := c.db.Model(&data).Update("data", workitem.Fields(ctx.Payload)).Error
+			if err != nil {
+				goa.LogError(ctx, "error updating data", "error", err.Error())
+				return ctx.InternalServerError()
+			}
+		}
+		return ctx.NoContent()
+	})
+}
+
+// Show shows the record
+func (c *UserspaceController) Show(ctx *app.ShowUserspaceContext) error {
+	return models.Transactional(c.db, func(db *gorm.DB) error {
+
+		path := ctx.RequestURI
+		data := Data{}
+		err := c.db.Where("path = ?", path).First(&data).Error
+		if err != nil {
+			return ctx.NotFound()
 		}
 
-		return ctx.Created()
+		return ctx.OK(data.Data)
 	})
 }
