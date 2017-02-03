@@ -41,19 +41,20 @@ func TestGetDefaultConfigurationFile(t *testing.T) {
 func TestGetConfigurationDataSucess(t *testing.T) {
 	t.Parallel()
 	// this, in reality gets set in main
-	os.Setenv(tEnvironmentVariableNameConfigFile, tEnvironmentVariableValueConfigFile)
+	os.Setenv(tEnvironmentVariableNameConfigFile, tTestConfigFilePath)
 	cd, err := configuration.GetConfigurationData()
 	assert.Nil(t, err)
 	assert.NotNil(t, cd)
+	assert.Equal(t, "mysecretpassword2", cd.GetPostgresPassword())
 }
 
 func TestNewConfigurationDataSuccess(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	configFilePath := tEnvironmentVariableValueConfigFile
-	cd, err := configuration.NewConfigurationData(configFilePath)
+	cd, err := configuration.NewConfigurationData(tTestConfigFilePath)
 	assert.Nil(t, err)
 	assert.NotNil(t, cd)
+	assert.Equal(t, "mysecretpassword2", cd.GetPostgresPassword())
 
 }
 
