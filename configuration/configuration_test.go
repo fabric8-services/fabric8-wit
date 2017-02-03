@@ -109,7 +109,6 @@ func TestGetPostgresHost(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresHost
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -148,7 +147,6 @@ func TestGetPostgresPort(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresPort
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -186,7 +184,6 @@ func TestGetPostgresUser(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresUser
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -225,7 +222,6 @@ func TestGetPostgresDatabase(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresDatabase
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -263,7 +259,6 @@ func TestGetPostgresPassword(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresPassword
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -301,7 +296,6 @@ func TestGetPostgresSSLMode(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresSSLMode
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -339,7 +333,6 @@ func TestGetPostgresConnectionMaxRetries(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresConnectionMaxRetries
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -377,7 +370,6 @@ func TestGetPostgresConnectionRetrySleep(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PostgresConnectionRetrySleep
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, cast.ToDuration(expectedValue), viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -424,7 +416,6 @@ func TestGetPopulateCommonTypes(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.PopulateCommonTypes
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -462,7 +453,6 @@ func TestGetHTTPAddress(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.HTTPAddress
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -500,7 +490,6 @@ func IsPostgresDeveloperModeEnabled(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.DeveloperModeEnabled
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -538,7 +527,6 @@ func TestGetTokenPrivateKey(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.TokenPrivateKey
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, []byte(expectedValue), viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -576,7 +564,6 @@ func TestGetTokenPublicKey(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.TokenPublicKey
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, []byte(expectedValue), viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -614,7 +601,6 @@ func TestGetKeycloakSecret(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.KeycloakSecret
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -652,7 +638,6 @@ func TestGetKeycloakClientID(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.KeycloakClientID
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -690,7 +675,6 @@ func TestGetKeycloakEndpointAuth(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.KeycloakEndpointAuth
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
@@ -728,7 +712,6 @@ func TestGetKeycloakEndpointUserinfo(t *testing.T) {
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.KeycloakEndpointUserinfo
 
-	assert.NotNil(t, viperValue)
 	assert.Equal(t, expectedValue, viperValue)
 
 	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
