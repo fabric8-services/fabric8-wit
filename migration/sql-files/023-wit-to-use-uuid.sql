@@ -17,7 +17,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- C-LOCALE characters. This is a human readable free form field now.
 --
 -- 5. Finally, switch to "id" column to be our new primary key.
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 ALTER TABLE work_item_types ADD COLUMN id uuid DEFAULT uuid_generate_v4() NOT NULL;
 ALTER TABLE work_item_types ADD COLUMN description text;
@@ -60,6 +60,7 @@ ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_target_typ
 -- Drop the primary key itself and set up the new one on the "id" column.
 ALTER TABLE work_item_types DROP CONSTRAINT work_item_types_pkey;
 ALTER TABLE work_item_types ADD PRIMARY KEY (id);
+ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_check_name_c_locale;
 
 ------------------------------------------------------------------------------
 -- Update all references to the work item type table to point to the new "id"
