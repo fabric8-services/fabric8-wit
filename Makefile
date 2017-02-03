@@ -84,6 +84,22 @@ help:/
           } \
         }' $(MAKEFILE_LIST)
 
+.PHONY: check-go-format
+## Exists with an error if there are files whose formatting differs from gofmt's
+check-go-format: prebuild-check
+	@gofmt -l ${SOURCES} 2>&1 \
+		| tee /tmp/gofmt-errors \
+		| read \
+	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
+	&& cat /tmp/gofmt-errors \
+	&& exit 1 \
+	|| true
+
+.PHONY: format-go-code
+## Formats any go file that differs from gofmt's style
+format-go-code: prebuild-check
+	@gofmt -l -w ${SOURCES}
+
 .PHONY: build
 ## Build server and client.
 build: prebuild-check deps generate $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
