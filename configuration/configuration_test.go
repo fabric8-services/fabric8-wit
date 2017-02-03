@@ -26,7 +26,7 @@ const (
 	tTestConfigFilePath                 = "../test/data/multiple_config.yaml"
 
 	// The following will be used to set env variables for testing.
-	tTestEnvString         = "ALMIGHTH_CONFIG_VALUE"
+	tTestEnvString         = "ALMIGHTY_CONFIG_VALUE"
 	tTestEnvInt64    int64 = 12345
 	tTestEnvInt      int   = 12
 	tTestEnvDuration       = "1s"
