@@ -2,11 +2,13 @@ package configuration
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
 
@@ -20,6 +22,16 @@ func String() string {
 	return fmt.Sprintf("%s\n", y)
 }
 
+func (c *ConfigurationData) String() string {
+	allSettings := c.v.AllSettings()
+	y, err := yaml.Marshal(&allSettings)
+	if err != nil {
+		panic(fmt.Errorf("Failed to marshall config to string: %s", err.Error()))
+	}
+	return fmt.Sprintf("%s\n", y)
+}
+
+/*
 // Setup sets up defaults for viper configuration options and
 // overrides these values with the values from the given configuration file
 // if it is not empty. Those values again are overwritten by environment
@@ -55,7 +67,7 @@ func Setup(configFilePath string) error {
 
 	return nil
 }
-
+*/
 // Constants for viper variable names. Will be used to set
 // default values as well as to get each value
 const (
@@ -80,161 +92,45 @@ const (
 	varTokenPrivateKey              = "token.privatekey"
 )
 
-func setConfigDefaults() {
+func (c *ConfigurationData) SetConfigDefaults() {
 	//---------
 	// Postgres
 	//---------
-	viper.SetTypeByDefaultValue(true)
-	viper.SetDefault(varPostgresHost, "localhost")
-	viper.SetDefault(varPostgresPort, 5432)
-	viper.SetDefault(varPostgresUser, "postgres")
-	viper.SetDefault(varPostgresDatabase, "postgres")
-	viper.SetDefault(varPostgresPassword, "mysecretpassword")
-	viper.SetDefault(varPostgresSSLMode, "disable")
+	c.v.SetTypeByDefaultValue(true)
+	c.v.SetDefault(varPostgresHost, "localhost")
+	c.v.SetDefault(varPostgresPort, 5432)
+	c.v.SetDefault(varPostgresUser, "postgres")
+	c.v.SetDefault(varPostgresDatabase, "postgres")
+	c.v.SetDefault(varPostgresPassword, "mysecretpassword")
+	c.v.SetDefault(varPostgresSSLMode, "disable")
 	// The number of times alm server will attempt to open a connection to the database before it gives up
-	viper.SetDefault(varPostgresConnectionMaxRetries, 50)
+	c.v.SetDefault(varPostgresConnectionMaxRetries, 50)
 	// Number of seconds to wait before trying to connect again
-	viper.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
+	c.v.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
 
 	//-----
 	// HTTP
 	//-----
-	viper.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
 
 	//-----
 	// Misc
 	//-----
 
 	// Enable development related features, e.g. token generation endpoint
-	viper.SetDefault(varDeveloperModeEnabled, false)
+	c.v.SetDefault(varDeveloperModeEnabled, false)
 
-	viper.SetDefault(varPopulateCommonTypes, true)
+	c.v.SetDefault(varPopulateCommonTypes, true)
 
 	// Auth-related defaults
-	viper.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
-	viper.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
-	viper.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
-	viper.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
-	viper.SetDefault(varGithubAuthToken, defaultActualToken)
-	viper.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
-	viper.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
-	viper.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
-}
-
-// GetPostgresHost returns the postgres host as set via default, config file, or environment variable
-func GetPostgresHost() string {
-	return viper.GetString(varPostgresHost)
-}
-
-// GetPostgresPort returns the postgres port as set via default, config file, or environment variable
-func GetPostgresPort() int64 {
-	return viper.GetInt64(varPostgresPort)
-}
-
-// GetPostgresUser returns the postgres user as set via default, config file, or environment variable
-func GetPostgresUser() string {
-	return viper.GetString(varPostgresUser)
-}
-
-// GetPostgresDatabase returns the postgres database as set via default, config file, or environment variable
-func GetPostgresDatabase() string {
-	return viper.GetString(varPostgresDatabase)
-}
-
-// GetPostgresPassword returns the postgres password as set via default, config file, or environment variable
-func GetPostgresPassword() string {
-	return viper.GetString(varPostgresPassword)
-}
-
-// GetPostgresSSLMode returns the postgres sslmode as set via default, config file, or environment variable
-func GetPostgresSSLMode() string {
-	return viper.GetString(varPostgresSSLMode)
-}
-
-// GetPostgresConnectionMaxRetries returns the number of times (as set via default, config file, or environment variable)
-// alm server will attempt to open a connection to the database before it gives up
-func GetPostgresConnectionMaxRetries() int {
-	return viper.GetInt(varPostgresConnectionMaxRetries)
-}
-
-// GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
-// to wait before trying to connect again
-func GetPostgresConnectionRetrySleep() time.Duration {
-	return viper.GetDuration(varPostgresConnectionRetrySleep)
-}
-
-// GetPostgresConfigString returns a ready to use string for usage in sql.Open()
-func GetPostgresConfigString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
-		GetPostgresHost(),
-		GetPostgresPort(),
-		GetPostgresUser(),
-		GetPostgresPassword(),
-		GetPostgresDatabase(),
-		GetPostgresSSLMode(),
-	)
-}
-
-// GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
-// the common work item types such as bug or feature shall be created.
-func GetPopulateCommonTypes() bool {
-	return viper.GetBool(varPopulateCommonTypes)
-}
-
-// GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
-// that the alm server binds to (e.g. "0.0.0.0:8080")
-func GetHTTPAddress() string {
-	return viper.GetString(varHTTPAddress)
-}
-
-// IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
-// e.g. token generation endpoint are enabled
-func IsPostgresDeveloperModeEnabled() bool {
-	return viper.GetBool(varDeveloperModeEnabled)
-}
-
-// GetTokenPrivateKey returns the private key (as set via config file or environment variable)
-// that is used to sign the authentication token.
-func GetTokenPrivateKey() []byte {
-	return []byte(viper.GetString(varTokenPrivateKey))
-}
-
-// GetTokenPublicKey returns the public key (as set via config file or environment variable)
-// that is used to decrypt the authentication token.
-func GetTokenPublicKey() []byte {
-	return []byte(viper.GetString(varTokenPublicKey))
-}
-
-// GetGithubAuthToken returns the actual Github OAuth Access Token
-func GetGithubAuthToken() string {
-	return viper.GetString(varGithubAuthToken)
-}
-
-// GetKeycloakSecret returns the keycloak client secret (as set via config file or environment variable)
-// that is used to make authorized Keycloak API Calls.
-func GetKeycloakSecret() string {
-	return viper.GetString(varKeycloakSecret)
-}
-
-// GetKeycloakClientID returns the keycloak client ID (as set via config file or environment variable)
-// that is used to make authorized Keycloak API Calls.
-func GetKeycloakClientID() string {
-	return viper.GetString(varKeycloakClientID)
-}
-
-// GetKeycloakEndpointAuth returns the keycloak auth endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointAuth() string {
-	return viper.GetString(varKeycloakEndpointAuth)
-}
-
-// GetKeycloakEndpointToken returns the keycloak token endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointToken() string {
-	return viper.GetString(varKeycloakEndpointToken)
-}
-
-// GetKeycloakEndpointUserinfo returns the keycloak userinfo endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointUserinfo() string {
-	return viper.GetString(varKeycloakEndpointUserinfo)
+	c.v.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
+	c.v.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
+	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
+	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
+	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
+	c.v.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
+	c.v.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
+	c.v.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
 }
 
 // Auth-related defaults
@@ -293,3 +189,165 @@ var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+
+/*
+   New Configuration handler
+*/
+
+type ConfigurationData struct {
+	v *viper.Viper
+}
+
+func getConfigFilePath() string {
+	envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH")
+	if !ok {
+		panic("Environment configuration missing")
+	}
+	return envConfigPath
+}
+
+// GetConfigurationData is a wrapper over NewConfigurationData which reads configuration file path
+// from the environment variable.
+func GetConfigurationData() (*ConfigurationData, error) {
+	cd, err := NewConfigurationData(getConfigFilePath())
+	return cd, err
+}
+
+// NewConfigurationData creates a configuration reader object using a configurable configuration file path
+func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
+	c := ConfigurationData{
+		v: viper.New(),
+	}
+	c.v.SetEnvPrefix("ALMIGHTY")
+	c.v.AutomaticEnv()
+	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	c.v.SetTypeByDefaultValue(true)
+	if configFilePath != "" {
+		c.SetConfigDefaults()
+		c.v.SetConfigType("yaml")
+		c.v.SetConfigFile(configFilePath)
+		err := c.v.ReadInConfig() // Find and read the config file
+		if err != nil {           // Handle errors reading the config file
+			return nil, errors.Errorf("Fatal error config file: %s \n", err)
+		}
+	}
+	return &c, nil
+}
+
+func (c *ConfigurationData) GetKeycloakEndpointToken() string {
+	return c.v.GetString(varKeycloakEndpointToken)
+}
+
+// GetPostgresHost returns the postgres host as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresHost() string {
+	return c.v.GetString(varPostgresHost)
+}
+
+// GetPostgresPort returns the postgres port as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresPort() int64 {
+	return c.v.GetInt64(varPostgresPort)
+}
+
+// GetPostgresUser returns the postgres user as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresUser() string {
+	return c.v.GetString(varPostgresUser)
+}
+
+// GetPostgresDatabase returns the postgres database as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresDatabase() string {
+	return c.v.GetString(varPostgresDatabase)
+}
+
+// GetPostgresPassword returns the postgres password as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresPassword() string {
+	return c.v.GetString(varPostgresPassword)
+}
+
+// GetPostgresSSLMode returns the postgres sslmode as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresSSLMode() string {
+	return c.v.GetString(varPostgresSSLMode)
+}
+
+// GetPostgresConnectionMaxRetries returns the number of times (as set via default, config file, or environment variable)
+// alm server will attempt to open a connection to the database before it gives up
+func (c *ConfigurationData) GetPostgresConnectionMaxRetries() int {
+	return c.v.GetInt(varPostgresConnectionMaxRetries)
+}
+
+// GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
+// to wait before trying to connect again
+func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
+	return c.v.GetDuration(varPostgresConnectionRetrySleep)
+}
+
+// GetPostgresConfigString returns a ready to use string for usage in sql.Open()
+func (c *ConfigurationData) GetPostgresConfigString() string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
+		c.GetPostgresHost(),
+		c.GetPostgresPort(),
+		c.GetPostgresUser(),
+		c.GetPostgresPassword(),
+		c.GetPostgresDatabase(),
+		c.GetPostgresSSLMode(),
+	)
+}
+
+// GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
+// the common work item types such as bug or feature shall be created.
+func (c *ConfigurationData) GetPopulateCommonTypes() bool {
+	return c.v.GetBool(varPopulateCommonTypes)
+}
+
+// GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
+// that the alm server binds to (e.g. "0.0.0.0:8080")
+func (c *ConfigurationData) GetHTTPAddress() string {
+	return c.v.GetString(varHTTPAddress)
+}
+
+// IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
+// e.g. token generation endpoint are enabled
+func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
+	return c.v.GetBool(varDeveloperModeEnabled)
+}
+
+// GetTokenPrivateKey returns the private key (as set via config file or environment variable)
+// that is used to sign the authentication token.
+func (c *ConfigurationData) GetTokenPrivateKey() []byte {
+	return []byte(c.v.GetString(varTokenPrivateKey))
+}
+
+// GetTokenPublicKey returns the public key (as set via config file or environment variable)
+// that is used to decrypt the authentication token.
+func (c *ConfigurationData) GetTokenPublicKey() []byte {
+	//trimmedKey := strings.Replace(c.v.GetString(varTokenPublicKey), " ", "", -1)
+	//fmt.Println(trimmedKey)
+	fmt.Println(c.v.GetString(varTokenPublicKey))
+	return []byte(c.v.GetString(varTokenPublicKey))
+}
+
+// GetGithubAuthToken returns the actual Github OAuth Access Token
+func (c *ConfigurationData) GetGithubAuthToken() string {
+	return c.v.GetString(varGithubAuthToken)
+}
+
+// GetKeycloakSecret returns the keycloak client secret (as set via config file or environment variable)
+// that is used to make authorized Keycloak API Calls.
+func (c *ConfigurationData) GetKeycloakSecret() string {
+	return c.v.GetString(varKeycloakSecret)
+}
+
+// GetKeycloakClientID returns the keycloak client ID (as set via config file or environment variable)
+// that is used to make authorized Keycloak API Calls.
+func (c *ConfigurationData) GetKeycloakClientID() string {
+	return c.v.GetString(varKeycloakClientID)
+}
+
+// GetKeycloakEndpointAuth returns the keycloak auth endpoint (as set via config file or environment variable)
+func (c *ConfigurationData) GetKeycloakEndpointAuth() string {
+	return c.v.GetString(varKeycloakEndpointAuth)
+}
+
+// GetKeycloakEndpointUserinfo returns the keycloak userinfo endpoint (as set via config file or environment variable)
+func (c *ConfigurationData) GetKeycloakEndpointUserinfo() string {
+	return c.v.GetString(varKeycloakEndpointUserinfo)
+}

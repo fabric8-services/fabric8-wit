@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -34,6 +35,8 @@ type TestCommentREST struct {
 }
 
 func TestRunCommentREST(t *testing.T) {
+	os.Setenv("ALMIGHTY_CONFIG_FILE_PATH", "../config.yaml")
+
 	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
 }
 

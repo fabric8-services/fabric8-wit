@@ -16,7 +16,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
@@ -167,6 +167,11 @@ func TestListByFields(t *testing.T) {
 }
 
 func getWorkItemTestData(t *testing.T) []testSecureAPI {
+	configuration, err := config.NewConfigurationData("config.yaml")
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
@@ -572,7 +577,8 @@ type WorkItem2Suite struct {
 func (s *WorkItem2Suite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.NewConfigurationData("config.yaml")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 

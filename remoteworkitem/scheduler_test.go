@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -21,7 +21,8 @@ var db *gorm.DB
 func TestMain(m *testing.M) {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.NewConfigurationData("../config.yaml")
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
