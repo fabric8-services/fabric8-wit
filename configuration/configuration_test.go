@@ -40,6 +40,8 @@ func TestGetDefaultConfigurationFile(t *testing.T) {
 
 func TestGetConfigurationDataSucess(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
 	// this, in reality gets set in main
 	os.Setenv(tEnvironmentVariableNameConfigFile, tTestConfigFilePath)
 	cd, err := configuration.GetConfigurationData()
@@ -69,6 +71,7 @@ func TestNewConfigurationDataFail(t *testing.T) {
 
 func TestGetKeycloakEndpointToken(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	cd := getConfigurationDataHandler()
 	require.NotNil(t, cd)
@@ -85,6 +88,7 @@ func TestGetKeycloakEndpointToken(t *testing.T) {
 
 func TestGetPostgresHost(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresHost)
 
@@ -123,6 +127,7 @@ func TestGetPostgresHost(t *testing.T) {
 
 func TestGetPostgresPort(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresPort)
 
@@ -160,6 +165,7 @@ func TestGetPostgresPort(t *testing.T) {
 
 func TestGetPostgresUser(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresUser)
 
@@ -198,6 +204,7 @@ func TestGetPostgresUser(t *testing.T) {
 
 func TestGetPostgresDatabase(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresDatabase)
 
@@ -235,6 +242,7 @@ func TestGetPostgresDatabase(t *testing.T) {
 
 func TestGetPostgresPassword(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresPassword)
 
@@ -272,6 +280,7 @@ func TestGetPostgresPassword(t *testing.T) {
 
 func TestGetPostgresSSLMode(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresSSLMode)
 
@@ -309,6 +318,7 @@ func TestGetPostgresSSLMode(t *testing.T) {
 
 func TestGetPostgresConnectionMaxRetries(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresConnectionMaxRetries)
 
@@ -346,6 +356,7 @@ func TestGetPostgresConnectionMaxRetries(t *testing.T) {
 
 func TestGetPostgresConnectionRetrySleep(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPostgresConnectionRetrySleep)
 
@@ -383,6 +394,7 @@ func TestGetPostgresConnectionRetrySleep(t *testing.T) {
 
 func TestGetPostgresConfigString(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	configurationData := getConfigurationDataHandler()
 	// This is a derviced config parameter, not present as is, in the config file.
@@ -391,6 +403,7 @@ func TestGetPostgresConfigString(t *testing.T) {
 
 func TestGetPopulateCommonTypes(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varPopulateCommonTypes)
 
@@ -428,6 +441,7 @@ func TestGetPopulateCommonTypes(t *testing.T) {
 
 func TestGetHTTPAddress(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varHTTPAddress)
 
@@ -465,6 +479,7 @@ func TestGetHTTPAddress(t *testing.T) {
 
 func IsPostgresDeveloperModeEnabled(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varDeveloperModeEnabled)
 
@@ -502,6 +517,7 @@ func IsPostgresDeveloperModeEnabled(t *testing.T) {
 
 func TestGetTokenPrivateKey(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varTokenPrivateKey)
 
@@ -539,6 +555,7 @@ func TestGetTokenPrivateKey(t *testing.T) {
 
 func TestGetTokenPublicKey(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varTokenPublicKey)
 
@@ -576,6 +593,7 @@ func TestGetTokenPublicKey(t *testing.T) {
 
 func TestGetKeycloakSecret(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varKeycloakSecret)
 
@@ -613,6 +631,7 @@ func TestGetKeycloakSecret(t *testing.T) {
 
 func TestGetKeycloakClientID(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varKeycloakClientID)
 
@@ -650,6 +669,7 @@ func TestGetKeycloakClientID(t *testing.T) {
 
 func TestGetKeycloakEndpointAuth(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varKeycloakEndpointAuth)
 
@@ -687,6 +707,7 @@ func TestGetKeycloakEndpointAuth(t *testing.T) {
 
 func TestGetKeycloakEndpointUserinfo(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	envKey := generateEnvKey(varKeycloakEndpointUserinfo)
 
@@ -729,6 +750,7 @@ and checks whether one doesn't override the other.append
 
 func TestMultipleConfigurations(t *testing.T) {
 	t.Parallel()
+	resource.Require(t, resource.UnitTest)
 
 	configurationData1, err := configuration.NewConfigurationData(tEnvironmentVariableValueConfigFile)
 	require.Nil(t, err)
