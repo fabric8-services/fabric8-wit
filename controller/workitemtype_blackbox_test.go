@@ -187,21 +187,12 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, wit := s.createWorkItemTypeAnimal()
-<<<<<<< 2b8426e215b96bddf51a05f93c8025c03c954fce
-	require.NotNil(s.T(), wit)
-	require.Equal(s.T(), "animal", wit.Name)
-
-	_, wit = s.createWorkItemTypePerson()
-	require.NotNil(s.T(), wit)
-	require.Equal(s.T(), "person", wit.Name)
-=======
 	assert.NotNil(s.T(), wit)
 	assert.Equal(s.T(), "animal", wit.Data.ID)
 
 	_, wit = s.createWorkItemTypePerson()
 	assert.NotNil(s.T(), wit)
 	assert.Equal(s.T(), "person", wit.Data.ID)
->>>>>>> fixup - working rewrite to JSONAPI
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
