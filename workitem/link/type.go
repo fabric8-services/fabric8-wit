@@ -46,9 +46,9 @@ type WorkItemLinkType struct {
 	gormsupport.Lifecycle
 	// ID
 	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// Name is the unique name of this work item link category.
+	// Name is the unique name of this work item link type.
 	Name string
-	// Description is an optional description of the work item link category
+	// Description is an optional description of the work item link type
 	Description *string
 	// Version for optimistic concurrency control
 	Version  int

@@ -51,8 +51,12 @@ var (
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
 	gormsupport.Lifecycle
-	// the unique name of this work item type.
-	Name string `gorm:"primary_key"`
+	// ID
+	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// Name is a human readable name of this work item type
+	Name string
+	// Description is an optional description of the work item type
+	Description *string
 	// Version for optimistic concurrency control
 	Version int
 	// the id's of the parents, separated with some separator
@@ -75,6 +79,22 @@ func (wit WorkItemType) TableName() string {
 var _ convert.Equaler = WorkItemType{}
 var _ convert.Equaler = (*WorkItemType)(nil)
 
+// returns true if the left hand and right hand side string
+// pointers either both point to nil or reference the same
+// content; otherwise false is returned.
+func strPtrIsNilOrContentIsEqual(l, r *string) bool {
+	if l == nil && r != nil {
+		return false
+	}
+	if l != nil && r == nil {
+		return false
+	}
+	if l == nil && r == nil {
+		return true
+	}
+	return *l == *r
+}
+
 // Equal returns true if two WorkItemType objects are equal; otherwise false is returned.
 func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemType)
@@ -88,6 +108,9 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if wit.Name != other.Name {
+		return false
+	}
+	if !strPtrIsNilOrContentIsEqual(wit.Description, other.Description) {
 		return false
 	}
 	if wit.Path != other.Path {

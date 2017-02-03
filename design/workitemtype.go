@@ -33,6 +33,14 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Description("A work item type describes the values a work item type instance can hold.")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
+	a.Attribute("name", d.String, "The human readable name of the work item type", func() {
+		a.Example("User story")
+		a.MinLength(1)
+	})
+	a.Attribute("description", d.String, "A human readable description for the work item type", func() {
+		a.Example(`A user story encapsulates the action of one function making it possible
+for software developers to create a vertical slice of their work.`)
+	})
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
 		a.Example(map[string]interface{}{
 			"system.administrator": map[string]interface{}{
@@ -54,23 +62,19 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 
 	a.Required("version")
 	a.Required("fields")
+	a.Required("name")
 })
 
 var workItemTypeData = a.Type("WorkItemTypeData", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemtypes")
 	})
-	a.Attribute("id", d.String, "The name of the work item type (not optional)", func() {
-		a.Example("Epic")
-		a.Pattern("^[a-zA-Z0-9_]+$")
-		a.MinLength(1)
+	a.Attribute("id", d.String, "ID of work item type (optional during creation)", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Attribute("attributes", workItemTypeAttributes)
 	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
-	// NOTICE: for now the id attribute is not optional because it is just the
-	// WIT's name. This might change in the future but not at this point.
-	a.Required("id")
 })
 
 // workItemTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources
