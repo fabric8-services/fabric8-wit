@@ -15,6 +15,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
@@ -36,12 +37,13 @@ type Service interface {
 }
 
 // NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
-func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager) Service {
+func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) Service {
 	return &keycloakOAuthProvider{
 		config:       config,
 		identities:   identities,
 		users:        users,
 		tokenManager: tokenManager,
+		db:           db,
 	}
 }
 
@@ -50,6 +52,7 @@ type keycloakOAuthProvider struct {
 	identities   account.IdentityRepository
 	users        account.UserRepository
 	tokenManager token.Manager
+	db           application.DB
 }
 
 // keycloakTokenClaims represents standard Keycloak token claims
@@ -98,25 +101,43 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 			return redirectWithError(ctx, knownReferer, "Error when parsing token "+err.Error())
 		}
 
-		email := claims.Email
-		users, err := keycloak.users.Query(account.UserByEmails([]string{email}), account.UserWithIdentity())
+		keycloakIdentityID, _ := uuid.FromString(claims.Subject)
+		identities, err := keycloak.identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
 		if err != nil {
-			return redirectWithError(ctx, knownReferer, "Error during querying for a user "+err.Error())
+			return redirectWithError(ctx, knownReferer, "Error during querying for an identity "+err.Error())
 		}
-		var identity *account.Identity
+		var user *account.User
 
-		if len(users) == 0 {
-			// No User found, create a new User and Identity
-			identity = new(account.Identity)
-			fillIdentity(claims, identity)
-			keycloak.identities.Create(ctx, identity)
-			keycloak.users.Create(ctx, &account.User{Email: email, Identity: *identity})
+		if len(identities) == 0 {
+			// No Idenity found, create a new Identity and User
+			user = new(account.User)
+			fillUser(claims, user)
+			err = application.Transactional(keycloak.db, func(appl application.Application) error {
+				err := keycloak.users.Create(ctx, user)
+				if err != nil {
+					// TODO It seems that even if we return an error here the transaction is not rolled back and the user is created. Why?!
+					return err
+				}
+				err = keycloak.identities.Create(ctx, &account.Identity{
+					ID:       keycloakIdentityID,
+					Username: claims.Username,
+					Provider: account.KeycloakIDP,
+					UserID:   account.NullUUID{UUID: user.ID, Valid: true},
+					User:     *user})
+				return err
+			})
+			if err != nil {
+				return redirectWithError(ctx, knownReferer, "Cant' create user/identity "+err.Error())
+			}
 		} else {
-			identity = &users[0].Identity
-			// let's update the current identity with the fullname and avatar from Keycloak,
-			// in case the user changed them since the last time he/she logged in here
-			fillIdentity(claims, identity)
-			keycloak.identities.Save(ctx, identity)
+			user = &identities[0].User
+			// let's update the existing user with the fullname, email and avatar from Keycloak,
+			// in case the user changed them since the last time he/she logged in
+			fillUser(claims, user)
+			err = keycloak.users.Save(ctx, user)
+			if err != nil {
+				return redirectWithError(ctx, knownReferer, "Cant' update user "+err.Error())
+			}
 		}
 
 		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+keycloakToken.AccessToken)
@@ -200,15 +221,14 @@ func checkClaims(claims *keycloakTokenClaims) error {
 	return nil
 }
 
-func fillIdentity(claims *keycloakTokenClaims, identity *account.Identity) error {
-	identity.FullName = claims.Name
-	id, _ := uuid.FromString(claims.Subject)
-	identity.ID = id
+func fillUser(claims *keycloakTokenClaims, user *account.User) error {
+	user.FullName = claims.Name
+	user.Email = claims.Email
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
 		return errors.New("Error when generating gravatar " + err.Error())
 	}
-	identity.ImageURL = image
+	user.ImageURL = image
 	return nil
 }
 

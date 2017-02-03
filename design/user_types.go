@@ -134,6 +134,11 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 var identityDataAttributes = a.Type("IdentityDataAttributes", func() {
 	a.Attribute("fullName", d.String, "The users full name")
 	a.Attribute("imageURL", d.String, "The avatar image for the user")
+	a.Attribute("username", d.String, "The username")
+	a.Attribute("email", d.String, "The email")
+	a.Attribute("bio", d.String, "The bio")
+	a.Attribute("url", d.String, "The url")
+	a.Attribute("provider", d.String, "The IDP provided this identity")
 })
 
 // identityData represents an identified user object

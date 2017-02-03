@@ -41,7 +41,7 @@ func (db *MockDB) SearchItems() application.SearchRepository {
 func (db *MockDB) Identities() application.IdentityRepository {
 	return nil
 }
-func (db *MockDB) Users() account.IdentityRepository {
+func (db *MockDB) Users() account.UserRepository {
 	return nil
 }
 func (db *MockDB) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {

@@ -36,8 +36,8 @@ func NewManager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
 func (mgm tokenManager) Generate(ident account.Identity) (string, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
-	token.Claims.(jwt.MapClaims)["fullName"] = ident.FullName
-	token.Claims.(jwt.MapClaims)["imageURL"] = ident.ImageURL
+	token.Claims.(jwt.MapClaims)["username"] = ident.Username
+	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
 
 	tokenStr, err := token.SignedString(mgm.privateKey)
 	if err != nil {
@@ -70,8 +70,7 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 
 	ident := account.Identity{
 		ID:       id,
-		FullName: token.Claims.(jwt.MapClaims)["name"].(string),
-		ImageURL: "",
+		Username: token.Claims.(jwt.MapClaims)["username"].(string),
 	}
 
 	return &ident, nil

@@ -170,15 +170,15 @@ func main() {
 		},
 	}
 
-	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager)
+	appDB := gormapplication.NewGormDB(db)
+
+	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 
 	// Mount "status" controller
 	statusCtrl := NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
-
-	appDB := gormapplication.NewGormDB(db)
 
 	// Mount "workitem" controller
 	workitemCtrl := NewWorkitemController(service, appDB)
@@ -225,7 +225,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := NewUserController(service, identityRepository, tokenManager)
+	userCtrl := NewUserController(service, appDB, tokenManager)
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller

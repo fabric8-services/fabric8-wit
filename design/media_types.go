@@ -192,3 +192,19 @@ var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
 		a.Required("data")
 	})
 })
+
+// userArray represents an array of user objects
+var userArray = a.MediaType("application/vnd.user-array+json", func() {
+	a.UseTrait("jsonapi-media-type")
+	a.TypeName("UserArray")
+	a.Description("User Array")
+	a.Attributes(func() {
+		a.Attribute("data", a.ArrayOf(identityData))
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})

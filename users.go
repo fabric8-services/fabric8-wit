@@ -31,31 +31,101 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		result, err := appl.Users().Load(ctx.Context, id)
+		identity, err := appl.Identities().Load(ctx.Context, id)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		return ctx.OK(ConvertUser(ctx.RequestData, result))
+		var user *account.User
+		userID := identity.UserID
+		if userID.Valid {
+			user, err = appl.Users().Load(ctx.Context, userID.UUID)
+			if err != nil {
+				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			}
+		}
+		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
 }
 
+// List runs the list action.
+func (c *UsersController) List(ctx *app.ListUsersContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		var err error
+		var users []*account.User
+		var result *app.UserArray
+		users, err = appl.Users().List(ctx.Context)
+		if err == nil {
+			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
+			if err == nil {
+				return ctx.OK(result)
+			}
+		}
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing users: %s", err.Error())))
+		return ctx.InternalServerError(jerrors)
+	})
+}
+
+// LoadKeyCloakIdentities loads keycloak identies for the users and converts the users into REST representation
+func LoadKeyCloakIdentities(appl application.Application, request *goa.RequestData, users []*account.User) (*app.UserArray, error) {
+	data := make([]*app.IdentityData, len(users))
+	for i, user := range users {
+		identity, err := loadKeyCloakIdentity(appl, user)
+		if err != nil {
+			return nil, err
+		}
+		appIdentity := ConvertUser(request, identity, user)
+		data[i] = appIdentity.Data
+	}
+	return &app.UserArray{Data: data}, nil
+}
+
+func loadKeyCloakIdentity(appl application.Application, user *account.User) (*account.Identity, error) {
+	identities, err := appl.Identities().Query(account.IdentityFilterByUserID(user.ID))
+	if err != nil {
+		return nil, err
+	}
+	for _, identity := range identities {
+		if identity.Provider == account.KeycloakIDP {
+			return identity, nil
+		}
+	}
+	return nil, fmt.Errorf("Can't find Keycloak Identity for user %s", user.Email)
+}
+
 // ConvertUser converts a complete Identity object into REST representation
-func ConvertUser(request *goa.RequestData, account *account.Identity) *app.Identity {
-	id := account.ID.String()
+func ConvertUser(request *goa.RequestData, identity *account.Identity, user *account.User) *app.Identity {
+	uuid := identity.ID
+	id := uuid.String()
+	fullName := identity.Username
+	userName := identity.Username
+	provider := identity.Provider
+	var imageURL string
+	var bio string
+	var userURL string
+	if user != nil {
+		fullName = user.FullName
+		imageURL = user.ImageURL
+		bio = user.Bio
+		userURL = user.URL
+	}
 	converted := app.Identity{
 		Data: &app.IdentityData{
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				FullName: &account.FullName,
-				ImageURL: &account.ImageURL,
+				Username: &userName,
+				FullName: &fullName,
+				ImageURL: &imageURL,
+				Bio:      &bio,
+				URL:      &userURL,
+				Provider: &provider,
 			},
-			Links: createUserLinks(request, account.ID),
+			Links: createUserLinks(request, uuid),
 		},
 	}
 	return &converted
-
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List

@@ -40,11 +40,11 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	var scopes []account.Identity
 	scopes = append(scopes, account.Identity{
 		ID:       uuid.NewV4(),
-		FullName: "Test Developer",
+		Username: "TestDeveloper",
 	})
 	scopes = append(scopes, account.Identity{
 		ID:       uuid.NewV4(),
-		FullName: "Test Observer",
+		Username: "TestObserver",
 	})
 
 	var tokens app.AuthTokenCollection

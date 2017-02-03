@@ -71,7 +71,7 @@ func TestMain(m *testing.M) {
 	tokenManager := token.NewManager(publicKey, privateKey)
 	userRepository := account.NewUserRepository(db)
 	identityRepository := account.NewIdentityRepository(db)
-	loginService = NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager)
+	loginService = NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, db)
 
 	os.Exit(m.Run())
 }

@@ -143,6 +143,18 @@ var _ = a.Resource("users", func() {
 
 	})
 
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List all users.")
+		a.Response(d.OK, func() {
+			a.Media(userArray)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
 })
 
 var _ = a.Resource("status", func() {
