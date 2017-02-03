@@ -230,7 +230,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 			return nil, errs.WithStack(err)
 		}
 		if !componentType.isSimpleType() {
-			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
+			return nil, fmt.Errorf("Component type is not list type: %s", reflect.ValueOf(componentType).Type())
 		}
 		return ListType{SimpleType{*kind}, SimpleType{*componentType}}, nil
 	case KindEnum:
@@ -239,7 +239,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 			return nil, errs.WithStack(err)
 		}
 		if !bt.isSimpleType() {
-			return nil, fmt.Errorf("baseType type is not list type: %s", bt)
+			return nil, fmt.Errorf("baseType type is not list type: %s", reflect.ValueOf(bt).Type())
 		}
 		baseType := SimpleType{*bt}
 
