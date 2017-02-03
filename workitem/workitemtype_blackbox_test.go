@@ -63,8 +63,10 @@ func TestMarshalEnumType(t *testing.T) {
 		Required: true,
 	}
 
+	desc := "some description"
 	expectedWIT := workitem.WorkItemType{
-		Name: "first type",
+		Name:        "first type",
+		Description: &desc,
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": fd},
 	}
@@ -93,8 +95,10 @@ func TestWorkItemType_Equal(t *testing.T) {
 		Required: true,
 	}
 
+	desc := "some description"
 	a := workitem.WorkItemType{
-		Name: "foo",
+		Name:        "foo",
+		Description: &desc,
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": fd,
 		},
@@ -114,7 +118,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 	d.Version += 1
 	assert.False(t, a.Equal(d))
 
-	// Test version
+	// Test name
 	e := a
 	e.Name = "bar"
 	assert.False(t, a.Equal(e))
@@ -140,7 +144,8 @@ func TestWorkItemType_Equal(t *testing.T) {
 
 	// Test field difference
 	i := workitem.WorkItemType{
-		Name: "foo",
+		Name:        "foo",
+		Description: &desc,
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": {
 				Type: workitem.EnumType{
@@ -152,6 +157,11 @@ func TestWorkItemType_Equal(t *testing.T) {
 		},
 	}
 	assert.False(t, a.Equal(i))
+
+	// Test description
+	j := a
+	j.Description = "some other description"
+	assert.False(t, a.Equal(j))
 
 }
 
