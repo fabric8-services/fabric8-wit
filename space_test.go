@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -44,7 +43,7 @@ func (rest *TestSpaceREST) SecuredController() (*goa.Service, *SpaceController) 
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	return svc, NewSpaceController(svc, rest.db)
 }
 
