@@ -74,7 +74,7 @@ work_item_fields_bag:
     values: *common_work_item_states
     required: false
 
-# If no other fields are required for your PR you can use this handy default
+# If no other fields are required for your work item you can use this handy default
 common_work_item_fields: &common_work_item_fields
   system_title: *field_title
   system_description: *field_description
