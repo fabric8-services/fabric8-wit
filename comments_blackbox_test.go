@@ -1,27 +1,21 @@
 package main_test
 
 import (
-	"crypto/rsa"
 	"fmt"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,63 +25,43 @@ import (
 // a normal test function that will kick off TestSuiteComments
 func TestSuiteComments(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(CommentsSuite))
+	suite.Run(t, &CommentsSuite{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
 }
 
 // ========== TestSuiteComments struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type CommentsSuite struct {
-	suite.Suite
-	workitemCommentsCtrl app.WorkItemCommentsController
-	workitemCtrl         app.WorkitemController
-	defaultSvc           *goa.Service
-	userSvc              *goa.Service
-	userSvc2             *goa.Service
-	db                   *gorm.DB
-	pubKey               *rsa.PublicKey
-	priKey               *rsa.PrivateKey
-	clean                func()
-	commentId            uuid.UUID
-}
-
-func (s *CommentsSuite) SetupSuite() {
-	var err error
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
-	// default service (without auth)
-	s.defaultSvc = goa.New("Comments-service-test")
-	// user service (with auth)
-	s.pubKey, _ = almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.userSvc = testsupport.ServiceAsUser("CommentsSuite-Service", almtoken.NewManager(s.pubKey, s.priKey), account.TestIdentity)
-	s.userSvc2 = testsupport.ServiceAsUser("CommentsSuite-Service", almtoken.NewManager(s.pubKey, s.priKey), account.TestIdentity2)
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
-	s.clean = cleaner.DeleteCreatedEntities(s.db)
-	s.workitemCtrl = NewWorkitemController(s.userSvc, gormapplication.NewGormDB(s.db))
-	s.workitemCommentsCtrl = NewWorkItemCommentsController(s.userSvc, gormapplication.NewGormDB(s.db))
-}
-
-func (s *CommentsSuite) TearDownSuite() {
-	s.clean()
-	if s.db != nil {
-		s.db.Close()
-	}
+	gormsupport.DBTestSuite
+	db    *gormapplication.GormDB
+	clean func()
 }
 
 func (s *CommentsSuite) SetupTest() {
-	// create the workitem that will be used to perform the comment operations during the tests.
-	// given
+	s.db = gormapplication.NewGormDB(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (s *CommentsSuite) TearDownTest() {
+	s.clean()
+}
+
+func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController) {
+	svc := goa.New("Comments-service-test")
+	commentsCtrl := NewCommentsController(svc, s.db)
+	return svc, commentsCtrl
+}
+
+func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkItemCommentsController, *CommentsController) {
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("Comment-Service", almtoken.NewManager(pub, priv), identity)
+	workitemCtrl := NewWorkitemController(svc, s.db)
+	workitemCommentsCtrl := NewWorkItemCommentsController(svc, s.db)
+	commentsCtrl := NewCommentsController(svc, s.db)
+	return svc, workitemCtrl, workitemCommentsCtrl, commentsCtrl
+}
+
+// createWorkItem creates a workitem that will be used to perform the comment operations during the tests.
+func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 	createWorkitemPayload := app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type: APIStringTypeWorkItem,
@@ -104,9 +78,15 @@ func (s *CommentsSuite) SetupTest() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.userSvc.Context, s.userSvc, s.workitemCtrl, &createWorkitemPayload)
+	userSvc, workitemCtrl, _, _ := s.securedControllers(identity)
+	_, wi := test.CreateWorkitemCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, &createWorkitemPayload)
 	workitemId := *wi.Data.ID
-	// now, create a comment for the workitem
+	s.T().Log(fmt.Sprintf("Created workitem with id %v", workitemId))
+	return workitemId
+}
+
+// createWorkItemComment creates a workitem comment that will be used to perform the comment operations during the tests.
+func (s *CommentsSuite) createWorkItemComment(identity account.Identity, workitemId string) uuid.UUID {
 	createWorkItemCommentPayload := app.CreateWorkItemCommentsPayload{
 		Data: &app.CreateComment{
 			Type: "comments",
@@ -115,46 +95,51 @@ func (s *CommentsSuite) SetupTest() {
 			},
 		},
 	}
-	_, comment := test.CreateWorkItemCommentsOK(s.T(), s.userSvc.Context, s.userSvc, s.workitemCommentsCtrl, workitemId,
+	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
+	_, comment := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, workitemId,
 		&createWorkItemCommentPayload)
-	s.commentId = *comment.Data.ID
-	s.T().Log(fmt.Sprintf("Created comment with id %v", s.commentId))
-}
-
-func (s *CommentsSuite) TearDownTest() {
+	commentId := *comment.Data.ID
+	s.T().Log(fmt.Sprintf("Created comment with id %v", commentId))
+	return commentId
 }
 
 func (s *CommentsSuite) TestShowCommentWithoutAuth() {
 	// given
-	commentsCtrl := NewCommentsController(s.defaultSvc, gormapplication.NewGormDB(s.db))
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId)
 	// when
-	_, result := test.ShowCommentsOK(s.T(), s.defaultSvc.Context, s.defaultSvc, commentsCtrl, s.commentId)
+	userSvc, commentsCtrl := s.unsecuredController()
+	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 	// then
 	require.NotNil(s.T(), result)
 	require.NotNil(s.T(), result.Data)
 	assert.NotNil(s.T(), result.Data.ID)
 	assert.NotNil(s.T(), result.Data.Type)
 	assert.Equal(s.T(), "a comment", *result.Data.Attributes.Body)
-	assert.Equal(s.T(), account.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	assert.Equal(s.T(), testsupport.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
 }
 
 func (s *CommentsSuite) TestShowCommentWithAuth() {
 	// given
-	commentsCtrl := NewCommentsController(s.userSvc, gormapplication.NewGormDB(s.db))
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId)
 	// when
-	_, result := test.ShowCommentsOK(s.T(), s.userSvc.Context, s.userSvc, commentsCtrl, s.commentId)
+	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 	// then
 	require.NotNil(s.T(), result)
 	require.NotNil(s.T(), result.Data)
 	assert.NotNil(s.T(), result.Data.ID)
 	assert.NotNil(s.T(), result.Data.Type)
 	assert.Equal(s.T(), "a comment", *result.Data.Attributes.Body)
-	assert.Equal(s.T(), account.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	assert.Equal(s.T(), testsupport.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 	// given
-	commentsCtrl := NewCommentsController(s.defaultSvc, gormapplication.NewGormDB(s.db))
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId)
+	// when
 	updatedCommentBody := "An updated comment"
 	updateCommentPayload := app.UpdateCommentsPayload{
 		Data: &app.Comment{
@@ -164,13 +149,15 @@ func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 			},
 		},
 	}
-	// when/then
-	test.UpdateCommentsUnauthorized(s.T(), s.defaultSvc.Context, s.defaultSvc, commentsCtrl, s.commentId, &updateCommentPayload)
+	userSvc, commentsCtrl := s.unsecuredController()
+	test.UpdateCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, &updateCommentPayload)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithSameAuthenticatedUser() {
 	// given
-	commentsCtrl := NewCommentsController(s.userSvc, gormapplication.NewGormDB(s.db))
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId)
+	// when
 	updatedCommentBody := "An updated comment"
 	updateCommentPayload := app.UpdateCommentsPayload{
 		Data: &app.Comment{
@@ -180,13 +167,15 @@ func (s *CommentsSuite) TestUpdateCommentWithSameAuthenticatedUser() {
 			},
 		},
 	}
-	// when/then
-	test.UpdateCommentsOK(s.T(), s.userSvc.Context, s.userSvc, commentsCtrl, s.commentId, &updateCommentPayload)
+	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, &updateCommentPayload)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithOtherAuthenticatedUser() {
 	// given
-	commentsCtrl := NewCommentsController(s.userSvc2, gormapplication.NewGormDB(s.db))
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId)
+	// when
 	updatedCommentBody := "An updated comment"
 	updateCommentPayload := app.UpdateCommentsPayload{
 		Data: &app.Comment{
@@ -196,6 +185,6 @@ func (s *CommentsSuite) TestUpdateCommentWithOtherAuthenticatedUser() {
 			},
 		},
 	}
-	// when/then
-	test.UpdateCommentsUnauthorized(s.T(), s.userSvc2.Context, s.userSvc2, commentsCtrl, s.commentId, &updateCommentPayload)
+	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
+	test.UpdateCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, &updateCommentPayload)
 }
