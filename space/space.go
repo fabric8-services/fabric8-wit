@@ -10,6 +10,7 @@ import (
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
+	"strings"
 )
 
 // Space represents a Space on the domain and db layer
@@ -54,6 +55,7 @@ type Repository interface {
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
+	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
 }
 
 // NewRepository creates a new space repo
@@ -151,7 +153,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
 
 	db := r.db.Model(&Space{})
 	orgDB := db
@@ -168,6 +170,10 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *")
+	if q != nil {
+		db = db.Where("LOWER(name) LIKE ?", "%"+ strings.ToLower(*q) + "%")
+		db = db.Or("LOWER(description) LIKE ?", "%" + strings.ToLower(*q) + "%")
+	}
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -204,23 +210,37 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 		result = append(result, &value)
 	}
 	if first {
-		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
-		// need to do a count(*) to find out total
-		orgDB := orgDB.Select("count(*)")
-		rows2, err := orgDB.Rows()
-		defer rows2.Close()
-		if err != nil {
-			return nil, 0, errs.WithStack(err)
+		if q != nil {
+			// If 0 rows were returned from first query during search, then total is 0
+			count = 0
+		} else {
+			// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+			// need to do a count(*) to find out total
+			orgDB := orgDB.Select("count(*)")
+			rows2, err := orgDB.Rows()
+			defer rows2.Close()
+			if err != nil {
+				return nil, 0, errs.WithStack(err)
+			}
+			rows2.Next() // count(*) will always return a row
+			rows2.Scan(&count)
 		}
-		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
 	}
 	return result, count, nil
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
-	result, count, err := r.listSpaceFromDB(ctx, start, limit)
+	result, count, err := r.listSpaceFromDB(ctx, nil, start, limit)
+	if err != nil {
+		return nil, 0, errs.WithStack(err)
+	}
+
+	return result, count, nil
+}
+
+func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
+	result, count, err := r.listSpaceFromDB(ctx, q, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
