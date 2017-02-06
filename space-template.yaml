@@ -8,12 +8,6 @@ field_types:
   - &timestamp timestamp
   - &user user
 
-# Although we have the field types above we cannot always know, just by looking
-# at the field type, how a particular field type shall be rendered. That's why
-# we have these layout options.
-#ui_layouts:
-#  input
-
 # A map of common strings that can be used to denote states of a work item
 common_work_item_states: &common_work_item_states
   &state_new new:
@@ -31,7 +25,7 @@ common_work_item_states: &common_work_item_states
   
 # A map of common fields in a work item type
 work_item_fields_bag:
-  field_title: &field_title
+  title: &field_title
     label:
       en_US: "Title"
       de_DE: "Titel"
@@ -40,7 +34,7 @@ work_item_fields_bag:
       de_DE: "Ein kurzer Text, der in Listen angezeigt wird"
     type: *string
     required: true
-  field_description: &field_description
+  description: &field_description
     label:
       en_US: "Description"
       de_DE: "Beschreibung"
@@ -49,7 +43,7 @@ work_item_fields_bag:
       de_DE: "Ein längerer Text, der an Stellen mit mehr Platz angezeigt wird"
     type: *string
     required: false
-  field_created_at: &field_created_at
+  created_at: &field_created_at
     label:
       en_US: "Created at"
       de_DE: "Erstellt am"
@@ -58,7 +52,7 @@ work_item_fields_bag:
       de_DE: "Der Zeitstempel, zu dem dieses Work Item erstellt wurde"
     type: *timestamp
     required: false
-  field_updated_at: &field_updated_at
+  updated_at: &field_updated_at
     label:
       en_US: "Updated at"
       de_DE: "Aktualisiert am"
@@ -67,7 +61,7 @@ work_item_fields_bag:
       de_DE: "Der Zeitstempel, zu dem dieses Work Item zuletzt aktualisiert wurde"
     type: *timestamp
     required: false
-  field_state: &field_state
+  state: &field_state
     label:
         en_US: "State"
         de_DE: "Status"
