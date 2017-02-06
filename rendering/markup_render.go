@@ -29,7 +29,5 @@ func RenderMarkupToHTML(content, markup string) string {
 		return html
 	default:
 		return ""
-
 	}
-
 }
