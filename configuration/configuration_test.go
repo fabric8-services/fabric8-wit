@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
+	"reflect"
 	"testing"
 
 	yaml "gopkg.in/yaml.v2"
@@ -69,668 +69,10 @@ func TestNewConfigurationDataFail(t *testing.T) {
 
 }
 
-func TestGetKeycloakEndpointToken(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	cd := getConfigurationDataHandler()
-	require.NotNil(t, cd)
-
-	viperValue := cd.GetKeycloakEndpointToken()
-
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.KeycloakEndpointToken
-
-	assert.Equal(t, expectedValue, viperValue)
-
-}
-
-func TestGetPostgresHost(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresHost)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresHost()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap(tEnvironmentVariableValueConfigFile)
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresHost
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresHost()
-	assert.Equal(t, tTestEnvString, viperValue)
-
-}
-
-func TestGetPostgresPort(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresPort)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresPort()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresPort
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, strconv.FormatInt(tTestEnvInt64, 10))
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresPort()
-	assert.Equal(t, tTestEnvInt64, viperValue)
-}
-
-func TestGetPostgresUser(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresUser)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresUser()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresUser
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresUser()
-	assert.Equal(t, tTestEnvString, viperValue)
-
-}
-
-func TestGetPostgresDatabase(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresDatabase)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresDatabase()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresDatabase
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresDatabase()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetPostgresPassword(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresPassword)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresPassword()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresPassword
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresPassword()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetPostgresSSLMode(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresSSLMode)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresSSLMode()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresSSLMode
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresSSLMode()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetPostgresConnectionMaxRetries(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresConnectionMaxRetries)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresConnectionMaxRetries()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresConnectionMaxRetries
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, strconv.Itoa(tTestEnvInt))
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresConnectionMaxRetries()
-	assert.Equal(t, tTestEnvInt, viperValue)
-}
-
-func TestGetPostgresConnectionRetrySleep(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPostgresConnectionRetrySleep)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPostgresConnectionRetrySleep()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PostgresConnectionRetrySleep
-
-	assert.Equal(t, cast.ToDuration(expectedValue), viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPostgresConnectionRetrySleep()
-	assert.Equal(t, cast.ToDuration(tTestEnvString), viperValue)
-}
-
-func TestGetPostgresConfigString(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	configurationData := getConfigurationDataHandler()
-	// This is a derviced config parameter, not present as is, in the config file.
-	assert.NotNil(t, configurationData.GetPostgresConfigString())
-}
-
-func TestGetPopulateCommonTypes(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varPopulateCommonTypes)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetPopulateCommonTypes()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.PopulateCommonTypes
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, strconv.FormatBool(tTestEnvBool))
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetPopulateCommonTypes()
-	assert.Equal(t, tTestEnvBool, viperValue)
-}
-
-func TestGetHTTPAddress(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varHTTPAddress)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetHTTPAddress()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.HTTPAddress
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetHTTPAddress()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func IsPostgresDeveloperModeEnabled(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varDeveloperModeEnabled)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.IsPostgresDeveloperModeEnabled()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.DeveloperModeEnabled
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.IsPostgresDeveloperModeEnabled()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetTokenPrivateKey(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varTokenPrivateKey)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetTokenPrivateKey()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.TokenPrivateKey
-
-	assert.Equal(t, []byte(expectedValue), viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetTokenPrivateKey()
-	assert.Equal(t, []byte(tTestEnvString), viperValue)
-}
-
-func TestGetTokenPublicKey(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varTokenPublicKey)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetTokenPublicKey()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.TokenPublicKey
-
-	assert.Equal(t, []byte(expectedValue), viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetTokenPublicKey()
-	assert.Equal(t, []byte(tTestEnvString), viperValue)
-}
-
-func TestGetKeycloakSecret(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varKeycloakSecret)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetKeycloakSecret()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.KeycloakSecret
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetKeycloakSecret()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetKeycloakClientID(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varKeycloakClientID)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetKeycloakClientID()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.KeycloakClientID
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetKeycloakClientID()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetKeycloakEndpointAuth(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varKeycloakEndpointAuth)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetKeycloakEndpointAuth()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.KeycloakEndpointAuth
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetKeycloakEndpointAuth()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
-func TestGetKeycloakEndpointUserinfo(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	envKey := generateEnvKey(varKeycloakEndpointUserinfo)
-
-	realEnvValue := os.Getenv(envKey) // could be "" as well.
-
-	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
-
-	// env variable NOT set, so we check with config.yaml's value
-
-	configurationData := getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	viperValue := configurationData.GetKeycloakEndpointUserinfo()
-
-	// now check with the config yaml file.
-	testConfigFileMap, err := getConfigFileMap("")
-	require.Nil(t, err)
-	expectedValue := testConfigFileMap.KeycloakEndpointUserinfo
-
-	assert.Equal(t, expectedValue, viperValue)
-
-	// env variable will now be SET, so now we check with env variable and NOT With config.yaml
-	os.Setenv(envKey, tTestEnvString)
-
-	configurationData = getConfigurationDataHandler()
-	require.NotNil(t, configurationData)
-
-	require.Nil(t, err)
-
-	viperValue = configurationData.GetKeycloakEndpointUserinfo()
-	assert.Equal(t, tTestEnvString, viperValue)
-}
-
 /*
 TestMultipleConfigurations creates configuration objects using 2 different config files
 and checks whether one doesn't override the other.append
 */
-
 func TestMultipleConfigurations(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
@@ -758,25 +100,36 @@ func getConfigurationDataHandler() *configuration.ConfigurationData {
 	return nil
 }
 
+// getTestConfigMapValue accomplishes the same thing that testConfig.<PropertyName> does.
+func (tc testConfig) getTestConfigMapValue(key string) interface{} {
+	r := reflect.ValueOf(tc)
+	fmt.Println(key)
+	key = strings.Replace(strings.Title((strings.Replace(key, ".", " ", -1))), " ", "", -1)
+	fmt.Println(key)
+
+	f := reflect.Indirect(r).FieldByName(key)
+	return f.Interface()
+}
+
 type testConfig struct {
 	PostgresHost                 string `yaml:"postgres.host"`
 	PostgresPort                 int64  `yaml:"postgres.port"`
 	PostgresUser                 string `yaml:"postgres.user"`
 	PostgresDatabase             string `yaml:"postgres.database"`
 	PostgresPassword             string `yaml:"postgres.password"`
-	PostgresSSLMode              string `yaml:"postgres.sslmode"`
-	PostgresConnectionMaxRetries int    `yaml:"postgres.connection.maxretries"`
-	PostgresConnectionRetrySleep string `yaml:"postgres.connection.retrysleep"`
-	PopulateCommonTypes          bool   `yaml:"populate.commontypes"`
+	PostgresSslmode              string `yaml:"postgres.sslmode"`
+	PostgresConnectionMaxretries int    `yaml:"postgres.connection.maxretries"`
+	PostgresConnectionRetrysleep string `yaml:"postgres.connection.retrysleep"`
+	PopulateCommontypes          bool   `yaml:"populate.commontypes"`
 	HTTPAddress                  string `yaml:"http.address"`
 	DeveloperModeEnabled         bool   `yaml:"developer.mode.enabled"`
 	KeycloakSecret               string `yaml:"keycloak.secret"`
-	KeycloakClientID             string `yaml:"keycloak.client.id"`
+	KeycloakClientId             string `yaml:"keycloak.client.id"`
 	KeycloakEndpointAuth         string `yaml:"keycloak.endpoint.auth"`
 	KeycloakEndpointToken        string `yaml:"keycloak.endpoint.token"`
 	KeycloakEndpointUserinfo     string `yaml:"keycloak.endpoint.userinfo"`
-	TokenPublicKey               string `yaml:"token.publickey"`
-	TokenPrivateKey              string `yaml:"token.privatekey"`
+	TokenPublickey               string `yaml:"token.publickey"`
+	TokenPrivatekey              string `yaml:"token.privatekey"`
 }
 
 // Copy-pasted this from configuration package because they are inaccesible from
@@ -789,7 +142,7 @@ const (
 	varPostgresDatabase             = "postgres.database"
 	varPostgresPassword             = "postgres.password"
 	varPostgresSSLMode              = "postgres.sslmode"
-	varPostgresConnectionMaxRetries = "postgres.connection.maxretries"
+	varPostgresConnectionMaxretries = "postgres.connection.maxretries"
 	varPostgresConnectionRetrySleep = "postgres.connection.retrysleep"
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
@@ -813,6 +166,7 @@ func TestGenerateEnvKey(t *testing.T) {
 	assert.Equal(t, "ALMIGHTY_POSTGRES_HOST", generateEnvKey("postgres.host"))
 }
 
+// getConfigFileMap decodes config.yaml into a go struct
 func getConfigFileMap(configFilePath string) (testConfig, error) {
 	if configFilePath == "" {
 		//use default
@@ -831,7 +185,117 @@ func getConfigFileMap(configFilePath string) (testConfig, error) {
 		fmt.Println(err)
 		return testConfig{}, err
 	}
-	//fmt.Printf("Value: %#v\n", config)
-	//spew.Dump(config)
+
 	return config, nil
+}
+
+// configTestDescriptor.ConfigTestFunc is an interface which was assigned a method receiver.
+// This function types casts the interface to an actual callable method w.r.t to a ConfigurationData object
+func getConfigurationDataFunction(configurationDataFunc interface{}, configurationData *configuration.ConfigurationData) reflect.Value {
+	fn := reflect.ValueOf(configurationDataFunc)
+	function := fn.Call([]reflect.Value{reflect.ValueOf(configurationData)})
+	actualConfigurationDataFunction := function[0]
+	return actualConfigurationDataFunction
+}
+
+// Scenario 1: env variable NOT set, so we check with config.yaml's value
+
+func testSingleConfigReadFromConfigFile(t *testing.T, c configTestDescriptor) {
+	envKey := generateEnvKey(c.ConfigKey)
+
+	realEnvValue := os.Getenv(envKey) // could be "" as well.
+
+	os.Unsetenv(envKey)
+	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
+
+	configurationData := getConfigurationDataHandler()
+	require.NotNil(t, configurationData)
+
+	configurationDataFunction := getConfigurationDataFunction(c.ConfigValueFunc, configurationData)
+	viperValue := configurationDataFunction.Interface()
+
+	// now check with the config yaml file.
+	testConfigFileMap, err := getConfigFileMap("")
+	require.Nil(t, err)
+	expectedValue := testConfigFileMap.getTestConfigMapValue(c.ConfigKey)
+	if c.ConfigKey == varPostgresConnectionRetrySleep {
+		expectedValue = cast.ToDuration(fmt.Sprintf("%v", expectedValue))
+		viperValue = cast.ToDuration(fmt.Sprintf("%v", viperValue))
+	}
+	assert.Equal(t, reflect.TypeOf(expectedValue), reflect.TypeOf(viperValue), fmt.Sprintf("Type mismatches for %s", c.ConfigKey))
+	assert.Equal(t, expectedValue, viperValue, fmt.Sprintf("Mismatch for %s", c.ConfigKey))
+
+}
+
+// Scenario 2 : env variable will now be SET, so now we assert with env variable and NOT With config.yaml
+
+func testSingleConfigReadFromEnvVariable(t *testing.T, c configTestDescriptor) {
+	envKey := generateEnvKey(c.ConfigKey)
+
+	realEnvValue := os.Getenv(envKey) // could be "" as well.
+	os.Unsetenv(envKey)
+
+	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
+
+	var testEnvValue interface{}
+	if c.ConfigValueDataType == reflect.String {
+		testEnvValue = tTestEnvString
+	} else if c.ConfigValueDataType == reflect.Int64 {
+		testEnvValue = tTestEnvInt64
+	} else if c.ConfigValueDataType == reflect.Int {
+		testEnvValue = tTestEnvInt
+	} else if c.ConfigValueDataType == reflect.Bool {
+		testEnvValue = tTestEnvBool
+	}
+	os.Setenv(envKey, fmt.Sprintf("%v", testEnvValue))
+
+	configurationData := getConfigurationDataHandler()
+	require.NotNil(t, configurationData)
+
+	configurationDataFunction := getConfigurationDataFunction(c.ConfigValueFunc, configurationData)
+	viperValue := configurationDataFunction.Interface()
+
+	if c.ConfigKey == varPostgresConnectionRetrySleep {
+		testEnvValue = cast.ToDuration(fmt.Sprintf("%v", testEnvValue))
+		viperValue = cast.ToDuration(fmt.Sprintf("%v", viperValue))
+	}
+
+	assert.Equal(t, testEnvValue, viperValue, fmt.Sprintf("Mismatch for %s", c.ConfigKey))
+
+}
+
+type configTestDescriptor struct {
+	ConfigKey           string       // the key(s) present in config.yaml
+	ConfigValueDataType reflect.Kind // will be used to decide the test string to be used for setting env variable.
+	TestValue           string       // to be set in the env variable
+
+	// ConfigValueFunc is to be invoked on ConfigurationData object.
+	// This is of type "interface{}" because the return types of every method differ.
+	// the method getConfigurationDataFunction(..) is used to convert the following
+	// into a callable method.
+	ConfigValueFunc interface{}
+}
+
+func TestAllConfigs(t *testing.T) {
+
+	testData := []configTestDescriptor{
+		configTestDescriptor{ConfigKey: varPostgresHost, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresHost},
+		configTestDescriptor{ConfigKey: varPostgresPort, ConfigValueDataType: reflect.Int64, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresPort},
+		configTestDescriptor{ConfigKey: varPostgresUser, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresUser},
+		configTestDescriptor{ConfigKey: varPostgresPassword, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresPassword},
+		configTestDescriptor{ConfigKey: varPostgresSSLMode, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresSSLMode},
+		configTestDescriptor{ConfigKey: varPostgresConnectionMaxretries, ConfigValueDataType: reflect.Int, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresConnectionMaxRetries},
+		configTestDescriptor{ConfigKey: varPostgresConnectionRetrySleep, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresConnectionRetrySleep},
+		configTestDescriptor{ConfigKey: varDeveloperModeEnabled, ConfigValueDataType: reflect.Bool, ConfigValueFunc: (*configuration.ConfigurationData).IsPostgresDeveloperModeEnabled},
+		configTestDescriptor{ConfigKey: varPopulateCommonTypes, ConfigValueDataType: reflect.Bool, ConfigValueFunc: (*configuration.ConfigurationData).GetPopulateCommonTypes},
+		configTestDescriptor{ConfigKey: varKeycloakClientID, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetKeycloakClientID},
+		configTestDescriptor{ConfigKey: varKeycloakEndpointAuth, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetKeycloakEndpointAuth},
+		configTestDescriptor{ConfigKey: varKeycloakEndpointToken, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetKeycloakEndpointToken},
+		configTestDescriptor{ConfigKey: varKeycloakEndpointUserinfo, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetKeycloakEndpointUserinfo},
+		configTestDescriptor{ConfigKey: varKeycloakSecret, ConfigValueDataType: reflect.String, ConfigValueFunc: (*configuration.ConfigurationData).GetKeycloakSecret},
+	}
+	for _, c := range testData {
+		testSingleConfigReadFromConfigFile(t, c)
+	}
+
 }
