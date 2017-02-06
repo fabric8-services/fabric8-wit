@@ -211,6 +211,15 @@ func testSingleConfigReadFromConfigFile(t *testing.T, c configTestDescriptor) {
 	configurationData := getConfigurationDataHandler()
 	require.NotNil(t, configurationData)
 
+	/*
+
+		If  ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresPassword
+		was passed in configTestDescriptor , then the following 2 lines
+		make the following functional call
+
+		configurationData.GetPostgresPassword()
+
+	*/
 	configurationDataFunction := getConfigurationDataFunction(c.ConfigValueFunc, configurationData)
 	viperValue := configurationDataFunction.Interface()
 
@@ -218,6 +227,9 @@ func testSingleConfigReadFromConfigFile(t *testing.T, c configTestDescriptor) {
 	testConfigFileMap, err := getConfigFileMap("")
 	require.Nil(t, err)
 	expectedValue := testConfigFileMap.getTestConfigMapValue(c.ConfigKey)
+
+	// PostgresConnectionRetrySleep  was passed as a string in the config file,
+	// let's parse it to the approrpriate type.
 	if c.ConfigKey == varPostgresConnectionRetrySleep {
 		expectedValue = cast.ToDuration(fmt.Sprintf("%v", expectedValue))
 		viperValue = cast.ToDuration(fmt.Sprintf("%v", viperValue))
@@ -249,12 +261,23 @@ func testSingleConfigReadFromEnvVariable(t *testing.T, c configTestDescriptor) {
 	}
 	os.Setenv(envKey, fmt.Sprintf("%v", testEnvValue))
 
+	/*
+
+		If  ConfigValueFunc: (*configuration.ConfigurationData).GetPostgresPassword
+		was passed in configTestDescriptor , then the following 2 lines
+		make the following functional call
+
+		configurationData.GetPostgresPassword()
+
+	*/
 	configurationData := getConfigurationDataHandler()
 	require.NotNil(t, configurationData)
 
 	configurationDataFunction := getConfigurationDataFunction(c.ConfigValueFunc, configurationData)
 	viperValue := configurationDataFunction.Interface()
 
+	// PostgresConnectionRetrySleep  was passed as a string in the config file,
+	// let's parse it to the approrpriate type.
 	if c.ConfigKey == varPostgresConnectionRetrySleep {
 		testEnvValue = cast.ToDuration(fmt.Sprintf("%v", testEnvValue))
 		viperValue = cast.ToDuration(fmt.Sprintf("%v", viperValue))
@@ -296,6 +319,7 @@ func TestAllConfigs(t *testing.T) {
 	}
 	for _, c := range testData {
 		testSingleConfigReadFromConfigFile(t, c)
+		testSingleConfigReadFromEnvVariable(t, c)
 	}
 
 }
