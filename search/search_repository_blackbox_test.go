@@ -4,13 +4,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
+	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -78,14 +78,14 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
-	}, account.TestIdentity.ID.String())
+	}, testsupport.TestIdentity.ID.String())
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
 	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
-	}, account.TestIdentity.ID.String())
+	}, testsupport.TestIdentity.ID.String())
 	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
 

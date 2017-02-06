@@ -42,7 +42,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -67,8 +67,8 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	}
 	assert.NotNil(t, wi.Data.Attributes[workitem.SystemCreatedAt])
 
-	if *wi.Data.Relationships.Creator.Data.ID != account.TestIdentity.ID.String() {
-		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
+	if *wi.Data.Relationships.Creator.Data.ID != testsupport.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", testsupport.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
 	}
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 	updatedDescription := "= Updated Test WI description"
@@ -93,7 +93,7 @@ func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -108,7 +108,7 @@ func TestCreateWI(t *testing.T) {
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
-	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
+	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
 }
 
 func TestCreateWorkItemWithoutContext(t *testing.T) {
@@ -129,7 +129,7 @@ func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -153,7 +153,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result.Data))
 	}
 
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestIdentity.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", testsupport.TestIdentity.ID.String())
 	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, &limit, &offset)
 
 	if result == nil {
@@ -584,7 +584,7 @@ func (s *WorkItem2Suite) SetupSuite() {
 	}
 	s.pubKey, _ = almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), account.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
