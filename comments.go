@@ -8,9 +8,9 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -26,14 +26,8 @@ func NewCommentsController(service *goa.Service, db application.DB) *CommentsCon
 
 // Show runs the show action.
 func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.BadRequest(jerrors)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Comments().Load(ctx, id)
+		c, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
@@ -51,17 +45,13 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 
 // Update does PATCH comment
 func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	identity, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, id)
+		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -71,6 +61,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
+		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
 		cm, err = appl.Comments().Save(ctx.Context, cm)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -120,11 +111,13 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
+	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
 			Body:      &comment.Body,
+			Markup:    &markup,
 			CreatedAt: &comment.CreatedAt,
 		},
 		Relationships: &app.CommentRelations{
