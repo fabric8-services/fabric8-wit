@@ -1,11 +1,11 @@
 package main_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -49,7 +49,7 @@ func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationCont
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	return svc, NewIterationController(svc, rest.db)
 }
 
@@ -281,13 +281,17 @@ func assertIterationLinking(t *testing.T, target *app.Iteration) {
 	assert.NotNil(t, target.ID)
 	assert.Equal(t, iteration.APIStringTypeIteration, target.Type)
 	assert.NotNil(t, target.Links.Self)
-	assert.NotNil(t, target.Relationships)
-	assert.NotNil(t, target.Relationships.Space)
-	assert.NotNil(t, target.Relationships.Space.Links.Self)
+	require.NotNil(t, target.Relationships)
+	require.NotNil(t, target.Relationships.Space)
+	require.NotNil(t, target.Relationships.Space.Links)
+	require.NotNil(t, target.Relationships.Space.Links.Self)
+	assert.True(t, strings.Contains(*target.Relationships.Space.Links.Self, "/api/spaces/"))
 }
 
 func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 	assertIterationLinking(t, target)
-	assert.NotNil(t, target.Relationships.Parent)
-	assert.NotNil(t, target.Relationships.Parent.Links.Self)
+	require.NotNil(t, target.Relationships)
+	require.NotNil(t, target.Relationships.Parent)
+	require.NotNil(t, target.Relationships.Parent.Links)
+	require.NotNil(t, target.Relationships.Parent.Links.Self)
 }

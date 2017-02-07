@@ -214,11 +214,11 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 		ID:   &p.ID,
 		Type: "spaces",
 		Attributes: &app.SpaceAttributes{
-			Name:      &p.Name,
+			Name:        &p.Name,
 			Description: &p.Description,
-			CreatedAt: &p.CreatedAt,
-			UpdatedAt: &p.UpdatedAt,
-			Version:   &p.Version,
+			CreatedAt:   &p.CreatedAt,
+			UpdatedAt:   &p.UpdatedAt,
+			Version:     &p.Version,
 		},
 		Links: &app.GenericLinks{
 			Self: &selfURL,

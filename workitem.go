@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"html"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -360,15 +361,17 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Data: ConvertIterationSimple(request, valStr),
 				}
 			}
-
+		case workitem.SystemTitle:
+			// 'HTML escape' the title to prevent script injection
+			op.Attributes[name] = html.EscapeString(val.(string))
 		case workitem.SystemDescription:
 			description := rendering.NewMarkupContentFromValue(val)
 			if description != nil {
 				op.Attributes[name] = (*description).Content
 				op.Attributes[workitem.SystemDescriptionMarkup] = (*description).Markup
-				// let's include the rendered description
+				// let's include the rendered description while 'HTML escaping' it to prevent script injection
 				op.Attributes[workitem.SystemDescriptionRendered] =
-					rendering.RenderMarkupToHTML((*description).Content, (*description).Markup)
+					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
 			}
 
 		default:

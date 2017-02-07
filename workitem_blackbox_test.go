@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"fmt"
+	"html"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,7 +42,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -67,8 +68,8 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	}
 	assert.NotNil(t, wi.Data.Attributes[workitem.SystemCreatedAt])
 
-	if *wi.Data.Relationships.Creator.Data.ID != account.TestIdentity.ID.String() {
-		t.Errorf("Creator should be %s, but it is %s", account.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
+	if *wi.Data.Relationships.Creator.Data.ID != testsupport.TestIdentity.ID.String() {
+		t.Errorf("Creator should be %s, but it is %s", testsupport.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
 	}
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 	updatedDescription := "= Updated Test WI description"
@@ -127,7 +128,7 @@ func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -143,7 +144,7 @@ func TestCreateWI(t *testing.T) {
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemOrder])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
-	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, account.TestIdentity.ID.String())
+	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
 }
 
 func TestCreateWorkItemWithoutContext(t *testing.T) {
@@ -164,7 +165,7 @@ func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -188,7 +189,7 @@ func TestListByFields(t *testing.T) {
 		t.Errorf("unexpected length, should be %d but is %d", 1, len(result.Data))
 	}
 
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", account.TestIdentity.ID.String())
+	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", testsupport.TestIdentity.ID.String())
 	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, &limit, &offset)
 
 	if result == nil {
@@ -628,7 +629,7 @@ func (s *WorkItem2Suite) SetupSuite() {
 	}
 	s.pubKey, _ = almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), account.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
@@ -1479,6 +1480,75 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 		},
 	}
 	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
+func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLegacyDescription() {
+	c := minimumRequiredCreatePayload()
+	title := "<img src=x onerror=alert('title') />"
+	description := "<img src=x onerror=alert('description') />"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemDescription] = description
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	require.NotNil(s.T(), fetchedWi.Data)
+	require.NotNil(s.T(), fetchedWi.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(description), fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+}
+
+func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPlainTextDescription() {
+	c := minimumRequiredCreatePayload()
+	title := "<img src=x onerror=alert('title') />"
+	description := rendering.NewMarkupContent("<img src=x onerror=alert('description') />", rendering.SystemMarkupPlainText)
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemDescription] = description
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	require.NotNil(s.T(), fetchedWi.Data)
+	require.NotNil(s.T(), fetchedWi.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(description.Content), fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+}
+
+func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMarkdownDescription() {
+	c := minimumRequiredCreatePayload()
+	title := "<img src=x onerror=alert('title') />"
+	description := rendering.NewMarkupContent("<img src=x onerror=alert('description') />", rendering.SystemMarkupMarkdown)
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemDescription] = description
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	require.NotNil(s.T(), fetchedWi.Data)
+	require.NotNil(s.T(), fetchedWi.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
 // a normal test function that will kick off WorkItem2Suite

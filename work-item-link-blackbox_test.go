@@ -11,7 +11,6 @@ import (
 	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
@@ -108,7 +107,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
-	s.workItemSvc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	s.workItemSvc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.workItemSvc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemCtrl)
