@@ -110,6 +110,11 @@ type Unauthorized interface {
 	Unauthorized(*app.JSONAPIErrors) error
 }
 
+// Forbidden represent a Context that can return a Unauthorized HTTP status
+type Forbidden interface {
+	Forbidden(*app.JSONAPIErrors) error
+}
+
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
 func JSONErrorResponse(x InternalServerError, err error) error {
@@ -126,6 +131,10 @@ func JSONErrorResponse(x InternalServerError, err error) error {
 	case http.StatusUnauthorized:
 		if ctx, ok := x.(Unauthorized); ok {
 			return errs.WithStack(ctx.Unauthorized(jsonErr))
+		}
+	case http.StatusForbidden:
+		if ctx, ok := x.(Forbidden); ok {
+			return errs.WithStack(ctx.Forbidden(jsonErr))
 		}
 	default:
 		return errs.WithStack(x.InternalServerError(jsonErr))

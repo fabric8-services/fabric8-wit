@@ -215,7 +215,7 @@ func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
 	// when
 	updatedCommentBody := "An updated comment"
-	updateCommentPayload := app.UpdateCommentsPayload{
+	updateCommentPayload := &app.UpdateCommentsPayload{
 		Data: &app.Comment{
 			Type: "comments",
 			Attributes: &app.CommentAttributes{
@@ -223,6 +223,7 @@ func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 			},
 		},
 	}
+	// when/then
 	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
-	test.UpdateCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, &updateCommentPayload)
+	test.UpdateCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, updateCommentPayload)
 }
