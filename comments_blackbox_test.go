@@ -15,6 +15,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -111,12 +112,7 @@ func (s *CommentsSuite) TestShowCommentWithoutAuth() {
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 	// then
-	require.NotNil(s.T(), result)
-	require.NotNil(s.T(), result.Data)
-	assert.NotNil(s.T(), result.Data.ID)
-	assert.NotNil(s.T(), result.Data.Type)
-	assert.Equal(s.T(), "a comment", *result.Data.Attributes.Body)
-	assert.Equal(s.T(), testsupport.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	validateComment(s.T(), result)
 }
 
 func (s *CommentsSuite) TestShowCommentWithAuth() {
@@ -127,12 +123,22 @@ func (s *CommentsSuite) TestShowCommentWithAuth() {
 	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 	// then
-	require.NotNil(s.T(), result)
-	require.NotNil(s.T(), result.Data)
-	assert.NotNil(s.T(), result.Data.ID)
-	assert.NotNil(s.T(), result.Data.Type)
-	assert.Equal(s.T(), "a comment", *result.Data.Attributes.Body)
-	assert.Equal(s.T(), testsupport.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	validateComment(s.T(), result)
+}
+
+func validateComment(t *testing.T, result *app.CommentSingle) {
+	require.NotNil(t, result)
+	require.NotNil(t, result.Data)
+	assert.NotNil(t, result.Data.ID)
+	assert.NotNil(t, result.Data.Type)
+	require.NotNil(t, result.Data.Attributes)
+	require.NotNil(t, result.Data.Attributes.Body)
+	assert.Equal(t, "a comment", *result.Data.Attributes.Body)
+	require.NotNil(t, result.Data.Relationships)
+	require.NotNil(t, result.Data.Relationships.CreatedBy)
+	require.NotNil(t, result.Data.Relationships.CreatedBy.Data)
+	require.NotNil(t, result.Data.Relationships.CreatedBy.Data.ID)
+	assert.Equal(t, testsupport.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
