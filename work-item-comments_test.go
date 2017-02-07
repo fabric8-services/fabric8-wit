@@ -7,7 +7,6 @@ import (
 	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -50,7 +49,7 @@ func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemComment
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	return svc, NewWorkItemCommentsController(svc, rest.db)
 }
 

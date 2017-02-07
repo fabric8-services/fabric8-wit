@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -154,7 +154,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults := testData.minimumResults
 			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
 
-			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID.String())
 			if err != nil {
 				s.T().Fatal("Couldnt create test data")
 			}
@@ -255,7 +255,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			workitem.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID.String())
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
@@ -265,7 +265,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		// up in search results
 
 		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID.String())
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
