@@ -90,7 +90,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	return comment, nil
 }
 
-// Save a single comment
+// Delete a single comment
 func (m *GormCommentRepository) Delete(ctx context.Context, comment *Comment) error {
 	c := Comment{}
 	tx := m.db.Where("id=?", comment.ID).First(&c)
