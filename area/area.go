@@ -1,6 +1,8 @@
 package area
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -34,6 +36,7 @@ type Repository interface {
 	Create(ctx context.Context, u *Area) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]*Area, error)
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
+	ListChildren(ctx context.Context, id uuid.UUID) ([]*Area, error)
 }
 
 // NewAreaRepository creates a new storage type.
@@ -86,4 +89,33 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
+}
+
+// ListChildren fetches all Areas belonging to a parent - list all child areas.
+func (m *GormAreaRepository) ListChildren(ctx context.Context, id uuid.UUID) ([]*Area, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "Area", "querychild"}, time.Now())
+	var objs []*Area
+
+	predicateString := ConvertToLtreeFormat(id.String()) // + ".*"
+	fmt.Println(predicateString)
+	tx := m.db.Where("path ~ ?", predicateString).Find(&objs)
+	if tx.RecordNotFound() {
+		return nil, errors.NewNotFoundError("Area", id.String())
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return objs, nil
+}
+
+// ConvertToLtreeFormat converts data in UUID format to ltree format.
+func ConvertToLtreeFormat(uuid string) string {
+	//Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "-", "_", -1)
+}
+
+// ConvertFromLtreeFormat converts data to UUID format from ltree format.
+func ConvertFromLtreeFormat(uuid string) string {
+	// Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "_", "-", -1)
 }

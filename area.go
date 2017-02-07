@@ -118,6 +118,7 @@ func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConv
 
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	pathToTopMostParent := ConvertFromLtreeFormat(ar.Path) // uuid1.uuid2.uuid3s
 
 	i := &app.Area{
 		Type: areaType,
@@ -126,6 +127,7 @@ func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConv
 			Name:      &ar.Name,
 			CreatedAt: &ar.CreatedAt,
 			Version:   &ar.Version,
+			Path:      &pathToTopMostParent,
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
@@ -198,3 +200,11 @@ func ConvertFromLtreeFormat(uuid string) string {
 	// Ltree allows only "_" as a special character.
 	return strings.Replace(uuid, "_", "-", -1)
 }
+
+/*
+func getAreaNames(areas []*area.Area) []*area.Area {
+
+	// loop over each area.
+	// check if path resolved exists
+}
+*/
