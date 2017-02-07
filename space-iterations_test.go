@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -54,7 +53,7 @@ func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIte
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	return svc, NewSpaceIterationsController(svc, rest.db)
 }
 
