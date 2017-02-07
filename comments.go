@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
@@ -57,7 +55,9 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		if identity != cm.CreatedBy.String() {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
+			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
+			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
 		}
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
