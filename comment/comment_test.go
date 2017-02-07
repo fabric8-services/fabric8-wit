@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
@@ -36,20 +37,17 @@ func (test *TestCommentRepository) TearDownTest() {
 func (test *TestCommentRepository) TestCreateComment() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-
 	repo := comment.NewCommentRepository(test.DB)
-
 	c := &comment.Comment{
 		ParentID:  "A",
 		Body:      "Test A",
+		Markup:    rendering.SystemMarkupMarkdown,
 		CreatedBy: uuid.NewV4(),
 	}
-
 	repo.Create(context.Background(), c)
 	if c.ID == uuid.Nil {
 		t.Errorf("Comment was not created, ID nil")
 	}
-
 	if c.CreatedAt.After(time.Now()) {
 		t.Errorf("Comment was not created, CreatedAt after Now()?")
 	}
@@ -58,22 +56,20 @@ func (test *TestCommentRepository) TestCreateComment() {
 func (test *TestCommentRepository) TestSaveComment() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-
 	repo := comment.NewCommentRepository(test.DB)
-
 	parentID := "AA"
 	c := &comment.Comment{
 		ParentID:  parentID,
 		Body:      "Test AA",
+		Markup:    rendering.SystemMarkupPlainText,
 		CreatedBy: uuid.NewV4(),
 	}
-
 	repo.Create(context.Background(), c)
 	if c.ID == uuid.Nil {
 		t.Errorf("Comment was not created, ID nil")
 	}
-
 	c.Body = "Test AB"
+	c.Markup = rendering.SystemMarkupMarkdown
 	repo.Save(context.Background(), c)
 
 	offset := 0
@@ -88,7 +84,7 @@ func (test *TestCommentRepository) TestSaveComment() {
 	}
 
 	c1 := cl[0]
-	if c1.Body != "Test AB" {
+	if c1.Body != "Test AB" || c1.Markup != rendering.SystemMarkupMarkdown {
 		t.Error("List returned unexpected comment")
 	}
 

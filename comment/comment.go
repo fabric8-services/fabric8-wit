@@ -21,6 +21,7 @@ type Comment struct {
 	ParentID  string
 	CreatedBy uuid.UUID `sql:"type:uuid"` // Belongs To Identity
 	Body      string
+	Markup    string
 }
 
 // Repository describes interactions with comments

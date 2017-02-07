@@ -67,3 +67,11 @@ func NewMarkupContentFromValue(value interface{}) *MarkupContent {
 		return nil
 	}
 }
+
+// NilSafeGetMarkup returns the given markup if it is not nil nor empty, otherwise it returns the default markup
+func NilSafeGetMarkup(markup *string) string {
+	if markup != nil && *markup != "" {
+		return *markup
+	}
+	return SystemMarkupDefault
+}
