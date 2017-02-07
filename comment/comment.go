@@ -29,6 +29,7 @@ type Comment struct {
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	Save(ctx context.Context, comment *Comment) (*Comment, error)
+	Delete(ctx context.Context, comment *Comment) error
 	List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 	Count(ctx context.Context, parent string) (int, error)
@@ -87,6 +88,25 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	}
 	log.Printf("updated comment to %v\n", comment)
 	return comment, nil
+}
+
+// Save a single comment
+func (m *GormCommentRepository) Delete(ctx context.Context, comment *Comment) error {
+	c := Comment{}
+	tx := m.db.Where("id=?", comment.ID).First(&c)
+	if tx.RecordNotFound() {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return errors.NewNotFoundError("comment", comment.ID.String())
+	}
+	if err := tx.Error; err != nil {
+		return errors.NewInternalError(err.Error())
+	}
+	tx = tx.Delete(comment)
+	if err := tx.Error; err != nil {
+		return errors.NewInternalError(err.Error())
+	}
+	log.Printf("Deleted Comment", comment)
+	return nil
 }
 
 // List all comments related to a single item

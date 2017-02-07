@@ -76,6 +76,34 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	})
 }
 
+// Delete does DELETE comment
+func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+	identity, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		cm, err := appl.Comments().Load(ctx.Context, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if identity != cm.CreatedBy.String() {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+		}
+
+		err = appl.Comments().Delete(ctx.Context, cm)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK([]byte{})
+	})
+}
+
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
