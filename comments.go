@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 )
@@ -60,6 +61,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
+		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
 		cm, err = appl.Comments().Save(ctx.Context, cm)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -109,11 +111,13 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
+	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
 			Body:      &comment.Body,
+			Markup:    &markup,
 			CreatedAt: &comment.CreatedAt,
 		},
 		Relationships: &app.CommentRelations{
