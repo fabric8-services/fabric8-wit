@@ -227,3 +227,39 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	assert.Equal(t, 1, len(childAreaList))
 	require.Nil(t, err)
 }
+
+func (test *TestAreaRepository) TestListParentTree() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+	repo := area.NewAreaRepository(test.DB)
+
+	name := "Area #240"
+	name2 := "Area #240.1"
+
+	// *** Create Parent Area ***
+
+	i := area.Area{
+		Name:    name,
+		SpaceID: uuid.NewV4(),
+	}
+	err := repo.Create(context.Background(), &i)
+	assert.Nil(t, err)
+
+	// *** Create 'son' area ***
+
+	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
+	area2 := area.Area{
+		Name:    name2,
+		SpaceID: uuid.NewV4(),
+		Path:    expectedPath,
+	}
+	err = repo.Create(context.Background(), &area2)
+	require.Nil(t, err)
+
+	listOfCreatedID := []uuid.UUID{i.ID, area2.ID}
+	listOfCreatedAreas, err := repo.LoadMultiple(context.Background(), listOfCreatedID)
+
+	require.Nil(t, err)
+	assert.Equal(t, 2, len(listOfCreatedAreas))
+
+}

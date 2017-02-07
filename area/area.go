@@ -36,7 +36,9 @@ type Repository interface {
 	Create(ctx context.Context, u *Area) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]*Area, error)
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
+	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Area, error)
 	ListChildren(ctx context.Context, id uuid.UUID) ([]*Area, error)
+	//ListParentTree(ctx context.Context, id uuid.UUID) ([]*Area, error)
 }
 
 // NewAreaRepository creates a new storage type.
@@ -89,6 +91,21 @@ func (m *GormAreaRepository) Load(ctx context.Context, id uuid.UUID) (*Area, err
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
+}
+
+// Load multiple areas
+func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Area, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "Area", "getmultiple"}, time.Now())
+	var objs []*Area
+
+	for i := 0; i < len(ids); i++ {
+		m.db = m.db.Or("id = ?", ids[i])
+	}
+	tx := m.db.Find(&objs)
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return objs, nil
 }
 
 // ListChildren fetches all Areas belonging to a parent - list all child areas.
