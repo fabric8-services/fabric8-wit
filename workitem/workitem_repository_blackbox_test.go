@@ -2,15 +2,20 @@ package workitem_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +31,21 @@ type workItemRepoBlackBoxTest struct {
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
 	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+}
+
+// The SetupSuite method will run before the tests in the suite are run.
+// It sets up a database connection for all the tests in this suite without polluting global space.
+func (s *workItemRepoBlackBoxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if _, c := os.LookupEnv(resource.Database); c != false {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
 }
 
 func (s *workItemRepoBlackBoxTest) SetupTest() {
