@@ -103,7 +103,7 @@ var _ = a.Resource("comments", func() {
 			a.GET("/:id"),
 		)
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Description("Retrieve comment with given id.")
 		a.Response(d.OK, func() {
@@ -120,7 +120,7 @@ var _ = a.Resource("comments", func() {
 		)
 		a.Description("update the comment with the given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Payload(commentSingle)
 		a.Response(d.OK, func() {

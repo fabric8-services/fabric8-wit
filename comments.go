@@ -10,7 +10,6 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -26,14 +25,8 @@ func NewCommentsController(service *goa.Service, db application.DB) *CommentsCon
 
 // Show runs the show action.
 func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.BadRequest(jerrors)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Comments().Load(ctx, id)
+		c, err := appl.Comments().Load(ctx, ctx.ID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
@@ -51,17 +44,13 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 
 // Update does PATCH comment
 func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	identity, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, id)
+		cm, err := appl.Comments().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
