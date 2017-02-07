@@ -1,7 +1,6 @@
 package iteration_test
 
 import (
-	"strings"
 	"testing"
 	"time"
 
@@ -98,7 +97,7 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	i2L, err := repo.Load(context.Background(), i2.ID)
 	require.Nil(t, err)
 	assert.NotEmpty(t, i2.ParentPath)
-	expectedPath := i.ParentPath + "." + strings.Replace(i2.ID.String(), "-", "_", -1)
+	expectedPath := i.ParentPath + "." + iteration.ConvertToLtreeFormat(i2.ID.String())
 	assert.Equal(t, expectedPath, i2L.ParentPath)
 }
 
