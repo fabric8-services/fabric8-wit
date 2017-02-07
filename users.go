@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -41,8 +42,7 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 		if userID.Valid {
 			user, err = appl.Users().Load(ctx.Context, userID.UUID)
 			if err != nil {
-				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("User ID %s not valid", userID.UUID)))
 			}
 		}
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
@@ -62,8 +62,7 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 				return ctx.OK(result)
 			}
 		}
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing users: %s", err.Error())))
-		return ctx.InternalServerError(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "Error listing users"))
 	})
 }
 

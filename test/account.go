@@ -8,14 +8,22 @@ import (
 // TestIdentity only creates in memory obj for testing purposes
 var TestIdentity = account.Identity{
 	ID:       uuid.NewV4(),
-	FullName: "Test Developer Identity",
+	Username: "TestDeveloper",
+	User:     TestUser,
+}
+
+// TestObserverIdentity only creates in memory obj for testing purposes
+var TestObserverIdentity = account.Identity{
+	ID:       uuid.NewV4(),
+	Username: "TestObserver",
+	User:     TestUser,
 }
 
 // TestUser only creates in memory obj for testing purposes
 var TestUser = account.User{
 	ID:       uuid.NewV4(),
 	Email:    "testdeveloper@testalm.io",
-	Identity: TestIdentity,
+	FullName: "Test Developer",
 }
 
 // TestIdentity2 only creates in memory obj for testing purposes

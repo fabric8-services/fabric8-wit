@@ -14,10 +14,8 @@ import (
 )
 
 const (
-	// KeycloakIDP is the name of Keycloak Identity Provider
+	// KeycloakIDP is the name of the main Keycloak Identity Provider
 	KeycloakIDP string = "kc"
-	// GitHubIDP is the name of GitHub Identity Provider
-	GitHubIDP string = "gh"
 )
 
 // NullUUID can be used with the standard sql package to represent a
@@ -107,7 +105,7 @@ type IdentityRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
 	List(ctx context.Context) (*app.IdentityArray, error)
-	ValidIdentity(context.Context, uuid.UUID) bool
+	IsValid(context.Context, uuid.UUID) bool
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -227,8 +225,8 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	return &res, nil
 }
 
-// ValidIdentity validates that the IdentityID exists
-func (m *GormIdentityRepository) ValidIdentity(ctx context.Context, id uuid.UUID) bool {
+// IsValid returns true if the identity exists
+func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
 	_, err := m.Load(ctx, id)
 	if err != nil {
 		return false

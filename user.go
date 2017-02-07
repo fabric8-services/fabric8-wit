@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
+	"github.com/pkg/errors"
 )
 
 // UserController implements the user resource.
@@ -45,8 +46,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 		if userID.Valid {
 			user, err = appl.Users().Load(ctx.Context, userID.UUID)
 			if err != nil {
-				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", userID.UUID)))
 			}
 		}
 

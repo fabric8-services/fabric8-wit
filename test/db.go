@@ -38,7 +38,7 @@ func (db *MockDB) TrackerQueries() application.TrackerQueryRepository {
 func (db *MockDB) SearchItems() application.SearchRepository {
 	return nil
 }
-func (db *MockDB) Identities() application.IdentityRepository {
+func (db *MockDB) Identities() account.IdentityRepository {
 	return nil
 }
 func (db *MockDB) Users() account.UserRepository {

@@ -8,9 +8,9 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // LoginController implements the login resource.
@@ -38,14 +38,8 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	}
 
 	var scopes []account.Identity
-	scopes = append(scopes, account.Identity{
-		ID:       uuid.NewV4(),
-		Username: "TestDeveloper",
-	})
-	scopes = append(scopes, account.Identity{
-		ID:       uuid.NewV4(),
-		Username: "TestObserver",
-	})
+	scopes = append(scopes, test.TestIdentity)
+	scopes = append(scopes, test.TestObserverIdentity)
 
 	var tokens app.AuthTokenCollection
 	for _, user := range scopes {
