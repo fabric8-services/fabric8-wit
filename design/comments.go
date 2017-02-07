@@ -36,6 +36,9 @@ var commentAttributes = a.Type("CommentAttributes", func() {
 	a.Attribute("body", d.String, "The comment body", func() {
 		a.Example("This is really interesting")
 	})
+	a.Attribute("markup", d.String, "The comment markup associated with the body", func() {
+		a.Example("Markdown")
+	})
 })
 
 var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
@@ -43,6 +46,9 @@ var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
 	a.Attribute("body", d.String, "The comment body", func() {
 		a.MinLength(1) // Empty comment not allowed
 		a.Example("This is really interesting")
+	})
+	a.Attribute("markup", d.String, "The comment markup associated with the body", func() {
+		a.Example("Markdown")
 	})
 	a.Required("body")
 })
