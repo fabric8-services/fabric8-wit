@@ -27,7 +27,7 @@ func NewCommentsController(service *goa.Service, db application.DB) *CommentsCon
 // Show runs the show action.
 func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Comments().Load(ctx, ctx.ID)
+		c, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
@@ -51,7 +51,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, ctx.ID)
+		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
