@@ -100,12 +100,12 @@ var _ = a.Resource("comments", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:commentId"),
 		)
 		a.Params(func() {
-			a.Param("id", d.UUID, "id")
+			a.Param("commentId", d.UUID, "commentId")
 		})
-		a.Description("Retrieve comment with given id.")
+		a.Description("Retrieve comment with given commentId.")
 		a.Response(d.OK, func() {
 			a.Media(commentSingle)
 		})
@@ -116,11 +116,11 @@ var _ = a.Resource("comments", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:commentId"),
 		)
-		a.Description("update the comment with the given id.")
+		a.Description("update the comment with the given commentId.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "id")
+			a.Param("commentId", d.UUID, "commentId")
 		})
 		a.Payload(commentSingle)
 		a.Response(d.OK, func() {
