@@ -148,7 +148,7 @@ func getMigrations() migrations {
 	// Version 23
 	m = append(m, steps{executeSQLFile("023-comment-markup.sql")})
 
-	// Version 23
+	// Version 24
 	m = append(m, steps{executeSQLFile("024-comment-markup-default.sql")})
 
 	// Version N
