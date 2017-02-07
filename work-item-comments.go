@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
@@ -45,7 +43,6 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 		}
 		reqComment := ctx.Payload.Data
-		fmt.Println(fmt.Sprintf("Processing markup value: '%v'", reqComment.Attributes.Markup))
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
 			ParentID:  ctx.ID,

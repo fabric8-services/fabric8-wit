@@ -46,9 +46,11 @@ func (s *CommentsSuite) TearDownTest() {
 	s.clean()
 }
 
-var markdownMarkup = rendering.SystemMarkupMarkdown
-var plaintextMarkup = rendering.SystemMarkupPlainText
-var defaultMarkup = rendering.SystemMarkupDefault
+var (
+	markdownMarkup  = rendering.SystemMarkupMarkdown
+	plaintextMarkup = rendering.SystemMarkupPlainText
+	defaultMarkup   = rendering.SystemMarkupDefault
+)
 
 func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController) {
 	svc := goa.New("Comments-service-test")

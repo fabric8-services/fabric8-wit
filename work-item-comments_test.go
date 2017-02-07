@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -194,10 +195,11 @@ func assertComment(t *testing.T, c *app.Comment) {
 	assert.NotNil(t, c.ID)
 	assert.NotNil(t, c.Attributes.Body)
 	assert.NotNil(t, c.Attributes.Markup)
-	assert.NotNil(t, c.Attributes.CreatedAt)
+	require.NotNil(t, c.Attributes.CreatedAt)
 	assert.WithinDuration(t, time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
-	assert.NotNil(t, c.Relationships)
-	assert.NotNil(t, c.Relationships.CreatedBy)
+	require.NotNil(t, c.Relationships)
+	require.NotNil(t, c.Relationships.CreatedBy)
+	require.NotNil(t, c.Relationships.CreatedBy.Data)
 	assert.Equal(t, "identities", c.Relationships.CreatedBy.Data.Type)
 	assert.NotNil(t, c.Relationships.CreatedBy.Data.ID)
 }
