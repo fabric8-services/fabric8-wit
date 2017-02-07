@@ -74,6 +74,21 @@ var _ = a.Resource("area", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
+	a.Action("show-child", func() {
+		a.Routing(
+			a.GET("/:id"),
+		)
+		a.Description("Retrieve child areas of given id.")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK, func() {
+			a.Media(areaList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
 	a.Action("create-child", func() {
 		a.Security("jwt")
 		a.Routing(

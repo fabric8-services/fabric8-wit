@@ -179,7 +179,6 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-	test.DBTestSuite.DB = test.DBTestSuite.DB.Debug()
 	repo := area.NewAreaRepository(test.DB)
 
 	name := "Area #240"

@@ -28,6 +28,28 @@ func NewAreaController(service *goa.Service, db application.DB) *AreaController 
 	return &AreaController{Controller: service.NewController("AreaController"), db: db}
 }
 
+// ShowChild runs the show-child action
+func (c *AreaController) ShowChild(ctx *app.ShowChildAreaContext) error {
+	id, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		c, err := appl.Areas().ListChildren(ctx, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		res := &app.AreaList{}
+		res.Data = ConvertAreas(
+			ctx.RequestData,
+			c)
+
+		return ctx.OK(res)
+	})
+}
+
 // CreateChild runs the create-child action.
 func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 
