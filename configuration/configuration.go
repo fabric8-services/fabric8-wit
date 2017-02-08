@@ -288,7 +288,7 @@ var defaultKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/
 var defaultKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
 var defaultKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
 
-// Github doesnot allow commiting actual OAuth tokens no matter how less priviledge the token has
+// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
 
 // ActualToken is actual OAuth access token of github

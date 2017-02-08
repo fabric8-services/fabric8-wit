@@ -194,7 +194,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			optionalKeywords := []string{workItemURLInSearchString, createdWorkItem.ID}
 
 			// We will now check the legitimacy of the search results.
-			// Iterate through all search results and see whether they meet the critera
+			// Iterate through all search results and see whether they meet the criteria
 
 			for _, workItemValue := range workItemList {
 				s.T().Log("Found search result  ", workItemValue.ID)
