@@ -10,6 +10,8 @@ import (
 
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,7 +30,7 @@ func TestRunAreaRepository(t *testing.T) {
 }
 
 func (test *TestAreaRepository) SetupTest() {
-	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
+	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
 func (test *TestAreaRepository) TearDownTest() {
