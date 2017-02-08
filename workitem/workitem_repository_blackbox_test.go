@@ -89,6 +89,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 
 	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 }
@@ -105,9 +106,10 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 
 	wiNew, err := s.repo.Save(context.Background(), *wi)
-
+	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
 }
 
@@ -124,6 +126,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
@@ -139,6 +142,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		}, "xx")
 	require.Nil(s.T(), err, "Could not create workitem")
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }

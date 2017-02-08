@@ -107,19 +107,19 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 		assert.Equal(s.T(), wi2.ID, res[0].ID)
 	}
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base", nil, nil)
+	_, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:subtwo type:sub1", nil, nil)
+	_, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:subtwo type:sub1", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base type:sub1", nil, nil)
+	_, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base type:sub1", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TRBTgorxi type:base", nil, nil)
+	_, count, err = searchRepo.SearchFullText(ctx, "TRBTgorxi type:base", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(0), count)
 }
