@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -22,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -58,17 +60,28 @@ func (rest *TestCommentREST) UnSecuredController() (*goa.Service, *WorkItemComme
 	return svc, NewWorkItemCommentsController(svc, rest.db)
 }
 
-func (rest *TestCommentREST) TestSuccessCreateSingleComment() {
+func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
-
 	wiid, err := createWorkItem(rest.db)
 	if err != nil {
 		t.Error(err)
 	}
+	markup := rendering.SystemMarkupMarkdown
+	p := createComment("Test", &markup)
+	svc, ctrl := rest.SecuredController()
+	_, c := test.CreateWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid, p)
+	assertComment(t, c.Data)
+}
 
-	p := createComment("Test")
-
+func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+	wiid, err := createWorkItem(rest.db)
+	if err != nil {
+		t.Error(err)
+	}
+	p := createComment("Test", nil)
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateWorkItemCommentsOK(t, svc.Context, svc, ctrl, wiid, p)
 	assertComment(t, c.Data)
@@ -132,7 +145,7 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	p := createComment("Test")
+	p := createComment("Test", nil)
 
 	svc, ctrl := rest.SecuredController()
 	test.CreateWorkItemCommentsNotFound(t, svc.Context, svc, ctrl, "0000000", p)
@@ -147,7 +160,7 @@ func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
 		t.Error(err)
 	}
 
-	p := createComment("Test")
+	p := createComment("Test", nil)
 
 	svc, ctrl := rest.UnSecuredController()
 	test.CreateWorkItemCommentsUnauthorized(t, svc.Context, svc, ctrl, wiid, p)
@@ -159,7 +172,7 @@ func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
 func (rest *TestCommentREST) TestShouldNotCreateEmptyBody() {
 	t := rest.T()
 
-	p := createComment("")
+	p := createComment("", nil)
 	err := p.Validate()
 	if err == nil {
 		t.Error("Should not allow empty body", err)
@@ -181,20 +194,23 @@ func assertComment(t *testing.T, c *app.Comment) {
 	assert.Equal(t, "comments", c.Type)
 	assert.NotNil(t, c.ID)
 	assert.NotNil(t, c.Attributes.Body)
-	assert.NotNil(t, c.Attributes.CreatedAt)
+	assert.NotNil(t, c.Attributes.Markup)
+	require.NotNil(t, c.Attributes.CreatedAt)
 	assert.WithinDuration(t, time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
-	assert.NotNil(t, c.Relationships)
-	assert.NotNil(t, c.Relationships.CreatedBy)
+	require.NotNil(t, c.Relationships)
+	require.NotNil(t, c.Relationships.CreatedBy)
+	require.NotNil(t, c.Relationships.CreatedBy.Data)
 	assert.Equal(t, "identities", c.Relationships.CreatedBy.Data.Type)
 	assert.NotNil(t, c.Relationships.CreatedBy.Data.ID)
 }
 
-func createComment(body string) *app.CreateWorkItemCommentsPayload {
+func createComment(body string, markup *string) *app.CreateWorkItemCommentsPayload {
 	return &app.CreateWorkItemCommentsPayload{
 		Data: &app.CreateComment{
 			Type: "comments",
 			Attributes: &app.CreateCommentAttributes{
-				Body: body,
+				Body:   body,
+				Markup: markup,
 			},
 		},
 	}

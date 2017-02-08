@@ -145,8 +145,14 @@ func getMigrations() migrations {
 	// Version 22
 	m = append(m, steps{executeSQLFile("022-work-item-description-update.sql")})
 
-	// version 23
-	m = append(m, steps{executeSQLFile("023-adds-order-to-existing-wi.sql")})
+	// Version 23
+	m = append(m, steps{executeSQLFile("023-comment-markup.sql")})
+
+	// Version 24
+	m = append(m, steps{executeSQLFile("024-comment-markup-default.sql")})
+
+	// version 25
+	m = append(m, steps{executeSQLFile("025-adds-order-to-existing-wi.sql")})
 
 	// Version N
 	//

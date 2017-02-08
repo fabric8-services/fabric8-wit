@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -21,6 +22,7 @@ type Comment struct {
 	ParentID  string
 	CreatedBy uuid.UUID `sql:"type:uuid"` // Belongs To Identity
 	Body      string
+	Markup    string
 }
 
 // Repository describes interactions with comments
@@ -49,13 +51,14 @@ func (m *GormCommentRepository) TableName() string {
 }
 
 // Create creates a new record.
-func (m *GormCommentRepository) Create(ctx context.Context, u *Comment) error {
+func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment) error {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "create"}, time.Now())
-
-	u.ID = uuid.NewV4()
-
-	err := m.db.Create(u).Error
-	if err != nil {
+	comment.ID = uuid.NewV4()
+	// make sure no comment is created with an empty 'markup' value
+	if comment.Markup == "" {
+		comment.Markup = rendering.SystemMarkupDefault
+	}
+	if err := m.db.Create(comment).Error; err != nil {
 		goa.LogError(ctx, "error adding Comment", "error", err.Error())
 		return errs.WithStack(err)
 	}
@@ -73,6 +76,10 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	}
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
+	}
+	// make sure no comment is created with an empty 'markup' value
+	if comment.Markup == "" {
+		comment.Markup = rendering.SystemMarkupDefault
 	}
 	tx = tx.Save(comment)
 	if err := tx.Error; err != nil {
