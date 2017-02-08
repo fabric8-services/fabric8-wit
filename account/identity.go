@@ -135,6 +135,9 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "create"}, time.Now())
 
+	if model.ID == uuid.Nil {
+		model.ID = uuid.NewV4()
+	}
 	err := m.db.Create(model).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Identity", "error", err.Error())

@@ -103,11 +103,13 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	var imageURL string
 	var bio string
 	var userURL string
+	var email string
 	if user != nil {
 		fullName = user.FullName
 		imageURL = user.ImageURL
 		bio = user.Bio
 		userURL = user.URL
+		email = user.Email
 	}
 	converted := app.Identity{
 		Data: &app.IdentityData{
@@ -120,6 +122,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 				Bio:      &bio,
 				URL:      &userURL,
 				Provider: &provider,
+				Email:    &email,
 			},
 			Links: createUserLinks(request, uuid),
 		},

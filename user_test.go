@@ -69,12 +69,12 @@ func TestCurrentAuthorizedOK(t *testing.T) {
 	jwtToken.Claims.(token.MapClaims)["sub"] = uuid.NewV4().String()
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
 
-	usr := account.User{FullName: "Test User", ImageURL: "someURL", Email: "email@domain.com"}
-	ident := account.Identity{Username: "TestUser", Provider: account.KeycloakIDP, User: usr, UserID: account.NullUUID{UUID: uuid.NewV4()}}
+	usr := account.User{FullName: "Test User", ImageURL: "someURL", Email: "email@domain.com", ID: uuid.NewV4()}
+	ident := account.Identity{ID: uuid.NewV4(), Username: "TestUser", Provider: account.KeycloakIDP, User: usr, UserID: account.NullUUID{UUID: usr.ID, Valid: true}}
 	controller := newUserController(&ident, &usr)
-	err, identity := test.ShowUserOK(t, ctx, nil, controller)
+	_, identity := test.ShowUserOK(t, ctx, nil, controller)
 
-	assert.Nil(err)
+	assert.NotNil(t, identity)
 
 	assert.Equal(t, usr.FullName, *identity.Data.Attributes.FullName)
 	assert.Equal(t, ident.Username, *identity.Data.Attributes.Username)

@@ -49,7 +49,7 @@ func TestShowUserOK(t *testing.T) {
 		Provider: account.KeycloakIDP,
 		ID:       uuid.NewV4(),
 		User:     user,
-		UserID:   account.NullUUID{UUID: user.ID},
+		UserID:   account.NullUUID{UUID: user.ID, Valid: true},
 	}
 
 	err = identityRepo.Create(ctx, &identity)
@@ -89,7 +89,7 @@ func TestListUserOK(t *testing.T) {
 		Provider: "github-test",
 		ID:       uuid.NewV4(),
 		User:     user,
-		UserID:   account.NullUUID{UUID: user.ID},
+		UserID:   account.NullUUID{UUID: user.ID, Valid: true},
 	}
 	err = identityRepo.Create(ctx, &identityGitHub)
 	if err != nil {
@@ -101,7 +101,7 @@ func TestListUserOK(t *testing.T) {
 		Provider: account.KeycloakIDP,
 		ID:       uuid.NewV4(),
 		User:     user,
-		UserID:   account.NullUUID{UUID: user.ID},
+		UserID:   account.NullUUID{UUID: user.ID, Valid: true},
 	}
 	err = identityRepo.Create(ctx, &identity)
 	if err != nil {
@@ -122,7 +122,7 @@ func TestListUserOK(t *testing.T) {
 		Provider: account.KeycloakIDP,
 		ID:       uuid.NewV4(),
 		User:     user2,
-		UserID:   account.NullUUID{UUID: user2.ID},
+		UserID:   account.NullUUID{UUID: user2.ID, Valid: true},
 	}
 	err = identityRepo.Create(ctx, &identity2)
 	if err != nil {
