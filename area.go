@@ -127,6 +127,7 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 	})
 }
 
+// addResolvedPath resolves the path in the form of /area1/area2/area3
 func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *area.Area, sArea *app.Area) error {
 	pathResolved, error := getResolvePath(appl, mArea)
 	sArea.Attributes.ParentPathResolved = pathResolved

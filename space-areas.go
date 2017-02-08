@@ -61,7 +61,7 @@ func (c *SpaceAreasController) Create(ctx *app.CreateSpaceAreasContext) error {
 		}
 
 		res := &app.AreaSingle{
-			Data: ConvertArea(appl, ctx.RequestData, &newArea),
+			Data: ConvertArea(appl, ctx.RequestData, &newArea, addResolvedPath),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -88,7 +88,7 @@ func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
 		}
 
 		res := &app.AreaList{}
-		res.Data = ConvertAreas(appl, ctx.RequestData, areas)
+		res.Data = ConvertAreas(appl, ctx.RequestData, areas, addResolvedPath)
 
 		return ctx.OK(res)
 	})
