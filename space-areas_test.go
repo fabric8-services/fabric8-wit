@@ -7,13 +7,14 @@ import (
 	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -38,7 +39,7 @@ func TestRunSpaceAreaREST(t *testing.T) {
 
 func (rest *TestSpaceAreaREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestSpaceAreaREST) TearDownTest() {
@@ -49,7 +50,7 @@ func (rest *TestSpaceAreaREST) SecuredController() (*goa.Service, *SpaceAreasCon
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
 	return svc, NewSpaceAreasController(svc, rest.db)
 }
 
