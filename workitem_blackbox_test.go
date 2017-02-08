@@ -106,6 +106,9 @@ func TestReorderWorkItem(t *testing.T) {
 	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem2
 	dataArray = append(dataArray, result2.Data, result3.Data)
@@ -113,15 +116,11 @@ func TestReorderWorkItem(t *testing.T) {
 	payload2.Position.Above = *result1.Data.ID
 
 	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2)
-	assert.NotNil(t, reordered1.Data)
+	require.Len(t, reordered1.Data, 2)
 	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
 	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
 	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
 	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
-
-	test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
-	test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
-	test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 }
 
 func TestCreateWI(t *testing.T) {

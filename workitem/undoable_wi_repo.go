@@ -68,7 +68,6 @@ func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, before string,
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Printf("loading work item %d", id)
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {

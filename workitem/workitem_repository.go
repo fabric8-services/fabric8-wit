@@ -38,7 +38,6 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
-	log.Printf("loading work item %d", id)
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
@@ -104,8 +103,10 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	return nil
 }
 
-// Reorder reorders the given work item in storage. Version must be the same as the one int the stored version
-// returns NotFoundError, VersionConflictError, ConversionError or InternalError
+// Reorder places the to-be-reordered workitem(s) above the input workitem.
+// The order of workitems are spaced by a factor of 1000.
+// The new order of workitem := (order of previousitem + order of nextitem)/2
+// Version must be the same as the one int the stored version
 func (r *GormWorkItemRepository) Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error) {
 	var order float64
 	res := WorkItem{}
@@ -116,7 +117,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before string, wi 
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Printf("looking for id %d", id)
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("work item", wi.ID)
@@ -138,7 +138,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before string, wi 
 		if err != nil || beforeId == 0 {
 			return nil, errors.NewNotFoundError("work item", before)
 		}
-		log.Printf("looking for id %d", beforeId)
 		tx = r.db.First(&beforeItem, beforeId)
 		if tx.RecordNotFound() {
 			return nil, errors.NewNotFoundError("work item", string(beforeId))
@@ -205,7 +204,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, before string, wi 
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Printf("reordered item to %v\n", res)
 	return convertWorkItemModelToApp(wiType, &res)
 }
 

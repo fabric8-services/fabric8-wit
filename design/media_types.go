@@ -72,8 +72,10 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Required("totalCount")
 })
 
+// position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed
 var position = a.Type("workItemReorderPosition", func() {
-	a.Attribute("above", d.String)
+	a.Description("Position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+	a.Attribute("above", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed")
 
 	a.Required("above")
 })
