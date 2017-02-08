@@ -10,64 +10,36 @@ field_types:
 
 # A map of common strings that can be used to denote states of a work item
 common_work_item_states: &common_work_item_states
-  &state_new new:
-      en_US: "new"
-      de_DE: "neu"
-  &state_open open:
-      en_US: "open"
-      de_DE: "offen"
-  &state_closed closed:
-      en_US: "closed"
-      de_DE: "geschlossen"
-  &state_resolved resolved:
-      en_US: "resolved"
-      de_DE: "gelöst"
+  &state_new new: "new"
+  &state_open open: "open"
+  &state_closed closed: "closed"
+  &state_resolved resolved: "resolved"
   
 # A map of common fields in a work item type
 work_item_fields_bag:
   title: &field_title
-    label:
-      en_US: "Title"
-      de_DE: "Titel"
-    description:
-      en_US: "A small text title that is displayed in lists and alike"
-      de_DE: "Ein kurzer Text, der in Listen angezeigt wird"
+    label: "title"
+    description: "A small text title that is displayed in lists and alike"
     type: *string
     required: true
   description: &field_description
-    label:
-      en_US: "Description"
-      de_DE: "Beschreibung"
-    description:
-      en_US: "A longer text that is only displayed in places with more space"
-      de_DE: "Ein längerer Text, der an Stellen mit mehr Platz angezeigt wird"
+    label: "Description"
+    description: "A longer text that is only displayed in places with more space"
     type: *string
     required: false
   created_at: &field_created_at
-    label:
-      en_US: "Created at"
-      de_DE: "Erstellt am"
-    description:
-      en_US: "The timestamp of when the work item was created"
-      de_DE: "Der Zeitstempel, zu dem dieses Work Item erstellt wurde"
+    label: "Created at"
+    description: "The timestamp of when the work item was created"
     type: *timestamp
     required: false
   updated_at: &field_updated_at
-    label:
-      en_US: "Updated at"
-      de_DE: "Aktualisiert am"
-    description:
-      en_US: "The timestamp of when the work item was last updated"
-      de_DE: "Der Zeitstempel, zu dem dieses Work Item zuletzt aktualisiert wurde"
+    label: "Updated at"
+    description: "The timestamp of when the work item was last updated"
     type: *timestamp
     required: false
   state: &field_state
-    label:
-        en_US: "State"
-        de_DE: "Status"
-    description:
-        en_US: "A work item can have different states (e.g. new, open, or closed)."
-        de_DE: "Ein Fehler kann mehrere Zustände besitzen."
+    label: "State"
+    description: "A work item can have different states (e.g. new, open, or closed)."
     type: *list
     element_type: *translatable_string
     default_value: *state_new
@@ -86,67 +58,41 @@ common_work_item_fields: &common_work_item_fields
 # of the above states and lists in order share code between work item types.
 work_item_types:
   &wit_bug bug:
-    title:
-      en_US: "Bug"
-      de_DE: "Fehler"
-    description:
-      en_US: "A software bug is an error, flaw, failure or fault in a computer program"
-      de_DE: "Ein Fehler bezeichnet im Allgemeinen ein Fehlverhalten von Computerprogrammen"
+    title: "Bug"
+    description: >
+      A software bug is an error, flaw, failure or fault in a computer program
     fields: *common_work_item_fields
   &wit_feature feature:
-    title:
-      en_US: "Feature"
-      de_DE: "Fähigkeit"
-    description:
-      en_US: "TBD"
-      de_DE: "TBD"
+    title: "Feature"
+    description: "TBD"
     fields: *common_work_item_fields
   &wit_epic epic:
-    title:
-      en_US: "Epic"
-      de_DE: "Epik"
-    description:
-      en_US: "TBD"
-      de_DE: "TBD"
+    title: "Epic"
+    description: "TBD"
     fields: *common_work_item_fields
   &wit_user_story user_story:
-    title:
-      en_US: "User story"
-      de_DE: "Anwendererzählung"
-    description:
-      en_US: "A way to describe a scenario such that it has clear acceptance 
+    title: "User story"
+    description: >
+      A way to describe a scenario such that it has clear acceptance 
       criteria and that unambiguously describes a user interaction , or the
       interaction between two parts of a system. Team members tak a user story
       and decompose it into tasks that satisfy the user story. Usually some
       point value is assigned to a story that serves a way to measure the
-      rate of completing user stories."
-      de_DE: ""
+      rate of completing user stories.
     fields: *common_work_item_fields
   &wit_task task:
-    title:
-      en_US: "Task"
-      de_DE: "Aufgabe"
-    description:
-      en_US: "TBD"
-      de_DE: "TBD"
+    title: "Task"
+    description: "TBD"
     fields: *common_work_item_fields
   &wit_scenario scenario:
-    title:
-      en_US: "Scenario"
-      de_DE: "Scenario"
-    description:
-      en_US: "A specific defined interaction/sequence of interactions with a
-             system to achieve a given goal"
-      de_DE: "Eine speziell definierte Interaktion/Sequenz von Interaktionen
-             mit einem System, um ein Ziel zu erreichen"
+    title: "Scenario"
+    description: >
+      A specific defined interaction/sequence of interactions with a
+      system to achieve a given goal
     fields: *common_work_item_fields
   &wit_experience experience:
-    title:
-      en_US: "Experience"
-      de_DE: "Erfahrung"
-    description:
-      en_US: "TBD"
-      de_DE: "TBD"
+    title: "Experience"
+    description: "TBD"
     fields: *common_work_item_fields
 
 work_item_categories:
