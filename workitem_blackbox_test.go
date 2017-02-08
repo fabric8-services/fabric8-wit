@@ -756,7 +756,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	maliciousUUID := "non UUID string"
 	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
-			&app.GenericData{
+			{
 				ID:   &maliciousUUID,
 				Type: &userType,
 			}},
@@ -765,7 +765,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 
 	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
-			&app.GenericData{
+			{
 				ID:   &newUserUUID,
 				Type: &userType,
 			}},
@@ -1027,7 +1027,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 		},
 		Assignees: &app.RelationGenericList{
 			Data: []*app.GenericData{
-				&app.GenericData{
+				{
 					Type: &userType,
 					ID:   &newUserId,
 				}},
