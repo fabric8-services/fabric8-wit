@@ -116,13 +116,6 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 
 		res := &app.AreaSingle{}
 		res.Data = ConvertArea(appl, ctx.RequestData, a, addResolvedPath)
-		/*
-			pathResolved, err := getResolvePath(appl, a)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-			res.Data.Attributes.PathResolved = pathResolved
-		*/
 		return ctx.OK(res)
 	})
 }
@@ -178,7 +171,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	pathToTopMostParent := pathSepInService + ConvertFromLtreeFormat(ar.Path) // uuid1.uuid2.uuid3s
+	pathToTopMostParent := pathSepInService + ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
 
 	i := &app.Area{
 		Type: areaType,

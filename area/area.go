@@ -37,7 +37,6 @@ type Repository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Area, error)
 	ListChildren(ctx context.Context, parentArea *Area) ([]*Area, error)
-	//ListParentTree(ctx context.Context, id uuid.UUID) ([]*Area, error)
 }
 
 // NewAreaRepository creates a new storage type.

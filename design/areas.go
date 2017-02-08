@@ -31,10 +31,10 @@ var areaAttributes = a.Type("AreaAttributes", func() {
 		a.Example(23)
 	})
 	a.Attribute("parent_path", d.String, "Path to the topmost parent", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04.40bbdd3d-8b5d-4fd6-ac90-7236b669af02")
+		a.Example("/40bbdd3d-8b5d-4fd6-ac90-7236b669af04/40bbdd3d-8b5d-4fd6-ac90-7236b669af02")
 	})
 	a.Attribute("parent_path_resolved", d.String, "Path to the topmost area specified by area names", func() {
-		a.Example("devtools.planner.planner-ui")
+		a.Example("/devtools/planner/planner-ui")
 	})
 })
 
