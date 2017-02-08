@@ -26,7 +26,7 @@ func TestGenerateToken(t *testing.T) {
 		ID:       uuid.NewV4(),
 		FullName: fullName,
 		ImageURL: "http://some.com/image",
-		Emails:   []account.User{account.User{Email: "mr@test.com"}},
+		Emails:   []account.User{{Email: "mr@test.com"}},
 	})
 
 	ident, err := manager.Extract(tokenString)

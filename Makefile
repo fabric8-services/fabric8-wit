@@ -87,7 +87,7 @@ help:/
 .PHONY: check-go-format
 ## Exists with an error if there are files whose formatting differs from gofmt's
 check-go-format: prebuild-check
-	@gofmt -l ${SOURCES} 2>&1 \
+	@gofmt -s -l ${SOURCES} 2>&1 \
 		| tee /tmp/gofmt-errors \
 		| read \
 	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
@@ -98,7 +98,7 @@ check-go-format: prebuild-check
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
 format-go-code: prebuild-check
-	@gofmt -l -w ${SOURCES}
+	@gofmt -s -l -w ${SOURCES}
 
 .PHONY: build
 ## Build server and client.

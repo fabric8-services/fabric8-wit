@@ -42,7 +42,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 		Version: 42,
 		Path:    "something",
 		Fields: map[string]FieldDefinition{
-			"aListType": FieldDefinition{
+			"aListType": {
 				Type: EnumType{
 					BaseType:   SimpleType{KindString},
 					SimpleType: SimpleType{KindEnum},
@@ -72,7 +72,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 		Name:    "foo",
 		Version: 42,
 		Fields: map[string]*app.FieldDefinition{
-			"aListType": &app.FieldDefinition{
+			"aListType": {
 				Required: true,
 				Type: &app.FieldType{
 					BaseType: &stString,
@@ -141,11 +141,11 @@ func TestTempConvertFieldsToModels(t *testing.T) {
 	stString := "string"
 
 	newFields := map[string]app.FieldDefinition{
-		SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-		SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-		SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		SystemState: app.FieldDefinition{
+		SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true},
+		SystemDescription:  {Type: &app.FieldType{Kind: "string"}, Required: false},
+		SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true},
+		SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false},
+		SystemState: {
 			Type: &app.FieldType{
 				BaseType: &stString,
 				Kind:     "enum",
