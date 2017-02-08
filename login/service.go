@@ -53,7 +53,7 @@ type keycloakOAuthProvider struct {
 	tokenManager token.Manager
 }
 
-// TEMP: This will leak memory in the long run with many 'failed' redirect attemts
+// TEMP: This will leak memory in the long run with many 'failed' redirect attempts
 var stateReferer = map[string]string{}
 var mapLock sync.RWMutex
 

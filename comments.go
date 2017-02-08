@@ -77,7 +77,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 }
 
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
-// convertion from internal to API
+// conversion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
