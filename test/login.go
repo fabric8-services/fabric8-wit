@@ -15,6 +15,7 @@ import (
 // Token is filled using input Identity object
 func WithIdentity(ctx context.Context, ident account.Identity) context.Context {
 	token := jwt.New(jwt.SigningMethodRS256)
+	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
 	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
 	token.Claims.(jwt.MapClaims)["fullName"] = ident.User.FullName
 	token.Claims.(jwt.MapClaims)["imageURL"] = ident.User.ImageURL
