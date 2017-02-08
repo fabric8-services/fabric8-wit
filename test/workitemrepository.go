@@ -149,6 +149,8 @@ func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error
 	}{result1, result2}
 }
 
+// Reorder is a fake function for reordering of workitems
+// Used for testing purpose
 func (fake *WorkItemRepository) Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error) {
 	fake.reorderMutex.Lock()
 	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
@@ -165,18 +167,21 @@ func (fake *WorkItemRepository) Reorder(ctx context.Context, before string, wi a
 	}
 }
 
+// ReorderCallCount returns the length of fake arguments
 func (fake *WorkItemRepository) ReorderCallCount() int {
 	fake.reorderMutex.RLock()
 	defer fake.reorderMutex.RUnlock()
 	return len(fake.reorderArgsForCall)
 }
 
+// ReorderArgsForCall returns fake arguments for Reorder function
 func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, string, app.WorkItem) {
 	fake.reorderMutex.RLock()
 	defer fake.reorderMutex.RUnlock()
 	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].before, fake.reorderArgsForCall[i].wi
 }
 
+// ReorderReturns returns fake values for Reorder function
 func (fake *WorkItemRepository) ReorderReturns(result1 *app.WorkItem, result2 error) {
 	fake.ReorderStub = nil
 	fake.reorderReturns = struct {
