@@ -22,7 +22,8 @@ type AreaController struct {
 	db application.DB
 }
 
-const pathSep = "."
+const pathSepInService = "/"
+const pathSepInDatabase = "."
 
 // NewAreaController creates a area controller.
 func NewAreaController(service *goa.Service, db application.DB) *AreaController {
@@ -78,7 +79,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 
 		childPath := ConvertToLtreeFormat(parentID.String())
 		if parent.Path != "" {
-			childPath = parent.Path + pathSep + childPath
+			childPath = parent.Path + pathSepInDatabase + childPath
 		}
 		newArea := area.Area{
 			SpaceID: parent.SpaceID,
@@ -133,7 +134,7 @@ func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *
 }
 
 func getResolvePath(appl application.Application, a *area.Area) (*string, error) {
-	parentUuidStrings := strings.Split(ConvertFromLtreeFormat(a.Path), ".")
+	parentUuidStrings := strings.Split(ConvertFromLtreeFormat(a.Path), pathSepInService)
 	parentUuids := convertToUuid(parentUuidStrings)
 	parentAreas, err := appl.Areas().LoadMultiple(context.Background(), parentUuids)
 	if err != nil {
@@ -145,8 +146,10 @@ func getResolvePath(appl application.Application, a *area.Area) (*string, error)
 			pathResolved = a.Name
 			continue
 		}
-		pathResolved = pathResolved + "." + a.Name
+		pathResolved = pathResolved + pathSepInService + a.Name
 	}
+	// Add leading "/" so that "Area1/area2/area3" now looks like "/Area1/Area2/Area3"
+	pathResolved = pathSepInService + pathResolved
 	return &pathResolved, nil
 }
 
@@ -173,7 +176,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	pathToTopMostParent := ConvertFromLtreeFormat(ar.Path) // uuid1.uuid2.uuid3s
+	pathToTopMostParent := pathSepInService + ConvertFromLtreeFormat(ar.Path) // uuid1.uuid2.uuid3s
 
 	i := &app.Area{
 		Type: areaType,
@@ -209,7 +212,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	// in a specific space.
 	if ar.Path != "" {
 
-		allParents := strings.Split(ConvertFromLtreeFormat(ar.Path), ".")
+		allParents := strings.Split(ConvertFromLtreeFormat(ar.Path), pathSepInService)
 		parentID := allParents[len(allParents)-1]
 
 		// Only the immediate parent's URL.
@@ -252,13 +255,17 @@ func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 // ConvertToLtreeFormat converts data in UUID format to ltree format.
 func ConvertToLtreeFormat(uuid string) string {
 	//Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "-", "_", -1)
+	converted := strings.Replace(uuid, "-", "_", -1)
+	converted = strings.Replace(converted, pathSepInService, pathSepInDatabase, -1)
+	return converted
 }
 
 // ConvertFromLtreeFormat converts data to UUID format from ltree format.
 func ConvertFromLtreeFormat(uuid string) string {
 	// Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "_", "-", -1)
+	converted := strings.Replace(uuid, "_", "-", -1)
+	converted = strings.Replace(converted, pathSepInDatabase, pathSepInService, -1)
+	return converted
 }
 
 func convertToUuid(uuidStrings []string) []uuid.UUID {
