@@ -113,7 +113,7 @@ func TestValidOAuthAuthorizationCode(t *testing.T) {
 
 	// Current the OAuth code is generated as part of a UI workflow.
 	// Yet to figure out how to mock.
-	t.Skip("Authorization Code not avaiable")
+	t.Skip("Authorization Code not available")
 
 }
 
@@ -125,7 +125,7 @@ func TestValidState(t *testing.T) {
 	// authorization code because it needs a
 	// user UI workflow. Furthermore, the code can be used
 	// only once. https://tools.ietf.org/html/rfc6749#section-4.1.2
-	t.Skip("Authorization Code not avaiable")
+	t.Skip("Authorization Code not available")
 }
 
 func TestInvalidState(t *testing.T) {

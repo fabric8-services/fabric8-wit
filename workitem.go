@@ -259,7 +259,7 @@ func getVersion(version interface{}) (int, error) {
 }
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
-// convertion from internal to API
+// conversion from internal to API
 type WorkItemConvertFunc func(*goa.RequestData, *app.WorkItem, *app.WorkItem2)
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
