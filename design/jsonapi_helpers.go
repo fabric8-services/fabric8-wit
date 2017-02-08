@@ -167,7 +167,7 @@ func JSONSingle(name, description string, data *d.UserTypeDefinition, links *d.U
 	})
 }
 
-// JSONReorder creates a UserTypeDefinition
+// JSONReorder creates a UserTypeDefinition for Reorder action
 func JSONReorder(name, description string, data *d.UserTypeDefinition, position *d.UserTypeDefinition) *d.MediaTypeDefinition {
 	return a.MediaType("application/vnd."+strings.ToLower(name)+"json", func() {
 		a.UseTrait("jsonapi-media-type")

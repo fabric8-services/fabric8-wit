@@ -272,7 +272,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		Type:   typeID,
 		Fields: Fields{},
 	}
-	// Order
+	// The order of workitems are spaced by a factor of 1000.
 	position, err := r.LoadHighestOrder()
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
