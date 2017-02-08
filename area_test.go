@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
@@ -66,6 +67,7 @@ func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	svc, ctrl := rest.SecuredController()
 	_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	fmt.Println(*created.Data.Relationships.Parent.Data.ID)
 	assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
 
 }
@@ -96,6 +98,7 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 	assert.NotNil(t, *created.Data.Attributes.CreatedAt)
 	assert.NotNil(t, *created.Data.Attributes.Version)
 	assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+	assert.Contains(t, *created.Data.Relationships.Children.Links.Self, "children")
 
 }
 

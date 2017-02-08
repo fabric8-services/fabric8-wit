@@ -76,7 +76,7 @@ var _ = a.Resource("area", func() {
 	})
 	a.Action("show-child", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:id/children"),
 		)
 		a.Description("Retrieve child areas of given id.")
 		a.Params(func() {

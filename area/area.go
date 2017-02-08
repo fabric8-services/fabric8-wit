@@ -70,7 +70,6 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 func (m *GormAreaRepository) List(ctx context.Context, spaceID uuid.UUID) ([]*Area, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "query"}, time.Now())
 	var objs []*Area
-
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err

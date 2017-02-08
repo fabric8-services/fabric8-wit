@@ -114,6 +114,13 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 			ctx.RequestData,
 			c)
 
+		// resolve path names.
+		/*
+			path := ConvertFromLtreeFormat(c.Path)
+			parentUuidStrings := strings.Split(path, ".")
+			parentUuids := convertToUuid(parentUuidStrings)
+			parentAreas, err := appl.Areas().LoadMultiple(ctx, parentUuids)
+		*/
 		return ctx.OK(res)
 	})
 }
@@ -139,6 +146,7 @@ func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConv
 	spaceID := ar.SpaceID.String()
 
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
+	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	pathToTopMostParent := ConvertFromLtreeFormat(ar.Path) // uuid1.uuid2.uuid3s
 
@@ -159,6 +167,11 @@ func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConv
 				},
 				Links: &app.GenericLinks{
 					Self: &spaceSelfURL,
+				},
+			},
+			Children: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Self: &childURL,
 				},
 			},
 		},
@@ -223,10 +236,12 @@ func ConvertFromLtreeFormat(uuid string) string {
 	return strings.Replace(uuid, "_", "-", -1)
 }
 
-/*
-func getAreaNames(areas []*area.Area) []*area.Area {
+func convertToUuid(uuidStrings []string) []uuid.UUID {
+	var uUIDs []uuid.UUID
 
-	// loop over each area.
-	// check if path resolved exists
+	for i := 0; i < len(uuidStrings); i++ {
+		uuidString, _ := uuid.FromString(uuidStrings[i])
+		uUIDs = append(uUIDs, uuidString)
+	}
+	return uUIDs
 }
-*/
