@@ -148,7 +148,7 @@ var _ = a.Resource("comments", func() {
 		)
 		a.Description("Delete work item with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)

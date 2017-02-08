@@ -125,6 +125,8 @@ func (test *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 }
 
 func (test *TestCommentRepository) TestDeleteComment() {
+	defer cleaner.DeleteCreatedEntities(test.DB)()
+
 	t := test.T()
 	resource.Require(t, resource.Database)
 

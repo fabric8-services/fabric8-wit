@@ -78,17 +78,13 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 
 // Delete does DELETE comment
 func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	identity, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, id)
+		cm, err := appl.Comments().Load(ctx.Context, ctx.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
