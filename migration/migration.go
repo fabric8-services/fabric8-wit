@@ -372,20 +372,20 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	stString := "string"
 	stUser := "user"
 	workItemTypeFields := map[string]app.FieldDefinition{
-		workitem.SystemTitle:        app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: true},
-		workitem.SystemDescription:  app.FieldDefinition{Type: &app.FieldType{Kind: "markup"}, Required: false},
-		workitem.SystemCreator:      app.FieldDefinition{Type: &app.FieldType{Kind: "user"}, Required: true},
-		workitem.SystemRemoteItemID: app.FieldDefinition{Type: &app.FieldType{Kind: "string"}, Required: false},
-		workitem.SystemCreatedAt:    app.FieldDefinition{Type: &app.FieldType{Kind: "instant"}, Required: false},
-		workitem.SystemIteration:    app.FieldDefinition{Type: &app.FieldType{Kind: "iteration"}, Required: false},
-		workitem.SystemAssignees: app.FieldDefinition{
+		workitem.SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true},
+		workitem.SystemDescription:  {Type: &app.FieldType{Kind: "markup"}, Required: false},
+		workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true},
+		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false},
+		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false},
+		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false},
+		workitem.SystemAssignees: {
 			Type: &app.FieldType{
 				ComponentType: &stUser,
 				Kind:          "list",
 			},
 			Required: false,
 		},
-		workitem.SystemState: app.FieldDefinition{
+		workitem.SystemState: {
 			Type: &app.FieldType{
 				BaseType: &stString,
 				Kind:     "enum",
