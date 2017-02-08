@@ -129,7 +129,7 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 
 func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *area.Area, sArea *app.Area) error {
 	pathResolved, error := getResolvePath(appl, mArea)
-	sArea.Attributes.PathResolved = pathResolved
+	sArea.Attributes.ParentPathResolved = pathResolved
 	return error
 
 }
@@ -183,10 +183,10 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 		Type: areaType,
 		ID:   &ar.ID,
 		Attributes: &app.AreaAttributes{
-			Name:      &ar.Name,
-			CreatedAt: &ar.CreatedAt,
-			Version:   &ar.Version,
-			Path:      &pathToTopMostParent,
+			Name:       &ar.Name,
+			CreatedAt:  &ar.CreatedAt,
+			Version:    &ar.Version,
+			ParentPath: &pathToTopMostParent,
 		},
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
