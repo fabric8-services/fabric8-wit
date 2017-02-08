@@ -1,9 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strings"
+
+	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
