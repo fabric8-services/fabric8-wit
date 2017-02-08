@@ -142,10 +142,6 @@ func main() {
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to parse private key: \n%+v", err))
-	}
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
 		panic(fmt.Sprintf("ERROR: Failed to parse public token: \n%+v", err))
@@ -155,7 +151,7 @@ func main() {
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
 
-	tokenManager := token.NewManager(publicKey, privateKey)
+	tokenManager := token.NewManager(publicKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 	service.Use(login.InjectTokenManager(tokenManager))
 

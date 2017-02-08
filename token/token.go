@@ -24,10 +24,17 @@ type tokenManager struct {
 	privateKey *rsa.PrivateKey
 }
 
-// NewManager returns a new token Manager for handling creation of tokens
-func NewManager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
+// NewManager returns a new token Manager for handling tokens
+func NewManager(publicKey *rsa.PublicKey) Manager {
 	return &tokenManager{
-		publicKey:  publicKey,
+		publicKey: publicKey,
+	}
+}
+
+// NewManagerWithPrivateKey returns a new token Manager for handling creation of tokens with both private and pulic keys
+func NewManagerWithPrivateKey(privateKey *rsa.PrivateKey) Manager {
+	return &tokenManager{
+		publicKey:  &privateKey.PublicKey,
 		privateKey: privateKey,
 	}
 }
@@ -36,7 +43,7 @@ func NewManager(publicKey *rsa.PublicKey, privateKey *rsa.PrivateKey) Manager {
 func (mgm tokenManager) Generate(ident account.Identity) (string, error) {
 	token := jwt.New(jwt.SigningMethodRS256)
 	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
-	token.Claims.(jwt.MapClaims)["username"] = ident.Username
+	token.Claims.(jwt.MapClaims)["preferred_username"] = ident.Username
 	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
 
 	tokenStr, err := token.SignedString(mgm.privateKey)
@@ -70,7 +77,7 @@ func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {
 
 	ident := account.Identity{
 		ID:       id,
-		Username: token.Claims.(jwt.MapClaims)["username"].(string),
+		Username: token.Claims.(jwt.MapClaims)["preferred_username"].(string),
 	}
 
 	return &ident, nil
