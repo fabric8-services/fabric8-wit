@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -40,15 +41,13 @@ func (c *AreaController) ShowChild(ctx *app.ShowChildAreaContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		c, err := appl.Areas().ListChildren(ctx, parentArea)
+		children, err := appl.Areas().ListChildren(ctx, parentArea)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		res := &app.AreaList{}
-		res.Data = ConvertAreas(
-			ctx.RequestData,
-			c)
+		res.Data = ConvertAreas(appl, ctx.RequestData, children, addResolvedPath)
 
 		return ctx.OK(res)
 	})
@@ -93,7 +92,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		}
 
 		res := &app.AreaSingle{
-			Data: ConvertArea(ctx.RequestData, &newArea),
+			Data: ConvertArea(appl, ctx.RequestData, &newArea, addResolvedPath),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -108,49 +107,64 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Areas().Load(ctx, id)
+		a, err := appl.Areas().Load(ctx, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		res := &app.AreaSingle{}
-		res.Data = ConvertArea(
-			ctx.RequestData,
-			c)
-
-		// resolve path names.
-
-		parentUuidStrings := strings.Split(ConvertFromLtreeFormat(c.Path), ".")
-		parentUuids := convertToUuid(parentUuidStrings)
-		parentAreas, err := appl.Areas().LoadMultiple(ctx, parentUuids)
-		path_resolved := ""
-		for _, a := range parentAreas {
-			if path_resolved == "" {
-				path_resolved = a.Name
-				continue
+		res.Data = ConvertArea(appl, ctx.RequestData, a, addResolvedPath)
+		/*
+			pathResolved, err := getResolvePath(appl, a)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			path_resolved = path_resolved + "." + a.Name
-		}
-		res.Data.Attributes.PathResolved = &path_resolved
+			res.Data.Attributes.PathResolved = pathResolved
+		*/
 		return ctx.OK(res)
 	})
 }
 
+func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *area.Area, sArea *app.Area) error {
+	pathResolved, error := getResolvePath(appl, mArea)
+	sArea.Attributes.PathResolved = pathResolved
+	return error
+
+}
+
+func getResolvePath(appl application.Application, a *area.Area) (*string, error) {
+	parentUuidStrings := strings.Split(ConvertFromLtreeFormat(a.Path), ".")
+	parentUuids := convertToUuid(parentUuidStrings)
+	parentAreas, err := appl.Areas().LoadMultiple(context.Background(), parentUuids)
+	if err != nil {
+		return nil, err
+	}
+	pathResolved := ""
+	for _, a := range parentAreas {
+		if pathResolved == "" {
+			pathResolved = a.Name
+			continue
+		}
+		pathResolved = pathResolved + "." + a.Name
+	}
+	return &pathResolved, nil
+}
+
 // AreaConvertFunc is a open ended function to add additional links/data/relations to a area during
 // convertion from internal to API
-type AreaConvertFunc func(*goa.RequestData, *area.Area, *app.Area)
+type AreaConvertFunc func(application.Application, *goa.RequestData, *area.Area, *app.Area) error
 
 // ConvertAreas converts between internal and external REST representation
-func ConvertAreas(request *goa.RequestData, areas []*area.Area, additional ...AreaConvertFunc) []*app.Area {
+func ConvertAreas(appl application.Application, request *goa.RequestData, areas []*area.Area, additional ...AreaConvertFunc) []*app.Area {
 	var is = []*app.Area{}
 	for _, i := range areas {
-		is = append(is, ConvertArea(request, i, additional...))
+		is = append(is, ConvertArea(appl, request, i, additional...))
 	}
 	return is
 }
 
 // ConvertArea converts between internal and external REST representation
-func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConvertFunc) *app.Area {
+func ConvertArea(appl application.Application, request *goa.RequestData, ar *area.Area, additional ...AreaConvertFunc) *app.Area {
 	areaType := area.APIStringTypeAreas
 	spaceType := "spaces"
 
@@ -212,7 +226,7 @@ func ConvertArea(request *goa.RequestData, ar *area.Area, additional ...AreaConv
 		}
 	}
 	for _, add := range additional {
-		add(request, ar, i)
+		add(appl, request, ar, i)
 	}
 	return i
 }
