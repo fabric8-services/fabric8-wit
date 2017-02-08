@@ -30,7 +30,7 @@ func IterateParents(exp Expression, f func(Expression) bool) {
 }
 
 // BinaryExpression represents expressions with 2 children
-// This could be generalized to n-ary expressions, but that is not neccessary right now
+// This could be generalized to n-ary expressions, but that is not necessary right now
 type BinaryExpression interface {
 	Expression
 	Left() Expression
