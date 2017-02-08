@@ -36,7 +36,11 @@ func (c *AreaController) ShowChild(ctx *app.ShowChildAreaContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Areas().ListChildren(ctx, id)
+		parentArea, err := appl.Areas().Load(ctx, id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		c, err := appl.Areas().ListChildren(ctx, parentArea)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -115,12 +119,19 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 			c)
 
 		// resolve path names.
-		/*
-			path := ConvertFromLtreeFormat(c.Path)
-			parentUuidStrings := strings.Split(path, ".")
-			parentUuids := convertToUuid(parentUuidStrings)
-			parentAreas, err := appl.Areas().LoadMultiple(ctx, parentUuids)
-		*/
+
+		parentUuidStrings := strings.Split(ConvertFromLtreeFormat(c.Path), ".")
+		parentUuids := convertToUuid(parentUuidStrings)
+		parentAreas, err := appl.Areas().LoadMultiple(ctx, parentUuids)
+		path_resolved := ""
+		for _, a := range parentAreas {
+			if path_resolved == "" {
+				path_resolved = a.Name
+				continue
+			}
+			path_resolved = path_resolved + "." + a.Name
+		}
+		res.Data.Attributes.PathResolved = &path_resolved
 		return ctx.OK(res)
 	})
 }

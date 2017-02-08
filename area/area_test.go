@@ -172,7 +172,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	require.Nil(t, err)
 	actualArea, err = repo.Load(context.Background(), area3.ID)
 
-	childAreaList, err := repo.ListChildren(context.Background(), i.ID)
+	childAreaList, err := repo.ListChildren(context.Background(), &i)
 	assert.Equal(t, 2, len(childAreaList))
 	require.Nil(t, err)
 
@@ -207,7 +207,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	err = repo.Create(context.Background(), &area2)
 	require.Nil(t, err)
 
-	childAreaList, err := repo.ListChildren(context.Background(), i.ID)
+	childAreaList, err := repo.ListChildren(context.Background(), &i)
 	assert.Equal(t, 1, len(childAreaList))
 	require.Nil(t, err)
 
@@ -222,7 +222,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	err = repo.Create(context.Background(), &area4)
 	require.Nil(t, err)
 
-	childAreaList, err = repo.ListChildren(context.Background(), i.ID)
+	childAreaList, err = repo.ListChildren(context.Background(), &i)
 
 	// But , There is only 1 'son' .
 

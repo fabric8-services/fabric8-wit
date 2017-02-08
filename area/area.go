@@ -1,7 +1,6 @@
 package area
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -37,7 +36,7 @@ type Repository interface {
 	List(ctx context.Context, spaceID uuid.UUID) ([]*Area, error)
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Area, error)
-	ListChildren(ctx context.Context, id uuid.UUID) ([]*Area, error)
+	ListChildren(ctx context.Context, parentArea *Area) ([]*Area, error)
 	//ListParentTree(ctx context.Context, id uuid.UUID) ([]*Area, error)
 }
 
@@ -108,15 +107,17 @@ func (m *GormAreaRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) 
 }
 
 // ListChildren fetches all Areas belonging to a parent - list all child areas.
-func (m *GormAreaRepository) ListChildren(ctx context.Context, id uuid.UUID) ([]*Area, error) {
+func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area) ([]*Area, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "querychild"}, time.Now())
 	var objs []*Area
 
-	predicateString := ConvertToLtreeFormat(id.String()) // + ".*"
-	fmt.Println(predicateString)
-	tx := m.db.Where("path ~ ?", predicateString).Find(&objs)
+	predicateString := (parentArea.ID).String()
+	if parentArea.Path != "" {
+		predicateString = parentArea.Path + "." + predicateString
+	}
+	tx := m.db.Where("path ~ ?", ConvertToLtreeFormat(predicateString)).Find(&objs)
 	if tx.RecordNotFound() {
-		return nil, errors.NewNotFoundError("Area", id.String())
+		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(tx.Error.Error())
