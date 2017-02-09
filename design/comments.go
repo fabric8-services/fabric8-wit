@@ -36,6 +36,9 @@ var commentAttributes = a.Type("CommentAttributes", func() {
 	a.Attribute("body", d.String, "The comment body", func() {
 		a.Example("This is really interesting")
 	})
+	a.Attribute("body.rendered", d.String, "The comment body rendered in HTML", func() {
+		a.Example("<p>This is really interesting</p>\n")
+	})
 	a.Attribute("markup", d.String, "The comment markup associated with the body", func() {
 		a.Example("Markdown")
 	})

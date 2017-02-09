@@ -1,6 +1,8 @@
 package main
 
 import (
+	"html"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
@@ -75,7 +77,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 }
 
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
-// convertion from internal to API
+// conversion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
@@ -112,13 +114,15 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
+	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
-			Body:      &comment.Body,
-			Markup:    &markup,
-			CreatedAt: &comment.CreatedAt,
+			Body:         &comment.Body,
+			BodyRendered: &bodyRendered,
+			Markup:       &markup,
+			CreatedAt:    &comment.CreatedAt,
 		},
 		Relationships: &app.CommentRelations{
 			CreatedBy: &app.CommentCreatedBy{

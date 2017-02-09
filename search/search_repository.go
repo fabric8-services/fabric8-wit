@@ -113,7 +113,7 @@ func GetAllRegisteredURLs() map[string]KnownURL {
 
 /*
 isKnownURL compares with registered URLs in our system.
-Iterates over knownURLs and finds out most relevent matching pattern.
+Iterates over knownURLs and finds out most relevant matching pattern.
 If found, it returns true along with "name" of the KnownURL
 */
 func isKnownURL(url string) (bool, string) {
@@ -222,7 +222,7 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 	for _, part := range parts {
 		// QueryUnescape is required in case of encoded url strings.
 		// And does not harm regular search strings
-		// but this processing is required becasue at this moment, we do not know if
+		// but this processing is required because at this moment, we do not know if
 		// search input is a regular string or a URL
 
 		part, err := url.QueryUnescape(part)
@@ -372,8 +372,8 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 }
 
 func init() {
-	// While registering URLs do not include protocol becasue it will be removed before scanning starts
-	// Please do not include trailing slashes becasue it will be removed before scanning starts
+	// While registering URLs do not include protocol because it will be removed before scanning starts
+	// Please do not include trailing slashes because it will be removed before scanning starts
 	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
 	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }

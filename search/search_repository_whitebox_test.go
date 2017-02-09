@@ -194,7 +194,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			optionalKeywords := []string{workItemURLInSearchString, createdWorkItem.ID}
 
 			// We will now check the legitimacy of the search results.
-			// Iterate through all search results and see whether they meet the critera
+			// Iterate through all search results and see whether they meet the criteria
 
 			for _, workItemValue := range workItemList {
 				s.T().Log("Found search result  ", workItemValue.ID)
@@ -335,13 +335,13 @@ type searchTestData struct {
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	inputSet := []searchTestData{searchTestData{
+	inputSet := []searchTestData{{
 		query: "http://demo.almighty.io/work-item/list/detail/100",
 		expected: searchKeyword{
 			id:    nil,
 			words: []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
 		},
-	}, searchTestData{
+	}, {
 		query: "http://demo.almighty.io/work-item/board/detail/100",
 		expected: searchKeyword{
 			id:    nil,
@@ -358,13 +358,13 @@ func TestParseSearchStringURL(t *testing.T) {
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	inputSet := []searchTestData{searchTestData{
+	inputSet := []searchTestData{{
 		query: "http://demo.almighty.io/work-item/list/detail/",
 		expected: searchKeyword{
 			id:    nil,
 			words: []string{"demo.almighty.io/work-item/list/detail:*"},
 		},
-	}, searchTestData{
+	}, {
 		query: "http://demo.almighty.io/work-item/board/detail/",
 		expected: searchKeyword{
 			id:    nil,
