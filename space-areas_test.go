@@ -61,6 +61,8 @@ func (rest *TestSpaceAreaREST) UnSecuredController() (*goa.Service, *SpaceAreasC
 
 func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
 	t := rest.T()
+	t.Parallel()
+
 	resource.Require(t, resource.Database)
 
 	var p *space.Space
@@ -83,6 +85,7 @@ func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
 
 func (rest *TestSpaceAreaREST) TestListAreas() {
 	t := rest.T()
+	t.Parallel()
 	resource.Require(t, resource.Database)
 
 	// Create a new space where we'll create 3 areas
@@ -108,6 +111,7 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 	svc, ctrl := rest.SecuredController()
 	spaceId := s.ID
 	anotherSpaceId := anotherSpace.ID
+	var createdAreaUuids1 []uuid.UUID
 
 	for i := 0; i < 3; i++ {
 		name := "Test Area #20" + strconv.Itoa(i)
@@ -115,18 +119,33 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 		_, c := test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, spaceId.String(), spaceAreaContext)
 		require.NotNil(t, c.Data.ID)
 		require.NotNil(t, c.Data.Relationships.Space)
+		createdAreaUuids1 = append(createdAreaUuids1, *c.Data.ID)
 	}
 
 	name := "area in a different space"
 	anotherSpaceAreaContext := createSpaceArea(name, &name)
-	test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, anotherSpaceId.String(), anotherSpaceAreaContext)
+	_, createdArea := test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, anotherSpaceId.String(), anotherSpaceAreaContext)
+	require.NotNil(t, createdArea)
 
 	_, areaList := test.ListSpaceAreasOK(t, svc.Context, svc, ctrl, spaceId.String())
 	assert.Len(t, areaList.Data, 3)
+	for i := 0; i < len(createdAreaUuids1); i++ {
+		assert.NotNil(t, searchInAreaSlice(createdAreaUuids1[i], areaList))
+	}
 
 	_, anotherAreaList := test.ListSpaceAreasOK(t, svc.Context, svc, ctrl, anotherSpaceId.String())
 	assert.Len(t, anotherAreaList.Data, 1)
+	assert.Equal(t, anotherAreaList.Data[0].ID, createdArea.Data.ID)
 
+}
+
+func searchInAreaSlice(searchKey uuid.UUID, areaList *app.AreaList) *app.Area {
+	for i := 0; i < len(areaList.Data); i++ {
+		if searchKey == *areaList.Data[i].ID {
+			return areaList.Data[i]
+		}
+	}
+	return nil
 }
 
 func createSpaceArea(name string, desc *string) *app.CreateSpaceAreasPayload {
