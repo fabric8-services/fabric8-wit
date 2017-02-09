@@ -14,7 +14,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var loginService *keycloakOAuthProvider
+var loginService *KeycloakOAuthProvider
 
 func setup() {
 
@@ -41,10 +41,10 @@ func setup() {
 	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(nil)
 	identityRepository := account.NewIdentityRepository(nil)
-	loginService = &keycloakOAuthProvider{
+	loginService = &KeycloakOAuthProvider{
 		config:       oauth,
-		identities:   identityRepository,
-		users:        userRepository,
+		Identities:   identityRepository,
+		Users:        userRepository,
 		tokenManager: tokenManager,
 	}
 }

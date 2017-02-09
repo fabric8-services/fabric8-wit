@@ -196,6 +196,13 @@ func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
+// IdentityFilterByUsename is a gorm filter by username
+func IdentityFilterByUsename(username string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("username = ?", username)
+	}
+}
+
 // IdentityFilterByID is a gorm filter for Idenity ID.
 func IdentityFilterByID(identityID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {

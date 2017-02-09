@@ -125,6 +125,7 @@ var _ = a.Resource("login", func() {
 			a.Media(a.CollectionOf(AuthToken))
 		})
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
 

@@ -82,3 +82,5 @@ keycloak.secret : 08a8bcd1-f362-446a-9d2b-d34b8d464185
 keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth
 keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token
 keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo
+keycloak.testuser.name : testuser
+keycloak.testuser.secret : testuser

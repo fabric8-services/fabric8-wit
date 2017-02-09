@@ -144,7 +144,7 @@ func main() {
 
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to parse public token: \n%+v", err))
+		panic(fmt.Sprintf("ERROR: Failed to parse public key: \n%+v", err))
 	}
 
 	// Setup Account/Login/Security

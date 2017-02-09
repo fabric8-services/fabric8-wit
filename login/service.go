@@ -37,22 +37,29 @@ type Service interface {
 }
 
 // NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
-func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) Service {
-	return &keycloakOAuthProvider{
+func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) *KeycloakOAuthProvider {
+	return &KeycloakOAuthProvider{
 		config:       config,
-		identities:   identities,
-		users:        users,
+		Identities:   identities,
+		Users:        users,
 		tokenManager: tokenManager,
 		db:           db,
 	}
 }
 
-type keycloakOAuthProvider struct {
+// KeycloakOAuthProvider represents a keyclaok IDP
+type KeycloakOAuthProvider struct {
 	config       *oauth2.Config
-	identities   account.IdentityRepository
-	users        account.UserRepository
+	Identities   account.IdentityRepository
+	Users        account.UserRepository
 	tokenManager token.Manager
 	db           application.DB
+}
+
+// KeycloakOAuthService represents keycloak OAuth service interface
+type KeycloakOAuthService interface {
+	Perform(ctx *app.AuthorizeLoginContext) error
+	CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 }
 
 // keycloakTokenClaims represents standard Keycloak token claims
@@ -69,7 +76,8 @@ type keycloakTokenClaims struct {
 var stateReferer = map[string]string{}
 var mapLock sync.RWMutex
 
-func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) error {
+// Perform performs authenticatin
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 	referer := ctx.RequestData.Header.Get("Referer")
@@ -90,54 +98,14 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 		}
 
 		keycloakToken, err := keycloak.config.Exchange(ctx, code)
-
 		if err != nil || keycloakToken.AccessToken == "" {
 			log.Println(err)
 			return redirectWithError(ctx, knownReferer, InvalidCodeError)
 		}
 
-		claims, err := parseToken(keycloakToken.AccessToken, keycloak.tokenManager.PublicKey())
-		if err != nil || checkClaims(claims) != nil {
-			return redirectWithError(ctx, knownReferer, "Error when parsing token "+err.Error())
-		}
-
-		keycloakIdentityID, _ := uuid.FromString(claims.Subject)
-		identities, err := keycloak.identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
+		_, _, err = keycloak.CreateKeycloakUser(keycloakToken.AccessToken, ctx)
 		if err != nil {
-			return redirectWithError(ctx, knownReferer, "Error during querying for an identity "+err.Error())
-		}
-		var user *account.User
-
-		if len(identities) == 0 {
-			// No Idenity found, create a new Identity and User
-			user = new(account.User)
-			fillUser(claims, user)
-			err = application.Transactional(keycloak.db, func(appl application.Application) error {
-				err := keycloak.users.Create(ctx, user)
-				if err != nil {
-					// TODO It seems that even if we return an error here the transaction is not rolled back and the user is created. Why?!
-					return err
-				}
-				err = keycloak.identities.Create(ctx, &account.Identity{
-					ID:       keycloakIdentityID,
-					Username: claims.Username,
-					Provider: account.KeycloakIDP,
-					UserID:   account.NullUUID{UUID: user.ID, Valid: true},
-					User:     *user})
-				return err
-			})
-			if err != nil {
-				return redirectWithError(ctx, knownReferer, "Cant' create user/identity "+err.Error())
-			}
-		} else {
-			user = &identities[0].User
-			// let's update the existing user with the fullname, email and avatar from Keycloak,
-			// in case the user changed them since the last time he/she logged in
-			fillUser(claims, user)
-			err = keycloak.users.Save(ctx, user)
-			if err != nil {
-				return redirectWithError(ctx, knownReferer, "Cant' update user "+err.Error())
-			}
+			return redirectWithError(ctx, knownReferer, err.Error())
 		}
 
 		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+keycloakToken.AccessToken)
@@ -161,6 +129,57 @@ func (keycloak *keycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	ctx.ResponseData.Header().Set("Location", redirectURL)
 	return ctx.TemporaryRedirect()
+}
+
+// CreateKeycloakUser creates a user and a keyclaok identity
+func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
+	var identity *account.Identity
+	var user *account.User
+
+	claims, err := parseToken(accessToken, keycloak.tokenManager.PublicKey())
+	if err != nil || checkClaims(claims) != nil {
+		return nil, nil, errors.New("Error when parsing token " + err.Error())
+	}
+
+	keycloakIdentityID, _ := uuid.FromString(claims.Subject)
+	identities, err := keycloak.Identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
+	if err != nil {
+		return nil, nil, errors.New("Error during querying for an identity " + err.Error())
+	}
+
+	if len(identities) == 0 {
+		// No Idenity found, create a new Identity and User
+		user = new(account.User)
+		fillUser(claims, user)
+		err = application.Transactional(keycloak.db, func(appl application.Application) error {
+			err := keycloak.Users.Create(ctx, user)
+			if err != nil {
+				// TODO It seems that even if we return an error here the transaction is not rolled back and the user is created. Why?!
+				return err
+			}
+			identity = &account.Identity{
+				ID:       keycloakIdentityID,
+				Username: claims.Username,
+				Provider: account.KeycloakIDP,
+				UserID:   account.NullUUID{UUID: user.ID, Valid: true},
+				User:     *user}
+			err = keycloak.Identities.Create(ctx, identity)
+			return err
+		})
+		if err != nil {
+			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
+		}
+	} else {
+		user = &identities[0].User
+		// let's update the existing user with the fullname, email and avatar from Keycloak,
+		// in case the user changed them since the last time he/she logged in
+		fillUser(claims, user)
+		err = keycloak.Users.Save(ctx, user)
+		if err != nil {
+			return nil, nil, errors.New("Cant' update user " + err.Error())
+		}
+	}
+	return identity, user, nil
 }
 
 func redirectWithError(ctx *app.AuthorizeLoginContext, knownReferer string, errorString string) error {

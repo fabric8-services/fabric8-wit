@@ -76,6 +76,8 @@ const (
 	varKeycloakEndpointAuth         = "keycloak.endpoint.auth"
 	varKeycloakEndpointToken        = "keycloak.endpoint.token"
 	varKeycloakEndpointUserinfo     = "keycloak.endpoint.userinfo"
+	varKeycloakTesUserName          = "keycloak.testuser.name"
+	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
 	varTokenPublicKey               = "token.publickey"
 	varTokenPrivateKey              = "token.privatekey"
 )
@@ -119,6 +121,8 @@ func setConfigDefaults() {
 	viper.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
 	viper.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
 	viper.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
+	viper.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
+	viper.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -237,6 +241,16 @@ func GetKeycloakEndpointUserinfo() string {
 	return viper.GetString(varKeycloakEndpointUserinfo)
 }
 
+// GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
+func GetKeycloakTestUserName() string {
+	return viper.GetString(varKeycloakTesUserName)
+}
+
+// GetKeycloakTestUserSecret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
+func GetKeycloakTestUserSecret() string {
+	return viper.GetString(varKeycloakTesUserSecret)
+}
+
 // Auth-related defaults
 
 // RSAPrivateKey for signing JWT Tokens
@@ -293,3 +307,6 @@ var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+
+var defaultKeycloakTesUserName = "testuser"
+var defaultKeycloakTesUserSecret = "testuser"
