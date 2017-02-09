@@ -297,7 +297,8 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	var res []WICountsPerIteration
 	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,
 				count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations 
-					on iterations.id::text = fields->>'system.iteration'`).Where(`iterations.space_id = ? and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
+				on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
+				and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
