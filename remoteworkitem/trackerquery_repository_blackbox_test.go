@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/application"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/migration"
@@ -39,7 +40,7 @@ func (s *trackerQueryRepoBlackBoxTest) SetupSuite() {
 }
 
 func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &trackerQueryRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &trackerQueryRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 func (s *trackerQueryRepoBlackBoxTest) SetupTest() {

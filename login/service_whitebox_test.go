@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
@@ -18,11 +19,10 @@ var loginService *keycloakOAuthProvider
 
 func setup() {
 
-	var err error
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.GetConfigurationData()
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-
 	oauth := &oauth2.Config{
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
@@ -33,12 +33,12 @@ func setup() {
 		},
 	}
 
-	publicKey, err := token.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
+	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
 		panic(err)
 	}
 
-	privateKey, err := token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
+	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
 	if err != nil {
 		panic(err)
 	}

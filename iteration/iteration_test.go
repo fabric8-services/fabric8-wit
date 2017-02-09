@@ -8,10 +8,12 @@ import (
 
 	"strconv"
 
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,7 +27,7 @@ type TestIterationRepository struct {
 }
 
 func TestRunIterationRepository(t *testing.T) {
-	suite.Run(t, &TestIterationRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationRepository{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 func (test *TestIterationRepository) SetupTest() {

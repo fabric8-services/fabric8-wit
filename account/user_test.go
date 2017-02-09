@@ -5,14 +5,14 @@ import (
 	"os"
 	"testing"
 
+	config "github.com/almighty/almighty-core/configuration"
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,8 +21,8 @@ var db *gorm.DB
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		var err error
-		if err = configuration.Setup(""); err != nil {
+		configuration, err := config.NewConfigurationData("../" + config.GetDefaultConfigurationFile())
+		if err != nil {
 			panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 		}
 

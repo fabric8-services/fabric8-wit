@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -38,7 +39,7 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 }
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {

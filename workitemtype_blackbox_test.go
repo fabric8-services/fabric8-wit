@@ -10,7 +10,7 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -291,6 +291,11 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
 }
 
 func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
+	configuration, err := config.NewConfigurationData(config.GetDefaultConfigurationFile())
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)

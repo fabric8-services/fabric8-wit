@@ -3,6 +3,7 @@ package space_test
 import (
 	"testing"
 
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -19,7 +20,7 @@ var testSpace string = satoriuuid.NewV4().String()
 var testSpace2 string = satoriuuid.NewV4().String()
 
 func TestRunRepoBBTest(t *testing.T) {
-	suite.Run(t, &repoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &repoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 type repoBBTest struct {

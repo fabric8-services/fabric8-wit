@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/context"
-
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -26,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
 )
 
 type TestCommentREST struct {
@@ -36,7 +36,7 @@ type TestCommentREST struct {
 }
 
 func TestRunCommentREST(t *testing.T) {
-	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite(config.GetDefaultConfigurationFile())})
 }
 
 func (rest *TestCommentREST) SetupTest() {

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -42,7 +43,7 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 }
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
-	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 type SearchTestDescriptor struct {

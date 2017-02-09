@@ -7,6 +7,7 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -27,7 +28,7 @@ type TestSpaceREST struct {
 }
 
 func TestRunProjectREST(t *testing.T) {
-	suite.Run(t, &TestSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite(config.GetDefaultConfigurationFile())})
 }
 
 func (rest *TestSpaceREST) SetupTest() {

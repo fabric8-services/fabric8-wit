@@ -13,7 +13,7 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -63,9 +63,9 @@ type workItemLinkSuite struct {
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkSuite) SetupSuite() {
-	var err error
 
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.NewConfigurationData(config.GetDefaultConfigurationFile())
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
@@ -621,6 +621,10 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInval
 }
 
 func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
+	configuration, err := config.NewConfigurationData(config.GetDefaultConfigurationFile())
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
@@ -781,6 +785,10 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
 func getWorkItemRelationshipLinksTestData(t *testing.T, wiID string) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
+		configuration, err := config.NewConfigurationData(config.GetDefaultConfigurationFile())
+		if err != nil {
+			panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+		}
 		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)

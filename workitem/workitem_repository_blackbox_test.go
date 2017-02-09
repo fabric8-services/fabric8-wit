@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -26,7 +27,7 @@ type workItemRepoBlackBoxTest struct {
 }
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else

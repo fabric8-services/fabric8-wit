@@ -7,7 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/search"
@@ -31,6 +31,12 @@ func NewSearchController(service *goa.Service, db application.DB) *SearchControl
 
 // Show runs the show action.
 func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
+
+	configuration, err := config.NewConfigurationData("")
+	if err != nil {
+		return errs.Wrap(err, "Failed to setup the configuration")
+	}
+
 	var offset int
 	var limit int
 

@@ -1,30 +1,30 @@
 #------------------------
-# Postgres configuration
+# Postgres configuration for testing the configuration framework
 #------------------------
 
-postgres.host: localhost
-postgres.port: 5432
-postgres.user: postgres
-postgres.password: mysecretpassword
-postgres.database: postgres
-postgres.sslmode: disable
+postgres.host: localhost2
+postgres.port: 54322
+postgres.user: postgres2
+postgres.password: mysecretpassword2
+postgres.database: postgres2
+postgres.sslmode: disable2
 # The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+postgres.connection.maxretries: 502
 # Duration to wait before trying to connect again
-postgres.connection.retrysleep: 1s
+postgres.connection.retrysleep: 1s2
 
 #------------------------
 # HTTP configuration
 #------------------------
 
-http.address: 0.0.0.0:8080
+http.address: 0.0.0.0:80802
 
 #------------------------
 # Misc.
 #------------------------
 
 # Enable development related features, e.g. token generation endpoint
-developer.mode.enabled: false
+developer.mode.enabled: true
 
 # Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true

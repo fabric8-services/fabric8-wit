@@ -7,7 +7,9 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/comment"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormsupport"
+
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
@@ -25,7 +27,7 @@ type TestCommentRepository struct {
 
 func TestRunCommentRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestCommentRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentRepository{DBTestSuite: gormsupport.NewDBTestSuite("../" + config.GetDefaultConfigurationFile())})
 }
 
 func (test *TestCommentRepository) SetupTest() {
