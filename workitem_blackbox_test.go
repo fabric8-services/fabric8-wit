@@ -104,10 +104,10 @@ func TestReorderWorkItem(t *testing.T) {
 	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem2
