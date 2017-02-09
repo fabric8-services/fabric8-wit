@@ -78,7 +78,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		childPath := ConvertToLtreeFormat(parentID.String())
+		childPath := area.ConvertToLtreeFormat(parentID.String())
 		if parent.Path != "" {
 			childPath = parent.Path + pathSepInDatabase + childPath
 		}
@@ -129,7 +129,7 @@ func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *
 }
 
 func getResolvePath(appl application.Application, a *area.Area) (*string, error) {
-	parentUuidStrings := strings.Split(ConvertFromLtreeFormat(a.Path), pathSepInService)
+	parentUuidStrings := strings.Split(area.ConvertFromLtreeFormat(a.Path), pathSepInService)
 	parentUuids := convertToUuid(parentUuidStrings)
 	parentAreas, err := appl.Areas().LoadMultiple(context.Background(), parentUuids)
 	if err != nil {
@@ -171,7 +171,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	pathToTopMostParent := pathSepInService + ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
+	pathToTopMostParent := pathSepInService + area.ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
 
 	i := &app.Area{
 		Type: areaType,
@@ -207,7 +207,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	// in a specific space.
 	if ar.Path != "" {
 
-		allParents := strings.Split(ConvertFromLtreeFormat(ar.Path), pathSepInService)
+		allParents := strings.Split(area.ConvertFromLtreeFormat(ar.Path), pathSepInService)
 		parentID := allParents[len(allParents)-1]
 
 		// Only the immediate parent's URL.
@@ -245,22 +245,6 @@ func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
-}
-
-// ConvertToLtreeFormat converts data in UUID format to ltree format.
-func ConvertToLtreeFormat(uuid string) string {
-	//Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "-", "_", -1)
-	converted = strings.Replace(converted, pathSepInService, pathSepInDatabase, -1)
-	return converted
-}
-
-// ConvertFromLtreeFormat converts data to UUID format from ltree format.
-func ConvertFromLtreeFormat(uuid string) string {
-	// Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "_", "-", -1)
-	converted = strings.Replace(converted, pathSepInDatabase, pathSepInService, -1)
-	return converted
 }
 
 func convertToUuid(uuidStrings []string) []uuid.UUID {

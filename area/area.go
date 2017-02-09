@@ -13,6 +13,8 @@ import (
 )
 
 const APIStringTypeAreas = "areas"
+const pathSepInService = "/"
+const pathSepInDatabase = "."
 
 // Area describes a single Area
 type Area struct {
@@ -127,11 +129,15 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 // ConvertToLtreeFormat converts data in UUID format to ltree format.
 func ConvertToLtreeFormat(uuid string) string {
 	//Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "-", "_", -1)
+	converted := strings.Replace(uuid, "-", "_", -1)
+	converted = strings.Replace(converted, pathSepInService, pathSepInDatabase, -1)
+	return converted
 }
 
 // ConvertFromLtreeFormat converts data to UUID format from ltree format.
 func ConvertFromLtreeFormat(uuid string) string {
 	// Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "_", "-", -1)
+	converted := strings.Replace(uuid, "_", "-", -1)
+	converted = strings.Replace(converted, pathSepInDatabase, pathSepInService, -1)
+	return converted
 }
