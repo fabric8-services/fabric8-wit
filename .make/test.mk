@@ -124,7 +124,7 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 test-unit-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v $(TEST_PACKAGES)
 
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
@@ -137,7 +137,7 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
@@ -350,7 +350,7 @@ $(eval ENV_VAR := $(5))
 $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@$(ENV_VAR) ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
+@$(ENV_VAR) ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
 	go test $(PACKAGE_NAME) \
 		-v \
 		-coverprofile $(COV_OUT_FILE) \
