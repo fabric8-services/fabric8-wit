@@ -12,6 +12,10 @@ GOCOVMERGE_BIN=$(VENDOR_DIR)/github.com/wadey/gocovmerge/gocovmerge
 DOCKER_BIN_NAME=docker
 DOCKER_COMPOSE_BIN_NAME=docker-compose
 
+GOIMPORTS_BIN=$(VENDOR_DIR)/golang.org/x/tools/cmd/goimports/goimports
+GOLINT_BIN=$(VENDOR_DIR)/github.com/golang/lint/golint/golint
+GOCYCLO_BIN=$(VENDOR_DIR)/github.com/fzipp/gocyclo/gocyclo
+
 GIT_BIN_NAME := git
 GLIDE_BIN_NAME := glide
 GO_BIN_NAME := go

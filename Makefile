@@ -13,6 +13,8 @@ SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
+GOLINT_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
+GOLINT_TMP_FILE=tmp/golint_report
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -95,6 +97,22 @@ check-go-format: prebuild-check
 	&& exit 1 \
 	|| true
 
+.PHONY: golint
+.ONESHELL: golint
+ ## Run different static code analysis for go
+golint: clean-golint $(GOIMPORTS_BIN) $(GOLINT_BIN) $(GOCYCLO_BIN)
+	@echo "--- GoCYCLO CODE ANALYSIS ----" >> $(GOLINT_TMP_FILE);
+	@$(foreach d,$(CHECK_DIRS),$(GOCYCLO_BIN) -over 15 $d | grep -vEf .golint_exclude >> $(GOLINT_TMP_FILE);)
+
+	@echo "--- Go VET CODE ANALYSIS ----" >> $(CHECK_TMP_FILE);
+	@$(foreach d,$(CHECK_DIRS),go tool vet --all $d/*.go 2>&1 >> $(GOLINT_TMP_FILE);)
+
+	@echo "--- Go LINT CODE ANALYSIS ----" >> $(GOLINT_TMP_FILE);
+	@$(foreach d,$(CHECK_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude >> $(GOLINT_TMP_FILE);)
+
+	@echo "--- Go IMPORTS CODE ANALYSIS ----" >> $(GOLINT_TMP_FILE);
+	@$(foreach d,$(CHECK_DIRS),$(GOIMPORTS_BIN) -l $d/*.go | grep -vEf .golint_exclude >> $(GOLINT_TMP_FILE);)
+
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
 format-go-code: prebuild-check
@@ -117,6 +135,13 @@ ifeq ($(OS),Windows_NT)
 else
 	cd ${CLIENT_DIR}/ && go build -v -o ${BINARY_CLIENT_BIN}
 endif
+
+$(GOIMPORTS_BIN):
+	cd $(VENDOR_DIR)/golang.org/x/tools/cmd/goimports && go build -v
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
+$(GOCYCLO_BIN):
+	cd $(VENDOR_DIR)/github.com/fzipp/gocyclo && go build -v
 
 # Pack all migration SQL files into a compilable Go file
 migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
@@ -172,6 +197,12 @@ CLEAN_TARGETS += clean-glide-cache
 ## Removes the ./glide directory.
 clean-glide-cache:
 	-rm -rf ./.glide
+
+CLEAN_TARGETS += clean-golint
+.PHONY: clean-golint
+## Removes the $(GOLINT_TMP_FILE)
+clean-golint:
+	-rm -f $(GOLINT_TMP_FILE)
 
 $(VENDOR_DIR): glide.lock glide.yaml
 	$(GLIDE_BIN) install
