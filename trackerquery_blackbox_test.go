@@ -18,6 +18,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/stretchr/testify/require"
 )
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
@@ -26,6 +27,7 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 		t.Fatal("Could not parse Key ", err)
 	}
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+	require.Nil(t, err)
 
 	createTrackerQueryPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
 

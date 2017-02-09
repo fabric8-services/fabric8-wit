@@ -1,13 +1,18 @@
 package workitem_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
+	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,6 +27,20 @@ type workItemRepoBlackBoxTest struct {
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
 	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+}
+
+// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+func (s *workItemRepoBlackBoxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if _, c := os.LookupEnv(resource.Database); c != false {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
 }
 
 func (s *workItemRepoBlackBoxTest) SetupTest() {
@@ -89,6 +108,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 
 	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 }
@@ -105,9 +125,10 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 
 	wiNew, err := s.repo.Save(context.Background(), *wi)
-
+	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
 }
 
@@ -124,6 +145,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
@@ -139,6 +161,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		}, "xx")
 	require.Nil(s.T(), err, "Could not create workitem")
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
