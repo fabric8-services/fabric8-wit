@@ -261,5 +261,5 @@ func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
 	workitemId := s.createWorkItem(testsupport.TestIdentity)
 	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
 	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
-	test.DeleteCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
+	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 }
