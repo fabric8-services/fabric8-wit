@@ -9,12 +9,12 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
 	_ "github.com/lib/pq"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
-var loginService *keycloakOAuthProvider
+var loginService *KeycloakOAuthProvider
 
 func setup() {
 
@@ -33,24 +33,19 @@ func setup() {
 		},
 	}
 
-	publicKey, err := token.ParsePublicKey([]byte(configuration.GetTokenPublicKey()))
-	if err != nil {
-		panic(err)
-	}
-
 	privateKey, err := token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
 	if err != nil {
 		panic(err)
 	}
 
-	tokenManager := token.NewManager(publicKey, privateKey)
+	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(nil)
 	identityRepository := account.NewIdentityRepository(nil)
-	loginService = &keycloakOAuthProvider{
+	loginService = &KeycloakOAuthProvider{
 		config:       oauth,
-		identities:   identityRepository,
-		users:        userRepository,
-		tokenManager: tokenManager,
+		Identities:   identityRepository,
+		Users:        userRepository,
+		TokenManager: tokenManager,
 	}
 }
 
@@ -61,7 +56,24 @@ func tearDown() {
 func TestValidOAuthAccessToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
-	t.Skip("Not implemented")
+	setup()
+	defer tearDown()
+
+	identity := account.Identity{
+		ID:       uuid.NewV4(),
+		Username: "testuser",
+	}
+	token, err := loginService.TokenManager.Generate(identity)
+	assert.Nil(t, err)
+	accessToken := &oauth2.Token{
+		AccessToken: token,
+		TokenType:   "Bearer",
+	}
+
+	claims, err := parseToken(accessToken.AccessToken, loginService.TokenManager.PublicKey())
+	assert.Nil(t, err)
+	assert.Equal(t, identity.ID.String(), claims.Subject)
+	assert.Equal(t, identity.Username, claims.Username)
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
@@ -76,18 +88,48 @@ func TestInvalidOAuthAccessToken(t *testing.T) {
 		TokenType:   "Bearer",
 	}
 
-	u, err := loginService.getUser(context.Background(), accessToken)
-	assert.Nil(t, err)
-	assert.Equal(t, &openIDConnectUser{}, u)
+	_, err := parseToken(accessToken.AccessToken, loginService.TokenManager.PublicKey())
+	assert.NotNil(t, err)
 }
 
-func TestGetUser(t *testing.T) {
+func TestCheckClaimsOK(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	t.Skip("Not implemented")
+	claims := &keycloakTokenClaims{
+		Email:    "somemail@domain.com",
+		Username: "testuser",
+	}
+	claims.Subject = uuid.NewV4().String()
+
+	assert.Nil(t, checkClaims(claims))
+}
+
+func TestCheckClaimsFails(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	claimsNoEmail := &keycloakTokenClaims{
+		Username: "testuser",
+	}
+	claimsNoEmail.Subject = uuid.NewV4().String()
+	assert.NotNil(t, checkClaims(claimsNoEmail))
+
+	claimsNoUsername := &keycloakTokenClaims{
+		Email: "somemail@domain.com",
+	}
+	claimsNoUsername.Subject = uuid.NewV4().String()
+	assert.NotNil(t, checkClaims(claimsNoUsername))
+
+	claimsNoSubject := &keycloakTokenClaims{
+		Email:    "somemail@domain.com",
+		Username: "testuser",
+	}
+	assert.NotNil(t, checkClaims(claimsNoSubject))
 }
 
 func TestGravatarURLGeneration(t *testing.T) {
+	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	grURL, err := generateGravatarURL("alkazako@redhat.com")
 	assert.Nil(t, err)
