@@ -61,7 +61,6 @@ func (rest *TestSpaceAreaREST) UnSecuredController() (*goa.Service, *SpaceAreasC
 
 func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
 	t := rest.T()
-	t.Parallel()
 
 	resource.Require(t, resource.Database)
 
@@ -85,7 +84,6 @@ func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
 
 func (rest *TestSpaceAreaREST) TestListAreas() {
 	t := rest.T()
-	t.Parallel()
 	resource.Require(t, resource.Database)
 
 	// Create a new space where we'll create 3 areas
@@ -95,16 +93,19 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 	var anotherSpace *space.Space
 
 	application.Transactional(rest.db, func(app application.Application) error {
+		var err error
 		repo := app.Spaces()
 		newSpace := &space.Space{
 			Name: "Test Space 1" + uuid.NewV4().String(),
 		}
-		s, _ = repo.Create(context.Background(), newSpace)
+		s, err = repo.Create(context.Background(), newSpace)
+		require.Nil(t, err)
 
 		newSpace = &space.Space{
 			Name: "Another space" + uuid.NewV4().String(),
 		}
-		anotherSpace, _ = repo.Create(context.Background(), newSpace)
+		anotherSpace, err = repo.Create(context.Background(), newSpace)
+		require.Nil(t, err)
 		return nil
 	})
 

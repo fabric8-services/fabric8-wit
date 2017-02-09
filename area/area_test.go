@@ -118,7 +118,8 @@ func (test *TestAreaRepository) TestListAreaBySpace() {
 			Name:    name,
 			SpaceID: spaceID,
 		}
-		repo.Create(context.Background(), &a)
+		err := repo.Create(context.Background(), &a)
+		assert.Equal(t, nil, err)
 		createdAreaIds = append(createdAreaIds, a.ID)
 	}
 	repo.Create(context.Background(), &area.Area{
@@ -149,7 +150,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	t.Parallel()
 
 	resource.Require(t, resource.Database)
-	test.DBTestSuite.DB = test.DBTestSuite.DB.Debug()
+	//test.DBTestSuite.DB = test.DBTestSuite.DB.Debug()
 	repo := area.NewAreaRepository(test.DB)
 
 	name := "Area #240"

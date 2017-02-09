@@ -115,7 +115,7 @@ var _ = a.Resource("space-areas", func() {
 
 	a.Action("list", func() {
 		a.Routing(
-			a.GET("Areas"),
+			a.GET("areas"),
 		)
 		a.Description("List Areas.")
 		a.Response(d.OK, func() {
@@ -128,11 +128,11 @@ var _ = a.Resource("space-areas", func() {
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.POST("Areas"),
+			a.POST("areas"),
 		)
 		a.Description("Create Area.")
 		a.Payload(areaSingle)
-		a.Response(d.Created, "/Areas/.*", func() {
+		a.Response(d.Created, "/areas/.*", func() {
 			a.Media(areaSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
