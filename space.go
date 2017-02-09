@@ -194,7 +194,7 @@ func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {
 }
 
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
-// convertion from internal to API
+// conversion from internal to API
 type SpaceConvertFunc func(*goa.RequestData, *space.Space, *app.Space)
 
 // ConvertSpaces converts between internal and external REST representation

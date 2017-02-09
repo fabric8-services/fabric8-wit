@@ -143,7 +143,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 }
 
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
-// convertion from internal to API
+// conversion from internal to API
 type IterationConvertFunc func(*goa.RequestData, *iteration.Iteration, *app.Iteration)
 
 // ConvertIterations converts between internal and external REST representation

@@ -47,7 +47,7 @@ func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 
 	wit, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{
-		"foo": app.FieldDefinition{
+		"foo": {
 			Required: true,
 			Type:     &app.FieldType{Kind: string(workitem.KindFloat)},
 		},
@@ -74,7 +74,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	bt := "string"
 	wit, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{
-		"foo": app.FieldDefinition{
+		"foo": {
 			Required: true,
 			Type: &app.FieldType{
 				ComponentType: &bt,
@@ -104,7 +104,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 	bt := "string"
 	basetype := "foo.bar"
 	baseWit, err := s.repo.Create(context.Background(), nil, basetype, map[string]app.FieldDefinition{
-		"foo": app.FieldDefinition{
+		"foo": {
 			Required: true,
 			Type: &app.FieldType{
 				ComponentType: &bt,

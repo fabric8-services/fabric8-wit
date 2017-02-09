@@ -1,7 +1,7 @@
 package main
 
 import (
-	"errors"
+	"html"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -57,7 +57,9 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		if identity != cm.CreatedBy.String() {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
+			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
+			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
 		}
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
@@ -75,7 +77,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 }
 
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
-// convertion from internal to API
+// conversion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
@@ -112,13 +114,15 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
+	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
-			Body:      &comment.Body,
-			Markup:    &markup,
-			CreatedAt: &comment.CreatedAt,
+			Body:         &comment.Body,
+			BodyRendered: &bodyRendered,
+			Markup:       &markup,
+			CreatedAt:    &comment.CreatedAt,
 		},
 		Relationships: &app.CommentRelations{
 			CreatedBy: &app.CommentCreatedBy{
