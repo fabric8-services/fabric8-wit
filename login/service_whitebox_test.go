@@ -45,7 +45,7 @@ func setup() {
 		config:       oauth,
 		Identities:   identityRepository,
 		Users:        userRepository,
-		tokenManager: tokenManager,
+		TokenManager: tokenManager,
 	}
 }
 
@@ -63,14 +63,14 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		ID:       uuid.NewV4(),
 		Username: "testuser",
 	}
-	token, err := loginService.tokenManager.Generate(identity)
+	token, err := loginService.TokenManager.Generate(identity)
 	assert.Nil(t, err)
 	accessToken := &oauth2.Token{
 		AccessToken: token,
 		TokenType:   "Bearer",
 	}
 
-	claims, err := parseToken(accessToken.AccessToken, loginService.tokenManager.PublicKey())
+	claims, err := parseToken(accessToken.AccessToken, loginService.TokenManager.PublicKey())
 	assert.Nil(t, err)
 	assert.Equal(t, identity.ID.String(), claims.Subject)
 	assert.Equal(t, identity.Username, claims.Username)
@@ -88,7 +88,7 @@ func TestInvalidOAuthAccessToken(t *testing.T) {
 		TokenType:   "Bearer",
 	}
 
-	_, err := parseToken(accessToken.AccessToken, loginService.tokenManager.PublicKey())
+	_, err := parseToken(accessToken.AccessToken, loginService.TokenManager.PublicKey())
 	assert.NotNil(t, err)
 }
 

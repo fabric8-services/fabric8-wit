@@ -44,7 +44,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	return c.auth.Perform(ctx)
 }
 
-// Generate runs the authorize action.
+// Generate obtain the access token from Keycloak for the test user
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
@@ -85,7 +85,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	}
 	var tokens app.AuthTokenCollection
 	tokens = append(tokens, &app.AuthToken{Token: token.AccessToken})
-
+	// Creates the testuser user and identity if they don't yet exist
 	c.auth.CreateKeycloakUser(token.AccessToken, ctx)
 
 	return ctx.OK(tokens)

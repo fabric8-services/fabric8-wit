@@ -42,7 +42,7 @@ func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.Identity
 		config:       config,
 		Identities:   identities,
 		Users:        users,
-		tokenManager: tokenManager,
+		TokenManager: tokenManager,
 		db:           db,
 	}
 }
@@ -52,7 +52,7 @@ type KeycloakOAuthProvider struct {
 	config       *oauth2.Config
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
-	tokenManager token.Manager
+	TokenManager token.Manager
 	db           application.DB
 }
 
@@ -136,7 +136,7 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 	var identity *account.Identity
 	var user *account.User
 
-	claims, err := parseToken(accessToken, keycloak.tokenManager.PublicKey())
+	claims, err := parseToken(accessToken, keycloak.TokenManager.PublicKey())
 	if err != nil || checkClaims(claims) != nil {
 		return nil, nil, errors.New("Error when parsing token " + err.Error())
 	}
