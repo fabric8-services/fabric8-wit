@@ -163,11 +163,7 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	}
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, controller, &payload)
 
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(almtoken.RSAPublicKey))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	jwtMiddleware := goajwt.New(publickey, nil, app.NewJWTSecurity())
+	jwtMiddleware := goajwt.New(&privatekey.PublicKey, nil, app.NewJWTSecurity())
 	app.UseJWTMiddleware(service, jwtMiddleware)
 
 	controller2 := NewTrackerqueryController(service, gormapplication.NewGormDB(DB), RwiScheduler)

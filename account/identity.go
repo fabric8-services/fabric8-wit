@@ -1,6 +1,7 @@
 package account
 
 import (
+	"database/sql/driver"
 	"time"
 
 	"github.com/almighty/almighty-core/app"
@@ -12,20 +13,60 @@ import (
 	"golang.org/x/net/context"
 )
 
-// Identity ddenDescribes a unique Person with the ALM
+const (
+	// KeycloakIDP is the name of the main Keycloak Identity Provider
+	KeycloakIDP string = "kc"
+)
+
+// NullUUID can be used with the standard sql package to represent a
+// UUID value that can be NULL in the database
+type NullUUID struct {
+	UUID  uuid.UUID
+	Valid bool
+}
+
+// Scan implements the sql.Scanner interface.
+func (u *NullUUID) Scan(src interface{}) error {
+	if src == nil {
+		u.UUID, u.Valid = uuid.Nil, false
+		return nil
+	}
+
+	// Delegate to UUID Scan function
+	u.Valid = true
+
+	switch src := src.(type) {
+	case uuid.UUID:
+		return u.UUID.Scan(src.Bytes())
+	}
+
+	return u.UUID.Scan(src)
+}
+
+// Value implements the driver.Valuer interface.
+func (u NullUUID) Value() (driver.Value, error) {
+	if !u.Valid {
+		return nil, nil
+	}
+	// Delegate to UUID Value function
+	return u.UUID.Value()
+}
+
+// Identity describes a federated identity provided by Identity Provider (IDP) such as Keycloak, GitHub, OSO, etc.
+// One User account can have many Identities
 type Identity struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	Emails   []User    // has many Users
-	FullName string    // The fullname of the Identity
-	ImageURL string    // The image URL for this Identity
+	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
+	Username string    // The username of the Identity
+	Provider string    // The identity provider ID, such as "keycloak", "github", "oso", etc
+	UserID   NullUUID  `sql:"type:uuid"` // Belongs to User
+	User     User
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m Identity) TableName() string {
 	return "identities"
-
 }
 
 // TODO: Remove. Data layer should not know about the REST layer. Moved to /users.go
@@ -37,8 +78,8 @@ func (m Identity) ConvertIdentityFromModel() *app.Identity {
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				FullName: &m.FullName,
-				ImageURL: &m.ImageURL,
+				Username: &m.Username,
+				Provider: &m.Provider,
 			},
 		},
 	}
@@ -63,6 +104,8 @@ type IdentityRepository interface {
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
+	List(ctx context.Context) (*app.IdentityArray, error)
+	IsValid(context.Context, uuid.UUID) bool
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -92,8 +135,9 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "create"}, time.Now())
 
-	model.ID = uuid.NewV4()
-
+	if model.ID == uuid.Nil {
+		model.ID = uuid.NewV4()
+	}
 	err := m.db.Create(model).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Identity", "error", err.Error())
@@ -145,12 +189,40 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	return objs, nil
 }
 
+// IdentityFilterByUserID is a gorm filter for a Belongs To relationship.
+func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("user_id = ?", userID)
+	}
+}
+
+// IdentityFilterByUsename is a gorm filter by username
+func IdentityFilterByUsename(username string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("username = ?", username)
+	}
+}
+
+// IdentityFilterByID is a gorm filter for Idenity ID.
+func IdentityFilterByID(identityID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("id = ?", identityID)
+	}
+}
+
+// IdentityWithUser is a gorm filter for preloading the User relationship.
+func IdentityWithUser() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Preload("User")
+	}
+}
+
 // List return all user identities
 func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "list"}, time.Now())
 	var rows []Identity
 
-	err := m.db.Model(&Identity{}).Order("full_name").Find(&rows).Error
+	err := m.db.Model(&Identity{}).Order("username").Find(&rows).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errors.WithStack(err)
 	}
@@ -163,8 +235,8 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	return &res, nil
 }
 
-// ValidIdentity validates that the IdentityID exists
-func (m *GormIdentityRepository) ValidIdentity(ctx context.Context, id uuid.UUID) bool {
+// IsValid returns true if the identity exists
+func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
 	_, err := m.Load(ctx, id)
 	if err != nil {
 		return false
