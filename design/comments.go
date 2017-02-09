@@ -144,11 +144,11 @@ var _ = a.Resource("comments", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:id"),
+			a.DELETE("/:commentId"),
 		)
 		a.Description("Delete work item with given id.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "id")
+			a.Param("commentId", d.UUID, "commentId")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)

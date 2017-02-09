@@ -105,7 +105,6 @@ func (m *GormCommentRepository) Delete(ctx context.Context, comment *Comment) er
 	if err := tx.Error; err != nil {
 		return errors.NewInternalError(err.Error())
 	}
-	log.Printf("Deleted Comment", comment)
 	return nil
 }
 

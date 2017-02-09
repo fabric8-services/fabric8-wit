@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"html"
 
 	"github.com/almighty/almighty-core/app"
@@ -84,7 +85,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, ctx.ID)
+		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
