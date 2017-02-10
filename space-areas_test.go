@@ -48,9 +48,9 @@ func (rest *TestSpaceAreaREST) TearDownTest() {
 
 func (rest *TestSpaceAreaREST) SecuredController() (*goa.Service, *SpaceAreasController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	//priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), testsupport.TestIdentity)
 	return svc, NewSpaceAreasController(svc, rest.db)
 }
 
