@@ -22,17 +22,21 @@ func TestListIdentities(t *testing.T) {
 	defer cleaner.DeleteCreatedEntities(DB)()
 
 	service := goa.New("Test-Identities")
-	identityController := NewIdentityController(service, gormapplication.NewGormDB(DB))
+	app := gormapplication.NewGormDB(DB)
+	identityController := NewIdentityController(service, app)
 	_, ic := test.ListIdentityOK(t, service.Context, service, identityController)
 	require.NotNil(t, ic)
 
 	numberOfCurrentIdent := len(ic.Data)
 
 	ctx := context.Background()
-	identityRepo := account.NewIdentityRepository(DB)
+
+	identityRepo := app.Identities()
+
 	identity := account.Identity{
-		FullName: "Test User",
-		ImageURL: "http://images.com/123",
+		Username: "TestUser",
+		Provider: "test-idp",
+		ID:       uuid.NewV4(),
 	}
 
 	err := identityRepo.Create(ctx, &identity)
@@ -45,11 +49,12 @@ func TestListIdentities(t *testing.T) {
 
 	assert.Equal(t, numberOfCurrentIdent+1, len(ic2.Data))
 
-	assertIdent(t, findIdent(identity.ID, ic2.Data), identity.FullName, identity.ImageURL)
+	assertIdent(t, identity, findIdent(identity.ID, ic2.Data))
 
 	identity2 := account.Identity{
-		FullName: "Test User 2",
-		ImageURL: "http://images.com/1234",
+		Username: "TestUser2",
+		Provider: "test-idp",
+		ID:       uuid.NewV4(),
 	}
 
 	err = identityRepo.Create(ctx, &identity2)
@@ -61,8 +66,8 @@ func TestListIdentities(t *testing.T) {
 	require.NotNil(t, ic3)
 	assert.Equal(t, numberOfCurrentIdent+2, len(ic3.Data))
 
-	assertIdent(t, findIdent(identity.ID, ic3.Data), identity.FullName, identity.ImageURL)
-	assertIdent(t, findIdent(identity2.ID, ic3.Data), identity2.FullName, identity2.ImageURL)
+	assertIdent(t, identity, findIdent(identity.ID, ic3.Data))
+	assertIdent(t, identity2, findIdent(identity2.ID, ic3.Data))
 }
 
 func findIdent(id uuid.UUID, idents []*app.IdentityData) *app.IdentityData {
@@ -74,7 +79,7 @@ func findIdent(id uuid.UUID, idents []*app.IdentityData) *app.IdentityData {
 	return nil
 }
 
-func assertIdent(t *testing.T, ident *app.IdentityData, fullName, imageURL string) {
-	assert.Equal(t, fullName, *ident.Attributes.FullName)
-	assert.Equal(t, imageURL, *ident.Attributes.ImageURL)
+func assertIdent(t *testing.T, expected account.Identity, actual *app.IdentityData) {
+	assert.Equal(t, expected.Username, *actual.Attributes.Username)
+	assert.Equal(t, expected.Provider, *actual.Attributes.Provider)
 }

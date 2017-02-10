@@ -201,7 +201,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 				if err != nil {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
-				if ok := appl.Identities().ValidIdentity(context.Background(), assigneeUUID); !ok {
+				if ok := appl.Identities().IsValid(context.Background(), assigneeUUID); !ok {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
 				ids = append(ids, assigneeUUID.String())
