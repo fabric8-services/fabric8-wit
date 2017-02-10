@@ -2,7 +2,7 @@ version: '2'
 
 services:
   db:
-    image: centos/postgresql-95-centos7
+    image: registry.centos.org/sclo/postgresql-95-centos7
     ports:
       - "5432:5432"
     environment:
