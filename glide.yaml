@@ -36,7 +36,6 @@ import:
 - package: golang.org/x/tools
   subpackages:
   - go/ast/astutil
-  - cmd/goimports
 - package: gopkg.in/yaml.v2
 - package: bitbucket.org/pkg/inflect
 - package: github.com/kr/pretty

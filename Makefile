@@ -14,7 +14,6 @@ DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
 GOLINT_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
-GOLINT_TMP_FILE=tmp/golint_report
 
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
@@ -99,16 +98,20 @@ check-go-format: prebuild-check
 
 .PHONY: golint
 .ONESHELL: golint
- ## Run different static code analysis for go
-golint: clean-golint $(GOIMPORTS_BIN) $(GOLINT_BIN) $(GOCYCLO_BIN)
-	@echo "--- GoCYCLO CODE ANALYSIS ----" >> $(GOLINT_TMP_FILE);
-	@$(foreach d,$(GOLINT_DIRS),$(GOCYCLO_BIN) -over 15 $d | grep -vEf .golint_exclude >> $(GOLINT_TMP_FILE);)
+## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
+golint: $(GOLINT_BIN) gocyclo govet
+	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOLINT_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
 
-	@echo "--- Go VET CODE ANALYSIS ----" >> $(GOLINT_TMP_FILE);
-	@$(foreach d,$(GOLINT_DIRS),go tool vet --all $d/*.go 2>&1 >> $(GOLINT_TMP_FILE);)
+## Run gocyclo analysis over the code.
+gocyclo: $(GOCYCLO_BIN)
+	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOLINT_DIRS),$(GOCYCLO_BIN) -over 15 $d | grep -vEf .golint_exclude;)
 
-	@echo "--- Go LINT CODE ANALYSIS ----" >> $(GOLINT_TMP_FILE);
-	@$(foreach d,$(GOLINT_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude >> $(GOLINT_TMP_FILE);)
+## Run go vet analysis over the code.
+govet:
+	$(info >>--- RESULTS: GO VET CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOLINT_DIRS),go tool vet --all $d/*.go 2>&1;)
 
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
@@ -193,12 +196,6 @@ CLEAN_TARGETS += clean-glide-cache
 ## Removes the ./glide directory.
 clean-glide-cache:
 	-rm -rf ./.glide
-
-CLEAN_TARGETS += clean-golint
-.PHONY: clean-golint
-## Removes the $(GOLINT_TMP_FILE)
-clean-golint:
-	-rm -f $(GOLINT_TMP_FILE)
 
 $(VENDOR_DIR): glide.lock glide.yaml
 	$(GLIDE_BIN) install

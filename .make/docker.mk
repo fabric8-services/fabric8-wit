@@ -121,7 +121,6 @@ ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/
 endif
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'make $(makecommand)'
 
-.PHONY: docker-golint
 ## Runs "make golint" inside the already started docker check container (see "make docker-start").
 docker-golint:
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)

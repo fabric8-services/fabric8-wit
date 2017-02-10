@@ -12,8 +12,11 @@ GOCOVMERGE_BIN=$(VENDOR_DIR)/github.com/wadey/gocovmerge/gocovmerge
 DOCKER_BIN_NAME=docker
 DOCKER_COMPOSE_BIN_NAME=docker-compose
 
-GOLINT_BIN=$(VENDOR_DIR)/github.com/golang/lint/golint/golint
-GOCYCLO_BIN=$(VENDOR_DIR)/github.com/fzipp/gocyclo/gocyclo
+GOLINT_DIR=$(VENDOR_DIR)/github.com/golang/lint/golint
+GOLINT_BIN=$(GOLINT_DIR)/golint
+GOCYCLO_DIR=$(VENDOR_DIR)/github.com/fzipp/gocyclo
+GOCYCLO_BIN=$(GOCYCLO_DIR)/gocyclo
+
 
 GIT_BIN_NAME := git
 GLIDE_BIN_NAME := glide

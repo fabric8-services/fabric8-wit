@@ -184,7 +184,6 @@ imports:
   version: a888bfdffa4526cc6987572bca9a2c6b7758290f
   subpackages:
   - go/ast/astutil
-  - cmd/goimports
 - name: google.golang.org/appengine
   version: ca59ef35f409df61fa4a5f8290ff289b37eccfb8
   subpackages:
