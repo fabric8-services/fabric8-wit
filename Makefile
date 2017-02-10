@@ -95,7 +95,6 @@ check-go-format: prebuild-check
 	|| true
 
 .PHONY: analyze-go-code
-.ONESHELL: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
 analyze-go-code: golint gocyclo govet
 
