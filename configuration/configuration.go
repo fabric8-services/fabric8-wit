@@ -49,7 +49,7 @@ func Setup(configFilePath string) error {
 		viper.SetConfigType("yaml")
 		err := viper.ReadInConfig() // Find and read the config file
 		if err != nil {             // Handle errors reading the config file
-			return fmt.Errorf("Fatal error config file: %s \n", err)
+			return fmt.Errorf("Fatal error config file: %s", err)
 		}
 	}
 
@@ -289,7 +289,8 @@ var defaultKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo
 var defaultKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
 
 // Github doesnot allow commiting actual OAuth tokens no matter how less priviledge the token has
-var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+//var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+var camouflagedAccessToken = "f3c29592206368a9c-AccessToken-16cb77d666eb9477d6006d0"
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]

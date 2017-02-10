@@ -14,6 +14,9 @@ import (
 
 type fakeGithubIssueFetcher struct{}
 
+func (f *fakeGithubIssueFetcher) rateLimit() {
+}
+
 // ListIssues list all issues
 func (f *fakeGithubIssueFetcher) listIssues(query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
 	if opts.ListOptions.Page == 0 {
@@ -44,6 +47,9 @@ func TestGithubFetch(t *testing.T) {
 }
 
 type fakeGithubIssueFetcherWithRateLimit struct{}
+
+func (f *fakeGithubIssueFetcherWithRateLimit) rateLimit() {
+}
 
 // ListIssues list all issues
 func (f *fakeGithubIssueFetcherWithRateLimit) listIssues(query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {

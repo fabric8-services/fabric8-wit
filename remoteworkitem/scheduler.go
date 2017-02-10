@@ -19,7 +19,6 @@ type trackerSchedule struct {
 	TrackerQueryID int
 	Query          string
 	Schedule       string
-	LastUpdated    *time.Time
 }
 
 // Scheduler represents scheduler
@@ -54,23 +53,53 @@ func (s *Scheduler) ScheduleAllQueries() {
 	for _, tq := range trackerQueries {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := lookupProvider(tq, s.db)
+			tid := tq.TrackerID
+			tqid := tq.TrackerQueryID
+			tt := tq.TrackerType
+			beforeLU := tr.LastUpdatedTime()
 			for i := range tr.Fetch() {
 				models.Transactional(s.db, func(tx *gorm.DB) error {
 					// Save the remote items in a 'temporary' table.
-					err := upload(tx, tq.TrackerID, i)
+					err := upload(tx, tid, i)
 					if err != nil {
 						return errors.WithStack(err)
 					}
-					if i.LastUpdated != nil {
-						err = updateTrackerQuery(tx, tq.TrackerQueryID, i.LastUpdated)
+					if beforeLU == nil {
+						err = updateTrackerQuery(tx, tqid, i.LastUpdated)
 						if err != nil {
 							log.Println("Couldn't update the last updated value", err)
 						}
+					} else {
+						lu1 := beforeLU.AddDate(0, 0, 7)
+						if i.LastUpdated.Before(lu1) {
+							n := time.Now().AddDate(0, 0, -1)
+							if i.LastUpdated.Before(n) {
+								err = updateTrackerQuery(tx, tqid, i.LastUpdated)
+								if err != nil {
+									log.Println("Couldn't update the last updated value", err)
+								}
+							}
+						}
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
+					_, err = convert(tx, tid, i, tt)
 					return errors.WithStack(err)
 				})
+			}
+			if beforeLU != nil {
+				if beforeLU.Equal(*tr.LastUpdatedTime()) {
+					n := time.Now().AddDate(0, 0, -1)
+					if n.Before(*tr.LastUpdatedTime()) {
+						models.Transactional(s.db, func(tx *gorm.DB) error {
+							lu := beforeLU.AddDate(0, 0, 7)
+							err := updateTrackerQuery(tx, tqid, &lu)
+							if err != nil {
+								log.Println("Couldn't update the last updated value", err)
+							}
+							return err
+						})
+					}
+				}
 			}
 		})
 	}
@@ -99,8 +128,10 @@ func lookupProvider(ts trackerSchedule, db *gorm.DB) TrackerProvider {
 	case ProviderGithub:
 		if tq.LastUpdated != nil {
 			// Use the special date for formatting: https://golang.org/pkg/time/#Time.Format
-			q = ts.Query + " updated:\">=" + tq.LastUpdated.Format("2006-01-02T15:04:05Z") + "\""
+			q = ts.Query + " updated:\"" + tq.LastUpdated.Format("2006-01-02T15:04") + " .. " + tq.LastUpdated.AddDate(0, 0, 7).Format("2006-01-02T15:04") + "\""
+			return &GithubTracker{URL: ts.URL, Query: q, LastUpdated: tq.LastUpdated}
 		}
+
 		return &GithubTracker{URL: ts.URL, Query: q}
 	case ProviderJira:
 		if tq.LastUpdated != nil {
@@ -122,6 +153,7 @@ type TrackerItemContent struct {
 // TrackerProvider represents a remote tracker
 type TrackerProvider interface {
 	Fetch() chan TrackerItemContent // TODO: Change to an interface to enforce the contract
+	LastUpdatedTime() *time.Time
 }
 
 func init() {

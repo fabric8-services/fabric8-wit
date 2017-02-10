@@ -9,8 +9,9 @@ import (
 
 // JiraTracker represents the Jira tracker provider
 type JiraTracker struct {
-	URL   string
-	Query string
+	URL         string
+	Query       string
+	LastUpdated *time.Time
 }
 
 type jiraFetcher interface {
@@ -28,6 +29,11 @@ func (f *jiraIssueFetcher) listIssues(jql string, options *jira.SearchOptions) (
 
 func (f *jiraIssueFetcher) getIssue(issueID string) (*jira.Issue, *jira.Response, error) {
 	return f.client.Issue.Get(issueID)
+}
+
+// LastUpdatedTime return the last updated time
+func (j *JiraTracker) LastUpdatedTime() *time.Time {
+	return j.LastUpdated
 }
 
 // Fetch collects data from Jira

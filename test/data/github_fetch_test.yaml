@@ -9,7 +9,7 @@ interactions:
       - application/vnd.github.v3+json
       User-Agent:
       - go-github/2
-    url: https://api.github.com/search/issues?order=asc&per_page=20&q=is%3Aopen+is%3Aissue+user%3Aalmighty-test&sort=updated
+    url: https://api.github.com/search/issues?order=asc&per_page=100&q=is%3Aopen+is%3Aissue+user%3Aalmighty-test&sort=updated
     method: GET
   response:
     body: '{"total_count":3,"incomplete_results":false,"items":[{"url":"https://api.github.com/repos/almighty-test/almighty-test-unit/issues/1","repository_url":"https://api.github.com/repos/almighty-test/almighty-test-unit","labels_url":"https://api.github.com/repos/almighty-test/almighty-test-unit/issues/1/labels{/name}","comments_url":"https://api.github.com/repos/almighty-test/almighty-test-unit/issues/1/comments","events_url":"https://api.github.com/repos/almighty-test/almighty-test-unit/issues/1/events","html_url":"https://github.com/almighty-test/almighty-test-unit/issues/1","id":176621042,"number":1,"title":"map
@@ -31,7 +31,7 @@ interactions:
       Content-Type:
       - application/json; charset=utf-8
       Date:
-      - Wed, 01 Feb 2017 11:45:37 GMT
+      - Tue, 14 Feb 2017 12:34:10 GMT
       Server:
       - GitHub.com
       Status:
@@ -47,15 +47,15 @@ interactions:
       X-Github-Media-Type:
       - github.v3; format=json
       X-Github-Request-Id:
-      - 0B58:2450B:53D4CC0:6BFA8FD:5891CA61
+      - 3BD6:1B362:285966C:33DAAA9:58A2F941
       X-Ratelimit-Limit:
       - "10"
       X-Ratelimit-Remaining:
-      - "9"
+      - "8"
       X-Ratelimit-Reset:
-      - "1485949597"
+      - "1487075669"
       X-Served-By:
-      - cee4c0729c8e9147e7abcb45b9d69689
+      - a6882e5cd2513376cb9481dbcd83f3a2
       X-Xss-Protection:
       - 1; mode=block
     status: 200 OK
