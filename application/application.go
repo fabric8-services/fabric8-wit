@@ -25,7 +25,6 @@ type Application interface {
 	Spaces() space.Repository
 	Iterations() iteration.Repository
 	Users() account.UserRepository
-	Users() account.IdentityRepository
 	Areas() area.Repository
 }
 
