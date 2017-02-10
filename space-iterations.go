@@ -96,8 +96,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations)
-		UpdateIterationsWithCounts(res.Data, wiCounts)
+		res.Data = ConvertIterations(ctx.RequestData, iterations, UpdateIterationsWithCounts(wiCounts))
 
 		return ctx.OK(res)
 	})

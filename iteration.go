@@ -234,27 +234,27 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 }
 
 // UpdateIterationsWithCounts accepts map of 'iterationID to a workitem.WICountsPerIteration instance'.
-// This function adds 'closed' and 'total' count of WI in relationship's meta for every given iteration in the slice.
-func UpdateIterationsWithCounts(data []*app.Iteration, wiCounts map[string]workitem.WICountsPerIteration) []*app.Iteration {
-	for _, item := range data {
+// This function returns function of type IterationConvertFunc
+// Inner function is able to access `wiCounts` in closure and it is responsible
+// for adding 'closed' and 'total' count of WI in relationship's meta for every given iteration.
+func UpdateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteration) IterationConvertFunc {
+	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
 		var counts workitem.WICountsPerIteration
-		if _, ok := wiCounts[item.ID.String()]; ok {
-			counts = wiCounts[item.ID.String()]
+		if _, ok := wiCounts[appIteration.ID.String()]; ok {
+			counts = wiCounts[appIteration.ID.String()]
 		} else {
 			counts = workitem.WICountsPerIteration{}
 		}
-
-		if item.Relationships == nil {
-			item.Relationships = &app.IterationRelations{}
+		if appIteration.Relationships == nil {
+			appIteration.Relationships = &app.IterationRelations{}
 		}
-		if item.Relationships.Workitems == nil {
-			item.Relationships.Workitems = &app.RelationGeneric{}
+		if appIteration.Relationships.Workitems == nil {
+			appIteration.Relationships.Workitems = &app.RelationGeneric{}
 		}
-		if item.Relationships.Workitems.Meta == nil {
-			item.Relationships.Workitems.Meta = map[string]interface{}{}
+		if appIteration.Relationships.Workitems.Meta == nil {
+			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
 		}
-		item.Relationships.Workitems.Meta["total"] = counts.Total
-		item.Relationships.Workitems.Meta["closed"] = counts.Closed
+		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
+		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
 	}
-	return data
 }
