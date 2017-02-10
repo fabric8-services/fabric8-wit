@@ -102,6 +102,10 @@ DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
+# This pattern excludes some folders from the go code analysis
+GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|app|client|tool/cli"
+GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -247,7 +251,7 @@ $(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
 # Console coverage output:
 
 # First parameter: file to do in-place replacement with.
-# Delete the lines containing /bindata_assetfs.go 
+# Delete the lines containing /bindata_assetfs.go
 define cleanup-coverage-file
 @sed -i '/.*\/bindata_assetfs\.go.*/d' $(1)
 @sed -i '/.*\/sqlbindata\.go.*/d' $(1)

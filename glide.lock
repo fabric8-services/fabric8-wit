@@ -198,4 +198,10 @@ imports:
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+- name: github.com/golang/lint
+  version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
+  subpackages:
+  - golint
+- name: github.com/fzipp/gocyclo
+  version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 testImports: []
