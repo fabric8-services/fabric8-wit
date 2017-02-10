@@ -13,8 +13,6 @@ SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
-GOLINT_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E "vendor|app|client|tool/cli")
-
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
@@ -96,22 +94,25 @@ check-go-format: prebuild-check
 	&& exit 1 \
 	|| true
 
-.PHONY: golint
-.ONESHELL: golint
+.PHONY: analyze-go-code
+.ONESHELL: analyze-go-code
 ## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
-golint: $(GOLINT_BIN) gocyclo govet
+analyze-go-code: golint gocyclo govet
+
+## Run gocyclo analysis over the code.
+golint: $(GOLINT_BIN)
 	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOLINT_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
 
 ## Run gocyclo analysis over the code.
 gocyclo: $(GOCYCLO_BIN)
 	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOLINT_DIRS),$(GOCYCLO_BIN) -over 15 $d | grep -vEf .golint_exclude;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 15 $d | grep -vEf .golint_exclude;)
 
 ## Run go vet analysis over the code.
 govet:
 	$(info >>--- RESULTS: GO VET CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOLINT_DIRS),go tool vet --all $d/*.go 2>&1;)
+	@$(foreach d,$(GOANALYSIS_DIRS),go tool vet --all $d/*.go 2>&1;)
 
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style

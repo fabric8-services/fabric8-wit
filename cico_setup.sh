@@ -46,7 +46,7 @@ function prepare() {
   make docker-start
   make docker-check-go-format
   make docker-deps
-  make docker-golint
+  make docker-analyze-go-code
   make docker-generate
   make docker-build
   echo 'CICO: Preparation complete'

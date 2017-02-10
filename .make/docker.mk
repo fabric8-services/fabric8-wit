@@ -120,10 +120,3 @@ ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/
 	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the command "make $(makecommand)")
 endif
 	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" bash -ec 'make $(makecommand)'
-
-## Runs "make golint" inside the already started docker check container (see "make docker-start").
-docker-golint:
-ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
-	$(error No container name "$(DOCKER_CONTAINER_NAME)" exists to run the check. Try running "make docker-start && make docker-deps && make docker-generate && make docker-check")
-endif
-	docker exec -t $(DOCKER_RUN_INTERACTIVE_SWITCH) "$(DOCKER_CONTAINER_NAME)" make golint
