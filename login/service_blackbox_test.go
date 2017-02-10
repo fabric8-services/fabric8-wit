@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/gormapplication"
 	. "github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
@@ -58,20 +59,16 @@ func TestMain(m *testing.M) {
 		},
 	}
 
-	publicKey, err := token.ParsePublicKey([]byte(token.RSAPublicKey))
-	if err != nil {
-		panic(err)
-	}
-
 	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
 	if err != nil {
 		panic(err)
 	}
 
-	tokenManager := token.NewManager(publicKey, privateKey)
+	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(db)
 	identityRepository := account.NewIdentityRepository(db)
-	loginService = NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager)
+	app := gormapplication.NewGormDB(db)
+	loginService = NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, app)
 
 	os.Exit(m.Run())
 }
@@ -113,7 +110,7 @@ func TestValidOAuthAuthorizationCode(t *testing.T) {
 
 	// Current the OAuth code is generated as part of a UI workflow.
 	// Yet to figure out how to mock.
-	t.Skip("Authorization Code not avaiable")
+	t.Skip("Authorization Code not available")
 
 }
 
@@ -125,7 +122,7 @@ func TestValidState(t *testing.T) {
 	// authorization code because it needs a
 	// user UI workflow. Furthermore, the code can be used
 	// only once. https://tools.ietf.org/html/rfc6749#section-4.1.2
-	t.Skip("Authorization Code not avaiable")
+	t.Skip("Authorization Code not available")
 }
 
 func TestInvalidState(t *testing.T) {
@@ -197,7 +194,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 
 	err = loginService.Perform(authorizeCtx)
 
-	assert.Equal(t, 307, rw.Code) // redirect to github login page.
+	assert.Equal(t, 307, rw.Code) // redirect to keycloak login page.
 
 	locationString := rw.HeaderMap["Location"][0]
 	locationUrl, err := url.Parse(locationString)

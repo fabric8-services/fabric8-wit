@@ -36,6 +36,12 @@ var commentAttributes = a.Type("CommentAttributes", func() {
 	a.Attribute("body", d.String, "The comment body", func() {
 		a.Example("This is really interesting")
 	})
+	a.Attribute("body.rendered", d.String, "The comment body rendered in HTML", func() {
+		a.Example("<p>This is really interesting</p>\n")
+	})
+	a.Attribute("markup", d.String, "The comment markup associated with the body", func() {
+		a.Example("Markdown")
+	})
 })
 
 var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
@@ -43,6 +49,9 @@ var createCommentAttributes = a.Type("CreateCommentAttributes", func() {
 	a.Attribute("body", d.String, "The comment body", func() {
 		a.MinLength(1) // Empty comment not allowed
 		a.Example("This is really interesting")
+	})
+	a.Attribute("markup", d.String, "The comment markup associated with the body", func() {
+		a.Example("Markdown")
 	})
 	a.Required("body")
 })
@@ -100,12 +109,12 @@ var _ = a.Resource("comments", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:commentId"),
 		)
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("commentId", d.UUID, "commentId")
 		})
-		a.Description("Retrieve comment with given id.")
+		a.Description("Retrieve comment with given commentId.")
 		a.Response(d.OK, func() {
 			a.Media(commentSingle)
 		})
@@ -116,11 +125,11 @@ var _ = a.Resource("comments", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:commentId"),
 		)
-		a.Description("update the comment with the given id.")
+		a.Description("update the comment with the given commentId.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("commentId", d.UUID, "commentId")
 		})
 		a.Payload(commentSingle)
 		a.Response(d.OK, func() {
@@ -130,6 +139,7 @@ var _ = a.Resource("comments", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 
 })

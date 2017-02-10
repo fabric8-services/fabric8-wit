@@ -87,7 +87,7 @@ help:/
 .PHONY: check-go-format
 ## Exists with an error if there are files whose formatting differs from gofmt's
 check-go-format: prebuild-check
-	@gofmt -l ${SOURCES} 2>&1 \
+	@gofmt -s -l ${SOURCES} 2>&1 \
 		| tee /tmp/gofmt-errors \
 		| read \
 	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
@@ -98,7 +98,7 @@ check-go-format: prebuild-check
 .PHONY: format-go-code
 ## Formats any go file that differs from gofmt's style
 format-go-code: prebuild-check
-	@gofmt -l -w ${SOURCES}
+	@gofmt -s -l -w ${SOURCES}
 
 .PHONY: build
 ## Build server and client.
@@ -233,14 +233,14 @@ ifndef HG_BIN
 endif
 	@$(CHECK_GOPATH_BIN) $(PACKAGE_NAME) || (echo "Project lives in wrong location"; exit 1)
 
-$(CHECK_GOPATH_BIN): .make/check-gopath.go
+$(CHECK_GOPATH_BIN): .make/check_gopath.go
 ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
 ifeq ($(OS),Windows_NT)
-	@go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check-gopath.go
+	@go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check_gopath.go
 else
-	@go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
+	@go build -o $(CHECK_GOPATH_BIN) .make/check_gopath.go
 endif
 
 # Keep this "clean" target here at the bottom

@@ -28,9 +28,8 @@ import (
 )
 
 func getServiceAsUser() *goa.Service {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return service
 }
 

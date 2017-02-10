@@ -16,14 +16,14 @@ type Application interface {
 	Trackers() TrackerRepository
 	TrackerQueries() TrackerQueryRepository
 	SearchItems() SearchRepository
-	Identities() IdentityRepository
+	Identities() account.IdentityRepository
 	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository
 	Spaces() space.Repository
 	Iterations() iteration.Repository
-	Users() account.IdentityRepository
+	Users() account.UserRepository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction
