@@ -136,16 +136,28 @@ func getResolvePath(appl application.Application, a *area.Area) (*string, error)
 		return nil, err
 	}
 	pathResolved := ""
-	for _, a := range parentAreas {
-		if pathResolved == "" {
-			pathResolved = a.Name
+	for _, a := range parentUuids {
+		area := getAreaByID(a, parentAreas)
+		if area == nil {
 			continue
 		}
-		pathResolved = pathResolved + pathSepInService + a.Name
+		pathResolved = pathResolved + pathSepInService + area.Name
 	}
-	// Add leading "/" so that "Area1/area2/area3" now looks like "/Area1/Area2/Area3"
-	pathResolved = pathSepInService + pathResolved
+
+	// Add the leading "/" in the "area1/area2/area3" styled path
+	if pathResolved == "" {
+		pathResolved = "/"
+	}
 	return &pathResolved, nil
+}
+
+func getAreaByID(id uuid.UUID, areas []*area.Area) *area.Area {
+	for _, a := range areas {
+		if a.ID == id {
+			return a
+		}
+	}
+	return nil
 }
 
 // AreaConvertFunc is a open ended function to add additional links/data/relations to a area during
