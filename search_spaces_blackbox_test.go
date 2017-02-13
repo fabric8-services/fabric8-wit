@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
@@ -33,11 +34,23 @@ type okScenario struct {
 	expects expects
 }
 
+type TestSearchSpaces struct {
+	db    *gormapplication.GormDB
+	clean func()
+}
+
 func TestSpacesSearchOK(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	idents := createTestData()
-	defer cleanTestData(idents)
+	tester := TestSearchSpaces{}
+	tester.db = gormapplication.NewGormDB(DB)
+	tester.clean = cleaner.DeleteCreatedEntities(DB)
+
+	idents, err := tester.createTestData()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tester.cleanTestData()
 
 	tests := []okScenario{
 		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
@@ -52,7 +65,7 @@ func TestSpacesSearchOK(t *testing.T) {
 	}
 
 	service := goa.New("TestSpacesSearch-Service")
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, tester.db)
 
 	for _, tt := range tests {
 		_, result := test.SpacesSearchOK(t, context.Background(), service, controller, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
@@ -62,7 +75,7 @@ func TestSpacesSearchOK(t *testing.T) {
 	}
 }
 
-func createTestData() []space.Space {
+func (tester *TestSearchSpaces) createTestData() ([]space.Space, error) {
 	names := []string{"TEST_A", "TEST_AB", "TEST_B", "TEST_C"}
 	for i := 0; i < 20; i++ {
 		names = append(names, "TEST_"+strconv.Itoa(i))
@@ -70,10 +83,10 @@ func createTestData() []space.Space {
 
 	spaces := []space.Space{}
 
-	err := application.Transactional(gormapplication.NewGormDB(DB), func(app application.Application) error {
+	err := application.Transactional(tester.db, func(app application.Application) error {
 		for _, name := range names {
 			space := space.Space{
-				Name: name,
+				Name:        name,
 				Description: strings.ToTitle("description for " + name),
 			}
 			newSpace, err := app.Spaces().Create(context.Background(), &space)
@@ -85,23 +98,13 @@ func createTestData() []space.Space {
 		return nil
 	})
 	if err != nil {
-		fmt.Println("Failed to insert testdata", err)
+		return nil, fmt.Errorf("Failed to insert testdata", err)
 	}
-	return spaces
+	return spaces, nil
 }
 
-func cleanTestData(spaces []space.Space) {
-	err := application.Transactional(gormapplication.NewGormDB(DB), func(app application.Application) error {
-		db := app.(*gormapplication.GormTransaction).DB()
-		db = db.Unscoped()
-		for _, space := range spaces {
-			db.Delete(space)
-		}
-		return nil
-	})
-	if err != nil {
-		fmt.Println("Failed to delete testdata", err)
-	}
+func (tester *TestSearchSpaces) cleanTestData() {
+	tester.clean()
 }
 
 func totalCount(count int) expect {

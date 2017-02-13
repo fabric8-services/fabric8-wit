@@ -171,8 +171,8 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, start *
 	}
 	db = db.Select("count(*) over () as cnt2 , *")
 	if q != nil {
-		db = db.Where("LOWER(name) LIKE ?", "%"+ strings.ToLower(*q) + "%")
-		db = db.Or("LOWER(description) LIKE ?", "%" + strings.ToLower(*q) + "%")
+		db = db.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(*q)+"%")
+		db = db.Or("LOWER(description) LIKE ?", "%"+strings.ToLower(*q)+"%")
 	}
 
 	rows, err := db.Rows()
