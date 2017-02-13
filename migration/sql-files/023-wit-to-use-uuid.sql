@@ -2,7 +2,7 @@ CREATE EXTENSION IF NOT EXISTS "ltree";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 ------------------------------------------------------------------------------
--- Update the work item table itself:
+-- Update the work item type table itself:
 --
 -- 1. In parallel to the current primary key ("name" column), we'll add a column
 -- "id" that will become the new primary key later down the road.
@@ -60,7 +60,7 @@ ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_target_typ
 -- Drop the primary key itself and set up the new one on the "id" column.
 ALTER TABLE work_item_types DROP CONSTRAINT work_item_types_pkey;
 ALTER TABLE work_item_types ADD PRIMARY KEY (id);
-ALTER TABLE work_item_link_types DROP CONSTRAINT work_item_link_types_check_name_c_locale;
+ALTER TABLE work_item_types DROP CONSTRAINT work_item_link_types_check_name_c_locale;
 
 ------------------------------------------------------------------------------
 -- Update all references to the work item type table to point to the new "id"
@@ -89,6 +89,6 @@ ALTER TABLE work_item_link_types DROP COLUMN target_type_name;
 -- NOTE: The foreign key is new!
 ALTER TABLE work_items ADD COLUMN type_id uuid NOT NULL REFERENCES work_item_types(id) ON DELETE CASCADE;
 
-UPDATE work_item SET type_id = (SELECT id FROM work_item_types WHERE name = type);
+UPDATE work_items SET type_id = (SELECT id FROM work_item_types WHERE name = type);
 
-ALTER TABLE work_item_link_types DROP COLUMN type;
+ALTER TABLE work_items DROP COLUMN type;
