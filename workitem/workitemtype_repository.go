@@ -2,13 +2,14 @@ package workitem
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -51,15 +52,19 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
-	log.Printf("loading work item type %s", name)
+	log.Logger().Infoln("Loading work item type", name)
 	res, ok := cache.Get(name)
 	if !ok {
-		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
+		log.Logger().WithFields(map[string]interface{}{
+			"type": name,
+		}).Infoln("Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
 		db := r.db.Model(&res).Where("name=?", name).First(&res)
 		if db.RecordNotFound() {
-			log.Printf("not found, res=%v", res)
+			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+				"resource": res,
+			}).Errorln("Work item type repository not found")
 			return nil, errors.NewNotFoundError("work item type", name)
 		}
 		if err := db.Error; err != nil {
@@ -81,7 +86,7 @@ func ClearGlobalWorkItemTypeCache() {
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
 	existing, _ := r.LoadTypeFromDB(name)
 	if existing != nil {
-		log.Printf("creating type %s again", name)
+		log.Logger().Infoln("Creating a new work item type ", name)
 		return nil, errors.NewBadParameterError("name", name)
 	}
 	allFields := map[string]FieldDefinition{}

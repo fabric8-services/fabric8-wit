@@ -1,12 +1,11 @@
 package remoteworkitem
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -65,17 +64,26 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 	}
 
 	if len(existingWorkItems) != 0 {
-		fmt.Println("Workitem exists, will be updated")
+		log.Logger().WithFields(map[string]interface{}{
+			"workitem": workItem,
+		}).Infoln("Workitem exists, will be updated")
+
 		existingWorkItem := existingWorkItems[0]
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
 		newWorkItem, err = wir.Save(context.Background(), *existingWorkItem)
 		if err != nil {
-			fmt.Println("Error updating work item : ", err)
+			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+				"existingWorkitem": existingWorkItem,
+				"err":              err,
+			}).Errorln("Unable to update the work item")
 		}
 	} else {
-		fmt.Println("Work item not found , will now create new work item")
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"sqlExpression": sqlExpression,
+			"err":           err,
+		}).Infoln("Work item not found , will now create new work item")
 		c := workItem.Fields[workitem.SystemCreator]
 		var creator string
 		if c != nil {
@@ -83,7 +91,12 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 		newWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
-			fmt.Println("Error creating work item : ", err)
+			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+				"creator":            creator,
+				"workItem.Fields":    workItem.Fields,
+				"workitem.SystemBug": workitem.SystemBug,
+				"err":                err,
+			}).Errorln("Unable to create the work item")
 		}
 	}
 	return newWorkItem, errors.WithStack(err)

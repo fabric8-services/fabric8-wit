@@ -16,6 +16,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
@@ -227,7 +228,10 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 
 		part, err := url.QueryUnescape(part)
 		if err != nil {
-			fmt.Println("Could not escape url", err)
+			log.Logger().WithFields(map[string]interface{}{
+				"pkg":  "search",
+				"part": part,
+			}).Warnln("Could not escape url!")
 		}
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.

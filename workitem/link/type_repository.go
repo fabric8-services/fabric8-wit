@@ -2,12 +2,12 @@ package link
 
 import (
 	"fmt"
-	"log"
 
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -82,11 +82,15 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 		// treat as not found: clients don't know it must be a UUID
 		return nil, errors.NewNotFoundError("work item link type", ID)
 	}
-	log.Printf("loading work item link type %s", id.String())
+	log.Logger().WithFields(map[string]interface{}{
+		"id": id.String(),
+	}).Infoln("Loading work item link type")
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
-		log.Printf("not found work item link type, res=%v", res)
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"resource": res,
+		}).Errorln("Work item link type not found")
 		return nil, errors.NewNotFoundError("work item link type", id.String())
 	}
 	if db.Error != nil {
@@ -101,11 +105,17 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 // LoadTypeFromDB return work item link type for the given name in the correct link category
 // NOTE: Two link types can coexist with different categoryIDs.
 func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
-	log.Printf("loading work item link type %s with category ID %s", name, categoryId.String())
+	log.Logger().WithFields(map[string]interface{}{
+		"type": name,
+		"categoryId": categoryId,
+	}).Infof("Loading work item link type %s with category ID %s\n", name, categoryId.String())
+
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("name=? AND link_category_id=?", name, categoryId.String()).First(&res)
 	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"resource": res,
+		}).Errorln("Work item link type not found")
 		return nil, errors.NewNotFoundError("work item link type", name)
 	}
 	if db.Error != nil {
@@ -116,11 +126,16 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name st
 
 // LoadTypeFromDB return work item link type for the given ID
 func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) (*WorkItemLinkType, error) {
-	log.Printf("loading work item link type with ID %s", ID)
+	log.Logger().WithFields(map[string]interface{}{
+		"id": ID.String(),
+	}).Infoln("Loading work item link type with ID ", ID)
+
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("ID=?", ID.String()).First(&res)
 	if db.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"resource": res,
+		}).Errorln("Work item link type not found")
 		return nil, errors.NewNotFoundError("work item link type", ID.String())
 	}
 	if db.Error != nil {
@@ -163,7 +178,11 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 	var cat = WorkItemLinkType{
 		ID: id,
 	}
-	log.Printf("work item link type to delete %v\n", cat)
+	log.Logger().WithFields(map[string]interface{}{
+		"wilt": cat,
+		"ID": id,
+	}).Infoln("Work item link type to delete ", cat)
+
 	db := r.db.Delete(&cat)
 	if db.Error != nil {
 		return errors.NewInternalError(db.Error.Error())
@@ -183,11 +202,15 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkIt
 	}
 	db := r.db.Model(&res).Where("id=?", *lt.Data.ID).First(&res)
 	if db.RecordNotFound() {
-		log.Printf("work item link type not found, res=%v", res)
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"resource": res,
+		}).Errorln("Work item link type not found")
 		return nil, errors.NewNotFoundError("work item link type", *lt.Data.ID)
 	}
 	if db.Error != nil {
-		log.Print(db.Error.Error())
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"err": db.Error,
+		}).Errorln("Unable to find work item link type repository")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if lt.Data.Attributes.Version == nil || res.Version != *lt.Data.Attributes.Version {
@@ -199,10 +222,14 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkIt
 	res.Version = res.Version + 1
 	db = db.Save(&res)
 	if db.Error != nil {
-		log.Print(db.Error.Error())
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"err": db.Error,
+		}).Errorln("Unable to save work item link type repository")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	log.Printf("updated work item link type to %v\n", res)
+	log.Logger().WithFields(map[string]interface{}{
+		"newWilt": res,
+	}).Infoln("Work item link type updated ", res)
 	result := ConvertLinkTypeFromModel(res)
 	return &result, nil
 }

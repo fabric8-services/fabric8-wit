@@ -1,11 +1,11 @@
 package space
 
 import (
-	"log"
-
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
@@ -74,6 +74,9 @@ func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, 
 	res := Space{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"ID": ID.String(),
+		}).Errorln("State or known referer was empty")
 		return nil, errors.NewNotFoundError("space", ID.String())
 	}
 	if tx.Error != nil {
@@ -86,15 +89,24 @@ func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, 
 // returns NotFoundError or InternalError
 func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	if ID == satoriuuid.Nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"ID": ID.String(),
+		}).Errorln("Unable to find the space by ID")
 		return errors.NewNotFoundError("space", ID.String())
 	}
 	space := Space{ID: ID}
 	tx := r.db.Delete(space)
 
 	if err := tx.Error; err != nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"ID": ID.String(),
+		}).Errorln("Unable to delete the space")
 		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"ID": ID.String(),
+		}).Errorln("None row was affected by the deletion operation")
 		return errors.NewNotFoundError("space", ID.String())
 	}
 
@@ -128,7 +140,10 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Printf("updated space to %v\n", p)
+
+	log.Logger().WithFields(map[string]interface{}{
+		"space": p,
+	}).Infoln("Space updated successfully")
 	return p, nil
 }
 
@@ -147,7 +162,10 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created space %v\n", space)
+
+	log.Logger().WithFields(map[string]interface{}{
+		"space": space,
+	}).Infoln("Space created successfully")
 	return space, nil
 }
 

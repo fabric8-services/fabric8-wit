@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -21,6 +20,7 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -42,6 +42,8 @@ var (
 	// StartTime in ISO 8601 (UTC) format
 	StartTime = time.Now().UTC().Format("2006-01-02T15:04:05Z")
 )
+
+var Logger = log.Logger()
 
 func main() {
 	// --------------------------------------------------------------------
@@ -72,11 +74,16 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to setup the configuration: \n%+v", err))
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"configFilePath": configFilePath,
+			"err":            err,
+		}).Panicln("Failed to setup the configuration")
 	}
 
 	if printConfig {
-		fmt.Printf("%s\n", configuration.String())
+		log.Logger().WithFields(map[string]interface{}{
+			"content": configuration.String(),
+		}).Infoln("Configuration file")
 		os.Exit(0)
 	}
 
@@ -103,7 +110,9 @@ func main() {
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed migration: \n%+v", err))
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"err": fmt.Sprintf("%+v", err),
+		}).Panicln("Failed migration")
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -116,12 +125,16 @@ func main() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			panic(fmt.Sprintf("ERROR: Failed to populate common types: \n%+v", err))
+			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+				"err": fmt.Sprintf("%+v", err),
+			}).Panicln("Failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
-			panic(fmt.Sprintf("ERROR: Failed to bootstap work item linking: \n%+v", err))
+			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+				"err": fmt.Sprintf("%+v", err),
+			}).Panicln("Failed to bootstap work item linking")
 		}
 	}
 
@@ -142,7 +155,9 @@ func main() {
 
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to parse public key: \n%+v", err))
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"err": fmt.Sprintf("%+v", err),
+		}).Panicln("Failed to parse public token")
 	}
 
 	// Setup Account/Login/Security
@@ -257,10 +272,10 @@ func main() {
 	spaceAreaCtrl := NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	fmt.Println("Git Commit SHA: ", Commit)
-	fmt.Println("UTC Build Time: ", BuildTime)
-	fmt.Println("UTC Start Time: ", StartTime)
-	fmt.Println("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
+	log.Logger().Infoln("Git Commit SHA: ", Commit)
+	log.Logger().Infoln("UTC Build Time: ", BuildTime)
+	log.Logger().Infoln("UTC Start Time: ", StartTime)
+	log.Logger().Infoln("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
@@ -268,6 +283,10 @@ func main() {
 
 	// Start http
 	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"addr": configuration.GetHTTPAddress(),
+			"err":  err,
+		}).Errorln("Cannot connect to server")
 		service.LogError("startup", "err", err)
 	}
 
@@ -276,9 +295,14 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		fmt.Printf("ERROR: Failed to get current user: \n%+v", err)
+		log.Logger().WithFields(map[string]interface{}{
+			"err": fmt.Sprintf("%+v", err),
+		}).Warnln("Failed to get current user")
 	} else {
-		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
+		log.Logger().WithFields(map[string]interface{}{
+			"usename": u.Username,
+			"uuid":    u.Uid,
+		}).Infoln(fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid))
 		/*
 			g, err := user.LookupGroupId(u.Gid)
 			if err != nil {

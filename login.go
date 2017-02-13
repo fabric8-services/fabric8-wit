@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
@@ -100,7 +101,10 @@ func readToken(res *http.Response, ctx jsonapi.InternalServerError) (*app.TokenD
 // Generate obtain the access token from Keycloak for the test user
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("postgres developer mode not enabled"))
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"method": "Generate",
+		}).Errorln("Postgres developer mode not enabled")
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
 		return ctx.Unauthorized(jerrors)
 	}
 
@@ -124,7 +128,11 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 
 	token, err := readToken(res, ctx)
 	if err != nil {
-		return err
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"tokenEndpoint": res,
+			"err": err,
+		}).Errorln("Error when unmarshal json with access token")
+		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Error when unmarshal json with access token %s", jsonString)))
 	}
 
 	var tokens app.AuthTokenCollection

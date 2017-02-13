@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"log"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -12,6 +11,8 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -44,7 +45,9 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Printf("loading work item %d", id)
+	log.Logger().WithFields(map[string]interface{}{
+		"id": id,
+	}).Infoln("Loading work item")
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
@@ -69,7 +72,10 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 		return errors.NewNotFoundError("work item", ID)
 	}
 
-	log.Printf("loading work item %d", id)
+	log.Logger().WithFields(map[string]interface{}{
+		"id": id,
+	}).Infoln("Loading work iteme")
+
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {

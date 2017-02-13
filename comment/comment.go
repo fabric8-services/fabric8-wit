@@ -1,13 +1,13 @@
 package comment
 
 import (
-	"log"
 	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -60,9 +60,18 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment) er
 		comment.Markup = rendering.SystemMarkupDefault
 	}
 	if err := m.db.Create(comment).Error; err != nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"comment": comment,
+			"err":     err,
+		}).Errorln("Unable to create the comment")
 		goa.LogError(ctx, "error adding Comment", "error", err.Error())
 		return errs.WithStack(err)
 	}
+
+	log.Logger().WithFields(map[string]interface{}{
+		"pkg":     "comment",
+		"comment": comment,
+	}).Debugln("Comment created!")
 
 	return nil
 }
@@ -72,10 +81,19 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	c := Comment{}
 	tx := m.db.Where("id=?", comment.ID).First(&c)
 	if tx.RecordNotFound() {
+
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"comment": comment,
+		}).Errorln("Comment not found!")
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("comment", comment.ID.String())
 	}
 	if err := tx.Error; err != nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"comment": comment,
+			"err":     err,
+		}).Errorln("Comment search operation failed!")
+
 		return nil, errors.NewInternalError(err.Error())
 	}
 	// make sure no comment is created with an empty 'markup' value
@@ -84,9 +102,19 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	}
 	tx = tx.Save(comment)
 	if err := tx.Error; err != nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"comment": comment,
+			"err":     err,
+		}).Errorln("Unable to save the comment!")
+
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("updated comment to %v\n", comment)
+
+	log.Logger().WithFields(map[string]interface{}{
+		"pkg":     "comment",
+		"comment": comment,
+	}).Debugln("Comment updated!")
+
 	return comment, nil
 }
 
@@ -192,9 +220,18 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 
 	tx := m.db.Where("id=?", id).First(&obj)
 	if tx.RecordNotFound() {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"id": id,
+		}).Errorln("Comment search operation failed!")
+
 		return nil, errors.NewNotFoundError("comment", id.String())
 	}
 	if tx.Error != nil {
+		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			"id":  id,
+			"err": tx.Error,
+		}).Errorln("Unable to load the comment")
+
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -36,7 +36,9 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := appl.Identities().Load(ctx, id)
 		if err != nil || identity == nil {
-			log.Printf("Auth token contains id %s of unknown Identity\n", id)
+			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+				"id": id,
+			}).Errorln("Auth token containers id %s of unknown Identity", id)
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", id)))
 			return ctx.Unauthorized(jerrors)
 		}

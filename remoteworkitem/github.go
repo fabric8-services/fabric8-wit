@@ -2,9 +2,10 @@ package remoteworkitem
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
@@ -52,7 +53,11 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 		for {
 			result, response, err := f.listIssues(g.Query, opts)
 			if _, ok := err.(*github.RateLimitError); ok {
-				log.Println("reached rate limit", err)
+				log.Logger().WithFields(map[string]interface{}{
+					"Query": g.Query,
+					"opts":  opts,
+					"err":   err,
+				}).Warnln("Reached rate limit when listing Github issues")
 				break
 			}
 			issues := result.Issues
