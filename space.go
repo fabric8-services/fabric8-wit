@@ -210,6 +210,7 @@ func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional .
 func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(p.ID))
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", p.ID.String()))
+	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", p.ID.String()))
 	return &app.Space{
 		ID:   &p.ID,
 		Type: "spaces",
@@ -227,6 +228,11 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Iterations: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedIterationList,
+				},
+			},
+			Areas: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedAreaList,
 				},
 			},
 		},
