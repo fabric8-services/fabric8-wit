@@ -11,6 +11,12 @@ var searchWorkItemList = JSONList(
 	pagingLinks,
 	meta)
 
+var searchSpaceList = JSONList(
+	"SearchSpace", "Holds the paginated response to a search request",
+	space,
+	pagingLinks,
+	spaceListMeta)
+
 var _ = a.Resource("search", func() {
 	a.BasePath("/search")
 
@@ -32,6 +38,23 @@ var _ = a.Resource("search", func() {
 		})
 		a.Response(d.OK, func() {
 			a.Media(searchWorkItemList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+	a.Action("spaces", func() {
+		a.Routing(
+			a.GET("spaces"),
+		)
+		a.Description("Search for spaces by name or description")
+		a.Params(func() {
+			a.Param("q", d.String, "Text to match against Name or description")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Required("q")
+		})
+		a.Response(d.OK, func() {
+			a.Media(searchSpaceList)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
