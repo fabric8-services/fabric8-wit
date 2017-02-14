@@ -2,6 +2,7 @@ package controller_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
@@ -20,6 +21,7 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
@@ -32,7 +34,11 @@ type TestAreaREST struct {
 }
 
 func TestRunAreaREST(t *testing.T) {
-	suite.Run(t, &TestAreaREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	pwd, err := os.Getwd()
+	if err != nil {
+		require.Nil(t, err)
+	}
+	suite.Run(t, &TestAreaREST{DBTestSuite: gormsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
 func (rest *TestAreaREST) SetupTest() {
