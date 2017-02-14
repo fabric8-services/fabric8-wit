@@ -39,7 +39,6 @@ import (
 	"github.com/goadesign/goa/middleware/security/jwt"
 )
 
-
 func main() {
 	// --------------------------------------------------------------------
 	// Parse flags

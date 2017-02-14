@@ -93,7 +93,7 @@ func TestKeycloakAuthorizationRedirect(t *testing.T) {
 	prms := url.Values{}
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
-	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
@@ -150,7 +150,7 @@ func TestInvalidState(t *testing.T) {
 	}
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
-	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
@@ -187,7 +187,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	prms := url.Values{}
 	ctx := context.Background()
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
-	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
@@ -230,7 +230,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	}
 
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
-	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
+	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 
 	err = loginService.Perform(authorizeCtx)
 

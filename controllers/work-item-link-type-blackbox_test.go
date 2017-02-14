@@ -1,4 +1,4 @@
-package controllers_test
+package controllers
 
 import (
 	"bytes"
@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
@@ -314,7 +313,7 @@ func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
 		{
 			"data": {
 				"type": "workitemlinktypes",
-				"id": "0270e113-7790-477f-9371-97c37d734d5d",				
+				"id": "0270e113-7790-477f-9371-97c37d734d5d",
 				"attributes": {
 					"name": "sample",
 					"description": "A sample work item link type",

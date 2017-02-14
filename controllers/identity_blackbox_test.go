@@ -1,9 +1,8 @@
-package controllers_test
+package controllers
 
 import (
 	"testing"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"

@@ -1,4 +1,4 @@
-package controllers_test
+package controllers
 
 import (
 	"strconv"
@@ -9,7 +9,6 @@ import (
 
 	"fmt"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -37,7 +36,7 @@ type TestSpaceIterationREST struct {
 }
 
 func TestRunSpaceIterationREST(t *testing.T) {
-	suite.Run(t, &TestSpaceIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestSpaceIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestSpaceIterationREST) SetupTest() {

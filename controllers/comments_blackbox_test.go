@@ -1,11 +1,10 @@
-package controllers_test
+package controllers
 
 import (
 	"fmt"
 	"html"
 	"testing"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -28,7 +27,7 @@ import (
 // a normal test function that will kick off TestSuiteComments
 func TestSuiteComments(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &CommentsSuite{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &CommentsSuite{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // ========== TestSuiteComments struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========

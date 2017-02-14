@@ -1,11 +1,10 @@
-package controllers_test
+package controllers
 
 import (
 	"bytes"
 	"net/http"
 	"testing"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"

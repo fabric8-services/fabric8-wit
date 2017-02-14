@@ -1,9 +1,8 @@
-package controllers_test
+package controllers
 
 import (
 	"testing"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -17,7 +16,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-func createControler(t *testing.T) (*UsersController, application.DB) {
+func createUserControler(t *testing.T) (*UsersController, application.DB) {
 	svc := goa.New("test")
 	app := gormapplication.NewGormDB(DB)
 	controller := NewUsersController(svc, app)
@@ -28,7 +27,7 @@ func createControler(t *testing.T) (*UsersController, application.DB) {
 func TestShowUserOK(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
-	controller, app := createControler(t)
+	controller, app := createUserControler(t)
 
 	ctx := context.Background()
 	userRepo := app.Users()
@@ -68,7 +67,7 @@ func TestShowUserOK(t *testing.T) {
 func TestListUserOK(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
-	controller, app := createControler(t)
+	controller, app := createUserControler(t)
 
 	ctx := context.Background()
 	userRepo := app.Users()

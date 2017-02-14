@@ -1,4 +1,4 @@
-package controllers_test
+package controllers
 
 import (
 	"html"
@@ -7,7 +7,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -36,7 +35,7 @@ type TestCommentREST struct {
 }
 
 func TestRunCommentREST(t *testing.T) {
-	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestCommentREST) SetupTest() {

@@ -1,4 +1,4 @@
-package controllers_test
+package controllers
 
 import (
 	"io"
@@ -9,7 +9,6 @@ import (
 
 	"fmt"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -270,7 +269,7 @@ func searchByURL(t *testing.T, customHost, queryString string) *app.SearchWorkIt
 	prms["q"] = []string{queryString} // any value will do
 	ctx := service.Context
 	goaCtx := goa.NewContext(goa.WithAction(ctx, "SearchTest"), rw, req, prms)
-	showCtx, err := app.NewShowSearchContext(goaCtx, service)
+	showCtx, err := app.NewShowSearchContext(goaCtx, req, service)
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}

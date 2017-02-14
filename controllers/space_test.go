@@ -1,10 +1,9 @@
-package controllers_test
+package controllers
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -27,7 +26,7 @@ type TestSpaceREST struct {
 }
 
 func TestRunProjectREST(t *testing.T) {
-	suite.Run(t, &TestSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	suite.Run(t, &TestSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestSpaceREST) SetupTest() {
