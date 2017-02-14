@@ -90,14 +90,14 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 		SpaceID:    uuid.NewV4(),
 		StartAt:    &start,
 		EndAt:      &end,
-		ParentPath: i.ParentPath,
+		ParentPath: iteration.ConvertToLtreeFormat(i.ID.String()),
 	}
 	repo.Create(context.Background(), &i2)
 
 	i2L, err := repo.Load(context.Background(), i2.ID)
 	require.Nil(t, err)
 	assert.NotEmpty(t, i2.ParentPath)
-	expectedPath := i.ParentPath + "." + iteration.ConvertToLtreeFormat(i2.ID.String())
+	expectedPath := iteration.ConvertToLtreeFormat(i.ID.String())
 	assert.Equal(t, expectedPath, i2L.ParentPath)
 }
 

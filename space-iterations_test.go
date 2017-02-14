@@ -81,6 +81,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	assert.Equal(t, iteration.IterationStateNew, *c.Data.Attributes.State)
+	assert.Equal(t, "/", *c.Data.Attributes.ParentPath)
 }
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {
@@ -121,7 +122,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	resource.Require(t, resource.Database)
 
 	var spaceID uuid.UUID
-	var fatherIteration, childIteration *iteration.Iteration
+	var fatherIteration, childIteration, grandChildIteration *iteration.Iteration
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 
@@ -155,26 +156,47 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		}
 		fatherIteration = &i
 		repo.Create(context.Background(), fatherIteration)
-		i = iteration.Iteration{
+		i2 := iteration.Iteration{
 			Name:       "Child Iteration",
 			SpaceID:    spaceID,
-			ParentPath: fatherIteration.ID.String(),
+			ParentPath: iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
 		}
-		childIteration = &i
+		childIteration = &i2
 		repo.Create(context.Background(), childIteration)
+
+		i3 := iteration.Iteration{
+			Name:       "Grand Child Iteration",
+			SpaceID:    spaceID,
+			ParentPath: iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
+		}
+		grandChildIteration = &i3
+		repo.Create(context.Background(), grandChildIteration)
 
 		return nil
 	})
 
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
-	assert.Len(t, cs.Data, 5)
+	assert.Len(t, cs.Data, 6)
 	for _, iterationItem := range cs.Data {
 		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
 		assert.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
 		if *iterationItem.ID == childIteration.ID {
+			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String()
+			expectedResolvedParentPath := iteration.PathSepInService + fatherIteration.Name
 			require.NotNil(t, iterationItem.Relationships.Parent)
 			assert.Equal(t, fatherIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
+			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
+			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
+		}
+		if *iterationItem.ID == grandChildIteration.ID {
+			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String() + iteration.PathSepInService + childIteration.ID.String()
+			expectedResolvedParentPath := iteration.PathSepInService + fatherIteration.Name + iteration.PathSepInService + childIteration.Name
+			require.NotNil(t, iterationItem.Relationships.Parent)
+			assert.Equal(t, childIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
+			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
+			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
+
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -62,9 +64,28 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		var responseData *app.Iteration
+		if newItr.ParentPath != "" {
+			allParents := strings.Split(ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
+			allParentsUUIDs := []uuid.UUID{}
+			for _, x := range allParents {
+				id, _ := uuid.FromString(x) // we can safely ignore this error.
+				allParentsUUIDs = append(allParentsUUIDs, id)
+			}
+			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
+			if error != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			itrMap := make(IterationIDMap)
+			for _, itr := range iterations {
+				itrMap[itr.ID] = itr
+			}
+			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap))
+		} else {
+			responseData = ConvertIteration(ctx.RequestData, &newItr)
+		}
 		res := &app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, &newItr),
+			Data: responseData,
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -89,10 +110,12 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		itrMap := make(IterationIDMap)
+		for _, itr := range iterations {
+			itrMap[itr.ID] = itr
+		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations)
-
+		res.Data = ConvertIterations(ctx.RequestData, iterations, parentPathResolver(itrMap))
 		return ctx.OK(res)
 	})
 }

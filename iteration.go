@@ -49,9 +49,14 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
+		parentPath := iteration.ConvertToLtreeFormat(parentID.String())
+		if parent.ParentPath != "" {
+			parentPath = parent.ParentPath + iteration.PathSepInDatabase + parentPath
+		}
+
 		newItr := iteration.Iteration{
 			SpaceID:    parent.SpaceID,
-			ParentPath: parentID.String(),
+			ParentPath: parentPath,
 			Name:       *reqIter.Attributes.Name,
 			StartAt:    reqIter.Attributes.StartAt,
 			EndAt:      reqIter.Attributes.EndAt,
@@ -62,8 +67,28 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		var responseData *app.Iteration
+		if newItr.ParentPath != "" {
+			allParents := strings.Split(ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
+			allParentsUUIDs := []uuid.UUID{}
+			for _, x := range allParents {
+				id, _ := uuid.FromString(x) // we can safely ignore this error.
+				allParentsUUIDs = append(allParentsUUIDs, id)
+			}
+			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
+			if error != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			itrMap := make(IterationIDMap)
+			for _, itr := range iterations {
+				itrMap[itr.ID] = itr
+			}
+			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap))
+		} else {
+			responseData = ConvertIteration(ctx.RequestData, &newItr)
+		}
 		res := &app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, &newItr),
+			Data: responseData,
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -165,6 +190,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
+	pathToTopMostParent := iteration.PathSepInService + iteration.ConvertFromLtreeFormat(itr.ParentPath) // /uuid1/uuid2/uuid3s
 
 	i := &app.Iteration{
 		Type: iterationType,
@@ -175,6 +201,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 			EndAt:       itr.EndAt,
 			Description: itr.Description,
 			State:       &itr.State,
+			ParentPath:  &pathToTopMostParent,
 		},
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
@@ -197,7 +224,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		},
 	}
 	if itr.ParentPath != "" {
-		allParents := strings.Split(ConvertFromLtreeFormat(itr.ParentPath), ".")
+		allParents := strings.Split(ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInDatabase)
 		parentID := allParents[len(allParents)-1]
 		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
@@ -238,4 +265,31 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 func ConvertFromLtreeFormat(uuid string) string {
 	// Ltree allows only "_" as a special character.
 	return strings.Replace(uuid, "_", "-", -1)
+}
+
+// IterationIDMap contains a map that will hold iteration's ID as its key
+type IterationIDMap map[uuid.UUID]*iteration.Iteration
+
+func parentPathResolver(itrMap IterationIDMap) IterationConvertFunc {
+	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
+		parentUUIDStrings := strings.Split(iteration.ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInService)
+		parentUUIDs := convertToUUID(parentUUIDStrings)
+		pathResolved := ""
+		for _, id := range parentUUIDs {
+			if i, ok := itrMap[id]; ok {
+				pathResolved += iteration.PathSepInService + i.Name
+			}
+		}
+		appIteration.Attributes.ResolvedParentPath = &pathResolved
+	}
+}
+
+func convertToUUID(uuidStrings []string) []uuid.UUID {
+	var uUIDs []uuid.UUID
+
+	for i := 0; i < len(uuidStrings); i++ {
+		uuidString, _ := uuid.FromString(uuidStrings[i])
+		uUIDs = append(uUIDs, uuidString)
+	}
+	return uUIDs
 }

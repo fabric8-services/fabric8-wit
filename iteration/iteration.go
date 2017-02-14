@@ -19,6 +19,8 @@ const (
 	IterationStateNew      = "new"
 	IterationStateStart    = "start"
 	IterationStateClose    = "close"
+	PathSepInService       = "/"
+	PathSepInDatabase      = "."
 )
 
 // Iteration describes a single iteration
@@ -47,6 +49,7 @@ type Repository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
+	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -59,9 +62,33 @@ type GormIterationRepository struct {
 	db *gorm.DB
 }
 
+// ConvertToLtreeFormat returns LTREE valid string
 func ConvertToLtreeFormat(uuid string) string {
 	//Ltree allows only "_" as a special character.
 	return strings.Replace(uuid, "-", "_", -1)
+}
+
+// ConvertFromLtreeFormat returns UUID in form of string
+func ConvertFromLtreeFormat(uuid string) string {
+	// Ltree allows only "_" as a special character.
+	converted := strings.Replace(uuid, "_", "-", -1)
+	converted = strings.Replace(converted, PathSepInDatabase, PathSepInService, -1)
+	return converted
+}
+
+// LoadMultiple returns multiple instances of iteration.Iteration
+func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "Area", "getmultiple"}, time.Now())
+	var objs []*Iteration
+
+	for i := 0; i < len(ids); i++ {
+		m.db = m.db.Or("id = ?", ids[i])
+	}
+	tx := m.db.Find(&objs)
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return objs, nil
 }
 
 // Create creates a new record.
@@ -70,11 +97,6 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	u.ID = uuid.NewV4()
 	u.State = IterationStateNew
-	if u.ParentPath == "" {
-		u.ParentPath = ConvertToLtreeFormat(u.ID.String())
-	} else {
-		u.ParentPath = ConvertToLtreeFormat(u.ParentPath + "." + u.ID.String())
-	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		goa.LogError(ctx, "error adding Iteration", "error", err.Error())

@@ -61,7 +61,8 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	parentID := createSpaceAndIteration(t, rest.db).ID
+	parent := createSpaceAndIteration(t, rest.db)
+	parentID := parent.ID
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
 
@@ -69,6 +70,10 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
 	assertChildIterationLinking(t, created.Data)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	expectedParentPath := iteration.PathSepInService + parentID.String()
+	expectedResolvedParentPath := iteration.PathSepInService + parent.Name
+	assert.Equal(t, expectedParentPath, *created.Data.Attributes.ParentPath)
+	assert.Equal(t, expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
