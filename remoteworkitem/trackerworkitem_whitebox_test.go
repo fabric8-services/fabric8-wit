@@ -1,7 +1,7 @@
 package remoteworkitem
 
 import (
-	"context"
+	"golang.org/x/net/context"
 	"strconv"
 	"testing"
 
