@@ -154,8 +154,11 @@ func getMigrations() migrations {
 	// Version 25
 	m = append(m, steps{executeSQLFile("025-refactor-identities-users.sql")})
 
-	// Version 26
-	m = append(m, steps{executeSQLFile("026-iterations-parent-path-ltree.sql")})
+	// version 26
+	m = append(m, steps{executeSQLFile("026-areas.sql")})
+
+	// Version 27
+	m = append(m, steps{executeSQLFile("027-iterations-parent-path-ltree.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
