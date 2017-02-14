@@ -7,13 +7,15 @@ import (
 
 	"golang.org/x/net/context"
 
+	"fmt"
+
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -39,7 +41,7 @@ func TestRunSpaceIterationREST(t *testing.T) {
 
 func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestSpaceIterationREST) TearDownTest() {
@@ -47,10 +49,9 @@ func (rest *TestSpaceIterationREST) TearDownTest() {
 }
 
 func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIterationsController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewSpaceIterationsController(svc, rest.db)
 }
 
@@ -68,7 +69,10 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
-		p, _ = repo.Create(context.Background(), "Test 1")
+		newSpace := space.Space{
+			Name: "Test 1",
+		}
+		p, _ = repo.Create(context.Background(), &newSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -90,7 +94,10 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
-		p, _ = repo.Create(context.Background(), "Test 1")
+		testSpace := space.Space{
+			Name: "Test 1",
+		}
+		p, _ = repo.Create(context.Background(), &testSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -117,7 +124,10 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Spaces().Create(context.Background(), "Test 1")
+		newSpace := space.Space{
+			Name: "Test 1",
+		}
+		p, err := app.Spaces().Create(context.Background(), &newSpace)
 		if err != nil {
 			t.Error(err)
 		}
@@ -142,6 +152,10 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
 	assert.Len(t, cs.Data, 3)
+	for _, iterationItem := range cs.Data {
+		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
+		assert.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
+	}
 }
 
 func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {

@@ -27,27 +27,27 @@ var _ convert.Equaler = WorkItemLink{}
 var _ convert.Equaler = (*WorkItemLink)(nil)
 
 // Equal returns true if two WorkItemLink objects are equal; otherwise false is returned.
-func (self WorkItemLink) Equal(u convert.Equaler) bool {
+func (l WorkItemLink) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemLink)
 	if !ok {
 		return false
 	}
-	if !self.Lifecycle.Equal(other.Lifecycle) {
+	if !l.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if !satoriuuid.Equal(self.ID, other.ID) {
+	if !satoriuuid.Equal(l.ID, other.ID) {
 		return false
 	}
-	if self.Version != other.Version {
+	if l.Version != other.Version {
 		return false
 	}
-	if self.SourceID != other.SourceID {
+	if l.SourceID != other.SourceID {
 		return false
 	}
-	if self.TargetID != other.TargetID {
+	if l.TargetID != other.TargetID {
 		return false
 	}
-	if self.LinkTypeID != other.LinkTypeID {
+	if l.LinkTypeID != other.LinkTypeID {
 		return false
 	}
 	return true
@@ -55,11 +55,16 @@ func (self WorkItemLink) Equal(u convert.Equaler) bool {
 
 // CheckValidForCreation returns an error if the work item link
 // cannot be used for the creation of a new work item link.
-func (t *WorkItemLink) CheckValidForCreation() error {
-	if satoriuuid.Equal(t.LinkTypeID, satoriuuid.Nil) {
-		return errors.NewBadParameterError("link_type_id", t.LinkTypeID)
+func (l *WorkItemLink) CheckValidForCreation() error {
+	if satoriuuid.Equal(l.LinkTypeID, satoriuuid.Nil) {
+		return errors.NewBadParameterError("link_type_id", l.LinkTypeID)
 	}
 	return nil
+}
+
+// TableName implements gorm.tabler
+func (l WorkItemLink) TableName() string {
+	return "work_item_links"
 }
 
 // ConvertLinkFromModel converts a work item from model to REST representation

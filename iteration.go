@@ -142,7 +142,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 }
 
 // IterationConvertFunc is a open ended function to add additional links/data/relations to a Iteration during
-// convertion from internal to API
+// conversion from internal to API
 type IterationConvertFunc func(*goa.RequestData, *iteration.Iteration, *app.Iteration)
 
 // ConvertIterations converts between internal and external REST representation
@@ -162,7 +162,8 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 	spaceID := itr.SpaceID.String()
 
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
-	spaceSelfURL := rest.AbsoluteURL(request, "/api/spaces/"+spaceID)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
 
 	i := &app.Iteration{
 		Type: iterationType,
@@ -182,6 +183,11 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 				},
 				Links: &app.GenericLinks{
 					Self: &spaceSelfURL,
+				},
+			},
+			Workitems: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &workitemsRelatedURL,
 				},
 			},
 		},
@@ -210,7 +216,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 
 // ConvertIterationSimple converts a simple Iteration ID into a Generic Reletionship
 func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.GenericData {
-	t := "identities"
+	t := iteration.APIStringTypeIteration
 	i := fmt.Sprint(id)
 	return &app.GenericData{
 		Type:  &t,

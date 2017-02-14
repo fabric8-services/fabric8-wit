@@ -1,11 +1,18 @@
 package remoteworkitem_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
@@ -14,6 +21,20 @@ import (
 type trackerRepoBlackBoxTest struct {
 	gormsupport.DBTestSuite
 	repo application.TrackerRepository
+}
+
+// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+func (s *trackerRepoBlackBoxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if _, c := os.LookupEnv(resource.Database); c {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
 }
 
 func TestRunTrackerRepoBlackBoxTest(t *testing.T) {
@@ -25,7 +46,7 @@ func (s *trackerRepoBlackBoxTest) SetupTest() {
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(
@@ -42,7 +63,7 @@ func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailSaveZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.repo.Create(
@@ -60,7 +81,7 @@ func (s *trackerRepoBlackBoxTest) TestFailSaveZeroID() {
 }
 
 func (s *trackerRepoBlackBoxTest) TestFaiLoadZeroID() {
-	defer gormsupport.DeleteCreatedEntities(s.DB)()
+	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	// Create at least 1 item to avoid RowsEffectedCheck
 	_, err := s.repo.Create(

@@ -11,20 +11,22 @@ import (
 	"golang.org/x/net/context"
 )
 
-// User describes a User(single email) in any system
+// User describes a User account. A few identities can be assosiated with one user account
 type User struct {
 	gormsupport.Lifecycle
-	ID         uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	Email      string    `sql:"unique_index"`                                            // This is the unique email field
-	IdentityID uuid.UUID `sql:"type:uuid"`                                               // Belongs To Identity
-	Identity   Identity
+	ID         uuid.UUID  `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	Email      string     `sql:"unique_index"`                                            // This is the unique email field
+	FullName   string     // The fullname of the User
+	ImageURL   string     // The image URL for the User
+	Bio        string     // The bio of the User
+	URL        string     // The URL of the User
+	Identities []Identity // has many Identities from different IDPs
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m User) TableName() string {
 	return "users"
-
 }
 
 // GormUserRepository is the implementation of the storage interface for User.
@@ -42,6 +44,7 @@ type UserRepository interface {
 	Load(ctx context.Context, ID uuid.UUID) (*User, error)
 	Create(ctx context.Context, u *User) error
 	Save(ctx context.Context, u *User) error
+	List(ctx context.Context) ([]*User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error)
 }
@@ -115,6 +118,18 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// List return all users
+func (m *GormUserRepository) List(ctx context.Context) ([]*User, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "user", "list"}, time.Now())
+	var rows []*User
+
+	err := m.db.Model(&User{}).Order("email").Find(&rows).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errors.WithStack(err)
+	}
+	return rows, nil
+}
+
 // Query expose an open ended Query model
 func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "query"}, time.Now())
@@ -125,43 +140,4 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 		return nil, errors.WithStack(err)
 	}
 	return objs, nil
-}
-
-// UserFilterByIdentity is a gorm filter for a Belongs To relationship.
-func UserFilterByIdentity(identityID uuid.UUID, originaldb *gorm.DB) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("identity_id = ?", identityID)
-	}
-}
-
-// UserByEmails is a gorm filter for emails.
-func UserByEmails(emails []string) func(db *gorm.DB) *gorm.DB {
-	if len(emails) > 0 {
-		return func(db *gorm.DB) *gorm.DB {
-			return db.Where("email in (?)", emails)
-
-		}
-	}
-	return func(db *gorm.DB) *gorm.DB { return db }
-}
-
-// UserWithIdentity is a gorm filter for preloading the Identity relationship.
-func UserWithIdentity() func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Preload("Identity")
-
-	}
-}
-
-// TestIdentity only creates in memory obj for testing purposes
-var TestIdentity = Identity{
-	ID:       uuid.NewV4(),
-	FullName: "Test Developer Identity",
-}
-
-// TestUser only creates in memory obj for testing purposes
-var TestUser = User{
-	ID:       uuid.NewV4(),
-	Email:    "testdeveloper@testalm.io",
-	Identity: TestIdentity,
 }

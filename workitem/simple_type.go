@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 )
@@ -83,13 +84,26 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 	case KindEnum:
 		// to be done yet | not sure what to write here as of now.
 		return value, nil
+	case KindMarkup:
+		// 'markup' is just a string in the API layer for now:
+		// it corresponds to the MarkupContent.Content field. The MarkupContent.Markup is set to the default value
+		switch value.(type) {
+		case rendering.MarkupContent:
+			markupContent := value.(rendering.MarkupContent)
+			return markupContent.ToMap(), nil
+		default:
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
+		}
 	default:
-		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
+		return nil, errors.Errorf("unexpected type constant: '%s'", fieldType.GetKind())
 	}
 }
 
 // ConvertFromModel implements the FieldType interface
 func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, error) {
+	if value == nil {
+		return nil, nil
+	}
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
 	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration:
@@ -101,7 +115,13 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return strconv.FormatUint(value.(uint64), 10), nil
+	case KindMarkup:
+		if valueType.Kind() != reflect.Map {
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
+		}
+		markupContent := rendering.NewMarkupContentFromMap(value.(map[string]interface{}))
+		return markupContent, nil
 	default:
-		return nil, fmt.Errorf("unexpected type constant: %d", fieldType.GetKind())
+		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())
 	}
 }

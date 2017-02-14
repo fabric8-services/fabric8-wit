@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -161,12 +162,17 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
+		if fieldName == SystemDescription && wi.Fields[fieldName] != nil {
+			description := rendering.NewMarkupContentFromMap(wi.Fields[fieldName].(map[string]interface{}))
+			if !rendering.IsMarkupSupported(description.Markup) {
+				return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			}
+		}
 	}
 	tx := r.db
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created item %v\n", wi)
 	return convertWorkItemModelToApp(wiType, &wi)
 }
 

@@ -37,7 +37,16 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Create(ctx, *ctx.Payload.Data.Attributes.Name)
+		reqSpace := ctx.Payload.Data
+
+		newSpace := space.Space{
+			Name: *reqSpace.Attributes.Name,
+		}
+		if reqSpace.Attributes.Description != nil {
+			newSpace.Description = *reqSpace.Attributes.Description
+		}
+
+		space, err := appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -138,8 +147,11 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		if ctx.Payload.Data.Attributes.Name != nil {
 			s.Name = *ctx.Payload.Data.Attributes.Name
 		}
+		if ctx.Payload.Data.Attributes.Description != nil {
+			s.Description = *ctx.Payload.Data.Attributes.Description
+		}
 
-		s, err = appl.Spaces().Save(ctx.Context, *s)
+		s, err = appl.Spaces().Save(ctx.Context, s)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -182,7 +194,7 @@ func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {
 }
 
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
-// convertion from internal to API
+// conversion from internal to API
 type SpaceConvertFunc func(*goa.RequestData, *space.Space, *app.Space)
 
 // ConvertSpaces converts between internal and external REST representation
@@ -202,10 +214,11 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 		ID:   &p.ID,
 		Type: "spaces",
 		Attributes: &app.SpaceAttributes{
-			Name:      &p.Name,
-			CreatedAt: &p.CreatedAt,
-			UpdatedAt: &p.UpdatedAt,
-			Version:   &p.Version,
+			Name:        &p.Name,
+			Description: &p.Description,
+			CreatedAt:   &p.CreatedAt,
+			UpdatedAt:   &p.UpdatedAt,
+			Version:     &p.Version,
 		},
 		Links: &app.GenericLinks{
 			Self: &selfURL,

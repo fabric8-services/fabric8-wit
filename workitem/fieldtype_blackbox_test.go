@@ -3,6 +3,9 @@ package workitem_test
 import (
 	"testing"
 
+	"reflect"
+
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	. "github.com/almighty/almighty-core/workitem"
 )
@@ -15,6 +18,7 @@ var (
 	stDuration  = SimpleType{Kind: KindDuration}
 	stURL       = SimpleType{Kind: KindURL}
 	stList      = SimpleType{Kind: KindList}
+	stMarkup    = SimpleType{Kind: KindMarkup}
 )
 
 type input struct {
@@ -27,6 +31,12 @@ type input struct {
 func TestSimpleTypeConversion(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
+	markupContent1 := make(map[string]interface{})
+	markupContent1["content"] = "## description"
+	markupContent1["markup"] = rendering.SystemMarkupDefault
+	markupContent2 := make(map[string]interface{})
+	markupContent2["content"] = "## description"
+	markupContent2["markup"] = rendering.SystemMarkupMarkdown
 
 	test_data := []input{
 		{stString, "hello world", "hello world", false},
@@ -63,13 +73,23 @@ func TestSimpleTypeConversion(t *testing.T) {
 		{stList, "", nil, true},
 		// {stList, []int{}, []int{}, false}, need to find out the way for empty array.
 		// because slices do not have equality operator.
+
+		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupDefault), markupContent1, false},
+		{stMarkup, rendering.NewMarkupContent("## description", rendering.SystemMarkupMarkdown), markupContent2, false},
+		{stMarkup, nil, nil, false},
+		{stMarkup, 1, nil, true},
 	}
 	for _, inp := range test_data {
 		retVal, err := inp.t.ConvertToModel(inp.value)
-		if retVal == inp.expectedValue && (err != nil) == inp.errorExpected {
+		matchContent := reflect.DeepEqual(retVal, inp.expectedValue)
+		matchError := (err != nil) == inp.errorExpected
+		if matchContent && matchError {
 			t.Log("test pass for input: ", inp)
+		} else if !matchContent {
+			t.Error("Expected ", inp.expectedValue, "but got", retVal)
+			t.Fail()
 		} else {
-			t.Error(retVal, err)
+			t.Error("Expected error to be ", inp.errorExpected, "but got", (err != nil))
 			t.Fail()
 		}
 	}

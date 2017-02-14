@@ -65,42 +65,42 @@ var _ convert.Equaler = WorkItemLinkType{}
 var _ convert.Equaler = (*WorkItemLinkType)(nil)
 
 // Equal returns true if two WorkItemLinkType objects are equal; otherwise false is returned.
-func (self WorkItemLinkType) Equal(u convert.Equaler) bool {
+func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	other, ok := u.(WorkItemLinkType)
 	if !ok {
 		return false
 	}
-	if !self.Lifecycle.Equal(other.Lifecycle) {
+	if !t.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if !satoriuuid.Equal(self.ID, other.ID) {
+	if !satoriuuid.Equal(t.ID, other.ID) {
 		return false
 	}
-	if self.Name != other.Name {
+	if t.Name != other.Name {
 		return false
 	}
-	if self.Version != other.Version {
+	if t.Version != other.Version {
 		return false
 	}
-	if !strPtrIsNilOrContentIsEqual(self.Description, other.Description) {
+	if !strPtrIsNilOrContentIsEqual(t.Description, other.Description) {
 		return false
 	}
-	if self.Topology != other.Topology {
+	if t.Topology != other.Topology {
 		return false
 	}
-	if self.SourceTypeName != other.SourceTypeName {
+	if t.SourceTypeName != other.SourceTypeName {
 		return false
 	}
-	if self.TargetTypeName != other.TargetTypeName {
+	if t.TargetTypeName != other.TargetTypeName {
 		return false
 	}
-	if self.ForwardName != other.ForwardName {
+	if t.ForwardName != other.ForwardName {
 		return false
 	}
-	if self.ReverseName != other.ReverseName {
+	if t.ReverseName != other.ReverseName {
 		return false
 	}
-	if !satoriuuid.Equal(self.LinkCategoryID, other.LinkCategoryID) {
+	if !satoriuuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
 		return false
 	}
 	return true
@@ -131,6 +131,11 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
 	return nil
+}
+
+// TableName implements gorm.tabler
+func (t WorkItemLinkType) TableName() string {
+	return "work_item_link_types"
 }
 
 // CheckValidTopology returns nil if the given topology is valid;

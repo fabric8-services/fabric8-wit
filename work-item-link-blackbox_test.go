@@ -11,7 +11,6 @@ import (
 	"golang.org/x/net/context"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/configuration"
@@ -83,7 +82,6 @@ func (s *workItemLinkSuite) SetupSuite() {
 		panic(err.Error())
 	}
 
-	pub, err := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	require.Nil(s.T(), err)
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
@@ -108,7 +106,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
-	s.workItemSvc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	s.workItemSvc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.workItemSvc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemCtrl)

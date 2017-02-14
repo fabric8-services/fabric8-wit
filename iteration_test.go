@@ -1,18 +1,20 @@
 package main_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/almighty/almighty-core"
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -36,7 +38,7 @@ func TestRunIterationREST(t *testing.T) {
 
 func (rest *TestIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = gormsupport.DeleteCreatedEntities(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 }
 
 func (rest *TestIterationREST) TearDownTest() {
@@ -44,10 +46,9 @@ func (rest *TestIterationREST) TearDownTest() {
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), account.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewIterationController(svc, rest.db)
 }
 
@@ -251,7 +252,10 @@ func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Iterations()
 
-		p, err := app.Spaces().Create(context.Background(), "Test 1"+uuid.NewV4().String())
+		newSpace := space.Space{
+			Name: "Test 1" + uuid.NewV4().String(),
+		}
+		p, err := app.Spaces().Create(context.Background(), &newSpace)
 		if err != nil {
 			t.Error(err)
 		}
@@ -276,13 +280,17 @@ func assertIterationLinking(t *testing.T, target *app.Iteration) {
 	assert.NotNil(t, target.ID)
 	assert.Equal(t, iteration.APIStringTypeIteration, target.Type)
 	assert.NotNil(t, target.Links.Self)
-	assert.NotNil(t, target.Relationships)
-	assert.NotNil(t, target.Relationships.Space)
-	assert.NotNil(t, target.Relationships.Space.Links.Self)
+	require.NotNil(t, target.Relationships)
+	require.NotNil(t, target.Relationships.Space)
+	require.NotNil(t, target.Relationships.Space.Links)
+	require.NotNil(t, target.Relationships.Space.Links.Self)
+	assert.True(t, strings.Contains(*target.Relationships.Space.Links.Self, "/api/spaces/"))
 }
 
 func assertChildIterationLinking(t *testing.T, target *app.Iteration) {
 	assertIterationLinking(t, target)
-	assert.NotNil(t, target.Relationships.Parent)
-	assert.NotNil(t, target.Relationships.Parent.Links.Self)
+	require.NotNil(t, target.Relationships)
+	require.NotNil(t, target.Relationships.Parent)
+	require.NotNil(t, target.Relationships.Parent.Links)
+	require.NotNil(t, target.Relationships.Parent.Links.Self)
 }

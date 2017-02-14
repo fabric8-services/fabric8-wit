@@ -22,6 +22,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.Media(workItemType)
 		})
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -53,63 +54,38 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-})
 
-var _ = a.Resource("user", func() {
-	a.BasePath("/user")
-
-	a.Action("show", func() {
-		a.Security("jwt")
+	a.Action("list-source-link-types", func() {
 		a.Routing(
-			a.GET(""),
+			a.GET("/:name/source-link-types"),
 		)
-		a.Description("Get the authenticated user")
-		a.Response(d.OK, func() {
-			a.Media(identity)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-
-})
-
-var _ = a.Resource("identity", func() {
-	a.BasePath("/identities")
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List all identities.")
-		a.Response(d.OK, func() {
-			a.Media(identityArray)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-})
-
-var _ = a.Resource("users", func() {
-	a.BasePath("/users")
-
-	a.Action("show", func() {
-		a.Routing(
-			a.GET("/:id"),
-		)
-		a.Description("Retrieve user for the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("name", d.String, "name")
 		})
+		a.Description(`Retrieve work item link types where the
+given work item type can be used in the source of the link.`)
 		a.Response(d.OK, func() {
-			a.Media(identity)
+			a.Media(workItemLinkTypeList)
 		})
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.BadRequest, JSONAPIErrors)
-
 	})
 
+	a.Action("list-target-link-types", func() {
+		a.Routing(
+			a.GET("/:name/target-link-types"),
+		)
+		a.Params(func() {
+			a.Param("name", d.String, "name")
+		})
+		a.Description(`Retrieve work item link types where the
+given work item type can be used in the target of the link.`)
+		a.Response(d.OK, func() {
+			a.Media(workItemLinkTypeList)
+		})
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
 })
 
 var _ = a.Resource("status", func() {
@@ -149,6 +125,7 @@ var _ = a.Resource("login", func() {
 			a.Media(a.CollectionOf(AuthToken))
 		})
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
 

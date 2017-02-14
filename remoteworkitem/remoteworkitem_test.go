@@ -60,7 +60,7 @@ func TestGitHubIssueMapping(t *testing.T) {
 	}
 
 	var gitData = []githubData{
-		// JSON data file of Github issue with assignee to test that the data is getting correctly Mapped through the Map funtion
+		// JSON data file of Github issue with assignee to test that the data is getting correctly Mapped through the Map function
 		// Github Issue API URL for the respective JSON data file to update the cache
 		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		// JSON data file of Github issue with assignee and label
@@ -149,7 +149,7 @@ func TestFlattenGithubResponseMap(t *testing.T) {
 	// JSON data to test the issue mapping for github
 	var gitData = []githubData{
 		// JSON data file of Github issue with assignee to test that the data
-		// is getting correctly Mapped through the Map funtion
+		// is getting correctly Mapped through the Map function
 		// Github Issue API URL for the respective JSON data file to update the cache
 		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		// Github issue with assignee and label

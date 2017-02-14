@@ -1,16 +1,16 @@
 package main
 
 import (
-	"errors"
+	"html"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -26,14 +26,8 @@ func NewCommentsController(service *goa.Service, db application.DB) *CommentsCon
 
 // Show runs the show action.
 func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.BadRequest(jerrors)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Comments().Load(ctx, id)
+		c, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
@@ -51,26 +45,25 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 
 // Update does PATCH comment
 func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
-	id, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	identity, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		cm, err := appl.Comments().Load(ctx.Context, id)
+		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
 		if identity != cm.CreatedBy.String() {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(errors.New("Not same user")))
+			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
+			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
+			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
 		}
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
+		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
 		cm, err = appl.Comments().Save(ctx.Context, cm)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -84,7 +77,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 }
 
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
-// convertion from internal to API
+// conversion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
@@ -120,12 +113,16 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
+	markup := rendering.NilSafeGetMarkup(&comment.Markup)
+	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 		Attributes: &app.CommentAttributes{
-			Body:      &comment.Body,
-			CreatedAt: &comment.CreatedAt,
+			Body:         &comment.Body,
+			BodyRendered: &bodyRendered,
+			Markup:       &markup,
+			CreatedAt:    &comment.CreatedAt,
 		},
 		Relationships: &app.CommentRelations{
 			CreatedBy: &app.CommentCreatedBy{

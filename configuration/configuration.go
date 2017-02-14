@@ -76,6 +76,8 @@ const (
 	varKeycloakEndpointAuth         = "keycloak.endpoint.auth"
 	varKeycloakEndpointToken        = "keycloak.endpoint.token"
 	varKeycloakEndpointUserinfo     = "keycloak.endpoint.userinfo"
+	varKeycloakTesUserName          = "keycloak.testuser.name"
+	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
 	varTokenPublicKey               = "token.publickey"
 	varTokenPrivateKey              = "token.privatekey"
 )
@@ -119,6 +121,8 @@ func setConfigDefaults() {
 	viper.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
 	viper.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
 	viper.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
+	viper.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
+	viper.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -237,6 +241,16 @@ func GetKeycloakEndpointUserinfo() string {
 	return viper.GetString(varKeycloakEndpointUserinfo)
 }
 
+// GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
+func GetKeycloakTestUserName() string {
+	return viper.GetString(varKeycloakTesUserName)
+}
+
+// GetKeycloakTestUserSecret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
+func GetKeycloakTestUserSecret() string {
+	return viper.GetString(varKeycloakTesUserSecret)
+}
+
 // Auth-related defaults
 
 // RSAPrivateKey for signing JWT Tokens
@@ -272,13 +286,13 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 // RSAPublicKey for verifying JWT Tokens
 // openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
 var defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnwrjH5iTSErw9xUptp6Q
-SFoUfpHUXZ+PaslYSUrpLjw1q27ODSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nw
-xBobS723okFaIkshRrf6qgtD6coTHlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3
-bwTIFlLlVMiZf7XVE7P3yuOCpqkk2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpj
-O5QnY+Exx98E30iEdPHZpsfNhsjh9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbv
-enbR9Q59d88lbnEeHKgSMe2RQpFR3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWm
-PwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
+TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R
+SkAzBjPxVW5+hi5AJjUbAxtFX/aYJpZePVhK0Dv8StCPSv9GC3T6bUSF3q3E9R9n
+G1SZFkN9m2DhL+45us4THzX2eau6s0bISjAUqEGNifPyYYUzKVmXmHS9fiZJR61h
+6TulPwxv68DUSk+7iIJvJfQ3lH/XNWlxWNMMehetcmdy8EDR2IkJCCAbjx9yxgKV
+JXdQ7zylRlpaLopock0FGiZrJhEaAh6BGuaoUWLiMEvqrLuyZnJYEg9f/vyxUJSD
+JwIDAQAB
 -----END PUBLIC KEY-----`
 
 var defaultKeycloakClientID = "fabric8-online-platform"
@@ -288,8 +302,11 @@ var defaultKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/
 var defaultKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
 var defaultKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
 
-// Github doesnot allow commiting actual OAuth tokens no matter how less priviledge the token has
+// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
+
+var defaultKeycloakTesUserName = "testuser"
+var defaultKeycloakTesUserSecret = "testuser"

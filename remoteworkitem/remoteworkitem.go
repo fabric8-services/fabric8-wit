@@ -4,19 +4,13 @@ import (
 	"encoding/json"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/pkg/errors"
 )
 
 // List of supported attributes
 const (
-	SystemRemoteItemID = "system.remote_item_id"
-	SystemTitle        = "system.title"
-	SystemDescription  = "system.description"
-	SystemState        = "system.state"
-	SystemAssignees    = "system.assignees"
-	SystemCreator      = "system.creator"
-
 	// The keys in the flattened response JSON of a typical Github issue.
 
 	GithubTitle       = "title"
@@ -41,21 +35,22 @@ const (
 
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
-	ProviderGithub: WorkItemMap{
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:        workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), StringConverter{}}:  workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:   workitem.SystemState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:           workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:      workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}: workitem.SystemAssignees,
+	ProviderGithub: {
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        workitem.SystemState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}:                                      workitem.SystemAssignees,
 	},
-	ProviderJira: WorkItemMap{
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:        workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:         workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:     workitem.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:           workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:      workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}: workitem.SystemAssignees,
+	ProviderJira: {
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      workitem.SystemTitle,
+		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:                                       workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: workitem.SystemDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   workitem.SystemState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         workitem.SystemRemoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    workitem.SystemCreator,
+		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}:                               workitem.SystemAssignees,
 	},
 }
 
@@ -67,6 +62,11 @@ type StateConverter interface{}
 
 type StringConverter struct{}
 
+// MarkupConverter converts to a 'MarkupContent' element with the given 'Markup' value
+type MarkupConverter struct {
+	markup string
+}
+
 type ListStringConverter struct{}
 
 type GithubStateConverter struct{}
@@ -76,6 +76,20 @@ type JiraStateConverter struct{}
 // Convert method map the external tracker item to ALM WorkItem
 func (sc StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	return value, nil
+}
+
+// Convert returns the given `value` if the `item` is not nil`, otherwise returns `nil`
+func (converter MarkupConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	// return a 'nil' result if the supplied 'value' was nil
+	if value == nil {
+		return nil, nil
+	}
+	switch value.(type) {
+	case string:
+		return rendering.NewMarkupContent(value.(string), converter.markup), nil
+	default:
+		return nil, errors.Errorf("Unexpected type of value to convert: %T", value)
+	}
 }
 
 // Convert method map the external tracker item to ALM WorkItem

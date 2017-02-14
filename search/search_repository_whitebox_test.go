@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -31,7 +32,7 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
+	if _, c := os.LookupEnv(resource.Database); c {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
@@ -58,7 +59,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -71,7 +72,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
-					workitem.SystemDescription: `Make sure remoteworkitem can access..`,
+					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -84,7 +85,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			wi: app.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
-					workitem.SystemDescription: `"description" for search test`,
+					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
 					workitem.SystemCreator:     "sbose78",
 					workitem.SystemAssignees:   []string{"pranav"},
 					workitem.SystemState:       "closed",
@@ -153,7 +154,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults := testData.minimumResults
 			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
 
-			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID.String())
 			if err != nil {
 				s.T().Fatal("Couldnt create test data")
 			}
@@ -193,7 +194,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			optionalKeywords := []string{workItemURLInSearchString, createdWorkItem.ID}
 
 			// We will now check the legitimacy of the search results.
-			// Iterate through all search results and see whether they meet the critera
+			// Iterate through all search results and see whether they meet the criteria
 
 			for _, workItemValue := range workItemList {
 				s.T().Log("Found search result  ", workItemValue.ID)
@@ -206,7 +207,8 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 					}
 					workItemDescription := ""
 					if workItemValue.Fields[workitem.SystemDescription] != nil {
-						workItemDescription = strings.ToLower(workItemValue.Fields[workitem.SystemDescription].(string))
+						descriptionField := workItemValue.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+						workItemDescription = strings.ToLower(descriptionField.Content)
 					}
 					keyWord = strings.ToLower(keyWord)
 
@@ -247,13 +249,13 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		workItem.Fields = map[string]interface{}{
 			workitem.SystemTitle:       "Search Test Sbose",
-			workitem.SystemDescription: "Description",
+			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemCreator:     "sbose78",
 			workitem.SystemAssignees:   []string{"pranav"},
 			workitem.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID.String())
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
@@ -263,7 +265,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		// up in search results
 
 		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID.String())
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
@@ -333,13 +335,13 @@ type searchTestData struct {
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	inputSet := []searchTestData{searchTestData{
+	inputSet := []searchTestData{{
 		query: "http://demo.almighty.io/work-item/list/detail/100",
 		expected: searchKeyword{
 			id:    nil,
 			words: []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
 		},
-	}, searchTestData{
+	}, {
 		query: "http://demo.almighty.io/work-item/board/detail/100",
 		expected: searchKeyword{
 			id:    nil,
@@ -356,13 +358,13 @@ func TestParseSearchStringURL(t *testing.T) {
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	inputSet := []searchTestData{searchTestData{
+	inputSet := []searchTestData{{
 		query: "http://demo.almighty.io/work-item/list/detail/",
 		expected: searchKeyword{
 			id:    nil,
 			words: []string{"demo.almighty.io/work-item/list/detail:*"},
 		},
-	}, searchTestData{
+	}, {
 		query: "http://demo.almighty.io/work-item/board/detail/",
 		expected: searchKeyword{
 			id:    nil,

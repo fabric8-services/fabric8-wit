@@ -15,14 +15,16 @@ const (
 	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
 	pathSep = "."
 
-	SystemRemoteItemID = "system.remote_item_id"
-	SystemTitle        = "system.title"
-	SystemDescription  = "system.description"
-	SystemState        = "system.state"
-	SystemAssignees    = "system.assignees"
-	SystemCreator      = "system.creator"
-	SystemCreatedAt    = "system.created_at"
-	SystemIteration    = "system.iteration"
+	SystemRemoteItemID        = "system.remote_item_id"
+	SystemTitle               = "system.title"
+	SystemDescription         = "system.description"
+	SystemDescriptionMarkup   = "system.description.markup"
+	SystemDescriptionRendered = "system.description.rendered"
+	SystemState               = "system.state"
+	SystemAssignees           = "system.assignees"
+	SystemCreator             = "system.creator"
+	SystemCreatedAt           = "system.created_at"
+	SystemIteration           = "system.iteration"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem = "planneritem"
@@ -102,7 +104,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// ConvertFromModel serializes a database persisted workitem.
+// ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
 func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),

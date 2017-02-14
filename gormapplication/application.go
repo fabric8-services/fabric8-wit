@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -86,12 +87,14 @@ func (g *GormBase) SearchItems() application.SearchRepository {
 	return search.NewGormSearchRepository(g.db)
 }
 
-func (g *GormBase) Identities() application.IdentityRepository {
+// Identities creates new Identity repository
+func (g *GormBase) Identities() account.IdentityRepository {
 	return account.NewIdentityRepository(g.db)
 }
 
-func (g *GormBase) Users() account.IdentityRepository {
-	return account.NewIdentityRepository(g.db)
+// Users creates new user repository
+func (g *GormBase) Users() account.UserRepository {
+	return account.NewUserRepository(g.db)
 }
 
 // WorkItemLinkCategories returns a work item link category repository
@@ -117,6 +120,11 @@ func (g *GormBase) Comments() comment.Repository {
 // Iterations returns a iteration repository
 func (g *GormBase) Iterations() iteration.Repository {
 	return iteration.NewIterationRepository(g.db)
+}
+
+// Areas returns a area repository
+func (g *GormBase) Areas() area.Repository {
+	return area.NewAreaRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {

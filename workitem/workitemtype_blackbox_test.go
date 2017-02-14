@@ -142,7 +142,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 	i := workitem.WorkItemType{
 		Name: "foo",
 		Fields: map[string]workitem.FieldDefinition{
-			"aListType": workitem.FieldDefinition{
+			"aListType": {
 				Type: workitem.EnumType{
 					SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
 					Values:     []interface{}{"open", "done", "closed"},

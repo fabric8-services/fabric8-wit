@@ -5,6 +5,17 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
+// genericLinksForWorkItem defines generic relations links that are specific to a workitem
+var genericLinksForWorkItem = a.Type("GenericLinksForWorkItem", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("related", d.String)
+	a.Attribute("sourceLinkTypes", d.String, `URL to those work item link types
+in which the current work item can be used in the source part of the link`)
+	a.Attribute("targetLinkTypes", d.String, `URL to those work item link types
+in which the current work item can be used in the target part of the link`)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
 // workItem2 defines how an update payload will look like
 var workItem2 = a.Type("WorkItem2", func() {
 	a.Attribute("type", d.String, func() {
@@ -17,7 +28,7 @@ var workItem2 = a.Type("WorkItem2", func() {
 		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
 	})
 	a.Attribute("relationships", workItemRelationships)
-	a.Attribute("links", genericLinks)
+	a.Attribute("links", genericLinksForWorkItem)
 	a.Required("type", "attributes")
 })
 
@@ -96,6 +107,7 @@ var _ = a.Resource("workitem", func() {
 			a.Param("page[offset]", d.String, "Paging start position")
 			a.Param("page[limit]", d.Integer, "Paging size")
 			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemList)

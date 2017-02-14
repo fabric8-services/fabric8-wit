@@ -160,35 +160,3 @@ var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
 		a.Attribute("trackerID")
 	})
 })
-
-// identity represents an identified user object
-var identity = a.MediaType("application/vnd.identity+json", func() {
-	a.UseTrait("jsonapi-media-type")
-	a.TypeName("Identity")
-	a.Description("ALM User Identity")
-	a.Attributes(func() {
-		a.Attribute("data", identityData)
-		a.Required("data")
-
-	})
-	a.View("default", func() {
-		a.Attribute("data")
-		a.Required("data")
-	})
-})
-
-// identityArray represents an array of identified user objects
-var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
-	a.UseTrait("jsonapi-media-type")
-	a.TypeName("IdentityArray")
-	a.Description("ALM User Identity Array")
-	a.Attributes(func() {
-		a.Attribute("data", a.ArrayOf(identityData))
-		a.Required("data")
-
-	})
-	a.View("default", func() {
-		a.Attribute("data")
-		a.Required("data")
-	})
-})
