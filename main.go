@@ -29,6 +29,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
+	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	"github.com/goadesign/goa/middleware/security/jwt"
@@ -74,16 +75,17 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogPanic(nil, map[string]interface{}{
 			"configFilePath": configFilePath,
 			"err":            err,
-		}).Panicln("Failed to setup the configuration")
+		}, "Failed to setup the configuration")
 	}
 
 	if printConfig {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogInfo(nil, map[string]interface{}{
+			"pkg":     "main",
 			"content": configuration.String(),
-		}).Infoln("Configuration file")
+		}, "Configuration file")
 		os.Exit(0)
 	}
 
@@ -110,9 +112,9 @@ func main() {
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogPanic(nil, map[string]interface{}{
 			"err": fmt.Sprintf("%+v", err),
-		}).Panicln("Failed migration")
+		}, "Failed migration")
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -125,16 +127,16 @@ func main() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			log.LogPanic(nil, map[string]interface{}{
 				"err": fmt.Sprintf("%+v", err),
-			}).Panicln("Failed to populate common types")
+			}, "Failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
-			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			log.LogPanic(nil, map[string]interface{}{
 				"err": fmt.Sprintf("%+v", err),
-			}).Panicln("Failed to bootstap work item linking")
+			}, "Failed to bootstap work item linking")
 		}
 	}
 
@@ -153,11 +155,13 @@ func main() {
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
+	service.WithLogger(goalogrus.New(log.Logger()))
+
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogPanic(nil, map[string]interface{}{
 			"err": fmt.Sprintf("%+v", err),
-		}).Panicln("Failed to parse public token")
+		}, "Failed to parse public token")
 	}
 
 	// Setup Account/Login/Security
@@ -283,10 +287,10 @@ func main() {
 
 	// Start http
 	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(nil, map[string]interface{}{
 			"addr": configuration.GetHTTPAddress(),
 			"err":  err,
-		}).Errorln("Cannot connect to server")
+		}, "Cannot connect to server")
 		service.LogError("startup", "err", err)
 	}
 
@@ -295,14 +299,14 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogWarn(nil, map[string]interface{}{
 			"err": fmt.Sprintf("%+v", err),
-		}).Warnln("Failed to get current user")
+		}, "Failed to get current user")
 	} else {
-		log.Logger().WithFields(map[string]interface{}{
-			"usename": u.Username,
-			"uuid":    u.Uid,
-		}).Infoln(fmt.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid))
+		log.LogError(nil, map[string]interface{}{
+			"username": u.Username,
+			"uuid":     u.Uid,
+		}, "Running as user name '%s' with UID %d.", u.Username, u.Uid)
 		/*
 			g, err := user.LookupGroupId(u.Gid)
 			if err != nil {

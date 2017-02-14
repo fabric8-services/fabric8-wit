@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -59,7 +60,12 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 					//ctx = context.WithValue(ctx, reqIDKey, reqID)
 					ctx = context.WithValue(ctx, 1, reqID) // TODO remove this hack
 				}
-				goa.LogError(ctx, "uncaught error", "err", fmt.Sprintf("%+v", e), "id", reqID, "msg", respBody)
+				log.LogError(ctx, map[string]interface{}{
+					"id":  reqID,
+					"msg": respBody,
+					"err": fmt.Sprintf("%+v", e),
+				}, "Uncaught error detected in ErrorHandler")
+
 				if !verbose {
 					rw.Header().Set("Content-Type", goa.ErrorMediaIdentifier)
 					msg := errors.NewInternalError(fmt.Sprintf("%s [%s]", http.StatusText(http.StatusInternalServerError), reqID))

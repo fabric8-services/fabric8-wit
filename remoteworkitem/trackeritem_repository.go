@@ -64,9 +64,10 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 	}
 
 	if len(existingWorkItems) != 0 {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogInfo(nil, map[string]interface{}{
+			"pkg":      "remoteworkitem",
 			"workitem": workItem,
-		}).Infoln("Workitem exists, will be updated")
+		}, "Workitem exists, will be updated")
 
 		existingWorkItem := existingWorkItems[0]
 		for key, value := range workItem.Fields {
@@ -74,16 +75,17 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 		newWorkItem, err = wir.Save(context.Background(), *existingWorkItem)
 		if err != nil {
-			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			log.LogError(nil, map[string]interface{}{
 				"existingWorkitem": existingWorkItem,
 				"err":              err,
-			}).Errorln("Unable to update the work item")
+			}, "Unable to update the work item")
 		}
 	} else {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogInfo(nil, map[string]interface{}{
+			"pkg":           "remoteworkitem",
 			"sqlExpression": sqlExpression,
 			"err":           err,
-		}).Infoln("Work item not found , will now create new work item")
+		}, "Work item not found , will now create new work item")
 		c := workItem.Fields[workitem.SystemCreator]
 		var creator string
 		if c != nil {
@@ -91,12 +93,12 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 		newWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
-			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			log.LogError(nil, map[string]interface{}{
 				"creator":            creator,
 				"workItem.Fields":    workItem.Fields,
 				"workitem.SystemBug": workitem.SystemBug,
 				"err":                err,
-			}).Errorln("Unable to create the work item")
+			}, "Unable to create the work item")
 		}
 	}
 	return newWorkItem, errors.WithStack(err)

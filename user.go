@@ -36,9 +36,9 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := appl.Identities().Load(ctx, id)
 		if err != nil || identity == nil {
-			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			log.LogError(ctx, map[string]interface{}{
 				"id": id,
-			}).Errorln("Auth token containers id %s of unknown Identity", id)
+			}, "Auth token containers id %s of unknown Identity", id)
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", id)))
 			return ctx.Unauthorized(jerrors)
 		}

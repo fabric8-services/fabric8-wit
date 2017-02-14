@@ -5,8 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/almighty/almighty-core/log"
-
+	log "github.com/Sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/spf13/viper"
@@ -17,7 +16,7 @@ func String() string {
 	allSettings := viper.AllSettings()
 	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.WithFields(map[string]interface{}{
 			"settings": allSettings,
 			"err":      err.Error(),
 		}).Panicln("Failed to marshall config to string")

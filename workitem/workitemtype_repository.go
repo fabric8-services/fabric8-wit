@@ -55,16 +55,17 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	log.Logger().Infoln("Loading work item type", name)
 	res, ok := cache.Get(name)
 	if !ok {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogInfo(nil, map[string]interface{}{
+			"pkg": "workitem",
 			"type": name,
-		}).Infoln("Work item type doesn't exist in the cache. Loading from DB...")
+		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
 		db := r.db.Model(&res).Where("name=?", name).First(&res)
 		if db.RecordNotFound() {
-			log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+			log.LogError(nil, map[string]interface{}{
 				"resource": res,
-			}).Errorln("Work item type repository not found")
+			}, "Work item type repository not found")
 			return nil, errors.NewNotFoundError("work item type", name)
 		}
 		if err := db.Error; err != nil {

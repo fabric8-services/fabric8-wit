@@ -31,9 +31,10 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		return nil, NotFoundError{"tracker", tracker}
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg":       "remoteworkitem",
 		"TrackerID": tid,
-	}).Infoln("Tracker ID to be created")
+	}, "Tracker ID to be created")
 
 	tq := TrackerQuery{
 		Query:     query,
@@ -41,10 +42,10 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		TrackerID: tid}
 	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"TrackerID": tid,
 			"Query":     query,
-		}).Errorln("Unable to create the tracker query")
+		}, "Unable to create the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
@@ -54,9 +55,10 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		Schedule:  schedule,
 		TrackerID: tracker}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg":          "remoteworkitem",
 		"trackerQuery": tq,
-	}).Infoln("Created tracker query")
+	}, "Created tracker query")
 
 	return &tq2, nil
 }
@@ -70,15 +72,16 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, NotFoundError{"tracker query", ID}
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
-		"id": id,
-	}).Infoln("Loading the tracker query")
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "remoteworkitem",
+		"id":  id,
+	}, "Loading the tracker query")
 
 	res := TrackerQuery{}
 	if r.db.First(&res, id).RecordNotFound() {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"resource": res,
-		}).Infoln("Tracker resource not found")
+		}, "Tracker resource not found")
 		return nil, NotFoundError{"tracker query", ID}
 	}
 	tq := app.TrackerQuery{
@@ -105,15 +108,16 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		return nil, NotFoundError{"tracker", tq.TrackerID}
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg":       "remoteworkitem",
 		"TrackerID": id,
-	}).Infoln("looking tracker query")
+	}, "looking tracker query")
 
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"resource": res,
-		}).Infoln("Tracker query not found")
+		}, "Tracker query not found")
 
 		return nil, NotFoundError{entity: "TrackerQuery", ID: tq.ID}
 	}
@@ -123,9 +127,9 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 
 	tx = r.db.First(&Tracker{}, tid)
 	if tx.RecordNotFound() {
-		log.Logger().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"TrackerID": id,
-		}).Infoln("Tracker ID not found")
+		}, "Tracker ID not found")
 		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID}
 	}
 	if tx.Error != nil {
@@ -139,18 +143,19 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		TrackerID: tid}
 
 	if err := tx.Save(&newTq).Error; err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"ID":        id,
 			"Query":     tq.Query,
 			"TrackerID": tid,
 			"err":       err.Error(),
-		}).Errorln("Unable to save the tracker query")
+		}, "Unable to save the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg":     "remoteworkitem",
 		"Tracker": newTq,
-	}).Infoln("Updated tracker query")
+	}, "Updated tracker query")
 
 	t2 := app.TrackerQuery{
 		ID:        tq.ID,

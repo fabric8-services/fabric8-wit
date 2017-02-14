@@ -50,10 +50,11 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		tx := db.Begin()
 		for i := len(entires) - 1; i >= 0; i-- {
 			entry := entires[i]
-			log.Logger().WithFields(map[string]interface{}{
+			log.LogDebug(nil, map[string]interface{}{
+				"pkg":   "cleaner",
 				"table": entry.table,
 				"key":   entry.key,
-			}).Debugln("Deleting entities from %s with key %s", entry.table, entry.key)
+			}, "Deleting entities from %s with key %s", entry.table, entry.key)
 			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
 		}
 

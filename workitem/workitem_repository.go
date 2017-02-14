@@ -38,15 +38,17 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(nil, map[string]interface{}{
+		"pkg": "workitem",
 		"id": id,
-	}).Infoln("Loading work item")
+	}, "Loading work item")
+
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(nil, map[string]interface{}{
 			"resource": res,
-		}).Errorln("Work item not found")
+		}, "Work item not found")
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	if tx.Error != nil {
@@ -100,14 +102,15 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "workitem",
 		"id": id,
-	}).Infoln("Looking for id for the work item repository")
+	}, "Looking for id for the work item repository")
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"resource": res,
-		}).Errorln("Work item repository not found")
+		}, "Work item repository not found")
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if tx.Error != nil {
@@ -140,17 +143,18 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"err": err,
-		}).Errorln("Unable to save the work item repository")
+		}, "Unable to save the work item repository")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "workitem",
 		"resource": res,
-	}).Infoln("Updated work item repository")
+	}, "Updated work item repository")
 	return convertWorkItemModelToApp(wiType, &res)
 }
 
@@ -210,10 +214,11 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "workitem",
 		"where": where,
 		"parameters": parameters,
-	}).Infof("Executing query : '%s' with params %v \n", where, parameters)
+	}, "Executing query : '%s' with params %v", where, parameters)
 
 	db := r.db.Model(&WorkItem{}).Where(where, parameters...)
 	orgDB := db

@@ -228,10 +228,10 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 
 		part, err := url.QueryUnescape(part)
 		if err != nil {
-			log.Logger().WithFields(map[string]interface{}{
+			log.LogWarn(nil, map[string]interface{}{
 				"pkg":  "search",
 				"part": part,
-			}).Warnln("Could not escape url!")
+			}, "Could not escape url!")
 		}
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.

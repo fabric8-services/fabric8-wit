@@ -81,18 +81,17 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 
 	err := m.db.Create(u).Error
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"userID": u.ID,
 			"err":    err.Error(),
-		}).Errorln("Unable to create the user")
-		goa.LogError(ctx, "error adding User", "error", err.Error())
+		}, "Unable to create the user")
 		return errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg":    "user",
 		"userID": u.ID,
-	}).Debugln("User created!")
+	}, "User created!")
 
 	return nil
 }
@@ -103,12 +102,10 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
-		log.Logger().WithFields(map[string]interface{}{
-			"pkg":    "user",
+		log.LogError(ctx, map[string]interface{}{
 			"userID": model.ID,
 			"err":    err.Error(),
-		}).Errorln("Error updating User")
-		goa.LogError(ctx, "error updating User", "error", err.Error())
+		}, "Error updating User")
 		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
@@ -116,10 +113,10 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 		return errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg":    "user",
 		"userID": model.ID,
-	}).Debugln("User saved!")
+	}, "User saved!")
 	return nil
 }
 
@@ -132,18 +129,17 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"userID": id,
 			"err":    err.Error(),
-		}).Errorln("Unable to delete the user")
-		goa.LogError(ctx, "error deleting User", "error", err.Error())
+		}, "Unable to delete the user")
 		return errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg":    "user",
 		"userID": id,
-	}).Debugln("User deleted!")
+	}, "User deleted!")
 
 	return nil
 }
@@ -167,16 +163,16 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(nil, map[string]interface{}{
 			"err": errors.WithStack(err),
-		}).Errorln("Error querying Users")
+		}, "Error querying Users")
 		return nil, errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(nil, map[string]interface{}{
 		"pkg":    "user",
 		"result": objs,
-	}).Debugln("User query!")
+	}, "User query!")
 
 	return objs, nil
 }

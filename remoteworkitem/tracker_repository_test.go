@@ -42,7 +42,6 @@ func TestTrackerSave(t *testing.T) {
 		tracker, _ = trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		tracker.Type = "blabla"
 		tracker2, err := trackerRepo.Save(context.Background(), *tracker)
-		log.Println("--------", tracker2)
 		assert.IsType(t, BadParameterError{}, err)
 		assert.Nil(t, tracker2)
 

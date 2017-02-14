@@ -142,17 +142,17 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	}
 	err := m.db.Create(model).Error
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
-			"err": err.Error(),
-		}).Errorln("Unable to create the identity")
-		goa.LogError(ctx, "error adding Identity", "error", err.Error())
+		log.LogError(ctx, map[string]interface{}{
+			"identity": model,
+			"err":      err.Error(),
+		}, "Unable to create the identity")
 		return errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg":     "identity",
 		"modelID": model.ID,
-	}).Debugln("Identity created!")
+	}, "Identity created!")
 
 	return nil
 }
@@ -163,19 +163,19 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"modelID": model.ID,
+			"ctx":     ctx,
 			"err":     err.Error(),
-		}).Errorln("Unable to update the identity")
-		goa.LogError(ctx, "error updating Identity", "error", err.Error())
+		}, "Unable to update the identity")
 		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg":     "identity",
 		"modelID": model.ID,
-	}).Debugln("Identity saved!")
+	}, "Identity saved!")
 
 	return errors.WithStack(err)
 }
@@ -189,18 +189,17 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"id":  id,
 			"err": err.Error(),
-		}).Errorln("Unable to delete the identity")
-		goa.LogError(ctx, "error deleting Identity", "error", err.Error())
+		}, "Unable to delete the identity")
 		return errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg": "identity",
 		"id":  id,
-	}).Debugln("Identity deleted!")
+	}, "Identity deleted!")
 
 	return nil
 }
@@ -215,10 +214,10 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 		return nil, errors.WithStack(err)
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(nil, map[string]interface{}{
 		"pkg":    "identity",
 		"result": objs,
-	}).Debugln("Identity query!")
+	}, "Identity query!")
 
 	return objs, nil
 }
@@ -267,10 +266,10 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 		res.Data[index] = ident.Data
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogDebug(ctx, map[string]interface{}{
 		"pkg":    "identity",
 		"resutl": &res,
-	}).Debugln("Identity List!")
+	}, "Identity List!")
 
 	return &res, nil
 }

@@ -124,15 +124,16 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 		// treat as not found: clients don't know it must be a UUID
 		return nil, errors.NewNotFoundError("work item link", ID)
 	}
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "link",
 		"wil-id": id.String(),
-	}).Infoln("Loading work item link")
+	}, "Loading work item link")
 	res := WorkItemLink{}
 	db := r.db.Where("id=?", id).Find(&res)
 	if db.RecordNotFound() {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"resource": res,
-		}).Errorln("Work item link not found")
+		}, "Work item link not found")
 		return nil, errors.NewNotFoundError("work item link", id.String())
 	}
 	if db.Error != nil {
@@ -209,15 +210,16 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 	var link = WorkItemLink{
 		ID: id,
 	}
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "link",
 		"link": link,
-	}).Infoln("Work item link to delete ", link)
+	}, "Work item link to delete ", link)
 
 	db := r.db.Delete(&link)
 	if db.Error != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"err": db.Error,
-		}).Errorln("Unable to delete work item link repository")
+		}, "Unable to delete work item link repository")
 		return errors.NewInternalError(db.Error.Error())
 	}
 	if db.RowsAffected == 0 {
@@ -250,15 +252,15 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}
 	db := r.db.Model(&res).Where("id=?", *lt.Data.ID).First(&res)
 	if db.RecordNotFound() {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"resource": res,
-		}).Errorln("Work item link not found")
+		}, "Work item link not found")
 		return nil, errors.NewNotFoundError("work item link", *lt.Data.ID)
 	}
 	if db.Error != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"err": db.Error,
-		}).Errorln("Unable to find work item link repository")
+		}, "Unable to find work item link repository")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if lt.Data.Attributes.Version == nil || res.Version != *lt.Data.Attributes.Version {
@@ -273,15 +275,16 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}
 	db = r.db.Save(&res)
 	if db.Error != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.LogError(ctx, map[string]interface{}{
 			"err": db.Error,
-		}).Errorln("Unable to save work item link repository")
+		}, "Unable to save work item link repository")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 
-	log.Logger().WithFields(map[string]interface{}{
+	log.LogInfo(ctx, map[string]interface{}{
+		"pkg": "link",
 		"resource": res,
-	}).Infoln("Work item link updated")
+	}, "Work item link updated")
 	result := ConvertLinkFromModel(res)
 	return &result, nil
 }
