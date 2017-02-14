@@ -17,3 +17,7 @@ WORKDIR ${ALMIGHTY_INSTALL_PREFIX}
 ENTRYPOINT [ "bin/alm" ]
 
 EXPOSE 8080
+
+# Check every 5 minutes if the container is still "healthy"
+HEALTHCHECK --interval=5m --timeout=3s \
+  CMD curl -f localhost:8080/api/status || exit 1
