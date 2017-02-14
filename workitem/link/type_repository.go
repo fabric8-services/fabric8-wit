@@ -84,7 +84,7 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 	}
 	log.LogInfo(ctx, map[string]interface{}{
 		"pkg": "link",
-		"id": id.String(),
+		"id":  id.String(),
 	}, "Loading work item link type")
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
@@ -107,8 +107,8 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 // NOTE: Two link types can coexist with different categoryIDs.
 func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
 	log.LogInfo(nil, map[string]interface{}{
-		"pkg": "link",
-		"type": name,
+		"pkg":        "link",
+		"type":       name,
 		"categoryId": categoryId,
 	}, "Loading work item link type %s with category ID %s", name, categoryId.String())
 
@@ -130,7 +130,7 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name st
 func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) (*WorkItemLinkType, error) {
 	log.LogInfo(nil, map[string]interface{}{
 		"pkg": "link",
-		"id": ID.String(),
+		"id":  ID.String(),
 	}, "Loading work item link type with ID ", ID)
 
 	res := WorkItemLinkType{}
@@ -182,9 +182,9 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 		ID: id,
 	}
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "link",
+		"pkg":  "link",
 		"wilt": cat,
-		"ID": id,
+		"ID":   id,
 	}, "Work item link type to delete ", cat)
 
 	db := r.db.Delete(&cat)
@@ -232,7 +232,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, lt app.WorkIt
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "link",
+		"pkg":     "link",
 		"newWilt": res,
 	}, "Work item link type updated %v", res)
 	result := ConvertLinkTypeFromModel(res)

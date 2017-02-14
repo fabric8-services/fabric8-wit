@@ -40,7 +40,7 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 	}
 	log.LogInfo(nil, map[string]interface{}{
 		"pkg": "workitem",
-		"id": id,
+		"id":  id,
 	}, "Loading work item")
 
 	res := WorkItem{}
@@ -104,7 +104,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	log.LogInfo(ctx, map[string]interface{}{
 		"pkg": "workitem",
-		"id": id,
+		"id":  id,
 	}, "Looking for id for the work item repository")
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
@@ -152,7 +152,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "workitem",
+		"pkg":      "workitem",
 		"resource": res,
 	}, "Updated work item repository")
 	return convertWorkItemModelToApp(wiType, &res)
@@ -215,8 +215,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	}
 
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "workitem",
-		"where": where,
+		"pkg":        "workitem",
+		"where":      where,
 		"parameters": parameters,
 	}, "Executing query : '%s' with params %v", where, parameters)
 

@@ -56,7 +56,7 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	res, ok := cache.Get(name)
 	if !ok {
 		log.LogInfo(nil, map[string]interface{}{
-			"pkg": "workitem",
+			"pkg":  "workitem",
 			"type": name,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}

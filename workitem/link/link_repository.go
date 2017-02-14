@@ -125,7 +125,7 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 		return nil, errors.NewNotFoundError("work item link", ID)
 	}
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "link",
+		"pkg":    "link",
 		"wil-id": id.String(),
 	}, "Loading work item link")
 	res := WorkItemLink{}
@@ -211,7 +211,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 		ID: id,
 	}
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "link",
+		"pkg":  "link",
 		"link": link,
 	}, "Work item link to delete ", link)
 
@@ -282,7 +282,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}
 
 	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "link",
+		"pkg":      "link",
 		"resource": res,
 	}, "Work item link updated")
 	result := ConvertLinkFromModel(res)
