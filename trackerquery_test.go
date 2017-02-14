@@ -7,13 +7,13 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 )
 
 func TestCreateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -38,7 +38,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 
 func TestGetTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -68,7 +68,7 @@ func TestGetTrackerQuery(t *testing.T) {
 
 func TestUpdateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -116,7 +116,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 // This test ensures that List does not return NIL items.
 func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",
@@ -146,7 +146,7 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/189
 func TestCreateTrackerQueryValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://api.github.com",

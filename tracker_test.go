@@ -6,13 +6,13 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 )
 
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -27,7 +27,7 @@ func TestCreateTracker(t *testing.T) {
 
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -65,7 +65,7 @@ func TestGetTracker(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/191
 func TestTrackerListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
@@ -88,7 +88,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 // refer : https://github.com/almighty/almighty-core/issues/189
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(DB)()
+	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",

@@ -5,7 +5,7 @@ import (
 
 	"testing"
 
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
@@ -29,7 +29,7 @@ func TestConvertNewWorkItem(t *testing.T) {
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db = db.Create(&tq)
 	require.Nil(t, db.Error)
-	defer gormsupport.DeleteCreatedEntities(db)()
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -73,7 +73,7 @@ func TestConvertExistingWorkItem(t *testing.T) {
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db = db.Create(&tq)
 	require.Nil(t, db.Error)
-	defer gormsupport.DeleteCreatedEntities(db)()
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -121,7 +121,7 @@ var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-t
 
 func TestConvertGithubIssue(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer gormsupport.DeleteCreatedEntities(db)()
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Scenario 3 : Mapping and persisting a Github issue")
 

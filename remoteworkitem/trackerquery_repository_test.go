@@ -6,7 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 )
@@ -104,7 +104,7 @@ func TestTrackerQueryList(t *testing.T) {
 
 func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository)) {
 	doWithTransaction(t, func(db *gorm.DB) {
-		defer gormsupport.DeleteCreatedEntities(db)()
+		defer cleaner.DeleteCreatedEntities(db)()
 		trackerRepo := NewTrackerRepository(db)
 		queryRepo := NewTrackerQueryRepository(db)
 		todo(trackerRepo, queryRepo)
