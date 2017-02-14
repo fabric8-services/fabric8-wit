@@ -19,7 +19,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/controllers"
+	"github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -182,94 +182,94 @@ func main() {
 	appDB := gormapplication.NewGormDB(db)
 
 	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controllers.NewLoginController(service, loginService, tokenManager)
+	loginCtrl := controller.NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 
 	// Mount "status" controller
-	statusCtrl := controllers.NewStatusController(service, db)
+	statusCtrl := controller.NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	workitemCtrl := controllers.NewWorkitemController(service, appDB)
+	workitemCtrl := controller.NewWorkitemController(service, appDB)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
-	workitemtypeCtrl := controllers.NewWorkitemtypeController(service, appDB)
+	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	// Mount "work item link category" controller
-	workItemLinkCategoryCtrl := controllers.NewWorkItemLinkCategoryController(service, appDB)
+	workItemLinkCategoryCtrl := controller.NewWorkItemLinkCategoryController(service, appDB)
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
 
 	// Mount "work item link type" controller
-	workItemLinkTypeCtrl := controllers.NewWorkItemLinkTypeController(service, appDB)
+	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
 
 	// Mount "work item link" controller
-	workItemLinkCtrl := controllers.NewWorkItemLinkController(service, appDB)
+	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB)
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
-	workItemCommentsCtrl := controllers.NewWorkItemCommentsController(service, appDB)
+	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB)
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
-	workItemRelationshipsLinksCtrl := controllers.NewWorkItemRelationshipsLinksController(service, appDB)
+	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB)
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller
-	commentsCtrl := controllers.NewCommentsController(service, appDB)
+	commentsCtrl := controller.NewCommentsController(service, appDB)
 	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "tracker" controller
-	c5 := controllers.NewTrackerController(service, appDB, scheduler)
+	c5 := controller.NewTrackerController(service, appDB, scheduler)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
-	c6 := controllers.NewTrackerqueryController(service, appDB, scheduler)
+	c6 := controller.NewTrackerqueryController(service, appDB, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "space" controller
-	spaceCtrl := controllers.NewSpaceController(service, appDB)
+	spaceCtrl := controller.NewSpaceController(service, appDB)
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controllers.NewUserController(service, appDB, tokenManager)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager)
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller
-	searchCtrl := controllers.NewSearchController(service, appDB)
+	searchCtrl := controller.NewSearchController(service, appDB)
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "indentity" controller
-	identityCtrl := controllers.NewIdentityController(service, appDB)
+	identityCtrl := controller.NewIdentityController(service, appDB)
 	app.MountIdentityController(service, identityCtrl)
 
 	// Mount "users" controller
-	usersCtrl := controllers.NewUsersController(service, appDB)
+	usersCtrl := controller.NewUsersController(service, appDB)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "iterations" controller
-	iterationCtrl := controllers.NewIterationController(service, appDB)
+	iterationCtrl := controller.NewIterationController(service, appDB)
 	app.MountIterationController(service, iterationCtrl)
 
 	// Mount "spaceiterations" controller
-	spaceIterationCtrl := controllers.NewSpaceIterationsController(service, appDB)
+	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
 	// Mount "userspace" controller
-	userspaceCtrl := controllers.NewUserspaceController(service, db)
+	userspaceCtrl := controller.NewUserspaceController(service, db)
 	app.MountUserspaceController(service, userspaceCtrl)
 
 	// Mount "render" controller
-	renderCtrl := controllers.NewRenderController(service)
+	renderCtrl := controller.NewRenderController(service)
 	app.MountRenderController(service, renderCtrl)
 
 	// Mount "areas" controller
-	areaCtrl := NewAreaController(service, appDB)
+	areaCtrl := controller.NewAreaController(service, appDB)
 	app.MountAreaController(service, areaCtrl)
 
-	spaceAreaCtrl := NewSpaceAreasController(service, appDB)
+	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
