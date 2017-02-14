@@ -86,12 +86,14 @@ func (g *GormBase) SearchItems() application.SearchRepository {
 	return search.NewGormSearchRepository(g.db)
 }
 
-func (g *GormBase) Identities() application.IdentityRepository {
+// Identities creates new Identity repository
+func (g *GormBase) Identities() account.IdentityRepository {
 	return account.NewIdentityRepository(g.db)
 }
 
-func (g *GormBase) Users() account.IdentityRepository {
-	return account.NewIdentityRepository(g.db)
+// Users creates new user repository
+func (g *GormBase) Users() account.UserRepository {
+	return account.NewUserRepository(g.db)
 }
 
 // WorkItemLinkCategories returns a work item link category repository

@@ -142,20 +142,16 @@ func main() {
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to parse private key: \n%+v", err))
-	}
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to parse public token: \n%+v", err))
+		panic(fmt.Sprintf("ERROR: Failed to parse public key: \n%+v", err))
 	}
 
 	// Setup Account/Login/Security
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
 
-	tokenManager := token.NewManager(publicKey, privateKey)
+	tokenManager := token.NewManager(publicKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 	service.Use(login.InjectTokenManager(tokenManager))
 
@@ -170,15 +166,15 @@ func main() {
 		},
 	}
 
-	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager)
+	appDB := gormapplication.NewGormDB(db)
+
+	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 
 	// Mount "status" controller
 	statusCtrl := NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
-
-	appDB := gormapplication.NewGormDB(db)
 
 	// Mount "workitem" controller
 	workitemCtrl := NewWorkitemController(service, appDB)
@@ -225,7 +221,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := NewUserController(service, identityRepository, tokenManager)
+	userCtrl := NewUserController(service, appDB, tokenManager)
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller
@@ -244,11 +240,17 @@ func main() {
 	iterationCtrl := NewIterationController(service, appDB)
 	app.MountIterationController(service, iterationCtrl)
 
+	// Mount "spaceiterations" controller
 	spaceIterationCtrl := NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
+	// Mount "userspace" controller
 	userspaceCtrl := NewUserspaceController(service, db)
 	app.MountUserspaceController(service, userspaceCtrl)
+
+	// Mount "render" controller
+	renderCtrl := NewRenderController(service)
+	app.MountRenderController(service, renderCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)

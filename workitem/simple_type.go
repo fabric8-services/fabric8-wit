@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
 )
@@ -87,9 +88,9 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		// 'markup' is just a string in the API layer for now:
 		// it corresponds to the MarkupContent.Content field. The MarkupContent.Markup is set to the default value
 		switch value.(type) {
-		case MarkupContent:
-			markupContent := value.(MarkupContent)
-			return markupContent.toMap(), nil
+		case rendering.MarkupContent:
+			markupContent := value.(rendering.MarkupContent)
+			return markupContent.ToMap(), nil
 		default:
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
 		}
@@ -118,7 +119,8 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		if valueType.Kind() != reflect.Map {
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
-		return NewMarkupContentFromMap(value.(map[string]interface{})), nil
+		markupContent := rendering.NewMarkupContentFromMap(value.(map[string]interface{}))
+		return markupContent, nil
 	default:
 		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())
 	}

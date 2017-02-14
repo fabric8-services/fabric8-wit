@@ -338,7 +338,7 @@ To override configuration values using environment variables, use the prefix
 
 For example to override `postgres.password`, set the environment variable `ALMIGHTY_POSTGRES_PASSWORD` to the value of you liking.
 
-NOTE: Environment variables override the default values and the ones you've set in your config file. 
+NOTE: Environment variables override the default values and the ones you've set in your config file.
 
 ==== Development
 
@@ -373,7 +373,7 @@ Generate a token for future use.
 ./bin/alm-cli generate login -H localhost:8080 --pp
 ----
 
-You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls  
+You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls
 
 Create a work item type (using above token).
 ----
@@ -420,7 +420,7 @@ System defined Work Item Types are
 Use any one of above to create Work Item based on that type.
 Following example creates a Work Item of type `userstory`
 ----
-$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "userstory", "fields": { "system.title": "A catchy Title", "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{ "data": { "attributes": { "system.owner": "tmaeder", "system.state": "open", "system.title": "Example of an Epic", "version": "1" }, "relationships": { "baseType": { "data": { "id": "Epic", "type": "workitemtypes" } } }, "type": "workitems" } }' -H localhost:8080
 ----
 
 In response you should get ID of created item, using that you can retrieve the work item.

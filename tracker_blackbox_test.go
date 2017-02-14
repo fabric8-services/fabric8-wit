@@ -12,6 +12,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
+	"github.com/stretchr/testify/require"
 )
 
 func getTrackerTestData(t *testing.T) []testSecureAPI {
@@ -20,6 +21,7 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		t.Fatal("Could not parse Key ", err)
 	}
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+	require.Nil(t, err)
 
 	createTrackerPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
 

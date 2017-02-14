@@ -71,8 +71,8 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	return &res, nil
 }
 
-// ClearCache clears the work item type cache
-func (r *GormWorkItemTypeRepository) ClearCache() {
+// ClearGlobalWorkItemTypeCache removes all work items from the global cache
+func ClearGlobalWorkItemTypeCache() {
 	cache.Clear()
 }
 
@@ -230,7 +230,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 			return nil, errs.WithStack(err)
 		}
 		if !componentType.isSimpleType() {
-			return nil, fmt.Errorf("Component type is not list type: %s", componentType)
+			return nil, fmt.Errorf("Component type is not list type: %T", componentType)
 		}
 		return ListType{SimpleType{*kind}, SimpleType{*componentType}}, nil
 	case KindEnum:
@@ -239,7 +239,7 @@ func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
 			return nil, errs.WithStack(err)
 		}
 		if !bt.isSimpleType() {
-			return nil, fmt.Errorf("baseType type is not list type: %s", bt)
+			return nil, fmt.Errorf("baseType type is not list type: %T", bt)
 		}
 		baseType := SimpleType{*bt}
 

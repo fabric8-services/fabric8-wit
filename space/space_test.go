@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/space"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
@@ -29,7 +30,7 @@ type repoBBTest struct {
 
 func (test *repoBBTest) SetupTest() {
 	test.repo = space.NewRepository(test.DB)
-	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
+	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
 func (test *repoBBTest) TearDownTest() {
@@ -142,11 +143,14 @@ func (test *repoBBTest) requireErrorType(e error) func(p *space.Space, err error
 }
 
 func (test *repoBBTest) create(name string) func() (*space.Space, error) {
-	return func() (*space.Space, error) { return test.repo.Create(context.Background(), name) }
+	newSpace := space.Space{
+		Name: name,
+	}
+	return func() (*space.Space, error) { return test.repo.Create(context.Background(), &newSpace) }
 }
 
 func (test *repoBBTest) save(p space.Space) func() (*space.Space, error) {
-	return func() (*space.Space, error) { return test.repo.Save(context.Background(), p) }
+	return func() (*space.Space, error) { return test.repo.Save(context.Background(), &p) }
 }
 
 func (test *repoBBTest) load(id satoriuuid.UUID) func() (*space.Space, error) {

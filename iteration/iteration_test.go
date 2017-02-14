@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
@@ -28,7 +29,7 @@ func TestRunIterationRepository(t *testing.T) {
 }
 
 func (test *TestIterationRepository) SetupTest() {
-	test.clean = gormsupport.DeleteCreatedEntities(test.DB)
+	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
 func (test *TestIterationRepository) TearDownTest() {
@@ -54,11 +55,11 @@ func (test *TestIterationRepository) TestCreateIteration() {
 
 	repo.Create(context.Background(), &i)
 	if i.ID == uuid.Nil {
-		t.Errorf("Comment was not created, ID nil")
+		t.Errorf("Iteration was not created, ID nil")
 	}
 
 	if i.CreatedAt.After(time.Now()) {
-		t.Errorf("Comment was not created, CreatedAt after Now()?")
+		t.Errorf("Iteration was not created, CreatedAt after Now()?")
 	}
 	assert.Equal(t, start, *i.StartAt)
 	assert.Equal(t, end, *i.EndAt)

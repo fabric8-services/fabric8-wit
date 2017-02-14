@@ -1,6 +1,9 @@
 package workitem
 
-import "sync"
+import (
+	"log"
+	"sync"
+)
 
 // WorkItemTypeCache represents WorkItemType cache
 type WorkItemTypeCache struct {
@@ -35,5 +38,6 @@ func (c *WorkItemTypeCache) Put(wit WorkItemType) {
 func (c *WorkItemTypeCache) Clear() {
 	c.mapLock.Lock()
 	defer c.mapLock.Unlock()
+	log.Println("Clearing work item cache")
 	c.cache = make(map[string]WorkItemType)
 }

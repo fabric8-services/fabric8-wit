@@ -13,7 +13,6 @@ SOURCES := $(shell find $(SOURCE_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name
 DESIGN_DIR=design
 DESIGNS := $(shell find $(SOURCE_DIR)/$(DESIGN_DIR) -path $(SOURCE_DIR)/vendor -prune -o -name '*.go' -print)
 
-
 # Find all required tools:
 GIT_BIN := $(shell command -v $(GIT_BIN_NAME) 2> /dev/null)
 GLIDE_BIN := $(shell command -v $(GLIDE_BIN_NAME) 2> /dev/null)
@@ -84,6 +83,41 @@ help:/
           } \
         }' $(MAKEFILE_LIST)
 
+.PHONY: check-go-format
+## Exists with an error if there are files whose formatting differs from gofmt's
+check-go-format: prebuild-check
+	@gofmt -s -l ${SOURCES} 2>&1 \
+		| tee /tmp/gofmt-errors \
+		| read \
+	&& echo "ERROR: These files differ from gofmt's style (run 'make format-go-code' to fix this):" \
+	&& cat /tmp/gofmt-errors \
+	&& exit 1 \
+	|| true
+
+.PHONY: analyze-go-code
+## Run a complete static code analysis using the following tools: golint, gocyclo and go-vet.
+analyze-go-code: golint gocyclo govet
+
+## Run gocyclo analysis over the code.
+golint: $(GOLINT_BIN)
+	$(info >>--- RESULTS: GOLINT CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOLINT_BIN) $d 2>&1 | grep -vEf .golint_exclude;)
+
+## Run gocyclo analysis over the code.
+gocyclo: $(GOCYCLO_BIN)
+	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 15 $d | grep -vEf .golint_exclude;)
+
+## Run go vet analysis over the code.
+govet:
+	$(info >>--- RESULTS: GO VET CODE ANALYSIS ---<<)
+	@$(foreach d,$(GOANALYSIS_DIRS),go tool vet --all $d/*.go 2>&1;)
+
+.PHONY: format-go-code
+## Formats any go file that differs from gofmt's style
+format-go-code: prebuild-check
+	@gofmt -s -l -w ${SOURCES}
+
 .PHONY: build
 ## Build server and client.
 build: prebuild-check deps generate $(BINARY_SERVER_BIN) $(BINARY_CLIENT_BIN) # do the build
@@ -101,6 +135,12 @@ ifeq ($(OS),Windows_NT)
 else
 	cd ${CLIENT_DIR}/ && go build -v -o ${BINARY_CLIENT_BIN}
 endif
+
+# Build go tool to analysis the code
+$(GOLINT_BIN):
+	cd $(VENDOR_DIR)/github.com/golang/lint/golint && go build -v
+$(GOCYCLO_BIN):
+	cd $(VENDOR_DIR)/github.com/fzipp/gocyclo && go build -v
 
 # Pack all migration SQL files into a compilable Go file
 migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
@@ -158,7 +198,7 @@ clean-glide-cache:
 	-rm -rf ./.glide
 
 $(VENDOR_DIR): glide.lock glide.yaml
-	$(GLIDE_BIN) --verbose install
+	$(GLIDE_BIN) install
 	touch $(VENDOR_DIR)
 
 .PHONY: deps
@@ -217,14 +257,14 @@ ifndef HG_BIN
 endif
 	@$(CHECK_GOPATH_BIN) $(PACKAGE_NAME) || (echo "Project lives in wrong location"; exit 1)
 
-$(CHECK_GOPATH_BIN): .make/check-gopath.go
+$(CHECK_GOPATH_BIN): .make/check_gopath.go
 ifndef GO_BIN
 	$(error The "$(GO_BIN_NAME)" executable could not be found in your PATH)
 endif
 ifeq ($(OS),Windows_NT)
-	@go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check-gopath.go
+	@go build -o "$(shell cygpath --windows '$(CHECK_GOPATH_BIN)')" .make/check_gopath.go
 else
-	@go build -o $(CHECK_GOPATH_BIN) .make/check-gopath.go
+	@go build -o $(CHECK_GOPATH_BIN) .make/check_gopath.go
 endif
 
 # Keep this "clean" target here at the bottom
