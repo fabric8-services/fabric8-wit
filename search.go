@@ -103,7 +103,12 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			case errors.BadParameterError:
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("Error listing spaces: %s", err.Error())))
 			default:
-				log.Printf("Error listing spaces: %s", err.Error())
+				log.LogError(ctx, map[string]interface{}{
+					"query":  q,
+					"offset": offset,
+					"limit":  limit,
+					"err":    err,
+				}, "Error listing spaces")
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 			}
 		}
