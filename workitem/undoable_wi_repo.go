@@ -112,3 +112,8 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
 	return r.wrapped.List(ctx, criteria, start, length)
 }
+
+// Fetch fetches the (first) work item matching by the given criteria.Expression.
+func (r *UndoableWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
+	return r.wrapped.Fetch(ctx, criteria)
+}

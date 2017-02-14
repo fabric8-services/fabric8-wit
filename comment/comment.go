@@ -145,7 +145,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 
 	}
 	if first {
-		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// means 0 rows were returned from the first query (maybe because of offset outside of total count),
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()

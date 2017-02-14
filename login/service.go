@@ -158,11 +158,11 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 				return err
 			}
 			identity = &account.Identity{
-				ID:       keycloakIdentityID,
-				Username: claims.Username,
-				Provider: account.KeycloakIDP,
-				UserID:   account.NullUUID{UUID: user.ID, Valid: true},
-				User:     *user}
+				ID:           keycloakIdentityID,
+				Username:     claims.Username,
+				ProviderType: account.KeycloakIDP,
+				UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+				User:         *user}
 			err = keycloak.Identities.Create(ctx, identity)
 			return err
 		})

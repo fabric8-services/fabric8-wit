@@ -3,7 +3,6 @@ package remoteworkitem
 import (
 	"encoding/json"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/pkg/errors"
@@ -11,46 +10,67 @@ import (
 
 // List of supported attributes
 const (
-	// The keys in the flattened response JSON of a typical Github issue.
-
-	GithubTitle       = "title"
-	GithubDescription = "body"
-	GithubState       = "state"
-	GithubID          = "url"
-	GithubCreator     = "user.login"
-	GithubAssignee    = "assignee.login"
-
-	// The keys in the flattened response JSON of a typical Jira issue.
-
-	JiraTitle    = "fields.summary"
-	JiraBody     = "fields.description"
-	JiraState    = "fields.status.name"
-	JiraID       = "self"
-	JiraCreator  = "fields.creator.key"
-	JiraAssignee = "fields.assignee"
-
 	ProviderGithub = "github"
 	ProviderJira   = "jira"
+
+	// The keys in the flattened response JSON of a typical Github issue.
+	GithubTitle         = "title"
+	GithubDescription   = "body"
+	GithubState         = "state"
+	GithubID            = "url"
+	GithubCreator       = "user.login"
+	GithubAssigneeLogin = "assignee.login"
+	GithubAssigneeURL   = "assignee.url"
+
+	// The keys in the flattened response JSON of a typical Jira issue.
+	JiraTitle         = "fields.summary"
+	JiraBody          = "fields.description"
+	JiraState         = "fields.status.name"
+	JiraID            = "self"
+	JiraCreator       = "fields.creator.key"
+	JiraAssigneeLogin = "fields.assignee.key"
+	JiraAssigneeURL   = "fields.assignee.self"
 )
 
-// WorkItemKeyMaps relate remote attribute keys to internal representation
-var WorkItemKeyMaps = map[string]WorkItemMap{
+// RemoteWorkItem a temporary structure that holds the relevant field values retrieved from a remote work item
+type RemoteWorkItem struct {
+	// The field values, according to the field type
+	Fields map[string]interface{}
+	// unique id per installation
+	ID string
+	// Name of the type of this work item
+	Type string
+}
+
+const (
+	remoteTitle               = workitem.SystemTitle
+	remoteDescription         = workitem.SystemDescription
+	remoteState               = workitem.SystemState
+	remoteItemID              = workitem.SystemRemoteItemID
+	remoteCreator             = workitem.SystemCreator
+	remoteAssigneeLogins      = "system.assignee.login"
+	remoteAssigneeProfileURLs = "system.assignee.profile_url"
+)
+
+// RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
+var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 	ProviderGithub: {
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        workitem.SystemState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}:                                      workitem.SystemAssignees,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             remoteTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: remoteDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        remoteState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                remoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           remoteCreator,
+		AttributeMapper{AttributeExpression(GithubAssigneeLogin), StringConverter{}}:                                     remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(GithubAssigneeURL), StringConverter{}}:                                       remoteAssigneeProfileURLs,
 	},
 	ProviderJira: {
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:                                       workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   workitem.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}:                               workitem.SystemAssignees,
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
+		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: remoteDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    remoteCreator,
+		AttributeMapper{AttributeExpression(JiraAssigneeLogin), StringConverter{}}:                              remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(JiraAssigneeURL), StringConverter{}}:                                remoteAssigneeProfileURLs,
 	},
 }
 
@@ -124,8 +144,8 @@ type AttributeMapper struct {
 	attributeConverter AttributeConverter
 }
 
-// WorkItemMap will define mappings between remote<->internal attribute
-type WorkItemMap map[AttributeMapper]string
+// RemoteWorkItemMap will define mappings between remote<->internal attribute
+type RemoteWorkItemMap map[AttributeMapper]string
 
 // AttributeExpression represents a commonly understood String format for a target path
 type AttributeExpression string
@@ -185,15 +205,15 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return jira.issue[string(field)]
 }
 
-// Map maps the remote WorkItem to a local WorkItem
-func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
-	workItem := app.WorkItem{Fields: make(map[string]interface{})}
+// Map maps the remote WorkItem to a local RemoteWorkItem
+func Map(remoteItem AttributeAccessor, mapping RemoteWorkItemMap) (RemoteWorkItem, error) {
+	remoteWorkItem := RemoteWorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
-		originalValue := item.Get(from.expression)
-		convertedValue, err := from.attributeConverter.Convert(originalValue, item)
+		originalValue := remoteItem.Get(from.expression)
+		convertedValue, err := from.attributeConverter.Convert(originalValue, remoteItem)
 		if err == nil {
-			workItem.Fields[to] = convertedValue
+			remoteWorkItem.Fields[to] = convertedValue
 		}
 	}
-	return workItem, nil
+	return remoteWorkItem, nil
 }

@@ -157,6 +157,9 @@ func getMigrations() migrations {
 	// version 26
 	m = append(m, steps{executeSQLFile("026-areas.sql")})
 
+	// Version 27
+	m = append(m, steps{executeSQLFile("027-identity_provider_url.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

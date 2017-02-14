@@ -4,6 +4,8 @@ import (
 	"database/sql/driver"
 	"time"
 
+	"log"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/goadesign/goa"
@@ -56,11 +58,17 @@ func (u NullUUID) Value() (driver.Value, error) {
 // One User account can have many Identities
 type Identity struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
-	Username string    // The username of the Identity
-	Provider string    // The identity provider ID, such as "keycloak", "github", "oso", etc
-	UserID   NullUUID  `sql:"type:uuid"` // Belongs to User
-	User     User
+	// This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// The username of the Identity
+	Username string
+	// ProviderType The type of provider, such as "keycloak", "github", "oso", etc
+	ProviderType string `gorm:"column:provider_type"`
+	// the URL of the profile on the remote work item service
+	ProfileURL string `gorm:"column:profile_url"`
+	// Link to User
+	UserID NullUUID `sql:"type:uuid"`
+	User   User
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -79,7 +87,7 @@ func (m Identity) ConvertIdentityFromModel() *app.Identity {
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
 				Username: &m.Username,
-				Provider: &m.Provider,
+				Provider: &m.ProviderType,
 			},
 		},
 	}
@@ -189,6 +197,24 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	return objs, nil
 }
 
+// First returns the first Identity element that matches the given criteria
+func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Identity, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "first"}, time.Now())
+	var objs []*Identity
+
+	log.Printf("Looking for identity matching: %v", funcs)
+	err := m.db.Scopes(funcs...).Table(m.TableName()).First(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errors.WithStack(err)
+	}
+	if len(objs) != 0 && objs[0] != nil {
+		log.Printf("Found matching identity: %v", *objs[0])
+		return objs[0], nil
+	}
+	log.Printf("No matching identity found\n")
+	return nil, nil
+}
+
 // IdentityFilterByUserID is a gorm filter for a Belongs To relationship.
 func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
@@ -196,14 +222,21 @@ func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-// IdentityFilterByUsename is a gorm filter by username
-func IdentityFilterByUsename(username string) func(db *gorm.DB) *gorm.DB {
+// IdentityFilterByUsername is a gorm filter by 'username'
+func IdentityFilterByUsername(username string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("username = ?", username)
+		return db.Where("username = ?", username).Limit(1)
 	}
 }
 
-// IdentityFilterByID is a gorm filter for Idenity ID.
+// IdentityFilterByProfileURL is a gorm filter by 'profile_url'
+func IdentityFilterByProfileURL(profileURL string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("profile_url = ?", profileURL).Limit(1)
+	}
+}
+
+// IdentityFilterByID is a gorm filter for Identity ID.
 func IdentityFilterByID(identityID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("id = ?", identityID)
