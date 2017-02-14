@@ -67,7 +67,7 @@ clean-docker-build-dir:
 ## After calling this command you can invoke all the make targets from the
 ## normal Makefile (e.g. deps, generate, build) inside the build container
 ## by prefixing them with "docker-". For example to execute "make deps"
-## inside the build container, just run "make docker-deps".  
+## inside the build container, just run "make docker-deps".
 ## To remove the container when no longer needed, call "make docker-rm".
 docker-start: docker-build-dir docker-image-builder
 ifneq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)
@@ -113,7 +113,7 @@ endif
 # This is a wildcard target to let you call any make target from the normal makefile
 # but it will run inside the docker container. This target will only get executed if
 # there's no specialized form available. For example if you call "make docker-start"
-# not this target gets executed but the "docker-start" target. 
+# not this target gets executed but the "docker-start" target.
 docker-%:
 	$(eval makecommand:=$(subst docker-,,$@))
 ifeq ($(strip $(shell docker ps -qa --filter "name=$(DOCKER_CONTAINER_NAME)" 2>/dev/null)),)

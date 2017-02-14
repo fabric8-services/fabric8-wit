@@ -18,6 +18,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/stretchr/testify/require"
 )
 
 func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
@@ -26,6 +27,7 @@ func getTrackerQueryTestData(t *testing.T) []testSecureAPI {
 		t.Fatal("Could not parse Key ", err)
 	}
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+	require.Nil(t, err)
 
 	createTrackerQueryPayload := bytes.NewBuffer([]byte(`{"type": "github", "url": "https://api.github.com/"}`))
 
@@ -161,11 +163,7 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	}
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, controller, &payload)
 
-	publickey, err := jwt.ParseRSAPublicKeyFromPEM([]byte(almtoken.RSAPublicKey))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	jwtMiddleware := goajwt.New(publickey, nil, app.NewJWTSecurity())
+	jwtMiddleware := goajwt.New(&privatekey.PublicKey, nil, app.NewJWTSecurity())
 	app.UseJWTMiddleware(service, jwtMiddleware)
 
 	controller2 := NewTrackerqueryController(service, gormapplication.NewGormDB(DB), RwiScheduler)

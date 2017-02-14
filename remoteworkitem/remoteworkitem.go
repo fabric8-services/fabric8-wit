@@ -35,7 +35,7 @@ const (
 
 // WorkItemKeyMaps relate remote attribute keys to internal representation
 var WorkItemKeyMaps = map[string]WorkItemMap{
-	ProviderGithub: WorkItemMap{
+	ProviderGithub: {
 		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             workitem.SystemTitle,
 		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: workitem.SystemDescription,
 		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        workitem.SystemState,
@@ -43,7 +43,7 @@ var WorkItemKeyMaps = map[string]WorkItemMap{
 		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           workitem.SystemCreator,
 		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}:                                      workitem.SystemAssignees,
 	},
-	ProviderJira: WorkItemMap{
+	ProviderJira: {
 		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      workitem.SystemTitle,
 		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:                                       workitem.SystemDescription,
 		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: workitem.SystemDescription,

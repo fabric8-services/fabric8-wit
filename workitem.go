@@ -201,7 +201,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 				if err != nil {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
-				if ok := appl.Identities().ValidIdentity(context.Background(), assigneeUUID); !ok {
+				if ok := appl.Identities().IsValid(context.Background(), assigneeUUID); !ok {
 					return errors.NewBadParameterError("data.relationships.assignees.data.id", *d.ID)
 				}
 				ids = append(ids, assigneeUUID.String())
@@ -259,7 +259,7 @@ func getVersion(version interface{}) (int, error) {
 }
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
-// convertion from internal to API
+// conversion from internal to API
 type WorkItemConvertFunc func(*goa.RequestData, *app.WorkItem, *app.WorkItem2)
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a

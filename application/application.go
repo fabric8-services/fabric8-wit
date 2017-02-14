@@ -2,6 +2,7 @@ package application
 
 import (
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/space"
@@ -16,14 +17,15 @@ type Application interface {
 	Trackers() TrackerRepository
 	TrackerQueries() TrackerQueryRepository
 	SearchItems() SearchRepository
-	Identities() IdentityRepository
+	Identities() account.IdentityRepository
 	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository
 	Spaces() space.Repository
 	Iterations() iteration.Repository
-	Users() account.IdentityRepository
+	Users() account.UserRepository
+	Areas() area.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction

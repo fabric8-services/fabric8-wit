@@ -40,9 +40,8 @@ import (
 
 func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -91,9 +90,8 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 func TestCreateWI(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -127,9 +125,8 @@ func TestCreateWorkItemWithoutContext(t *testing.T) {
 
 func TestListByFields(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -531,8 +528,7 @@ func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Iden
 	newUserUUID := uuid.NewV4()
 	identityRepo := account.NewIdentityRepository(db)
 	identity := account.Identity{
-		FullName: "Test User Integration Random",
-		ImageURL: "http://images.com/42",
+		Username: "Test User Integration Random",
 		ID:       newUserUUID,
 	}
 	err := identityRepo.Create(ctx, &identity)
@@ -582,9 +578,8 @@ func (s *WorkItem2Suite) SetupSuite() {
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
-	s.pubKey, _ = almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManager(s.pubKey, s.priKey), testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
 
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
@@ -756,7 +751,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	maliciousUUID := "non UUID string"
 	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
-			&app.GenericData{
+			{
 				ID:   &maliciousUUID,
 				Type: &userType,
 			}},
@@ -765,7 +760,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 
 	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
-			&app.GenericData{
+			{
 				ID:   &newUserUUID,
 				Type: &userType,
 			}},
@@ -1027,7 +1022,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 		},
 		Assignees: &app.RelationGenericList{
 			Data: []*app.GenericData{
-				&app.GenericData{
+				{
 					Type: &userType,
 					ID:   &newUserId,
 				}},

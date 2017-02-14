@@ -296,6 +296,7 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 		t.Fatal("Could not parse Key ", err)
 	}
 	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+	require.Nil(t, err)
 
 	createWITPayloadString := bytes.NewBuffer([]byte(`{"fields": {"system.administrator": {"Required": true,"Type": {"Kind": "string"}}},"name": "Epic"}`))
 

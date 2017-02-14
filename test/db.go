@@ -3,6 +3,7 @@ package test
 import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/space"
@@ -38,10 +39,10 @@ func (db *MockDB) TrackerQueries() application.TrackerQueryRepository {
 func (db *MockDB) SearchItems() application.SearchRepository {
 	return nil
 }
-func (db *MockDB) Identities() application.IdentityRepository {
+func (db *MockDB) Identities() account.IdentityRepository {
 	return nil
 }
-func (db *MockDB) Users() account.IdentityRepository {
+func (db *MockDB) Users() account.UserRepository {
 	return nil
 }
 func (db *MockDB) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {
@@ -58,6 +59,10 @@ func (db *MockDB) Comments() comment.Repository {
 }
 
 func (db *MockDB) Iterations() iteration.Repository {
+	return nil
+}
+
+func (db *MockDB) Areas() area.Repository {
 	return nil
 }
 

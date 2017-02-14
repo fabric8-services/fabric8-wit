@@ -46,10 +46,9 @@ func (rest *TestIterationREST) TearDownTest() {
 }
 
 func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	return svc, NewIterationController(svc, rest.db)
 }
 
