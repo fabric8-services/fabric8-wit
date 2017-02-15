@@ -281,6 +281,9 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return errs.WithStack(err)
 	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkEpicRelatedUserStory, "An epic can be the parent of a user story.", link.TopologyNetwork, "parent of", "child of", workitem.SystemEpic, workitem.SystemUserStory, link.SystemWorkItemLinkCategorySystem); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -362,6 +365,9 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, ctx, witr, db); err != nil {
 		return errs.WithStack(err)
+	}
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemEpic, ctx, witr, db); err != nil {
+		return err
 	}
 	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, ctx, witr, db); err != nil {
 		return errs.WithStack(err)

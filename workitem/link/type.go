@@ -18,8 +18,9 @@ const (
 	// The names of a work item link type are basically the "system.title" field
 	// as in work items. The actual linking is done with UUIDs. Hence, the names
 	// hare are more human-readable.
-	SystemWorkItemLinkTypeBugBlocker     = "Bug blocker"
-	SystemWorkItemLinkPlannerItemRelated = "Related planner item"
+	SystemWorkItemLinkTypeBugBlocker       = "Bug blocker"
+	SystemWorkItemLinkPlannerItemRelated   = "Related planner item"
+	SystemWorkItemLinkEpicRelatedUserStory = "Epic is parent of user story"
 )
 
 // returns true if the left hand and right hand side string
