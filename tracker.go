@@ -76,9 +76,9 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
-				log.LogError(ctx, map[string]interface{}{
-					"ID": ctx.ID,
-				}, "Tracker controller not found")
+				log.Error(ctx, map[string]interface{}{
+					"trackerID": ctx.ID,
+				}, "tracker controller not found")
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
 			default:

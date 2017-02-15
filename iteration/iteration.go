@@ -69,10 +69,10 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 
 	err := m.db.Create(u).Error
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"iteration": u,
-			"err":       err,
-		}, "Unable to create the iteration")
+		log.Error(ctx, map[string]interface{}{
+			"iterationID": u.ID,
+			"err":         err,
+		}, "unable to create the iteration")
 		return errs.WithStack(err)
 	}
 
@@ -86,10 +86,10 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"spaceID": spaceID,
 			"err":     err,
-		}, "Unable to list the iterations")
+		}, "unable to list the iterations")
 		return nil, errs.WithStack(err)
 	}
 	return objs, nil
@@ -102,16 +102,16 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 
 	tx := m.db.Where("id = ?", id).First(&obj)
 	if tx.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"id": id.String(),
-		}, "Iteration cannot be found")
+		log.Error(ctx, map[string]interface{}{
+			"iterationID": id.String(),
+		}, "iteration cannot be found")
 		return nil, errors.NewNotFoundError("Iteration", id.String())
 	}
 	if tx.Error != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"id":  id.String(),
-			"err": tx.Error,
-		}, "Unable to load the iteration")
+		log.Error(ctx, map[string]interface{}{
+			"iterationID": id.String(),
+			"err":         tx.Error,
+		}, "unable to load the iteration")
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil
@@ -123,25 +123,25 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 	itr := Iteration{}
 	tx := m.db.Where("id=?", i.ID).First(&itr)
 	if tx.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"iterationID": i.ID,
-		}, "Iteration cannot be found")
+		}, "iteration cannot be found")
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("iteration", i.ID.String())
 	}
 	if err := tx.Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"iterationID": i.ID,
 			"err":         err,
-		}, "Unknown error happened when searching the iteration")
+		}, "unknown error happened when searching the iteration")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	tx = tx.Save(&i)
 	if err := tx.Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"iteration": i,
-			"err":       err,
-		}, "Unable to save the iterations")
+		log.Error(ctx, map[string]interface{}{
+			"iterationID": i.ID,
+			"err":         err,
+		}, "unable to save the iterations")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	return &i, nil
@@ -153,9 +153,10 @@ func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iter
 	var count int64
 	m.db.Model(&Iteration{}).Where("space_id=? and state=?", i.SpaceID, IterationStateStart).Count(&count)
 	if count != 0 {
-		log.LogError(ctx, map[string]interface{}{
-			"iteration": i,
-		}, "One iteration from given space is already runnin")
+		log.Error(ctx, map[string]interface{}{
+			"iterationID": i.ID,
+			"spaceID":     i.SpaceID,
+		}, "one iteration from given space is already running!")
 		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
 	}
 	return true, nil

@@ -46,7 +46,7 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 	if err := tx.Create(&t).Error; err != nil {
 		return nil, InternalError{simpleError{err.Error()}}
 	}
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":     "remoteworkitem",
 		"tracker": t,
 	}, "Tracker reposity created")
@@ -68,7 +68,7 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 		return nil, NotFoundError{"tracker", ID}
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":       "remoteworkitem",
 		"trackerID": id,
 	}, "Loading tracker repository...")
@@ -76,10 +76,9 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 	res := Tracker{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"resource":  res,
+		log.Error(ctx, map[string]interface{}{
 			"trackerID": ID,
-		}, "Tracker repository not found")
+		}, "tracker repository not found")
 
 		return nil, NotFoundError{"tracker", ID}
 	}
@@ -101,7 +100,7 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 		return nil, BadParameterError{"expression", criteria}
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":   "remoteworkitem",
 		"query": where,
 	}, "Executing tracker repository query...")
@@ -138,16 +137,16 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":       "remoteworkitem",
 		"trackerID": id,
 	}, "Looking for a tracker repository with id ", id)
 
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"tracker": res,
-		}, "Tracker repository not found")
+		log.Error(ctx, map[string]interface{}{
+			"trackerID": id,
+		}, "tracker repository not found")
 
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
 	}
@@ -163,16 +162,16 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 		Type: t.Type}
 
 	if err := tx.Save(&newT).Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"tracker": newT,
-			"err":     err.Error(),
-		}, "Unable to save tracker repository")
+		log.Error(ctx, map[string]interface{}{
+			"trackerID": newT.ID,
+			"err":       err,
+		}, "unable to save tracker repository")
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
-		"pkg":        "remoteworkitem",
-		"newTracker": newT,
+	log.Info(ctx, map[string]interface{}{
+		"pkg":     "remoteworkitem",
+		"tracker": newT.ID,
 	}, "Tracker repository successfully updated")
 
 	t2 := app.Tracker{

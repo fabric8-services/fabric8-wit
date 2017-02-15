@@ -38,17 +38,17 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
-	log.LogInfo(nil, map[string]interface{}{
-		"pkg": "workitem",
-		"id":  id,
+	log.Info(nil, map[string]interface{}{
+		"pkg":  "workitem",
+		"wiID": ID,
 	}, "Loading work item")
 
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.LogError(nil, map[string]interface{}{
-			"resource": res,
-		}, "Work item not found")
+		log.Error(nil, map[string]interface{}{
+			"wiID": ID,
+		}, "work item not found")
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	if tx.Error != nil {
@@ -102,15 +102,15 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
-		"pkg": "workitem",
-		"id":  id,
+	log.Info(ctx, map[string]interface{}{
+		"pkg":  "workitem",
+		"wiID": wi.ID,
 	}, "Looking for id for the work item repository")
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"resource": res,
-		}, "Work item repository not found")
+		log.Error(ctx, map[string]interface{}{
+			"wiID": wi.ID,
+		}, "work item repository not found")
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if tx.Error != nil {
@@ -143,17 +143,18 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to save the work item repository")
+		log.Error(ctx, map[string]interface{}{
+			"wiID": wi.ID,
+			"err":  err,
+		}, "unable to save the work item repository")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.LogInfo(ctx, map[string]interface{}{
-		"pkg":      "workitem",
-		"resource": res,
+	log.Info(ctx, map[string]interface{}{
+		"pkg":  "workitem",
+		"wiID": wi.ID,
 	}, "Updated work item repository")
 	return convertWorkItemModelToApp(wiType, &res)
 }
@@ -214,7 +215,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":        "workitem",
 		"where":      where,
 		"parameters": parameters,

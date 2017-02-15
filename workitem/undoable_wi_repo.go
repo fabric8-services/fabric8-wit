@@ -45,7 +45,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg": "workitem",
 		"id":  id,
 	}, "Loading work item")
@@ -73,7 +73,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 		return errors.NewNotFoundError("work item", ID)
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg": "workitem",
 		"id":  id,
 	}, "Loading work iteme")

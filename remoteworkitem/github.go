@@ -53,11 +53,10 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 		for {
 			result, response, err := f.listIssues(g.Query, opts)
 			if _, ok := err.(*github.RateLimitError); ok {
-				log.LogWarn(nil, map[string]interface{}{
+				log.Warn(nil, map[string]interface{}{
 					"query": g.Query,
 					"opts":  opts,
-					"err":   err,
-				}, "Reached rate limit when listing Github issues")
+				}, "reached rate limit when listing Github issues")
 				break
 			}
 			issues := result.Issues

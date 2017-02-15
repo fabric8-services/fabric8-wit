@@ -64,7 +64,7 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 	}
 
 	if len(existingWorkItems) != 0 {
-		log.LogInfo(nil, map[string]interface{}{
+		log.Info(nil, map[string]interface{}{
 			"pkg":      "remoteworkitem",
 			"workitem": workItem,
 		}, "Workitem exists, will be updated")
@@ -75,13 +75,13 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 		newWorkItem, err = wir.Save(context.Background(), *existingWorkItem)
 		if err != nil {
-			log.LogError(nil, map[string]interface{}{
+			log.Error(nil, map[string]interface{}{
 				"existingWorkitem": existingWorkItem,
 				"err":              err,
-			}, "Unable to update the work item")
+			}, "unable to update the work item")
 		}
 	} else {
-		log.LogInfo(nil, map[string]interface{}{
+		log.Info(nil, map[string]interface{}{
 			"pkg":           "remoteworkitem",
 			"sqlExpression": sqlExpression,
 			"err":           err,
@@ -93,12 +93,12 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 		newWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
-			log.LogError(nil, map[string]interface{}{
+			log.Error(nil, map[string]interface{}{
 				"creator":            creator,
 				"workItem.Fields":    workItem.Fields,
 				"workitem.SystemBug": workitem.SystemBug,
 				"err":                err,
-			}, "Unable to create the work item")
+			}, "unable to create the work item")
 		}
 	}
 	return newWorkItem, errors.WithStack(err)

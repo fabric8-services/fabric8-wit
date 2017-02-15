@@ -57,17 +57,17 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 		// treat as not found: clients don't know it must be a UUID
 		return nil, errors.NewNotFoundError("work item link category", ID)
 	}
-	log.LogInfo(ctx, map[string]interface{}{
-		"pkg":     "link",
-		"wilc-ID": ID,
+	log.Info(ctx, map[string]interface{}{
+		"pkg":    "link",
+		"wilcID": ID,
 	}, "Loading work item link category")
 
 	res := WorkItemLinkCategory{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"resource": res,
-		}, "Work item link category not found by id ", ID)
+		log.Error(ctx, map[string]interface{}{
+			"wilcID": ID,
+		}, "work item link category not found by id ", ID)
 		return nil, errors.NewNotFoundError("work item link category", id.String())
 	}
 	if db.Error != nil {
@@ -81,17 +81,17 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 
 // LoadCategoryFromDB return work item link category for the name
 func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Context, name string) (*WorkItemLinkCategory, error) {
-	log.LogInfo(ctx, map[string]interface{}{
-		"pkg":  "link",
-		"name": name,
+	log.Info(ctx, map[string]interface{}{
+		"pkg":          "link",
+		"categoryName": name,
 	}, "Loading work item link category: %s", name)
 
 	res := WorkItemLinkCategory{}
 	db := r.db.Model(&res).Where("name=?", name).First(&res)
 	if db.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"resource": res,
-		}, "Work item link category not found")
+		log.Error(ctx, map[string]interface{}{
+			"wilcName": name,
+		}, "work item link category not found")
 		return nil, errors.NewNotFoundError("work item link category", name)
 	}
 	if db.Error != nil {
@@ -135,9 +135,9 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 		ID: id,
 	}
 
-	log.LogInfo(ctx, map[string]interface{}{
-		"pkg":      "link",
-		"category": cat,
+	log.Info(ctx, map[string]interface{}{
+		"pkg":    "link",
+		"wilcID": ID,
 	}, "Work item link category to delete")
 
 	db := r.db.Delete(&cat)
@@ -160,9 +160,10 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 	}
 	id, err := satoriuuid.FromString(*linkCat.Data.ID)
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"err": err,
-		}, "Error when converting %s to UUID: %s", *linkCat.Data.ID, err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"wilcID": *linkCat.Data.ID,
+			"err":    err,
+		}, "error when converting %s to UUID: %s", *linkCat.Data.ID, err.Error())
 		// treat as not found: clients don't know it must be a UUID
 		return nil, errors.NewNotFoundError("work item link category", id.String())
 	}
@@ -178,15 +179,16 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 
 	db := r.db.Model(&res).Where("id=?", *linkCat.Data.ID).First(&res)
 	if db.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"resource": res,
-		}, "Work item link category not found")
+		log.Error(ctx, map[string]interface{}{
+			"wilcID": *linkCat.Data.ID,
+		}, "work item link category not found")
 		return nil, errors.NewNotFoundError("work item link category", id.String())
 	}
 	if db.Error != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"err": db.Error,
-		}, "Unable to find work item link category")
+		log.Error(ctx, map[string]interface{}{
+			"wilcID": *linkCat.Data.ID,
+			"err":    db.Error,
+		}, "unable to find work item link category")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if linkCat.Data.Attributes.Version == nil || res.Version != *linkCat.Data.Attributes.Version {
@@ -207,13 +209,15 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 
 	db = db.Save(&newLinkCat)
 	if db.Error != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"err": db.Error,
-		}, "Unable to save work item link category repository")
+		log.Error(ctx, map[string]interface{}{
+			"wilcID": newLinkCat.ID,
+			"err":    db.Error,
+		}, "unable to save work item link category repository")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":             "link",
+		"wilcID":          newLinkCat.ID,
 		"newLinkCategory": newLinkCat,
 	}, "Work item link category updated")
 	result := ConvertLinkCategoryFromModel(newLinkCat)

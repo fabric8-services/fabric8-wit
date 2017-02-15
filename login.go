@@ -101,7 +101,7 @@ func readToken(res *http.Response, ctx jsonapi.InternalServerError) (*app.TokenD
 // Generate obtain the access token from Keycloak for the test user
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"method": "Generate",
 		}, "Postgres developer mode not enabled")
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))

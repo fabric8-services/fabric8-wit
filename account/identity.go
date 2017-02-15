@@ -142,16 +142,16 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	}
 	err := m.db.Create(model).Error
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"identity": model,
-			"err":      err.Error(),
-		}, "Unable to create the identity")
+		log.Error(ctx, map[string]interface{}{
+			"identityID": model.ID,
+			"err":        err,
+		}, "unable to create the identity")
 		return errors.WithStack(err)
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
-		"pkg":     "identity",
-		"modelID": model.ID,
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":        "identity",
+		"identityID": model.ID,
 	}, "Identity created!")
 
 	return nil
@@ -163,18 +163,18 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"modelID": model.ID,
-			"ctx":     ctx,
-			"err":     err.Error(),
-		}, "Unable to update the identity")
+		log.Error(ctx, map[string]interface{}{
+			"identityID": model.ID,
+			"ctx":        ctx,
+			"err":        err,
+		}, "unable to update the identity")
 		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 
-	log.LogDebug(ctx, map[string]interface{}{
-		"pkg":     "identity",
-		"modelID": model.ID,
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":        "identity",
+		"identityID": model.ID,
 	}, "Identity saved!")
 
 	return errors.WithStack(err)
@@ -189,16 +189,16 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"id":  id,
-			"err": err.Error(),
-		}, "Unable to delete the identity")
+		log.Error(ctx, map[string]interface{}{
+			"identityID": id,
+			"err":        err,
+		}, "unable to delete the identity")
 		return errors.WithStack(err)
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
-		"pkg": "identity",
-		"id":  id,
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":        "identity",
+		"identityID": id,
 	}, "Identity deleted!")
 
 	return nil
@@ -214,10 +214,10 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 		return nil, errors.WithStack(err)
 	}
 
-	log.LogDebug(nil, map[string]interface{}{
-		"pkg":    "identity",
-		"result": objs,
-	}, "Identity query!")
+	log.Debug(nil, map[string]interface{}{
+		"pkg":          "identity",
+		"identityList": objs,
+	}, "Identity query executed successfully!")
 
 	return objs, nil
 }
@@ -266,10 +266,10 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 		res.Data[index] = ident.Data
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
-		"pkg":    "identity",
-		"resutl": &res,
-	}, "Identity List!")
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":          "identity",
+		"identityList": &res,
+	}, "Identity List executed successfully!")
 
 	return &res, nil
 }

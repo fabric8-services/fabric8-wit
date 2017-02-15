@@ -72,9 +72,9 @@ func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
 	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
-		log.LogError(nil, map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"err": err,
-		}, "Fetch failed for tracker queries")
+		}, "fetch operation failed for tracker queries")
 	}
 	return tsList
 }

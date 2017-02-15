@@ -1,7 +1,6 @@
 package remoteworkitem
 
 import (
-	"log"
 	"testing"
 
 	"golang.org/x/net/context"

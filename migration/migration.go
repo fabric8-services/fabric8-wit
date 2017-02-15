@@ -50,7 +50,7 @@ func Migrate(db *sql.DB) error {
 
 		if err != nil {
 			oldErr := err
-			log.LogInfo(nil, map[string]interface{}{
+			log.Info(nil, map[string]interface{}{
 				"pkg":         "migration",
 				"nextVersion": nextVersion,
 				"migrations":  m,
@@ -58,31 +58,31 @@ func Migrate(db *sql.DB) error {
 			}, "Rolling back transaction due to: ", err)
 
 			if err = tx.Rollback(); err != nil {
-				log.LogError(nil, map[string]interface{}{
+				log.Error(nil, map[string]interface{}{
 					"nextVersion": nextVersion,
 					"migrations":  m,
 					"err":         err,
-				}, "Error while rolling back transaction: ", err)
+				}, "error while rolling back transaction: ", err)
 				return errs.Errorf("Error while rolling back transaction: %s\n", err)
 			}
 			return oldErr
 		}
 
 		if err = tx.Commit(); err != nil {
-			log.LogError(nil, map[string]interface{}{
+			log.Error(nil, map[string]interface{}{
 				"migrations": m,
 				"err":        err,
-			}, "Error during transaction commit: ", err)
+			}, "error during transaction commit: ", err)
 			return errs.Errorf("Error during transaction commit: %s\n", err)
 		}
 
 	}
 
 	if err != nil {
-		log.LogError(nil, map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"migrations": m,
 			"err":        err,
-		}, "Migration failed with error: ", err)
+		}, "migration failed with error: ", err)
 		return errs.Errorf("Migration failed with error: %s\n", err)
 	}
 
@@ -236,7 +236,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	*nextVersion = currentVersion + 1
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
-		log.LogInfo(nil, map[string]interface{}{
+		log.Info(nil, map[string]interface{}{
 			"pkg":            "migration",
 			"nextVersion":    *nextVersion,
 			"currentVersion": currentVersion,
@@ -244,7 +244,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 		return nil
 	}
 
-	log.LogInfo(nil, map[string]interface{}{
+	log.Info(nil, map[string]interface{}{
 		"pkg":            "migration",
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
@@ -261,7 +261,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 		return errs.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
 	}
 
-	log.LogInfo(nil, map[string]interface{}{
+	log.Info(nil, map[string]interface{}{
 		"pkg":            "migration",
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
@@ -326,7 +326,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.LogInfo(ctx, map[string]interface{}{
+		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"category": name,
 		}, "Work item link category %s exists, will update/overwrite the description", name)
@@ -365,7 +365,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.LogInfo(ctx, map[string]interface{}{
+		log.Info(ctx, map[string]interface{}{
 			"pkg":  "migration",
 			"wilt": name,
 		}, "Work item link type %s exists, will update/overwrite all fields", name)
@@ -465,7 +465,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.LogInfo(ctx, map[string]interface{}{
+		log.Info(ctx, map[string]interface{}{
 			"pkg":      "migration",
 			"typeName": typeName,
 		}, "Work item type %s exists, will update/overwrite the fields only and parentPath", typeName)
@@ -473,7 +473,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		path := typeName
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
-			log.LogInfo(ctx, map[string]interface{}{
+			log.Info(ctx, map[string]interface{}{
 				"pkg":              "migration",
 				"typeName":         typeName,
 				"extendedTypeName": *extendedTypeName,

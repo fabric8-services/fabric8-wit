@@ -15,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
+	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
@@ -43,8 +44,6 @@ var (
 	// StartTime in ISO 8601 (UTC) format
 	StartTime = time.Now().UTC().Format("2006-01-02T15:04:05Z")
 )
-
-var Logger = log.Logger()
 
 func main() {
 	// --------------------------------------------------------------------
@@ -75,19 +74,18 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		log.LogPanic(nil, map[string]interface{}{
+		logrus.Panic(nil, map[string]interface{}{
 			"configFilePath": configFilePath,
 			"err":            err,
-		}, "Failed to setup the configuration")
+		}, "failed to setup the configuration")
 	}
 
 	if printConfig {
-		log.LogInfo(nil, map[string]interface{}{
-			"pkg":     "main",
-			"content": configuration.String(),
-		}, "Configuration file")
 		os.Exit(0)
 	}
+
+	// Initialized developer mode flag for the logger
+	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled())
 
 	printUserInfo()
 
@@ -112,9 +110,9 @@ func main() {
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		log.LogPanic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"err": fmt.Sprintf("%+v", err),
-		}, "Failed migration")
+		}, "failed migration")
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -127,16 +125,16 @@ func main() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			log.LogPanic(nil, map[string]interface{}{
+			log.Panic(nil, map[string]interface{}{
 				"err": fmt.Sprintf("%+v", err),
-			}, "Failed to populate common types")
+			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
-			log.LogPanic(nil, map[string]interface{}{
+			log.Panic(nil, map[string]interface{}{
 				"err": fmt.Sprintf("%+v", err),
-			}, "Failed to bootstap work item linking")
+			}, "failed to bootstap work item linking")
 		}
 	}
 
@@ -159,9 +157,9 @@ func main() {
 
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		log.LogPanic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"err": fmt.Sprintf("%+v", err),
-		}, "Failed to parse public token")
+		}, "failed to parse public token")
 	}
 
 	// Setup Account/Login/Security
@@ -287,10 +285,10 @@ func main() {
 
 	// Start http
 	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
-		log.LogError(nil, map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"addr": configuration.GetHTTPAddress(),
 			"err":  err,
-		}, "Cannot connect to server")
+		}, "unable to connect to server")
 		service.LogError("startup", "err", err)
 	}
 
@@ -299,14 +297,14 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		log.LogWarn(nil, map[string]interface{}{
+		log.Warn(nil, map[string]interface{}{
 			"err": fmt.Sprintf("%+v", err),
-		}, "Failed to get current user")
+		}, "failed to get current user")
 	} else {
-		log.LogError(nil, map[string]interface{}{
+		log.Info(nil, map[string]interface{}{
 			"username": u.Username,
 			"uuid":     u.Uid,
-		}, "Running as user name '%s' with UID %d.", u.Username, u.Uid)
+		}, "Running as user name '%s' with UID %s.", u.Username, u.Uid)
 		/*
 			g, err := user.LookupGroupId(u.Gid)
 			if err != nil {

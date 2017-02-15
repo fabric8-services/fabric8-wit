@@ -55,7 +55,7 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 	log.Logger().Infoln("Loading work item type", name)
 	res, ok := cache.Get(name)
 	if !ok {
-		log.LogInfo(nil, map[string]interface{}{
+		log.Info(nil, map[string]interface{}{
 			"pkg":  "workitem",
 			"type": name,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
@@ -63,9 +63,9 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 
 		db := r.db.Model(&res).Where("name=?", name).First(&res)
 		if db.RecordNotFound() {
-			log.LogError(nil, map[string]interface{}{
-				"resource": res,
-			}, "Work item type repository not found")
+			log.Error(nil, map[string]interface{}{
+				"witName": name,
+			}, "work item type repository not found")
 			return nil, errors.NewNotFoundError("work item type", name)
 		}
 		if err := db.Error; err != nil {

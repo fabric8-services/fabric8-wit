@@ -60,11 +60,10 @@ func ErrorHandler(service *goa.Service, verbose bool) goa.Middleware {
 					//ctx = context.WithValue(ctx, reqIDKey, reqID)
 					ctx = context.WithValue(ctx, 1, reqID) // TODO remove this hack
 				}
-				log.LogError(ctx, map[string]interface{}{
-					"id":  reqID,
+				log.Error(ctx, map[string]interface{}{
 					"msg": respBody,
 					"err": fmt.Sprintf("%+v", e),
-				}, "Uncaught error detected in ErrorHandler")
+				}, "uncaught error detected in ErrorHandler")
 
 				if !verbose {
 					rw.Header().Set("Content-Type", goa.ErrorMediaIdentifier)

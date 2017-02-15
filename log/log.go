@@ -1,31 +1,23 @@
 package log
 
 import (
-	"fmt"
+	"errors"
 	log "github.com/Sirupsen/logrus"
 	"os"
 	"runtime"
-
-	"github.com/almighty/almighty-core/configuration"
 
 	"github.com/goadesign/goa/middleware"
 	"golang.org/x/net/context"
 )
 
 var (
-	logger = NewLogger()
+	logger = log.New()
 )
 
-func NewLogger() *log.Logger {
-	logger := log.New()
+func InitializeLogger(developerModeFlag bool) {
+	logger = log.New()
 
-	if err := configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	// TODO: This part should rely on a persistence configuration without having
-	// to call configuration.Setup(...)
-	if os.Getenv("ALMIGHTY_DEVELOPER_MODE_ENABLED") == "true" || configuration.IsPostgresDeveloperModeEnabled() {
+	if developerModeFlag {
 		customFormatter := new(log.TextFormatter)
 		customFormatter.FullTimestamp = true
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
@@ -48,10 +40,9 @@ func NewLogger() *log.Logger {
 
 	logger.Out = os.Stdout
 
-	return logger
 }
 
-func NewCustomizedLogger(level string, defaultFormatter bool) (*log.Logger, error) {
+func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, error) {
 	logger := log.New()
 
 	lv, err := log.ParseLevel(level)
@@ -60,14 +51,28 @@ func NewCustomizedLogger(level string, defaultFormatter bool) (*log.Logger, erro
 	}
 	logger.Level = lv
 
-	customFormatter := new(log.TextFormatter)
-	if !defaultFormatter {
+	if developerModeFlag {
+		customFormatter := new(log.TextFormatter)
+		customFormatter.FullTimestamp = true
+		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+		log.SetFormatter(customFormatter)
+
+		log.SetLevel(log.DebugLevel)
+		logger.Level = lv
+		logger.Formatter = customFormatter
+	} else {
 		customFormatter := new(log.JSONFormatter)
+		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+
+		log.SetFormatter(customFormatter)
 		customFormatter.DisableTimestamp = false
+
+		log.SetLevel(log.InfoLevel)
+		logger.Level = lv
+		logger.Formatter = customFormatter
 	}
-	customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-	customFormatter.FullTimestamp = true
-	logger.Formatter = customFormatter
+
+	logger.Out = os.Stdout
 
 	return logger, nil
 }
@@ -76,17 +81,20 @@ func Logger() *log.Logger {
 	return logger
 }
 
-func LogError(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
+func Error(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.ErrorLevel {
 		entry := log.WithField("pid", os.Getpid())
 
-		if pc, file, line, ok := runtime.Caller(1); ok {
-			fName := runtime.FuncForPC(pc).Name()
+		file, line, fName, err := extractCallerDetails()
+		if err != nil {
 			entry = entry.WithField("file", file).WithField("line", line).WithField("func", fName)
 		}
 
 		if ctx != nil {
-			entry = entry.WithField("requestID", middleware.ContextRequestID(ctx))
+			reqID := middleware.ContextRequestID(ctx)
+			if reqID != "" {
+				entry = entry.WithField("requestID", reqID)
+			}
 		}
 
 		if len(args) > 0 {
@@ -97,16 +105,20 @@ func LogError(ctx context.Context, fields map[string]interface{}, format string,
 	}
 }
 
-func LogWarn(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
+func Warn(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.WarnLevel {
 		entry := log.NewEntry(logger)
-		if pc, file, _, ok := runtime.Caller(1); ok {
-			fName := runtime.FuncForPC(pc).Name()
+
+		file, _, fName, err := extractCallerDetails()
+		if err != nil {
 			entry = log.WithField("file", file).WithField("func", fName)
 		}
 
 		if ctx != nil {
-			entry = entry.WithField("requestID", middleware.ContextRequestID(ctx))
+			reqID := middleware.ContextRequestID(ctx)
+			if reqID != "" {
+				entry = entry.WithField("requestID", reqID)
+			}
 		}
 		if len(args) > 0 {
 			entry.WithFields(fields).Warnf(format, args...)
@@ -116,12 +128,15 @@ func LogWarn(ctx context.Context, fields map[string]interface{}, format string, 
 	}
 }
 
-func LogInfo(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
+func Info(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.InfoLevel {
 		entry := log.NewEntry(logger)
 
 		if ctx != nil {
-			entry = entry.WithField("requestID", middleware.ContextRequestID(ctx))
+			reqID := middleware.ContextRequestID(ctx)
+			if reqID != "" {
+				entry = entry.WithField("requestID", reqID)
+			}
 		}
 
 		if len(args) > 0 {
@@ -132,12 +147,15 @@ func LogInfo(ctx context.Context, fields map[string]interface{}, format string, 
 	}
 }
 
-func LogPanic(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
+func Panic(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.ErrorLevel {
 		entry := log.WithField("pid", os.Getpid())
 
 		if ctx != nil {
-			entry = entry.WithField("requestID", middleware.ContextRequestID(ctx))
+			reqID := middleware.ContextRequestID(ctx)
+			if reqID != "" {
+				entry = entry.WithField("requestID", reqID)
+			}
 		}
 
 		if len(args) > 0 {
@@ -148,12 +166,15 @@ func LogPanic(ctx context.Context, fields map[string]interface{}, format string,
 	}
 }
 
-func LogDebug(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
+func Debug(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.DebugLevel {
 		entry := log.NewEntry(logger)
 
 		if ctx != nil {
-			entry = entry.WithField("requestID", middleware.ContextRequestID(ctx))
+			reqID := middleware.ContextRequestID(ctx)
+			if reqID != "" {
+				entry = entry.WithField("requestID", reqID)
+			}
 		}
 
 		if len(args) > 0 {
@@ -164,13 +185,11 @@ func LogDebug(ctx context.Context, fields map[string]interface{}, format string,
 	}
 }
 
-func LoggerRuntimeContext() *log.Entry {
-	entry := log.WithField("pid", os.Getpid())
-
-	if pc, file, line, ok := runtime.Caller(1); ok {
+func extractCallerDetails() (string, int, string, error) {
+	if pc, file, line, ok := runtime.Caller(2); ok {
 		fName := runtime.FuncForPC(pc).Name()
-		return entry.WithField("file", file).WithField("line", line).WithField("func", fName)
-	} else {
-		return entry
+		return file, line, fName, nil
 	}
+
+	return "", 0, "", errors.New("Unable to extract the caller details")
 }

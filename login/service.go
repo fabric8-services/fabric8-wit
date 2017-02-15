@@ -95,10 +95,10 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 		knownReferer = stateReferer[state]
 		if state == "" || knownReferer == "" {
-			log.LogError(ctx, map[string]interface{}{
+			log.Error(ctx, map[string]interface{}{
 				"state":   state,
 				"referer": knownReferer,
-			}, "State or known referer was empty")
+			}, "state or known referer was empty")
 
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("State or known referer was empty"))
 			return ctx.Unauthorized(jerrors)
@@ -106,7 +106,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 		keycloakToken, err := keycloak.config.Exchange(ctx, code)
 		if err != nil || keycloakToken.AccessToken == "" {
-			log.LogError(ctx, map[string]interface{}{
+			log.Error(ctx, map[string]interface{}{
 				"code": code,
 				"err":  err,
 			}, "keycloak exchange operation failed")
@@ -115,10 +115,10 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 		_, _, err = keycloak.CreateKeycloakUser(keycloakToken.AccessToken, ctx)
 		if err != nil {
-			log.LogError(ctx, map[string]interface{}{
+			log.Error(ctx, map[string]interface{}{
 				"token": keycloakToken.AccessToken,
 				"err":   err,
-			}, "Failed to generate token!")
+			}, "failed to generate token!")
 			return redirectWithError(ctx, knownReferer, err.Error())
 
 		}
@@ -139,7 +139,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 	// First time access, redirect to oauth provider
 
 	// store referer id to state for redirect later
-	log.LogInfo(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"pkg":     "login",
 		"referer": referer,
 	}, "Got Request from!")
@@ -197,20 +197,20 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 
 	claims, err := parseToken(accessToken, keycloak.TokenManager.PublicKey())
 	if err != nil || checkClaims(claims) != nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"token": accessToken,
 			"err":   err,
-		}, "Unable to parse the token")
+		}, "unable to parse the token")
 		return nil, nil, errors.New("Error when parsing token " + err.Error())
 	}
 
 	keycloakIdentityID, _ := uuid.FromString(claims.Subject)
 	identities, err := keycloak.Identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"keycloakIdentityID": keycloakIdentityID,
 			"err":                err,
-		}, "Unable to parse the token")
+		}, "unable to parse the token")
 		return nil, nil, errors.New("Error during querying for an identity " + err.Error())
 	}
 
@@ -234,10 +234,10 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 			return err
 		})
 		if err != nil {
-			log.LogError(ctx, map[string]interface{}{
-				"identity": identity,
-				"err":      err,
-			}, "Unable to create user/identity")
+			log.Error(ctx, map[string]interface{}{
+				"identityID": identity.ID,
+				"err":        err,
+			}, "unable to create user/identity")
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
 	} else {
@@ -247,9 +247,10 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		fillUser(claims, user)
 		err = keycloak.Users.Save(ctx, user)
 		if err != nil {
-			log.LogError(ctx, map[string]interface{}{
-				"err": err,
-			}, "Can't update user")
+			log.Error(ctx, map[string]interface{}{
+				"userID": user.ID,
+				"err":    err,
+			}, "unable to update user")
 			return nil, nil, errors.New("Cant' update user " + err.Error())
 		}
 	}
@@ -319,9 +320,10 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	user.Email = claims.Email
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
-		log.LogWarn(nil, map[string]interface{}{
-			"err": err,
-		}, "Error when generating gravatar")
+		log.Warn(nil, map[string]interface{}{
+			"userFullName": user.FullName,
+			"err":          err,
+		}, "error when generating gravatar")
 		return errors.New("Error when generating gravatar " + err.Error())
 	}
 	user.ImageURL = image
@@ -333,20 +335,20 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 func ContextIdentity(ctx context.Context) (string, error) {
 	tm := ReadTokenManagerFromContext(ctx)
 	if tm == nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"token": tm,
-		}, "Missing token manager")
+		}, "missing token manager")
 
 		return "", errs.New("Missing token manager")
 	}
 	uuid, err := tm.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"uuid": uuid,
 			"tm":   tm,
 			"err":  err,
-		}, "Identity belongs to a Guest User")
+		}, "identity belongs to a Guest User")
 
 		return "", errs.WithStack(err)
 	}

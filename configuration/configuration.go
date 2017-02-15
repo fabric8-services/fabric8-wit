@@ -18,7 +18,7 @@ func String() string {
 	if err != nil {
 		log.WithFields(map[string]interface{}{
 			"settings": allSettings,
-			"err":      err.Error(),
+			"err":      err,
 		}).Panicln("Failed to marshall config to string")
 	}
 	return fmt.Sprintf("%s\n", y)

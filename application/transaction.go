@@ -11,27 +11,27 @@ func Transactional(db DB, todo func(f Application) error) error {
 	var tx Transaction
 	var err error
 	if tx, err = db.BeginTransaction(); err != nil {
-		log.LogError(nil, map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"err": err,
-		}, "Database BeginTransaction failed!")
+		}, "database BeginTransaction failed!")
 
 		return errors.WithStack(err)
 	}
 
 	if err := todo(tx); err != nil {
-		log.LogDebug(nil, map[string]interface{}{
+		log.Debug(nil, map[string]interface{}{
 			"pkg": "application",
 		}, "Rolling back the transaction...")
 
 		tx.Rollback()
 
-		log.LogError(nil, map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"err": err,
-		}, "Database transaction failed!")
+		}, "database transaction failed!")
 		return errors.WithStack(err)
 	}
 
-	log.LogDebug(nil, map[string]interface{}{
+	log.Debug(nil, map[string]interface{}{
 		"pkg": "application",
 	}, "Commit the transaction!")
 

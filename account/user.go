@@ -81,14 +81,14 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 
 	err := m.db.Create(u).Error
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"userID": u.ID,
-			"err":    err.Error(),
-		}, "Unable to create the user")
+			"err":    err,
+		}, "unable to create the user")
 		return errors.WithStack(err)
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"pkg":    "user",
 		"userID": u.ID,
 	}, "User created!")
@@ -102,10 +102,10 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"userID": model.ID,
-			"err":    err.Error(),
-		}, "Error updating User")
+			"err":    err,
+		}, "unable to update user")
 		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
@@ -113,7 +113,7 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 		return errors.WithStack(err)
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"pkg":    "user",
 		"userID": model.ID,
 	}, "User saved!")
@@ -129,14 +129,14 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
-		log.LogError(ctx, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"userID": id,
-			"err":    err.Error(),
-		}, "Unable to delete the user")
+			"err":    err,
+		}, "unable to delete the user")
 		return errors.WithStack(err)
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
+	log.Debug(ctx, map[string]interface{}{
 		"pkg":    "user",
 		"userID": id,
 	}, "User deleted!")
@@ -163,16 +163,13 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log.LogError(nil, map[string]interface{}{
-			"err": errors.WithStack(err),
-		}, "Error querying Users")
 		return nil, errors.WithStack(err)
 	}
 
-	log.LogDebug(nil, map[string]interface{}{
-		"pkg":    "user",
-		"result": objs,
-	}, "User query!")
+	log.Debug(nil, map[string]interface{}{
+		"pkg":      "user",
+		"userList": objs,
+	}, "User query done successfully!")
 
 	return objs, nil
 }

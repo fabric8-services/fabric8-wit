@@ -60,16 +60,16 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment) er
 		comment.Markup = rendering.SystemMarkupDefault
 	}
 	if err := m.db.Create(comment).Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"comment": comment,
-			"err":     err,
-		}, "Unable to create the comment")
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+			"err":       err,
+		}, "unable to create the comment")
 		return errs.WithStack(err)
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
-		"pkg":     "comment",
-		"comment": comment,
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":       "comment",
+		"commentID": comment.ID,
 	}, "Comment created!")
 
 	return nil
@@ -80,18 +80,17 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	c := Comment{}
 	tx := m.db.Where("id=?", comment.ID).First(&c)
 	if tx.RecordNotFound() {
-
-		log.LogError(ctx, map[string]interface{}{
-			"comment": comment,
-		}, "Comment not found!")
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+		}, "comment not found!")
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("comment", comment.ID.String())
 	}
 	if err := tx.Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"comment": comment,
-			"err":     err,
-		}, "Comment search operation failed!")
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+			"err":       err,
+		}, "comment search operation failed!")
 
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -101,17 +100,17 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	}
 	tx = tx.Save(comment)
 	if err := tx.Error; err != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"comment": comment,
-			"err":     err,
-		}, "Unable to save the comment!")
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+			"err":       err,
+		}, "unable to save the comment!")
 
 		return nil, errors.NewInternalError(err.Error())
 	}
 
-	log.LogDebug(ctx, map[string]interface{}{
-		"pkg":     "comment",
-		"comment": comment,
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":       "comment",
+		"commentID": comment.ID,
 	}, "Comment updated!")
 
 	return comment, nil
@@ -219,17 +218,17 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 
 	tx := m.db.Where("id=?", id).First(&obj)
 	if tx.RecordNotFound() {
-		log.LogError(ctx, map[string]interface{}{
-			"id": id,
-		}, "Comment search operation failed!")
+		log.Error(ctx, map[string]interface{}{
+			"commentID": id.String(),
+		}, "comment search operation failed!")
 
 		return nil, errors.NewNotFoundError("comment", id.String())
 	}
 	if tx.Error != nil {
-		log.LogError(ctx, map[string]interface{}{
-			"id":  id,
-			"err": tx.Error,
-		}, "Unable to load the comment")
+		log.Error(ctx, map[string]interface{}{
+			"commentID": id.String(),
+			"err":       tx.Error,
+		}, "unable to load the comment")
 
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
