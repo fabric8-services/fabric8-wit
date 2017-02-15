@@ -39,7 +39,7 @@ func TestRunSpaceAreaREST(t *testing.T) {
 	if err != nil {
 		require.Nil(t, err)
 	}
-	suite.Run(t, &TestSpaceAreaREST{DBTestSuite: gormsupport.NewDBTestSuite(pwd + "../config.yaml")})
+	suite.Run(t, &TestSpaceAreaREST{DBTestSuite: gormsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
 func (rest *TestSpaceAreaREST) SetupTest() {
