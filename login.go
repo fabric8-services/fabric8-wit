@@ -65,7 +65,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	case 400:
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(readBody(res.Body), nil))
 	default:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(res.Status+""+readBody(res.Body)))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(res.Status+" "+readBody(res.Body)))
 	}
 
 	token, err := readToken(res, ctx)
