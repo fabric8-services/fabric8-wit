@@ -263,6 +263,9 @@ func (rest *TestSpaceREST) TestSuccessListSpaces() {
 	for _, spc := range list.Data {
 		subString := fmt.Sprintf("/%s/iterations", spc.ID.String())
 		assert.Contains(t, *spc.Relationships.Iterations.Links.Related, subString)
+
+		subStringAreaUrl := fmt.Sprintf("/%s/areas", spc.ID.String())
+		assert.Contains(t, *spc.Relationships.Areas.Links.Related, subStringAreaUrl)
 	}
 }
 
