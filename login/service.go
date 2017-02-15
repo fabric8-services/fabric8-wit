@@ -4,11 +4,13 @@ import (
 	"crypto/md5"
 	"crypto/rsa"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"sync"
 
 	errs "github.com/pkg/errors"
@@ -108,7 +110,16 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 			return redirectWithError(ctx, knownReferer, err.Error())
 		}
 
-		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+keycloakToken.AccessToken)
+		referelURL, err := url.Parse(knownReferer)
+		if err != nil {
+			return redirectWithError(ctx, knownReferer, err.Error())
+		}
+
+		err = encodeToken(referelURL, keycloakToken)
+		if err != nil {
+			return redirectWithError(ctx, knownReferer, err.Error())
+		}
+		ctx.ResponseData.Header().Set("Location", referelURL.String())
 		return ctx.TemporaryRedirect()
 	}
 
@@ -129,6 +140,37 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	ctx.ResponseData.Header().Set("Location", redirectURL)
 	return ctx.TemporaryRedirect()
+}
+
+func encodeToken(referal *url.URL, outhToken *oauth2.Token) error {
+	str := outhToken.Extra("expires_in")
+	expiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+	if err != nil {
+		return errs.WithStack(errors.New("Cant convert expires_in to integer " + err.Error()))
+	}
+	str = outhToken.Extra("refresh_expires_in")
+	refreshExpiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+	if err != nil {
+		return errs.WithStack(errors.New("Cant convert refresh_expires_in to integer " + err.Error()))
+	}
+	tokenData := &app.TokenData{
+		AccessToken:      &outhToken.AccessToken,
+		RefreshToken:     &outhToken.RefreshToken,
+		TokenType:        &outhToken.TokenType,
+		ExpiresIn:        &expiresIn,
+		RefreshExpiresIn: &refreshExpiresIn,
+	}
+	b, err := json.Marshal(tokenData)
+	if err != nil {
+		return errs.WithStack(errors.New("Cant marshal token data struct " + err.Error()))
+	}
+
+	parameters := url.Values{}
+	parameters.Add("token", outhToken.AccessToken) // Temporary keep the old "token" param. We will drop this param as soon as UI adopt the new json param.
+	parameters.Add("token_json", string(b))
+	referal.RawQuery = parameters.Encode()
+
+	return nil
 }
 
 // CreateKeycloakUser creates a user and a keyclaok identity
