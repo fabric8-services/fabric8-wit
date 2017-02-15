@@ -103,32 +103,6 @@ var _ = a.Resource("status", func() {
 	})
 })
 
-var _ = a.Resource("login", func() {
-
-	a.BasePath("/login")
-
-	a.Action("authorize", func() {
-		a.Routing(
-			a.GET("authorize"),
-		)
-		a.Description("Authorize with the ALM")
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.TemporaryRedirect)
-	})
-
-	a.Action("generate", func() {
-		a.Routing(
-			a.GET("generate"),
-		)
-		a.Description("Generates a set of Tokens for different Auth levels. NOT FOR PRODUCTION. Only available if server is running in dev mode")
-		a.Response(d.OK, func() {
-			a.Media(a.CollectionOf(AuthToken))
-		})
-		a.Response(d.Unauthorized, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-})
-
 var _ = a.Resource("trackerquery", func() {
 	a.BasePath("/trackerqueries")
 	a.Action("show", func() {

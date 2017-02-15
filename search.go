@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -145,6 +146,47 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 		}
 		last := fmt.Sprintf("%s?q=%s&page[offset]=%d&page[limit]=%d", buildAbsoluteURL(ctx.RequestData), ctx.Q, lastStart, realLimit)
 		response.Links.Last = &last
+
+		return ctx.OK(&response)
+	})
+}
+
+// Users runs the user search action.
+func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
+	q := ctx.Q
+	if q == "" {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Errorf("Empty search query not allowed")))
+	} else if q == "*" {
+		q = "" // Allow empty query if * specified
+	}
+
+	var result []*space.Space
+	var count int
+	var err error
+
+	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		var resultCount uint64
+		result, resultCount, err = appl.Spaces().Search(ctx, &q, &offset, &limit)
+		count = int(resultCount)
+		if err != nil {
+			cause := errs.Cause(err)
+			switch cause.(type) {
+			case errors.BadParameterError:
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("Error listing spaces: %s", err.Error())))
+			default:
+				log.Printf("Error listing spaces: %s", err.Error())
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+			}
+		}
+
+		response := app.SearchSpaceList{
+			Links: &app.PagingLinks{},
+			Meta:  &app.SpaceListMeta{TotalCount: count},
+			Data:  ConvertSpaces(ctx.RequestData, result),
+		}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
 
 		return ctx.OK(&response)
 	})
