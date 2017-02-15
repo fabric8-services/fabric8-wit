@@ -61,8 +61,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	case 200:
 		// OK
 	case 401:
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(readBody(res.Body)))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(res.Status+" "+readBody(res.Body)))
 	case 400:
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(readBody(res.Body), nil))
 	default:

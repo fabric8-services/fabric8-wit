@@ -26,8 +26,18 @@ func NewInternalError(msg string) InternalError {
 	return InternalError{simpleError{msg}}
 }
 
+// NewUnauthorizedError returns the custom defined error of type UnauthorizedError.
+func NewUnauthorizedError(msg string) UnauthorizedError {
+	return UnauthorizedError{simpleError{msg}}
+}
+
 // InternalError means that the operation failed for some internal, unexpected reason
 type InternalError struct {
+	simpleError
+}
+
+// UnauthorizedError means that the operation is unauthorized
+type UnauthorizedError struct {
 	simpleError
 }
 
