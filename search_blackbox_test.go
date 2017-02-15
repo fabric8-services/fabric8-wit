@@ -81,8 +81,10 @@ func TestSearchPagination(t *testing.T) {
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch2"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.First)
-	assert.Equal(t, "http:///api/search?q=specialwordforsearch2&page[offset]=0&page[limit]=100", *sr.Links.Last)
+
+	// defaults in paging.go is 'pageSizeDefault = 20'
+	assert.Equal(t, "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.First)
+	assert.Equal(t, "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.Last)
 	require.NotEmpty(t, sr.Data)
 	r := sr.Data[0]
 	assert.Equal(t, "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
