@@ -61,9 +61,12 @@ func TestTestUserTokenObtainedFromKeycloakOK(t *testing.T) {
 	_, result := test.GenerateLoginOK(t, nil, service, controller)
 	assert.Len(t, result, 1, "The size of token array is not 1")
 	for _, data := range result {
-		if data.Token == "" {
-			t.Errorf("token is empty")
-		}
+		assert.NotEmpty(t, data.Token.AccessToken, "Access token is empty")
+		assert.NotEmpty(t, data.Token.RefreshToken, "Refresh token is empty")
+		assert.NotEmpty(t, data.Token.TokenType, "Token type is empty")
+		assert.NotNil(t, data.Token.ExpiresIn, "Expires-in is nil")
+		assert.NotNil(t, data.Token.RefreshExpiresIn, "Refresh-expires-in is nil")
+		assert.NotNil(t, data.Token.NotBeforePolicy, "Not-before-policy in is nil")
 	}
 }
 
