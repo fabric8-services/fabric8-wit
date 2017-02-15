@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"os"
 	"strconv"
 	"testing"
 
@@ -34,7 +35,11 @@ type TestSpaceAreaREST struct {
 }
 
 func TestRunSpaceAreaREST(t *testing.T) {
-	suite.Run(t, &TestSpaceAreaREST{DBTestSuite: gormsupport.NewDBTestSuite("config.yaml")})
+	pwd, err := os.Getwd()
+	if err != nil {
+		require.Nil(t, err)
+	}
+	suite.Run(t, &TestSpaceAreaREST{DBTestSuite: gormsupport.NewDBTestSuite(pwd + "../config.yaml")})
 }
 
 func (rest *TestSpaceAreaREST) SetupTest() {
