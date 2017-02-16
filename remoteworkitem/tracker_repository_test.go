@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -111,6 +112,7 @@ func TestTrackerList(t *testing.T) {
 
 func doWithTrackerRepository(t *testing.T, todo func(repo application.TrackerRepository)) {
 	doWithTransaction(t, func(db *gorm.DB) {
+		defer cleaner.DeleteCreatedEntities(db)()
 		trackerRepo := NewTrackerRepository(db)
 		todo(trackerRepo)
 	})
