@@ -20,6 +20,7 @@ var space = a.Type("Space", func() {
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
 	a.Attribute("iterations", relationGeneric, "Space can have one or many iterations")
+	a.Attribute("areas", relationGeneric, "Space can have one or many areas")
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
