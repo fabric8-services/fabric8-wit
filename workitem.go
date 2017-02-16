@@ -185,7 +185,10 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx, ctx.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error deleting work item")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
+		}
+		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.ID))
 		}
 		return ctx.OK([]byte{})
 	})
