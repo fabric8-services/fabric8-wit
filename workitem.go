@@ -304,6 +304,10 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
 	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+	// ToDo: Need to define edit-codebase URL for given WI
+	// This value depends on other parameters like repo,branch,fileName,lineNumber
+	// Following URL will be defined once other modules are ready for integration
+	editCodebaseURL := rest.AbsoluteURL(request, "/ToBeDecided")
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -315,6 +319,16 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				Data: &app.BaseTypeData{
 					ID:   wi.Type,
 					Type: APIStringTypeWorkItemType,
+				},
+			},
+			// ToDo: Values for codebase relationship are not finalised yet.
+			// Reason behind using `Map` is that it is "EDIT" URL for codebase.
+			// There can be more related URLs in future.
+			Codebase: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Meta: map[string]interface{}{
+						"edit": editCodebaseURL,
+					},
 				},
 			},
 		},
