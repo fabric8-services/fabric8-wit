@@ -29,6 +29,7 @@ type WorkItemLinkRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkList, error)
 	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
+	DeleteRelatedLinks(ctx context.Context, wiIDStr string) error
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error)
 }
@@ -212,6 +213,21 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 	}
 	if db.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item link", id.String())
+	}
+	return nil
+}
+
+// DeleteRelatedLinks deletes all links in which the source or target equals the
+// given work item ID.
+func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string) error {
+	wiId, err := strconv.ParseUint(wiIDStr, 10, 64)
+	if err != nil {
+		// treat as not found: clients don't know it must be a uint64
+		return errors.NewNotFoundError("work item link", wiIDStr)
+	}
+	db := r.db.Where("? in (source_id, target_id)", wiId).Delete(&WorkItemLink{})
+	if db.Error != nil {
+		return errors.NewInternalError(db.Error.Error())
 	}
 	return nil
 }
