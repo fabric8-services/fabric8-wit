@@ -94,7 +94,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
 		}
 
-		err = appl.Comments().Delete(ctx.Context, cm)
+		err = appl.Comments().Delete(ctx.Context, cm.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

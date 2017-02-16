@@ -29,7 +29,7 @@ type Comment struct {
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	Save(ctx context.Context, comment *Comment) (*Comment, error)
-	Delete(ctx context.Context, comment *Comment) error
+	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 	Count(ctx context.Context, parent string) (int, error)
@@ -91,17 +91,11 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 }
 
 // Delete a single comment
-func (m *GormCommentRepository) Delete(ctx context.Context, comment *Comment) error {
-	c := Comment{}
-	tx := m.db.Where("id=?", comment.ID).First(&c)
-	if tx.RecordNotFound() {
-		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return errors.NewNotFoundError("comment", comment.ID.String())
+func (m *GormCommentRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	tx := m.db.Delete(&Comment{ID: id})
+	if tx.RowsAffected == 0 {
+		return errors.NewNotFoundError("comment", id.String())
 	}
-	if err := tx.Error; err != nil {
-		return errors.NewInternalError(err.Error())
-	}
-	tx = tx.Delete(comment)
 	if err := tx.Error; err != nil {
 		return errors.NewInternalError(err.Error())
 	}

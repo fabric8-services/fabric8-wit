@@ -137,6 +137,7 @@ func (test *TestCommentRepository) TestDeleteComment() {
 		ParentID:  parentID,
 		Body:      "Test AA",
 		CreatedBy: uuid.NewV4(),
+		ID:        uuid.NewV4(),
 	}
 
 	repo.Create(context.Background(), c)
@@ -145,7 +146,7 @@ func (test *TestCommentRepository) TestDeleteComment() {
 	}
 
 	c.Body = "Test AB"
-	err := repo.Delete(context.Background(), c)
+	err := repo.Delete(context.Background(), c.ID)
 
 	if err != nil {
 		t.Error("Failed to Delete", err.Error())
