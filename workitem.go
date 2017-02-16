@@ -64,6 +64,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
 		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
 	}
+	if ctx.FilterWorkitemtype != nil {
+		wit := ctx.FilterWorkitemtype
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]string{*wit})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+*wit)
+	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
 		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)

@@ -169,7 +169,7 @@ func GetPostgresConnectionRetrySleep() time.Duration {
 
 // GetPostgresConfigString returns a ready to use string for usage in sql.Open()
 func GetPostgresConfigString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		GetPostgresHost(),
 		GetPostgresPort(),
 		GetPostgresUser(),
