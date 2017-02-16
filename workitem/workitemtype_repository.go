@@ -87,7 +87,7 @@ func ClearGlobalWorkItemTypeCache() {
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
 	existing, _ := r.LoadTypeFromDB(name)
 	if existing != nil {
-		log.Logger().Infoln("Creating a new work item type ", name)
+		log.Error(ctx, map[string]interface{}{"witName": name}, "unable to create new work item type")
 		return nil, errors.NewBadParameterError("name", name)
 	}
 	allFields := map[string]FieldDefinition{}
