@@ -87,7 +87,8 @@ func main() {
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
-			log.Printf("ERROR: Unable to open connection to database. Retrying in %v...\n", configuration.GetPostgresConnectionRetrySleep())
+			log.Printf("ERROR: Unable to open connection to database %v\n", err)
+			log.Printf("Retrying to connect in %v...\n", err, configuration.GetPostgresConnectionRetrySleep())
 			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
