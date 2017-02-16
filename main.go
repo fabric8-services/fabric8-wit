@@ -83,19 +83,17 @@ func main() {
 	printUserInfo()
 
 	var db *gorm.DB
-	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
-		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
+	for {
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
+			log.Printf("ERROR: Unable to open connection to database %v\n", err)
+			log.Printf("Retrying to connect in %v...\n", err, configuration.GetPostgresConnectionRetrySleep())
 			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
 			break
 		}
-	}
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: Could not open connection to database: \n%+v", err))
 	}
 
 	if configuration.IsPostgresDeveloperModeEnabled() {
@@ -137,7 +135,7 @@ func main() {
 
 	// Mount middleware
 	service.Use(middleware.RequestID())
-	service.Use(middleware.LogRequest(true))
+	service.Use(middleware.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())

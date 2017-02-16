@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemRepository encapsulates storage & retrieval of work items
@@ -21,6 +22,7 @@ type WorkItemRepository interface {
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 }
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
@@ -282,4 +284,29 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	}
 
 	return res, count, nil
+}
+
+// GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration
+// This function executes following query to fetch 'closed' and 'total' counts of the WI for each iteration in given spaceID
+// 	SELECT iterations.id as IterationId, count(*) as Total,
+// 		count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
+// 		FROM "work_items" left join iterations
+// 		on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
+// 		WHERE (iterations.space_id = '33406de1-25f1-4969-bcec-88f29d0a7de3'
+// 		and work_items.deleted_at IS NULL) GROUP BY IterationId
+
+func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
+	var res []WICountsPerIteration
+	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,
+				count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations 
+				on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
+				and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
+	if db.Error != nil {
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
+	countsMap := map[string]WICountsPerIteration{}
+	for _, iterationWithCount := range res {
+		countsMap[iterationWithCount.IterationId] = iterationWithCount
+	}
+	return countsMap, nil
 }

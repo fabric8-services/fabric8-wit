@@ -256,8 +256,8 @@ postgres.user: postgres
 postgres.password: mysecretpassword
 postgres.database: postgres
 postgres.sslmode: disable
-# The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+# The amount of time in seconds before the connection times out
+postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
 

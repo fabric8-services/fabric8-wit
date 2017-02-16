@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -229,5 +230,31 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(id))
 	return &app.GenericLinks{
 		Self: &selfURL,
+	}
+}
+
+// UpdateIterationsWithCounts accepts map of 'iterationID to a workitem.WICountsPerIteration instance'.
+// This function returns function of type IterationConvertFunc
+// Inner function is able to access `wiCounts` in closure and it is responsible
+// for adding 'closed' and 'total' count of WI in relationship's meta for every given iteration.
+func UpdateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteration) IterationConvertFunc {
+	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
+		var counts workitem.WICountsPerIteration
+		if _, ok := wiCounts[appIteration.ID.String()]; ok {
+			counts = wiCounts[appIteration.ID.String()]
+		} else {
+			counts = workitem.WICountsPerIteration{}
+		}
+		if appIteration.Relationships == nil {
+			appIteration.Relationships = &app.IterationRelations{}
+		}
+		if appIteration.Relationships.Workitems == nil {
+			appIteration.Relationships.Workitems = &app.RelationGeneric{}
+		}
+		if appIteration.Relationships.Workitems.Meta == nil {
+			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
+		}
+		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
+		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
 	}
 }
