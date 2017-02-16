@@ -44,7 +44,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 	}
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case KindString, KindUser, KindIteration:
+	case KindString, KindUser, KindIteration, KindArea:
 		if valueType.Kind() != reflect.String {
 			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
@@ -106,7 +106,7 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 	}
 	valueType := reflect.TypeOf(value)
 	switch fieldType.GetKind() {
-	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration:
+	case KindString, KindURL, KindUser, KindInteger, KindFloat, KindDuration, KindIteration, KindArea:
 		return value, nil
 	case KindInstant:
 		return time.Unix(0, value.(int64)), nil
