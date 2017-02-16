@@ -1,19 +1,23 @@
 package workitem_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -30,6 +34,8 @@ func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+// The SetupSuite method will run before the tests in the suite are run.
+// It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemRepoBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 
@@ -187,4 +193,59 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	newWi, err := s.repo.Save(context.Background(), *wi)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), "feature", newWi.Type)
+}
+
+// TestGetCountsPerIteration makes sure that the query being executed is correctly returning
+// the counts of work items
+func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
+	defer cleaner.DeleteCreatedEntities(s.DB)()
+	// create seed data
+	spaceRepo := space.NewRepository(s.DB)
+	spaceInstance := space.Space{
+		Name: "Testing space",
+	}
+	spaceRepo.Create(context.Background(), &spaceInstance)
+	fmt.Println("space id = ", spaceInstance.ID)
+	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)
+
+	iterationRepo := iteration.NewIterationRepository(s.DB)
+	iteration1 := iteration.Iteration{
+		Name:    "Sprint 1",
+		SpaceID: spaceInstance.ID,
+	}
+	iterationRepo.Create(context.Background(), &iteration1)
+	fmt.Println("iteration1 id = ", iteration1.ID)
+	assert.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
+
+	iteration2 := iteration.Iteration{
+		Name:    "Sprint 2",
+		SpaceID: spaceInstance.ID,
+	}
+	iterationRepo.Create(context.Background(), &iteration2)
+	fmt.Println("iteration2 id = ", iteration2.ID)
+	assert.NotEqual(s.T(), uuid.UUID{}, iteration2.ID)
+
+	for i := 0; i < 3; i++ {
+		s.repo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: iteration1.ID.String(),
+			}, "xx")
+	}
+	for i := 0; i < 2; i++ {
+		s.repo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: iteration1.ID.String(),
+			}, "xx")
+	}
+	countsMap, _ := s.repo.GetCountsPerIteration(context.Background(), spaceInstance.ID)
+	assert.Len(s.T(), countsMap, 1)
+	require.Contains(s.T(), countsMap, iteration1.ID.String())
+	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
+	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)
 }
