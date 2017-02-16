@@ -92,7 +92,7 @@ func readToken(res *http.Response, ctx jsonapi.InternalServerError) (*app.TokenD
 	var token app.TokenData
 	err := json.Unmarshal([]byte(jsonString), &token)
 	if err != nil {
-		return nil, jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(fmt.Sprintf("Error when unmarshal json with access token %s ", jsonString)+err.Error()))
+		return nil, jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with access token %s ", jsonString)+err.Error()))
 	}
 	return &token, nil
 }
@@ -100,7 +100,7 @@ func readToken(res *http.Response, ctx jsonapi.InternalServerError) (*app.TokenD
 // Generate obtain the access token from Keycloak for the test user
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	if !configuration.IsPostgresDeveloperModeEnabled() {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("postgres developer mode not enabled"))
 		return ctx.Unauthorized(jerrors)
 	}
 
@@ -119,7 +119,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		"grant_type":    {"password"},
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("Error when obtaining token "+err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("error when obtaining token "+err.Error()))
 	}
 
 	token, err := readToken(res, ctx)
