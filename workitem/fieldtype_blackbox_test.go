@@ -19,6 +19,7 @@ var (
 	stURL       = SimpleType{Kind: KindURL}
 	stList      = SimpleType{Kind: KindList}
 	stMarkup    = SimpleType{Kind: KindMarkup}
+	stArea      = SimpleType{Kind: KindArea}
 )
 
 type input struct {
@@ -49,6 +50,12 @@ func TestSimpleTypeConversion(t *testing.T) {
 		{stIteration, 1, nil, true},
 		{stIteration, 1.9, nil, true},
 		{stIteration, true, nil, true},
+
+		{stArea, "1233-2333", "1233-2333", false},
+		{stArea, "", "", false},
+		{stArea, 1, nil, true},
+		{stArea, 1.9, nil, true},
+		{stArea, true, nil, true},
 
 		{stInt, 100.0, nil, true},
 		{stInt, 100, 100, false},
