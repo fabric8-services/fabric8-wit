@@ -187,23 +187,8 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
 		}
-		// Now find and delete all work item links where the current deleted
-		// work item is a part of.
-		wilList, err := appl.WorkItemLinks().ListByWorkItemID(ctx, ctx.ID)
-		if err != nil {
-			// Ignore not found errors only. We just leave the links alone if
-			// there aren't any.
-			_, ok := errs.Cause(err).(errors.NotFoundError)
-			if !ok {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error fetching work item links associated to %s", ctx.ID))
-			}
-		} else {
-			for _, wil := range wilList.Data {
-				err := appl.WorkItemLinks().Delete(ctx, *wil.ID)
-				if err != nil {
-					return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item link %s", *wil.ID))
-				}
-			}
+		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.ID))
 		}
 		return ctx.OK([]byte{})
 	})
