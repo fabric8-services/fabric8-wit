@@ -39,6 +39,8 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("baseType", relationBaseType, "This defines type of Work Item")
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
 	a.Attribute("iteration", relationGeneric, "This defines the iteration this work item belong to")
+	a.Attribute("area", relationGeneric, "This defines the area this work item belongs to")
+
 })
 
 // relationBaseType is top level block for WorkItemType relationship
@@ -109,6 +111,8 @@ var _ = a.Resource("workitem", func() {
 			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
 			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
 			a.Param("filter[workitemtype]", d.String, "work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemList)
