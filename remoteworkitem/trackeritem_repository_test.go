@@ -5,6 +5,7 @@ import (
 
 	"testing"
 
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
@@ -21,14 +22,14 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 	// Setting up the dependent tracker query and tracker data in the Database
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
+
 	db = db.Create(&tr)
 	require.Nil(t, db.Error)
-	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db = db.Create(&tq)
 	require.Nil(t, db.Error)
-	defer db.Delete(&tq)
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -65,14 +66,14 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 	// Setting up the dependent tracker query and tracker data in the Database
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
+
 	db = db.Create(&tr)
 	require.Nil(t, db.Error)
-	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db = db.Create(&tq)
 	require.Nil(t, db.Error)
-	defer db.Delete(&tq)
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -114,24 +115,23 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 		return errors.WithStack(err)
 	})
-
 }
 
 var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
 
 func TestConvertGithubIssue(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Scenario 3 : Mapping and persisting a Github issue")
 
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
+
 	db = db.Create(&tr)
 	require.Nil(t, db.Error)
-	defer db.Delete(&tr)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db.Create(&tq)
-	defer db.Delete(&tq)
 
 	models.Transactional(db, func(tx *gorm.DB) error {
 		content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
