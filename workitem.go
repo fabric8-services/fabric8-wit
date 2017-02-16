@@ -69,6 +69,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]string{*wit})))
 		additionalQuery = append(additionalQuery, "filter[workitemtype]="+*wit)
 	}
+	if ctx.FilterArea != nil {
+		area := ctx.FilterArea
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*area))))
+		additionalQuery = append(additionalQuery, "filter[area]="+*area)
+	}
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
 		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
@@ -180,7 +185,10 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx, ctx.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error deleting work item")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
+		}
+		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.ID))
 		}
 		return ctx.OK([]byte{})
 	})
@@ -227,6 +235,21 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 				return errors.NewBadParameterError("data.relationships.iteration.data.id", *d.ID)
 			}
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
+		}
+	}
+	if source.Relationships != nil && source.Relationships.Area != nil {
+		if source.Relationships.Area.Data == nil {
+			delete(target.Fields, workitem.SystemArea)
+		} else {
+			d := source.Relationships.Area.Data
+			areaUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			}
+			if _, err = appl.Areas().Load(context.Background(), areaUUID); err != nil {
+				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			}
+			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}
 	}
 	if source.Relationships != nil && source.Relationships.BaseType != nil {
@@ -330,6 +353,14 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Data: ConvertIterationSimple(request, valStr),
 				}
 			}
+		case workitem.SystemArea:
+			if val != nil {
+				valStr := val.(string)
+				op.Relationships.Area = &app.RelationGeneric{
+					Data: ConvertAreaSimple(request, valStr),
+				}
+			}
+
 		case workitem.SystemTitle:
 			// 'HTML escape' the title to prevent script injection
 			op.Attributes[name] = html.EscapeString(val.(string))
@@ -352,6 +383,9 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 	if op.Relationships.Iteration == nil {
 		op.Relationships.Iteration = &app.RelationGeneric{Data: nil}
+	}
+	if op.Relationships.Area == nil {
+		op.Relationships.Area = &app.RelationGeneric{Data: nil}
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)

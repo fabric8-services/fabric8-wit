@@ -65,7 +65,7 @@ const (
 	varPostgresDatabase             = "postgres.database"
 	varPostgresPassword             = "postgres.password"
 	varPostgresSSLMode              = "postgres.sslmode"
-	varPostgresConnectionMaxRetries = "postgres.connection.maxretries"
+	varPostgresConnectionTimeout    = "postgres.connection.timeout"
 	varPostgresConnectionRetrySleep = "postgres.connection.retrysleep"
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
@@ -93,8 +93,8 @@ func setConfigDefaults() {
 	viper.SetDefault(varPostgresDatabase, "postgres")
 	viper.SetDefault(varPostgresPassword, "mysecretpassword")
 	viper.SetDefault(varPostgresSSLMode, "disable")
-	// The number of times alm server will attempt to open a connection to the database before it gives up
-	viper.SetDefault(varPostgresConnectionMaxRetries, 50)
+	viper.SetDefault(varPostgresConnectionTimeout, 5)
+
 	// Number of seconds to wait before trying to connect again
 	viper.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
 
@@ -155,10 +155,9 @@ func GetPostgresSSLMode() string {
 	return viper.GetString(varPostgresSSLMode)
 }
 
-// GetPostgresConnectionMaxRetries returns the number of times (as set via default, config file, or environment variable)
-// alm server will attempt to open a connection to the database before it gives up
-func GetPostgresConnectionMaxRetries() int {
-	return viper.GetInt(varPostgresConnectionMaxRetries)
+// GetPostgresConnectionTimeout returns the postgres connection timeout as set via default, config file, or environment variable
+func GetPostgresConnectionTimeout() int64 {
+	return viper.GetInt64(varPostgresConnectionTimeout)
 }
 
 // GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
@@ -169,13 +168,14 @@ func GetPostgresConnectionRetrySleep() time.Duration {
 
 // GetPostgresConfigString returns a ready to use string for usage in sql.Open()
 func GetPostgresConfigString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 		GetPostgresHost(),
 		GetPostgresPort(),
 		GetPostgresUser(),
 		GetPostgresPassword(),
 		GetPostgresDatabase(),
 		GetPostgresSSLMode(),
+		GetPostgresConnectionTimeout(),
 	)
 }
 
