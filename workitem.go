@@ -191,6 +191,8 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		// work item is a part of.
 		wilList, err := appl.WorkItemLinks().ListByWorkItemID(ctx, ctx.ID)
 		if err != nil {
+			// Ignore not found errors only. We just leave the links alone if
+			// there aren't any.
 			_, ok := errs.Cause(err).(errors.NotFoundError)
 			if !ok {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error fetching work item links associated to %s", ctx.ID))
