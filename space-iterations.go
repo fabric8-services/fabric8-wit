@@ -90,8 +90,13 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		// fetch extra information(counts of WI in each iteration of the space) to be added in response
+		wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations)
+		res.Data = ConvertIterations(ctx.RequestData, iterations, UpdateIterationsWithCounts(wiCounts))
 
 		return ctx.OK(res)
 	})
