@@ -25,6 +25,7 @@ const (
 	KindEnum              Kind = "enum"
 	KindList              Kind = "list"
 	KindMarkup            Kind = "markup"
+	KindArea              Kind = "area"
 )
 
 // Kind is the kind of field type
