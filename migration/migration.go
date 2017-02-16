@@ -278,7 +278,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return errs.WithStack(err)
 	}
 	return nil
