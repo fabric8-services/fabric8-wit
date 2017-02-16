@@ -288,11 +288,13 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 
 // GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration
 // This function executes following query to fetch 'closed' and 'total' counts of the WI for each iteration in given spaceID
-//		select iterations.id as IterationId, count(*) as Total,
-//			count( case fields->>'system.state' when 'closed' then 'A' else null end ) as Closed
-//			from work_items, iterations
-//			where iterations.space_id = `space ID` and iterations.id = fields->>'system.iteration'
-//			group by IterationId
+// 	SELECT iterations.id as IterationId, count(*) as Total,
+// 		count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
+// 		FROM "work_items" left join iterations
+// 		on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
+// 		WHERE (iterations.space_id = '33406de1-25f1-4969-bcec-88f29d0a7de3'
+// 		and work_items.deleted_at IS NULL) GROUP BY IterationId
+
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var res []WICountsPerIteration
 	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,
