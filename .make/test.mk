@@ -427,6 +427,9 @@ $(GOCOV_BIN): prebuild-check
 $(GOCOVMERGE_BIN): prebuild-check
 	@cd $(VENDOR_DIR)/github.com/wadey/gocovmerge && go build
 
+$(GODOG_BIN): prebuild-check
+	@cd $(GODOG_DIR) && go build
+
 #-------------------------------------------------------------------------------
 # Clean targets
 #-------------------------------------------------------------------------------

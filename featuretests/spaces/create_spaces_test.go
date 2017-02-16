@@ -1,13 +1,14 @@
 package spaces
 
 import (
-	"github.com/DATA-DOG/godog"
-	"testing"
 	"os"
+	"testing"
+
+	"github.com/DATA-DOG/godog"
 )
 
 func FeatureContext(s *godog.Suite) {
-	spaceCtx := SpaceContext{identityHelper: IdentityHelper{}, api:Api{}}
+	spaceCtx := SpaceContext{identityHelper: IdentityHelper{}, api: Api{}}
 
 	s.BeforeSuite(spaceCtx.CleanupDatabase)
 	s.BeforeScenario(spaceCtx.Reset)
@@ -25,8 +26,9 @@ func TestMain(m *testing.M) {
 	status := godog.RunWithOptions("godogs", func(s *godog.Suite) {
 		FeatureContext(s)
 	}, godog.Options{
-		Format: "progress",
+		Format: "pretty",
 		Paths:  []string{"../../features/spaces"},
+		Tags:   "~@undone",
 	})
 
 	if st := m.Run(); st > status {

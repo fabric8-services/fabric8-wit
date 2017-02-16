@@ -11,6 +11,8 @@ GOCOV_BIN=$(VENDOR_DIR)/github.com/axw/gocov/gocov/gocov
 GOCOVMERGE_BIN=$(VENDOR_DIR)/github.com/wadey/gocovmerge/gocovmerge
 DOCKER_BIN_NAME=docker
 DOCKER_COMPOSE_BIN_NAME=docker-compose
+GODOG_DIR=$(VENDOR_DIR)/github.com/DATA-DOG/godog/cmd/godog
+GODOG_BIN=$(GODOG_DIR)/godog
 
 GOLINT_DIR=$(VENDOR_DIR)/github.com/golang/lint/golint
 GOLINT_BIN=$(GOLINT_DIR)/golint

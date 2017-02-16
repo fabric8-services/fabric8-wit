@@ -1,13 +1,14 @@
 package workitem_comments
 
 import (
-	"github.com/DATA-DOG/godog"
-	"testing"
 	"os"
+	"testing"
+
+	"github.com/DATA-DOG/godog"
 )
 
 func FeatureContext(s *godog.Suite) {
-	commentCtx := CommentContext{identityHelper: IdentityHelper{}, api:Api{}}
+	commentCtx := CommentContext{identityHelper: IdentityHelper{}, api: Api{}}
 
 	s.BeforeScenario(commentCtx.Reset)
 	s.Step(`^an existing space,$`, commentCtx.anExistingSpace)
@@ -23,8 +24,9 @@ func TestMain(m *testing.M) {
 	status := godog.RunWithOptions("godogs", func(s *godog.Suite) {
 		FeatureContext(s)
 	}, godog.Options{
-		Format: "progress",
+		Format: "pretty",
 		Paths:  []string{"../../features/workitem_comments"},
+		Tags:   "~@undone",
 	})
 
 	if st := m.Run(); st > status {

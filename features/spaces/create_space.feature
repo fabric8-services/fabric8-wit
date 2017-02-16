@@ -7,6 +7,7 @@ Feature: Create spaces
     When the user creates a new space "Test space",
     Then a new space should be created.
 
+  @undone
   Scenario: Create a duplicate space under the same user/org
 
     Given a user with permissions to create spaces,
@@ -14,6 +15,7 @@ Feature: Create spaces
     When the user creates a new space "Test space",
     Then a new space should not be created.
 
+  @undone
   Scenario: Create a duplicate space under a different user/org
 
     Given a user with permissions to create spaces,

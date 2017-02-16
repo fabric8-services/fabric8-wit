@@ -6,6 +6,9 @@ set -x
 # Exit on error
 set -e
 
+# Set this variable outside of this script to not install any packages
+: ${SKIP_PKG_INSTALLATION:=}
+
 # Source environment variables of the jenkins slave
 # that might interest this worker.
 function load_jenkins_vars() {
@@ -19,6 +22,10 @@ function load_jenkins_vars() {
 }
 
 function install_deps() {
+  if [ ! -z "${SKIP_PKG_INSTALLATION}" ]; then
+    echo 'CICO: Dependency installation skipped'
+    return;
+  fi
   # We need to disable selinux for now, XXX
   /usr/sbin/setenforce 0
 
@@ -79,6 +86,12 @@ function run_tests_with_coverage() {
   bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt -t ad12dad7-ebdc-47bc-a016-8c05fa7356bc #-X fix
 
   echo "CICO: ran tests and uploaded coverage"
+}
+
+function run_tests_bdd() {
+  # This will spawn containers using docker-compose and so we can run it without
+  # the "docker-" prefix.
+  make test-bdd
 }
 
 function deploy() {

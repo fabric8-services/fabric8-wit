@@ -1,13 +1,14 @@
 package iterations
 
 import (
-	"github.com/DATA-DOG/godog"
-	"testing"
 	"os"
+	"testing"
+
+	"github.com/DATA-DOG/godog"
 )
 
 func FeatureContext(s *godog.Suite) {
-	iterationCtx := IterationContext{identityHelper: IdentityHelper{}, api:Api{}}
+	iterationCtx := IterationContext{identityHelper: IdentityHelper{}, api: Api{}}
 
 	s.BeforeScenario(iterationCtx.Reset)
 	s.Step(`^an existing space,$`, iterationCtx.anExistingSpace)
@@ -20,8 +21,9 @@ func TestMain(m *testing.M) {
 	status := godog.RunWithOptions("godogs", func(s *godog.Suite) {
 		FeatureContext(s)
 	}, godog.Options{
-		Format: "progress",
+		Format: "pretty",
 		Paths:  []string{"../../features/iterations"},
+		Tags:   "~@undone",
 	})
 
 	if st := m.Run(); st > status {

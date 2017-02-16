@@ -1,13 +1,14 @@
 package backlog_mgmt
 
 import (
-	"github.com/DATA-DOG/godog"
-	"testing"
 	"os"
+	"testing"
+
+	"github.com/DATA-DOG/godog"
 )
 
 func FeatureContext(s *godog.Suite) {
-	backlogCtx := BacklogContext{identityHelper: IdentityHelper{}, api:Api{}}
+	backlogCtx := BacklogContext{identityHelper: IdentityHelper{}, api: Api{}}
 
 	s.BeforeScenario(backlogCtx.Reset)
 	s.Step(`^an existing space,$`, backlogCtx.anExistingSpace)
@@ -21,8 +22,9 @@ func TestMain(m *testing.M) {
 	status := godog.RunWithOptions("godogs", func(s *godog.Suite) {
 		FeatureContext(s)
 	}, godog.Options{
-		Format: "progress",
+		Format: "pretty",
 		Paths:  []string{"../../features/backlog_mgmt"},
+		Tags:   "~@undone",
 	})
 
 	if st := m.Run(); st > status {
