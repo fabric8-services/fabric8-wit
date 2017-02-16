@@ -92,6 +92,9 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 
 // Delete a single comment
 func (m *GormCommentRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
+		return errors.NewNotFoundError("comment", id.String())
+	}
 	tx := m.db.Delete(&Comment{ID: id})
 	if tx.RowsAffected == 0 {
 		return errors.NewNotFoundError("comment", id.String())
