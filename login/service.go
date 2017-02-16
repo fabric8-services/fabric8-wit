@@ -146,12 +146,12 @@ func encodeToken(referal *url.URL, outhToken *oauth2.Token) error {
 	str := outhToken.Extra("expires_in")
 	expiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
 	if err != nil {
-		return errs.WithStack(errors.New("Cant convert expires_in to integer " + err.Error()))
+		return errs.WithStack(errors.New("cant convert expires_in to integer " + err.Error()))
 	}
 	str = outhToken.Extra("refresh_expires_in")
 	refreshExpiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
 	if err != nil {
-		return errs.WithStack(errors.New("Cant convert refresh_expires_in to integer " + err.Error()))
+		return errs.WithStack(errors.New("cant convert refresh_expires_in to integer " + err.Error()))
 	}
 	tokenData := &app.TokenData{
 		AccessToken:      &outhToken.AccessToken,
@@ -162,7 +162,7 @@ func encodeToken(referal *url.URL, outhToken *oauth2.Token) error {
 	}
 	b, err := json.Marshal(tokenData)
 	if err != nil {
-		return errs.WithStack(errors.New("Cant marshal token data struct " + err.Error()))
+		return errs.WithStack(errors.New("cant marshal token data struct " + err.Error()))
 	}
 
 	parameters := url.Values{}
@@ -180,13 +180,13 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 
 	claims, err := parseToken(accessToken, keycloak.TokenManager.PublicKey())
 	if err != nil || checkClaims(claims) != nil {
-		return nil, nil, errors.New("Error when parsing token " + err.Error())
+		return nil, nil, errors.New("error when parsing token " + err.Error())
 	}
 
 	keycloakIdentityID, _ := uuid.FromString(claims.Subject)
 	identities, err := keycloak.Identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
 	if err != nil {
-		return nil, nil, errors.New("Error during querying for an identity " + err.Error())
+		return nil, nil, errors.New("error during querying for an identity " + err.Error())
 	}
 
 	if len(identities) == 0 {
@@ -218,7 +218,7 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		fillUser(claims, user)
 		err = keycloak.Users.Save(ctx, user)
 		if err != nil {
-			return nil, nil, errors.New("Cant' update user " + err.Error())
+			return nil, nil, errors.New("cant' update user " + err.Error())
 		}
 	}
 	return identity, user, nil
@@ -240,7 +240,7 @@ func parseToken(tokenString string, publicKey *rsa.PublicKey) (*keycloakTokenCla
 	if token.Valid {
 		return claims, nil
 	}
-	return nil, errs.WithStack(errors.New("Token is not valid"))
+	return nil, errs.WithStack(errors.New("token is not valid"))
 }
 
 func generateGravatarURL(email string) (string, error) {
@@ -267,17 +267,17 @@ func generateGravatarURL(email string) (string, error) {
 
 func checkClaims(claims *keycloakTokenClaims) error {
 	if claims.Subject == "" {
-		return errors.New("Subject claim not found in token")
+		return errors.New("subject claim not found in token")
 	}
 	_, err := uuid.FromString(claims.Subject)
 	if err != nil {
-		return errors.New("Subject claim from token is not UUID " + err.Error())
+		return errors.New("subject claim from token is not UUID " + err.Error())
 	}
 	if claims.Username == "" {
-		return errors.New("Username claim not found in token")
+		return errors.New("username claim not found in token")
 	}
 	if claims.Email == "" {
-		return errors.New("Email claim not found in token")
+		return errors.New("email claim not found in token")
 	}
 	return nil
 }
@@ -287,7 +287,7 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	user.Email = claims.Email
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
-		return errors.New("Error when generating gravatar " + err.Error())
+		return errors.New("error when generating gravatar " + err.Error())
 	}
 	user.ImageURL = image
 	return nil
@@ -298,7 +298,7 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 func ContextIdentity(ctx context.Context) (string, error) {
 	tm := ReadTokenManagerFromContext(ctx)
 	if tm == nil {
-		return "", errs.New("Missing token manager")
+		return "", errs.New("missing token manager")
 	}
 	uuid, err := tm.Locate(ctx)
 	if err != nil {

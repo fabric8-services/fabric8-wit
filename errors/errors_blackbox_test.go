@@ -47,3 +47,12 @@ func TestNewNotFoundError(t *testing.T) {
 	err := errors.NewNotFoundError(param, value)
 	assert.Equal(t, fmt.Sprintf("%s with id '%s' not found", param, value), err.Error())
 }
+
+func TestNewUnauthorizedError(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	msg := "Invalid token"
+	err := errors.NewUnauthorizedError(msg)
+
+	assert.Equal(t, msg, err.Error())
+}
