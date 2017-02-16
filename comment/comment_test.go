@@ -124,6 +124,36 @@ func (test *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	assert.Equal(test.T(), rendering.SystemMarkupPlainText, comments[0].Markup)
 }
 
+func (test *TestCommentRepository) TestDeleteComment() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	defer cleaner.DeleteCreatedEntities(test.DB)()
+
+	repo := comment.NewCommentRepository(test.DB)
+
+	parentID := "AA"
+	c := &comment.Comment{
+		ParentID:  parentID,
+		Body:      "Test AA",
+		CreatedBy: uuid.NewV4(),
+		ID:        uuid.NewV4(),
+	}
+
+	repo.Create(context.Background(), c)
+	if c.ID == uuid.Nil {
+		t.Errorf("Comment was not created, ID nil")
+	}
+
+	c.Body = "Test AB"
+	err := repo.Delete(context.Background(), c.ID)
+
+	if err != nil {
+		t.Error("Failed to Delete", err.Error())
+	}
+
+}
+
 func (test *TestCommentRepository) TestCountComments() {
 	// given
 	repo := comment.NewCommentRepository(test.DB)
