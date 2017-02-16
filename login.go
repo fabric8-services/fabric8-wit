@@ -30,10 +30,6 @@ type LoginController struct {
 	tokenManager token.Manager
 }
 
-type tokenJSON struct {
-	AccessToken string `json:"access_token"`
-}
-
 // NewLoginController creates a login controller.
 func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider, tokenManager token.Manager) *LoginController {
 	return &LoginController{Controller: service.NewController("login"), auth: auth, tokenManager: tokenManager}
@@ -75,18 +71,15 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	res.Body.Close()
 	jsonString := strings.TrimSpace(buf.String())
 
-	var token tokenJSON
+	var token app.TokenData
 	err = json.Unmarshal([]byte(jsonString), &token)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Error when unmarshal json with access token %s", jsonString)))
 	}
-	if token.AccessToken == "" {
-		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't obtain access token from %s", jsonString)))
-	}
 	var tokens app.AuthTokenCollection
-	tokens = append(tokens, &app.AuthToken{Token: token.AccessToken})
+	tokens = append(tokens, &app.AuthToken{Token: &token})
 	// Creates the testuser user and identity if they don't yet exist
-	c.auth.CreateKeycloakUser(token.AccessToken, ctx)
+	c.auth.CreateKeycloakUser(*token.AccessToken, ctx)
 
 	return ctx.OK(tokens)
 }

@@ -1,10 +1,13 @@
 package login
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
@@ -134,4 +137,42 @@ func TestGravatarURLGeneration(t *testing.T) {
 	grURL, err := generateGravatarURL("alkazako@redhat.com")
 	assert.Nil(t, err)
 	assert.Equal(t, "https://www.gravatar.com/avatar/0fa6cfaa2812a200c566f671803cdf2d.jpg", grURL)
+}
+
+func TestEncodeTokenOK(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	referelURL, _ := url.Parse("https://example.domain.com")
+	accessToken := "accessToken%@!/\\&?"
+	refreshToken := "refreshToken%@!/\\&?"
+	tokenType := "tokenType%@!/\\&?"
+	expiresIn := 1800
+	refreshExpiresIn := 1800
+	outhToken := &oauth2.Token{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		TokenType:    tokenType,
+	}
+	extra := map[string]interface{}{
+		"expires_in":         expiresIn,
+		"refresh_expires_in": refreshExpiresIn,
+	}
+	err := encodeToken(referelURL, outhToken.WithExtra(extra))
+	assert.Nil(t, err)
+	encoded := referelURL.String()
+
+	referelURL, _ = url.Parse(encoded)
+	values := referelURL.Query()
+	tJSON := values["token_json"]
+	b := []byte(tJSON[0])
+	tokenData := &app.TokenData{}
+	err = json.Unmarshal(b, tokenData)
+	assert.Nil(t, err)
+
+	assert.Equal(t, accessToken, *tokenData.AccessToken)
+	assert.Equal(t, refreshToken, *tokenData.RefreshToken)
+	assert.Equal(t, tokenType, *tokenData.TokenType)
+	assert.Equal(t, expiresIn, *tokenData.ExpiresIn)
+	assert.Equal(t, refreshExpiresIn, *tokenData.RefreshExpiresIn)
 }
