@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"log"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -9,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -38,11 +38,17 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
-	log.Printf("loading work item %d", id)
+	log.Info(nil, map[string]interface{}{
+		"pkg":  "workitem",
+		"wiID": ID,
+	}, "Loading work item")
+
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
+		log.Error(nil, map[string]interface{}{
+			"wiID": ID,
+		}, "work item not found")
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	if tx.Error != nil {
@@ -96,10 +102,15 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Printf("looking for id %d", id)
+	log.Info(ctx, map[string]interface{}{
+		"pkg":  "workitem",
+		"wiID": wi.ID,
+	}, "Looking for id for the work item repository")
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
-		log.Printf("not found, res=%v", res)
+		log.Error(ctx, map[string]interface{}{
+			"wiID": wi.ID,
+		}, "work item repository not found")
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if tx.Error != nil {
@@ -132,13 +143,19 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
-		log.Print(err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"wiID": wi.ID,
+			"err":  err,
+		}, "unable to save the work item repository")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Printf("updated item to %v\n", res)
+	log.Info(ctx, map[string]interface{}{
+		"pkg":  "workitem",
+		"wiID": wi.ID,
+	}, "Updated work item repository")
 	return convertWorkItemModelToApp(wiType, &res)
 }
 
@@ -198,7 +215,11 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 
-	log.Printf("executing query: '%s' with params %v", where, parameters)
+	log.Info(ctx, map[string]interface{}{
+		"pkg":        "workitem",
+		"where":      where,
+		"parameters": parameters,
+	}, "Executing query : '%s' with params %v", where, parameters)
 
 	db := r.db.Model(&WorkItem{}).Where(where, parameters...)
 	orgDB := db

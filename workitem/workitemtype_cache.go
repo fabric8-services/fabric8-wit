@@ -1,8 +1,9 @@
 package workitem
 
 import (
-	"log"
 	"sync"
+
+	"github.com/almighty/almighty-core/log"
 )
 
 // WorkItemTypeCache represents WorkItemType cache
@@ -38,6 +39,7 @@ func (c *WorkItemTypeCache) Put(wit WorkItemType) {
 func (c *WorkItemTypeCache) Clear() {
 	c.mapLock.Lock()
 	defer c.mapLock.Unlock()
-	log.Println("Clearing work item cache")
+	log.Logger().Infoln("Clearing work item cache")
+
 	c.cache = make(map[string]WorkItemType)
 }

@@ -2,10 +2,10 @@ package migration
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
@@ -50,20 +50,39 @@ func Migrate(db *sql.DB) error {
 
 		if err != nil {
 			oldErr := err
-			log.Printf("Rolling back transaction due to: %s\n", err)
+			log.Info(nil, map[string]interface{}{
+				"pkg":         "migration",
+				"nextVersion": nextVersion,
+				"migrations":  m,
+				"err":         err,
+			}, "Rolling back transaction due to: ", err)
+
 			if err = tx.Rollback(); err != nil {
+				log.Error(nil, map[string]interface{}{
+					"nextVersion": nextVersion,
+					"migrations":  m,
+					"err":         err,
+				}, "error while rolling back transaction: ", err)
 				return errs.Errorf("Error while rolling back transaction: %s\n", err)
 			}
 			return oldErr
 		}
 
 		if err = tx.Commit(); err != nil {
+			log.Error(nil, map[string]interface{}{
+				"migrations": m,
+				"err":        err,
+			}, "error during transaction commit: ", err)
 			return errs.Errorf("Error during transaction commit: %s\n", err)
 		}
 
 	}
 
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"migrations": m,
+			"err":        err,
+		}, "migration failed with error: ", err)
 		return errs.Errorf("Migration failed with error: %s\n", err)
 	}
 
@@ -220,11 +239,19 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	*nextVersion = currentVersion + 1
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
-		log.Printf("Current version %d. Nothing to update.", currentVersion)
+		log.Info(nil, map[string]interface{}{
+			"pkg":            "migration",
+			"nextVersion":    *nextVersion,
+			"currentVersion": currentVersion,
+		}, "Current version %d. Nothing to update.", currentVersion)
 		return nil
 	}
 
-	log.Printf("Attempt to update DB to version %d\n", *nextVersion)
+	log.Info(nil, map[string]interface{}{
+		"pkg":            "migration",
+		"nextVersion":    *nextVersion,
+		"currentVersion": currentVersion,
+	}, "Attempt to update DB to version ", *nextVersion)
 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
@@ -237,7 +264,12 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 		return errs.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
 	}
 
-	log.Printf("Successfully updated DB to version %d\n", *nextVersion)
+	log.Info(nil, map[string]interface{}{
+		"pkg":            "migration",
+		"nextVersion":    *nextVersion,
+		"currentVersion": currentVersion,
+	}, "Successfully updated DB to version ", *nextVersion)
+
 	return nil
 }
 
@@ -297,7 +329,11 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":      "migration",
+			"category": name,
+		}, "Work item link category %s exists, will update/overwrite the description", name)
+
 		cat.Description = &description
 		linkCat := link.ConvertLinkCategoryFromModel(*cat)
 		_, err = linkCatRepo.Save(ctx, linkCat)
@@ -332,7 +368,11 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":  "migration",
+			"wilt": name,
+		}, "Work item link type %s exists, will update/overwrite all fields", name)
+
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
 		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(lt))
@@ -428,11 +468,20 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":      "migration",
+			"typeName": typeName,
+		}, "Work item type %s exists, will update/overwrite the fields only and parentPath", typeName)
+
 		path := typeName
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
-			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
+			log.Info(ctx, map[string]interface{}{
+				"pkg":              "migration",
+				"typeName":         typeName,
+				"extendedTypeName": *extendedTypeName,
+			}, "Work item type %s extends another type %v will copy fields from the extended type", typeName, *extendedTypeName)
+
 			extendedWit, err := witr.LoadTypeFromDB(*extendedTypeName)
 			if err != nil {
 				return errs.WithStack(err)
