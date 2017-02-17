@@ -8,6 +8,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/almighty/almighty-core/rest"
+	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
 
@@ -79,6 +81,8 @@ const (
 	varKeycloakClientID             = "keycloak.client.id"
 	varKeycloakEndpointAuth         = "keycloak.endpoint.auth"
 	varKeycloakEndpointToken        = "keycloak.endpoint.token"
+	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
+	varKeycloakRealm                = "keycloak.realm"
 	varKeycloakEndpointUserinfo     = "keycloak.endpoint.userinfo"
 	varKeycloakTesUserName          = "keycloak.testuser.name"
 	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
@@ -122,9 +126,8 @@ func setConfigDefaults() {
 	viper.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
 	viper.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	viper.SetDefault(varGithubAuthToken, defaultActualToken)
-	viper.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
-	viper.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
-	viper.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
+	viper.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
+	viper.SetDefault(varKeycloakRealm, defaultKeycloakRealm)
 	viper.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	viper.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 }
@@ -230,19 +233,14 @@ func GetKeycloakClientID() string {
 	return viper.GetString(varKeycloakClientID)
 }
 
-// GetKeycloakEndpointAuth returns the keycloak auth endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointAuth() string {
-	return viper.GetString(varKeycloakEndpointAuth)
+// GetKeycloakDomainPrefix returns the domain prefix which should be used in all Keycloak requests
+func GetKeycloakDomainPrefix() string {
+	return viper.GetString(varKeycloakDomainPrefix)
 }
 
-// GetKeycloakEndpointToken returns the keycloak token endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointToken() string {
-	return viper.GetString(varKeycloakEndpointToken)
-}
-
-// GetKeycloakEndpointUserinfo returns the keycloak userinfo endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointUserinfo() string {
-	return viper.GetString(varKeycloakEndpointUserinfo)
+// GetKeycloakRealm returns the keyclaok realm name
+func GetKeycloakRealm() string {
+	return viper.GetString(varKeycloakRealm)
 }
 
 // GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
@@ -253,6 +251,67 @@ func GetKeycloakTestUserName() string {
 // GetKeycloakTestUserSecret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
 func GetKeycloakTestUserSecret() string {
 	return viper.GetString(varKeycloakTesUserSecret)
+}
+
+// GetKeycloakEndpointAuth returns the keycloak auth endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+func GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
+	if viper.IsSet(varKeycloakEndpointAuth) {
+		return viper.GetString(varKeycloakEndpointAuth), nil
+	}
+	if IsPostgresDeveloperModeEnabled() {
+		return devModeKeycloakEndpointAuth, nil
+	}
+	return getKeycloakURL(req, openIDConnectPath("auth"))
+}
+
+// GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+func GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
+	if viper.IsSet(varKeycloakEndpointToken) {
+		return viper.GetString(varKeycloakEndpointToken), nil
+	}
+	if IsPostgresDeveloperModeEnabled() {
+		return devModeKeycloakEndpointToken, nil
+	}
+	return getKeycloakURL(req, openIDConnectPath("token"))
+}
+
+// GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+func GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
+	if viper.IsSet(varKeycloakEndpointUserinfo) {
+		return viper.GetString(varKeycloakEndpointUserinfo), nil
+	}
+	if IsPostgresDeveloperModeEnabled() {
+		return devModeKeycloakEndpointUserinfo, nil
+	}
+	return getKeycloakURL(req, openIDConnectPath("userinfo"))
+}
+
+func openIDConnectPath(suffix string) string {
+	return "auth/realms/" + GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
+}
+
+func getKeycloakURL(req *goa.RequestData, path string) (string, error) {
+	scheme := "http"
+	if req.TLS != nil { // isHTTPS
+		scheme = "https"
+	}
+	currentHost := req.Host
+	newHost, err := rest.ReplaceDomainPrefix(currentHost, GetKeycloakDomainPrefix())
+	if err != nil {
+		return "", err
+	}
+	newURL := fmt.Sprintf("%s://%s/%s", scheme, newHost, path)
+
+	return newURL, nil
 }
 
 // Auth-related defaults
@@ -302,9 +361,8 @@ JwIDAQAB
 var defaultKeycloakClientID = "fabric8-online-platform"
 var defaultKeycloakSecret = "08a8bcd1-f362-446a-9d2b-d34b8d464185"
 
-var defaultKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth"
-var defaultKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
-var defaultKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
+var defaultKeycloakDomainPrefix = "sso"
+var defaultKeycloakRealm = "demo"
 
 // Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
@@ -314,3 +372,8 @@ var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[
 
 var defaultKeycloakTesUserName = "testuser"
 var defaultKeycloakTesUserSecret = "testuser"
+
+// Keycloak URLs to be used in dev mode. Can be overridden by setting up keycloak.endpoint.*
+var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth"
+var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
+var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
