@@ -1,17 +1,17 @@
 package iterations
 
 import (
-	"github.com/almighty/almighty-core/client"
-	"net/http"
-	goaclient "github.com/goadesign/goa/client"
+	"encoding/json"
 	"fmt"
+	"github.com/almighty/almighty-core/client"
+	goaclient "github.com/goadesign/goa/client"
+	"github.com/satori/go.uuid"
+	"golang.org/x/net/context"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
-	"io/ioutil"
-	"golang.org/x/net/context"
-	"encoding/json"
-	"github.com/satori/go.uuid"
-	"io"
 	"time"
 )
 
@@ -72,7 +72,6 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 		Format:    "Bearer %s",
 	})
 
-
 	userResp, userErr := a.c.ShowUser(context.Background(), client.ShowUserPath())
 	var user map[string]interface{}
 	json.NewDecoder(userResp.Body).Decode(&user)
@@ -89,13 +88,13 @@ func (i *IdentityHelper) Reset() {
 }
 
 type IterationContext struct {
-	api Api
+	api            Api
 	identityHelper IdentityHelper
-	space client.SpaceSingle
-	spaceCreated bool
-	iteration client.IterationSingle
-	iterationName string
-	spaceName string
+	space          client.SpaceSingle
+	spaceCreated   bool
+	iteration      client.IterationSingle
+	iterationName  string
+	spaceName      string
 }
 
 func (i *IterationContext) Reset(v interface{}) {
@@ -137,10 +136,10 @@ func (i *IterationContext) verifySpace() error {
 	if len(i.space.Data.ID) < 1 {
 		return fmt.Errorf("Expected a space with ID, but ID was [%s]", i.space.Data.ID)
 	}
-	expectedTitle :=  i.spaceName
+	expectedTitle := i.spaceName
 	actualTitle := i.space.Data.Attributes.Name
 	if *actualTitle != expectedTitle {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle , *actualTitle)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle, *actualTitle)
 	}
 	i.spaceCreated = true
 	return nil
@@ -182,9 +181,9 @@ func (i *IterationContext) createSpaceIterationPayload(startDate string, endDate
 	return &client.CreateSpaceIterationsPayload{
 		Data: &client.Iteration{
 			Attributes: &client.IterationAttributes{
-				Name: &iterationName,
+				Name:    &iterationName,
 				StartAt: &t1,
-				EndAt: &t2,
+				EndAt:   &t2,
 			},
 			Type: "iterations",
 		},
@@ -193,13 +192,13 @@ func (i *IterationContext) createSpaceIterationPayload(startDate string, endDate
 
 func (i *IterationContext) aNewIterationShouldBeCreated() error {
 	createdIteration := i.iteration
-	if len(createdIteration.Data.ID ) < 1 {
+	if len(createdIteration.Data.ID) < 1 {
 		return fmt.Errorf("Expected an iteration with ID, but ID was [%s]", createdIteration.Data.ID)
 	}
-	expectedName :=  i.iterationName
+	expectedName := i.iterationName
 	actualName := createdIteration.Data.Attributes.Name
 	if *actualName != expectedName {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName , *actualName)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName, *actualName)
 	}
 
 	return nil

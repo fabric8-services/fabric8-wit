@@ -1,18 +1,18 @@
 package spaces
 
 import (
-	"github.com/almighty/almighty-core/client"
-	"net/http"
-	goaclient "github.com/goadesign/goa/client"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/almighty/almighty-core/client"
+	goaclient "github.com/goadesign/goa/client"
+	"github.com/goadesign/goa/uuid"
+	"golang.org/x/net/context"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
-	"io/ioutil"
-	"golang.org/x/net/context"
-	"encoding/json"
-	"io"
-	"bytes"
-	"github.com/goadesign/goa/uuid"
 )
 
 type Api struct {
@@ -35,13 +35,13 @@ func (a *Api) parseErrorResponse(operationMessage string) error {
 	json.NewDecoder(a.resp.Body).Decode(&a.body)
 	errors := a.body["errors"].([]interface{})
 	if len(errors) == 1 {
-		firstError := errors[0].(map[string]interface {})
-		errorDetail :=  firstError["detail"]
+		firstError := errors[0].(map[string]interface{})
+		errorDetail := firstError["detail"]
 		return fmt.Errorf("%v due to: %v", operationMessage, errorDetail)
 	} else {
 		var buffer bytes.Buffer
 		for _, error := range errors {
-			errorInstance := error.(map[string]interface {})
+			errorInstance := error.(map[string]interface{})
 			buffer.WriteString(errorInstance["detail"].(string))
 			buffer.WriteString("\n")
 		}
@@ -91,7 +91,6 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 		Format:    "Bearer %s",
 	})
 
-
 	userResp, userErr := a.c.ShowUser(context.Background(), client.ShowUserPath())
 	var user map[string]interface{}
 	json.NewDecoder(userResp.Body).Decode(&user)
@@ -108,11 +107,11 @@ func (i *IdentityHelper) Reset() {
 }
 
 type SpaceContext struct {
-	api Api
+	api            Api
 	identityHelper IdentityHelper
-	space client.SpaceSingle
-	spaces client.SpaceList
-	spaceName string
+	space          client.SpaceSingle
+	spaces         client.SpaceList
+	spaceName      string
 }
 
 func (s *SpaceContext) CleanupDatabase() {
@@ -134,7 +133,7 @@ func (s *SpaceContext) CleanupDatabase() {
 
 	// TODO Determine why Decoder.decode fails locally,
 	// and ioutil.ReadAll with json.Unmarshal is required
-	listRespBody , listRespBodyErr := ioutil.ReadAll(listResp.Body)
+	listRespBody, listRespBodyErr := ioutil.ReadAll(listResp.Body)
 	if listRespBodyErr == nil {
 		allSpaces := new(client.SpaceList)
 		json.Unmarshal(listRespBody, &allSpaces)
@@ -206,13 +205,13 @@ func (s *SpaceContext) createSpacePayload(spaceName string) *client.CreateSpaceP
 
 func (s *SpaceContext) aNewSpaceShouldBeCreated() error {
 	createdSpace := s.space
-	if len(createdSpace.Data.ID ) < 1 {
+	if len(createdSpace.Data.ID) < 1 {
 		return fmt.Errorf("Expected a space with ID, but ID was [%s]", createdSpace.Data.ID)
 	}
-	expectedTitle :=  s.spaceName
+	expectedTitle := s.spaceName
 	actualTitle := createdSpace.Data.Attributes.Name
 	if *actualTitle != expectedTitle {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle , *actualTitle)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle, *actualTitle)
 	}
 
 	return nil

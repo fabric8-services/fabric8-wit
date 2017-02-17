@@ -1,21 +1,21 @@
 package backlog_mgmt
 
 import (
-	"github.com/almighty/almighty-core/client"
-	"net/http"
-	goaclient "github.com/goadesign/goa/client"
+	"encoding/json"
 	"fmt"
+	"github.com/DATA-DOG/godog"
+	"github.com/almighty/almighty-core/client"
+	"github.com/almighty/almighty-core/workitem"
+	goaclient "github.com/goadesign/goa/client"
+	"github.com/mitchellh/mapstructure"
+	"github.com/satori/go.uuid"
+	"golang.org/x/net/context"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
-	"io/ioutil"
-	"golang.org/x/net/context"
-	"encoding/json"
-	"github.com/satori/go.uuid"
-	"io"
 	"time"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/DATA-DOG/godog"
-	"github.com/mitchellh/mapstructure"
 )
 
 type Api struct {
@@ -75,7 +75,6 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 		Format:    "Bearer %s",
 	})
 
-
 	userResp, userErr := a.c.ShowUser(context.Background(), client.ShowUserPath())
 	var user map[string]interface{}
 	json.NewDecoder(userResp.Body).Decode(&user)
@@ -92,14 +91,14 @@ func (i *IdentityHelper) Reset() {
 }
 
 type BacklogContext struct {
-	api Api
+	api            Api
 	identityHelper IdentityHelper
-	space client.SpaceSingle
-	spaceCreated bool
-	iteration client.IterationSingle
-	workItem client.WorkItem2Single
-	iterationName string
-	spaceName string
+	space          client.SpaceSingle
+	spaceCreated   bool
+	iteration      client.IterationSingle
+	workItem       client.WorkItem2Single
+	iterationName  string
+	spaceName      string
 }
 
 func (i *BacklogContext) Reset(v interface{}) {
@@ -141,10 +140,10 @@ func (i *BacklogContext) verifySpace() error {
 	if len(i.space.Data.ID) < 1 {
 		return fmt.Errorf("Expected a space with ID, but ID was [%s]", i.space.Data.ID)
 	}
-	expectedTitle :=  i.spaceName
+	expectedTitle := i.spaceName
 	actualTitle := i.space.Data.Attributes.Name
 	if *actualTitle != expectedTitle {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle , *actualTitle)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle, *actualTitle)
 	}
 	i.spaceCreated = true
 	return nil
@@ -186,9 +185,9 @@ func (i *BacklogContext) createSpaceIterationPayload(startDate string, endDate s
 	return &client.CreateSpaceIterationsPayload{
 		Data: &client.Iteration{
 			Attributes: &client.IterationAttributes{
-				Name: &iterationName,
+				Name:    &iterationName,
 				StartAt: &t1,
-				EndAt: &t2,
+				EndAt:   &t2,
 			},
 			Type: "iterations",
 		},
@@ -197,13 +196,13 @@ func (i *BacklogContext) createSpaceIterationPayload(startDate string, endDate s
 
 func (i *BacklogContext) aNewIterationShouldBeCreated() error {
 	createdIteration := i.iteration
-	if len(createdIteration.Data.ID ) < 1 {
+	if len(createdIteration.Data.ID) < 1 {
 		return fmt.Errorf("Expected an iteration with ID, but ID was [%s]", createdIteration.Data.ID)
 	}
-	expectedName :=  i.iterationName
+	expectedName := i.iterationName
 	actualName := createdIteration.Data.Attributes.Name
 	if *actualName != expectedName {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName , *actualName)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName, *actualName)
 	}
 
 	return nil
@@ -226,8 +225,8 @@ func createWorkItemPayload() *client.CreateWorkitemPayload {
 	return &client.CreateWorkitemPayload{
 		Data: &client.WorkItem2{
 			Attributes: map[string]interface{}{
-				workitem.SystemTitle:   "Test bug",
-				workitem.SystemState:   workitem.SystemStateNew,
+				workitem.SystemTitle: "Test bug",
+				workitem.SystemState: workitem.SystemStateNew,
 			},
 			Relationships: &client.WorkItemRelationships{
 				BaseType: &client.RelationBaseType{
@@ -245,15 +244,15 @@ func createWorkItemPayload() *client.CreateWorkitemPayload {
 func (b *BacklogContext) aNewWorkItemShouldBeCreatedInTheBacklog() error {
 
 	createdWorkItem := b.workItem
-	if len(*createdWorkItem.Data.ID ) < 1 {
+	if len(*createdWorkItem.Data.ID) < 1 {
 		return fmt.Errorf("Expected a work item with ID, but ID was [%s]", createdWorkItem.Data.ID)
 	}
-	expectedTitle :=  "Test bug"
+	expectedTitle := "Test bug"
 	actualTitle := createdWorkItem.Data.Attributes["system.title"]
 	if actualTitle != expectedTitle {
-		return fmt.Errorf("Expected a work item with title %s, but title was [%s]", expectedTitle , actualTitle)
+		return fmt.Errorf("Expected a work item with title %s, but title was [%s]", expectedTitle, actualTitle)
 	}
-	expectedState :=  "new"
+	expectedState := "new"
 	actualState := createdWorkItem.Data.Attributes["system.state"]
 	if expectedState != actualState {
 		return fmt.Errorf("Expected a work item with state %s, but state was [%s]", expectedState, actualState)

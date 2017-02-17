@@ -1,21 +1,21 @@
 package workitem_comments
 
 import (
-	"github.com/almighty/almighty-core/client"
-	"net/http"
-	goaclient "github.com/goadesign/goa/client"
+	"encoding/json"
 	"fmt"
+	"github.com/DATA-DOG/godog"
+	"github.com/almighty/almighty-core/client"
+	"github.com/almighty/almighty-core/workitem"
+	goaclient "github.com/goadesign/goa/client"
+	"github.com/mitchellh/mapstructure"
+	"github.com/satori/go.uuid"
+	"golang.org/x/net/context"
+	"io"
+	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
-	"io/ioutil"
-	"golang.org/x/net/context"
-	"encoding/json"
-	"github.com/satori/go.uuid"
-	"io"
 	"time"
-	"github.com/mitchellh/mapstructure"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/DATA-DOG/godog"
 )
 
 type Api struct {
@@ -75,7 +75,6 @@ func (i *IdentityHelper) GenerateToken(a *Api) error {
 		Format:    "Bearer %s",
 	})
 
-
 	userResp, userErr := a.c.ShowUser(context.Background(), client.ShowUserPath())
 	var user map[string]interface{}
 	json.NewDecoder(userResp.Body).Decode(&user)
@@ -92,15 +91,15 @@ func (i *IdentityHelper) Reset() {
 }
 
 type CommentContext struct {
-	api Api
+	api            Api
 	identityHelper IdentityHelper
-	space client.SpaceSingle
-	spaceCreated bool
-	iteration client.IterationSingle
-	workItem client.WorkItem2Single
-	comment client.CommentSingle
-	iterationName string
-	spaceName string
+	space          client.SpaceSingle
+	spaceCreated   bool
+	iteration      client.IterationSingle
+	workItem       client.WorkItem2Single
+	comment        client.CommentSingle
+	iterationName  string
+	spaceName      string
 }
 
 func (i *CommentContext) Reset(v interface{}) {
@@ -142,10 +141,10 @@ func (c *CommentContext) verifySpace() error {
 	if len(c.space.Data.ID) < 1 {
 		return fmt.Errorf("Expected a space with ID, but ID was [%s]", c.space.Data.ID)
 	}
-	expectedTitle :=  c.spaceName
+	expectedTitle := c.spaceName
 	actualTitle := c.space.Data.Attributes.Name
 	if *actualTitle != expectedTitle {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle , *actualTitle)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle, *actualTitle)
 	}
 	c.spaceCreated = true
 	return nil
@@ -187,9 +186,9 @@ func (c *CommentContext) createSpaceIterationPayload(startDate string, endDate s
 	return &client.CreateSpaceIterationsPayload{
 		Data: &client.Iteration{
 			Attributes: &client.IterationAttributes{
-				Name: &iterationName,
+				Name:    &iterationName,
 				StartAt: &t1,
-				EndAt: &t2,
+				EndAt:   &t2,
 			},
 			Type: "iterations",
 		},
@@ -198,13 +197,13 @@ func (c *CommentContext) createSpaceIterationPayload(startDate string, endDate s
 
 func (c *CommentContext) aNewIterationShouldBeCreated() error {
 	createdIteration := c.iteration
-	if len(createdIteration.Data.ID ) < 1 {
+	if len(createdIteration.Data.ID) < 1 {
 		return fmt.Errorf("Expected an iteration with ID, but ID was [%s]", createdIteration.Data.ID)
 	}
-	expectedName :=  c.iterationName
+	expectedName := c.iterationName
 	actualName := createdIteration.Data.Attributes.Name
 	if *actualName != expectedName {
-		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName , *actualName)
+		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName, *actualName)
 	}
 
 	return nil
@@ -223,8 +222,8 @@ func createWorkItemPayload() *client.CreateWorkitemPayload {
 	return &client.CreateWorkitemPayload{
 		Data: &client.WorkItem2{
 			Attributes: map[string]interface{}{
-				workitem.SystemTitle:   "Test bug",
-				workitem.SystemState:   workitem.SystemStateNew,
+				workitem.SystemTitle: "Test bug",
+				workitem.SystemState: workitem.SystemStateNew,
 			},
 			Relationships: &client.WorkItemRelationships{
 				BaseType: &client.RelationBaseType{
@@ -293,8 +292,8 @@ func createClosedWorkItemPayload() *client.CreateWorkitemPayload {
 	return &client.CreateWorkitemPayload{
 		Data: &client.WorkItem2{
 			Attributes: map[string]interface{}{
-				workitem.SystemTitle:   "Test bug",
-				workitem.SystemState:   workitem.SystemStateClosed,
+				workitem.SystemTitle: "Test bug",
+				workitem.SystemState: workitem.SystemStateClosed,
 			},
 			Relationships: &client.WorkItemRelationships{
 				BaseType: &client.RelationBaseType{
