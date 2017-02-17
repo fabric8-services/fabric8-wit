@@ -93,7 +93,7 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 		if ctx != nil {
 			reqID := middleware.ContextRequestID(ctx)
 			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
+				entry = entry.WithField("req_id", reqID)
 			}
 		}
 
@@ -117,7 +117,7 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 		if ctx != nil {
 			reqID := middleware.ContextRequestID(ctx)
 			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
+				entry = entry.WithField("req_id", reqID)
 			}
 		}
 		if len(args) > 0 {
@@ -135,7 +135,7 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 		if ctx != nil {
 			reqID := middleware.ContextRequestID(ctx)
 			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
+				entry = entry.WithField("req_id", reqID)
 			}
 		}
 
@@ -154,7 +154,7 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 		if ctx != nil {
 			reqID := middleware.ContextRequestID(ctx)
 			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
+				entry = entry.WithField("req_id", reqID)
 			}
 		}
 
@@ -173,7 +173,7 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 		if ctx != nil {
 			reqID := middleware.ContextRequestID(ctx)
 			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
+				entry = entry.WithField("req_id", reqID)
 			}
 		}
 
