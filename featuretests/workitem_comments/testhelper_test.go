@@ -1,8 +1,15 @@
-package workitem_comments
+package workitemcomments
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/DATA-DOG/godog"
 	"github.com/almighty/almighty-core/client"
 	"github.com/almighty/almighty-core/workitem"
@@ -10,22 +17,16 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/satori/go.uuid"
 	"golang.org/x/net/context"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
-	"time"
 )
 
-type Api struct {
+type API struct {
 	c    *client.Client
 	resp *http.Response
 	err  error
 	body map[string]interface{}
 }
 
-func (a *Api) Reset() {
+func (a *API) Reset() {
 	a.c = nil
 	a.resp = nil
 	a.err = nil
@@ -38,7 +39,7 @@ type IdentityHelper struct {
 	savedToken string
 }
 
-func (i *IdentityHelper) GenerateToken(a *Api) error {
+func (i *IdentityHelper) GenerateToken(a *API) error {
 	resp, err := a.c.ShowStatus(context.Background(), client.GenerateLoginPath())
 	a.resp = resp
 	a.err = err
@@ -91,7 +92,7 @@ func (i *IdentityHelper) Reset() {
 }
 
 type CommentContext struct {
-	api            Api
+	api            API
 	identityHelper IdentityHelper
 	space          client.SpaceSingle
 	spaceCreated   bool
@@ -112,64 +113,59 @@ func (i *CommentContext) aUserWithPermissions() error {
 }
 
 func (i *CommentContext) generateToken() error {
-	err := i.identityHelper.GenerateToken(&i.api)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return i.identityHelper.GenerateToken(&i.api)
 }
 
-func (c *CommentContext) anExistingSpace() error {
-	if c.spaceCreated == false {
-		a := c.api
-		resp, err := a.c.CreateSpace(context.Background(), client.CreateSpacePath(), c.createSpacePayload())
+func (i *CommentContext) anExistingSpace() error {
+	if i.spaceCreated == false {
+		a := i.api
+		resp, err := a.c.CreateSpace(context.Background(), client.CreateSpacePath(), i.createSpacePayload())
 		a.resp = resp
 		a.err = err
 		dec := json.NewDecoder(a.resp.Body)
-		if err := dec.Decode(&c.space); err == io.EOF {
-			return c.verifySpace()
+		if err := dec.Decode(&i.space); err == io.EOF {
+			return i.verifySpace()
 		} else if err != nil {
 			panic(err)
 		}
-		return c.verifySpace()
+		return i.verifySpace()
 	}
 	return nil
 }
 
-func (c *CommentContext) verifySpace() error {
-	if len(c.space.Data.ID) < 1 {
-		return fmt.Errorf("Expected a space with ID, but ID was [%s]", c.space.Data.ID)
+func (i *CommentContext) verifySpace() error {
+	if len(i.space.Data.ID) < 1 {
+		return fmt.Errorf("Expected a space with ID, but ID was [%s]", i.space.Data.ID)
 	}
-	expectedTitle := c.spaceName
-	actualTitle := c.space.Data.Attributes.Name
+	expectedTitle := i.spaceName
+	actualTitle := i.space.Data.Attributes.Name
 	if *actualTitle != expectedTitle {
 		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle, *actualTitle)
 	}
-	c.spaceCreated = true
+	i.spaceCreated = true
 	return nil
 }
 
-func (c *CommentContext) createSpacePayload() *client.CreateSpacePayload {
-	c.spaceName = "Test space" + uuid.NewV4().String()
+func (i *CommentContext) createSpacePayload() *client.CreateSpacePayload {
+	i.spaceName = "Test space" + uuid.NewV4().String()
 	return &client.CreateSpacePayload{
 		Data: &client.Space{
 			Attributes: &client.SpaceAttributes{
-				Name: &c.spaceName,
+				Name: &i.spaceName,
 			},
 			Type: "spaces",
 		},
 	}
 }
 
-func (c *CommentContext) theUserCreatesANewIterationWithStartDateAndEndDate(startDate string, endDate string) error {
-	a := c.api
-	spaceId := c.space.Data.ID.String()
-	resp, err := a.c.CreateSpaceIterations(context.Background(), client.CreateSpaceIterationsPath(spaceId), c.createSpaceIterationPayload(startDate, endDate))
+func (i *CommentContext) theUserCreatesANewIterationWithStartDateAndEndDate(startDate string, endDate string) error {
+	a := i.api
+	spaceID := i.space.Data.ID.String()
+	resp, err := a.c.CreateSpaceIterations(context.Background(), client.CreateSpaceIterationsPath(spaceID), i.createSpaceIterationPayload(startDate, endDate))
 	a.resp = resp
 	a.err = err
 	dec := json.NewDecoder(a.resp.Body)
-	if err := dec.Decode(&c.iteration); err == io.EOF {
+	if err := dec.Decode(&i.iteration); err == io.EOF {
 		return nil
 	} else if err != nil {
 		panic(err)
@@ -177,9 +173,9 @@ func (c *CommentContext) theUserCreatesANewIterationWithStartDateAndEndDate(star
 	return nil
 }
 
-func (c *CommentContext) createSpaceIterationPayload(startDate string, endDate string) *client.CreateSpaceIterationsPayload {
+func (i *CommentContext) createSpaceIterationPayload(startDate string, endDate string) *client.CreateSpaceIterationsPayload {
 	iterationName := "Test iteration"
-	c.iterationName = iterationName
+	i.iterationName = iterationName
 	const longForm = "2006-01-02"
 	t1, _ := time.Parse(longForm, startDate)
 	t2, _ := time.Parse(longForm, endDate)
@@ -195,12 +191,12 @@ func (c *CommentContext) createSpaceIterationPayload(startDate string, endDate s
 	}
 }
 
-func (c *CommentContext) aNewIterationShouldBeCreated() error {
-	createdIteration := c.iteration
+func (i *CommentContext) aNewIterationShouldBeCreated() error {
+	createdIteration := i.iteration
 	if len(createdIteration.Data.ID) < 1 {
 		return fmt.Errorf("Expected an iteration with ID, but ID was [%s]", createdIteration.Data.ID)
 	}
-	expectedName := c.iterationName
+	expectedName := i.iterationName
 	actualName := createdIteration.Data.Attributes.Name
 	if *actualName != expectedName {
 		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedName, *actualName)
@@ -209,12 +205,12 @@ func (c *CommentContext) aNewIterationShouldBeCreated() error {
 	return nil
 }
 
-func (c *CommentContext) anExistingWorkItemExistsInTheProject() error {
-	a := c.api
+func (i *CommentContext) anExistingWorkItemExistsInTheProject() error {
+	a := i.api
 	resp, err := a.c.CreateWorkitem(context.Background(), client.CreateWorkitemPath(), createWorkItemPayload())
 	a.resp = resp
 	a.err = err
-	json.NewDecoder(a.resp.Body).Decode(&c.workItem)
+	json.NewDecoder(a.resp.Body).Decode(&i.workItem)
 	return nil
 }
 
@@ -238,16 +234,16 @@ func createWorkItemPayload() *client.CreateWorkitemPayload {
 	}
 }
 
-func (c *CommentContext) theUserAddsAPlainTextCommentToTheExistingWorkItem() error {
-	a := c.api
-	workItemId := *c.workItem.Data.ID
+func (i *CommentContext) theUserAddsAPlainTextCommentToTheExistingWorkItem() error {
+	a := i.api
+	workItemID := *i.workItem.Data.ID
 	a.resp = nil
 	a.body = nil
 	a.err = nil
-	resp, err := a.c.CreateWorkItemComments(context.Background(), client.CreateWorkItemCommentsPath(workItemId), CreateCommentPayload())
+	resp, err := a.c.CreateWorkItemComments(context.Background(), client.CreateWorkItemCommentsPath(workItemID), CreateCommentPayload())
 	a.resp = resp
 	a.err = err
-	json.NewDecoder(a.resp.Body).Decode(&c.comment)
+	json.NewDecoder(a.resp.Body).Decode(&i.comment)
 	return nil
 }
 
@@ -262,8 +258,8 @@ func CreateCommentPayload() *client.CreateWorkItemCommentsPayload {
 	}
 }
 
-func (a *CommentContext) aNewCommentShouldBeAppendedAgainstTheWorkItem() error {
-	createdComment := a.comment
+func (i *CommentContext) aNewCommentShouldBeAppendedAgainstTheWorkItem() error {
+	createdComment := i.comment
 	if createdComment.Data.ID == nil {
 		return fmt.Errorf("Expected a comment with ID, but ID was [%s]", createdComment.Data.ID)
 	}
@@ -275,13 +271,13 @@ func (a *CommentContext) aNewCommentShouldBeAppendedAgainstTheWorkItem() error {
 	return nil
 }
 
-func (c *CommentContext) anExistingWorkItemExistsInTheProjectInAClosedState() error {
-	a := c.api
+func (i *CommentContext) anExistingWorkItemExistsInTheProjectInAClosedState() error {
+	a := i.api
 	resp, err := a.c.CreateWorkitem(context.Background(), client.CreateWorkitemPath(), createClosedWorkItemPayload())
 	a.resp = resp
 	a.err = err
 	json.NewDecoder(a.resp.Body).Decode(&a.body)
-	mapError := mapstructure.Decode(a.body, &c.workItem)
+	mapError := mapstructure.Decode(a.body, &i.workItem)
 	if mapError != nil {
 		panic(mapError)
 	}
@@ -308,7 +304,7 @@ func createClosedWorkItemPayload() *client.CreateWorkitemPayload {
 	}
 }
 
-func (c *CommentContext) theCreatorOfTheCommentMustBeTheSaidUser() error {
+func (i *CommentContext) theCreatorOfTheCommentMustBeTheSaidUser() error {
 	// TODO: Generate an identity for every call to /api/login/generate and verify the identity here against system.creator
 	return godog.ErrPending
 }

@@ -8,7 +8,7 @@ import (
 )
 
 func FeatureContext(s *godog.Suite) {
-	spaceCtx := SpaceContext{identityHelper: IdentityHelper{}, api: Api{}}
+	spaceCtx := SpaceContext{identityHelper: IdentityHelper{}, api: API{}}
 
 	s.BeforeSuite(spaceCtx.CleanupDatabase)
 	s.BeforeScenario(spaceCtx.Reset)

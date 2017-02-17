@@ -8,7 +8,7 @@ import (
 )
 
 func FeatureContext(s *godog.Suite) {
-	iterationCtx := IterationContext{identityHelper: IdentityHelper{}, api: Api{}}
+	iterationCtx := IterationContext{identityHelper: IdentityHelper{}, api: API{}}
 
 	s.BeforeScenario(iterationCtx.Reset)
 	s.Step(`^an existing space,$`, iterationCtx.anExistingSpace)

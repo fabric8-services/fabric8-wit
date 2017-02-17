@@ -1,4 +1,4 @@
-package workitem_comments
+package workitemcomments
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 )
 
 func FeatureContext(s *godog.Suite) {
-	commentCtx := CommentContext{identityHelper: IdentityHelper{}, api: Api{}}
+	commentCtx := CommentContext{identityHelper: IdentityHelper{}, api: API{}}
 
 	s.BeforeScenario(commentCtx.Reset)
 	s.Step(`^an existing space,$`, commentCtx.anExistingSpace)

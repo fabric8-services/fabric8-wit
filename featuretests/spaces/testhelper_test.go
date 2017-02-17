@@ -4,25 +4,26 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/almighty/almighty-core/client"
-	goaclient "github.com/goadesign/goa/client"
-	"github.com/goadesign/goa/uuid"
-	"golang.org/x/net/context"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/almighty/almighty-core/client"
+	goaclient "github.com/goadesign/goa/client"
+	"github.com/goadesign/goa/uuid"
+	"golang.org/x/net/context"
 )
 
-type Api struct {
+type API struct {
 	c    *client.Client
 	resp *http.Response
 	err  error
 	body map[string]interface{}
 }
 
-func (a *Api) Reset() {
+func (a *API) Reset() {
 	a.c = nil
 	a.resp = nil
 	a.err = nil
@@ -31,29 +32,28 @@ func (a *Api) Reset() {
 	a.c.Host = "localhost:8080"
 }
 
-func (a *Api) parseErrorResponse(operationMessage string) error {
+func (a *API) parseErrorResponse(operationMessage string) error {
 	json.NewDecoder(a.resp.Body).Decode(&a.body)
 	errors := a.body["errors"].([]interface{})
 	if len(errors) == 1 {
 		firstError := errors[0].(map[string]interface{})
 		errorDetail := firstError["detail"]
 		return fmt.Errorf("%v due to: %v", operationMessage, errorDetail)
-	} else {
-		var buffer bytes.Buffer
-		for _, error := range errors {
-			errorInstance := error.(map[string]interface{})
-			buffer.WriteString(errorInstance["detail"].(string))
-			buffer.WriteString("\n")
-		}
-		return fmt.Errorf("%v due to: %v", operationMessage, buffer.String())
 	}
+	var buffer bytes.Buffer
+	for _, error := range errors {
+		errorInstance := error.(map[string]interface{})
+		buffer.WriteString(errorInstance["detail"].(string))
+		buffer.WriteString("\n")
+	}
+	return fmt.Errorf("%v due to: %v", operationMessage, buffer.String())
 }
 
 type IdentityHelper struct {
 	savedToken string
 }
 
-func (i *IdentityHelper) GenerateToken(a *Api) error {
+func (i *IdentityHelper) GenerateToken(a *API) error {
 	resp, err := a.c.ShowStatus(context.Background(), client.GenerateLoginPath())
 	a.resp = resp
 	a.err = err
@@ -107,7 +107,7 @@ func (i *IdentityHelper) Reset() {
 }
 
 type SpaceContext struct {
-	api            Api
+	api            API
 	identityHelper IdentityHelper
 	space          client.SpaceSingle
 	spaces         client.SpaceList
@@ -142,13 +142,13 @@ func (s *SpaceContext) CleanupDatabase() {
 		s.api.Reset()
 		s.generateToken()
 		for _, aSpace := range allSpaces.Data {
-			itrSpaceId := (*aSpace).ID.String()
-			deleteResp, deleteErr := a.c.DeleteSpace(context.Background(), client.DeleteSpacePath(itrSpaceId))
+			itrSpaceID := (*aSpace).ID.String()
+			deleteResp, deleteErr := a.c.DeleteSpace(context.Background(), client.DeleteSpacePath(itrSpaceID))
 			if deleteResp.StatusCode != http.StatusOK {
-				panic(fmt.Errorf("Failed to delete space %v, due to error: %v", itrSpaceId, deleteResp.StatusCode))
+				panic(fmt.Errorf("Failed to delete space %v, due to error: %v", itrSpaceID, deleteResp.StatusCode))
 			}
 			if deleteErr != nil {
-				panic(fmt.Errorf("Failed to delete space %v: %v", itrSpaceId, deleteErr))
+				panic(fmt.Errorf("Failed to delete space %v: %v", itrSpaceID, deleteErr))
 			}
 		}
 	} else {
@@ -161,17 +161,12 @@ func (s *SpaceContext) Reset(v interface{}) {
 	s.generateToken()
 }
 
-func (i *SpaceContext) aUserWithPermissions() error {
-	return i.generateToken()
+func (s *SpaceContext) aUserWithPermissions() error {
+	return s.generateToken()
 }
 
 func (s *SpaceContext) generateToken() error {
-	err := s.identityHelper.GenerateToken(&s.api)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.identityHelper.GenerateToken(&s.api)
 }
 
 func (s *SpaceContext) theUserCreatesANewSpace(spaceName string) error {

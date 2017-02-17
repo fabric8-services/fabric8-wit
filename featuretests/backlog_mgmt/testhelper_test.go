@@ -1,8 +1,16 @@
-package backlog_mgmt
+package backlogmgmt
 
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/DATA-DOG/godog"
 	"github.com/almighty/almighty-core/client"
 	"github.com/almighty/almighty-core/workitem"
@@ -10,22 +18,16 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/satori/go.uuid"
 	"golang.org/x/net/context"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"os"
-	"strings"
-	"time"
 )
 
-type Api struct {
+type API struct {
 	c    *client.Client
 	resp *http.Response
 	err  error
 	body map[string]interface{}
 }
 
-func (a *Api) Reset() {
+func (a *API) Reset() {
 	a.c = nil
 	a.resp = nil
 	a.err = nil
@@ -38,7 +40,7 @@ type IdentityHelper struct {
 	savedToken string
 }
 
-func (i *IdentityHelper) GenerateToken(a *Api) error {
+func (i *IdentityHelper) GenerateToken(a *API) error {
 	resp, err := a.c.ShowStatus(context.Background(), client.GenerateLoginPath())
 	a.resp = resp
 	a.err = err
@@ -91,7 +93,7 @@ func (i *IdentityHelper) Reset() {
 }
 
 type BacklogContext struct {
-	api            Api
+	api            API
 	identityHelper IdentityHelper
 	space          client.SpaceSingle
 	spaceCreated   bool
@@ -111,18 +113,15 @@ func (i *BacklogContext) aUserWithPermissions() error {
 }
 
 func (i *BacklogContext) generateToken() error {
-	err := i.identityHelper.GenerateToken(&i.api)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return i.identityHelper.GenerateToken(&i.api)
 }
 
 func (i *BacklogContext) anExistingSpace() error {
-	if i.spaceCreated == false {
+	i.generateToken()
+	if !i.spaceCreated {
 		a := i.api
 		resp, err := a.c.CreateSpace(context.Background(), client.CreateSpacePath(), i.createSpacePayload())
+		log.Printf("resp: %+v\n", resp)
 		a.resp = resp
 		a.err = err
 		dec := json.NewDecoder(a.resp.Body)
@@ -137,10 +136,13 @@ func (i *BacklogContext) anExistingSpace() error {
 }
 
 func (i *BacklogContext) verifySpace() error {
+	fmt.Printf("\ni = %+v\n", i)
+	fmt.Printf("\ni.space = %+v\n", i.space)
 	if len(i.space.Data.ID) < 1 {
 		return fmt.Errorf("Expected a space with ID, but ID was [%s]", i.space.Data.ID)
 	}
 	expectedTitle := i.spaceName
+	fmt.Printf("\ni.space (2) = %+v\n", i.space)
 	actualTitle := i.space.Data.Attributes.Name
 	if *actualTitle != expectedTitle {
 		return fmt.Errorf("Expected a space with title %s, but title was [%s]", expectedTitle, *actualTitle)
@@ -163,8 +165,8 @@ func (i *BacklogContext) createSpacePayload() *client.CreateSpacePayload {
 
 func (i *BacklogContext) theUserCreatesANewIterationWithStartDateAndEndDate(startDate string, endDate string) error {
 	a := i.api
-	spaceId := i.space.Data.ID.String()
-	resp, err := a.c.CreateSpaceIterations(context.Background(), client.CreateSpaceIterationsPath(spaceId), i.createSpaceIterationPayload(startDate, endDate))
+	spaceID := i.space.Data.ID.String()
+	resp, err := a.c.CreateSpaceIterations(context.Background(), client.CreateSpaceIterationsPath(spaceID), i.createSpaceIterationPayload(startDate, endDate))
 	a.resp = resp
 	a.err = err
 	dec := json.NewDecoder(a.resp.Body)
@@ -208,13 +210,13 @@ func (i *BacklogContext) aNewIterationShouldBeCreated() error {
 	return nil
 }
 
-func (b *BacklogContext) theUserAddsAnItemToTheBacklogWithTitleAndDescription() error {
-	a := b.api
+func (i *BacklogContext) theUserAddsAnItemToTheBacklogWithTitleAndDescription() error {
+	a := i.api
 	resp, err := a.c.CreateWorkitem(context.Background(), client.CreateWorkitemPath(), createWorkItemPayload())
 	a.resp = resp
 	a.err = err
 	json.NewDecoder(a.resp.Body).Decode(&a.body)
-	mapError := mapstructure.Decode(a.body, &b.workItem)
+	mapError := mapstructure.Decode(a.body, &i.workItem)
 	if mapError != nil {
 		panic(mapError)
 	}
@@ -241,9 +243,9 @@ func createWorkItemPayload() *client.CreateWorkitemPayload {
 	}
 }
 
-func (b *BacklogContext) aNewWorkItemShouldBeCreatedInTheBacklog() error {
+func (i *BacklogContext) aNewWorkItemShouldBeCreatedInTheBacklog() error {
 
-	createdWorkItem := b.workItem
+	createdWorkItem := i.workItem
 	if len(*createdWorkItem.Data.ID) < 1 {
 		return fmt.Errorf("Expected a work item with ID, but ID was [%s]", createdWorkItem.Data.ID)
 	}
@@ -261,7 +263,7 @@ func (b *BacklogContext) aNewWorkItemShouldBeCreatedInTheBacklog() error {
 	return nil
 }
 
-func (b *BacklogContext) theCreatorOfTheWorkItemMustBeTheSaidUser() error {
+func (i *BacklogContext) theCreatorOfTheWorkItemMustBeTheSaidUser() error {
 	// TODO: Generate an identity for every call to /api/login/generate and verify the identity here against system.creator
 	return godog.ErrPending
 }

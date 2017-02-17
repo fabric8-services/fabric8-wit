@@ -1,4 +1,4 @@
-package backlog_mgmt
+package backlogmgmt
 
 import (
 	"os"
@@ -8,7 +8,7 @@ import (
 )
 
 func FeatureContext(s *godog.Suite) {
-	backlogCtx := BacklogContext{identityHelper: IdentityHelper{}, api: Api{}}
+	backlogCtx := BacklogContext{identityHelper: IdentityHelper{}, api: API{}}
 
 	s.BeforeScenario(backlogCtx.Reset)
 	s.Step(`^an existing space,$`, backlogCtx.anExistingSpace)

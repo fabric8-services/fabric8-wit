@@ -7,6 +7,8 @@ services:
       - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
     environment:
       POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+    networks:
+      - default
   backend:
     image: ${DOCKER_IMAGE_CORE}
     entrypoint: ./bin/alm
