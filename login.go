@@ -22,6 +22,7 @@ import (
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
+	e "github.com/pkg/errors"
 )
 
 // LoginController implements the login resource.
@@ -128,11 +129,11 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 
 	token, err := readToken(res, ctx)
 	if err != nil {
-		log.LoggerRuntimeContext().WithFields(map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"tokenEndpoint": res,
-			"err": err,
-		}).Errorln("Error when unmarshal json with access token")
-		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Error when unmarshal json with access token %s", jsonString)))
+			"err":           err,
+		}, "Error when unmarshal json with access token")
+		return jsonapi.JSONErrorResponse(ctx, e.Wrap(err, "Error when unmarshal json with access token"))
 	}
 
 	var tokens app.AuthTokenCollection
