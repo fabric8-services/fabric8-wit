@@ -81,6 +81,12 @@ var workItemSingle = JSONSingle(
 	workItem2,
 	workItemLinks)
 
+// workItemReorder is the media type for reorder of work items
+var workItemReorder = JSONReorder(
+	"WorkItem2", "Holds values for work item reorder",
+	workItem2,
+	position)
+
 // new version of "list" for migration
 var _ = a.Resource("workitem", func() {
 	a.BasePath("/workitems")
@@ -161,6 +167,21 @@ var _ = a.Resource("workitem", func() {
 		a.Payload(workItemSingle)
 		a.Response(d.OK, func() {
 			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+	a.Action("reorder", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/reorder"),
+		)
+		a.Description("reorder the work items")
+		a.Payload(workItemReorder)
+		a.Response(d.OK, func() {
+			a.Media(workItemReorder)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)

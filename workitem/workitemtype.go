@@ -43,6 +43,12 @@ const (
 	SystemStateInProgress = "in progress"
 	SystemStateResolved   = "resolved"
 	SystemStateClosed     = "closed"
+
+	SystemMarkupPlainText = "PlainText"
+	SystemMarkupMarkdown  = "Markdown"
+	SystemMarkupJiraWiki  = "JiraWiki"
+	SystemMarkupDefault   = SystemMarkupPlainText
+	SystemOrder           = "order"
 )
 
 // WorkItemType represents a work item type as it is stored in the db

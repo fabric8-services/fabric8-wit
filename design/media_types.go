@@ -59,6 +59,14 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Required("totalCount")
 })
 
+// position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed
+var position = a.Type("workItemReorderPosition", func() {
+	a.Description("Position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+	a.Attribute("above", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+
+	a.Required("above")
+})
+
 // fieldDefinition defines the possible values for a field in a work item type
 var fieldDefinition = a.Type("fieldDefinition", func() {
 	a.Description("A fieldDescription aggregates a fieldType and additional field metadata")

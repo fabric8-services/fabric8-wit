@@ -56,6 +56,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemOrder])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -80,6 +81,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, updated.Data.Attributes[workitem.SystemOrder])
 
 	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
@@ -87,6 +89,38 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
+}
+
+func TestReorderWorkItem(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	assert.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	assert.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
+	payload2 := minimumRequiredReorderPayload()
+	var dataArray []*app.WorkItem2
+	dataArray = append(dataArray, result2.Data, result3.Data)
+	payload2.Data = dataArray
+	payload2.Position.Above = *result1.Data.ID
+
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2)
+	require.Len(t, reordered1.Data, 2)
+	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
+	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
+	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
 }
 
 func TestCreateWI(t *testing.T) {
@@ -106,6 +140,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(t, created.Data.Attributes[workitem.SystemOrder])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
 }
@@ -500,6 +535,15 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
+		},
+	}
+}
+
+func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
+	return app.ReorderWorkitemPayload{
+		Data: []*app.WorkItem2{},
+		Position: &app.WorkItemReorderPosition{
+			Above: "",
 		},
 	}
 }
