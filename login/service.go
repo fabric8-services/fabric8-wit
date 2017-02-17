@@ -1,23 +1,36 @@
 package login
 
 import (
+	"crypto/md5"
+	"crypto/rsa"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
+	"net/http"
+	"net/url"
+	"strconv"
 	"sync"
+
+	errs "github.com/pkg/errors"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 )
 
 const (
-	// InvalidCodeError could occure when the OAuth Exchange with GitHub return no valid AccessToken
+	// InvalidCodeError could occure when the OAuth Exchange with Keycloak returns no valid AccessToken
 	InvalidCodeError string = "Invalid OAuth2.0 code"
-	// PrimaryEmailNotFoundError could occure if no primary email was returned by GitHub
-	PrimaryEmailNotFoundError string = "Primary email not found"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -25,28 +38,48 @@ type Service interface {
 	Perform(ctx *app.AuthorizeLoginContext) error
 }
 
-// NewGitHubOAuth creates a new login.Service capable of using GitHub for authorization
-func NewGitHubOAuth(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager) Service {
-	return &gitHubOAuth{
+// NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
+func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) *KeycloakOAuthProvider {
+	return &KeycloakOAuthProvider{
 		config:       config,
-		identities:   identities,
-		users:        users,
-		tokenManager: tokenManager,
+		Identities:   identities,
+		Users:        users,
+		TokenManager: tokenManager,
+		db:           db,
 	}
 }
 
-type gitHubOAuth struct {
+// KeycloakOAuthProvider represents a keyclaok IDP
+type KeycloakOAuthProvider struct {
 	config       *oauth2.Config
-	identities   account.IdentityRepository
-	users        account.UserRepository
-	tokenManager token.Manager
+	Identities   account.IdentityRepository
+	Users        account.UserRepository
+	TokenManager token.Manager
+	db           application.DB
 }
 
-// TEMP: This will leak memory in the long run with many 'failed' redirect attemts
+// KeycloakOAuthService represents keycloak OAuth service interface
+type KeycloakOAuthService interface {
+	Perform(ctx *app.AuthorizeLoginContext) error
+	CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
+}
+
+// keycloakTokenClaims represents standard Keycloak token claims
+type keycloakTokenClaims struct {
+	Name       string `json:"name"`
+	Username   string `json:"preferred_username"`
+	GivenName  string `json:"given_name"`
+	FamilyName string `json:"family_name"`
+	Email      string `json:"email"`
+	jwt.StandardClaims
+}
+
+// TEMP: This will leak memory in the long run with many 'failed' redirect attempts
 var stateReferer = map[string]string{}
 var mapLock sync.RWMutex
 
-func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
+// Perform performs authenticatin
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 	referer := ctx.RequestData.Header.Get("Referer")
@@ -62,78 +95,38 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 		knownReferer = stateReferer[state]
 		if state == "" || knownReferer == "" {
-			return ctx.Unauthorized()
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("State or known referer was empty"))
+			return ctx.Unauthorized(jerrors)
 		}
 
-		ghtoken, err := gh.config.Exchange(ctx, code)
-
-		/*
-
-			In case of invalid code, this is what we get in the ghtoken object
-
-			&oauth2.Token{AccessToken:"", TokenType:"", RefreshToken:"", Expiry:time.Time{sec:0, nsec:0, loc:(*time.Location)(nil)}, raw:url.Values{"error":[]string{"bad_verification_code"}, "error_description":[]string{"The code passed is incorrect or expired."}, "error_uri":[]string{"https://developer.github.com/v3/oauth/#bad-verification-code"}}}
-
-		*/
-
-		if err != nil || ghtoken.AccessToken == "" {
-			fmt.Println(err)
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+InvalidCodeError)
-			return ctx.TemporaryRedirect()
+		keycloakToken, err := keycloak.config.Exchange(ctx, code)
+		if err != nil || keycloakToken.AccessToken == "" {
+			log.Println(err)
+			return redirectWithError(ctx, knownReferer, InvalidCodeError)
 		}
 
-		emails, err := gh.getUserEmails(ctx, ghtoken)
-		fmt.Println(emails)
-
-		primaryEmail := filterPrimaryEmail(emails)
-		if primaryEmail == "" {
-			fmt.Println("No primary email found?! ", emails)
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+PrimaryEmailNotFoundError)
-			return ctx.TemporaryRedirect()
-		}
-		users, err := gh.users.Query(account.UserByEmails([]string{primaryEmail}), account.UserWithIdentity())
+		_, _, err = keycloak.CreateKeycloakUser(keycloakToken.AccessToken, ctx)
 		if err != nil {
-			ctx.ResponseData.Header().Set("Location", knownReferer+"?error=Associated user not found "+err.Error())
-			return ctx.TemporaryRedirect()
-		}
-		var identity account.Identity
-		if len(users) == 0 {
-			// No User found, create new User and Identity
-			ghUser, err := gh.getUser(ctx, ghtoken)
-			if err != nil {
-				fmt.Println(err)
-				return ctx.Unauthorized()
-			}
-			fmt.Println(ghUser)
-
-			identity = account.Identity{
-				FullName: ghUser.Name,
-				ImageURL: ghUser.AvatarURL,
-			}
-			gh.identities.Create(ctx, &identity)
-			gh.users.Create(ctx, &account.User{Email: primaryEmail, Identity: identity})
-		} else {
-			identity = users[0].Identity
+			return redirectWithError(ctx, knownReferer, err.Error())
 		}
 
-		fmt.Println("Identity: ", identity)
-
-		// register other emails in User table?
-
-		// generate token
-		almtoken, err := gh.tokenManager.Generate(identity)
+		referelURL, err := url.Parse(knownReferer)
 		if err != nil {
-			fmt.Println("Failed to generate token", err)
-			return ctx.Unauthorized()
+			return redirectWithError(ctx, knownReferer, err.Error())
 		}
 
-		ctx.ResponseData.Header().Set("Location", knownReferer+"?token="+almtoken)
+		err = encodeToken(referelURL, keycloakToken)
+		if err != nil {
+			return redirectWithError(ctx, knownReferer, err.Error())
+		}
+		ctx.ResponseData.Header().Set("Location", referelURL.String())
 		return ctx.TemporaryRedirect()
 	}
 
 	// First time access, redirect to oauth provider
 
 	// store referer id to state for redirect later
-	fmt.Println("Got Request from: ", referer)
+	log.Println("Got Request from: ", referer)
 	state = uuid.NewV4().String()
 
 	mapLock.Lock()
@@ -141,53 +134,211 @@ func (gh *gitHubOAuth) Perform(ctx *app.AuthorizeLoginContext) error {
 
 	stateReferer[state] = referer
 
-	redirectURL := gh.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
+	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
+
+	redirectURL := keycloak.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
+
 	ctx.ResponseData.Header().Set("Location", redirectURL)
 	return ctx.TemporaryRedirect()
 }
 
-func (gh gitHubOAuth) getUserEmails(ctx context.Context, token *oauth2.Token) ([]ghEmail, error) {
-	client := gh.config.Client(ctx, token)
-	resp, err := client.Get("https://api.github.com/user/emails")
+func encodeToken(referal *url.URL, outhToken *oauth2.Token) error {
+	str := outhToken.Extra("expires_in")
+	expiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
 	if err != nil {
-		return nil, err
+		return errs.WithStack(errors.New("cant convert expires_in to integer " + err.Error()))
+	}
+	str = outhToken.Extra("refresh_expires_in")
+	refreshExpiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+	if err != nil {
+		return errs.WithStack(errors.New("cant convert refresh_expires_in to integer " + err.Error()))
+	}
+	tokenData := &app.TokenData{
+		AccessToken:      &outhToken.AccessToken,
+		RefreshToken:     &outhToken.RefreshToken,
+		TokenType:        &outhToken.TokenType,
+		ExpiresIn:        &expiresIn,
+		RefreshExpiresIn: &refreshExpiresIn,
+	}
+	b, err := json.Marshal(tokenData)
+	if err != nil {
+		return errs.WithStack(errors.New("cant marshal token data struct " + err.Error()))
 	}
 
-	var emails []ghEmail
-	json.NewDecoder(resp.Body).Decode(&emails)
-	return emails, nil
+	parameters := url.Values{}
+	parameters.Add("token", outhToken.AccessToken) // Temporary keep the old "token" param. We will drop this param as soon as UI adopt the new json param.
+	parameters.Add("token_json", string(b))
+	referal.RawQuery = parameters.Encode()
+
+	return nil
 }
 
-func (gh gitHubOAuth) getUser(ctx context.Context, token *oauth2.Token) (*ghUser, error) {
-	client := gh.config.Client(ctx, token)
-	resp, err := client.Get("https://api.github.com/user")
-	if err != nil {
-		return nil, err
+// CreateKeycloakUser creates a user and a keyclaok identity
+func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
+	var identity *account.Identity
+	var user *account.User
+
+	claims, err := parseToken(accessToken, keycloak.TokenManager.PublicKey())
+	if err != nil || checkClaims(claims) != nil {
+		return nil, nil, errors.New("error when parsing token " + err.Error())
 	}
 
-	var user ghUser
-	json.NewDecoder(resp.Body).Decode(&user)
-	return &user, nil
-}
+	keycloakIdentityID, _ := uuid.FromString(claims.Subject)
+	identities, err := keycloak.Identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
+	if err != nil {
+		return nil, nil, errors.New("error during querying for an identity " + err.Error())
+	}
 
-func filterPrimaryEmail(emails []ghEmail) string {
-	for _, email := range emails {
-		if email.Primary {
-			return email.Email
+	if len(identities) == 0 {
+		// No Idenity found, create a new Identity and User
+		user = new(account.User)
+		fillUser(claims, user)
+		err = application.Transactional(keycloak.db, func(appl application.Application) error {
+			err := keycloak.Users.Create(ctx, user)
+			if err != nil {
+				// TODO It seems that even if we return an error here the transaction is not rolled back and the user is created. Why?!
+				return err
+			}
+			identity = &account.Identity{
+				ID:       keycloakIdentityID,
+				Username: claims.Username,
+				Provider: account.KeycloakIDP,
+				UserID:   account.NullUUID{UUID: user.ID, Valid: true},
+				User:     *user}
+			err = keycloak.Identities.Create(ctx, identity)
+			return err
+		})
+		if err != nil {
+			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
+		}
+	} else {
+		user = &identities[0].User
+		// let's update the existing user with the fullname, email and avatar from Keycloak,
+		// in case the user changed them since the last time he/she logged in
+		fillUser(claims, user)
+		err = keycloak.Users.Save(ctx, user)
+		if err != nil {
+			return nil, nil, errors.New("cant' update user " + err.Error())
 		}
 	}
-	return ""
+	return identity, user, nil
 }
 
-// ghEmail represents the needed response from api.github.com/user/emails
-type ghEmail struct {
-	Email    string `json:"email"`
-	Primary  bool   `json:"primary"`
-	Verified bool   `json:"verified"`
+func redirectWithError(ctx *app.AuthorizeLoginContext, knownReferer string, errorString string) error {
+	ctx.ResponseData.Header().Set("Location", knownReferer+"?error="+errorString)
+	return ctx.TemporaryRedirect()
 }
 
-// ghUser represents the needed response from api.github.com/user
-type ghUser struct {
-	Name      string `json:"name"`
-	AvatarURL string `json:"avatar_url"`
+func parseToken(tokenString string, publicKey *rsa.PublicKey) (*keycloakTokenClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &keycloakTokenClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return publicKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	claims := token.Claims.(*keycloakTokenClaims)
+	if token.Valid {
+		return claims, nil
+	}
+	return nil, errs.WithStack(errors.New("token is not valid"))
+}
+
+func generateGravatarURL(email string) (string, error) {
+	if email == "" {
+		return "", nil
+	}
+	grURL, err := url.Parse("https://www.gravatar.com/avatar/")
+	if err != nil {
+		return "", errs.WithStack(err)
+	}
+	hash := md5.New()
+	hash.Write([]byte(email))
+	grURL.Path += fmt.Sprintf("%v", hex.EncodeToString(hash.Sum(nil))) + ".jpg"
+
+	// We can use our own default image if there is no gravatar available for this email
+	// defaultImage := "someDefaultImageURL.jpg"
+	// parameters := url.Values{}
+	// parameters.Add("d", fmt.Sprintf("%v", defaultImage))
+	// grURL.RawQuery = parameters.Encode()
+
+	urlStr := grURL.String()
+	return urlStr, nil
+}
+
+func checkClaims(claims *keycloakTokenClaims) error {
+	if claims.Subject == "" {
+		return errors.New("subject claim not found in token")
+	}
+	_, err := uuid.FromString(claims.Subject)
+	if err != nil {
+		return errors.New("subject claim from token is not UUID " + err.Error())
+	}
+	if claims.Username == "" {
+		return errors.New("username claim not found in token")
+	}
+	if claims.Email == "" {
+		return errors.New("email claim not found in token")
+	}
+	return nil
+}
+
+func fillUser(claims *keycloakTokenClaims, user *account.User) error {
+	user.FullName = claims.Name
+	user.Email = claims.Email
+	image, err := generateGravatarURL(claims.Email)
+	if err != nil {
+		return errors.New("error when generating gravatar " + err.Error())
+	}
+	user.ImageURL = image
+	return nil
+}
+
+// ContextIdentity returns the identity's ID found in given context
+// Uses tokenManager.Locate to fetch the identity of currently logged in user
+func ContextIdentity(ctx context.Context) (string, error) {
+	tm := ReadTokenManagerFromContext(ctx)
+	if tm == nil {
+		return "", errs.New("missing token manager")
+	}
+	uuid, err := tm.Locate(ctx)
+	if err != nil {
+		// TODO : need a way to define user as Guest
+		fmt.Println("Guest User")
+		return "", errs.WithStack(err)
+	}
+	return uuid.String(), nil
+}
+
+type contextTMKey int
+
+const (
+	//contextTokenManagerKey is a key that will be used to put and to get `tokenManager` from goa.context
+	contextTokenManagerKey contextTMKey = iota + 1
+)
+
+//ReadTokenManagerFromContext returns tokenManager from context.
+// Must have been set by ContextWithTokenManager ONLY
+func ReadTokenManagerFromContext(ctx context.Context) token.Manager {
+	tm := ctx.Value(contextTokenManagerKey)
+	if tm != nil {
+		return tm.(token.Manager)
+	}
+	return nil
+}
+
+// ContextWithTokenManager injects tokenManager in the context for every incoming request
+// Accepts Token.Manager in order to make sure that correct object is set in the context.
+// Only other possible value is nil
+func ContextWithTokenManager(ctx context.Context, tm token.Manager) context.Context {
+	return context.WithValue(ctx, contextTokenManagerKey, tm)
+}
+
+// InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
+func InjectTokenManager(tokenManager token.Manager) goa.Middleware {
+	return func(h goa.Handler) goa.Handler {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
+			ctxWithTM := ContextWithTokenManager(ctx, tokenManager)
+			return h(ctxWithTM, rw, req)
+		}
+	}
 }

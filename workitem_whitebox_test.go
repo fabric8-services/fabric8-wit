@@ -5,20 +5,26 @@ import (
 	"os"
 	"testing"
 
+	"net/http"
+
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
 
 var DB *gorm.DB
-var rwiScheduler *remoteworkitem.Scheduler
+var RwiScheduler *remoteworkitem.Scheduler
 
 func TestMain(m *testing.M) {
 	var err error
@@ -36,10 +42,10 @@ func TestMain(m *testing.M) {
 		}
 		defer DB.Close()
 
-		// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+		// Make sure the database is populated with the correct types (e.g. bug etc.)
 		if configuration.GetPopulateCommonTypes() {
 			if err := models.Transactional(DB, func(tx *gorm.DB) error {
-				return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+				return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 			}); err != nil {
 				panic(err.Error())
 			}
@@ -47,9 +53,13 @@ func TestMain(m *testing.M) {
 		}
 
 		// RemoteWorkItemScheduler now available for all other test cases
-		rwiScheduler = remoteworkitem.NewScheduler(DB)
+		RwiScheduler = remoteworkitem.NewScheduler(DB)
 	}
-	os.Exit(m.Run())
+	os.Exit(func() int {
+		c := m.Run()
+		RwiScheduler.Stop()
+		return c
+	}())
 }
 
 func TestNewWorkitemController(t *testing.T) {
@@ -102,44 +112,164 @@ func TestParseLimit(t *testing.T) {
 func TestSetPagingLinks(t *testing.T) {
 	links := &app.PagingLinks{}
 	setPagingLinks(links, "", 0, 0, 1, 0)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.First)
-	assert.Equal(t, "?page[offset]=0,page[limit]=0", *links.Last)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.First)
+	assert.Equal(t, "?page[offset]=0&page[limit]=0", *links.Last)
 	assert.Nil(t, links.Next)
 	assert.Nil(t, links.Prev)
 
 	setPagingLinks(links, "prefix", 0, 0, 1, 0)
-	assert.Equal(t, "prefix?page[offset]=0,page[limit]=1", *links.First)
-	assert.Equal(t, "prefix?page[offset]=0,page[limit]=0", *links.Last)
+	assert.Equal(t, "prefix?page[offset]=0&page[limit]=1", *links.First)
+	assert.Equal(t, "prefix?page[offset]=0&page[limit]=0", *links.Last)
 	assert.Nil(t, links.Next)
 	assert.Nil(t, links.Prev)
 
 	setPagingLinks(links, "", 0, 0, 1, 1)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.First)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Last)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Next)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.First)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Last)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Next)
 	assert.Nil(t, links.Prev)
 
 	setPagingLinks(links, "", 0, 1, 1, 0)
-	assert.Equal(t, "?page[offset]=0,page[limit]=0", *links.First)
-	assert.Equal(t, "?page[offset]=0,page[limit]=0", *links.Last)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Next)
+	assert.Equal(t, "?page[offset]=0&page[limit]=0", *links.First)
+	assert.Equal(t, "?page[offset]=0&page[limit]=0", *links.Last)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Next)
 	assert.Nil(t, links.Prev)
 
 	setPagingLinks(links, "", 0, 1, 1, 1)
-	assert.Equal(t, "?page[offset]=0,page[limit]=0", *links.First)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Last)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Next)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Prev)
+	assert.Equal(t, "?page[offset]=0&page[limit]=0", *links.First)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Last)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Next)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Prev)
 
 	setPagingLinks(links, "", 0, 2, 1, 1)
-	assert.Equal(t, "?page[offset]=0,page[limit]=0", *links.First)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Last)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Next)
-	assert.Equal(t, "?page[offset]=0,page[limit]=1", *links.Prev)
+	assert.Equal(t, "?page[offset]=0&page[limit]=0", *links.First)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Last)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Next)
+	assert.Equal(t, "?page[offset]=0&page[limit]=1", *links.Prev)
 
 	setPagingLinks(links, "", 0, 3, 4, 4)
-	assert.Equal(t, "?page[offset]=0,page[limit]=3", *links.First)
-	assert.Equal(t, "?page[offset]=3,page[limit]=4", *links.Last)
-	assert.Equal(t, "?page[offset]=3,page[limit]=4", *links.Next)
-	assert.Equal(t, "?page[offset]=0,page[limit]=3", *links.Prev)
+	assert.Equal(t, "?page[offset]=0&page[limit]=3", *links.First)
+	assert.Equal(t, "?page[offset]=3&page[limit]=4", *links.Last)
+	assert.Equal(t, "?page[offset]=3&page[limit]=4", *links.Next)
+	assert.Equal(t, "?page[offset]=0&page[limit]=3", *links.Prev)
+}
+
+func TestConvertWorkItemWithDescription(t *testing.T) {
+	request := http.Request{Host: "localhost"}
+	requestData := &goa.RequestData{Request: &request}
+	// map[string]interface{}
+	fields := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: "description",
+	}
+	wi := app.WorkItem{
+		Fields: fields,
+	}
+	wi2 := ConvertWorkItem(requestData, &wi)
+	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
+	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
+}
+
+func TestConvertWorkItemWithoutDescription(t *testing.T) {
+	request := http.Request{Host: "localhost"}
+	requestData := &goa.RequestData{Request: &request}
+	// map[string]interface{}
+	fields := map[string]interface{}{
+		workitem.SystemTitle: "title",
+	}
+	wi := app.WorkItem{
+		Fields: fields,
+	}
+	wi2 := ConvertWorkItem(requestData, &wi)
+	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
+	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: "description",
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
+	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
+	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle:       "title",
+		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	expectedDescription := rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
+	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
+}
+
+func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
+	title := "title"
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle: title,
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	require.Nil(t, err)
+	require.NotNil(t, target)
+	require.NotNil(t, target.Fields)
+	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
+}
+
+func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
+	// given
+	appl := new(application.Application)
+	attributes := map[string]interface{}{}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	// when
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	// then: no error expected at this level, even though the title is missing
+	require.Nil(t, err)
+}
+
+func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
+	// given
+	appl := new(application.Application)
+	attributes := map[string]interface{}{
+		workitem.SystemTitle: "",
+	}
+	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	// when
+	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	// then: no error expected at this level, even though the title is missing
+	require.Nil(t, err)
 }

@@ -23,20 +23,8 @@ var ALMStatus = a.MediaType("application/vnd.status+json", func() {
 	})
 })
 
-// AuthToken represents an authentication JWT Token
-var AuthToken = a.MediaType("application/vnd.authtoken+json", func() {
-	a.TypeName("AuthToken")
-	a.Description("JWT Token")
-	a.Attributes(func() {
-		a.Attribute("token", d.String, "JWT Token")
-		a.Required("token")
-	})
-	a.View("default", func() {
-		a.Attribute("token")
-	})
-})
-
 // workItem is the media type for work items
+// Deprecated, but kept around as internal model for now.
 var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.TypeName("WorkItem")
 	a.Description("A work item hold field values according to a given field type")
@@ -66,35 +54,9 @@ var pagingLinks = a.Type("pagingLinks", func() {
 })
 
 var meta = a.Type("workItemListResponseMeta", func() {
-	a.Attribute("totalCount", d.Number)
+	a.Attribute("totalCount", d.Integer)
 
 	a.Required("totalCount")
-})
-
-// workItemListResponse contains paged results for listing work items and paging links
-var workItemListResponse = a.MediaType("application/vnd.workitemlist+json", func() {
-	a.TypeName("WorkItemListResponse")
-	a.Description("Holds the paginated response to a work item list request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", meta)
-	a.Attribute("data", a.CollectionOf(workItem))
-
-	a.Required("links")
-	a.Required("meta")
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("links", func() {
-			a.Attribute("prev", d.String)
-			a.Attribute("next", d.String)
-			a.Attribute("first", d.String)
-			a.Attribute("last", d.String)
-		})
-		a.Attribute("meta", func() {
-			a.Attribute("totalCount", d.Number)
-		})
-		a.Attribute("data")
-	})
 })
 
 // fieldDefinition defines the possible values for a field in a work item type
@@ -111,7 +73,7 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 	})
 })
 
-// fieldType is the datatype of a single field in a work item tepy
+// fieldType is the datatype of a single field in a work item type
 var fieldType = a.Type("fieldType", func() {
 	a.Description("A fieldType describes the values a particular field can hold")
 	a.Attribute("kind", d.String, "The constant indicating the kind of type, for example 'string' or 'enum' or 'instant'")
@@ -183,18 +145,5 @@ var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
 		a.Attribute("query")
 		a.Attribute("schedule")
 		a.Attribute("trackerID")
-	})
-})
-
-// User represents a user object (TODO: add better description)
-var User = a.MediaType("application/vnd.user+json", func() {
-	a.TypeName("User")
-	a.Description("ALM User")
-	a.Attribute("fullName", d.String, "The users full name")
-	a.Attribute("imageURL", d.String, "The avatar image for the user")
-
-	a.View("default", func() {
-		a.Attribute("fullName")
-		a.Attribute("imageURL")
 	})
 })

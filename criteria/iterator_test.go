@@ -1,9 +1,9 @@
 package criteria
 
 import (
+	"github.com/almighty/almighty-core/resource"
 	"reflect"
 	"testing"
-	"github.com/almighty/almighty-core/resource"
 )
 
 func TestIterator(t *testing.T) {

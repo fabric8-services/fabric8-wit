@@ -12,21 +12,22 @@ import (
 	"golang.org/x/net/context"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/models"
-
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
@@ -71,7 +72,7 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+		panic(fmt.Sprintf("ERROR: Failed to setup the configuration: \n%+v", err))
 	}
 
 	if printConfig {
@@ -82,25 +83,27 @@ func main() {
 	printUserInfo()
 
 	var db *gorm.DB
-	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
-		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
+	for {
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
+			log.Printf("ERROR: Unable to open connection to database %v\n", err)
+			log.Printf("Retrying to connect in %v...\n", err, configuration.GetPostgresConnectionRetrySleep())
 			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
 			break
 		}
 	}
-	if err != nil {
-		panic("Could not open connection to database")
+
+	if configuration.IsPostgresDeveloperModeEnabled() {
+		db = db.Debug()
 	}
 
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		panic(err.Error())
+		panic(fmt.Sprintf("ERROR: Failed migration: \n%+v", err))
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -108,12 +111,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Make sure the database is populated with the correct types (e.g. system.bug etc.)
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, models.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			panic(err.Error())
+			panic(fmt.Sprintf("ERROR: Failed to populate common types: \n%+v", err))
+		}
+		if err := models.Transactional(db, func(tx *gorm.DB) error {
+			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+		}); err != nil {
+			panic(fmt.Sprintf("ERROR: Failed to bootstap work item linking: \n%+v", err))
 		}
 	}
 
@@ -127,36 +135,38 @@ func main() {
 
 	// Mount middleware
 	service.Use(middleware.RequestID())
-	service.Use(middleware.LogRequest(true))
+	service.Use(middleware.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
-	service.Use(middleware.ErrorHandler(service, true))
+	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
-	privateKey, err := token.ParsePrivateKey(configuration.GetTokenPrivateKey())
-	if err != nil {
-		panic(err)
-	}
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("ERROR: Failed to parse public key: \n%+v", err))
 	}
 
 	// Setup Account/Login/Security
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
 
-	tokenManager := token.NewManager(publicKey, privateKey)
+	tokenManager := token.NewManager(publicKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
+	service.Use(login.InjectTokenManager(tokenManager))
 
 	// Mount "login" controller
 	oauth := &oauth2.Config{
-		ClientID:     configuration.GetGithubClientID(),
-		ClientSecret: configuration.GetGithubSecret(),
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint:     github.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  configuration.GetKeycloakEndpointAuth(),
+			TokenURL: configuration.GetKeycloakEndpointToken(),
+		},
 	}
 
-	loginService := login.NewGitHubOAuth(oauth, identityRepository, userRepository, tokenManager)
+	appDB := gormapplication.NewGormDB(db)
+
+	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := NewLoginController(service, loginService, tokenManager)
 	app.MountLoginController(service, loginCtrl)
 
@@ -164,18 +174,37 @@ func main() {
 	statusCtrl := NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
 
-	appDB := gormapplication.NewGormDB(db)
-
 	// Mount "workitem" controller
 	workitemCtrl := NewWorkitemController(service, appDB)
 	app.MountWorkitemController(service, workitemCtrl)
 
-	workitem2Ctrl := NewWorkitem2Controller(service, appDB)
-	app.MountWorkitem2Controller(service, workitem2Ctrl)
-
 	// Mount "workitemtype" controller
 	workitemtypeCtrl := NewWorkitemtypeController(service, appDB)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
+
+	// Mount "work item link category" controller
+	workItemLinkCategoryCtrl := NewWorkItemLinkCategoryController(service, appDB)
+	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
+
+	// Mount "work item link type" controller
+	workItemLinkTypeCtrl := NewWorkItemLinkTypeController(service, appDB)
+	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
+
+	// Mount "work item link" controller
+	workItemLinkCtrl := NewWorkItemLinkController(service, appDB)
+	app.MountWorkItemLinkController(service, workItemLinkCtrl)
+
+	// Mount "work item comments" controller
+	workItemCommentsCtrl := NewWorkItemCommentsController(service, appDB)
+	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
+
+	// Mount "work item relationships links" controller
+	workItemRelationshipsLinksCtrl := NewWorkItemRelationshipsLinksController(service, appDB)
+	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
+
+	// Mount "comments" controller
+	commentsCtrl := NewCommentsController(service, appDB)
+	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "tracker" controller
 	c5 := NewTrackerController(service, appDB, scheduler)
@@ -185,9 +214,48 @@ func main() {
 	c6 := NewTrackerqueryController(service, appDB, scheduler)
 	app.MountTrackerqueryController(service, c6)
 
+	// Mount "space" controller
+	spaceCtrl := NewSpaceController(service, appDB)
+	app.MountSpaceController(service, spaceCtrl)
+
 	// Mount "user" controller
-	userCtrl := NewUserController(service, identityRepository, tokenManager)
+	userCtrl := NewUserController(service, appDB, tokenManager)
 	app.MountUserController(service, userCtrl)
+
+	// Mount "search" controller
+	searchCtrl := NewSearchController(service, appDB)
+	app.MountSearchController(service, searchCtrl)
+
+	// Mount "indentity" controller
+	identityCtrl := NewIdentityController(service, appDB)
+	app.MountIdentityController(service, identityCtrl)
+
+	// Mount "users" controller
+	usersCtrl := NewUsersController(service, appDB)
+	app.MountUsersController(service, usersCtrl)
+
+	// Mount "iterations" controller
+	iterationCtrl := NewIterationController(service, appDB)
+	app.MountIterationController(service, iterationCtrl)
+
+	// Mount "spaceiterations" controller
+	spaceIterationCtrl := NewSpaceIterationsController(service, appDB)
+	app.MountSpaceIterationsController(service, spaceIterationCtrl)
+
+	// Mount "userspace" controller
+	userspaceCtrl := NewUserspaceController(service, db)
+	app.MountUserspaceController(service, userspaceCtrl)
+
+	// Mount "render" controller
+	renderCtrl := NewRenderController(service)
+	app.MountRenderController(service, renderCtrl)
+
+	// Mount "areas" controller
+	areaCtrl := NewAreaController(service, appDB)
+	app.MountAreaController(service, areaCtrl)
+
+	spaceAreaCtrl := NewSpaceAreasController(service, appDB)
+	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
 	fmt.Println("Git Commit SHA: ", Commit)
 	fmt.Println("UTC Build Time: ", BuildTime)
@@ -208,7 +276,7 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		log.Printf("Failed to get current user: %s", err.Error())
+		fmt.Printf("ERROR: Failed to get current user: \n%+v", err)
 	} else {
 		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
 		/*

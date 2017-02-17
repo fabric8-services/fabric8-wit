@@ -15,8 +15,8 @@ type StatusController struct {
 // NewStatusController creates a status controller.
 func NewStatusController(service *goa.Service, db *gorm.DB) *StatusController {
 	return &StatusController{
-		Controller:	service.NewController("StatusController"),
-		db:		db,
+		Controller: service.NewController("StatusController"),
+		db:         db,
 	}
 }
 
@@ -32,7 +32,7 @@ func (c *StatusController) Show(ctx *app.ShowStatusContext) error {
 		var message string
 		message = err.Error()
 		res.Error = &message
-		return ctx.ServiceUnavailable(res);
+		return ctx.ServiceUnavailable(res)
 	}
 	return ctx.OK(res)
 }

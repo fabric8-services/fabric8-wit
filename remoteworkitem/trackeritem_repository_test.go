@@ -5,11 +5,16 @@ import (
 
 	"testing"
 
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/test"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConvertNewWorkItem(t *testing.T) {
@@ -17,12 +22,14 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 	// Setting up the dependent tracker query and tracker data in the Database
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
-	db.Create(&tr)
-	defer db.Delete(&tr)
+
+	db = db.Create(&tr)
+	require.Nil(t, db.Error)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
-	db.Create(&tq)
-	defer db.Delete(&tq)
+	db = db.Create(&tq)
+	require.Nil(t, db.Error)
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -36,16 +43,21 @@ func TestConvertNewWorkItem(t *testing.T) {
 
 		workItem, err := convert(db, int(tq.ID), remoteItemData, ProviderGithub)
 
-		assert.Nil(t, err)
-		assert.Equal(t, "linking", workItem.Fields[models.SystemTitle])
-		assert.Equal(t, "sbose78", workItem.Fields[models.SystemCreator])
-		assert.Equal(t, "pranav", workItem.Fields[models.SystemAssignee])
-		assert.Equal(t, "closed", workItem.Fields[models.SystemState])
+		require.Nil(t, err)
+		require.NotNil(t, workItem.Fields)
+		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
+		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
+		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
+		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
+		require.NotNil(t, workItem.Fields[workitem.SystemDescription])
+		description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+		assert.Equal(t, "body of issue", description.Content)
+		assert.Equal(t, rendering.SystemMarkupMarkdown, description.Markup)
 
-		wir := models.NewWorkItemRepository(db)
+		wir := workitem.NewWorkItemRepository(db)
 		wir.Delete(context.Background(), workItem.ID)
 
-		return err
+		return errors.WithStack(err)
 	})
 }
 
@@ -54,12 +66,14 @@ func TestConvertExistingWorkItem(t *testing.T) {
 
 	// Setting up the dependent tracker query and tracker data in the Database
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
-	db.Create(&tr)
-	defer db.Delete(&tr)
+
+	db = db.Create(&tr)
+	require.Nil(t, db.Error)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
-	db.Create(&tq)
-	defer db.Delete(&tq)
+	db = db.Create(&tq)
+	require.Nil(t, db.Error)
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Created Tracker Query and Tracker")
 
@@ -74,11 +88,11 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		workItem, err := convert(tx, int(tq.ID), remoteItemData, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "linking", workItem.Fields[models.SystemTitle])
-		assert.Equal(t, "sbose78", workItem.Fields[models.SystemCreator])
-		assert.Equal(t, "pranav", workItem.Fields[models.SystemAssignee])
-		assert.Equal(t, "closed", workItem.Fields[models.SystemState])
-		return err
+		assert.Equal(t, "linking", workItem.Fields[workitem.SystemTitle])
+		assert.Equal(t, "sbose78", workItem.Fields[workitem.SystemCreator])
+		assert.Equal(t, "pranav", workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
+		assert.Equal(t, "closed", workItem.Fields[workitem.SystemState])
+		return errors.WithStack(err)
 	})
 
 	t.Log("Updating the existing work item when it's reimported.")
@@ -91,52 +105,56 @@ func TestConvertExistingWorkItem(t *testing.T) {
 		workItemUpdated, err := convert(tx, int(tq.ID), remoteItemDataUpdated, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "linking-updated", workItemUpdated.Fields[models.SystemTitle])
-		assert.Equal(t, "sbose78", workItemUpdated.Fields[models.SystemCreator])
-		assert.Equal(t, "pranav", workItemUpdated.Fields[models.SystemAssignee])
-		assert.Equal(t, "closed", workItemUpdated.Fields[models.SystemState])
+		assert.Equal(t, "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])
+		assert.Equal(t, "sbose78", workItemUpdated.Fields[workitem.SystemCreator])
+		assert.Equal(t, "pranav", workItemUpdated.Fields[workitem.SystemAssignees].([]interface{})[0])
+		assert.Equal(t, "closed", workItemUpdated.Fields[workitem.SystemState])
 
-		wir := models.NewWorkItemRepository(tx)
+		wir := workitem.NewWorkItemRepository(tx)
 		wir.Delete(context.Background(), workItemUpdated.ID)
 
-		return err
+		return errors.WithStack(err)
 	})
-
 }
+
+var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
 
 func TestConvertGithubIssue(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(db)()
 
 	t.Log("Scenario 3 : Mapping and persisting a Github issue")
 
 	tr := Tracker{URL: "https://api.github.com/", Type: ProviderGithub}
-	db.Create(&tr)
-	defer db.Delete(&tr)
+
+	db = db.Create(&tr)
+	require.Nil(t, db.Error)
 
 	tq := TrackerQuery{Query: "some random query", Schedule: "0 0 0 * * *", TrackerID: tr.ID}
 	db.Create(&tq)
-	defer db.Delete(&tq)
 
 	models.Transactional(db, func(tx *gorm.DB) error {
-		content, err := test.LoadTestData("github_issue_mapping.json", provideRemoteGithubDataWithAssignee)
+		content, err := test.LoadTestData("github_issue_mapping.json", func() ([]byte, error) {
+			return provideRemoteData(GitIssueWithAssignee)
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		remoteItemDataGithub := TrackerItemContent{
 			Content: content[:],
-			ID:      GithubIssueWithAssignee, // GH issue url
+			ID:      GitIssueWithAssignee, // GH issue url
 		}
 
 		workItemGithub, err := convert(tx, int(tq.ID), remoteItemDataGithub, ProviderGithub)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[models.SystemTitle])
-		assert.Equal(t, "sbose78", workItemGithub.Fields[models.SystemCreator])
-		assert.Equal(t, "sbose78", workItemGithub.Fields[models.SystemAssignee])
-		assert.Equal(t, "open", workItemGithub.Fields[models.SystemState])
+		assert.Equal(t, "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
+		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemCreator])
+		assert.Equal(t, "sbose78", workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])
+		assert.Equal(t, "open", workItemGithub.Fields[workitem.SystemState])
 
-		return err
+		return errors.WithStack(err)
 	})
 
 }

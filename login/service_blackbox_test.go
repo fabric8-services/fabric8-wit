@@ -10,11 +10,11 @@ import (
 
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/gormapplication"
 	. "github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
@@ -50,15 +50,13 @@ func TestMain(m *testing.M) {
 	}
 
 	oauth := &oauth2.Config{
-		ClientID:     "875da0d2113ba0a6951d",
-		ClientSecret: "2fe6736e90a9283036a37059d75ac0c82f4f5288",
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint:     github.Endpoint,
-	}
-
-	publicKey, err := token.ParsePublicKey([]byte(token.RSAPublicKey))
-	if err != nil {
-		panic(err)
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth",
+			TokenURL: "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token",
+		},
 	}
 
 	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
@@ -66,15 +64,16 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	tokenManager := token.NewManager(publicKey, privateKey)
+	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(db)
 	identityRepository := account.NewIdentityRepository(db)
-	loginService = NewGitHubOAuth(oauth, identityRepository, userRepository, tokenManager)
+	app := gormapplication.NewGormDB(db)
+	loginService = NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, app)
 
 	os.Exit(m.Run())
 }
 
-func TestGithubOAuthAuthorizationRedirect(t *testing.T) {
+func TestKeycloakAuthorizationRedirect(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	rw := httptest.NewRecorder()
@@ -102,7 +101,7 @@ func TestGithubOAuthAuthorizationRedirect(t *testing.T) {
 	err = loginService.Perform(authorizeCtx)
 
 	assert.Equal(t, 307, rw.Code)
-	assert.Contains(t, rw.Header().Get("Location"), "https://github.com/login/oauth/authorize")
+	assert.Contains(t, rw.Header().Get("Location"), configuration.GetKeycloakEndpointAuth())
 }
 
 func TestValidOAuthAuthorizationCode(t *testing.T) {
@@ -111,7 +110,7 @@ func TestValidOAuthAuthorizationCode(t *testing.T) {
 
 	// Current the OAuth code is generated as part of a UI workflow.
 	// Yet to figure out how to mock.
-	t.Skip("Authorization Code not avaiable")
+	t.Skip("Authorization Code not available")
 
 }
 
@@ -123,7 +122,7 @@ func TestValidState(t *testing.T) {
 	// authorization code because it needs a
 	// user UI workflow. Furthermore, the code can be used
 	// only once. https://tools.ietf.org/html/rfc6749#section-4.1.2
-	t.Skip("Authorization Code not avaiable")
+	t.Skip("Authorization Code not available")
 }
 
 func TestInvalidState(t *testing.T) {
@@ -140,10 +139,10 @@ func TestInvalidState(t *testing.T) {
 	}
 
 	// The OAuth 'state' is sent as a query parameter by calling /api/login/authorize?code=_SOME_CODE_&state=_SOME_STATE_
-	// The request originates from Github after a valid authorization by the end user.
+	// The request originates from Keycloak after a valid authorization by the end user.
 	// This is not where the redirection should happen on failure.
-	refererGithubUrl := "https://github-url.example.org/path-of-login"
-	req.Header.Add("referer", refererGithubUrl)
+	refererKeyclaokUrl := "https://keycloak-url.example.org/path-of-login"
+	req.Header.Add("referer", refererKeyclaokUrl)
 
 	prms := url.Values{
 		"state": {},
@@ -195,7 +194,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 
 	err = loginService.Perform(authorizeCtx)
 
-	assert.Equal(t, 307, rw.Code) // redirect to github login page.
+	assert.Equal(t, 307, rw.Code) // redirect to keycloak login page.
 
 	locationString := rw.HeaderMap["Location"][0]
 	locationUrl, err := url.Parse(locationString)
@@ -222,10 +221,10 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	req, err = http.NewRequest("GET", u.String(), nil)
 
 	// The OAuth code is sent as a query parameter by calling /api/login/authorize?code=_SOME_CODE_&state=_SOME_STATE_
-	// The request originates from Github after a valid authorization by the end user.
+	// The request originates from Keycloak after a valid authorization by the end user.
 	// This is not where the redirection should happen on failure.
-	refererGithubUrl := "https://github-url.example.org/path-of-login"
-	req.Header.Add("referer", refererGithubUrl)
+	refererKeycloakUrl := "https://keycloak-url.example.org/path-of-login"
+	req.Header.Add("referer", refererKeycloakUrl)
 	if err != nil {
 		panic("invalid test " + err.Error()) // bug
 	}
@@ -251,6 +250,6 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 
 	returnedErrorReason := allQueryParameters["error"][0]
 	assert.NotEmpty(t, returnedErrorReason)
-	assert.NotContains(t, locationString, refererGithubUrl)
+	assert.NotContains(t, locationString, refererKeycloakUrl)
 	assert.Contains(t, locationString, refererUrl)
 }

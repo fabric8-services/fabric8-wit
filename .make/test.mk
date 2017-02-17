@@ -102,6 +102,10 @@ DOCKER_COMPOSE_FILE = $(CUR_DIR)/.make/docker-compose.integration-test.yaml
 # This pattern excludes some folders from the coverage calculation (see grep -v)
 ALL_PKGS_EXCLUDE_PATTERN = 'vendor\|app\|tool\/cli\|design\|client\|test'
 
+# This pattern excludes some folders from the go code analysis
+GOANALYSIS_PKGS_EXCLUDE_PATTERN="vendor|app|client|tool/cli"
+GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS_EXCLUDE_PATTERN))
+
 #-------------------------------------------------------------------------------
 # Normal test targets
 #
@@ -119,10 +123,25 @@ test-all: prebuild-check test-unit test-integration
 ## Runs the unit tests and produces coverage files for each package.
 test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 
+.PHONY: test-unit-no-coverage
+## Runs the unit tests and WITHOUT producing coverage files for each package.
+test-unit-no-coverage: prebuild-check $(SOURCES)
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v $(TEST_PACKAGES)
+
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
 ## Make sure you ran "make integration-test-env-prepare" before you run this target.
 test-integration: prebuild-check clean-coverage-integration migrate-database $(COV_PATH_INTEGRATION)
+
+.PHONY: test-integration-no-coverage
+## Runs the integration tests WITHOUT producing coverage files for each package.
+## Make sure you ran "make integration-test-env-prepare" before you run this target.
+test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
@@ -232,7 +251,7 @@ $(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
 # Console coverage output:
 
 # First parameter: file to do in-place replacement with.
-# Delete the lines containing /bindata_assetfs.go 
+# Delete the lines containing /bindata_assetfs.go
 define cleanup-coverage-file
 @sed -i '/.*\/bindata_assetfs\.go.*/d' $(1)
 @sed -i '/.*\/sqlbindata\.go.*/d' $(1)
@@ -324,7 +343,8 @@ gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
 #  2. package name "github.com/almighty/almighty-core/model"
 #  3. File in which to combine the output
 #  4. Path to file in which to store names of packages that failed testing
-#  5. Environment variable (in the form VAR=VALUE) to be specified for running the test
+#  5. Environment variable (in the form VAR=VALUE) to be specified for running
+#     the test. For multiple environment variables, pass "VAR1=VAL1 VAR2=VAL2".
 define test-package
 $(eval TEST_NAME := $(1))
 $(eval PACKAGE_NAME := $(2))
@@ -332,10 +352,9 @@ $(eval COMBINED_OUT_FILE := $(3))
 $(eval ERRORS_FILE := $(4))
 $(eval ENV_VAR := $(5))
 $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
-
 @mkdir -p $(COV_DIR)/$(PACKAGE_NAME);
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
-@$(ENV_VAR) ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
+@$(ENV_VAR) ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
 	go test $(PACKAGE_NAME) \
 		-v \
 		-coverprofile $(COV_OUT_FILE) \
@@ -432,6 +451,6 @@ clean-coverage-unit:
 
 CLEAN_TARGETS += clean-coverage-integration
 .PHONY: clean-coverage-integration
-## Removes integreation test coverage file
+## Removes integration test coverage file
 clean-coverage-integration:
 	-@rm -f $(COV_PATH_INTEGRATION)

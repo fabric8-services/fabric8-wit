@@ -246,8 +246,8 @@ postgres.user: postgres
 postgres.password: mysecretpassword
 postgres.database: postgres
 postgres.sslmode: disable
-# The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+# The amount of time in seconds before the connection times out
+postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
 
@@ -264,7 +264,7 @@ http.address: 0.0.0.0:8080
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
 
-# Whether you want to create the common work item types such as system.bug, system.feature, ...
+# Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true
 
 # -----------------------------
@@ -328,7 +328,7 @@ To override configuration values using environment variables, use the prefix
 
 For example to override `postgres.password`, set the environment variable `ALMIGHTY_POSTGRES_PASSWORD` to the value of you liking.
 
-NOTE: Environment variables override the default values and the ones you've set in your config file. 
+NOTE: Environment variables override the default values and the ones you've set in your config file.
 
 ==== Development
 
@@ -349,7 +349,6 @@ Start up dependent docker services using `docker-compose` and runs auto reload o
 
 ----
 $ cd $GOPATH/src/github.com/almighty/almighty-core
-$ export ALMIGHTY_DEVELOPER_MODE_ENABLED=true
 $ make dev
 ----
 
@@ -364,7 +363,7 @@ Generate a token for future use.
 ./bin/alm-cli generate login -H localhost:8080 --pp
 ----
 
-You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls  
+You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls
 
 Create a work item type (using above token).
 ----
@@ -398,183 +397,24 @@ Retrieve the work item.
 $ ./bin/alm-cli show workitem --id 1 -H localhost:8080 --pp
 ----
 
-== Debugging [[debug]]
 
-This section shows how to install a Go debugger
-(link:https://github.com/derekparker/delve:[delve]) and how to actually do some
-debugging from a terminal.
+System defined Work Item Types are
 
-For somebody coming from a C/C++ background this should feed very familiar as
-the GNU Debugger or GDB command line interface has similar commands.
-The following table illustrates just a few of the similarities.
+ * userstory
+ * valueproposition
+ * fundamental
+ * experience
+ * feature
+ * bug
 
-.Small comparison between GNU Debugger (gdb) and Go Debugger (dlv) commands
-|===
-|Function | GNU Debugger | Go debugger (dlv)
-
-|Connect to a running program
-|`gdb attach <PID>`
-|`dlv attach <PID>`
-
-|Set a breakpoint
-|`gdb break <function>`
-|`dlv break <package>.<function>`
-
-|Continue after hitting a breakpoint or attaching to a program
-|`gdb continue`
-|`dlv continue`
-
-|Show a backtrace for the current location
-|`gdb bt`
-|`dlv bt`
-
-|===
-
-More commands can be found in the
-link:https://github.com/derekparker/delve/tree/master/Documentation/cli#commands[Delve documentation].
-
-=== Install debugger
-
-Install the link:https://github.com/derekparker/delve:[delve] debugger by running:
-
+Use any one of above to create Work Item based on that type.
+Following example creates a Work Item of type `userstory`
 ----
-$ go get github.com/derekparker/delve/cmd/dlv
+$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{ "data": { "attributes": { "system.owner": "tmaeder", "system.state": "open", "system.title": "Example of an Epic", "version": "1" }, "relationships": { "baseType": { "data": { "id": "Epic", "type": "workitemtypes" } } }, "type": "workitems" } }' -H localhost:8080
 ----
 
-This will create the file `$GOPATH/bin/dlv` so in order to run the `dlv`
-executable from anywhere, make sure you have `$GOPATH/bin` in your `$PATH`.
-
-link:https://github.com/derekparker/delve/tree/master/Documentation/installation:[Here]
-are instructions to install delve on different platforms.
-
-=== Example debugging
-
-In this example we'll debug a running ALM server using delve and set a breakpoint
-on the function `WorkitemController.Show`.
-
-NOTE: To see other ways to run `dlv`, see the link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv.md#dlv[usage page].
-
-Let's assume the binary `./bin/alm` is running.
-
-==== Attach to program
-
-To link:https://github.com/derekparker/delve/blob/master/Documentation/usage/dlv_attach.md#dlv-attach[*attach*]
-the debugger to your running almight-core server,run:
+In response you should get ID of created item, using that you can retrieve the work item.
 
 ----
-$ dlv attach $(pidof ./bin/alm)
+$ ./bin/alm-cli show workitem --id <ID> -H localhost:8080 --pp
 ----
-
-The will bring you into the delve shell which looks like this:
-
-----
-Type 'help' for list of commands.
-(dlv)
-----
-
-The `./bin/alm` program is *paused* right now. Once we've set a breakpoint we will
-let it run again.
-
-==== Set breakpoint
-
-Now, set the link:https://github.com/derekparker/delve/tree/master/Documentation/cli#break[*breakpoint*]
-on the on the `WorkitemController.Show` function that is defined in `workitem.go`:
-
-----
-(dlv) break WorkitemController.Show
-----
-
-As mentioned before the almighty-core server is paused and we need to bring it
-back into a *run* state. To do this, we let the program
-link:https://github.com/derekparker/delve/tree/master/Documentation/cli#continue[*continue*]:
-
-----
-(dlv) continue
-----
-
-==== Trigger breakpoint
-
-Open another shell and fetch an existing workitem using curl:
-
-----
-$ curl http://localhost:8080/api/workitems/1
-----
-
-(Replace the `1` with an existing workitem ID if needed)
-
-Now, your debugger shell show something like this:
-
-----
-> main.(*WorkitemController).Show() /tmp/go/src/github.com/almighty/almighty-core/workitem.go:30 (hits goroutine(11):1 total:3) (PC: 0x405633)
-(dlv)
-----
-
-The program is *paused* again for you to inspect it and the curl command
-has not returned yet.
-
-==== Backtrace
-
-To show a link:https://github.com/derekparker/delve/tree/master/Documentation/cli#stack[backtrace] of how we got here in terms of stack frames, run:
-
-----
-(dlv) bt
-----
-
-The output might look similar to this but it can change over time and as
-development goes on:
-
-----
-0  0x0000000000405633 in main.(*WorkitemController).Show
-   at /tmp/go/src/github.com/almighty/almighty-core/workitem.go:30
-1  0x0000000000520014 in github.com/almighty/almighty-core/app.MountWorkitemController.func3
-   at /tmp/go/src/github.com/almighty/almighty-core/app/controllers.go:222
-2  0x00000000005202fe in github.com/almighty/almighty-core/app.handleWorkitemOrigin.func1
-   at /tmp/go/src/github.com/almighty/almighty-core/app/controllers.go:257
-3  0x0000000000540868 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/service.go:250
-4  0x00000000005d6d3e in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.Recover.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/recover.go:37
-5  0x00000000005d3b9c in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.ErrorHandler.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/error_handler.go:19
-6  0x00000000005d5649 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.LogRequest.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/log_request.go:65
-7  0x00000000005d7229 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware.RequestIDWithHeaderAndLengthLimit.func1.1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/middleware/request_id.go:63
-8  0x000000000054192c in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*Controller).MuxHandler.func1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/service.go:283
-9  0x000000000053faf9 in github.com/almighty/almighty-core/vendor/github.com/goadesign/goa.(*mux).Handle.func1
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/goadesign/goa/mux.go:57
-10  0x000000000076c3c2 in github.com/almighty/almighty-core/vendor/github.com/dimfeld/httptreemux.(*TreeMux).ServeHTTP
-   at /tmp/go/src/github.com/almighty/almighty-core/vendor/github.com/dimfeld/httptreemux/router.go:247
-----
-
-The first incrementing number on every second line stands for the number of the
-stackframe. Stackframe *0* is one where we set the breakpoint earlier.
-
-==== Continue with normal processing
-
-While there are many interesting ways to inspect your program using the *delve*
-debugger, we will instead let our program *continue* to run and thereby proceed
-with delivering the workitem to the curl command.
-
-----
-(dlv) continue
-----
-
-Check the shell in which you ran the curl command to see if you have go a result.
-
-==== Exit debugging
-
-To exit the debugger you can use the link:https://github.com/derekparker/delve/tree/master/Documentation/cli#exit[`exit`]
-command or press kbd:[Ctrl+d], just like you would exit any Bash for example:
-
-----
-(dlv) exit
-Would you like to kill the process? [Y/n] y
-----
-
-You are being asked if you want to kill the process and the answer to this
-question very much depends on the way you've started *delve*. If you've attached
-to a running process like we did, the answer to this question is probably *no*.
-And if you've just started the program under test for debugging purposes then
-you might as well answer y to stop it.

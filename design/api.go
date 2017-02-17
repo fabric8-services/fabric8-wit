@@ -26,6 +26,10 @@ var _ = a.API("alm", func() {
 		a.Credentials()
 	})
 
+	a.Trait("jsonapi-media-type", func() {
+		a.ContentType("application/vnd.api+json")
+	})
+
 	a.JWTSecurity("jwt", func() {
 		a.Description("JWT Token Auth")
 		a.TokenURL("/api/login/authorize")

@@ -6,9 +6,11 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/jsonapi"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 )
 
 // TrackerController implements the tracker resource.
@@ -28,11 +30,14 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				return goa.ErrBadRequest(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+				return ctx.BadRequest(jerrors)
 			default:
-				return goa.ErrInternal(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 		ctx.ResponseData.Header().Set("Location", app.TrackerHref(t.ID))
@@ -47,11 +52,14 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Trackers().Delete(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
-				return goa.ErrNotFound(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
+				return ctx.NotFound(jerrors)
 			default:
-				return goa.ErrInternal(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 		return ctx.OK([]byte{})
@@ -65,12 +73,15 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
-			switch err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
 				log.Printf("not found, id=%s", ctx.ID)
-				return goa.ErrNotFound(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
+				return ctx.NotFound(jerrors)
 			default:
-				return err
+				jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 			}
 		}
 		return ctx.OK(t)
@@ -81,16 +92,19 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
+		return ctx.BadRequest(jerrors)
 	}
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
-		return goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error()))
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse paging: %s", err.Error())))
+		return ctx.BadRequest(jerrors)
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.Trackers().List(ctx.Context, exp, start, &limit)
 		if err != nil {
-			return goa.ErrInternal(fmt.Sprintf("Error listing trackers: %s", err.Error()))
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing trackers: %s", err.Error())))
+			return ctx.InternalServerError(jerrors)
 		}
 		return ctx.OK(result)
 	})
@@ -109,11 +123,14 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 		t, err := appl.Trackers().Save(ctx.Context, toSave)
 
 		if err != nil {
-			switch err := err.(type) {
+			cause := errs.Cause(err)
+			switch cause.(type) {
 			case remoteworkitem.BadParameterError, remoteworkitem.ConversionError:
-				return goa.ErrBadRequest(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
+				return ctx.BadRequest(jerrors)
 			default:
-				return goa.ErrInternal(err.Error())
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
+				return ctx.InternalServerError(jerrors)
 			}
 		}
 		return ctx.OK(t)
