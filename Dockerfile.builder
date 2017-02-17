@@ -2,7 +2,7 @@ FROM centos:7
 MAINTAINER "Konrad Kleine <kkleine@redhat.com>"
 ENV LANG=en_US.utf8
 
-ENV GO_VERSION=1.7.3
+ENV GO_VERSION=1.8
 
 # Some packages might seem weird but they are required by the RVM installer.
 RUN yum install -y \
