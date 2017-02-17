@@ -118,7 +118,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 			log.Error(ctx, map[string]interface{}{
 				"token": keycloakToken.AccessToken,
 				"err":   err,
-			}, "failed to generate token!")
+			}, "failed to create a user and KeyCloak identity using the access token")
 			return redirectWithError(ctx, knownReferer, err.Error())
 
 		}
@@ -210,7 +210,7 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		log.Error(ctx, map[string]interface{}{
 			"keycloakIdentityID": keycloakIdentityID,
 			"err":                err,
-		}, "unable to parse the token")
+		}, "unable to  query for an identity")
 		return nil, nil, errors.New("Error during querying for an identity " + err.Error())
 	}
 
