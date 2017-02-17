@@ -7,8 +7,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"reflect"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
@@ -260,8 +258,10 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
-		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
-			target.Fields[key] = rendering.NewMarkupContentFromLegacy(val.(string))
+		if key == workitem.SystemDescription {
+			if m := rendering.NewMarkupContentFromValue(val); m != nil {
+				target.Fields[key] = *m
+			}
 		} else {
 			target.Fields[key] = val
 		}
