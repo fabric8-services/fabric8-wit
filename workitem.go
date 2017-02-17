@@ -346,7 +346,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
 		Attributes: map[string]interface{}{
-			"version": wi.Version,
+			"version":  wi.Version,
+			"position": wi.Position,
 		},
 		Relationships: &app.WorkItemRelationships{
 			BaseType: &app.RelationBaseType{

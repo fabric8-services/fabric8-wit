@@ -48,7 +48,6 @@ const (
 	SystemMarkupMarkdown  = "Markdown"
 	SystemMarkupJiraWiki  = "JiraWiki"
 	SystemMarkupDefault   = SystemMarkupPlainText
-	SystemOrder           = "order"
 )
 
 // WorkItemType represents a work item type as it is stored in the db
@@ -114,10 +113,11 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 // ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
 func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{}}
+		ID:       strconv.FormatUint(workItem.ID, 10),
+		Type:     workItem.Type,
+		Version:  workItem.Version,
+		Position: workItem.Position,
+		Fields:   map[string]interface{}{}}
 
 	for name, field := range wit.Fields {
 		var err error

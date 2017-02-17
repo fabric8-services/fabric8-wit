@@ -56,7 +56,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
-	assert.NotNil(t, result.Data.Attributes[workitem.SystemOrder])
+	assert.NotNil(t, result.Data.Attributes["position"])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -81,7 +81,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, updated.Data.Attributes[workitem.SystemOrder])
+	assert.NotNil(t, updated.Data.Attributes["position"])
 
 	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
@@ -93,9 +93,8 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 func TestReorderWorkItem(t *testing.T) {
 	resource.Require(t, resource.Database)
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManager(pub, priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	assert.NotNil(t, svc)
 	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	assert.NotNil(t, controller)
@@ -140,7 +139,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, created.Data.Attributes[workitem.SystemOrder])
+	assert.NotNil(t, created.Data.Attributes["position"])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
 }

@@ -1,13 +1,15 @@
+ALTER TABLE work_items ADD COLUMN position double precision;
+
 CREATE OR REPLACE FUNCTION adds_order() RETURNS void as $$
 -- adds_order() function adds order to existing work_items in database
 	DECLARE 
 		i integer=1000;
 		r RECORD;
-		xyz CURSOR FOR SELECT id, fields->'order' from work_items;
+		xyz CURSOR FOR SELECT id, position from work_items;
 	BEGIN
 		open xyz;
 			FOR r in FETCH ALL FROM xyz LOOP
-				UPDATE work_items set fields=jsonb_set(fields, '{order}', to_jsonb(i)) where id=r.id;
+				UPDATE work_items set position=i where id=r.id;
 				i := i+1000;
 			END LOOP;
 		close xyz;

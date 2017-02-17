@@ -35,7 +35,10 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {
 		a.Example(0)
 	})
-	a.Required("type", "fields", "version")
+	a.Attribute("position", d.Number, "Position", func() {
+		a.Example(0)
+	})
+	a.Required("type", "fields", "version", "position")
 })
 
 // CreateWorkItemTypePayload explains how input payload should look like
