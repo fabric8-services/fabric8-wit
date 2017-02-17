@@ -34,7 +34,7 @@ import (
 	"github.com/goadesign/goa/middleware/security/jwt"
 )
 
-var (
+vr (
 	// Commit current build commit set by build script
 	Commit = "0"
 	// BuildTime set by build script in ISO 8601 (UTC) format: YYYY-MM-DDThh:mm:ssTZD (see https://www.w3.org/TR/NOTE-datetime for details)
