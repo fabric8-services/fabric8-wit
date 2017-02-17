@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 var _ WorkItemRepository = &UndoableWorkItemRepository{}
@@ -111,4 +112,8 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 // List implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
 	return r.wrapped.List(ctx, criteria, start, length)
+}
+
+func (r *UndoableWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]WICountsPerIteration, error) {
+	return map[string]WICountsPerIteration{}, nil
 }

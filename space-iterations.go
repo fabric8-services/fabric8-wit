@@ -114,8 +114,15 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		for _, itr := range iterations {
 			itrMap[itr.ID] = itr
 		}
+
+		// fetch extra information(counts of WI in each iteration of the space) to be added in response
+		wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations, parentPathResolver(itrMap))
+		res.Data = ConvertIterations(ctx.RequestData, iterations, UpdateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
+
 		return ctx.OK(res)
 	})
 }

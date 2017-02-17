@@ -6,6 +6,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 )
@@ -88,7 +89,7 @@ func TestTrackerQueryList(t *testing.T) {
 
 		tracker1, _ := trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		queryRepo.Create(context.Background(), "is:open is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID)
-		queryRepo.Create(context.Background(), "is:close is:issue user:arquillian author:aslakknutsen", "", tracker1.ID)
+		queryRepo.Create(context.Background(), "is:close is:issue user:arquillian author:aslakknutsen", "15 * * * * *", tracker1.ID)
 
 		tracker2, _ := trackerRepo.Create(context.Background(), "http://issues.jboss.com", ProviderJira)
 		queryRepo.Create(context.Background(), "project = ARQ AND text ~ 'arquillian'", "15 * * * * *", tracker2.ID)
@@ -103,6 +104,7 @@ func TestTrackerQueryList(t *testing.T) {
 
 func doWithTrackerRepositories(t *testing.T, todo func(trackerRepo application.TrackerRepository, queryRepo application.TrackerQueryRepository)) {
 	doWithTransaction(t, func(db *gorm.DB) {
+		defer cleaner.DeleteCreatedEntities(db)()
 		trackerRepo := NewTrackerRepository(db)
 		queryRepo := NewTrackerQueryRepository(db)
 		todo(trackerRepo, queryRepo)
