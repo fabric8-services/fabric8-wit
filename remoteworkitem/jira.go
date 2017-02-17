@@ -2,14 +2,16 @@ package remoteworkitem
 
 import (
 	"encoding/json"
+	"time"
 
 	jira "github.com/andygrunwald/go-jira"
 )
 
 // JiraTracker represents the Jira tracker provider
 type JiraTracker struct {
-	URL   string
-	Query string
+	URL         string
+	Query       string
+	LastUpdated *time.Time
 }
 
 type jiraFetcher interface {
@@ -29,6 +31,11 @@ func (f *jiraIssueFetcher) getIssue(issueID string) (*jira.Issue, *jira.Response
 	return f.client.Issue.Get(issueID)
 }
 
+// LastUpdatedTime return the last updated time
+func (j *JiraTracker) LastUpdatedTime() *time.Time {
+	return j.LastUpdated
+}
+
 // Fetch collects data from Jira
 func (j *JiraTracker) Fetch() chan TrackerItemContent {
 	f := jiraIssueFetcher{}
@@ -44,8 +51,9 @@ func (j *JiraTracker) fetch(f jiraFetcher) chan TrackerItemContent {
 		for _, l := range issues {
 			id, _ := json.Marshal(l.Key)
 			issue, _, _ := f.getIssue(l.Key)
+			lu, _ := time.Parse("2006-02-02", l.Fields.Updated)
 			content, _ := json.Marshal(issue)
-			item <- TrackerItemContent{ID: string(id), Content: content}
+			item <- TrackerItemContent{ID: string(id), Content: content, LastUpdated: &lu}
 		}
 		close(item)
 	}()

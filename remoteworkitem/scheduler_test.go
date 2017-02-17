@@ -55,14 +55,14 @@ func TestNewScheduler(t *testing.T) {
 func TestLookupProvider(t *testing.T) {
 	resource.Require(t, resource.Database)
 	ts1 := trackerSchedule{TrackerType: ProviderGithub}
-	tp1 := lookupProvider(ts1)
+	tp1 := lookupProvider(ts1, db)
 	require.NotNil(t, tp1)
 
 	ts2 := trackerSchedule{TrackerType: ProviderJira}
-	tp2 := lookupProvider(ts2)
+	tp2 := lookupProvider(ts2, db)
 	require.NotNil(t, tp2)
 
 	ts3 := trackerSchedule{TrackerType: "unknown"}
-	tp3 := lookupProvider(ts3)
+	tp3 := lookupProvider(ts3, db)
 	require.Nil(t, tp3)
 }

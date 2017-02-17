@@ -17,7 +17,7 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 	remoteID := item.ID
 	content := string(item.Content)
 
-	var ti TrackerItem
+	ti := TrackerItem{}
 	if db.Where("remote_item_id = ? AND tracker_id = ?", remoteID, tID).Find(&ti).RecordNotFound() {
 		ti = TrackerItem{
 			Item:         content,

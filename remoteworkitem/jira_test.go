@@ -13,11 +13,11 @@ import (
 type fakeJiraIssueFetcher struct{}
 
 func (f *fakeJiraIssueFetcher) listIssues(jql string, options *jira.SearchOptions) ([]jira.Issue, *jira.Response, error) {
-	return []jira.Issue{{}}, &jira.Response{}, nil
+	return []jira.Issue{{Fields: &jira.IssueFields{Updated: "2016-01-09"}}}, &jira.Response{}, nil
 }
 
 func (f *fakeJiraIssueFetcher) getIssue(issueID string) (*jira.Issue, *jira.Response, error) {
-	return &jira.Issue{ID: "1"}, &jira.Response{}, nil
+	return &jira.Issue{ID: "1", Fields: &jira.IssueFields{Updated: "2016-01-09"}}, &jira.Response{}, nil
 }
 
 func TestJiraFetch(t *testing.T) {
@@ -25,7 +25,7 @@ func TestJiraFetch(t *testing.T) {
 	f := fakeJiraIssueFetcher{}
 	j := JiraTracker{URL: "", Query: ""}
 	i := <-j.fetch(&f)
-	if string(i.Content) != `{"id":"1"}` {
+	if string(i.Content) != `{"id":"1","fields":{"issuetype":{},"summary":"","updated":"2016-01-09"}}` {
 		t.Errorf("Content is not matching: %#v", string(i.Content))
 	}
 
@@ -40,7 +40,7 @@ func TestJiraFetchWithRecording(t *testing.T) {
 	defer r.Stop()
 
 	h := &http.Client{
-		Timeout:   100 * time.Second,
+		Timeout:   1 * time.Second,
 		Transport: r.Transport,
 	}
 

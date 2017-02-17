@@ -14,6 +14,9 @@ import (
 
 type fakeGithubIssueFetcher struct{}
 
+func (f *fakeGithubIssueFetcher) rateLimit() {
+}
+
 // ListIssues list all issues
 func (f *fakeGithubIssueFetcher) listIssues(query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
 	if opts.ListOptions.Page == 0 {
@@ -44,6 +47,9 @@ func TestGithubFetch(t *testing.T) {
 }
 
 type fakeGithubIssueFetcherWithRateLimit struct{}
+
+func (f *fakeGithubIssueFetcherWithRateLimit) rateLimit() {
+}
 
 // ListIssues list all issues
 func (f *fakeGithubIssueFetcherWithRateLimit) listIssues(query string, opts *github.SearchOptions) (*github.IssuesSearchResult, *github.Response, error) {
@@ -81,11 +87,11 @@ func TestGithubFetchWithRecording(t *testing.T) {
 	g := &GithubTracker{URL: "", Query: "is:open is:issue user:almighty-test"}
 	fetch := g.fetch(&f)
 	i := <-fetch
-	if !strings.Contains(string(i.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/2"`) {
+	if !strings.Contains(string(i.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/1"`) {
 		t.Errorf("Content is not matching: %#v", string(i.Content))
 	}
 	i2 := <-fetch
-	if !strings.Contains(string(i2.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/1"`) {
+	if !strings.Contains(string(i2.Content), `"html_url":"https://github.com/almighty-test/almighty-test-unit/issues/2"`) {
 		t.Errorf("Content is not matching: %#v", string(i2.Content))
 	}
 }
