@@ -348,7 +348,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		return errs.WithStack(err)
 	}
 
-	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(name, cat.ID)
+	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
@@ -459,7 +459,7 @@ func createOrUpdatePlannerItemExtension(typeName string, ctx context.Context, wi
 }
 
 func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
-	wit, err := witr.LoadTypeFromDB(typeName)
+	wit, err := witr.LoadTypeFromDB(ctx, typeName)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -482,7 +482,7 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 				"extendedTypeName": *extendedTypeName,
 			}, "Work item type %s extends another type %v will copy fields from the extended type", typeName, *extendedTypeName)
 
-			extendedWit, err := witr.LoadTypeFromDB(*extendedTypeName)
+			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeName)
 			if err != nil {
 				return errs.WithStack(err)
 			}

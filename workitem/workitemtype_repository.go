@@ -41,7 +41,7 @@ type GormWorkItemTypeRepository struct {
 // Load returns the work item for the given id
 // returns NotFoundError, InternalError
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
-	res, err := r.LoadTypeFromDB(name)
+	res, err := r.LoadTypeFromDB(ctx, name)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -51,11 +51,11 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 }
 
 // LoadTypeFromDB return work item type for the given id
-func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
 	log.Logger().Infoln("Loading work item type", name)
 	res, ok := cache.Get(name)
 	if !ok {
-		log.Info(nil, map[string]interface{}{
+		log.Info(ctx, map[string]interface{}{
 			"pkg":  "workitem",
 			"type": name,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
@@ -63,7 +63,7 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType,
 
 		db := r.db.Model(&res).Where("name=?", name).First(&res)
 		if db.RecordNotFound() {
-			log.Error(nil, map[string]interface{}{
+			log.Error(ctx, map[string]interface{}{
 				"witName": name,
 			}, "work item type repository not found")
 			return nil, errors.NewNotFoundError("work item type", name)
@@ -85,7 +85,7 @@ func ClearGlobalWorkItemTypeCache() {
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
-	existing, _ := r.LoadTypeFromDB(name)
+	existing, _ := r.LoadTypeFromDB(ctx, name)
 	if existing != nil {
 		log.Error(ctx, map[string]interface{}{"witName": name}, "unable to create new work item type")
 		return nil, errors.NewBadParameterError("name", name)

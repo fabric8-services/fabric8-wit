@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/goadesign/goa/client"
 	"github.com/goadesign/goa/middleware"
 	"golang.org/x/net/context"
 )
@@ -91,10 +92,7 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 		}
 
 		if ctx != nil {
-			reqID := middleware.ContextRequestID(ctx)
-			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
-			}
+			entry = entry.WithField("req_id", extractRequestID(ctx))
 		}
 
 		if len(args) > 0 {
@@ -115,11 +113,9 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 		}
 
 		if ctx != nil {
-			reqID := middleware.ContextRequestID(ctx)
-			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
-			}
+			entry = entry.WithField("req_id", extractRequestID(ctx))
 		}
+
 		if len(args) > 0 {
 			entry.WithFields(fields).Warnf(format, args...)
 		} else {
@@ -133,10 +129,7 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 		entry := log.NewEntry(logger)
 
 		if ctx != nil {
-			reqID := middleware.ContextRequestID(ctx)
-			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
-			}
+			entry = entry.WithField("req_id", extractRequestID(ctx))
 		}
 
 		if len(args) > 0 {
@@ -152,10 +145,7 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 		entry := log.WithField("pid", os.Getpid())
 
 		if ctx != nil {
-			reqID := middleware.ContextRequestID(ctx)
-			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
-			}
+			entry = entry.WithField("req_id", extractRequestID(ctx))
 		}
 
 		if len(args) > 0 {
@@ -171,10 +161,7 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 		entry := log.NewEntry(logger)
 
 		if ctx != nil {
-			reqID := middleware.ContextRequestID(ctx)
-			if reqID != "" {
-				entry = entry.WithField("requestID", reqID)
-			}
+			entry = entry.WithField("req_id", extractRequestID(ctx))
 		}
 
 		if len(args) > 0 {
@@ -183,6 +170,16 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 			entry.WithFields(fields).Debugln(format)
 		}
 	}
+}
+
+// extractRequestID obtains the request ID either from a goa client or middleware
+func extractRequestID(ctx context.Context) string {
+	reqID := middleware.ContextRequestID(ctx)
+	if reqID == "" {
+		return client.ContextRequestID(ctx)
+	}
+
+	return reqID
 }
 
 func extractCallerDetails() (string, int, string, error) {

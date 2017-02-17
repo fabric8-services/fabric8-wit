@@ -32,7 +32,7 @@ type GormWorkItemRepository struct {
 }
 
 // LoadFromDB returns the work item with the given ID in model representation.
-func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
+func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, ID string) (*WorkItem, error) {
 	id, err := strconv.ParseUint(ID, 10, 64)
 	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
@@ -60,11 +60,11 @@ func (r *GormWorkItemRepository) LoadFromDB(ID string) (*WorkItem, error) {
 // Load returns the work item for the given id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
-	res, err := r.LoadFromDB(ID)
+	res, err := r.LoadFromDB(ctx, ID)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	wiType, err := r.wir.LoadTypeFromDB(res.Type)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -120,7 +120,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
-	wiType, err := r.wir.LoadTypeFromDB(wi.Type)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
 	if err != nil {
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
@@ -162,7 +162,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
-	wiType, err := r.wir.LoadTypeFromDB(typeID)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("type", typeID)
 	}
@@ -297,7 +297,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	res := make([]*app.WorkItem, len(result))
 
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
@@ -319,7 +319,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var res []WICountsPerIteration
 	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,
-				count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations 
+				count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed`).Joins(`left join iterations
 				on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb`).Where(`iterations.space_id = ?
 				and work_items.deleted_at IS NULL`, spaceID).Group(`IterationId`).Scan(&res)
 	if db.Error != nil {
