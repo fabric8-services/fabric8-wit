@@ -105,8 +105,8 @@ func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID string) (*
 
 // LoadTypeFromDB return work item link type for the given name in the correct link category
 // NOTE: Two link types can coexist with different categoryIDs.
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
-	log.Info(nil, map[string]interface{}{
+func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(ctx context.Context, name string, categoryId satoriuuid.UUID) (*WorkItemLinkType, error) {
+	log.Info(ctx, map[string]interface{}{
 		"pkg":        "link",
 		"wiltName":   name,
 		"categoryId": categoryId,
@@ -115,7 +115,7 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name st
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("name=? AND link_category_id=?", name, categoryId.String()).First(&res)
 	if db.RecordNotFound() {
-		log.Error(nil, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"wiltName":   name,
 			"categoryId": categoryId.String(),
 		}, "work item link type not found")
@@ -128,8 +128,8 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(name st
 }
 
 // LoadTypeFromDB return work item link type for the given ID
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) (*WorkItemLinkType, error) {
-	log.Info(nil, map[string]interface{}{
+func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ctx context.Context, ID satoriuuid.UUID) (*WorkItemLinkType, error) {
+	log.Info(ctx, map[string]interface{}{
 		"pkg":    "link",
 		"wiltID": ID.String(),
 	}, "Loading work item link type with ID ", ID)
@@ -137,7 +137,7 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ID satoriuuid.UUID) 
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("ID=?", ID.String()).First(&res)
 	if db.RecordNotFound() {
-		log.Error(nil, map[string]interface{}{
+		log.Error(ctx, map[string]interface{}{
 			"wiltID": ID.String(),
 		}, "work item link type not found")
 		return nil, errors.NewNotFoundError("work item link type", ID.String())
