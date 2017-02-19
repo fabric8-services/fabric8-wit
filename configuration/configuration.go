@@ -42,7 +42,7 @@ func Setup(configFilePath string) error {
 	// To override nested variables through environment variables, we
 	// need to make sure that we don't have to use dots (".") inside the
 	// environment variable names.
-	// To override foo.bar you need to set ALM_FOO_BAR
+	// To override foo.bar you need to set ALMIGHTY_FOO_BAR
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	viper.SetTypeByDefaultValue(true)
