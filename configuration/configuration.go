@@ -258,13 +258,7 @@ func GetKeycloakTestUserSecret() string {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 func GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
-	if viper.IsSet(varKeycloakEndpointAuth) {
-		return viper.GetString(varKeycloakEndpointAuth), nil
-	}
-	if IsPostgresDeveloperModeEnabled() {
-		return devModeKeycloakEndpointAuth, nil
-	}
-	return getKeycloakURL(req, openIDConnectPath("auth"))
+	return getKeycloakEndpoing(req, varKeycloakEndpointAuth, devModeKeycloakEndpointAuth, "auth")
 }
 
 // GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
@@ -272,13 +266,7 @@ func GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 func GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
-	if viper.IsSet(varKeycloakEndpointToken) {
-		return viper.GetString(varKeycloakEndpointToken), nil
-	}
-	if IsPostgresDeveloperModeEnabled() {
-		return devModeKeycloakEndpointToken, nil
-	}
-	return getKeycloakURL(req, openIDConnectPath("token"))
+	return getKeycloakEndpoing(req, varKeycloakEndpointToken, devModeKeycloakEndpointToken, "token")
 }
 
 // GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
@@ -286,13 +274,22 @@ func GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 func GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
-	if viper.IsSet(varKeycloakEndpointUserinfo) {
-		return viper.GetString(varKeycloakEndpointUserinfo), nil
+	return getKeycloakEndpoing(req, varKeycloakEndpointUserinfo, devModeKeycloakEndpointUserinfo, "userinfo")
+}
+
+func getKeycloakEndpoing(req *goa.RequestData, endpointVarName string, devModeEndpoint string, pathSufix string) (string, error) {
+	if viper.IsSet(endpointVarName) {
+		return viper.GetString(endpointVarName), nil
 	}
 	if IsPostgresDeveloperModeEnabled() {
-		return devModeKeycloakEndpointUserinfo, nil
+		return devModeEndpoint, nil
 	}
-	return getKeycloakURL(req, openIDConnectPath("userinfo"))
+	endpoint, err := getKeycloakURL(req, openIDConnectPath(pathSufix))
+	if err != nil {
+		return "", err
+	}
+	viper.Set(endpointVarName, endpoint) // Set the variable, so, we don't have to recalculate it again the next time
+	return endpoint, nil
 }
 
 func openIDConnectPath(suffix string) string {
