@@ -1,4 +1,4 @@
 // Package design contains the generic API machinery code of our adder API generated
-// using goa framework. This generated API accepts HTTP GET requests from multiple
-// clients.
+// using goa framework. This generated API accepts HTTP GET/POST/PUT/DELETE requests
+// from multiple clients.
 package design
