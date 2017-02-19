@@ -76,7 +76,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			if error != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			itrMap := make(IterationIDMap)
+			itrMap := make(iterationIDMap)
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
@@ -110,7 +110,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		itrMap := make(IterationIDMap)
+		itrMap := make(iterationIDMap)
 		for _, itr := range iterations {
 			itrMap[itr.ID] = itr
 		}

@@ -2,13 +2,14 @@ package workitem
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 )
@@ -40,7 +41,7 @@ type GormWorkItemTypeRepository struct {
 // Load returns the work item for the given id
 // returns NotFoundError, InternalError
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
-	res, err := r.LoadTypeFromDB(name)
+	res, err := r.LoadTypeFromDB(ctx, name)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -50,16 +51,21 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 }
 
 // LoadTypeFromDB return work item type for the given id
-func (r *GormWorkItemTypeRepository) LoadTypeFromDB(name string) (*WorkItemType, error) {
-	log.Printf("loading work item type %s", name)
+func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
+	log.Logger().Infoln("Loading work item type", name)
 	res, ok := cache.Get(name)
 	if !ok {
-		log.Printf("Work item type %s doesn't exist in the cache. Loading from DB...", name)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":  "workitem",
+			"type": name,
+		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
 		db := r.db.Model(&res).Where("name=?", name).First(&res)
 		if db.RecordNotFound() {
-			log.Printf("not found, res=%v", res)
+			log.Error(ctx, map[string]interface{}{
+				"witName": name,
+			}, "work item type repository not found")
 			return nil, errors.NewNotFoundError("work item type", name)
 		}
 		if err := db.Error; err != nil {
@@ -79,9 +85,9 @@ func ClearGlobalWorkItemTypeCache() {
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
-	existing, _ := r.LoadTypeFromDB(name)
+	existing, _ := r.LoadTypeFromDB(ctx, name)
 	if existing != nil {
-		log.Printf("creating type %s again", name)
+		log.Error(ctx, map[string]interface{}{"witName": name}, "unable to create new work item type")
 		return nil, errors.NewBadParameterError("name", name)
 	}
 	allFields := map[string]FieldDefinition{}

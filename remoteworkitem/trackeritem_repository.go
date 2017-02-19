@@ -1,12 +1,11 @@
 package remoteworkitem
 
 import (
-	"fmt"
-
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -65,17 +64,28 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 	}
 
 	if len(existingWorkItems) != 0 {
-		fmt.Println("Workitem exists, will be updated")
+		log.Info(nil, map[string]interface{}{
+			"pkg":      "remoteworkitem",
+			"workitem": workItem,
+		}, "Workitem exists, will be updated")
+
 		existingWorkItem := existingWorkItems[0]
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
 		newWorkItem, err = wir.Save(context.Background(), *existingWorkItem)
 		if err != nil {
-			fmt.Println("Error updating work item : ", err)
+			log.Error(nil, map[string]interface{}{
+				"existingWorkitem": existingWorkItem,
+				"err":              err,
+			}, "unable to update the work item")
 		}
 	} else {
-		fmt.Println("Work item not found , will now create new work item")
+		log.Info(nil, map[string]interface{}{
+			"pkg":           "remoteworkitem",
+			"sqlExpression": sqlExpression,
+			"err":           err,
+		}, "Work item not found , will now create new work item")
 		c := workItem.Fields[workitem.SystemCreator]
 		var creator string
 		if c != nil {
@@ -83,7 +93,12 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, provider string) (*a
 		}
 		newWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
-			fmt.Println("Error creating work item : ", err)
+			log.Error(nil, map[string]interface{}{
+				"creator":            creator,
+				"workItem.Fields":    workItem.Fields,
+				"workitem.SystemBug": workitem.SystemBug,
+				"err":                err,
+			}, "unable to create the work item")
 		}
 	}
 	return newWorkItem, errors.WithStack(err)

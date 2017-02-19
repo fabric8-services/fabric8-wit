@@ -80,7 +80,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			if error != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			itrMap := make(IterationIDMap)
+			itrMap := make(iterationIDMap)
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
@@ -268,10 +268,10 @@ func ConvertFromLtreeFormat(uuid string) string {
 	return strings.Replace(uuid, "_", "-", -1)
 }
 
-// IterationIDMap contains a map that will hold iteration's ID as its key
-type IterationIDMap map[uuid.UUID]*iteration.Iteration
+// iterationIDMap contains a map that will hold iteration's ID as its key
+type iterationIDMap map[uuid.UUID]*iteration.Iteration
 
-func parentPathResolver(itrMap IterationIDMap) IterationConvertFunc {
+func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
 		parentUUIDStrings := strings.Split(iteration.ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInService)
 		parentUUIDs := convertToUUID(parentUUIDStrings)
