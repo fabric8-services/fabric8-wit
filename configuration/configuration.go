@@ -305,9 +305,18 @@ func getKeycloakURL(req *goa.RequestData, path string) (string, error) {
 		scheme = "https"
 	}
 	currentHost := req.Host
-	newHost, err := rest.ReplaceDomainPrefix(currentHost, GetKeycloakDomainPrefix())
-	if err != nil {
-		return "", err
+	var newHost string
+	var err error
+	if currentHost == "demo.api.almighty.io" {
+		// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
+		// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
+		// So, we need to treat it as an exception
+		newHost = "sso.demo.almighty.io"
+	} else {
+		newHost, err = rest.ReplaceDomainPrefix(currentHost, GetKeycloakDomainPrefix())
+		if err != nil {
+			return "", err
+		}
 	}
 	newURL := fmt.Sprintf("%s://%s/%s", scheme, newHost, path)
 
