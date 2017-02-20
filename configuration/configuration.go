@@ -62,9 +62,10 @@ func Setup(configFilePath string) error {
 	return nil
 }
 
-// Constants for viper variable names. Will be used to set
-// default values as well as to get each value
 const (
+	// Constants for viper variable names. Will be used to set
+	// default values as well as to get each value
+
 	varPostgresHost                 = "postgres.host"
 	varPostgresPort                 = "postgres.port"
 	varPostgresUser                 = "postgres.user"
@@ -88,6 +89,15 @@ const (
 	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
 	varTokenPublicKey               = "token.publickey"
 	varTokenPrivateKey              = "token.privatekey"
+
+	// The host name exception of the api service to be taken into account
+	// when converting it to sso.demo.almighty.io
+	// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
+	// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
+	// So, we need to treat it as an exception
+
+	apiHostNameException = "demo.api.almighty.io"
+	ssoHostNameException = "sso.demo.almighty.io"
 )
 
 func setConfigDefaults() {
@@ -257,27 +267,30 @@ func GetKeycloakTestUserSecret() string {
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
 func GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
-	return getKeycloakEndpoing(req, varKeycloakEndpointAuth, devModeKeycloakEndpointAuth, "auth")
+	return getKeycloakEndpoint(req, varKeycloakEndpointAuth, devModeKeycloakEndpointAuth, "auth")
 }
 
 // GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
 func GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
-	return getKeycloakEndpoing(req, varKeycloakEndpointToken, devModeKeycloakEndpointToken, "token")
+	return getKeycloakEndpoint(req, varKeycloakEndpointToken, devModeKeycloakEndpointToken, "token")
 }
 
 // GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
 func GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
-	return getKeycloakEndpoing(req, varKeycloakEndpointUserinfo, devModeKeycloakEndpointUserinfo, "userinfo")
+	return getKeycloakEndpoint(req, varKeycloakEndpointUserinfo, devModeKeycloakEndpointUserinfo, "userinfo")
 }
 
-func getKeycloakEndpoing(req *goa.RequestData, endpointVarName string, devModeEndpoint string, pathSufix string) (string, error) {
+func getKeycloakEndpoint(req *goa.RequestData, endpointVarName string, devModeEndpoint string, pathSufix string) (string, error) {
 	if viper.IsSet(endpointVarName) {
 		return viper.GetString(endpointVarName), nil
 	}
@@ -304,11 +317,11 @@ func getKeycloakURL(req *goa.RequestData, path string) (string, error) {
 	currentHost := req.Host
 	var newHost string
 	var err error
-	if currentHost == "demo.api.almighty.io" {
+	if currentHost == apiHostNameException {
 		// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
 		// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
 		// So, we need to treat it as an exception
-		newHost = "sso.demo.almighty.io"
+		newHost = ssoHostNameException
 	} else {
 		newHost, err = rest.ReplaceDomainPrefix(currentHost, GetKeycloakDomainPrefix())
 		if err != nil {

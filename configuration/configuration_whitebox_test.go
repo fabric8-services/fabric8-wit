@@ -21,9 +21,13 @@ func TestGetKeycloakURLOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
-	url, err := getKeycloakURL(req, "somepath")
+	url, err := getKeycloakURL(reqLong, "somepath")
 	assert.Nil(t, err)
 	assert.Equal(t, "http://sso.service.domain.org/somepath", url)
+
+	url, err = getKeycloakURL(reqShort, "somepath2")
+	assert.Nil(t, err)
+	assert.Equal(t, "http://sso.domain.org/somepath2", url)
 }
 
 func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
@@ -49,7 +53,7 @@ func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
 		Request: &http.Request{Host: "demo.api.almighty.io"},
 	}
 
-	url, err := getKeycloakURL(r, "somepath")
+	url, err := getKeycloakURL(r, "somepath3")
 	assert.Nil(t, err)
-	assert.Equal(t, "http://sso.demo.almighty.io/somepath", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/somepath3", url)
 }

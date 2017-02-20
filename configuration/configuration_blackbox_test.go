@@ -12,13 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var req *goa.RequestData
+var reqLong *goa.RequestData
+var reqShort *goa.RequestData
 
 func TestMain(m *testing.M) {
 	resetConfiguration()
 
-	req = &goa.RequestData{
+	reqLong = &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	reqShort = &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.org"},
 	}
 	os.Exit(m.Run())
 }
@@ -33,7 +37,12 @@ func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
-	url, err := GetKeycloakEndpointAuth(req)
+	url, err := GetKeycloakEndpointAuth(reqLong)
+	assert.Nil(t, err)
+	// In dev mode it's always the defualt value regardless of the request
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth", url)
+
+	url, err = GetKeycloakEndpointAuth(reqShort)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth", url)
@@ -50,7 +59,11 @@ func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", "authEndpoint")
 	resetConfiguration()
 
-	url, err := GetKeycloakEndpointAuth(req)
+	url, err := GetKeycloakEndpointAuth(reqLong)
+	assert.Nil(t, err)
+	assert.Equal(t, "authEndpoint", url)
+
+	url, err = GetKeycloakEndpointAuth(reqShort)
 	assert.Nil(t, err)
 	assert.Equal(t, "authEndpoint", url)
 }
@@ -59,7 +72,12 @@ func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
-	url, err := GetKeycloakEndpointToken(req)
+	url, err := GetKeycloakEndpointToken(reqLong)
+	assert.Nil(t, err)
+	// In dev mode it's always the defualt value regardless of the request
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token", url)
+
+	url, err = GetKeycloakEndpointToken(reqShort)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token", url)
@@ -76,7 +94,11 @@ func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", "tokenEndpoint")
 	resetConfiguration()
 
-	url, err := GetKeycloakEndpointToken(req)
+	url, err := GetKeycloakEndpointToken(reqLong)
+	assert.Nil(t, err)
+	assert.Equal(t, "tokenEndpoint", url)
+
+	url, err = GetKeycloakEndpointToken(reqShort)
 	assert.Nil(t, err)
 	assert.Equal(t, "tokenEndpoint", url)
 }
@@ -85,7 +107,12 @@ func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
-	url, err := GetKeycloakEndpointUserInfo(req)
+	url, err := GetKeycloakEndpointUserInfo(reqLong)
+	assert.Nil(t, err)
+	// In dev mode it's always the defualt value regardless of the request
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo", url)
+
+	url, err = GetKeycloakEndpointUserInfo(reqShort)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
 	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo", url)
@@ -102,7 +129,11 @@ func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", "userinfoEndpoint")
 	resetConfiguration()
 
-	url, err := GetKeycloakEndpointUserInfo(req)
+	url, err := GetKeycloakEndpointUserInfo(reqLong)
+	assert.Nil(t, err)
+	assert.Equal(t, "userinfoEndpoint", url)
+
+	url, err = GetKeycloakEndpointUserInfo(reqShort)
 	assert.Nil(t, err)
 	assert.Equal(t, "userinfoEndpoint", url)
 }
