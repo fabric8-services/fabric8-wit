@@ -5,11 +5,11 @@ CREATE OR REPLACE FUNCTION adds_order() RETURNS void as $$
 	DECLARE 
 		i integer=1000;
 		r RECORD;
-		xyz CURSOR FOR SELECT id, position from work_items;
+		xyz CURSOR FOR SELECT id, execution_order from work_items;
 	BEGIN
 		open xyz;
 			FOR r in FETCH ALL FROM xyz LOOP
-				UPDATE work_items set position=i where id=r.id;
+				UPDATE work_items set execution_order=i where id=r.id;
 				i := i+1000;
 			END LOOP;
 		close xyz;
