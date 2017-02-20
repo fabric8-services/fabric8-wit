@@ -16,7 +16,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const orderDiff = 1000
+const orderValue = 1000
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
