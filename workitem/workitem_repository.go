@@ -143,7 +143,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 	if err != nil {
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
-
 	if beforeID != "" {
 		beforeId, err := strconv.ParseUint(beforeID, 10, 64)
 		if err != nil || beforeId == 0 {
@@ -299,8 +298,9 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	pos = pos + orderValue
 	fields[SystemOrder] = pos
 	wi := WorkItem{
-		Type:   typeID,
-		Fields: Fields{},
+		Type:           typeID,
+		Fields:         Fields{},
+		Executionorder: pos,
 	}
 
 	fields[SystemCreator] = creator
