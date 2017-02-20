@@ -2,8 +2,6 @@ package remoteworkitem
 
 import (
 	"fmt"
-	"log"
-	"math"
 	"reflect"
 )
 
@@ -11,15 +9,6 @@ import (
 func Flatten(source map[string]interface{}) map[string]interface{} {
 	target := make(map[string]interface{})
 	flatten(target, source, nil)
-	log.Println("Target: ")
-	for k, v := range target {
-		switch v.(type) {
-		case string:
-			value := v.(string)
-			l := int(math.Min(float64(60), float64(len(value))))
-			log.Printf("\t%s=%v\n", k, value[0:l])
-		}
-	}
 	return target
 }
 
