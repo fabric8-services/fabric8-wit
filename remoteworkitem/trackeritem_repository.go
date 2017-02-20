@@ -68,10 +68,16 @@ func bindAssignees(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType stri
 	}
 	// copy all fields from remoteworkitem into result workitem
 	for fieldName, fieldValue := range remoteWorkItem.Fields {
-		if fieldName == remoteAssigneeLogins {
-			identities := make([]string, 5)
+		if fieldName == remoteAssigneeProfileURLs {
+			if fieldValue == nil {
+				log.Println("Assignee's Profile URL value is nil.")
+				workItem.Fields[workitem.SystemAssignees] = make([]string, 0)
+				continue
+			}
+			identities := make([]string, 0)
 			assigneeLogin := fieldValue.(string)
 			assigneeProfileURL := remoteWorkItem.Fields[remoteAssigneeProfileURLs].(string)
+			log.Printf("Looking for identity of user with profile URL=%s\n", assigneeProfileURL)
 			// bind the assignee to an existing identity, or create a new one
 			identity, err := identityRepository.First(account.IdentityFilterByProfileURL(assigneeProfileURL))
 			if err != nil {
@@ -95,6 +101,7 @@ func bindAssignees(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType stri
 				identities = append(identities, identity.ID.String())
 			} else {
 				// use existing identity
+				log.Printf("Using existing identity with ID: %v", identity.ID.String())
 				identities = append(identities, identity.ID.String())
 			}
 			// associate the identities to the work item
