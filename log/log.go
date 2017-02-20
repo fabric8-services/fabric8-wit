@@ -15,6 +15,8 @@ var (
 	logger = log.New()
 )
 
+// InitializeLogger creates a default logger whose ouput format, log level differs
+// depending of whether the developer mode flag is enable/disabled.
 func InitializeLogger(developerModeFlag bool) {
 	logger = log.New()
 
@@ -43,6 +45,8 @@ func InitializeLogger(developerModeFlag bool) {
 
 }
 
+// NewCustomizedLogger creates a custom logger specifying the desired log level
+// and the developer mode flag. Returns the logger object and the error.
 func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, error) {
 	logger := log.New()
 
@@ -78,10 +82,17 @@ func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, err
 	return logger, nil
 }
 
+// Logger returns the current logger object.
 func Logger() *log.Logger {
 	return logger
 }
 
+// Error logs an error message that might contain the following attributes: pid,
+// request id if provided by the context, file location of the caller, line that
+// called the log Error function and the function name. Moreover, we can use the
+// parameter fields to add additional attributes to the output message. Likewise
+// format and args are used to print a detailed message with the reasons of the
+// error log.
 func Error(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.ErrorLevel {
 		entry := log.WithField("pid", os.Getpid())
@@ -103,6 +114,12 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 	}
 }
 
+// Warn logs a warning message that might contain the following attributes:
+// request id if provided by the context, the file and the
+// function name that invoked the Warn() function. In this function, we can use
+// the parameter fields to add additional attributes to the output of this
+// message. Likewise format and args are used to print a detailed message with
+// the reasons of the warning log.
 func Warn(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.WarnLevel {
 		entry := log.NewEntry(logger)
@@ -124,6 +141,10 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 	}
 }
 
+// Info logs an info message that might contain the request id if provided by
+// the context. In this function, the parameter fields enables to additional
+// attributes to the message. The format and args input arguments are used to
+// print a detailed information about the reasons of this log.
 func Info(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.InfoLevel {
 		entry := log.NewEntry(logger)
@@ -140,6 +161,11 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 	}
 }
 
+// Panic logs a panic message that might contain the following attributes:
+// the request id if provided by the context and the pid. In this function, the
+// parameter fields enables to additional attributes to the message. The format
+// and args input arguments are used to print a detailed information about the
+// reasons of this log.
 func Panic(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.ErrorLevel {
 		entry := log.WithField("pid", os.Getpid())
@@ -156,6 +182,10 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 	}
 }
 
+// Debug logs a debug message that might specifies the request id if provided by
+// the context. In this function, the parameter fields enables to additional
+// attributes to the message. The format and args input arguments are used to
+// print a detailed information about the reasons of this log.
 func Debug(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.DebugLevel {
 		entry := log.NewEntry(logger)
@@ -182,6 +212,8 @@ func extractRequestID(ctx context.Context) string {
 	return reqID
 }
 
+// extractCallerDetails gets information about the file, line and function that
+// called a certain logging method such as Error, Info, Debug, Warn and Panic.
 func extractCallerDetails() (string, int, string, error) {
 	if pc, file, line, ok := runtime.Caller(2); ok {
 		fName := runtime.FuncForPC(pc).Name()
