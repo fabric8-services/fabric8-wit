@@ -342,6 +342,7 @@ func ContextIdentity(ctx context.Context) (string, error) {
 
 		return "", errs.New("Missing token manager")
 	}
+	// As mentioned in token.go, we can now safely convert tm to a token.Manager
 	manager := tm.(token.Manager)
 	uuid, err := manager.Locate(ctx)
 	if err != nil {

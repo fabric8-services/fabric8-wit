@@ -13,8 +13,9 @@ const (
 	contextTokenManagerKey contextTMKey = iota + 1
 )
 
-//ReadTokenManagerFromContext returns tokenManager from context.
-// Must have been set by ContextWithTokenManager ONLY
+// ReadTokenManagerFromContext returns an interface that encapsulates the
+// tokenManager extracted from context. This interface can be safely converted.
+// Must have been set by ContextWithTokenManager ONLY.
 func ReadTokenManagerFromContext(ctx context.Context) interface{} {
 	tm := ctx.Value(contextTokenManagerKey)
 	if tm != nil {
