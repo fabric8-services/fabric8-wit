@@ -18,8 +18,6 @@ func LogAndAssertJSON(t *testing.T, log func(), assertions func(fields logrus.Fi
 	logger.Level = logrus.DebugLevel
 	log()
 
-	Error(nil, nil, string(buffer.Bytes()))
-
 	err := json.Unmarshal(buffer.Bytes(), &fields)
 	assert.Nil(t, err)
 

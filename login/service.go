@@ -19,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
+	tokencontext "github.com/almighty/almighty-core/login/token_context"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -333,7 +334,7 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 // ContextIdentity returns the identity's ID found in given context
 // Uses tokenManager.Locate to fetch the identity of currently logged in user
 func ContextIdentity(ctx context.Context) (string, error) {
-	tm := ReadTokenManagerFromContext(ctx)
+	tm := tokencontext.ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
@@ -341,13 +342,14 @@ func ContextIdentity(ctx context.Context) (string, error) {
 
 		return "", errs.New("Missing token manager")
 	}
-	uuid, err := tm.Locate(ctx)
+	manager := tm.(token.Manager)
+	uuid, err := manager.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
 		log.Error(ctx, map[string]interface{}{
-			"uuid": uuid,
-			"tm":   tm,
-			"err":  err,
+			"uuid":         uuid,
+			"tokenManager": manager,
+			"err":          err,
 		}, "identity belongs to a Guest User")
 
 		return "", errs.WithStack(err)
@@ -355,35 +357,11 @@ func ContextIdentity(ctx context.Context) (string, error) {
 	return uuid.String(), nil
 }
 
-type contextTMKey int
-
-const (
-	//contextTokenManagerKey is a key that will be used to put and to get `tokenManager` from goa.context
-	contextTokenManagerKey contextTMKey = iota + 1
-)
-
-//ReadTokenManagerFromContext returns tokenManager from context.
-// Must have been set by ContextWithTokenManager ONLY
-func ReadTokenManagerFromContext(ctx context.Context) token.Manager {
-	tm := ctx.Value(contextTokenManagerKey)
-	if tm != nil {
-		return tm.(token.Manager)
-	}
-	return nil
-}
-
-// ContextWithTokenManager injects tokenManager in the context for every incoming request
-// Accepts Token.Manager in order to make sure that correct object is set in the context.
-// Only other possible value is nil
-func ContextWithTokenManager(ctx context.Context, tm token.Manager) context.Context {
-	return context.WithValue(ctx, contextTokenManagerKey, tm)
-}
-
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
 func InjectTokenManager(tokenManager token.Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
-			ctxWithTM := ContextWithTokenManager(ctx, tokenManager)
+			ctxWithTM := tokencontext.ContextWithTokenManager(ctx, tokenManager)
 			return h(ctxWithTM, rw, req)
 		}
 	}
