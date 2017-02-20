@@ -1,4 +1,4 @@
-ALTER TABLE work_items ADD COLUMN position double precision;
+ALTER TABLE work_items ADD COLUMN execution_order double precision;
 
 CREATE OR REPLACE FUNCTION adds_order() RETURNS void as $$
 -- adds_order() function adds order to existing work_items in database

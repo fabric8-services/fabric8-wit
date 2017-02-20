@@ -16,6 +16,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const orderDiff = 1000
+
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
@@ -186,7 +188,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 			return nil, errors.NewInternalError(err.Error())
 		}
 		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Position), 64)
-		order = afterOrder + 1000
+		order = afterOrder + orderValue
 	}
 
 	res.Version = res.Version + 1
@@ -294,7 +296,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	pos = pos + 1000
+	pos = pos + orderValue
 	wi := WorkItem{
 		Type:     typeID,
 		Fields:   Fields{},
