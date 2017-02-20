@@ -56,7 +56,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
-	assert.NotNil(t, result.Data.Attributes["position"])
+	assert.NotNil(t, result.Data.Attributes["order"])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -81,7 +81,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, updated.Data.Attributes["position"])
+	assert.NotNil(t, updated.Data.Attributes["order"])
 
 	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
@@ -139,7 +139,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, created.Data.Attributes["position"])
+	assert.NotNil(t, created.Data.Attributes["order"])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
 }

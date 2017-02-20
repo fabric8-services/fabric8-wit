@@ -78,14 +78,14 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 // LoadHighestOrder returns the highest order
 func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	res := WorkItem{}
-	tx := r.db.Order("position desc").Last(&res)
+	tx := r.db.Order("executionorder desc").Last(&res)
 	if tx.RecordNotFound() {
 		return 0, nil
 	}
 	if tx.Error != nil {
 		return 0, errors.NewInternalError(tx.Error.Error())
 	}
-	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.Position), 64)
+	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.Executionorder), 64)
 	if err != nil {
 		return 0, errors.NewInternalError(err.Error())
 	}
@@ -156,18 +156,18 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 		if tx.Error != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
-		beforeOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Position), 64)
+		beforeOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Executionorder), 64)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.order", res.Position)
+			return nil, errors.NewBadParameterError("data.attributes.order", res.Executionorder)
 		}
-		tx2 := r.db.Where("position < ?", beforeItem.Position).Order("position desc", true).Last(&afterItem)
+		tx2 := r.db.Where("executionorder < ?", beforeItem.Executionorder).Order("executionorder desc", true).Last(&afterItem)
 		if afterItem.ID == 0 {
 			// The item is moved to first position
 			order = (0 + beforeOrder) / 2
 		} else {
-			afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Position), 64)
+			afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Executionorder), 64)
 			if err != nil {
-				return nil, errors.NewBadParameterError("data.attributes.order", res.Position)
+				return nil, errors.NewBadParameterError("data.attributes.order", res.Executionorder)
 			}
 			if tx2.RecordNotFound() {
 				return nil, errors.NewNotFoundError("work item", string(beforeId))
@@ -180,14 +180,14 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 	} else {
 		// the item is moved at last position
 
-		tx2 := r.db.Order("position desc", true).Last(&afterItem)
+		tx2 := r.db.Order("executionorder desc", true).Last(&afterItem)
 		if tx2.RecordNotFound() {
 			return nil, errors.NewNotFoundError("work item", string(afterItem.ID))
 		}
 		if tx2.Error != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
-		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Position), 64)
+		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Executionorder), 64)
 		order = afterOrder + orderValue
 	}
 
@@ -195,7 +195,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 	res.Type = wi.Type
 	res.Fields = Fields{}
 
-	res.Position = order
+	res.Executionorder = order
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
@@ -297,10 +297,10 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		return nil, errors.NewInternalError(err.Error())
 	}
 	pos = pos + orderValue
+	fields[SystemOrder] = pos
 	wi := WorkItem{
-		Type:     typeID,
-		Fields:   Fields{},
-		Position: pos,
+		Type:   typeID,
+		Fields: Fields{},
 	}
 
 	fields[SystemCreator] = creator
@@ -368,7 +368,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order'")
+	db = db.Select("count(*) over () as cnt2 , *").Order("executionorder")
 
 	rows, err := db.Rows()
 	if err != nil {
