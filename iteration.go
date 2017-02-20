@@ -70,7 +70,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 
 		var responseData *app.Iteration
 		if newItr.ParentPath != "" {
-			allParents := strings.Split(ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
+			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
 			allParentsUUIDs := []uuid.UUID{}
 			for _, x := range allParents {
 				id, _ := uuid.FromString(x) // we can safely ignore this error.
@@ -225,7 +225,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		},
 	}
 	if itr.ParentPath != "" {
-		allParents := strings.Split(ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInDatabase)
+		allParents := strings.Split(iteration.ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInService)
 		parentID := allParents[len(allParents)-1]
 		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
@@ -260,12 +260,6 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
-}
-
-// ConvertFromLtreeFormat converts data to UUID format from ltree format.
-func ConvertFromLtreeFormat(uuid string) string {
-	// Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "_", "-", -1)
 }
 
 // iterationIDMap contains a map that will hold iteration's ID as its key

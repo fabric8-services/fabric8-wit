@@ -66,7 +66,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		}
 		var responseData *app.Iteration
 		if newItr.ParentPath != "" {
-			allParents := strings.Split(ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
+			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
 			allParentsUUIDs := []uuid.UUID{}
 			for _, x := range allParents {
 				id, _ := uuid.FromString(x) // we can safely ignore this error.

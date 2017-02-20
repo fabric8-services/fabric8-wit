@@ -85,12 +85,14 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	}
 	repo.Create(context.Background(), &i)
 
+	parentPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
 		Name:       name2,
 		SpaceID:    uuid.NewV4(),
 		StartAt:    &start,
 		EndAt:      &end,
-		ParentPath: iteration.ConvertToLtreeFormat(i.ID.String()),
+		ParentPath: parentPath,
 	}
 	repo.Create(context.Background(), &i2)
 
@@ -98,6 +100,7 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	require.Nil(t, err)
 	assert.NotEmpty(t, i2.ParentPath)
 	expectedPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	require.NotNil(t, i2L)
 	assert.Equal(t, expectedPath, i2L.ParentPath)
 }
 

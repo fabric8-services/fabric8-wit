@@ -151,26 +151,24 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		}
 
 		// create one child iteration and test for relationships.Parent
-		i := iteration.Iteration{
+		fatherIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
 			SpaceID: spaceID,
 		}
-		fatherIteration = &i
 		repo.Create(context.Background(), fatherIteration)
-		i2 := iteration.Iteration{
+
+		childIteration = &iteration.Iteration{
 			Name:       "Child Iteration",
 			SpaceID:    spaceID,
 			ParentPath: iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
 		}
-		childIteration = &i2
 		repo.Create(context.Background(), childIteration)
 
-		i3 := iteration.Iteration{
+		grandChildIteration = &iteration.Iteration{
 			Name:       "Grand Child Iteration",
 			SpaceID:    spaceID,
 			ParentPath: iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
 		}
-		grandChildIteration = &i3
 		repo.Create(context.Background(), grandChildIteration)
 
 		return nil
