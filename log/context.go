@@ -9,7 +9,7 @@ import (
 	"github.com/goadesign/goa/client"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-  "github.com/pkg/errors"
+	"github.com/pkg/errors"
 )
 
 // extractIdentityID obtains the identity ID out of the authentication context
