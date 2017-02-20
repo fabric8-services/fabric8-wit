@@ -80,7 +80,7 @@ func ConvertFromLtreeFormat(uuid string) string {
 
 // LoadMultiple returns multiple instances of iteration.Iteration
 func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "Area", "getmultiple"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "Iteration", "getmultiple"}, time.Now())
 	var objs []*Iteration
 
 	for i := 0; i < len(ids); i++ {
