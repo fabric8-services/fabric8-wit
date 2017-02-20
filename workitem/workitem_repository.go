@@ -315,7 +315,6 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 // 		on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
 // 		WHERE (iterations.space_id = '33406de1-25f1-4969-bcec-88f29d0a7de3'
 // 		and work_items.deleted_at IS NULL) GROUP BY IterationId
-
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var res []WICountsPerIteration
 	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,

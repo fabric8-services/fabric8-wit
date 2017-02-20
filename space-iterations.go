@@ -65,8 +65,8 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		var responseData *app.Iteration
-		if newItr.ParentPath != "" {
-			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
+		if newItr.Path != "" {
+			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
 			allParentsUUIDs := []uuid.UUID{}
 			for _, x := range allParents {
 				id, _ := uuid.FromString(x) // we can safely ignore this error.
@@ -105,7 +105,6 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-
 		iterations, err := appl.Iterations().List(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -114,7 +113,6 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		for _, itr := range iterations {
 			itrMap[itr.ID] = itr
 		}
-
 		// fetch extra information(counts of WI in each iteration of the space) to be added in response
 		wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
 		if err != nil {

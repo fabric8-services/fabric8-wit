@@ -158,16 +158,16 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		repo.Create(context.Background(), fatherIteration)
 
 		childIteration = &iteration.Iteration{
-			Name:       "Child Iteration",
-			SpaceID:    spaceID,
-			ParentPath: iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
+			Name:    "Child Iteration",
+			SpaceID: spaceID,
+			Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
 		}
 		repo.Create(context.Background(), childIteration)
 
 		grandChildIteration = &iteration.Iteration{
-			Name:       "Grand Child Iteration",
-			SpaceID:    spaceID,
-			ParentPath: iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
+			Name:    "Grand Child Iteration",
+			SpaceID: spaceID,
+			Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
 		}
 		repo.Create(context.Background(), grandChildIteration)
 
@@ -238,9 +238,10 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	spaceInstance := space.Space{
 		Name: "Testing space",
 	}
-	spaceRepo.Create(context.Background(), &spaceInstance)
+	_, e := spaceRepo.Create(context.Background(), &spaceInstance)
+	require.Nil(rest.T(), e)
 	fmt.Println("space id = ", spaceInstance.ID)
-	assert.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
+	require.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
 
 	iterationRepo := iteration.NewIterationRepository(rest.DB)
 	iteration1 := iteration.Iteration{
@@ -279,7 +280,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemIteration: iteration1.ID.String(),
 			}, "xx")
 	}
-
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
 	assert.Len(t, cs.Data, 2)

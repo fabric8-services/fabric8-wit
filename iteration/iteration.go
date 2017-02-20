@@ -30,7 +30,7 @@ type Iteration struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
-	ParentPath  string
+	Path        string
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string

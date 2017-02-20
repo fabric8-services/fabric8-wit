@@ -51,16 +51,16 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 
 		parentPath := iteration.ConvertToLtreeFormat(parentID.String())
-		if parent.ParentPath != "" {
-			parentPath = parent.ParentPath + iteration.PathSepInDatabase + parentPath
+		if parent.Path != "" {
+			parentPath = parent.Path + iteration.PathSepInDatabase + parentPath
 		}
 
 		newItr := iteration.Iteration{
-			SpaceID:    parent.SpaceID,
-			ParentPath: parentPath,
-			Name:       *reqIter.Attributes.Name,
-			StartAt:    reqIter.Attributes.StartAt,
-			EndAt:      reqIter.Attributes.EndAt,
+			SpaceID: parent.SpaceID,
+			Path:    parentPath,
+			Name:    *reqIter.Attributes.Name,
+			StartAt: reqIter.Attributes.StartAt,
+			EndAt:   reqIter.Attributes.EndAt,
 		}
 
 		err = appl.Iterations().Create(ctx, &newItr)
@@ -69,8 +69,8 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		}
 
 		var responseData *app.Iteration
-		if newItr.ParentPath != "" {
-			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.ParentPath), iteration.PathSepInDatabase)
+		if newItr.Path != "" {
+			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
 			allParentsUUIDs := []uuid.UUID{}
 			for _, x := range allParents {
 				id, _ := uuid.FromString(x) // we can safely ignore this error.
@@ -191,7 +191,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
-	pathToTopMostParent := iteration.PathSepInService + iteration.ConvertFromLtreeFormat(itr.ParentPath) // /uuid1/uuid2/uuid3s
+	pathToTopMostParent := iteration.PathSepInService + iteration.ConvertFromLtreeFormat(itr.Path) // /uuid1/uuid2/uuid3s
 
 	i := &app.Iteration{
 		Type: iterationType,
@@ -224,8 +224,8 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 			Self: &selfURL,
 		},
 	}
-	if itr.ParentPath != "" {
-		allParents := strings.Split(iteration.ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInService)
+	if itr.Path != "" {
+		allParents := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
 		parentID := allParents[len(allParents)-1]
 		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
@@ -267,7 +267,7 @@ type iterationIDMap map[uuid.UUID]*iteration.Iteration
 
 func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
-		parentUUIDStrings := strings.Split(iteration.ConvertFromLtreeFormat(itr.ParentPath), iteration.PathSepInService)
+		parentUUIDStrings := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
 		parentUUIDs := convertToUUID(parentUUIDStrings)
 		pathResolved := ""
 		for _, id := range parentUUIDs {
