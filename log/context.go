@@ -3,14 +3,13 @@ package log
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	tokencontext "github.com/almighty/almighty-core/login/token_context"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa/client"
 	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+  "github.com/pkg/errors"
 )
 
 // extractIdentityID obtains the identity ID out of the authentication context
