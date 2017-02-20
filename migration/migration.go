@@ -179,6 +179,9 @@ func getMigrations() migrations {
 	// version 27
 	m = append(m, steps{executeSQLFile("027-areas-index.sql")})
 
+	// version 28
+	m = append(m, steps{executeSQLFile("028-adds-order-to-existing-wi.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -425,7 +428,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false},
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false},
-
+		workitem.SystemOrder:        {Type: &app.FieldType{Kind: "float"}, Required: false},
 		workitem.SystemAssignees: {
 			Type: &app.FieldType{
 				ComponentType: &stUser,

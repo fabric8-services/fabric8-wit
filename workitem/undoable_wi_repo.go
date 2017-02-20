@@ -65,6 +65,30 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 	return res, errs.WithStack(err)
 }
 
+// Reorder implements application.WorkItemRepository
+func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error) {
+	id, err := strconv.ParseUint(wi.ID, 10, 64)
+	if err != nil {
+		// treating this as a not found error: the fact that we're using number internal is implementation detail
+		return nil, errors.NewNotFoundError("work item", wi.ID)
+	}
+
+	old := WorkItem{}
+	db := r.wrapped.db.First(&old, id)
+	if db.Error != nil {
+		return nil, errors.NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
+	}
+
+	res, err := r.wrapped.Reorder(ctx, before, wi)
+	if err == nil {
+		r.undo.Append(func(db *gorm.DB) error {
+			db = db.Save(&old)
+			return db.Error
+		})
+	}
+	return res, err
+}
+
 // Delete implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	id, err := strconv.ParseUint(ID, 10, 64)

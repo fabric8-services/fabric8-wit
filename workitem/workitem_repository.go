@@ -1,6 +1,7 @@
 package workitem
 
 import (
+	"fmt"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -19,6 +20,7 @@ import (
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	Reorder(ctx context.Context, beforeID string, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -71,6 +73,23 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	return convertWorkItemModelToApp(wiType, res)
 }
 
+// LoadHighestOrder returns the highest order
+func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
+	res := WorkItem{}
+	tx := r.db.Order("position desc").Last(&res)
+	if tx.RecordNotFound() {
+		return 0, nil
+	}
+	if tx.Error != nil {
+		return 0, errors.NewInternalError(tx.Error.Error())
+	}
+	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.Position), 64)
+	if err != nil {
+		return 0, errors.NewInternalError(err.Error())
+	}
+	return order, nil
+}
+
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
@@ -91,6 +110,110 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	}
 
 	return nil
+}
+
+// Reorder places the to-be-reordered workitem(s) above the input workitem.
+// The order of workitems are spaced by a factor of 1000.
+// The new order of workitem := (order of previousitem + order of nextitem)/2
+// Version must be the same as the one int the stored version
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, wi app.WorkItem) (*app.WorkItem, error) {
+	var order float64
+	res := WorkItem{}
+	beforeItem := WorkItem{}
+	afterItem := WorkItem{}
+	id, err := strconv.ParseUint(wi.ID, 10, 64)
+	if err != nil || id == 0 {
+		return nil, errors.NewNotFoundError("work item", wi.ID)
+	}
+
+	tx := r.db.First(&res, id)
+	if tx.RecordNotFound() {
+		return nil, errors.NewNotFoundError("work item", wi.ID)
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	if res.Version != wi.Version {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+
+	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
+	if err != nil {
+		return nil, errors.NewBadParameterError("Type", wi.Type)
+	}
+
+	if beforeID != "" {
+		beforeId, err := strconv.ParseUint(beforeID, 10, 64)
+		if err != nil || beforeId == 0 {
+			return nil, errors.NewNotFoundError("work item", string(beforeId))
+		}
+		tx = r.db.First(&beforeItem, beforeId)
+		if tx.RecordNotFound() {
+			return nil, errors.NewNotFoundError("work item", string(beforeId))
+		}
+		if tx.Error != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		beforeOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Position), 64)
+		if err != nil {
+			return nil, errors.NewBadParameterError("data.attributes.order", res.Position)
+		}
+		tx2 := r.db.Where("position < ?", beforeItem.Position).Order("position desc", true).Last(&afterItem)
+		if afterItem.ID == 0 {
+			// The item is moved to first position
+			order = (0 + beforeOrder) / 2
+		} else {
+			afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Position), 64)
+			if err != nil {
+				return nil, errors.NewBadParameterError("data.attributes.order", res.Position)
+			}
+			if tx2.RecordNotFound() {
+				return nil, errors.NewNotFoundError("work item", string(beforeId))
+			}
+			if tx2.Error != nil {
+				return nil, errors.NewInternalError(err.Error())
+			}
+			order = (beforeOrder + afterOrder) / 2
+		}
+	} else {
+		// the item is moved at last position
+
+		tx2 := r.db.Order("position desc", true).Last(&afterItem)
+		if tx2.RecordNotFound() {
+			return nil, errors.NewNotFoundError("work item", string(afterItem.ID))
+		}
+		if tx2.Error != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Position), 64)
+		order = afterOrder + 1000
+	}
+
+	res.Version = res.Version + 1
+	res.Type = wi.Type
+	res.Fields = Fields{}
+
+	res.Position = order
+	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt {
+			continue
+		}
+		fieldValue := wi.Fields[fieldName]
+		var err error
+		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		if err != nil {
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		}
+	}
+
+	tx = tx.Where("Version = ?", wi.Version).Save(&res)
+	if err := tx.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	if tx.RowsAffected == 0 {
+		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	return convertWorkItemModelToApp(wiType, &res)
 }
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
@@ -128,7 +251,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
-
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
@@ -166,10 +288,19 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err != nil {
 		return nil, errors.NewBadParameterError("type", typeID)
 	}
-	wi := WorkItem{
-		Type:   typeID,
-		Fields: Fields{},
+
+	// The order of workitems are spaced by a factor of 1000.
+	pos, err := r.LoadHighestOrder()
+	if err != nil {
+		return nil, errors.NewInternalError(err.Error())
 	}
+	pos = pos + 1000
+	wi := WorkItem{
+		Type:     typeID,
+		Fields:   Fields{},
+		Position: pos,
+	}
+
 	fields[SystemCreator] = creator
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
@@ -235,7 +366,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *")
+	db = db.Select("count(*) over () as cnt2 , *").Order("fields->'order'")
 
 	rows, err := db.Rows()
 	if err != nil {
