@@ -1,4 +1,5 @@
 ALTER TABLE work_items ADD COLUMN executionorder double precision;
+CREATE INDEX order_index ON work_items (executionorder);
 
 CREATE OR REPLACE FUNCTION adds_order() RETURNS void as $$
 -- adds_order() function adds order to existing work_items in database
