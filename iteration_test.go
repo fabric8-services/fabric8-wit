@@ -181,25 +181,30 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	// add WI to this iteration and test counts in the response of update iteration API
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 	for i := 0; i < 4; i++ {
-		wirepo.Create(
+		wi, err := wirepo.Create(
 			context.Background(), workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: itr.ID.String(),
 			}, "xx")
+		require.NotNil(t, wi)
+		require.Nil(t, err)
 	}
 	for i := 0; i < 5; i++ {
-		wirepo.Create(
+		wi, err := wirepo.Create(
 			context.Background(), workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: itr.ID.String(),
 			}, "xx")
+		require.NotNil(t, wi)
+		require.Nil(t, err)
 	}
 	svc, ctrl := rest.SecuredController()
 	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	require.NotNil(t, updated)
 	assert.Equal(t, newName, *updated.Data.Attributes.Name)
 	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
 	require.NotNil(t, updated.Data.Relationships.Workitems.Meta)

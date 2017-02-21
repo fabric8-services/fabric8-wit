@@ -64,10 +64,10 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// For create, count will always be zero hence no need to query
-		// by passing empty map, UpdateIterationsWithCounts will be able to put zero values
+		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		res := &app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, &newItr, UpdateIterationsWithCounts(wiCounts)),
+			Data: ConvertIteration(ctx.RequestData, &newItr, updateIterationsWithCounts(wiCounts)),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -99,7 +99,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations, UpdateIterationsWithCounts(wiCounts))
+		res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts))
 
 		return ctx.OK(res)
 	})
