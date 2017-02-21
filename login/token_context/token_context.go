@@ -3,7 +3,7 @@
 package token_context
 
 import (
-	"context"
+	"golang.org/x/net/context"
 )
 
 type contextTMKey int
