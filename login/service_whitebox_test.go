@@ -11,10 +11,9 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
+	testtoken "github.com/almighty/almighty-core/test/token"
 	"github.com/almighty/almighty-core/token"
-	"github.com/dgrijalva/jwt-go"
 	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
@@ -71,7 +70,7 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		ID:       uuid.NewV4(),
 		Username: "testuser",
 	}
-	token, err := generateToken(identity)
+	token, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
 	assert.Nil(t, err)
 	accessToken := &oauth2.Token{
 		AccessToken: token,
@@ -82,20 +81,6 @@ func TestValidOAuthAccessToken(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, identity.ID.String(), claims.Subject)
 	assert.Equal(t, identity.Username, claims.Username)
-}
-
-// Can't use test.GenerateToken() because it would introduce a cycle dependency between test and login packages
-func generateToken(ident account.Identity) (string, error) {
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
-	token.Claims.(jwt.MapClaims)["preferred_username"] = ident.Username
-	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
-
-	tokenStr, err := token.SignedString(privateKey)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-	return tokenStr, nil
 }
 
 func TestInvalidOAuthAccessToken(t *testing.T) {
