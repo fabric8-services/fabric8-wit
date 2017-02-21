@@ -2,6 +2,9 @@ package remoteworkitem
 
 import (
 	"encoding/json"
+	"strconv"
+
+	"strings"
 
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
@@ -14,13 +17,15 @@ const (
 	ProviderJira   = "jira"
 
 	// The keys in the flattened response JSON of a typical Github issue.
-	GithubTitle         = "title"
-	GithubDescription   = "body"
-	GithubState         = "state"
-	GithubID            = "url"
-	GithubCreator       = "user.login"
-	GithubAssigneeLogin = "assignee.login"
-	GithubAssigneeURL   = "assignee.url"
+	GithubTitle                 = "title"
+	GithubDescription           = "body"
+	GithubState                 = "state"
+	GithubID                    = "url"
+	GithubCreator               = "user.login"
+	GithubAssigneesLogin        = "assignees.0.login"
+	GithubAssigneesLoginPattern = "assignees.?.login"
+	GithubAssigneesURL          = "assignees.0.url"
+	GithubAssigneesURLPattern   = "assignees.?.url"
 
 	// The keys in the flattened response JSON of a typical Jira issue.
 	JiraTitle         = "fields.summary"
@@ -48,20 +53,20 @@ const (
 	remoteState               = workitem.SystemState
 	remoteItemID              = workitem.SystemRemoteItemID
 	remoteCreator             = workitem.SystemCreator
-	remoteAssigneeLogins      = "system.assignee.login"
-	remoteAssigneeProfileURLs = "system.assignee.profile_url"
+	remoteAssigneeLogins      = "system.assignees.login"
+	remoteAssigneeProfileURLs = "system.assignees.profile_url"
 )
 
 // RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
 var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 	ProviderGithub: {
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             remoteTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: remoteDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        remoteState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                remoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           remoteCreator,
-		AttributeMapper{AttributeExpression(GithubAssigneeLogin), StringConverter{}}:                                     remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(GithubAssigneeURL), StringConverter{}}:                                       remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                                     remoteTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}:         remoteDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                                remoteState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                        remoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                                   remoteCreator,
+		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}: remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(GithubAssigneesURL), PatternToListConverter{pattern: GithubAssigneesURLPattern}}:     remoteAssigneeProfileURLs,
 	},
 	ProviderJira: {
 		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
@@ -69,8 +74,8 @@ var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
 		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
 		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    remoteCreator,
-		AttributeMapper{AttributeExpression(JiraAssigneeLogin), StringConverter{}}:                              remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(JiraAssigneeURL), StringConverter{}}:                                remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(JiraAssigneeURL), ListConverter{}}:                                  remoteAssigneeProfileURLs,
 	},
 }
 
@@ -78,9 +83,19 @@ type AttributeConverter interface {
 	Convert(interface{}, AttributeAccessor) (interface{}, error)
 }
 
+// StateConverter converts a remote work item state
 type StateConverter interface{}
 
+// StringConverter converts a value to a string
 type StringConverter struct{}
+
+// ListConverter converts a value into a list containing a single element
+type ListConverter struct{}
+
+// PatternToListConverter joins multiple elements matching a regular expression into a single array
+type PatternToListConverter struct {
+	pattern string
+}
 
 // MarkupConverter converts to a 'MarkupContent' element with the given 'Markup' value
 type MarkupConverter struct {
@@ -93,9 +108,32 @@ type GithubStateConverter struct{}
 
 type JiraStateConverter struct{}
 
-// Convert method map the external tracker item to ALM WorkItem
-func (sc StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+// Convert converts the given value to a string
+func (converter StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	return value, nil
+}
+
+// Convert converts the given value to a list containing this single value as string
+func (converter ListConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	result := make([]string, 1)
+	result[0] = value.(string)
+	return result, nil
+}
+
+// Convert converts all fields from the given item that match this RegexpConverter's pattern, and returns an array of matching values as string
+func (converter PatternToListConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	result := make([]string, 0)
+	i := 0
+	for {
+		key := AttributeExpression(strings.Replace(converter.pattern, "?", strconv.Itoa(i), 1))
+		if v := item.Get(key); v != nil {
+			result = append(result, v.(string))
+		} else {
+			break
+		}
+		i++
+	}
+	return result, nil
 }
 
 // Convert returns the given `value` if the `item` is not nil`, otherwise returns `nil`

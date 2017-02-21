@@ -145,7 +145,7 @@ func TestFlattenJiraResponseMap(t *testing.T) {
 	}
 
 	for _, data := range jir {
-		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeLogin)
+		doTestFlattenResponseMap(t, data, ProviderJira)
 	}
 }
 
@@ -166,7 +166,7 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	}
 	// when/then
 	for _, data := range gitData {
-		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneeLogin, GithubAssigneeURL)
+		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneesURL)
 	}
 }
 
@@ -184,7 +184,7 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	}
 
 	for _, data := range jir {
-		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeLogin, JiraAssigneeURL)
+		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeURL)
 	}
 }
 
@@ -209,14 +209,14 @@ KEYS:
 				continue KEYS
 			}
 		}
-		v, ok := oneLevelMap[key]
+		v, exists := oneLevelMap[key]
 		switch v.(type) {
 		case string:
 			value := v.(string)
 			l := int(math.Min(float64(60), float64(len(value))))
 			t.Log(fmt.Sprintf("\t '%s'='%v' (expected=%v)", key, value[0:l], data.expectedOutput))
 		}
-		assert.Equal(t, ok, data.expectedOutput, fmt.Sprintf("Could not access '%s' from the flattened map ", key))
+		assert.Equal(t, exists, data.expectedOutput, fmt.Sprintf("Could not access '%s' from the flattened map ", key))
 	}
 }
 
@@ -240,7 +240,7 @@ func TestNewGitHubRemoteWorkItem(t *testing.T) {
 				"participants": {
 					"4": "sbose56",
 					"5": "sbose78"
-				}
+			 	}
 			}
 		}`
 	// when
@@ -299,4 +299,63 @@ func TestRemoteWorkItemImplRegistry(t *testing.T) {
 	_, ok = RemoteWorkItemImplRegistry[ProviderJira]
 	// then
 	assert.True(t, ok)
+}
+
+func TestPatternConverter(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	// given
+	content := make(map[string]interface{})
+	content[GithubState] = "open"
+	content["assignees.0.login"] = "foo0"
+	content["assignees.1.login"] = "foo1"
+	content["assignees.2.login"] = "foo2"
+	content["assignees.0.url"] = "/foo0"
+	content["assignees.1.url"] = "/foo1"
+	content["assignees.2.url"] = "/foo2"
+	workItem := TestWorkItem{
+		content: content,
+	}
+	workItemMap := RemoteWorkItemKeyMaps[ProviderGithub]
+	// when
+	result, err := Map(workItem, workItemMap)
+	// then
+	require.Nil(t, err)
+	require.NotNil(t, result.Fields[remoteAssigneeLogins])
+	assert.Contains(t, result.Fields[remoteAssigneeLogins], content["assignees.0.login"])
+	assert.Contains(t, result.Fields[remoteAssigneeLogins], content["assignees.1.login"])
+	assert.Contains(t, result.Fields[remoteAssigneeLogins], content["assignees.2.login"])
+	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
+	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.0.url"])
+	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.1.url"])
+	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.2.url"])
+}
+
+type TestWorkItem struct {
+	content map[string]interface{}
+}
+
+func (t TestWorkItem) Get(field AttributeExpression) interface{} {
+	return t.content[string(field)]
+}
+
+func TestListConverter(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	// given
+	content := make(map[string]interface{})
+	content[JiraState] = "open"
+	content[JiraAssigneeLogin] = "foo0"
+	content[JiraAssigneeURL] = "/foo/1"
+	workItem := TestWorkItem{
+		content: content,
+	}
+	workItemMap := RemoteWorkItemKeyMaps[ProviderJira]
+	// when
+	result, err := Map(workItem, workItemMap)
+	// then
+	require.Nil(t, err)
+	require.NotNil(t, result.Fields[remoteAssigneeLogins])
+	assert.Contains(t, result.Fields[remoteAssigneeLogins], content[JiraAssigneeLogin])
+	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
+	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content[JiraAssigneeURL])
+
 }

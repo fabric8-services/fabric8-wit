@@ -75,34 +75,37 @@ func bindAssignees(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType stri
 				continue
 			}
 			identities := make([]string, 0)
-			assigneeLogin := fieldValue.(string)
-			assigneeProfileURL := remoteWorkItem.Fields[remoteAssigneeProfileURLs].(string)
-			log.Printf("Looking for identity of user with profile URL=%s\n", assigneeProfileURL)
-			// bind the assignee to an existing identity, or create a new one
-			identity, err := identityRepository.First(account.IdentityFilterByProfileURL(assigneeProfileURL))
-			if err != nil {
-				log.Printf("Failed to look-up identity with ProfileURL='%s': %s", assigneeProfileURL, err.Error())
-				return nil, err
-			}
-			if identity == nil {
-				// create the identity if it does not exist yet
-				log.Printf("Creating an identity for username '%s' with profile '%s' on '%s'\n", assigneeLogin, assigneeProfileURL, providerType)
-				identity := &account.Identity{
-					ProviderType: providerType,
-					Username:     assigneeLogin,
-					ProfileURL:   assigneeProfileURL,
-				}
-				err = identityRepository.Create(context.Background(), identity)
+			assigneeLogins := fieldValue.([]string)
+			assigneeProfileURLs := remoteWorkItem.Fields[remoteAssigneeProfileURLs].([]string)
+			for i, assigneeLogin := range assigneeLogins {
+				assigneeProfileURL := assigneeProfileURLs[i]
+				log.Printf("Looking for identity of user with profile URL=%s\n", assigneeProfileURL)
+				// bind the assignee to an existing identity, or create a new one
+				identity, err := identityRepository.First(account.IdentityFilterByProfileURL(assigneeProfileURL))
 				if err != nil {
-					log.Printf("Failed to create new identity: %s", err.Error())
+					log.Printf("Failed to look-up identity with ProfileURL='%s': %s", assigneeProfileURL, err.Error())
 					return nil, err
 				}
-				log.Printf("Created new identity with id: %v", identity.ID.String())
-				identities = append(identities, identity.ID.String())
-			} else {
-				// use existing identity
-				log.Printf("Using existing identity with ID: %v", identity.ID.String())
-				identities = append(identities, identity.ID.String())
+				if identity == nil {
+					// create the identity if it does not exist yet
+					log.Printf("Creating an identity for username '%s' with profile '%s' on '%s'\n", assigneeLogin, assigneeProfileURL, providerType)
+					identity := &account.Identity{
+						ProviderType: providerType,
+						Username:     assigneeLogin,
+						ProfileURL:   assigneeProfileURL,
+					}
+					err = identityRepository.Create(context.Background(), identity)
+					if err != nil {
+						log.Printf("Failed to create new identity: %s", err.Error())
+						return nil, err
+					}
+					log.Printf("Created new identity with id: %v", identity.ID.String())
+					identities = append(identities, identity.ID.String())
+				} else {
+					// use existing identity
+					log.Printf("Using existing identity with ID: %v", identity.ID.String())
+					identities = append(identities, identity.ID.String())
+				}
 			}
 			// associate the identities to the work item
 			workItem.Fields[workitem.SystemAssignees] = identities

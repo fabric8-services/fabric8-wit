@@ -64,9 +64,10 @@ func (s *TrackerItemRepositorySuite) TearDownTest() {
 
 var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"
 
-func (s *TrackerItemRepositorySuite) TestConvertNewWorkItem() {
+func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentities() {
 	// given
-	identity := s.createIdentity("jdoe")
+	identity1 := s.createIdentity("jdoe1")
+	identity2 := s.createIdentity("jdoe2")
 	remoteItemData := TrackerItemContent{
 		Content: []byte(`
 				{
@@ -78,10 +79,15 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItem() {
 						"login": "sbose78",
 						"url": "https://api.github.com/users/sbose78"
 					},
-					"assignee": {
-						"login": "jdoe",
-						"url": "https://api.github.com/users/jdoe"
-					}
+					"assignees": [
+						{
+							"login": "jdoe1",
+							"url": "https://api.github.com/users/jdoe1"
+						},
+						{
+							"login": "jdoe2",
+							"url": "https://api.github.com/users/jdoe2"
+						}]
 				}`),
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
@@ -94,7 +100,8 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItem() {
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
-	assert.Equal(s.T(), identity.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
+	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity1.ID.String())
+	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity2.ID.String())
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
@@ -102,7 +109,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItem() {
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
 }
 
-func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignee() {
+func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignees() {
 	// given "jdoe" identity does not exist
 	remoteItemData := TrackerItemContent{
 		Content: []byte(`
@@ -115,10 +122,15 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignee()
 						"login": "sbose78",
 						"url": "https://api.github.com/users/sbose78"
 					},
-					"assignee": {
-						"login": "jdoe",
-						"url": "https://api.github.com/users/jdoe"
-					}
+					"assignees": [
+						{
+							"login": "jdoe1",
+							"url": "https://api.github.com/users/jdoe1"
+						},
+						{
+							"login": "jdoe2",
+							"url": "https://api.github.com/users/jdoe2"
+						}]
 				}`),
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
@@ -131,17 +143,20 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignee()
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
+	assert.Equal(s.T(), 2, len(workItem.Fields[workitem.SystemAssignees].([]interface{})))
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
 	// look-up identity in repository
-	identityID := workItem.Fields[workitem.SystemAssignees].([]interface{})[0].(string)
-	assert.NotNil(s.T(), s.lookupIdentityByID(identityID))
+	identityIDs := workItem.Fields[workitem.SystemAssignees].([]interface{})
+	for _, identityID := range identityIDs {
+		assert.NotNil(s.T(), s.lookupIdentityByID(identityID.(string)))
+	}
 }
 
-func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNullAssignee() {
+func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 	// given
 	remoteItemData := TrackerItemContent{
 		Content: []byte(`
@@ -154,7 +169,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNullAssignee() {
 						"login": "sbose78",
 						"url": "https://api.github.com/users/sbose78"
 					},
-					"assignee": null
+					"assignees": []
 				}`),
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
@@ -175,7 +190,8 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNullAssignee() {
 
 func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// given
-	identity := s.createIdentity("jdoe")
+	identity1 := s.createIdentity("jdoe1")
+	identity2 := s.createIdentity("jdoe2")
 	remoteItemData := TrackerItemContent{
 		// content is already flattened
 		Content: []byte(`
@@ -186,8 +202,10 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 				"body": "body of issue",
 				"user.login": "sbose78",
 				"user.url": "https://api.github.com/users/sbose78",
-				"assignee.login": "jdoe",
-				"assignee.url": "https://api.github.com/users/jdoe"
+				"assignees.0.login": "jdoe1",
+				"assignees.0.url": "https://api.github.com/users/jdoe1",
+				"assignees.1.login": "jdoe2",
+				"assignees.1.url": "https://api.github.com/users/jdoe2"
 			}`),
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
@@ -198,11 +216,12 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
-	assert.Equal(s.T(), identity.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
+	assert.Equal(s.T(), identity1.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
+	assert.Equal(s.T(), identity2.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[1])
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	// given
 	s.T().Log("Updating the existing work item when it's reimported.")
-	identity = s.createIdentity("pranav")
+	identity := s.createIdentity("jdoe")
 	remoteItemDataUpdated := TrackerItemContent{
 		// content is already flattened
 		Content: []byte(`
@@ -213,9 +232,8 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 				"body": "body of issue",
 				"user.login": "sbose78",
 				"user.url": "https://api.github.com/users/sbose78",
-				"assignee.login": "pranav",
-				"assignee.url": "https://api.github.com/users/pranav"
-
+				"assignees.0.login": "jdoe",
+				"assignees.0.url": "https://api.github.com/users/jdoe"
 			}`),
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
@@ -249,5 +267,4 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	assert.Equal(s.T(), "sbose78", workItemGithub.Fields[workitem.SystemCreator])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])
 	assert.Equal(s.T(), "open", workItemGithub.Fields[workitem.SystemState])
-
 }
