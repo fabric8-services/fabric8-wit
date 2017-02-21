@@ -50,7 +50,14 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	res, err := client.PostForm(configuration.GetKeycloakEndpointToken(), url.Values{
+	endpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak token endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+	res, err := client.PostForm(endpoint, url.Values{
 		"client_id":     {configuration.GetKeycloakClientID()},
 		"client_secret": {configuration.GetKeycloakSecret()},
 		"refresh_token": {*refreshToken},
@@ -116,7 +123,16 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	username := configuration.GetKeycloakTestUserName()
-	res, err := client.PostForm(configuration.GetKeycloakEndpointToken(), url.Values{
+
+	endpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak token endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+
+	res, err := client.PostForm(endpoint, url.Values{
 		"client_id":     {configuration.GetKeycloakClientID()},
 		"client_secret": {configuration.GetKeycloakSecret()},
 		"username":      {username},

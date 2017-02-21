@@ -181,10 +181,7 @@ func main() {
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  configuration.GetKeycloakEndpointAuth(),
-			TokenURL: configuration.GetKeycloakEndpointToken(),
-		},
+		Endpoint:     oauth2.Endpoint{},
 	}
 
 	appDB := gormapplication.NewGormDB(db)
