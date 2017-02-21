@@ -3,8 +3,7 @@ MAINTAINER "Konrad Kleine <kkleine@redhat.com>"
 ENV LANG=en_US.utf8
 
 # Some packages might seem weird but they are required by the RVM installer.
-RUN yum --enablerepo=centosplus list golang* \
-    && yum install -y \
+RUN yum --enablerepo=centosplus install -y \
       findutils \
       git \
       make \
