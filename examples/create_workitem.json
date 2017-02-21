@@ -1,1 +1,1 @@
-{"type": "1" , "name": "some name", "fields": { "system.owner": "tmaeder", "system.state": "open" }}
+{"type": "userstory" ,"fields": { "system.creator": "tmaeder", "system.state": "new", "system.title": "My special story", "system.description": "description" }}

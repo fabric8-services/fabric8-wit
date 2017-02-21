@@ -1,6 +1,22 @@
-postgres:
-  image: postgres:9.5
-  ports:
-    - "5432:5432"
-  environment:
-    POSTGRES_PASSWORD: mysecretpassword
+version: '2'
+
+services:
+  db:
+    image: centos/postgresql-95-centos7
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+    networks:
+      - default
+  core:
+    image: almightycore/almighty-core:latest
+    command: -config /usr/local/alm/etc/config.yaml
+    environment:
+      ALMIGHTY_POSTGRES_HOST: db
+    ports:
+      - "8080:8080"
+    networks:
+      - default
+    depends_on:
+      - db

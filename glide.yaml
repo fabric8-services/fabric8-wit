@@ -5,7 +5,7 @@ import:
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: master
+  version: ^1.1.0
   vcs: git
   subpackages:
   - client
@@ -19,6 +19,8 @@ import:
   - goatest
   - middleware
   - middleware/security/jwt
+- package: github.com/dimfeld/httptreemux
+  version: ^3.1.0
 - package: github.com/lsegal/gucumber
 - package: github.com/spf13/cobra
 - package: golang.org/x/net
@@ -31,7 +33,6 @@ import:
 - package: github.com/elazarl/go-bindata-assetfs
   subpackages:
   - go-bindata-assetfs
-- package: github.com/goadesign/gorma
 - package: golang.org/x/tools
   subpackages:
   - go/ast/astutil
@@ -44,6 +45,51 @@ import:
 - package: github.com/mattn/go-colorable
 - package: github.com/pilu/config
 - package: github.com/jinzhu/gorm
-  version: ^1.0.0
+  version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
 - package: github.com/mattn/go-isatty
   version: ^0.0.1
+- package: github.com/axw/gocov
+  subpackages:
+  - gocov
+- package: github.com/wadey/gocovmerge
+- package: gopkg.in/asaskevich/govalidator.v4
+- package: github.com/lib/pq
+- package: github.com/stretchr/testify
+  version: ^1.1.3
+  subpackages:
+  - assert
+  - suite
+- package: github.com/robfig/cron
+  version: ^1.0.0
+- package: github.com/andygrunwald/go-jira
+- package: github.com/google/go-github
+  subpackages:
+  - github
+- package: github.com/google/go-querystring
+  subpackages:
+  - query
+- package: github.com/spf13/viper
+- package: github.com/fsnotify/fsnotify
+  version: ^1.3.1
+- package: github.com/hashicorp/hcl
+- package: github.com/magiconair/properties
+  version: ^1.7.0
+- package: github.com/mitchellh/mapstructure
+- package: github.com/pelletier/go-toml
+  version: ^0.3.5
+- package: github.com/pkg/errors
+  version: ^0.8.0
+- package: github.com/spf13/afero
+- package: github.com/spf13/cast
+- package: github.com/spf13/jwalterweatherman
+- package: golang.org/x/oauth2
+- package: github.com/dnaeon/go-vcr
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
+  subpackages:
+  - recorder
+- package: github.com/russross/blackfriday
+- package: github.com/microcosm-cc/bluemonday
+- package: github.com/shurcooL/sanitized_anchor_name
+- package: github.com/golang/lint/golint
+- package: github.com/golang/fzipp/gocyclo
+- package: github.com/Sirupsen/logrus
