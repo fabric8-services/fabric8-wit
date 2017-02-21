@@ -2,24 +2,19 @@ FROM centos:7
 MAINTAINER "Konrad Kleine <kkleine@redhat.com>"
 ENV LANG=en_US.utf8
 
-ENV GO_VERSION=1.8
-
 # Some packages might seem weird but they are required by the RVM installer.
-RUN yum install -y \
+RUN yum --enablerepo=centosplus list golang* \
+    && yum install -y \
       findutils \
       git \
       make \
       mercurial \
+      golang \
       procps-ng \
       tar \
       wget \
       which \
     && yum clean all
-
-RUN wget https://storage.googleapis.com/golang/go$GO_VERSION.linux-amd64.tar.gz \
-    && tar -xvf go$GO_VERSION.linux-amd64.tar.gz \
-    && mv go /usr/local \
-    && rm go$GO_VERSION.linux-amd64.tar.gz
 
 ENV GOROOT=/usr/local/go
 ENV PATH=$PATH:$GOROOT/bin
