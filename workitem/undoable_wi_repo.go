@@ -125,3 +125,7 @@ func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria
 func (r *UndoableWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]WICountsPerIteration, error) {
 	return map[string]WICountsPerIteration{}, nil
 }
+
+func (r *UndoableWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationId uuid.UUID) (map[string]WICountsPerIteration, error) {
+	return map[string]WICountsPerIteration{}, nil
+}

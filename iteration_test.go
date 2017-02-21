@@ -67,8 +67,12 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 
 	svc, ctrl := rest.SecuredController()
 	_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
+	require.NotNil(t, created)
 	assertChildIterationLinking(t, created.Data)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
@@ -114,6 +118,9 @@ func (rest *TestIterationREST) TestSuccessShowIteration() {
 	svc, ctrl := rest.SecuredController()
 	_, created := test.ShowIterationOK(t, svc.Context, svc, ctrl, itrID.ID.String())
 	assertIterationLinking(t, created.Data)
+	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailShowIterationMissing() {
@@ -146,6 +153,9 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
 	assert.Equal(t, newName, *updated.Data.Attributes.Name)
 	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
+	require.NotNil(t, updated.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, updated.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, updated.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
