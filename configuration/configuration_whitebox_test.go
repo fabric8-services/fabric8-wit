@@ -14,19 +14,16 @@ var reqLong *goa.RequestData
 var reqShort *goa.RequestData
 var isConfigurationSet bool
 
-func setup() {
+func init() {
 
 	// ensure that the content here is executed only once.
-	if !isConfigurationSet {
-		reqLong = &goa.RequestData{
-			Request: &http.Request{Host: "api.service.domain.org"},
-		}
-		reqShort = &goa.RequestData{
-			Request: &http.Request{Host: "api.domain.org"},
-		}
-		resetConfiguration()
-		isConfigurationSet = true
+	reqLong = &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
 	}
+	reqShort = &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.org"},
+	}
+	resetConfiguration()
 }
 
 func resetConfiguration() {
@@ -38,7 +35,6 @@ func resetConfiguration() {
 func TestOpenIDConnectPathOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	setup()
 
 	path := openIDConnectPath("somesufix")
 	assert.Equal(t, "auth/realms/demo/protocol/openid-connect/somesufix", path)
@@ -47,7 +43,6 @@ func TestOpenIDConnectPathOK(t *testing.T) {
 func TestGetKeycloakURLOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	setup()
 
 	url, err := getKeycloakURL(reqLong, "somepath")
 	assert.Nil(t, err)
@@ -61,7 +56,6 @@ func TestGetKeycloakURLOK(t *testing.T) {
 func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	setup()
 
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "org"},
@@ -77,7 +71,6 @@ func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
 
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	setup()
 
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "demo.api.almighty.io"},
