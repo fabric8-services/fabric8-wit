@@ -393,6 +393,6 @@ var defaultKeycloakTesUserName = "testuser"
 var defaultKeycloakTesUserSecret = "testuser"
 
 // Keycloak URLs to be used in dev mode. Can be overridden by setting up keycloak.endpoint.*
-var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth"
-var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
-var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
+var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth"
+var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token"
+var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo"
