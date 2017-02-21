@@ -96,8 +96,8 @@ func main() {
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
-			log.Logger().Errorf("ERROR: Unable to open connection to database %v\n", err)
-			log.Logger().Infof("Retrying to connect in %v...\n", configuration.GetPostgresConnectionRetrySleep())
+			log.Logger().Errorf("ERROR: Unable to open connection to database %v", err)
+			log.Logger().Infof("Retrying to connect in %v...", configuration.GetPostgresConnectionRetrySleep())
 			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
@@ -181,10 +181,7 @@ func main() {
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  configuration.GetKeycloakEndpointAuth(),
-			TokenURL: configuration.GetKeycloakEndpointToken(),
-		},
+		Endpoint:     oauth2.Endpoint{},
 	}
 
 	appDB := gormapplication.NewGormDB(db)
