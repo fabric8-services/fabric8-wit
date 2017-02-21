@@ -17,6 +17,8 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/configuration"
+	jsonapierrors "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
@@ -151,6 +153,24 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	stateReferer[state] = referer
 
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak auth endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak auth endpoint URL "+err.Error()))
+	}
+
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak token endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+
+	keycloak.config.Endpoint.AuthURL = authEndpoint
+	keycloak.config.Endpoint.TokenURL = tokenEndpoint
 	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
 
 	redirectURL := keycloak.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
