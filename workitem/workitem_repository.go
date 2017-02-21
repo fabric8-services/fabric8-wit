@@ -208,7 +208,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 		fieldValue := wi.Fields[fieldName]
 		if fieldName == SystemOrder {
 			var err error
-			res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+			res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, order)
 			if err != nil {
 				return nil, errors.NewBadParameterError(fieldName, fieldValue)
 			}
