@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -8,6 +9,28 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 )
+
+var reqLong *goa.RequestData
+var reqShort *goa.RequestData
+var isConfigurationSet bool
+
+func init() {
+
+	// ensure that the content here is executed only once.
+	reqLong = &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	reqShort = &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.org"},
+	}
+	resetConfiguration()
+}
+
+func resetConfiguration() {
+	if err := Setup(""); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
 
 func TestOpenIDConnectPathOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
