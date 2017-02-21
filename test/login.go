@@ -1,17 +1,15 @@
 package test
 
 import (
-	"crypto/rsa"
-
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/token"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/pkg/errors"
 )
 
 // WithIdentity fills the context with token
@@ -31,18 +29,4 @@ func ServiceAsUser(serviceName string, tm token.Manager, u account.Identity) *go
 	svc.Context = WithIdentity(svc.Context, u)
 	svc.Context = login.ContextWithTokenManager(svc.Context, tm)
 	return svc
-}
-
-// GenerateToken generates a JWT token and signs it using the given private key
-func GenerateToken(ident account.Identity, privateKey *rsa.PrivateKey) (string, error) {
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
-	token.Claims.(jwt.MapClaims)["preferred_username"] = ident.Username
-	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
-
-	tokenStr, err := token.SignedString(privateKey)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-	return tokenStr, nil
 }

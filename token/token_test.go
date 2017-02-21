@@ -8,7 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/test"
+	testtoken "github.com/almighty/almighty-core/test/token"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -30,7 +30,7 @@ func TestExtractToken(t *testing.T) {
 		t.Fatal("Could not parse private key", err)
 	}
 
-	token, err := test.GenerateToken(identity, privateKey)
+	token, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
 	if err != nil {
 		t.Fatal("Could not generate test token", err)
 	}
