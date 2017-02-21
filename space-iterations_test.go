@@ -83,6 +83,9 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	assert.Equal(t, iteration.IterationStateNew, *c.Data.Attributes.State)
 	assert.Equal(t, "/", *c.Data.Attributes.ParentPath)
+	require.NotNil(t, c.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, c.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, c.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {

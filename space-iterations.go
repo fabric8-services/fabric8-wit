@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -64,6 +65,9 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		// For create, count will always be zero hence no need to query
+		// by passing empty map, updateIterationsWithCounts will be able to put zero values
+		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		var responseData *app.Iteration
 		if newItr.Path != "" {
 			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
@@ -80,9 +84,9 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap))
+			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		} else {
-			responseData = ConvertIteration(ctx.RequestData, &newItr)
+			responseData = ConvertIteration(ctx.RequestData, &newItr, updateIterationsWithCounts(wiCounts))
 		}
 		res := &app.IterationSingle{
 			Data: responseData,
@@ -119,8 +123,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations, UpdateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
-
+		res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
 		return ctx.OK(res)
 	})
 }
