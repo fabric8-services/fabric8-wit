@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -140,7 +141,7 @@ func TestListByFields(t *testing.T) {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, nil, nil, &limit, &offset)
 
 	if result == nil {
 		t.Errorf("nil result")
@@ -151,7 +152,7 @@ func TestListByFields(t *testing.T) {
 	}
 
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", testsupport.TestIdentity.ID.String())
-	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, nil, nil, &limit, &offset)
 
 	if result == nil {
 		t.Errorf("nil result")
@@ -307,7 +308,7 @@ func createPagingTest(t *testing.T, controller *WorkitemController, repo *testsu
 		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
-		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -386,28 +387,28 @@ func TestPagingErrors(t *testing.T) {
 
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -417,7 +418,7 @@ func TestPagingErrors(t *testing.T) {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -438,7 +439,7 @@ func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
 	}
@@ -464,18 +465,18 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	limit = 1000
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(t, "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 
 	limit = 50
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
 	}
@@ -553,6 +554,19 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	return &itr
 }
 
+func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
+	areaRepo := area.NewAreaRepository(db)
+	ar := area.Area{
+		Name: "Area 51",
+	}
+	err := areaRepo.Create(ctx, &ar)
+	if err != nil {
+		fmt.Println("Failed to create area.")
+		return nil
+	}
+	return &ar
+}
+
 // ========== WorkItem2Suite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type WorkItem2Suite struct {
 	suite.Suite
@@ -560,6 +574,9 @@ type WorkItem2Suite struct {
 	clean          func()
 	wiCtrl         app.WorkitemController
 	wi2Ctrl        app.WorkitemController
+	linkCtrl       app.WorkItemLinkController
+	linkCatCtrl    app.WorkItemLinkCategoryController
+	linkTypeCtrl   app.WorkItemLinkTypeController
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
@@ -588,6 +605,15 @@ func (s *WorkItem2Suite) SetupSuite() {
 
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.wi2Ctrl)
+
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkCatCtrl)
+
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkTypeCtrl)
+
+	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkCtrl)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
@@ -696,7 +722,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	modifiedDescription := rendering.NewMarkupContentFromLegacy("Only Description is modified")
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
-	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
 	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
@@ -709,7 +735,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	modifiedDescription := rendering.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
-	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
 
 	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
@@ -1118,10 +1144,74 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &newUserID, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &newUserID, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
+}
+
+func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	// when
+	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	// then
+	assert.NotNil(s.T(), expected.Data)
+	require.NotNil(s.T(), expected.Data.ID)
+	require.NotNil(s.T(), expected.Data.Type)
+	witBug := workitem.SystemBug
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &witBug, nil, nil)
+	require.NotNil(s.T(), actual)
+	require.True(s.T(), len(actual.Data) > 1)
+	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
+	for _, actualWI := range actual.Data {
+		assert.Equal(s.T(), expected.Data.Type, actualWI.Type)
+		require.NotNil(s.T(), actualWI.ID)
+	}
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
+	tempArea := createOneRandomArea(s.svc.Context, s.db)
+	require.NotNil(s.T(), tempArea)
+	areaID := tempArea.ID.String()
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		},
+		Area: &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &areaID,
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.ID)
+	require.NotNil(s.T(), wi.Data.Type)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	require.NotNil(s.T(), wi.Data.Relationships.Area)
+	assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
+
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &areaID, nil, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 1)
+	assert.Equal(s.T(), areaID, *list.Data[0].Relationships.Area.Data.ID)
+	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[area]"))
 }
 
 func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
@@ -1152,7 +1242,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &iterationID, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &iterationID, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -1289,8 +1379,154 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 }
 
+// TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
+// creates a link between them. When one of the work items is deleted, the
+// link shall be gone as well.
+func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
+	// Create two work items (wi1 and wi2)
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "WI1"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi1)
+	c.Data.Attributes[workitem.SystemTitle] = "WI2"
+	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi2)
+
+	// Create link category
+	linkCatPayload := CreateWorkItemLinkCategory("test-user")
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
+	require.NotNil(s.T(), linkCat)
+
+	// Create work item link type payload
+	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	require.NotNil(s.T(), linkType)
+
+	// Create link between wi1 and wi2
+	id1, err := strconv.ParseUint(*wi1.Data.ID, 10, 64)
+	require.Nil(s.T(), err)
+	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
+	require.Nil(s.T(), err)
+	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.linkCtrl, linkPayload)
+	require.NotNil(s.T(), workItemLink)
+
+	// Delete work item wi1
+	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi1.Data.ID)
+
+	// Check that the link was deleted by deleting wi1
+	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID)
+
+	// Check that we can query for wi2 without problems
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi2.Data.ID)
+}
+
 func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
 	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, "00000000")
+}
+
+func (s *WorkItem2Suite) TestWI2CreateWithArea() {
+	t := s.T()
+
+	areaInstance := createSpaceAndArea(t, gormapplication.NewGormDB(s.db))
+	areaID := areaInstance.ID.String()
+	arType := area.APIStringTypeAreas
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+		Area: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &arType,
+				ID:   &areaID,
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(t, wi.Data.Relationships.Area)
+	assert.Equal(t, areaID, *wi.Data.Relationships.Area.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
+	t := s.T()
+
+	areaInstance := createSpaceAndArea(t, gormapplication.NewGormDB(s.db))
+	areaID := areaInstance.ID.String()
+	arType := area.APIStringTypeAreas
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	assert.NotNil(t, wi.Data.Relationships.Area)
+	assert.Nil(t, wi.Data.Relationships.Area.Data)
+
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = wi.Data.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title"
+	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	u.Data.Relationships = &app.WorkItemRelationships{
+		Area: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &arType,
+				ID:   &areaID,
+			},
+		},
+	}
+
+	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
+	require.NotNil(t, wiu.Data.Relationships.Area)
+	require.NotNil(t, wiu.Data.Relationships.Area.Data)
+	assert.Equal(t, areaID, *wiu.Data.Relationships.Area.Data.ID)
+	assert.Equal(t, arType, *wiu.Data.Relationships.Area.Data.Type)
+}
+
+func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
+	t := s.T()
+
+	arType := area.APIStringTypeAreas
+	areaID := uuid.NewV4().String()
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+		Area: &app.RelationGeneric{
+			Data: &app.GenericData{
+				Type: &arType,
+				ID:   &areaID,
+			},
+		},
+	}
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {

@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -54,7 +54,9 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
-				log.Printf("not found, id=%s", ctx.ID)
+				log.Error(ctx, map[string]interface{}{
+					"trackerID": ctx.ID,
+				}, "tracker query controller not found")
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
 			default:

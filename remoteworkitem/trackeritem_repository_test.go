@@ -241,6 +241,8 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	workItemUpdated, err := convert(s.DB, int(s.trackerQuery.ID), remoteItemDataUpdated, ProviderGithub)
 	// then
 	assert.Nil(s.T(), err)
+	require.NotNil(s.T(), workItemUpdated)
+	require.NotNil(s.T(), workItemUpdated.Fields)
 	assert.Equal(s.T(), "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])
 	assert.Equal(s.T(), "sbose78", workItemUpdated.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItemUpdated.Fields[workitem.SystemAssignees])

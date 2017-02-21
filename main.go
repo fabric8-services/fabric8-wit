@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -16,11 +15,13 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
+	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -28,7 +29,10 @@ import (
 	"github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	"github.com/goadesign/goa"
+	"github.com/goadesign/goa/client"
+	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
 	"github.com/goadesign/goa/middleware/security/jwt"
@@ -72,30 +76,33 @@ func main() {
 
 	var err error
 	if err = configuration.Setup(configFilePath); err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to setup the configuration: \n%+v", err))
+		logrus.Panic(nil, map[string]interface{}{
+			"configFilePath": configFilePath,
+			"err":            err,
+		}, "failed to setup the configuration")
 	}
 
 	if printConfig {
-		fmt.Printf("%s\n", configuration.String())
 		os.Exit(0)
 	}
+
+	// Initialized developer mode flag for the logger
+	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled())
 
 	printUserInfo()
 
 	var db *gorm.DB
-	for i := 1; i <= configuration.GetPostgresConnectionMaxRetries(); i++ {
-		log.Printf("Opening DB connection attempt %d of %d\n", i, configuration.GetPostgresConnectionMaxRetries())
+	for {
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
+			log.Logger().Errorf("ERROR: Unable to open connection to database %v", err)
+			log.Logger().Infof("Retrying to connect in %v...", configuration.GetPostgresConnectionRetrySleep())
 			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
 			break
 		}
-	}
-	if err != nil {
-		panic(fmt.Sprintf("ERROR: Could not open connection to database: \n%+v", err))
 	}
 
 	if configuration.IsPostgresDeveloperModeEnabled() {
@@ -105,7 +112,9 @@ func main() {
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed migration: \n%+v", err))
+		log.Panic(nil, map[string]interface{}{
+			"err": fmt.Sprintf("%+v", err),
+		}, "failed migration")
 	}
 
 	// Nothing to here except exit, since the migration is already performed.
@@ -115,15 +124,23 @@ func main() {
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
+		// set a random request ID for the context
+		ctx, req_id := client.ContextWithRequestID(context.Background())
+		log.Debug(ctx, nil, "Initializing the population of the database... Request ID: %v", req_id)
+
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			panic(fmt.Sprintf("ERROR: Failed to populate common types: \n%+v", err))
+			log.Panic(ctx, map[string]interface{}{
+				"err": fmt.Sprintf("%+v", err),
+			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(context.Background(), link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
-			panic(fmt.Sprintf("ERROR: Failed to bootstap work item linking: \n%+v", err))
+			log.Panic(ctx, map[string]interface{}{
+				"err": fmt.Sprintf("%+v", err),
+			}, "failed to bootstap work item linking")
 		}
 	}
 
@@ -137,14 +154,18 @@ func main() {
 
 	// Mount middleware
 	service.Use(middleware.RequestID())
-	service.Use(middleware.LogRequest(true))
+	service.Use(middleware.LogRequest(configuration.IsPostgresDeveloperModeEnabled()))
 	service.Use(gzip.Middleware(9))
 	service.Use(jsonapi.ErrorHandler(service, true))
 	service.Use(middleware.Recover())
 
+	service.WithLogger(goalogrus.New(log.Logger()))
+
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
-		panic(fmt.Sprintf("ERROR: Failed to parse public key: \n%+v", err))
+		log.Panic(nil, map[string]interface{}{
+			"err": fmt.Sprintf("%+v", err),
+		}, "failed to parse public token")
 	}
 
 	// Setup Account/Login/Security
@@ -160,10 +181,7 @@ func main() {
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  configuration.GetKeycloakEndpointAuth(),
-			TokenURL: configuration.GetKeycloakEndpointToken(),
-		},
+		Endpoint:     oauth2.Endpoint{},
 	}
 
 	appDB := gormapplication.NewGormDB(db)
@@ -259,10 +277,10 @@ func main() {
 	spaceAreaCtrl := NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	fmt.Println("Git Commit SHA: ", Commit)
-	fmt.Println("UTC Build Time: ", BuildTime)
-	fmt.Println("UTC Start Time: ", StartTime)
-	fmt.Println("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
+	log.Logger().Infoln("Git Commit SHA: ", Commit)
+	log.Logger().Infoln("UTC Build Time: ", BuildTime)
+	log.Logger().Infoln("UTC Start Time: ", StartTime)
+	log.Logger().Infoln("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
@@ -270,6 +288,10 @@ func main() {
 
 	// Start http
 	if err := http.ListenAndServe(configuration.GetHTTPAddress(), nil); err != nil {
+		log.Error(nil, map[string]interface{}{
+			"addr": configuration.GetHTTPAddress(),
+			"err":  err,
+		}, "unable to connect to server")
 		service.LogError("startup", "err", err)
 	}
 
@@ -278,9 +300,14 @@ func main() {
 func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
-		fmt.Printf("ERROR: Failed to get current user: \n%+v", err)
+		log.Warn(nil, map[string]interface{}{
+			"err": fmt.Sprintf("%+v", err),
+		}, "failed to get current user")
 	} else {
-		log.Printf("Running as user name \"%s\" with UID %s.\n", u.Username, u.Uid)
+		log.Info(nil, map[string]interface{}{
+			"username": u.Username,
+			"uuid":     u.Uid,
+		}, "Running as user name '%s' with UID %s.", u.Username, u.Uid)
 		/*
 			g, err := user.LookupGroupId(u.Gid)
 			if err != nil {

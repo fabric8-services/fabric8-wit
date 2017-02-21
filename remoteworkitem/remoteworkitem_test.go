@@ -155,10 +155,8 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// JSON data to test the issue mapping for github
 	var gitData = []remoteData{
-		// Github data with assignee to map local workItem to remote workItem
-		{"github_issue_with_assignee.json", true, "http://api.github.com/repos/almighty-test/almighty-test-unit/issues/2"},
 		// Github data with labels and without assignee
-		// assignee field is skipped if that is null
+		// assignees field is skipped if that is an empty array
 		{"github_issue_with_labels.json", true, "https://api.github.com/repos/almighty-test/almighty-test-unit/issues/3"},
 		// The Github issue URL doesn't exist. So, the mapping will not happen
 		// The map created from the Flatten will be empty
@@ -166,7 +164,8 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	}
 	// when/then
 	for _, data := range gitData {
-		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneesURL)
+		// skipping assignees login and URL since the test data contain no assignee
+		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneesLogin, GithubAssigneesURL)
 	}
 }
 
@@ -184,7 +183,8 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 	}
 
 	for _, data := range jir {
-		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeURL)
+		// skipping assignee login and URL since the test data contain no assignee
+		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeLogin, JiraAssigneeURL)
 	}
 }
 
@@ -330,6 +330,25 @@ func TestPatternConverter(t *testing.T) {
 	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content["assignees.2.url"])
 }
 
+func TestPatternConverterWithNoValue(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	// given
+	content := make(map[string]interface{})
+	content[GithubState] = "open"
+	workItem := TestWorkItem{
+		content: content,
+	}
+	workItemMap := RemoteWorkItemKeyMaps[ProviderGithub]
+	// when
+	result, err := Map(workItem, workItemMap)
+	// then
+	require.Nil(t, err)
+	require.NotNil(t, result.Fields[remoteAssigneeLogins])
+	require.Empty(t, result.Fields[remoteAssigneeLogins])
+	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
+	require.Empty(t, result.Fields[remoteAssigneeProfileURLs])
+}
+
 type TestWorkItem struct {
 	content map[string]interface{}
 }
@@ -357,5 +376,23 @@ func TestListConverter(t *testing.T) {
 	assert.Contains(t, result.Fields[remoteAssigneeLogins], content[JiraAssigneeLogin])
 	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
 	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content[JiraAssigneeURL])
+}
 
+func TestListConverterWithNoValue(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	// given
+	content := make(map[string]interface{})
+	content[JiraState] = "open"
+	workItem := TestWorkItem{
+		content: content,
+	}
+	workItemMap := RemoteWorkItemKeyMaps[ProviderJira]
+	// when
+	result, err := Map(workItem, workItemMap)
+	// then
+	require.Nil(t, err)
+	require.NotNil(t, result.Fields[remoteAssigneeLogins])
+	require.Empty(t, result.Fields[remoteAssigneeLogins])
+	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
+	require.Empty(t, result.Fields[remoteAssigneeProfileURLs])
 }

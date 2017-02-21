@@ -1,9 +1,9 @@
 package cleaner
 
 import (
-	"log"
-
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -50,7 +50,11 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		tx := db.Begin()
 		for i := len(entires) - 1; i >= 0; i-- {
 			entry := entires[i]
-			log.Println("Deleting from", entry.table, entry.key)
+			log.Debug(nil, map[string]interface{}{
+				"pkg":   "cleaner",
+				"table": entry.table,
+				"key":   entry.key,
+			}, "Deleting entities from %s with key %s", entry.table, entry.key)
 			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
 		}
 

@@ -115,6 +115,9 @@ func (converter StringConverter) Convert(value interface{}, item AttributeAccess
 
 // Convert converts the given value to a list containing this single value as string
 func (converter ListConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	if value == nil {
+		return make([]string, 0), nil
+	}
 	result := make([]string, 1)
 	result[0] = value.(string)
 	return result, nil

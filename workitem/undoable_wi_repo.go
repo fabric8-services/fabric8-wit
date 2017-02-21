@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"log"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -12,8 +11,11 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 var _ WorkItemRepository = &UndoableWorkItemRepository{}
@@ -43,7 +45,10 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Printf("loading work item %d", id)
+	log.Info(ctx, map[string]interface{}{
+		"pkg": "workitem",
+		"id":  id,
+	}, "Loading work item")
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
@@ -68,7 +73,11 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 		return errors.NewNotFoundError("work item", ID)
 	}
 
-	log.Printf("loading work item %d", id)
+	log.Info(ctx, map[string]interface{}{
+		"pkg": "workitem",
+		"id":  id,
+	}, "Loading work iteme")
+
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
@@ -116,4 +125,8 @@ func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
 func (r *UndoableWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
 	return r.wrapped.Fetch(ctx, criteria)
+}
+
+func (r *UndoableWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]WICountsPerIteration, error) {
+	return map[string]WICountsPerIteration{}, nil
 }

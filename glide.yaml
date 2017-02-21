@@ -92,3 +92,4 @@ import:
 - package: github.com/shurcooL/sanitized_anchor_name
 - package: github.com/golang/lint/golint
 - package: github.com/golang/fzipp/gocyclo
+- package: github.com/Sirupsen/logrus

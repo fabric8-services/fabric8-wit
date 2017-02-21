@@ -4,10 +4,10 @@ import (
 	"database/sql/driver"
 	"time"
 
-	"log"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -148,9 +148,17 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	}
 	err := m.db.Create(model).Error
 	if err != nil {
-		goa.LogError(ctx, "error adding Identity", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"identityID": model.ID,
+			"err":        err,
+		}, "unable to create the identity")
 		return errors.WithStack(err)
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":        "identity",
+		"identityID": model.ID,
+	}, "Identity created!")
 
 	return nil
 }
@@ -161,10 +169,19 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
-		goa.LogError(ctx, "error updating Identity", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"identityID": model.ID,
+			"ctx":        ctx,
+			"err":        err,
+		}, "unable to update the identity")
 		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
+
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":        "identity",
+		"identityID": model.ID,
+	}, "Identity saved!")
 
 	return errors.WithStack(err)
 }
@@ -178,9 +195,17 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
-		goa.LogError(ctx, "error deleting Identity", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"identityID": id,
+			"err":        err,
+		}, "unable to delete the identity")
 		return errors.WithStack(err)
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":        "identity",
+		"identityID": id,
+	}, "Identity deleted!")
 
 	return nil
 }
@@ -194,6 +219,12 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errors.WithStack(err)
 	}
+
+	log.Debug(nil, map[string]interface{}{
+		"pkg":          "identity",
+		"identityList": objs,
+	}, "Identity query executed successfully!")
+
 	return objs, nil
 }
 
@@ -201,17 +232,26 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "first"}, time.Now())
 	var objs []*Identity
+	log.Debug(nil, map[string]interface{}{
+		"pkg":          "identity",
+		"identityList": objs,
+	}, "Looking for identity matching: %v", funcs)
 
-	log.Printf("Looking for identity matching: %v", funcs)
 	err := m.db.Scopes(funcs...).Table(m.TableName()).First(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errors.WithStack(err)
 	}
 	if len(objs) != 0 && objs[0] != nil {
-		log.Printf("Found matching identity: %v", *objs[0])
+		log.Debug(nil, map[string]interface{}{
+			"pkg":          "identity",
+			"identityList": objs,
+		}, "Found matching identity: %v", *objs[0])
 		return objs[0], nil
 	}
-	log.Printf("No matching identity found\n")
+	log.Debug(nil, map[string]interface{}{
+		"pkg":          "identity",
+		"identityList": objs,
+	}, "No matching identity found")
 	return nil, nil
 }
 
@@ -265,6 +305,12 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 		ident := value.ConvertIdentityFromModel()
 		res.Data[index] = ident.Data
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"pkg":          "identity",
+		"identityList": &res,
+	}, "Identity List executed successfully!")
+
 	return &res, nil
 }
 

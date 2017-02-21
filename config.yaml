@@ -8,8 +8,8 @@ postgres.user: postgres
 postgres.password: mysecretpassword
 postgres.database: postgres
 postgres.sslmode: disable
-# The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+# The amount of time before the connection times out
+postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
 
@@ -33,7 +33,7 @@ populate.commontypes: true
 # Authentication configuration
 # ----------------------------
 
-token.privatekey : > 
+token.privatekey : >
                     -----BEGIN RSA PRIVATE KEY-----
                     MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
                     DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
@@ -79,8 +79,12 @@ token.publickey : >
 
 keycloak.client.id : fabric8-online-platform
 keycloak.secret : 08a8bcd1-f362-446a-9d2b-d34b8d464185
-keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth
-keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token
-keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo
+keycloak.domain.prefix : sso
+keycloak.realm : demo
 keycloak.testuser.name : testuser
 keycloak.testuser.secret : testuser
+
+# Uncomment if FQDN URL's should be used instead of relative URL's:
+# keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth
+# keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token
+# keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo
