@@ -41,12 +41,12 @@ func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 	url, err := configuration.GetKeycloakEndpointAuth(reqLong)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth", url)
 
 	url, err = configuration.GetKeycloakEndpointAuth(reqShort)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth", url)
 }
 
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
@@ -76,12 +76,12 @@ func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 	url, err := configuration.GetKeycloakEndpointToken(reqLong)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token", url)
 
 	url, err = configuration.GetKeycloakEndpointToken(reqShort)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token", url)
 }
 
 func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
@@ -111,12 +111,12 @@ func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 	url, err := configuration.GetKeycloakEndpointUserInfo(reqLong)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo", url)
 
 	url, err = configuration.GetKeycloakEndpointUserInfo(reqShort)
 	assert.Nil(t, err)
 	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo", url)
+	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo", url)
 }
 
 func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {

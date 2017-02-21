@@ -91,6 +91,8 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 		return errors.NewNotFoundError("work item", ID)
 	}
 
+	log.Debug(ctx, map[string]interface{}{"wiID": ID}, "Work item deleted successfully!")
+
 	return nil
 }
 
@@ -193,7 +195,15 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(wiType, &wi)
+
+	witem, err := convertWorkItemModelToApp(wiType, &wi)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(ctx, map[string]interface{}{"wiID": wi.ID}, "Work item created successfully!")
+
+	return witem, nil
 }
 
 func convertWorkItemModelToApp(wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
