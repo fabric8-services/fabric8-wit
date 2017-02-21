@@ -133,8 +133,8 @@ func main() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
 		// set a random request ID for the context
-		ctx, req_id := client.ContextWithRequestID(context.Background())
-		log.Debug(ctx, nil, "Initializing the population of the database... Request ID: %v", req_id)
+		ctx, reqID := client.ContextWithRequestID(context.Background())
+		log.Debug(ctx, nil, "Initializing the population of the database... Request ID: %v", reqID)
 
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -284,6 +284,10 @@ func main() {
 
 	spaceAreaCtrl := NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
+
+	// Mount "work item children" controller
+	workItemChildrenCtrl := NewWorkItemChildrenController(service, appDB)
+	app.MountWorkItemChildrenController(service, workItemChildrenCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", Commit)
 	log.Logger().Infoln("UTC Build Time: ", BuildTime)

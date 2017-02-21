@@ -2,6 +2,7 @@ package workitem
 
 import (
 	"strconv"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -27,6 +29,7 @@ type WorkItemRepository interface {
 	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
+	ListChildren(ctx context.Context, parent string) ([]*app.WorkItem, error)
 }
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
@@ -312,6 +315,37 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		res[index], err = convertWorkItemModelToApp(wiType, &value)
 	}
 	return res, count, nil
+}
+
+// ListChildren get all child work items
+func (r *GormWorkItemRepository) ListChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
+
+	where := "id in (select work_item_links.target_id from work_item_links left join work_item_link_types on work_item_links.link_type_id = work_item_link_types.id where work_item_link_types.forward_name='relates to' and work_item_links.source_id = ?)"
+	db := r.db.Model(&WorkItem{}).Where(where, parent)
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []*WorkItem{}
+
+	for rows.Next() {
+		value := &WorkItem{}
+		db.ScanRows(rows, value)
+
+		result = append(result, value)
+	}
+	res := make([]*app.WorkItem, len(result))
+	for index, value := range result {
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		if err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		res[index], err = convertWorkItemModelToApp(wiType, value)
+	}
+
+	return res, nil
 }
 
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
