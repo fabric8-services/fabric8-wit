@@ -200,15 +200,20 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 	res.Fields = Fields{}
 
 	res.Executionorder = order
+
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
-		var err error
-		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
-		if err != nil {
-			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		if fieldName == SystemOrder {
+			var err error
+			res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+			if err != nil {
+				return nil, errors.NewBadParameterError(fieldName, fieldValue)
+			}
+		} else {
+			res.Fields[fieldName] = fieldValue
 		}
 	}
 
