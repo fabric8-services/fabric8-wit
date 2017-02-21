@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -15,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateToken(t *testing.T) {
+func TestExtractToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	manager := createManager(t)
@@ -24,7 +25,15 @@ func TestGenerateToken(t *testing.T) {
 		ID:       uuid.NewV4(),
 		Username: "testuser",
 	}
-	token, err := manager.Generate(identity)
+	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	if err != nil {
+		t.Fatal("Could not parse private key", err)
+	}
+
+	token, err := test.GenerateToken(identity, privateKey)
+	if err != nil {
+		t.Fatal("Could not generate test token", err)
+	}
 
 	ident, err := manager.Extract(token)
 	if err != nil {
