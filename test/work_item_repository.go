@@ -278,5 +278,8 @@ func (fake *WorkItemRepository) recordInvocation(key string, args []interface{})
 func (fake *WorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
 	return map[string]workitem.WICountsPerIteration{}, nil
 }
+func (fake *WorkItemRepository) GetCountsForIteration(ctx context.Context, iterationId uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
+	return map[string]workitem.WICountsPerIteration{}, nil
+}
 
 var _ workitem.WorkItemRepository = new(WorkItemRepository)
