@@ -14,7 +14,7 @@ func TestOpenIDConnectPathOK(t *testing.T) {
 	t.Parallel()
 
 	path := openIDConnectPath("somesufix")
-	assert.Equal(t, "auth/realms/demo/protocol/openid-connect/somesufix", path)
+	assert.Equal(t, "auth/realms/fabric8/protocol/openid-connect/somesufix", path)
 }
 
 func TestGetKeycloakURLOK(t *testing.T) {
