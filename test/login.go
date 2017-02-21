@@ -4,7 +4,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/login"
+	tokencontext "github.com/almighty/almighty-core/login/token_context"
 	"github.com/almighty/almighty-core/token"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -27,6 +27,6 @@ func WithIdentity(ctx context.Context, ident account.Identity) context.Context {
 func ServiceAsUser(serviceName string, tm token.Manager, u account.Identity) *goa.Service {
 	svc := goa.New(serviceName)
 	svc.Context = WithIdentity(svc.Context, u)
-	svc.Context = login.ContextWithTokenManager(svc.Context, tm)
+	svc.Context = tokencontext.ContextWithTokenManager(svc.Context, tm)
 	return svc
 }

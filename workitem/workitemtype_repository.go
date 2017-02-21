@@ -137,6 +137,9 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	}
 
 	result := convertTypeFromModels(&created)
+
+	log.Debug(ctx, map[string]interface{}{"witName": created.Name}, "Work item type created successfully!")
+
 	return &result, nil
 }
 
