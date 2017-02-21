@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -9,9 +10,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var reqLong *goa.RequestData
+var reqShort *goa.RequestData
+var isConfigurationSet bool
+
+func setup() {
+
+	// ensure that the content here is executed only once.
+	if !isConfigurationSet {
+		reqLong = &goa.RequestData{
+			Request: &http.Request{Host: "api.service.domain.org"},
+		}
+		reqShort = &goa.RequestData{
+			Request: &http.Request{Host: "api.domain.org"},
+		}
+		resetConfiguration()
+		isConfigurationSet = true
+	}
+}
+
+func resetConfiguration() {
+	if err := Setup(""); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 func TestOpenIDConnectPathOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
+	setup()
 
 	path := openIDConnectPath("somesufix")
 	assert.Equal(t, "auth/realms/demo/protocol/openid-connect/somesufix", path)
@@ -20,6 +47,7 @@ func TestOpenIDConnectPathOK(t *testing.T) {
 func TestGetKeycloakURLOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
+	setup()
 
 	url, err := getKeycloakURL(reqLong, "somepath")
 	assert.Nil(t, err)
@@ -33,6 +61,7 @@ func TestGetKeycloakURLOK(t *testing.T) {
 func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
+	setup()
 
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "org"},
@@ -48,6 +77,7 @@ func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
 
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
+	setup()
 
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "demo.api.almighty.io"},
