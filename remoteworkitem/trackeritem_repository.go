@@ -87,7 +87,7 @@ func lookupIdentities(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType s
 			// ignore here, it is being processed above
 		} else
 		// assignees
-		if fieldName == remoteAssigneeProfileURLs {
+		if fieldName == remoteAssigneeLogins {
 			if fieldValue == nil {
 				workItem.Fields[workitem.SystemAssignees] = make([]string, 0)
 				continue

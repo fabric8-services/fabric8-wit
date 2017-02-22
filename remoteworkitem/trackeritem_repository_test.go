@@ -121,7 +121,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 					"state": "closed",
 					"body": "body of issue",
 					"user": {
-						"login": "sbose78",
+						"login": "jdoe0",
 						"url": "https://api.github.com/users/jdoe0"
 					},
 					"assignees": [
@@ -157,7 +157,11 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	identityIDs := workItem.Fields[workitem.SystemAssignees].([]interface{})
 	for _, identityID := range identityIDs {
-		assert.NotNil(s.T(), s.lookupIdentityByID(identityID.(string)))
+		identity := s.lookupIdentityByID(identityID.(string))
+		require.NotNil(s.T(), identity)
+		assert.Contains(s.T(), identity.Username, "jdoe")
+		assert.NotContains(s.T(), identity.Username, "https://api.github.com/users/jdoe")
+		assert.Contains(s.T(), identity.ProfileURL, "https://api.github.com/users/jdoe")
 	}
 }
 
