@@ -24,6 +24,7 @@ type WorkItemRepository interface {
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
 }
@@ -306,9 +307,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-
 	res := make([]*app.WorkItem, len(result))
-
 	for index, value := range result {
 		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
@@ -316,8 +315,23 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		}
 		res[index], err = convertWorkItemModelToApp(wiType, &value)
 	}
-
 	return res, count, nil
+}
+
+// Fetch fetches the (first) work item matching by the given criteria.Expression.
+func (r *GormWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
+	limit := 1
+	results, count, err := r.List(ctx, criteria, nil, &limit)
+	if err != nil {
+		return nil, err
+	}
+	// if no result
+	if count == 0 {
+		return nil, nil
+	}
+	// one result
+	result := results[0]
+	return result, nil
 }
 
 // GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration

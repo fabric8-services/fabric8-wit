@@ -22,6 +22,7 @@ type trackerQueryRepoBlackBoxTest struct {
 	gormsupport.DBTestSuite
 	repo   application.TrackerQueryRepository
 	trRepo application.TrackerRepository
+	clean  func()
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -45,11 +46,14 @@ func TestRunTrackerQueryRepoBlackBoxTest(t *testing.T) {
 func (s *trackerQueryRepoBlackBoxTest) SetupTest() {
 	s.repo = remoteworkitem.NewTrackerQueryRepository(s.DB)
 	s.trRepo = remoteworkitem.NewTrackerRepository(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (s *trackerQueryRepoBlackBoxTest) TearDownTest() {
+	s.clean()
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
 		context.Background(),
@@ -73,8 +77,6 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
 		context.Background(),
@@ -99,8 +101,6 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
 		context.Background(),
