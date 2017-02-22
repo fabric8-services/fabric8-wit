@@ -316,7 +316,7 @@ func printUserInfo() {
 		} else {
 			log.Info(nil, map[string]interface{}{
 				"groupname": g.Name,
-				"gid":     g.Gid,
+				"gid":       g.Gid,
 			}, "Running as as group '%s' with GID %s.", g.Name, g.Gid)
 		}
 	}
