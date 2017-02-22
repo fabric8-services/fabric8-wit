@@ -166,8 +166,8 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 
 // Lookup looks for an existing identity with the given `profileURL` or creates a new one
 func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error) {
-	if username == "" || profileURL == "" {
-		return nil, errors.New("Cannot lookup identity with empty username or profile URL")
+	if username == "" || profileURL == "" || providerType == "" {
+		return nil, errors.New("Cannot lookup identity with empty username, profile URL or provider type")
 	}
 	log.Debug(nil, map[string]interface{}{
 		"pkg": "account",
