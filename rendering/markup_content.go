@@ -51,7 +51,7 @@ func NewMarkupContent(content, markup string) MarkupContent {
 }
 
 // NewMarkupContentFromValue creates a MarkupContent from the given value,
-// by converting a 'string' or casting a 'MarkupContent'. Otherwise, it returns nil.
+// by converting a 'string', a 'map[string]interface{}' or casting a 'MarkupContent'. Otherwise, it returns nil.
 func NewMarkupContentFromValue(value interface{}) *MarkupContent {
 	if value == nil {
 		return nil
@@ -62,6 +62,9 @@ func NewMarkupContentFromValue(value interface{}) *MarkupContent {
 		return &result
 	case MarkupContent:
 		result := value.(MarkupContent)
+		return &result
+	case map[string]interface{}:
+		result := NewMarkupContentFromMap(value.(map[string]interface{}))
 		return &result
 	default:
 		return nil

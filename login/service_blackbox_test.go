@@ -25,8 +25,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var db *gorm.DB
-var loginService Service
+var (
+	db           *gorm.DB
+	loginService Service
+	oauth        = &oauth2.Config{
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
+		Scopes:       []string{"user:email"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth",
+			TokenURL: "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token",
+		},
+	}
+)
 
 func TestMain(m *testing.M) {
 	if _, c := os.LookupEnv(resource.Database); c != false {
@@ -47,16 +58,6 @@ func TestMain(m *testing.M) {
 			panic(err.Error())
 		}
 
-	}
-
-	oauth := &oauth2.Config{
-		ClientID:     configuration.GetKeycloakClientID(),
-		ClientSecret: configuration.GetKeycloakSecret(),
-		Scopes:       []string{"user:email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth",
-			TokenURL: "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token",
-		},
 	}
 
 	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
@@ -101,7 +102,8 @@ func TestKeycloakAuthorizationRedirect(t *testing.T) {
 	err = loginService.Perform(authorizeCtx)
 
 	assert.Equal(t, 307, rw.Code)
-	assert.Contains(t, rw.Header().Get("Location"), configuration.GetKeycloakEndpointAuth())
+	configuration.GetKeycloakEndpointAuth(authorizeCtx.RequestData)
+	assert.Contains(t, rw.Header().Get("Location"), oauth.Endpoint.AuthURL)
 }
 
 func TestValidOAuthAuthorizationCode(t *testing.T) {
