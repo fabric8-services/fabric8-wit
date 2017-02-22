@@ -6,17 +6,14 @@ ENV LANG=en_US.utf8
 RUN yum --enablerepo=centosplus install -y \
       findutils \
       git \
+      golang \
       make \
       mercurial \
-      golang \
       procps-ng \
       tar \
       wget \
       which \
     && yum clean all
-
-ENV GOROOT=/usr/local/go
-ENV PATH=$PATH:$GOROOT/bin
 
 # Get glide for Go package management
 RUN cd /tmp \
