@@ -308,13 +308,17 @@ func printUserInfo() {
 			"username": u.Username,
 			"uuid":     u.Uid,
 		}, "Running as user name '%s' with UID %s.", u.Username, u.Uid)
-		/*
-			g, err := user.LookupGroupId(u.Gid)
-			if err != nil {
-				fmt.Printf("Failed to lookup group: %", err.Error())
-			} else {
-				fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
-			}
-		*/
+		g, err := user.LookupGroupId(u.Gid)
+		if err != nil {
+			log.Warn(nil, map[string]interface{}{
+				"err": fmt.Sprintf("%+v", err),
+			}, "failed to lookup group")
+		} else {
+			log.Info(nil, map[string]interface{}{
+				"groupname": g.Name,
+				"gid":       g.Gid,
+			}, "Running as as group '%s' with GID %s.", g.Name, g.Gid)
+		}
 	}
+
 }
