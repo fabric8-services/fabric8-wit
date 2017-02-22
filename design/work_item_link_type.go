@@ -80,6 +80,7 @@ See also http://jsonapi.org/format/#document-resource-object-relationships`)
 	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
 	a.Attribute("source_type", relationWorkItemType, "The source type specifies the type of work item that can be used as a source.")
 	a.Attribute("target_type", relationWorkItemType, "The target type specifies the type of work item that can be used as a target.")
+	a.Attribute("space", relationGeneric, "This defines the owning space of this work item.")
 })
 
 // relationWorkItemType is the JSONAPI store for the work item type relationship objects

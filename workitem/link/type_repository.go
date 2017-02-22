@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -16,7 +17,7 @@ import (
 
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
-	Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategory satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
+	Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategory, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
 	Load(ctx context.Context, ID string) (*app.WorkItemLinkTypeSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkTypeList, error)
 	Delete(ctx context.Context, ID string) error
@@ -41,7 +42,7 @@ type GormWorkItemLinkTypeRepository struct {
 
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategoryID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
+func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategoryID, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
 	linkType := &WorkItemLinkType{
 		Name:           name,
 		Description:    description,
@@ -51,6 +52,7 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 		ReverseName:    reverseName,
 		Topology:       topology,
 		LinkCategoryID: linkCategoryID,
+		SpaceID: spaceID,
 	}
 	if err := linkType.CheckValidForCreation(); err != nil {
 		return nil, errs.WithStack(err)
@@ -65,6 +67,16 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 	if db.Error != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("Failed to find work item link category: %s", db.Error.Error()))
 	}
+	// Check space exists
+	space := space.Space{}
+	db = r.db.Where("id=?", linkType.SpaceID).Find(&space)
+	if db.RecordNotFound() {
+		return nil, errors.NewBadParameterError("work item link space", linkType.SpaceID)
+	}
+	if db.Error != nil {
+		return nil, errors.NewInternalError(fmt.Sprintf("Failed to find work item link space: %s", db.Error.Error()))
+	}
+
 	db = r.db.Create(linkType)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())

@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
@@ -182,6 +183,9 @@ func getMigrations() migrations {
 	// Version 28
 	m = append(m, steps{executeSQLFile("028-identity_provider_url.sql")})
 
+	// Version 29
+	m = append(m, steps{executeSQLFile("029-add-space-id-wilt.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -306,17 +310,20 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 }
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
-func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, 0); err != nil {
+		return errs.WithStack(err)
+	}
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
 		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
 	return nil
@@ -345,8 +352,39 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
+func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, name string, version int) error {
+	spa, err := spaceRepo.LoadSpaceFromDB(ctx, name)
+	cause := errs.Cause(err)
+	space := &space.Space{
+		Version: version,
+		Name: name,
+	}
+	switch cause.(type) {
+	case errors.NotFoundError:
+		_, err := spaceRepo.Create(ctx, space)
+		if err != nil {
+			return errs.WithStack(err)
+		}
+	case nil:
+		log.Info(ctx, map[string]interface{}{
+			"pkg":      "migration",
+			"spaceName": name,
+		}, "space %s exists, will update/overwrite the version", name)
+
+		spa.Version = version
+		_, err = spaceRepo.Save(ctx, spa)
+		return errs.WithStack(err)
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName, spaceName string) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+
+	space, err := spaceRepo.LoadSpaceFromDB(ctx, spaceName)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -361,12 +399,13 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		SourceTypeName: sourceTypeName,
 		TargetTypeName: targetTypeName,
 		LinkCategoryID: cat.ID,
+		SpaceID: space.ID,
 	}
 
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID)
+		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID, lt.SpaceID)
 		if err != nil {
 			return errs.WithStack(err)
 		}

@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+const SystemSpace = "system.space"
+
 // Space represents a Space on the domain and db layer
 type Space struct {
 	gormsupport.Lifecycle
@@ -112,6 +114,28 @@ func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 
 	return nil
 }
+
+// LoadSpaceFromDB return space for the name
+func (r *GormRepository) LoadSpaceFromDB(ctx context.Context, name string) (*Space, error) {
+	log.Info(ctx, map[string]interface{}{
+		"pkg":          "link",
+		"spaceName": name,
+	}, "Loading space: %s", name)
+
+	res := Space{}
+	db := r.db.Model(&res).Where("name=?", name).First(&res)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"spaceName": name,
+		}, "space not found")
+		return nil, errors.NewNotFoundError("space", name)
+	}
+	if db.Error != nil {
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
+	return &res, nil
+}
+
 
 // Save updates the given space in the db. Version must be the same as the one in the stored version
 // returns NotFoundError, BadParameterError, VersionConflictError or InternalError
