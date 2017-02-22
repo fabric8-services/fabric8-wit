@@ -109,6 +109,7 @@ func NewIdentityRepository(db *gorm.DB) *GormIdentityRepository {
 type IdentityRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Identity, error)
 	Create(ctx context.Context, identity *Identity) error
+	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
@@ -161,6 +162,45 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	}, "Identity created!")
 
 	return nil
+}
+
+// Lookup looks for an existing identity with the given `profileURL` or creates a new one
+func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error) {
+	if username == "" || profileURL == "" || providerType == "" {
+		return nil, errors.New("Cannot lookup identity with empty username, profile URL or provider type")
+	}
+	log.Debug(nil, map[string]interface{}{
+		"pkg": "account",
+	}, "Looking for identity of user with profile URL=%s\n", profileURL)
+	// bind the assignee to an existing identity, or create a new one
+	identity, err := m.First(IdentityFilterByProfileURL(profileURL))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to lookup identity by profileURL '%s'", profileURL)
+	}
+	if identity == nil {
+		// create the identity if it does not exist yet
+		log.Debug(nil, map[string]interface{}{
+			"pkg": "account",
+		}, "Creating an identity for username '%s' with profile '%s' on '%s'\n", username, profileURL, providerType)
+		identity = &Identity{
+			ProviderType: providerType,
+			Username:     username,
+			ProfileURL:   profileURL,
+		}
+		err = m.Create(context.Background(), identity)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create identity during lookup")
+		}
+	} else {
+		// use existing identity
+		log.Debug(nil, map[string]interface{}{
+			"pkg": "account",
+		}, "Using existing identity with ID: %v", identity.ID.String())
+	}
+	log.Debug(nil, map[string]interface{}{
+		"pkg": "account",
+	}, "Found identity of user with profile URL=%s: %s", profileURL, identity.ID)
+	return identity, nil
 }
 
 // Save modifies a single record.
