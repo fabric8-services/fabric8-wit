@@ -50,7 +50,7 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, providerType string)
 	if err != nil {
 		return nil, ConversionError{simpleError{message: fmt.Sprintf("Error mapping to local work item: %s", err.Error())}}
 	}
-	workItem, err := bindAssignees(db, remoteWorkItem, providerType)
+	workItem, err := lookupIdentities(db, remoteWorkItem, providerType)
 	if err != nil {
 		return nil, InternalError{simpleError{message: fmt.Sprintf("Error bind assignees: %s", err.Error())}}
 	}
@@ -58,7 +58,8 @@ func convert(db *gorm.DB, tID int, item TrackerItemContent, providerType string)
 	return upsert(db, *workItem)
 }
 
-func bindAssignees(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType string) (*app.WorkItem, error) {
+// lookupIdentities looks up creator and assignee remote identities to local identities (already existing or to be created)
+func lookupIdentities(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType string) (*app.WorkItem, error) {
 	identityRepository := account.NewIdentityRepository(db)
 	workItem := app.WorkItem{
 		ID:     remoteWorkItem.ID,
@@ -67,6 +68,24 @@ func bindAssignees(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType stri
 	}
 	// copy all fields from remoteworkitem into result workitem
 	for fieldName, fieldValue := range remoteWorkItem.Fields {
+		// creator
+		if fieldName == remoteCreatorLogin {
+			if fieldValue == nil {
+				workItem.Fields[workitem.SystemCreator] = nil
+				continue
+			}
+			creatorLogin := fieldValue.(string)
+			creatorProfileURL := remoteWorkItem.Fields[remoteCreatorProfileURL].(string)
+			identity, err := identityRepository.Lookup(context.Background(), creatorLogin, creatorProfileURL, providerType)
+			if err != nil {
+				return nil, err
+			}
+			// associate the identities to the work item
+			workItem.Fields[workitem.SystemCreator] = identity.ID.String()
+		} else if fieldName == remoteCreatorProfileURL {
+			// ignore here, it is being processed above
+		} else
+		// assignees
 		if fieldName == remoteAssigneeProfileURLs {
 			if fieldValue == nil {
 				workItem.Fields[workitem.SystemAssignees] = make([]string, 0)
@@ -77,39 +96,11 @@ func bindAssignees(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType stri
 			assigneeProfileURLs := remoteWorkItem.Fields[remoteAssigneeProfileURLs].([]string)
 			for i, assigneeLogin := range assigneeLogins {
 				assigneeProfileURL := assigneeProfileURLs[i]
-				log.Debug(nil, map[string]interface{}{
-					"pkg":  "remoteworkitem",
-					"wiID": workItem.ID,
-				}, "Looking for identity of user with profile URL=%s\n", assigneeProfileURL)
-				// bind the assignee to an existing identity, or create a new one
-				identity, err := identityRepository.First(account.IdentityFilterByProfileURL(assigneeProfileURL))
+				identity, err := identityRepository.Lookup(context.Background(), assigneeLogin, assigneeProfileURL, providerType)
 				if err != nil {
 					return nil, err
 				}
-				if identity == nil {
-					// create the identity if it does not exist yet
-					log.Debug(nil, map[string]interface{}{
-						"pkg":  "remoteworkitem",
-						"wiID": workItem.ID,
-					}, "Creating an identity for username '%s' with profile '%s' on '%s'\n", assigneeLogin, assigneeProfileURL, providerType)
-					identity := &account.Identity{
-						ProviderType: providerType,
-						Username:     assigneeLogin,
-						ProfileURL:   assigneeProfileURL,
-					}
-					err = identityRepository.Create(context.Background(), identity)
-					if err != nil {
-						return nil, err
-					}
-					identities = append(identities, identity.ID.String())
-				} else {
-					// use existing identity
-					log.Debug(nil, map[string]interface{}{
-						"pkg":  "remoteworkitem",
-						"wiID": workItem.ID,
-					}, "Using existing identity with ID: %v", identity.ID.String())
-					identities = append(identities, identity.ID.String())
-				}
+				identities = append(identities, identity.ID.String())
 			}
 			// associate the identities to the work item
 			workItem.Fields[workitem.SystemAssignees] = identities
@@ -129,7 +120,7 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
 	log.Info(nil, map[string]interface{}{
 		"pkg":  "remoteworkitem",
-		"wiID": workItem.ID,
+		"wiID": workItemRemoteID,
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
@@ -141,7 +132,7 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 	if existingWorkItem != nil {
 		log.Info(nil, map[string]interface{}{
 			"pkg":  "remoteworkitem",
-			"wiID": workItem.ID,
+			"wiID": existingWorkItem.ID,
 		}, "Workitem exists, will be updated")
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
@@ -152,8 +143,7 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 		}
 	} else {
 		log.Info(nil, map[string]interface{}{
-			"pkg":  "remoteworkitem",
-			"wiID": workItem.ID,
+			"pkg": "remoteworkitem",
 		}, "Workitem does not exist, will be created")
 		c := workItem.Fields[workitem.SystemCreator]
 		var creator string

@@ -102,6 +102,11 @@ func (m TestIdentityRepository) Create(ctx context.Context, model *account.Ident
 	return nil
 }
 
+// Lookup looks up a record or creates a new one.
+func (m TestIdentityRepository) Lookup(ctx context.Context, username, profileURL, providerType string) (*account.Identity, error) {
+	return nil, nil
+}
+
 // Save modifies a single record.
 func (m TestIdentityRepository) Save(ctx context.Context, model *account.Identity) error {
 	return m.Create(ctx, model)

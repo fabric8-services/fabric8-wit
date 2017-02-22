@@ -21,7 +21,7 @@ import (
 // a normal test function that will kick off TestSuiteTrackerItemRepository
 func TestSuiteTrackerItemRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TrackerItemRepositorySuite{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TrackerItemRepositorySuite{DBTestSuite: gormsupport.NewDBTestSuite("/Users/xcoulon/code/go/src/github.com/almighty/almighty-core/config.yaml")})
 }
 
 // ========== TrackeItemRepositorySuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
@@ -67,6 +67,7 @@ var GitIssueWithAssignee = "http://api.github.com/repos/almighty-test/almighty-t
 
 func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentities() {
 	// given
+	identity0 := s.createIdentity("jdoe0")
 	identity1 := s.createIdentity("jdoe1")
 	identity2 := s.createIdentity("jdoe2")
 	remoteItemData := TrackerItemContent{
@@ -77,8 +78,8 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 					"state": "closed",
 					"body": "body of issue",
 					"user": {
-						"login": "sbose78",
-						"url": "https://api.github.com/users/sbose78"
+						"login": "jdoe0",
+						"url": "https://api.github.com/users/jdoe0"
 					},
 					"assignees": [
 						{
@@ -99,7 +100,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
-	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
+	assert.Equal(s.T(), identity0.ID.String(), workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity1.ID.String())
 	assert.Contains(s.T(), workItem.Fields[workitem.SystemAssignees], identity2.ID.String())
@@ -110,7 +111,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
 }
 
-func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignees() {
+func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities() {
 	// given "jdoe" identity does not exist
 	remoteItemData := TrackerItemContent{
 		Content: []byte(`
@@ -121,7 +122,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignees(
 					"body": "body of issue",
 					"user": {
 						"login": "sbose78",
-						"url": "https://api.github.com/users/sbose78"
+						"url": "https://api.github.com/users/jdoe0"
 					},
 					"assignees": [
 						{
@@ -142,15 +143,18 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignees(
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
-	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
-	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	assert.Equal(s.T(), 2, len(workItem.Fields[workitem.SystemAssignees].([]interface{})))
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
-	// look-up identity in repository
+	// look-up creator identity in repository
+	require.NotNil(s.T(), workItem.Fields[workitem.SystemCreator])
+	identityID := workItem.Fields[workitem.SystemCreator]
+	assert.NotNil(s.T(), s.lookupIdentityByID(identityID.(string)))
+	// look-up assignee identities in repository
+	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	identityIDs := workItem.Fields[workitem.SystemAssignees].([]interface{})
 	for _, identityID := range identityIDs {
 		assert.NotNil(s.T(), s.lookupIdentityByID(identityID.(string)))
@@ -159,6 +163,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownAssignees(
 
 func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 	// given
+	identity0 := s.createIdentity("jdoe0")
 	remoteItemData := TrackerItemContent{
 		Content: []byte(`
 				{
@@ -167,8 +172,8 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 					"state": "closed",
 					"body": "body of issue",
 					"user": {
-						"login": "sbose78",
-						"url": "https://api.github.com/users/sbose78"
+						"login": "jdoe0",
+						"url": "https://api.github.com/users/jdoe0"
 					},
 					"assignees": []
 				}`),
@@ -180,17 +185,21 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
-	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
 	assert.Empty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	require.NotNil(s.T(), workItem.Fields[workitem.SystemDescription])
 	description := workItem.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 	assert.Equal(s.T(), "body of issue", description.Content)
 	assert.Equal(s.T(), rendering.SystemMarkupMarkdown, description.Markup)
+	// look-up creator identity in repository
+	require.NotNil(s.T(), workItem.Fields[workitem.SystemCreator])
+	identityID := workItem.Fields[workitem.SystemCreator]
+	assert.Equal(s.T(), identity0.ID, s.lookupIdentityByID(identityID.(string)).ID)
 }
 
 func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// given
+	identity0 := s.createIdentity("jdoe0")
 	identity1 := s.createIdentity("jdoe1")
 	identity2 := s.createIdentity("jdoe2")
 	remoteItemData := TrackerItemContent{
@@ -201,8 +210,8 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 				"url": "http://github.com/sbose/api/testonly/1",
 				"state": "closed",
 				"body": "body of issue",
-				"user.login": "sbose78",
-				"user.url": "https://api.github.com/users/sbose78",
+				"user.login": "jdoe0",
+				"user.url": "https://api.github.com/users/jdoe0",
 				"assignees.0.login": "jdoe1",
 				"assignees.0.url": "https://api.github.com/users/jdoe1",
 				"assignees.1.login": "jdoe2",
@@ -215,14 +224,15 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	// then
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
-	assert.Equal(s.T(), "sbose78", workItem.Fields[workitem.SystemCreator])
+	assert.Equal(s.T(), identity0.ID.String(), workItem.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItem.Fields[workitem.SystemAssignees])
 	assert.Equal(s.T(), identity1.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[0])
 	assert.Equal(s.T(), identity2.ID.String(), workItem.Fields[workitem.SystemAssignees].([]interface{})[1])
 	assert.Equal(s.T(), "closed", workItem.Fields[workitem.SystemState])
 	// given
 	s.T().Log("Updating the existing work item when it's reimported.")
-	identity := s.createIdentity("jdoe")
+	identity3 := s.createIdentity("jdoe3")
+	identity4 := s.createIdentity("jdoe4")
 	remoteItemDataUpdated := TrackerItemContent{
 		// content is already flattened
 		Content: []byte(`
@@ -231,10 +241,10 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 				"url": "http://github.com/api/testonly/1",
 				"state": "closed",
 				"body": "body of issue",
-				"user.login": "sbose78",
-				"user.url": "https://api.github.com/users/sbose78",
-				"assignees.0.login": "jdoe",
-				"assignees.0.url": "https://api.github.com/users/jdoe"
+				"user.login": "jdoe3",
+				"user.url": "https://api.github.com/users/jdoe3",
+				"assignees.0.login": "jdoe4",
+				"assignees.0.url": "https://api.github.com/users/jdoe4"
 			}`),
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
@@ -245,9 +255,9 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 	require.NotNil(s.T(), workItemUpdated)
 	require.NotNil(s.T(), workItemUpdated.Fields)
 	assert.Equal(s.T(), "linking-updated", workItemUpdated.Fields[workitem.SystemTitle])
-	assert.Equal(s.T(), "sbose78", workItemUpdated.Fields[workitem.SystemCreator])
+	assert.Equal(s.T(), identity3.ID.String(), workItemUpdated.Fields[workitem.SystemCreator])
 	require.NotEmpty(s.T(), workItemUpdated.Fields[workitem.SystemAssignees])
-	assert.Equal(s.T(), identity.ID.String(), workItemUpdated.Fields[workitem.SystemAssignees].([]interface{})[0])
+	assert.Equal(s.T(), identity4.ID.String(), workItemUpdated.Fields[workitem.SystemAssignees].([]interface{})[0])
 	assert.Equal(s.T(), "closed", workItemUpdated.Fields[workitem.SystemState])
 }
 
@@ -267,7 +277,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 	// then
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])
-	assert.Equal(s.T(), "sbose78", workItemGithub.Fields[workitem.SystemCreator])
+	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemCreator])
 	assert.Equal(s.T(), identity.ID.String(), workItemGithub.Fields[workitem.SystemAssignees].([]interface{})[0])
 	assert.Equal(s.T(), "open", workItemGithub.Fields[workitem.SystemState])
 }
