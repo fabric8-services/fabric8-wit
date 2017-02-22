@@ -21,7 +21,7 @@ import (
 // a normal test function that will kick off TestSuiteTrackerItemRepository
 func TestSuiteTrackerItemRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TrackerItemRepositorySuite{DBTestSuite: gormsupport.NewDBTestSuite("/Users/xcoulon/code/go/src/github.com/almighty/almighty-core/config.yaml")})
+	suite.Run(t, &TrackerItemRepositorySuite{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // ========== TrackeItemRepositorySuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
