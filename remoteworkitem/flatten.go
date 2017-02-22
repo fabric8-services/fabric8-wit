@@ -8,9 +8,7 @@ import (
 // Flatten Takes the nested map and returns a non nested one with dot delimited keys
 func Flatten(source map[string]interface{}) map[string]interface{} {
 	target := make(map[string]interface{})
-
 	flatten(target, source, nil)
-
 	return target
 }
 
