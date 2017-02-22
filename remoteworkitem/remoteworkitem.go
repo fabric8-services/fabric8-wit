@@ -16,24 +16,26 @@ const (
 	ProviderJira   = "jira"
 
 	// The keys in the flattened response JSON of a typical Github issue.
-	GithubTitle                 = "title"
-	GithubDescription           = "body"
-	GithubState                 = "state"
-	GithubID                    = "url"
-	GithubCreator               = "user.login"
-	GithubAssigneesLogin        = "assignees.0.login"
-	GithubAssigneesLoginPattern = "assignees.?.login"
-	GithubAssigneesURL          = "assignees.0.url"
-	GithubAssigneesURLPattern   = "assignees.?.url"
+	GithubTitle                      = "title"
+	GithubDescription                = "body"
+	GithubState                      = "state"
+	GithubID                         = "url"
+	GithubCreatorLogin               = "user.login"
+	GithubCreatorProfileURL          = "user.url"
+	GithubAssigneesLogin             = "assignees.0.login"
+	GithubAssigneesLoginPattern      = "assignees.?.login"
+	GithubAssigneesProfileURL        = "assignees.0.url"
+	GithubAssigneesProfileURLPattern = "assignees.?.url"
 
 	// The keys in the flattened response JSON of a typical Jira issue.
-	JiraTitle         = "fields.summary"
-	JiraBody          = "fields.description"
-	JiraState         = "fields.status.name"
-	JiraID            = "self"
-	JiraCreator       = "fields.creator.key"
-	JiraAssigneeLogin = "fields.assignee.key"
-	JiraAssigneeURL   = "fields.assignee.self"
+	JiraTitle              = "fields.summary"
+	JiraBody               = "fields.description"
+	JiraState              = "fields.status.name"
+	JiraID                 = "self"
+	JiraCreatorLogin       = "fields.creator.key"
+	JiraCreatorProfileURL  = "fields.creator.self"
+	JiraAssigneeLogin      = "fields.assignee.key"
+	JiraAssigneeProfileURL = "fields.assignee.self"
 )
 
 // RemoteWorkItem a temporary structure that holds the relevant field values retrieved from a remote work item
@@ -51,7 +53,8 @@ const (
 	remoteDescription         = workitem.SystemDescription
 	remoteState               = workitem.SystemState
 	remoteItemID              = workitem.SystemRemoteItemID
-	remoteCreator             = workitem.SystemCreator
+	remoteCreatorLogin        = "system.creator.login"
+	remoteCreatorProfileURL   = "system.creator.profile_url"
 	remoteAssigneeLogins      = "system.assignees.login"
 	remoteAssigneeProfileURLs = "system.assignees.profile_url"
 )
@@ -59,22 +62,24 @@ const (
 // RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
 var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
 	ProviderGithub: {
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                                     remoteTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}:         remoteDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                                remoteState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                        remoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                                   remoteCreator,
-		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}: remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(GithubAssigneesURL), PatternToListConverter{pattern: GithubAssigneesURLPattern}}:     remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                                               remoteTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}:                   remoteDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                                          remoteState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                                  remoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreatorLogin), StringConverter{}}:                                                        remoteCreatorLogin,
+		AttributeMapper{AttributeExpression(GithubCreatorProfileURL), StringConverter{}}:                                                   remoteCreatorProfileURL,
+		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}:           remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(GithubAssigneesProfileURL), PatternToListConverter{pattern: GithubAssigneesProfileURLPattern}}: remoteAssigneeProfileURLs,
 	},
 	ProviderJira: {
 		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
 		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: remoteDescription,
 		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
 		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    remoteCreator,
+		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,
+		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                          remoteCreatorProfileURL,
 		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                remoteAssigneeLogins,
-		AttributeMapper{AttributeExpression(JiraAssigneeURL), ListConverter{}}:                                  remoteAssigneeProfileURLs,
+		AttributeMapper{AttributeExpression(JiraAssigneeProfileURL), ListConverter{}}:                           remoteAssigneeProfileURLs,
 	},
 }
 

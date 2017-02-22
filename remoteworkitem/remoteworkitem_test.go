@@ -165,7 +165,7 @@ func TestFlattenGithubResponseMapWithoutAssignee(t *testing.T) {
 	// when/then
 	for _, data := range gitData {
 		// skipping assignees login and URL since the test data contain no assignee
-		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneesLogin, GithubAssigneesURL)
+		doTestFlattenResponseMap(t, data, ProviderGithub, GithubAssigneesLogin, GithubAssigneesProfileURL)
 	}
 }
 
@@ -184,7 +184,7 @@ func TestFlattenJiraResponseMapWithoutAssignee(t *testing.T) {
 
 	for _, data := range jir {
 		// skipping assignee login and URL since the test data contain no assignee
-		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeLogin, JiraAssigneeURL)
+		doTestFlattenResponseMap(t, data, ProviderJira, JiraAssigneeLogin, JiraAssigneeProfileURL)
 	}
 }
 
@@ -363,7 +363,7 @@ func TestListConverter(t *testing.T) {
 	content := make(map[string]interface{})
 	content[JiraState] = "open"
 	content[JiraAssigneeLogin] = "foo0"
-	content[JiraAssigneeURL] = "/foo/1"
+	content[JiraAssigneeProfileURL] = "/foo/1"
 	workItem := TestWorkItem{
 		content: content,
 	}
@@ -375,7 +375,7 @@ func TestListConverter(t *testing.T) {
 	require.NotNil(t, result.Fields[remoteAssigneeLogins])
 	assert.Contains(t, result.Fields[remoteAssigneeLogins], content[JiraAssigneeLogin])
 	require.NotNil(t, result.Fields[remoteAssigneeProfileURLs])
-	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content[JiraAssigneeURL])
+	assert.Contains(t, result.Fields[remoteAssigneeProfileURLs], content[JiraAssigneeProfileURL])
 }
 
 func TestListConverterWithNoValue(t *testing.T) {
