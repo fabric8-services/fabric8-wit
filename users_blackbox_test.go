@@ -61,7 +61,7 @@ func TestShowUserOK(t *testing.T) {
 	assert.Equal(t, identity.ID.String(), *result.Data.ID)
 	assert.Equal(t, user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(t, user.ImageURL, *result.Data.Attributes.ImageURL)
-	assert.Equal(t, identity.ProviderType, *result.Data.Attributes.Provider)
+	assert.Equal(t, identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(t, identity.Username, *result.Data.Attributes.Username)
 }
 
@@ -149,7 +149,7 @@ func findUser(id uuid.UUID, users []*app.IdentityData) *app.IdentityData {
 
 func assertUser(t *testing.T, actual *app.IdentityData, expectedUser account.User, expectedIdentity account.Identity) {
 	assert.Equal(t, expectedIdentity.Username, *actual.Attributes.Username)
-	assert.Equal(t, expectedIdentity.ProviderType, *actual.Attributes.Provider)
+	assert.Equal(t, expectedIdentity.ProviderType, *actual.Attributes.ProviderType)
 	assert.Equal(t, expectedUser.FullName, *actual.Attributes.FullName)
 	assert.Equal(t, expectedUser.ImageURL, *actual.Attributes.ImageURL)
 	assert.Equal(t, expectedUser.Email, *actual.Attributes.Email)

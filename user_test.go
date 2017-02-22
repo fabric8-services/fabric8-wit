@@ -81,7 +81,7 @@ func TestCurrentAuthorizedOK(t *testing.T) {
 	assert.Equal(t, ident.Username, *identity.Data.Attributes.Username)
 	assert.Equal(t, usr.ImageURL, *identity.Data.Attributes.ImageURL)
 	assert.Equal(t, usr.Email, *identity.Data.Attributes.Email)
-	assert.Equal(t, ident.ProviderType, *identity.Data.Attributes.Provider)
+	assert.Equal(t, ident.ProviderType, *identity.Data.Attributes.ProviderType)
 }
 
 type TestIdentityRepository struct {

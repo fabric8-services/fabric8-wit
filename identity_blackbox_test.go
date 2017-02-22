@@ -85,5 +85,5 @@ func findIdent(id uuid.UUID, idents []*app.IdentityData) *app.IdentityData {
 
 func assertIdent(t *testing.T, expected account.Identity, actual *app.IdentityData) {
 	assert.Equal(t, expected.Username, *actual.Attributes.Username)
-	assert.Equal(t, expected.ProviderType, *actual.Attributes.Provider)
+	assert.Equal(t, expected.ProviderType, *actual.Attributes.ProviderType)
 }

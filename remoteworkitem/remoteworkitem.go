@@ -3,7 +3,6 @@ package remoteworkitem
 import (
 	"encoding/json"
 	"strconv"
-
 	"strings"
 
 	"github.com/almighty/almighty-core/rendering"

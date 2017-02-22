@@ -86,8 +86,8 @@ func (m Identity) ConvertIdentityFromModel() *app.Identity {
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Username: &m.Username,
-				Provider: &m.ProviderType,
+				Username:     &m.Username,
+				ProviderType: &m.ProviderType,
 			},
 		},
 	}
@@ -233,8 +233,7 @@ func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Ident
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "first"}, time.Now())
 	var objs []*Identity
 	log.Debug(nil, map[string]interface{}{
-		"pkg":          "identity",
-		"identityList": objs,
+		"pkg": "identity",
 	}, "Looking for identity matching: %v", funcs)
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).First(&objs).Error
