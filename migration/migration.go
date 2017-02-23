@@ -185,6 +185,9 @@ func getMigrations() migrations {
 	// Version 29
 	m = append(m, steps{executeSQLFile("029-identities-foreign-key.sql")})
 
+	// Version 30
+	m = append(m, steps{executeSQLFile("030-indentities-unique-index.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
