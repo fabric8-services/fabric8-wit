@@ -118,7 +118,7 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext) error {
+func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error {
 	return ctx.TemporaryRedirect()
 }
 

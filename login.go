@@ -13,6 +13,7 @@ import (
 	"fmt"
 
 	"github.com/almighty/almighty-core/account"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
@@ -39,7 +40,22 @@ func NewLoginController(service *goa.Service, auth *login.KeycloakOAuthProvider,
 
 // Authorize runs the authorize action.
 func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
-	return c.auth.Perform(ctx)
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak auth endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak auth endpoint URL "+err.Error()))
+	}
+
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak token endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+	return c.auth.Perform(ctx, authEndpoint, tokenEndpoint)
 }
 
 // Refresh obtain a new access token using the refresh token.

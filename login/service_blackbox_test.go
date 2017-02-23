@@ -23,6 +23,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -99,10 +100,20 @@ func TestKeycloakAuthorizationRedirect(t *testing.T) {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	err = loginService.Perform(authorizeCtx)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "demo.api.almighty.io"},
+	}
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
+	t.Log(authEndpoint)
+	require.Nil(t, err)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+	t.Log(tokenEndpoint)
+
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	assert.Equal(t, 307, rw.Code)
-	configuration.GetKeycloakEndpointAuth(authorizeCtx.RequestData)
+	//configuration.GetKeycloakEndpointAuth(authorizeCtx.RequestData)
 	assert.Contains(t, rw.Header().Get("Location"), oauth.Endpoint.AuthURL)
 }
 
@@ -157,7 +168,15 @@ func TestInvalidState(t *testing.T) {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	err = loginService.Perform(authorizeCtx)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "demo.api.almighty.io"},
+	}
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(t, err)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 	assert.Equal(t, 401, rw.Code)
 }
 
@@ -194,7 +213,15 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	err = loginService.Perform(authorizeCtx)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "demo.api.almighty.io"},
+	}
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(t, err)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	assert.Equal(t, 307, rw.Code) // redirect to keycloak login page.
 
@@ -234,7 +261,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
 	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
 
-	err = loginService.Perform(authorizeCtx)
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	locationString = rw.HeaderMap["Location"][0]
 	locationUrl, err = url.Parse(locationString)
