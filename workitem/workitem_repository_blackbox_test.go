@@ -62,7 +62,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create work item")
 
 	err = s.repo.Delete(context.Background(), "0")
@@ -78,7 +78,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create workitem")
 	wi.ID = "0"
 	_, err = s.repo.Save(context.Background(), *wi)
@@ -94,7 +94,7 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	_, err = s.repo.Load(context.Background(), "0")
@@ -110,7 +110,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
 			workitem.SystemAssignees: []string{"A", "B"},
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -127,7 +127,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -147,7 +147,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemState:       workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create workitem")
 
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -164,7 +164,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
 			workitem.SystemState:       workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 	require.Nil(s.T(), err, "Could not create workitem")
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	require.Nil(s.T(), err)
@@ -184,7 +184,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, uuid.NewV4())
 
 	require.Nil(s.T(), err)
 
@@ -234,7 +234,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, "xx")
+			}, uuid.NewV4())
 		require.Nil(s.T(), err)
 	}
 	for i := 0; i < 2; i++ {
@@ -244,7 +244,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, "xx")
+			}, uuid.NewV4())
 		require.Nil(s.T(), err)
 	}
 	countsMap, _ := s.repo.GetCountsPerIteration(context.Background(), spaceInstance.ID)

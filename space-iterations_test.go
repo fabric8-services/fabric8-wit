@@ -272,7 +272,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, "xx")
+			}, uuid.NewV4())
 	}
 	for i := 0; i < 2; i++ {
 		wirepo.Create(
@@ -281,7 +281,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, "xx")
+			}, uuid.NewV4())
 	}
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
@@ -303,7 +303,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration2.ID.String(),
-			}, "xx")
+			}, uuid.NewV4())
 	}
 	_, cs = test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
 	assert.Len(t, cs.Data, 2)

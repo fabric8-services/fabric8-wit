@@ -56,7 +56,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		if identity != cm.CreatedBy.String() {
+		if *identity != cm.CreatedBy {
 			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
 			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
 			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
@@ -88,7 +88,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if identity != cm.CreatedBy.String() {
+		if *identity != cm.CreatedBy {
 			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
 			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
 			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))

@@ -348,14 +348,14 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 
 // ContextIdentity returns the identity's ID found in given context
 // Uses tokenManager.Locate to fetch the identity of currently logged in user
-func ContextIdentity(ctx context.Context) (string, error) {
+func ContextIdentity(ctx context.Context) (*uuid.UUID, error) {
 	tm := tokencontext.ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
 		}, "missing token manager")
 
-		return "", errs.New("Missing token manager")
+		return nil, errs.New("Missing token manager")
 	}
 	// As mentioned in token.go, we can now safely convert tm to a token.Manager
 	manager := tm.(token.Manager)
@@ -368,9 +368,9 @@ func ContextIdentity(ctx context.Context) (string, error) {
 			"err":          err,
 		}, "identity belongs to a Guest User")
 
-		return "", errs.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
-	return uuid.String(), nil
+	return &uuid, nil
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
