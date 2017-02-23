@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 
 	"golang.org/x/net/context"
 
@@ -78,10 +77,11 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		childPath := area.ConvertToLtreeFormat(parentID.String())
-		if parent.Path != "" {
-			childPath = parent.Path + pathSepInDatabase + childPath
-		}
+		// childPath := area.ConvertToLtreeFormat(parentID.String())
+		// if parent.Path.IsEmpty() == false {
+		// 	childPath = parent.Path + pathSepInDatabase + childPath
+		// }
+		childPath := append(parent.Path, parent.ID)
 		newArea := area.Area{
 			SpaceID: parent.SpaceID,
 			Path:    childPath,
@@ -129,8 +129,9 @@ func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *
 }
 
 func getResolvePath(appl application.Application, a *area.Area) (*string, error) {
-	parentUuidStrings := strings.Split(area.ConvertFromLtreeFormat(a.Path), pathSepInService)
-	parentUuids := convertToUuid(parentUuidStrings)
+	// parentUuidStrings := strings.Split(area.ConvertFromLtreeFormat(a.Path), pathSepInService)
+	// parentUuids := convertToUuid(parentUuidStrings)
+	parentUuids := a.Path
 	parentAreas, err := appl.Areas().LoadMultiple(context.Background(), parentUuids)
 	if err != nil {
 		return nil, err
@@ -183,8 +184,8 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	pathToTopMostParent := pathSepInService + area.ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
-
+	// pathToTopMostParent := pathSepInService + area.ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
+	pathToTopMostParent := ar.Path.String()
 	i := &app.Area{
 		Type: areaType,
 		ID:   &ar.ID,
@@ -217,18 +218,19 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
-	if ar.Path != "" {
+	if ar.Path.IsEmpty() == false {
 
-		allParents := strings.Split(area.ConvertFromLtreeFormat(ar.Path), pathSepInService)
-		parentID := allParents[len(allParents)-1]
-
+		// allParents := strings.Split(area.ConvertFromLtreeFormat(ar.Path), pathSepInService)
+		// parentID := allParents[len(allParents)-1]
 		// Only the immediate parent's URL.
-		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
+		// parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
+		parent := ar.Path.This().String()
+		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parent))
 
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &areaType,
-				ID:   &parentID,
+				ID:   &parent,
 			},
 			Links: &app.GenericLinks{
 				Self: &parentSelfURL,

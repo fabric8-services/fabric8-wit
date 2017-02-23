@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/path"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -21,7 +22,7 @@ type Area struct {
 	gormsupport.Lifecycle
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
-	Path    string
+	Path    path.Path
 	Name    string
 	Version int
 }
@@ -113,9 +114,10 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	var objs []*Area
 
 	predicateString := (parentArea.ID).String()
-	if parentArea.Path != "" {
-		predicateString = parentArea.Path + "." + predicateString
+	if parentArea.Path.IsEmpty() == false {
+		predicateString = parentArea.Path.Convert() + "." + predicateString
 	}
+
 	tx := m.db.Where("path ~ ?", ConvertToLtreeFormat(predicateString)).Find(&objs)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
