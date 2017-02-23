@@ -39,6 +39,7 @@ type workItemTypeSuite struct {
 	typeCtrl     *WorkitemtypeController
 	linkTypeCtrl *WorkItemLinkTypeController
 	linkCatCtrl  *WorkItemLinkCategoryController
+	spaceCtrl    *SpaceController
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -75,6 +76,8 @@ func (s *workItemTypeSuite) SetupTest() {
 	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.spaceCtrl)
 }
 
 //-----------------------------------------------------------------------------
@@ -230,15 +233,20 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
+	// Create work item link space
+	spacePayload := CreateSpacePayload("some-link-space")
+	_, space := test.CreateSpaceCreated(s.T(), nil, nil, s.spaceCtrl, spacePayload)
+	require.NotNil(s.T(), space)
+
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
-	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, "animal", workitem.SystemBug, *linkCat.Data.ID)
+	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, "animal", workitem.SystemBug, *linkCat.Data.ID, space.Data.ID.String())
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create another work item link type
 	bugLinksToAnimalStr := "bug-links-to-animal"
-	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, "animal", *linkCat.Data.ID)
+	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, "animal", *linkCat.Data.ID, space.Data.ID.String())
 	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
