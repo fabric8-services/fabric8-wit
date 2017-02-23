@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -17,6 +18,18 @@ type TrackerqueryController struct {
 	*goa.Controller
 	db        application.DB
 	scheduler *remoteworkitem.Scheduler
+}
+
+type TrackerQueryConfiguration interface {
+	GetGithubAuthToken() string
+}
+
+func getAccessTokens() map[string]string {
+	tokens := map[string]string{
+		remoteworkitem.ProviderGithub: configuration.GetGithubAuthToken(),
+		// add tokens for other types
+	}
+	return tokens
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
@@ -42,7 +55,8 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(tq)
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
@@ -92,7 +106,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		}
 		return ctx.OK(tq)
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
@@ -113,7 +128,8 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 		}
 		return ctx.OK([]byte{})
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 

@@ -155,7 +155,9 @@ func main() {
 	// Scheduler to fetch and import remote tracker items
 	scheduler = remoteworkitem.NewScheduler(db)
 	defer scheduler.Stop()
-	scheduler.ScheduleAllQueries()
+
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	scheduler.ScheduleAllQueries(accessTokens)
 
 	// Create service
 	service := goa.New("alm")

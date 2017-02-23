@@ -43,7 +43,8 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 		ctx.ResponseData.Header().Set("Location", app.TrackerHref(t.ID))
 		return ctx.Created(t)
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
@@ -64,7 +65,8 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 		}
 		return ctx.OK([]byte{})
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
@@ -137,6 +139,7 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 		}
 		return ctx.OK(t)
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
