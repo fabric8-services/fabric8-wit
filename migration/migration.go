@@ -188,6 +188,9 @@ func getMigrations() migrations {
 	// Version 30
 	m = append(m, steps{executeSQLFile("030-indentities-unique-index.sql")})
 
+	// Version 31
+	m = append(m, steps{executeSQLFile("031-iterations-parent-path-ltree.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

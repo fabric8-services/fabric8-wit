@@ -213,7 +213,8 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 		Name:    "Sprint 1",
 		SpaceID: spaceInstance.ID,
 	}
-	iterationRepo.Create(context.Background(), &iteration1)
+	err := iterationRepo.Create(context.Background(), &iteration1)
+	require.Nil(s.T(), err)
 	fmt.Println("iteration1 id = ", iteration1.ID)
 	assert.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
 
@@ -221,27 +222,30 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 		Name:    "Sprint 2",
 		SpaceID: spaceInstance.ID,
 	}
-	iterationRepo.Create(context.Background(), &iteration2)
+	err = iterationRepo.Create(context.Background(), &iteration2)
+	require.Nil(s.T(), err)
 	fmt.Println("iteration2 id = ", iteration2.ID)
 	assert.NotEqual(s.T(), uuid.UUID{}, iteration2.ID)
 
 	for i := 0; i < 3; i++ {
-		s.repo.Create(
+		_, err = s.repo.Create(
 			context.Background(), workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration1.ID.String(),
 			}, "xx")
+		require.Nil(s.T(), err)
 	}
 	for i := 0; i < 2; i++ {
-		s.repo.Create(
+		_, err = s.repo.Create(
 			context.Background(), workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration1.ID.String(),
 			}, "xx")
+		require.Nil(s.T(), err)
 	}
 	countsMap, _ := s.repo.GetCountsPerIteration(context.Background(), spaceInstance.ID)
 	assert.Len(s.T(), countsMap, 1)
