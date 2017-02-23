@@ -235,7 +235,7 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 
 // extractCallerDetails gets information about the file, line and function that
 // called a certain logging method such as Error, Info, Debug, Warn and Panic.
-func extractCallerDetails() (string, int, string, string, error) {
+func extractCallerDetails() (file string, line int, pkg string, function string, err error) {
 	if pc, file, line, ok := runtime.Caller(2); ok {
 		fName := runtime.FuncForPC(pc).Name()
 
