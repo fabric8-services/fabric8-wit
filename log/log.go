@@ -254,5 +254,5 @@ func extractCallerDetails() (string, int, string, string, error) {
 		return file, line, pName, fName, nil
 	}
 
-	return "", 0, "", "", errors.New("Unable to extract the caller details")
+	return "", 0, "", "", errors.New("unable to extract the caller details")
 }
