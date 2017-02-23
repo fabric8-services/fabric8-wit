@@ -118,7 +118,7 @@ func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 // LoadSpaceFromDB return space for the name
 func (r *GormRepository) LoadSpaceFromDB(ctx context.Context, name string) (*Space, error) {
 	log.Info(ctx, map[string]interface{}{
-		"pkg":          "link",
+		"pkg":       "link",
 		"spaceName": name,
 	}, "Loading space: %s", name)
 
@@ -135,7 +135,6 @@ func (r *GormRepository) LoadSpaceFromDB(ctx context.Context, name string) (*Spa
 	}
 	return &res, nil
 }
-
 
 // Save updates the given space in the db. Version must be the same as the one in the stored version
 // returns NotFoundError, BadParameterError, VersionConflictError or InternalError

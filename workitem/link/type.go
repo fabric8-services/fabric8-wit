@@ -5,7 +5,9 @@ import (
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/rest"
 
+	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -59,7 +61,7 @@ type WorkItemLinkType struct {
 	ReverseName string
 
 	LinkCategoryID satoriuuid.UUID
-  // Reference to one Space
+	// Reference to one Space
 	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
 
@@ -157,12 +159,12 @@ func CheckValidTopology(t string) error {
 }
 
 // ConvertLinkTypeFromModel converts a work item link type from model to REST representation
-func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
+func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	id := t.ID.String()
 
 	spaceType := "spaces"
 	spaceID := t.SpaceID.String()
-	//spaceSelfURL := rest.AbsoluteURL(nil, app.SpaceHref(spaceID))
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 
 	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
@@ -200,9 +202,9 @@ func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 						Type: &spaceType,
 						ID:   &spaceID,
 					},
-					//Links: &app.GenericLinks{
-					//	Self: &spaceSelfURL,
-					//},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
+					},
 				},
 			},
 		},
