@@ -89,7 +89,6 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":    "user",
 		"userID": u.ID,
 	}, "User created!")
 
@@ -114,7 +113,6 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":    "user",
 		"userID": model.ID,
 	}, "User saved!")
 	return nil
@@ -137,7 +135,6 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":    "user",
 		"userID": id,
 	}, "User deleted!")
 
@@ -167,7 +164,6 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"pkg":      "user",
 		"userList": objs,
 	}, "User query done successfully!")
 

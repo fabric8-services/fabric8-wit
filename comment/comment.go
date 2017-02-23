@@ -68,7 +68,6 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment) er
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":       "comment",
 		"commentID": comment.ID,
 	}, "Comment created!")
 
@@ -109,7 +108,6 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":       "comment",
 		"commentID": comment.ID,
 	}, "Comment updated!")
 

@@ -229,7 +229,6 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 		part, err := url.QueryUnescape(part)
 		if err != nil {
 			log.Warn(nil, map[string]interface{}{
-				"pkg":  "search",
 				"part": part,
 			}, "unable to escape url!")
 		}

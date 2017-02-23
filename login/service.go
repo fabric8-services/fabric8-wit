@@ -138,7 +138,6 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	// store referer id to state for redirect later
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "login",
 		"referer": referer,
 	}, "Got Request from!")
 
