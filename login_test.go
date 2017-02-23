@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -9,7 +10,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/resource"
@@ -19,10 +20,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var loginTestConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	loginTestConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 func newTestKeycloakOAuthProvider() *login.KeycloakOAuthProvider {
+
 	oauth := &oauth2.Config{
-		ClientID:     configuration.GetKeycloakClientID(),
-		ClientSecret: configuration.GetKeycloakSecret(),
+		ClientID:     loginTestConfiguration.GetKeycloakClientID(),
+		ClientSecret: loginTestConfiguration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth",
@@ -44,14 +56,15 @@ func newTestKeycloakOAuthProvider() *login.KeycloakOAuthProvider {
 
 func TestAuthorizeLoginOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	controller := LoginController{auth: TestLoginService{}}
+	controller := LoginController{auth: TestLoginService{}, configuration: loginTestConfiguration}
 	test.AuthorizeLoginTemporaryRedirect(t, nil, nil, &controller)
 }
 
 func createControler(t *testing.T) (*goa.Service, *LoginController) {
 	svc := goa.New("test")
 	loginService := newTestKeycloakOAuthProvider()
-	controller := NewLoginController(svc, loginService, loginService.TokenManager)
+
+	controller := NewLoginController(svc, loginService, loginService.TokenManager, loginTestConfiguration)
 	// assert.NotNil(t, controller)
 	return svc, controller
 }

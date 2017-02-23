@@ -5,7 +5,6 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -13,18 +12,19 @@ import (
 	errs "github.com/pkg/errors"
 )
 
-// TrackerqueryController implements the trackerquery resource.
-type TrackerqueryController struct {
-	*goa.Controller
-	db        application.DB
-	scheduler *remoteworkitem.Scheduler
-}
-
-type TrackerQueryConfiguration interface {
+type trackerQueryConfiguration interface {
 	GetGithubAuthToken() string
 }
 
-func getAccessTokens() map[string]string {
+// TrackerqueryController implements the trackerquery resource.
+type TrackerqueryController struct {
+	*goa.Controller
+	db            application.DB
+	scheduler     *remoteworkitem.Scheduler
+	configuration trackerQueryConfiguration
+}
+
+func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map[string]string {
 	tokens := map[string]string{
 		remoteworkitem.ProviderGithub: configuration.GetGithubAuthToken(),
 		// add tokens for other types
@@ -33,7 +33,7 @@ func getAccessTokens() map[string]string {
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler) *TrackerqueryController {
+func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration) *TrackerqueryController {
 	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler}
 }
 
@@ -55,7 +55,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(tq)
 	})
-	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
@@ -106,7 +106,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		}
 		return ctx.OK(tq)
 	})
-	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
@@ -128,7 +128,7 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 		}
 		return ctx.OK([]byte{})
 	})
-	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }

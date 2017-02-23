@@ -2,18 +2,31 @@ package main_test
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+
 	"github.com/almighty/almighty-core/jsonapi"
 	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/require"
 )
+
+var trackerBlackBoxTestConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	trackerBlackBoxTestConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
 
 func getTrackerTestData(t *testing.T) []testSecureAPI {
 	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
@@ -134,7 +147,7 @@ func TestUnauthorizeTrackerCUD(t *testing.T) {
 	UnauthorizeCreateUpdateDeleteTest(t, getTrackerTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedTracker-Service")
 	}, func(service *goa.Service) error {
-		controller := NewTrackerController(service, gormapplication.NewGormDB(DB), RwiScheduler)
+		controller := NewTrackerController(service, gormapplication.NewGormDB(DB), RwiScheduler, trackerBlackBoxTestConfiguration)
 		app.MountTrackerController(service, controller)
 		return nil
 	})

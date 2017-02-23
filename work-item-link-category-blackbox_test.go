@@ -11,7 +11,7 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -40,16 +40,22 @@ type workItemLinkCategorySuite struct {
 	linkCatCtrl *WorkItemLinkCategoryController
 }
 
+var wilCatConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	wilCatConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
@@ -340,7 +346,7 @@ func TestSuiteWorkItemLinkCategory(t *testing.T) {
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wilCatConfiguration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

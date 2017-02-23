@@ -9,28 +9,36 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	testtoken "github.com/almighty/almighty-core/test/token"
 	"github.com/almighty/almighty-core/token"
+
 	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
 )
 
-var loginService *KeycloakOAuthProvider
+var (
+	oauth         *oauth2.Config
+	configuration *config.ConfigurationData
+	loginService  *KeycloakOAuthProvider
+	privateKey    *rsa.PrivateKey
+)
 
-var privateKey *rsa.PrivateKey
-
-func setup() {
-
+func init() {
 	var err error
-	if err = configuration.Setup(""); err != nil {
+	configuration, err = config.GetConfigurationData()
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
+	privateKey, err = token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
+	if err != nil {
+		panic(err)
+	}
 
-	oauth := &oauth2.Config{
+	oauth = &oauth2.Config{
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
@@ -40,10 +48,10 @@ func setup() {
 		},
 	}
 
-	privateKey, err = token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println(configuration.GetKeycloakClientID())
+}
+
+func setup() {
 
 	tokenManager := token.NewManagerWithPrivateKey(privateKey)
 	userRepository := account.NewUserRepository(nil)

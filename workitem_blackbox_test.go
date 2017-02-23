@@ -18,13 +18,14 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -38,6 +39,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+var wibConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	wibConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
 
 func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	resource.Require(t, resource.Database)
@@ -166,7 +177,7 @@ func TestListByFields(t *testing.T) {
 }
 
 func getWorkItemTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wibConfiguration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -586,11 +597,7 @@ type WorkItem2Suite struct {
 func (s *WorkItem2Suite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+	s.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
 
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
@@ -615,7 +622,7 @@ func (s *WorkItem2Suite) SetupSuite() {
 	require.NotNil(s.T(), s.linkCtrl)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if configuration.GetPopulateCommonTypes() {
+	if wibConfiguration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {

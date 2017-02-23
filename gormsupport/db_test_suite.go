@@ -1,11 +1,12 @@
 package gormsupport
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/almighty/almighty-core/configuration"
+	"github.com/Sirupsen/logrus"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
@@ -28,9 +29,11 @@ type DBTestSuite struct {
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
-	var err error
-	if err = configuration.Setup(s.configFile); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	configuration, err := config.NewConfigurationData("")
+	if err != nil {
+		logrus.Panic(nil, map[string]interface{}{
+			"err": err,
+		}, "failed to setup the configuration")
 	}
 
 	if _, c := os.LookupEnv(resource.Database); c != false {

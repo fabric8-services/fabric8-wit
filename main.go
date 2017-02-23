@@ -17,7 +17,7 @@ import (
 	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -73,8 +73,8 @@ func main() {
 		}
 	}
 
-	var err error
-	if err = configuration.Setup(configFilePath); err != nil {
+	configuration, err := config.NewConfigurationData(configFilePath)
+	if err != nil {
 		logrus.Panic(nil, map[string]interface{}{
 			"configFilePath": configFilePath,
 			"err":            err,
@@ -156,7 +156,7 @@ func main() {
 	scheduler = remoteworkitem.NewScheduler(db)
 	defer scheduler.Stop()
 
-	accessTokens := getAccessTokens() //configuration.GetGithubAuthToken()
+	accessTokens := getAccessTokens(configuration) //configuration.GetGithubAuthToken()
 	scheduler.ScheduleAllQueries(accessTokens)
 
 	// Create service
@@ -197,7 +197,7 @@ func main() {
 	appDB := gormapplication.NewGormDB(db)
 
 	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := NewLoginController(service, loginService, tokenManager)
+	loginCtrl := NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 
 	// Mount "status" controller
@@ -237,11 +237,11 @@ func main() {
 	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "tracker" controller
-	c5 := NewTrackerController(service, appDB, scheduler)
+	c5 := NewTrackerController(service, appDB, scheduler, configuration)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
-	c6 := NewTrackerqueryController(service, appDB, scheduler)
+	c6 := NewTrackerqueryController(service, appDB, scheduler, configuration)
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "space" controller
@@ -253,7 +253,7 @@ func main() {
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller
-	searchCtrl := NewSearchController(service, appDB)
+	searchCtrl := NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "indentity" controller

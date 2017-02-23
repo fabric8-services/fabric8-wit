@@ -13,10 +13,11 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
+
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -60,16 +61,22 @@ type workItemLinkSuite struct {
 	deleteWorkItems     []string
 }
 
+var wiConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	wiConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkSuite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+	s.db, err = gorm.Open("postgres", wiConfiguration.GetPostgresConfigString())
 
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
@@ -612,7 +619,7 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInval
 }
 
 func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiConfiguration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -772,7 +779,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
 func getWorkItemRelationshipLinksTestData(t *testing.T, wiID string) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiConfiguration.GetTokenPrivateKey()))
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}
