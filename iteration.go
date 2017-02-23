@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -60,9 +61,11 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		// For create, count will always be zero hence no need to query
+		// by passing empty map, updateIterationsWithCounts will be able to put zero values
+		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		res := &app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, &newItr),
+			Data: ConvertIteration(ctx.RequestData, &newItr, updateIterationsWithCounts(wiCounts)),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -82,11 +85,14 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, c.ID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		res := &app.IterationSingle{}
 		res.Data = ConvertIteration(
 			ctx.RequestData,
-			c)
-
+			c, updateIterationsWithCounts(wiCounts))
 		return ctx.OK(res)
 	})
 }
@@ -132,9 +138,12 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, itr.ID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, itr),
+			Data: ConvertIteration(ctx.RequestData, itr, updateIterationsWithCounts(wiCounts)),
 		}
 
 		return ctx.OK(&response)
@@ -229,5 +238,31 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(id))
 	return &app.GenericLinks{
 		Self: &selfURL,
+	}
+}
+
+// updateIterationsWithCounts accepts map of 'iterationID to a workitem.WICountsPerIteration instance'.
+// This function returns function of type IterationConvertFunc
+// Inner function is able to access `wiCounts` in closure and it is responsible
+// for adding 'closed' and 'total' count of WI in relationship's meta for every given iteration.
+func updateIterationsWithCounts(wiCounts map[string]workitem.WICountsPerIteration) IterationConvertFunc {
+	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
+		var counts workitem.WICountsPerIteration
+		if _, ok := wiCounts[appIteration.ID.String()]; ok {
+			counts = wiCounts[appIteration.ID.String()]
+		} else {
+			counts = workitem.WICountsPerIteration{}
+		}
+		if appIteration.Relationships == nil {
+			appIteration.Relationships = &app.IterationRelations{}
+		}
+		if appIteration.Relationships.Workitems == nil {
+			appIteration.Relationships.Workitems = &app.RelationGeneric{}
+		}
+		if appIteration.Relationships.Workitems.Meta == nil {
+			appIteration.Relationships.Workitems.Meta = map[string]interface{}{}
+		}
+		appIteration.Relationships.Workitems.Meta["total"] = counts.Total
+		appIteration.Relationships.Workitems.Meta["closed"] = counts.Closed
 	}
 }

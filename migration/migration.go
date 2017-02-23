@@ -2,10 +2,10 @@ package migration
 
 import (
 	"database/sql"
-	"log"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/jinzhu/gorm"
@@ -50,20 +50,39 @@ func Migrate(db *sql.DB) error {
 
 		if err != nil {
 			oldErr := err
-			log.Printf("Rolling back transaction due to: %s\n", err)
+			log.Info(nil, map[string]interface{}{
+				"pkg":         "migration",
+				"nextVersion": nextVersion,
+				"migrations":  m,
+				"err":         err,
+			}, "Rolling back transaction due to: ", err)
+
 			if err = tx.Rollback(); err != nil {
+				log.Error(nil, map[string]interface{}{
+					"nextVersion": nextVersion,
+					"migrations":  m,
+					"err":         err,
+				}, "error while rolling back transaction: ", err)
 				return errs.Errorf("Error while rolling back transaction: %s\n", err)
 			}
 			return oldErr
 		}
 
 		if err = tx.Commit(); err != nil {
+			log.Error(nil, map[string]interface{}{
+				"migrations": m,
+				"err":        err,
+			}, "error during transaction commit: ", err)
 			return errs.Errorf("Error during transaction commit: %s\n", err)
 		}
 
 	}
 
 	if err != nil {
+		log.Error(nil, map[string]interface{}{
+			"migrations": m,
+			"err":        err,
+		}, "migration failed with error: ", err)
 		return errs.Errorf("Migration failed with error: %s\n", err)
 	}
 
@@ -157,6 +176,12 @@ func getMigrations() migrations {
 	// version 26
 	m = append(m, steps{executeSQLFile("026-areas.sql")})
 
+	// version 27
+	m = append(m, steps{executeSQLFile("027-areas-index.sql")})
+
+	// Version 28
+	m = append(m, steps{executeSQLFile("028-identity_provider_url.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -217,11 +242,19 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	*nextVersion = currentVersion + 1
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
-		log.Printf("Current version %d. Nothing to update.", currentVersion)
+		log.Info(nil, map[string]interface{}{
+			"pkg":            "migration",
+			"nextVersion":    *nextVersion,
+			"currentVersion": currentVersion,
+		}, "Current version %d. Nothing to update.", currentVersion)
 		return nil
 	}
 
-	log.Printf("Attempt to update DB to version %d\n", *nextVersion)
+	log.Info(nil, map[string]interface{}{
+		"pkg":            "migration",
+		"nextVersion":    *nextVersion,
+		"currentVersion": currentVersion,
+	}, "Attempt to update DB to version ", *nextVersion)
 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
@@ -234,7 +267,12 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 		return errs.Errorf("Failed to update DB to version %d: %s\n", *nextVersion, err)
 	}
 
-	log.Printf("Successfully updated DB to version %d\n", *nextVersion)
+	log.Info(nil, map[string]interface{}{
+		"pkg":            "migration",
+		"nextVersion":    *nextVersion,
+		"currentVersion": currentVersion,
+	}, "Successfully updated DB to version ", *nextVersion)
+
 	return nil
 }
 
@@ -278,7 +316,7 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "relates to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
 		return errs.WithStack(err)
 	}
 	return nil
@@ -294,7 +332,11 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.Printf("Work item link category %v exists, will update/overwrite the description", name)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":      "migration",
+			"category": name,
+		}, "Work item link category %s exists, will update/overwrite the description", name)
+
 		cat.Description = &description
 		linkCat := link.ConvertLinkCategoryFromModel(*cat)
 		_, err = linkCatRepo.Save(ctx, linkCat)
@@ -309,7 +351,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		return errs.WithStack(err)
 	}
 
-	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(name, cat.ID)
+	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
@@ -329,7 +371,11 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.Printf("Work item link type %v exists, will update/overwrite all fields", name)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":  "migration",
+			"wilt": name,
+		}, "Work item link type %s exists, will update/overwrite all fields", name)
+
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
 		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(lt))
@@ -416,7 +462,7 @@ func createOrUpdatePlannerItemExtension(typeName string, ctx context.Context, wi
 }
 
 func createOrUpdateType(typeName string, extendedTypeName *string, fields map[string]app.FieldDefinition, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
-	wit, err := witr.LoadTypeFromDB(typeName)
+	wit, err := witr.LoadTypeFromDB(ctx, typeName)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -425,12 +471,21 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 			return errs.WithStack(err)
 		}
 	case nil:
-		log.Printf("Work item type %v exists, will update/overwrite the fields only and parentPath", typeName)
+		log.Info(ctx, map[string]interface{}{
+			"pkg":      "migration",
+			"typeName": typeName,
+		}, "Work item type %s exists, will update/overwrite the fields only and parentPath", typeName)
+
 		path := typeName
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
-			log.Printf("Work item type %v extends another type %v, will copy fields from the extended type", typeName, *extendedTypeName)
-			extendedWit, err := witr.LoadTypeFromDB(*extendedTypeName)
+			log.Info(ctx, map[string]interface{}{
+				"pkg":              "migration",
+				"typeName":         typeName,
+				"extendedTypeName": *extendedTypeName,
+			}, "Work item type %s extends another type %v will copy fields from the extended type", typeName, *extendedTypeName)
+
+			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeName)
 			if err != nil {
 				return errs.WithStack(err)
 			}

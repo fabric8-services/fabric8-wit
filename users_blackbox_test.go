@@ -43,13 +43,13 @@ func TestShowUserOK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	identity := account.Identity{
-		Username: "TestUserIntegration123",
-		Provider: account.KeycloakIDP,
-		ID:       uuid.NewV4(),
-		User:     user,
-		UserID:   account.NullUUID{UUID: user.ID, Valid: true},
+		Username:     "TestUserIntegration123",
+		ProviderType: account.KeycloakIDP,
+		ID:           uuid.NewV4(),
+		User:         user,
+		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+		ProfileURL:   "foobar.com/" + user.ID.String(),
 	}
 
 	err = identityRepo.Create(ctx, &identity)
@@ -61,7 +61,7 @@ func TestShowUserOK(t *testing.T) {
 	assert.Equal(t, identity.ID.String(), *result.Data.ID)
 	assert.Equal(t, user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(t, user.ImageURL, *result.Data.Attributes.ImageURL)
-	assert.Equal(t, identity.Provider, *result.Data.Attributes.Provider)
+	assert.Equal(t, identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(t, identity.Username, *result.Data.Attributes.Username)
 }
 
@@ -85,11 +85,12 @@ func TestListUserOK(t *testing.T) {
 	}
 
 	identityGitHub := account.Identity{
-		Username: "TestUserIntegration2",
-		Provider: "github-test",
-		ID:       uuid.NewV4(),
-		User:     user,
-		UserID:   account.NullUUID{UUID: user.ID, Valid: true},
+		Username:     "TestUserIntegration2",
+		ProviderType: "github-test",
+		ID:           uuid.NewV4(),
+		User:         user,
+		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+		ProfileURL:   "github.com/" + uuid.NewV4().String(),
 	}
 	err = identityRepo.Create(ctx, &identityGitHub)
 	if err != nil {
@@ -97,11 +98,12 @@ func TestListUserOK(t *testing.T) {
 	}
 
 	identity := account.Identity{
-		Username: "TestUserIntegration1",
-		Provider: account.KeycloakIDP,
-		ID:       uuid.NewV4(),
-		User:     user,
-		UserID:   account.NullUUID{UUID: user.ID, Valid: true},
+		Username:     "TestUserIntegration1",
+		ProviderType: account.KeycloakIDP,
+		ID:           uuid.NewV4(),
+		User:         user,
+		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+		ProfileURL:   "kc/" + user.ID.String(),
 	}
 	err = identityRepo.Create(ctx, &identity)
 	if err != nil {
@@ -118,11 +120,12 @@ func TestListUserOK(t *testing.T) {
 		t.Fatal(err)
 	}
 	identity2 := account.Identity{
-		Username: "TestUserIntegration1",
-		Provider: account.KeycloakIDP,
-		ID:       uuid.NewV4(),
-		User:     user2,
-		UserID:   account.NullUUID{UUID: user2.ID, Valid: true},
+		Username:     "TestUserIntegration1",
+		ProviderType: account.KeycloakIDP,
+		ID:           uuid.NewV4(),
+		User:         user2,
+		UserID:       account.NullUUID{UUID: user2.ID, Valid: true},
+		ProfileURL:   "kc/" + user2.ID.String(),
 	}
 	err = identityRepo.Create(ctx, &identity2)
 	if err != nil {
@@ -146,7 +149,7 @@ func findUser(id uuid.UUID, users []*app.IdentityData) *app.IdentityData {
 
 func assertUser(t *testing.T, actual *app.IdentityData, expectedUser account.User, expectedIdentity account.Identity) {
 	assert.Equal(t, expectedIdentity.Username, *actual.Attributes.Username)
-	assert.Equal(t, expectedIdentity.Provider, *actual.Attributes.Provider)
+	assert.Equal(t, expectedIdentity.ProviderType, *actual.Attributes.ProviderType)
 	assert.Equal(t, expectedUser.FullName, *actual.Attributes.FullName)
 	assert.Equal(t, expectedUser.ImageURL, *actual.Attributes.ImageURL)
 	assert.Equal(t, expectedUser.Email, *actual.Attributes.Email)

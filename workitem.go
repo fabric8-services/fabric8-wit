@@ -7,8 +7,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"reflect"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
@@ -185,7 +183,10 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx, ctx.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error deleting work item")))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
+		}
+		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.ID))
 		}
 		return ctx.OK([]byte{})
 	})
@@ -257,8 +258,10 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 
 	for key, val := range source.Attributes {
 		// convert legacy description to markup content
-		if key == workitem.SystemDescription && reflect.TypeOf(val).Kind() == reflect.String {
-			target.Fields[key] = rendering.NewMarkupContentFromLegacy(val.(string))
+		if key == workitem.SystemDescription {
+			if m := rendering.NewMarkupContentFromValue(val); m != nil {
+				target.Fields[key] = *m
+			}
 		} else {
 			target.Fields[key] = val
 		}

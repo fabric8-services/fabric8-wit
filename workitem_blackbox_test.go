@@ -529,8 +529,9 @@ func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Iden
 	newUserUUID := uuid.NewV4()
 	identityRepo := account.NewIdentityRepository(db)
 	identity := account.Identity{
-		Username: "Test User Integration Random",
-		ID:       newUserUUID,
+		Username:   "Test User Integration Random",
+		ProfileURL: "foobar.com/" + newUserUUID.String(),
+		ID:         newUserUUID,
 	}
 	err := identityRepo.Create(ctx, &identity)
 	if err != nil {
@@ -573,6 +574,9 @@ type WorkItem2Suite struct {
 	clean          func()
 	wiCtrl         app.WorkitemController
 	wi2Ctrl        app.WorkitemController
+	linkCtrl       app.WorkItemLinkController
+	linkCatCtrl    app.WorkItemLinkCategoryController
+	linkTypeCtrl   app.WorkItemLinkTypeController
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
@@ -601,6 +605,15 @@ func (s *WorkItem2Suite) SetupSuite() {
 
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.wi2Ctrl)
+
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkCatCtrl)
+
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkTypeCtrl)
+
+	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.linkCtrl)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
@@ -709,7 +722,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	modifiedDescription := rendering.NewMarkupContentFromLegacy("Only Description is modified")
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
-	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
 	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
@@ -722,7 +735,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	modifiedDescription := rendering.NewMarkupContent("Only Description is modified", rendering.SystemMarkupMarkdown)
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
-	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
 
 	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
@@ -1364,6 +1377,57 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+}
+
+// TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
+// creates a link between them. When one of the work items is deleted, the
+// link shall be gone as well.
+func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
+	// Create two work items (wi1 and wi2)
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "WI1"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi1)
+	c.Data.Attributes[workitem.SystemTitle] = "WI2"
+	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(s.T(), wi2)
+
+	// Create link category
+	linkCatPayload := CreateWorkItemLinkCategory("test-user")
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
+	require.NotNil(s.T(), linkCat)
+
+	// Create work item link type payload
+	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	require.NotNil(s.T(), linkType)
+
+	// Create link between wi1 and wi2
+	id1, err := strconv.ParseUint(*wi1.Data.ID, 10, 64)
+	require.Nil(s.T(), err)
+	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
+	require.Nil(s.T(), err)
+	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.linkCtrl, linkPayload)
+	require.NotNil(s.T(), workItemLink)
+
+	// Delete work item wi1
+	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi1.Data.ID)
+
+	// Check that the link was deleted by deleting wi1
+	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID)
+
+	// Check that we can query for wi2 without problems
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi2.Data.ID)
 }
 
 func (s *WorkItem2Suite) TestWI2FailMissingDelete() {

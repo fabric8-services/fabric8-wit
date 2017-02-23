@@ -1,7 +1,6 @@
 package link
 
 import (
-	"log"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -9,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -29,6 +29,7 @@ type WorkItemLinkRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkList, error)
 	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
+	DeleteRelatedLinks(ctx context.Context, wiIDStr string) error
 	Delete(ctx context.Context, ID string) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error)
 }
@@ -54,27 +55,27 @@ type GormWorkItemLinkRepository struct {
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
-func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(sourceID, targetID uint64, linkTypeID satoriuuid.UUID) error {
-	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(linkTypeID)
+func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) error {
+	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	// Fetch the source work item
-	source, err := r.workItemRepo.LoadFromDB(strconv.FormatUint(sourceID, 10))
+	source, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(sourceID, 10))
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	// Fetch the target work item
-	target, err := r.workItemRepo.LoadFromDB(strconv.FormatUint(targetID, 10))
+	target, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(targetID, 10))
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	// Fetch the concrete work item types of the target and the source.
-	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(source.Type)
+	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, source.Type)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(target.Type)
+	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, target.Type)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -99,7 +100,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := link.CheckValidForCreation(); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	if err := r.ValidateCorrectSourceAndTargetType(sourceID, targetID, linkTypeID); err != nil {
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
 	db := r.db.Create(link)
@@ -123,11 +124,16 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.
 		// treat as not found: clients don't know it must be a UUID
 		return nil, errors.NewNotFoundError("work item link", ID)
 	}
-	log.Printf("loading work item link %s", id.String())
+	log.Info(ctx, map[string]interface{}{
+		"pkg":   "link",
+		"wilID": ID,
+	}, "Loading work item link")
 	res := WorkItemLink{}
 	db := r.db.Where("id=?", id).Find(&res)
 	if db.RecordNotFound() {
-		log.Printf("not found work item link, res=%v", res)
+		log.Error(ctx, map[string]interface{}{
+			"wilID": ID,
+		}, "work item link not found")
 		return nil, errors.NewNotFoundError("work item link", id.String())
 	}
 	if db.Error != nil {
@@ -164,7 +170,7 @@ func (r *GormWorkItemLinkRepository) list(ctx context.Context, fetchFunc fetchLi
 func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error) {
 	fetchFunc := func() ([]WorkItemLink, error) {
 		var rows []WorkItemLink
-		wi, err := r.workItemRepo.LoadFromDB(wiIDStr)
+		wi, err := r.workItemRepo.LoadFromDB(ctx, wiIDStr)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
@@ -204,14 +210,36 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 	var link = WorkItemLink{
 		ID: id,
 	}
-	log.Printf("work item link to delete %v\n", link)
+	log.Info(ctx, map[string]interface{}{
+		"pkg":   "link",
+		"wilID": ID,
+	}, "Deleting the work item link repository")
+
 	db := r.db.Delete(&link)
 	if db.Error != nil {
-		log.Print(db.Error.Error())
+		log.Error(ctx, map[string]interface{}{
+			"wilID": ID,
+			"err":   db.Error,
+		}, "unable to delete work item link repository")
 		return errors.NewInternalError(db.Error.Error())
 	}
 	if db.RowsAffected == 0 {
 		return errors.NewNotFoundError("work item link", id.String())
+	}
+	return nil
+}
+
+// DeleteRelatedLinks deletes all links in which the source or target equals the
+// given work item ID.
+func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string) error {
+	wiId, err := strconv.ParseUint(wiIDStr, 10, 64)
+	if err != nil {
+		// treat as not found: clients don't know it must be a uint64
+		return errors.NewNotFoundError("work item link", wiIDStr)
+	}
+	db := r.db.Where("? in (source_id, target_id)", wiId).Delete(&WorkItemLink{})
+	if db.Error != nil {
+		return errors.NewInternalError(db.Error.Error())
 	}
 	return nil
 }
@@ -225,11 +253,16 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}
 	db := r.db.Model(&res).Where("id=?", *lt.Data.ID).First(&res)
 	if db.RecordNotFound() {
-		log.Printf("work item link not found, res=%v", res)
+		log.Error(ctx, map[string]interface{}{
+			"wilID": *lt.Data.ID,
+		}, "work item link not found")
 		return nil, errors.NewNotFoundError("work item link", *lt.Data.ID)
 	}
 	if db.Error != nil {
-		log.Print(db.Error.Error())
+		log.Error(ctx, map[string]interface{}{
+			"wilID": *lt.Data.ID,
+			"err":   db.Error,
+		}, "unable to find work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if lt.Data.Attributes.Version == nil || res.Version != *lt.Data.Attributes.Version {
@@ -239,15 +272,22 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 		return nil, errs.WithStack(err)
 	}
 	res.Version = res.Version + 1
-	if err := r.ValidateCorrectSourceAndTargetType(res.SourceID, res.TargetID, res.LinkTypeID); err != nil {
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, res.SourceID, res.TargetID, res.LinkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
 	db = r.db.Save(&res)
 	if db.Error != nil {
-		log.Print(db.Error.Error())
+		log.Error(ctx, map[string]interface{}{
+			"wilID": res.ID,
+			"err":   db.Error,
+		}, "unable to save work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	log.Printf("updated work item link to %v\n", res)
+
+	log.Info(ctx, map[string]interface{}{
+		"pkg":   "link",
+		"wilID": res.ID,
+	}, "Work item link updated")
 	result := ConvertLinkFromModel(res)
 	return &result, nil
 }

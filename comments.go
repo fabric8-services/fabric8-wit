@@ -76,6 +76,32 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 	})
 }
 
+// Delete does DELETE comment
+func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
+	identity, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		cm, err := appl.Comments().Load(ctx.Context, ctx.CommentID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		if identity != cm.CreatedBy.String() {
+			// need to use the goa.NewErrorClass() func as there is no native support for 403 in goa
+			// and it is not planned to be supported yet: https://github.com/goadesign/goa/pull/1030
+			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
+		}
+
+		err = appl.Comments().Delete(ctx.Context, cm.ID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.OK([]byte{})
+	})
+}
+
 // CommentConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)

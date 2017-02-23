@@ -239,3 +239,27 @@ func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
 	test.UpdateCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, updateCommentPayload)
 }
+
+func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
+	// given
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
+}
+
+func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
+	// given
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	userSvc, commentsCtrl := s.unsecuredController()
+	test.DeleteCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
+}
+
+func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
+	// given
+	workitemId := s.createWorkItem(testsupport.TestIdentity)
+	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
+	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
+}

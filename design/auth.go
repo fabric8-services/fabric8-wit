@@ -16,6 +16,7 @@ var _ = a.Resource("login", func() {
 		a.Description("Authorize with the ALM")
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.TemporaryRedirect)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("generate", func() {
@@ -29,6 +30,24 @@ var _ = a.Resource("login", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
+
+	a.Action("refresh", func() {
+		a.Routing(
+			a.POST("refresh"),
+		)
+		a.Payload(refreshToken)
+		a.Description("Refreshes access token")
+		a.Response(d.OK, func() {
+			a.Media(AuthToken)
+		})
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
+var refreshToken = a.Type("RefreshToken", func() {
+	a.Attribute("refresh_token", d.String, "Refresh token")
 })
 
 // AuthToken represents an authentication JWT Token

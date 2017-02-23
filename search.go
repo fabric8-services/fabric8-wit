@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
@@ -57,7 +57,9 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
-				log.Printf("Error listing work items: %s", err.Error())
+				log.Error(ctx, map[string]interface{}{
+					"err": err,
+				}, "unable to list the work items")
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
 				return ctx.InternalServerError(jerrors)
 			}
@@ -99,7 +101,12 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			case errors.BadParameterError:
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("Error listing spaces: %s", err.Error())))
 			default:
-				log.Printf("Error listing spaces: %s", err.Error())
+				log.Error(ctx, map[string]interface{}{
+					"query":  q,
+					"offset": offset,
+					"limit":  limit,
+					"err":    err,
+				}, "unable to list spaces")
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 			}
 		}

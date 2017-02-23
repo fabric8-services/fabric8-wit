@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -67,8 +69,12 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 
 	svc, ctrl := rest.SecuredController()
 	_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
+	require.NotNil(t, created)
 	assertChildIterationLinking(t, created.Data)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
@@ -114,6 +120,9 @@ func (rest *TestIterationREST) TestSuccessShowIteration() {
 	svc, ctrl := rest.SecuredController()
 	_, created := test.ShowIterationOK(t, svc.Context, svc, ctrl, itrID.ID.String())
 	assertIterationLinking(t, created.Data)
+	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailShowIterationMissing() {
@@ -146,6 +155,61 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
 	assert.Equal(t, newName, *updated.Data.Attributes.Name)
 	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
+	require.NotNil(t, updated.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 0, updated.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 0, updated.Data.Relationships.Workitems.Meta["closed"])
+}
+
+func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	itr := createSpaceAndIteration(t, rest.db)
+
+	newName := "Sprint 1001"
+	newDesc := "New Description"
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				Name:        &newName,
+				Description: &newDesc,
+			},
+			ID:   &itr.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	// add WI to this iteration and test counts in the response of update iteration API
+	wirepo := workitem.NewWorkItemRepository(rest.DB)
+	for i := 0; i < 4; i++ {
+		wi, err := wirepo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: itr.ID.String(),
+			}, "xx")
+		require.NotNil(t, wi)
+		require.Nil(t, err)
+	}
+	for i := 0; i < 5; i++ {
+		wi, err := wirepo.Create(
+			context.Background(), workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: itr.ID.String(),
+			}, "xx")
+		require.NotNil(t, wi)
+		require.Nil(t, err)
+	}
+	svc, ctrl := rest.SecuredController()
+	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	require.NotNil(t, updated)
+	assert.Equal(t, newName, *updated.Data.Attributes.Name)
+	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
+	require.NotNil(t, updated.Data.Relationships.Workitems.Meta)
+	assert.Equal(t, 9, updated.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(t, 5, updated.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
