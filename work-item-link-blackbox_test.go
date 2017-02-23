@@ -217,8 +217,8 @@ func (s *workItemLinkSuite) SetupTest() {
 	fmt.Printf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create a work item link space
-	createSpacePayload := CreateSpacePayload("test-space")
-	_, space := test.CreateSpaceCreated(s.T(), nil, nil, s.spaceCtrl, createSpacePayload)
+	createSpacePayload := CreateSpacePayload("test-space", "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.spaceCtrl, createSpacePayload)
 	require.NotNil(s.T(), space)
 	s.userSpaceID = space.Data.ID.String()
 	fmt.Printf("Created link space with ID: %s\n", *space.Data.ID)

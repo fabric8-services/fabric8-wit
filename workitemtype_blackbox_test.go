@@ -18,6 +18,8 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
@@ -40,6 +42,8 @@ type workItemTypeSuite struct {
 	linkTypeCtrl *WorkItemLinkTypeController
 	linkCatCtrl  *WorkItemLinkCategoryController
 	spaceCtrl    *SpaceController
+
+	svcSpace *goa.Service
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -76,6 +80,9 @@ func (s *workItemTypeSuite) SetupTest() {
 	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
+
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svcSpace = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.spaceCtrl)
 }
@@ -234,8 +241,8 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	require.NotNil(s.T(), linkCat)
 
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space")
-	_, space := test.CreateSpaceCreated(s.T(), nil, nil, s.spaceCtrl, spacePayload)
+	spacePayload := CreateSpacePayload("some-link-space", "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.svcSpace.Context, s.svcSpace, s.spaceCtrl, spacePayload)
 	require.NotNil(s.T(), space)
 
 	// Create work item link type
