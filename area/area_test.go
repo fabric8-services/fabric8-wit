@@ -325,26 +325,26 @@ func (test *TestAreaRepository) TestListParentTree() {
 
 }
 
-func (test *TestAreaRepository) TestConvertToLtreeFormat() {
-	t := test.T()
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
+// func (test *TestAreaRepository) TestConvertToLtreeFormat() {
+// 	t := test.T()
+// 	t.Parallel()
+// 	resource.Require(t, resource.UnitTest)
 
-	testString := "aaaaa1111-43284723hjkjhk-hkh432h423/aaaaaa22323232-4343434343/434343-4343sfsdfds-2423423"
-	expected := "aaaaa1111_43284723hjkjhk_hkh432h423.aaaaaa22323232_4343434343.434343_4343sfsdfds_2423423"
-	actual := area.ConvertToLtreeFormat(testString)
+// 	testString := "aaaaa1111-43284723hjkjhk-hkh432h423/aaaaaa22323232-4343434343/434343-4343sfsdfds-2423423"
+// 	expected := "aaaaa1111_43284723hjkjhk_hkh432h423.aaaaaa22323232_4343434343.434343_4343sfsdfds_2423423"
+// 	actual := area.ConvertToLtreeFormat(testString)
 
-	assert.Equal(t, expected, actual)
-}
+// 	assert.Equal(t, expected, actual)
+// }
 
-func (test *TestAreaRepository) TestConvertFromLtreeFormat() {
-	t := test.T()
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
+// func (test *TestAreaRepository) TestConvertFromLtreeFormat() {
+// 	t := test.T()
+// 	t.Parallel()
+// 	resource.Require(t, resource.UnitTest)
 
-	expected := "aaaaa1111-43284723hjkjhk-hkh432h423/aaaaaa22323232-4343434343/434343-4343sfsdfds-2423423"
-	testString := "aaaaa1111_43284723hjkjhk_hkh432h423.aaaaaa22323232_4343434343.434343_4343sfsdfds_2423423"
-	actual := area.ConvertFromLtreeFormat(testString)
+// 	expected := "aaaaa1111-43284723hjkjhk-hkh432h423/aaaaaa22323232-4343434343/434343-4343sfsdfds-2423423"
+// 	testString := "aaaaa1111_43284723hjkjhk_hkh432h423.aaaaaa22323232_4343434343.434343_4343sfsdfds_2423423"
+// 	actual := area.ConvertFromLtreeFormat(testString)
 
-	assert.Equal(t, expected, actual)
-}
+// 	assert.Equal(t, expected, actual)
+// }

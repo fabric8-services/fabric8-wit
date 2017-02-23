@@ -19,8 +19,8 @@ import (
 type Path []uuid.UUID
 
 const (
-	sepInService  = "/"
-	sepInDatabase = "."
+	SepInService  = "/"
+	SepInDatabase = "."
 )
 
 func (p Path) IsEmpty() bool {
@@ -50,12 +50,12 @@ func (p Path) Convert() string {
 func (p Path) String() string {
 	var op []string
 	if len(p) == 0 {
-		return sepInService
+		return SepInService
 	}
 	for _, id := range p {
 		op = append(op, id.String())
 	}
-	return strings.Join(op, sepInService)
+	return strings.Join(op, SepInService)
 }
 
 // ReprDB returns value like stored in DB
@@ -64,7 +64,7 @@ func (p Path) ReprDB() string {
 	for _, id := range p {
 		op = append(op, id.String())
 	}
-	str := strings.Join(op, sepInDatabase)
+	str := strings.Join(op, SepInDatabase)
 	return strings.Replace(str, "-", "_", -1)
 }
 
@@ -93,7 +93,7 @@ func (p Path) convertToLtree(id uuid.UUID) string {
 func (p Path) convertFromLtree(uuidStr string) ([]uuid.UUID, error) {
 	// Ltree allows only "_" as a special character.
 	converted := strings.Replace(uuidStr, "_", "-", -1)
-	parts := strings.Split(converted, sepInDatabase)
+	parts := strings.Split(converted, SepInDatabase)
 	op := []uuid.UUID{}
 	for _, x := range parts {
 		id, err := uuid.FromString(x)
@@ -111,7 +111,7 @@ func (p Path) Value() (driver.Value, error) {
 	for _, x := range p {
 		op = append(op, p.convertToLtree(x))
 	}
-	s := strings.Join(op, sepInDatabase)
+	s := strings.Join(op, SepInDatabase)
 	fmt.Println("Valuer -> ", s)
 	return s, nil
 }
