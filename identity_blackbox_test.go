@@ -34,11 +34,12 @@ func TestListIdentities(t *testing.T) {
 	identityRepo := app.Identities()
 
 	id := uuid.NewV4()
+	profile := "foobar.com/" + id.String()
 	identity := account.Identity{
 		Username:     "TestUser",
 		ProviderType: "test-idp",
 		ID:           id,
-		ProfileURL:   "foobar.com/" + id.String(),
+		ProfileURL:   &profile,
 	}
 
 	err := identityRepo.Create(ctx, &identity)
@@ -54,11 +55,12 @@ func TestListIdentities(t *testing.T) {
 	assertIdent(t, identity, findIdent(identity.ID, ic2.Data))
 
 	id = uuid.NewV4()
+	profile = "foobar.com/" + id.String()
 	identity2 := account.Identity{
 		Username:     "TestUser2",
 		ProviderType: "test-idp",
 		ID:           id,
-		ProfileURL:   "foobar.com/" + id.String(),
+		ProfileURL:   &profile,
 	}
 
 	err = identityRepo.Create(ctx, &identity2)
