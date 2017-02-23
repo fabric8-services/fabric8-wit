@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"fmt"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -173,6 +172,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 			if afterItem.Executionorder == res.Executionorder {
 				// when a workitem is reordered at the same position again and again
 				order = afterItem.Executionorder
+				return &wi, nil
 			} else {
 				afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Executionorder), 64)
 				if err != nil {
