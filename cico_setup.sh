@@ -29,7 +29,6 @@ function install_deps() {
     git \
     curl
 
-  sed -i '/OPTIONS=.*/c\OPTIONS="--selinux-enabled --log-driver=journald --insecure-registry registry.ci.centos.org:5000"' /etc/sysconfig/docker
   service docker start
   echo 'CICO: Dependencies installed'
 }
@@ -85,8 +84,8 @@ function run_tests_with_coverage() {
 function deploy() {
   # Let's deploy
   make docker-image-deploy
-  docker tag almighty-core-deploy registry.ci.centos.org:5000/almighty/almighty-core:latest
-  docker push registry.ci.centos.org:5000/almighty/almighty-core:latest
+  docker tag almighty-core-deploy 8.43.84.245.xip.io/almighty/almighty-core:latest
+  docker push 8.43.84.245.xip.io/almighty/almighty-core:latest
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 
