@@ -63,7 +63,8 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	parentID := createSpaceAndIteration(t, rest.db).ID
+	parent := createSpaceAndIteration(t, rest.db)
+	parentID := parent.ID
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
 
@@ -72,6 +73,10 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	require.NotNil(t, created)
 	assertChildIterationLinking(t, created.Data)
 	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	expectedParentPath := iteration.PathSepInService + parentID.String()
+	expectedResolvedParentPath := iteration.PathSepInService + parent.Name
+	assert.Equal(t, expectedParentPath, *created.Data.Attributes.ParentPath)
+	assert.Equal(t, expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
 	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
 	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
 	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])

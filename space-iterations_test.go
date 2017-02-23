@@ -82,6 +82,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	assert.Equal(t, iteration.IterationStateNew, *c.Data.Attributes.State)
+	assert.Equal(t, "/", *c.Data.Attributes.ParentPath)
 	require.NotNil(t, c.Data.Relationships.Workitems.Meta)
 	assert.Equal(t, 0, c.Data.Relationships.Workitems.Meta["total"])
 	assert.Equal(t, 0, c.Data.Relationships.Workitems.Meta["closed"])
@@ -125,6 +126,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	resource.Require(t, resource.Database)
 
 	var spaceID uuid.UUID
+	var fatherIteration, childIteration, grandChildIteration *iteration.Iteration
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 
@@ -150,17 +152,56 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 			}
 			repo.Create(context.Background(), &i)
 		}
+
+		// create one child iteration and test for relationships.Parent
+		fatherIteration = &iteration.Iteration{
+			Name:    "Parent Iteration",
+			SpaceID: spaceID,
+		}
+		repo.Create(context.Background(), fatherIteration)
+
+		childIteration = &iteration.Iteration{
+			Name:    "Child Iteration",
+			SpaceID: spaceID,
+			Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
+		}
+		repo.Create(context.Background(), childIteration)
+
+		grandChildIteration = &iteration.Iteration{
+			Name:    "Grand Child Iteration",
+			SpaceID: spaceID,
+			Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
+		}
+		repo.Create(context.Background(), grandChildIteration)
+
 		return nil
 	})
 
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceID.String())
-	assert.Len(t, cs.Data, 3)
+	assert.Len(t, cs.Data, 6)
 	for _, iterationItem := range cs.Data {
 		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
 		require.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
 		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["total"])
 		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
+		if *iterationItem.ID == childIteration.ID {
+			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String()
+			expectedResolvedParentPath := iteration.PathSepInService + fatherIteration.Name
+			require.NotNil(t, iterationItem.Relationships.Parent)
+			assert.Equal(t, fatherIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
+			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
+			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
+		}
+		if *iterationItem.ID == grandChildIteration.ID {
+			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String() + iteration.PathSepInService + childIteration.ID.String()
+			expectedResolvedParentPath := iteration.PathSepInService + fatherIteration.Name + iteration.PathSepInService + childIteration.Name
+			require.NotNil(t, iterationItem.Relationships.Parent)
+			assert.Equal(t, childIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
+			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
+			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
+
+		}
 	}
 }
 
@@ -200,9 +241,10 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	spaceInstance := space.Space{
 		Name: "Testing space",
 	}
-	spaceRepo.Create(context.Background(), &spaceInstance)
+	_, e := spaceRepo.Create(context.Background(), &spaceInstance)
+	require.Nil(rest.T(), e)
 	fmt.Println("space id = ", spaceInstance.ID)
-	assert.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
+	require.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
 
 	iterationRepo := iteration.NewIterationRepository(rest.DB)
 	iteration1 := iteration.Iteration{
@@ -241,7 +283,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 				workitem.SystemIteration: iteration1.ID.String(),
 			}, "xx")
 	}
-
 	svc, ctrl := rest.UnSecuredController()
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
 	assert.Len(t, cs.Data, 2)
