@@ -77,10 +77,6 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		// childPath := area.ConvertToLtreeFormat(parentID.String())
-		// if parent.Path.IsEmpty() == false {
-		// 	childPath = parent.Path + pathSepInDatabase + childPath
-		// }
 		childPath := append(parent.Path, parent.ID)
 		newArea := area.Area{
 			SpaceID: parent.SpaceID,
@@ -125,12 +121,9 @@ func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *
 	pathResolved, error := getResolvePath(appl, mArea)
 	sArea.Attributes.ParentPathResolved = pathResolved
 	return error
-
 }
 
 func getResolvePath(appl application.Application, a *area.Area) (*string, error) {
-	// parentUuidStrings := strings.Split(area.ConvertFromLtreeFormat(a.Path), pathSepInService)
-	// parentUuids := convertToUuid(parentUuidStrings)
 	parentUuids := a.Path
 	parentAreas, err := appl.Areas().LoadMultiple(context.Background(), parentUuids)
 	if err != nil {
@@ -219,12 +212,8 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
 	if ar.Path.IsEmpty() == false {
-
-		// allParents := strings.Split(area.ConvertFromLtreeFormat(ar.Path), pathSepInService)
-		// parentID := allParents[len(allParents)-1]
-		// Only the immediate parent's URL.
-		// parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
 		parent := ar.Path.This().String()
+		// Only the immediate parent's URL.
 		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parent))
 
 		i.Relationships.Parent = &app.RelationGeneric{
@@ -261,12 +250,12 @@ func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 	}
 }
 
-func convertToUuid(uuidStrings []string) []uuid.UUID {
-	var uUIDs []uuid.UUID
+// func convertToUuid(uuidStrings []string) []uuid.UUID {
+// 	var uUIDs []uuid.UUID
 
-	for i := 0; i < len(uuidStrings); i++ {
-		uuidString, _ := uuid.FromString(uuidStrings[i])
-		uUIDs = append(uUIDs, uuidString)
-	}
-	return uUIDs
-}
+// 	for i := 0; i < len(uuidStrings); i++ {
+// 		uuidString, _ := uuid.FromString(uuidStrings[i])
+// 		uUIDs = append(uUIDs, uuidString)
+// 	}
+// 	return uUIDs
+// }

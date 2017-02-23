@@ -18,16 +18,18 @@ import (
 // Above content will be read from database as a slice of UUIDs
 type Path []uuid.UUID
 
+// Following constants are used while saving and displaying Path type to and from database
 const (
 	SepInService  = "/"
 	SepInDatabase = "."
 )
 
+// IsEmpty checks count of items in Path
 func (p Path) IsEmpty() bool {
 	return len(p) == 0
 }
 
-// This returns last element of the UUID slice
+// This returns last UUID of slice
 func (p Path) This() uuid.UUID {
 	if len(p) > 0 {
 		return p[len(p)-1]
@@ -35,18 +37,23 @@ func (p Path) This() uuid.UUID {
 	return uuid.UUID{}
 }
 
-// This returns last element of the UUID slice
+// Convert returns last element of the UUID slice
+// 39fa8c5b_5732_436f_a084_0f2a247f3435.87762c8b_17f9_4cbb_b355_251b6a524f2f
 func (p Path) Convert() string {
 	if len(p) == 0 {
 		return ""
 	}
-	return p.ReprDB()
+	var op []string
+	for _, id := range p {
+		op = append(op, id.String())
+	}
+	str := strings.Join(op, SepInDatabase)
+	return strings.Replace(str, "-", "_", -1)
 }
-
-// ToDo :- add Resolved()
 
 // String converts the Path to representable format in string
 // Currently separator is '/'
+// /87762c8b-17f9-4cbb-b355-251b6a524f2f/39fa8c5b-5732-436f-a084-0f2a247f3435/be54f2c4-cfa4-47af-ad06-280fba540872
 func (p Path) String() string {
 	var op []string
 	if len(p) == 0 {
@@ -56,16 +63,6 @@ func (p Path) String() string {
 		op = append(op, id.String())
 	}
 	return strings.Join(op, SepInService)
-}
-
-// ReprDB returns value like stored in DB
-func (p Path) ReprDB() string {
-	var op []string
-	for _, id := range p {
-		op = append(op, id.String())
-	}
-	str := strings.Join(op, SepInDatabase)
-	return strings.Replace(str, "-", "_", -1)
 }
 
 // Root retunrs a Path instance with first element in the UUID slice
@@ -112,7 +109,6 @@ func (p Path) Value() (driver.Value, error) {
 		op = append(op, p.convertToLtree(x))
 	}
 	s := strings.Join(op, SepInDatabase)
-	fmt.Println("Valuer -> ", s)
 	return s, nil
 }
 
@@ -170,7 +166,6 @@ func (p *Path) UnmarshalJSON(b []byte) error {
 	}
 	for _, value := range stringMap {
 		id, err := uuid.FromString(value)
-		fmt.Println("v = ", id, err)
 		if err != nil {
 			return err
 		}
