@@ -185,8 +185,11 @@ func getMigrations() migrations {
 	// Version 29
 	m = append(m, steps{executeSQLFile("029-identities-foreign-key.sql")})
 
-	// Version 29
-	m = append(m, steps{executeSQLFile("029-iterations-parent-path-ltree.sql")})
+	// Version 30
+	m = append(m, steps{executeSQLFile("030-indentities-unique-index.sql")})
+
+	// Version 31
+	m = append(m, steps{executeSQLFile("031-iterations-parent-path-ltree.sql")})
 
 	// Version N
 	//
