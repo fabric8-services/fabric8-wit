@@ -17,6 +17,3 @@ ALTER TABLE iterations ALTER path TYPE ltree USING path::ltree;
 
 -- Enable full text search operaions using GIST index on path
 CREATE INDEX iteration_path_gist_idx ON iterations USING GIST (path);
-
--- Enable equality and range operations < <= = >= > using BTREE index on path
-CREATE INDEX iteration_path_idx ON iterations USING BTREE (path);
