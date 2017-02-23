@@ -529,9 +529,8 @@ func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Iden
 	newUserUUID := uuid.NewV4()
 	identityRepo := account.NewIdentityRepository(db)
 	identity := account.Identity{
-		Username:   "Test User Integration Random",
-		ProfileURL: "foobar.com/" + newUserUUID.String(),
-		ID:         newUserUUID,
+		Username: "Test User Integration Random",
+		ID:       newUserUUID,
 	}
 	err := identityRepo.Create(ctx, &identity)
 	if err != nil {

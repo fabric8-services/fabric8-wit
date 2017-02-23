@@ -38,7 +38,6 @@ func TestListIdentities(t *testing.T) {
 		Username:     "TestUser",
 		ProviderType: "test-idp",
 		ID:           id,
-		ProfileURL:   "foobar.com/" + id.String(),
 	}
 
 	err := identityRepo.Create(ctx, &identity)
@@ -58,7 +57,6 @@ func TestListIdentities(t *testing.T) {
 		Username:     "TestUser2",
 		ProviderType: "test-idp",
 		ID:           id,
-		ProfileURL:   "foobar.com/" + id.String(),
 	}
 
 	err = identityRepo.Create(ctx, &identity2)

@@ -65,7 +65,7 @@ type Identity struct {
 	// ProviderType The type of provider, such as "keycloak", "github", "oso", etc
 	ProviderType string `gorm:"column:provider_type"`
 	// the URL of the profile on the remote work item service
-	ProfileURL string `gorm:"column:profile_url"`
+	ProfileURL *string `gorm:"column:profile_url"`
 	// Link to User
 	UserID NullUUID `sql:"type:uuid"`
 	User   User
@@ -185,7 +185,7 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 		identity = &Identity{
 			ProviderType: providerType,
 			Username:     username,
-			ProfileURL:   profileURL,
+			ProfileURL:   &profileURL,
 		}
 		err = m.Create(context.Background(), identity)
 		if err != nil {
