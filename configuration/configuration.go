@@ -381,7 +381,7 @@ var defaultKeycloakClientID = "fabric8-online-platform"
 var defaultKeycloakSecret = "08a8bcd1-f362-446a-9d2b-d34b8d464185"
 
 var defaultKeycloakDomainPrefix = "sso"
-var defaultKeycloakRealm = "demo"
+var defaultKeycloakRealm = "fabric8"
 
 // Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
@@ -393,6 +393,6 @@ var defaultKeycloakTesUserName = "testuser"
 var defaultKeycloakTesUserSecret = "testuser"
 
 // Keycloak URLs to be used in dev mode. Can be overridden by setting up keycloak.endpoint.*
-var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth"
-var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
-var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
+var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth"
+var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token"
+var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo"

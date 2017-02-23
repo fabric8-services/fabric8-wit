@@ -1,6 +1,7 @@
 package login
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
+	testtoken "github.com/almighty/almighty-core/test/token"
 	"github.com/almighty/almighty-core/token"
 	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
@@ -18,6 +20,8 @@ import (
 )
 
 var loginService *KeycloakOAuthProvider
+
+var privateKey *rsa.PrivateKey
 
 func setup() {
 
@@ -31,12 +35,12 @@ func setup() {
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth",
-			TokenURL: "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token",
+			AuthURL:  "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth",
+			TokenURL: "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token",
 		},
 	}
 
-	privateKey, err := token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
+	privateKey, err = token.ParsePrivateKey([]byte(configuration.GetTokenPrivateKey()))
 	if err != nil {
 		panic(err)
 	}
@@ -66,7 +70,7 @@ func TestValidOAuthAccessToken(t *testing.T) {
 		ID:       uuid.NewV4(),
 		Username: "testuser",
 	}
-	token, err := loginService.TokenManager.Generate(identity)
+	token, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
 	assert.Nil(t, err)
 	accessToken := &oauth2.Token{
 		AccessToken: token,

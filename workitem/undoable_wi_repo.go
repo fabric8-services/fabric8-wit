@@ -146,6 +146,15 @@ func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria
 	return r.wrapped.List(ctx, criteria, start, length)
 }
 
+// Fetch fetches the (first) work item matching by the given criteria.Expression.
+func (r *UndoableWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
+	return r.wrapped.Fetch(ctx, criteria)
+}
+
 func (r *UndoableWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]WICountsPerIteration, error) {
+	return map[string]WICountsPerIteration{}, nil
+}
+
+func (r *UndoableWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationId uuid.UUID) (map[string]WICountsPerIteration, error) {
 	return map[string]WICountsPerIteration{}, nil
 }

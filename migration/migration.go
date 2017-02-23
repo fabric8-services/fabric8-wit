@@ -179,8 +179,11 @@ func getMigrations() migrations {
 	// version 27
 	m = append(m, steps{executeSQLFile("027-areas-index.sql")})
 
-	// version 28
-	m = append(m, steps{executeSQLFile("028-adds-order-to-existing-wi.sql")})
+	// Version 28
+	m = append(m, steps{executeSQLFile("028-identity_provider_url.sql")})
+
+	// version 29
+	m = append(m, steps{executeSQLFile("029-adds-order-to-existing-wi.sql")})
 
 	// Version N
 	//

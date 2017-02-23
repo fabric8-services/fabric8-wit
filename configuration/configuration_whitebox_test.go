@@ -1,6 +1,7 @@
 package configuration
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -9,12 +10,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var reqLong *goa.RequestData
+var reqShort *goa.RequestData
+var isConfigurationSet bool
+
+func init() {
+
+	// ensure that the content here is executed only once.
+	reqLong = &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	reqShort = &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.org"},
+	}
+	resetConfiguration()
+}
+
+func resetConfiguration() {
+	if err := Setup(""); err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 func TestOpenIDConnectPathOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
 	path := openIDConnectPath("somesufix")
-	assert.Equal(t, "auth/realms/demo/protocol/openid-connect/somesufix", path)
+	assert.Equal(t, "auth/realms/fabric8/protocol/openid-connect/somesufix", path)
 }
 
 func TestGetKeycloakURLOK(t *testing.T) {

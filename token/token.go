@@ -13,7 +13,6 @@ import (
 
 // Manager generate and find auth token information
 type Manager interface {
-	Generate(account.Identity) (string, error)
 	Extract(string) (*account.Identity, error)
 	Locate(ctx context.Context) (uuid.UUID, error)
 	PublicKey() *rsa.PublicKey
@@ -37,20 +36,6 @@ func NewManagerWithPrivateKey(privateKey *rsa.PrivateKey) Manager {
 		publicKey:  &privateKey.PublicKey,
 		privateKey: privateKey,
 	}
-}
-
-// Generate generates a new JWT token. For tests only.
-func (mgm tokenManager) Generate(ident account.Identity) (string, error) {
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims.(jwt.MapClaims)["uuid"] = ident.ID.String()
-	token.Claims.(jwt.MapClaims)["preferred_username"] = ident.Username
-	token.Claims.(jwt.MapClaims)["sub"] = ident.ID.String()
-
-	tokenStr, err := token.SignedString(mgm.privateKey)
-	if err != nil {
-		return "", errors.WithStack(err)
-	}
-	return tokenStr, nil
 }
 
 func (mgm tokenManager) Extract(tokenString string) (*account.Identity, error) {

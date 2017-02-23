@@ -128,7 +128,7 @@ var identityDataAttributes = a.Type("IdentityDataAttributes", func() {
 	a.Attribute("email", d.String, "The email")
 	a.Attribute("bio", d.String, "The bio")
 	a.Attribute("url", d.String, "The url")
-	a.Attribute("provider", d.String, "The IDP provided this identity")
+	a.Attribute("providerType", d.String, "The IDP provided this identity")
 })
 
 // identityData represents an identified user object
