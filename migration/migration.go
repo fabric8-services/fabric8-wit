@@ -2,6 +2,8 @@ package migration
 
 import (
 	"database/sql"
+	"net/http"
+	"net/url"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
@@ -9,6 +11,9 @@ import (
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
+	"github.com/goadesign/goa"
+	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -258,7 +263,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 		"pkg":            "migration",
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
-	}, "Attempt to update DB to version ", *nextVersion)
+	}, "Attempt to update DB to version %v", *nextVersion)
 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
@@ -275,7 +280,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 		"pkg":            "migration",
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
-	}, "Successfully updated DB to version ", *nextVersion)
+	}, "Successfully updated DB to version %v", *nextVersion)
 
 	return nil
 }
@@ -307,6 +312,22 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 	}
 
 	return current, nil
+}
+
+// NewMigrationContext aims to create a new goa context where to initialize the
+// request and req_id context keys.
+// NOTE: We need this function to initialize the goa.ContextRequest
+func NewMigrationContext(ctx context.Context) context.Context {
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx = goa.NewContext(ctx, nil, req, params)
+	// set a random request ID for the context
+	var req_id string
+	ctx, req_id = client.ContextWithRequestID(ctx)
+
+	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", req_id)
+
+	return ctx
 }
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
@@ -357,7 +378,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, n
 	cause := errs.Cause(err)
 	space := &space.Space{
 		Version: version,
-		Name: name,
+		Name:    name,
 	}
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -367,7 +388,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, n
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":      "migration",
+			"pkg":       "migration",
 			"spaceName": name,
 		}, "space %s exists, will update/overwrite the version", name)
 
@@ -399,7 +420,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		SourceTypeName: sourceTypeName,
 		TargetTypeName: targetTypeName,
 		LinkCategoryID: cat.ID,
-		SpaceID: space.ID,
+		SpaceID:        space.ID,
 	}
 
 	cause := errs.Cause(err)
@@ -417,7 +438,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
-		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(lt))
+
+		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(goa.ContextRequest(ctx), lt))
 		return errs.WithStack(err)
 	}
 	return nil
