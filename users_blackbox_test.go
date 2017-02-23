@@ -43,13 +43,14 @@ func TestShowUserOK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	profile := "foobar.com/" + user.ID.String()
 	identity := account.Identity{
 		Username:     "TestUserIntegration123",
 		ProviderType: account.KeycloakIDP,
 		ID:           uuid.NewV4(),
 		User:         user,
 		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
-		ProfileURL:   "foobar.com/" + user.ID.String(),
+		ProfileURL:   &profile,
 	}
 
 	err = identityRepo.Create(ctx, &identity)
@@ -83,14 +84,14 @@ func TestListUserOK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	profile := "github.com/" + uuid.NewV4().String()
 	identityGitHub := account.Identity{
 		Username:     "TestUserIntegration2",
 		ProviderType: "github-test",
 		ID:           uuid.NewV4(),
 		User:         user,
 		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
-		ProfileURL:   "github.com/" + uuid.NewV4().String(),
+		ProfileURL:   &profile,
 	}
 	err = identityRepo.Create(ctx, &identityGitHub)
 	if err != nil {
@@ -103,7 +104,6 @@ func TestListUserOK(t *testing.T) {
 		ID:           uuid.NewV4(),
 		User:         user,
 		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
-		ProfileURL:   "kc/" + user.ID.String(),
 	}
 	err = identityRepo.Create(ctx, &identity)
 	if err != nil {
@@ -125,7 +125,6 @@ func TestListUserOK(t *testing.T) {
 		ID:           uuid.NewV4(),
 		User:         user2,
 		UserID:       account.NullUUID{UUID: user2.ID, Valid: true},
-		ProfileURL:   "kc/" + user2.ID.String(),
 	}
 	err = identityRepo.Create(ctx, &identity2)
 	if err != nil {
