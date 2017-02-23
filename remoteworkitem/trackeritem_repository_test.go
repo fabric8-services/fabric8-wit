@@ -40,9 +40,10 @@ func (s *TrackerItemRepositorySuite) SetupTest() {
 
 func (s *TrackerItemRepositorySuite) createIdentity(username string) account.Identity {
 	identityRepo := account.NewIdentityRepository(s.DB)
+	profile := "https://api.github.com/users/" + username
 	identity := account.Identity{
 		Username:     username,
-		ProfileURL:   "https://api.github.com/users/" + username,
+		ProfileURL:   &profile,
 		ProviderType: ProviderGithub,
 	}
 	err := identityRepo.Create(context.Background(), &identity)
@@ -161,7 +162,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 		require.NotNil(s.T(), identity)
 		assert.Contains(s.T(), identity.Username, "jdoe")
 		assert.NotContains(s.T(), identity.Username, "https://api.github.com/users/jdoe")
-		assert.Contains(s.T(), identity.ProfileURL, "https://api.github.com/users/jdoe")
+		assert.Contains(s.T(), *identity.ProfileURL, "https://api.github.com/users/jdoe")
 	}
 }
 
