@@ -113,7 +113,7 @@ func main() {
 	err = migration.Migrate(db.DB())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
-			"err": fmt.Sprintf("%+v", err),
+			"err": err,
 		}, "failed migration")
 	}
 
@@ -132,14 +132,14 @@ func main() {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
-				"err": fmt.Sprintf("%+v", err),
+				"err": err,
 			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
-				"err": fmt.Sprintf("%+v", err),
+				"err": err,
 			}, "failed to bootstap work item linking")
 		}
 	}
@@ -164,7 +164,7 @@ func main() {
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
-			"err": fmt.Sprintf("%+v", err),
+			"err": err,
 		}, "failed to parse public token")
 	}
 
@@ -301,7 +301,7 @@ func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
 		log.Warn(nil, map[string]interface{}{
-			"err": fmt.Sprintf("%+v", err),
+			"err": err,
 		}, "failed to get current user")
 	} else {
 		log.Info(nil, map[string]interface{}{
@@ -311,7 +311,7 @@ func printUserInfo() {
 		g, err := user.LookupGroupId(u.Gid)
 		if err != nil {
 			log.Warn(nil, map[string]interface{}{
-				"err": fmt.Sprintf("%+v", err),
+				"err": err,
 			}, "failed to lookup group")
 		} else {
 			log.Info(nil, map[string]interface{}{
