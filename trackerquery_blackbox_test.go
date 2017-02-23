@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	. "github.com/almighty/almighty-core"
+	"github.com/almighty/almighty-core/app/test"
 	config "github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/resource"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -15,7 +19,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	//	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/stretchr/testify/require"
 )
 
@@ -154,7 +158,6 @@ func TestUnauthorizeTrackerQueryCUD(t *testing.T) {
 	})
 }
 
-/*
 func TestCreateTrackerQueryREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 
@@ -196,4 +199,3 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 
 	server.Close()
 }
-*/

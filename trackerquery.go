@@ -34,7 +34,7 @@ func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map
 
 // NewTrackerqueryController creates a trackerquery controller.
 func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration) *TrackerqueryController {
-	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler}
+	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler, configuration: configuration}
 }
 
 // Create runs the create action.
