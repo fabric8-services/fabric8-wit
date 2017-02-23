@@ -30,6 +30,7 @@ func TestInfo(t *testing.T) {
 	}, func(fields logrus.Fields) {
 		assert.Equal(t, fields["msg"], "test")
 		assert.Equal(t, fields["level"], "info")
+		assert.Equal(t, fields["pkg"], "log.TestInfo")
 	})
 }
 
@@ -40,7 +41,7 @@ func TestInfoWithFields(t *testing.T) {
 		assert.Equal(t, fields["msg"], "test")
 		assert.Equal(t, fields["level"], "info")
 		assert.Equal(t, fields["key"], "value")
-		assert.Equal(t, fields["pkg"], "log")
+		assert.Equal(t, fields["pkg"], "log.TestInfoWithFields")
 	})
 }
 

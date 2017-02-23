@@ -131,7 +131,7 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 
 		file, _, pName, fName, err := extractCallerDetails()
 		if err == nil {
-			entry = log.WithField("file", file).WithField("pkg", pName).WithField("func", fName)
+			entry = entry.WithField("file", file).WithField("pkg", pName).WithField("func", fName)
 		}
 
 		if ctx != nil {
@@ -160,7 +160,7 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 
 		_, _, pName, _, err := extractCallerDetails()
 		if err == nil {
-			entry = log.WithField("pkg", pName)
+			entry = entry.WithField("pkg", pName)
 		}
 
 		if ctx != nil {
@@ -214,7 +214,7 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 
 		_, _, pName, _, err := extractCallerDetails()
 		if err == nil {
-			entry = log.WithField("pkg", pName)
+			entry = entry.WithField("pkg", pName)
 		}
 
 		if ctx != nil {
