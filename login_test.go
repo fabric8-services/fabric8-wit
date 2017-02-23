@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -57,6 +58,7 @@ func createControler(t *testing.T) (*goa.Service, *LoginController) {
 }
 
 func TestTestUserTokenObtainedFromKeycloakOK(t *testing.T) {
+	os.Setenv("ALMIGHTY_DEVELOPER_MODE_ENABLED", "true")
 	resource.Require(t, resource.Database)
 	service, controller := createControler(t)
 	_, result := test.GenerateLoginOK(t, nil, service, controller)
