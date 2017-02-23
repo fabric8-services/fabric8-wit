@@ -180,7 +180,10 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("027-areas-index.sql")})
 
 	// Version 28
-	m = append(m, steps{executeSQLFile("028-identity_provider_url.sql")})
+	m = append(m, steps{executeSQLFile("028-identity-provider_url.sql")})
+
+	// Version 29
+	m = append(m, steps{executeSQLFile("029-identities-foreign-key.sql")})
 
 	// Version 29
 	m = append(m, steps{executeSQLFile("029-iterations-parent-path-ltree.sql")})
