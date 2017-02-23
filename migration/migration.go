@@ -332,7 +332,7 @@ func NewMigrationContext(ctx context.Context) context.Context {
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
 func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
-	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, 0); err != nil {
+	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
@@ -373,12 +373,12 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 	return nil
 }
 
-func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, name string, version int) error {
+func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, name, description string) error {
 	spa, err := spaceRepo.LoadSpaceFromDB(ctx, name)
 	cause := errs.Cause(err)
 	space := &space.Space{
-		Version: version,
-		Name:    name,
+		Description: description,
+		Name:        name,
 	}
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -390,9 +390,9 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, n
 		log.Info(ctx, map[string]interface{}{
 			"pkg":       "migration",
 			"spaceName": name,
-		}, "space %s exists, will update/overwrite the version", name)
+		}, "space %s exists, will update/overwrite the description", name)
 
-		spa.Version = version
+		spa.Description = description
 		_, err = spaceRepo.Save(ctx, spa)
 		return errs.WithStack(err)
 	}

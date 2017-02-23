@@ -220,7 +220,7 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID string) 
 	log.Info(ctx, map[string]interface{}{
 		"pkg":    "link",
 		"wiltID": ID,
-	}, "Work item link type to delete ", cat)
+	}, "Work item link type to delete %v", cat)
 
 	db := r.db.Delete(&cat)
 	if db.Error != nil {

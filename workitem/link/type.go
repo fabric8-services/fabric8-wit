@@ -306,6 +306,19 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 		out.SourceTypeName = d.ID
 	}
 
+	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
+		d := rel.TargetType.Data
+		// If the the link type is not nil, it MUST be "workitemlinktypes"
+		if d.Type != EndpointWorkItemTypes {
+			return errors.NewBadParameterError("data.relationships.target_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
+		}
+		// The the link type MUST NOT be empty
+		if d.ID == "" {
+			return errors.NewBadParameterError("data.relationships.target_type.data.id", d.ID)
+		}
+		out.TargetTypeName = d.ID
+	}
+
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		d := rel.Space.Data
 		// If the the link space is not nil, it MUST be "spaces"
