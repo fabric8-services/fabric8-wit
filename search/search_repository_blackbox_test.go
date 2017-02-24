@@ -37,7 +37,7 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	}
 }
 
-func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
+func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -78,14 +78,14 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID.String())
+	}, testsupport.TestIdentity.ID)
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
 	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID.String())
+	}, testsupport.TestIdentity.ID)
 	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
 

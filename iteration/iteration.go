@@ -1,6 +1,7 @@
 package iteration
 
 import (
+	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -20,6 +21,8 @@ const (
 	IterationStateNew      = "new"
 	IterationStateStart    = "start"
 	IterationStateClose    = "close"
+	PathSepInService       = "/"
+	PathSepInDatabase      = "."
 )
 
 // Iteration describes a single iteration
@@ -27,7 +30,7 @@ type Iteration struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
-	ParentID    uuid.UUID `sql:"type:uuid"` // TODO: This should be * to support nil ?
+	Path        string
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string
@@ -48,6 +51,7 @@ type Repository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
+	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -60,13 +64,41 @@ type GormIterationRepository struct {
 	db *gorm.DB
 }
 
+// ConvertToLtreeFormat returns LTREE valid string
+func ConvertToLtreeFormat(uuid string) string {
+	//Ltree allows only "_" as a special character.
+	return strings.Replace(uuid, "-", "_", -1)
+}
+
+// ConvertFromLtreeFormat returns UUID in form of string
+func ConvertFromLtreeFormat(uuid string) string {
+	// Ltree allows only "_" as a special character.
+	converted := strings.Replace(uuid, "_", "-", -1)
+	converted = strings.Replace(converted, PathSepInDatabase, PathSepInService, -1)
+	return converted
+}
+
+// LoadMultiple returns multiple instances of iteration.Iteration
+func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "getmultiple"}, time.Now())
+	var objs []*Iteration
+
+	for i := 0; i < len(ids); i++ {
+		m.db = m.db.Or("id = ?", ids[i])
+	}
+	tx := m.db.Find(&objs)
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return objs, nil
+}
+
 // Create creates a new record.
 func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) error {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "create"}, time.Now())
 
 	u.ID = uuid.NewV4()
 	u.State = IterationStateNew
-
 	err := m.db.Create(u).Error
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

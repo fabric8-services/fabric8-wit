@@ -248,7 +248,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	// Avoiding panics.
 	assert.NotNil(t, allQueryParameters)
 	assert.NotNil(t, allQueryParameters["error"])
-	assert.Equal(t, allQueryParameters["error"][0], InvalidCodeError)
+	assert.NotEqual(t, allQueryParameters["error"][0], "")
 
 	returnedErrorReason := allQueryParameters["error"][0]
 	assert.NotEmpty(t, returnedErrorReason)
