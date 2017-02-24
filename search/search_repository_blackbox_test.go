@@ -37,7 +37,7 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	}
 }
 
-func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
+func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
