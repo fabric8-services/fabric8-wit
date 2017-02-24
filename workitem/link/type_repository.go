@@ -162,27 +162,6 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ctx context.Context,
 	return &res, nil
 }
 
-// LoadTypeFromDBBySpace return work item link type for the given spaceId
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBBySpace(ctx context.Context, spaceId satoriuuid.UUID) (*WorkItemLinkType, error) {
-	log.Info(ctx, map[string]interface{}{
-		"pkg":     "link",
-		"spaceID": spaceId.String(),
-	}, "Loading work item link type with spaceID ", spaceId)
-
-	res := WorkItemLinkType{}
-	db := r.db.Model(&res).Where("space_id=?", spaceId.String()).First(&res)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceId.String(),
-		}, "work item link type not found")
-		return nil, errors.NewNotFoundError("work item link type", spaceId.String())
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &res, nil
-}
-
 // List returns all work item link types
 // TODO: Handle pagination
 func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkItemLinkTypeList, error) {

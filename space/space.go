@@ -58,6 +58,7 @@ type Repository interface {
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
 	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
+	LoadSpaceFromDB(ctx context.Context, name string) (*Space, error)
 }
 
 // NewRepository creates a new space repo

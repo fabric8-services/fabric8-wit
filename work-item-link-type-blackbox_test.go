@@ -277,7 +277,7 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.Nil(s.T(), link.ConvertLinkTypeToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), readIn.Included, 2, "The work item link type should include it's work item link category and category.")
+	require.Len(s.T(), readIn.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := readIn.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
