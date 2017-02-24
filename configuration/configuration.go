@@ -74,6 +74,8 @@ const (
 	varPostgresSSLMode              = "postgres.sslmode"
 	varPostgresConnectionTimeout    = "postgres.connection.timeout"
 	varPostgresConnectionRetrySleep = "postgres.connection.retrysleep"
+	varPostgresConnectionMaxIdle    = "postgres.connection.maxidle"
+	varPostgresConnectionMaxOpen    = "postgres.connection.maxopen"
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
@@ -112,6 +114,8 @@ func setConfigDefaults() {
 	viper.SetDefault(varPostgresPassword, "mysecretpassword")
 	viper.SetDefault(varPostgresSSLMode, "disable")
 	viper.SetDefault(varPostgresConnectionTimeout, 5)
+	viper.SetDefault(varPostgresConnectionMaxIdle, -1)
+	viper.SetDefault(varPostgresConnectionMaxOpen, -1)
 
 	// Number of seconds to wait before trying to connect again
 	viper.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
@@ -181,6 +185,18 @@ func GetPostgresConnectionTimeout() int64 {
 // to wait before trying to connect again
 func GetPostgresConnectionRetrySleep() time.Duration {
 	return viper.GetDuration(varPostgresConnectionRetrySleep)
+}
+
+// GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
+// any given time. -1 represents no restrictions/default behavior
+func GetPostgresConnectionMaxIdle() int {
+	return viper.GetInt(varPostgresConnectionMaxIdle)
+}
+
+// GetPostgresConnectionMaxOpen returns the max number of open connections that should be open in the database connection pool.
+// -1 represents no restrictions/default behavior
+func GetPostgresConnectionMaxOpen() int {
+	return viper.GetInt(varPostgresConnectionMaxOpen)
 }
 
 // GetPostgresConfigString returns a ready to use string for usage in sql.Open()
