@@ -47,7 +47,6 @@ func (r *GormTrackerRepository) Create(ctx context.Context, url string, typeID s
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "remoteworkitem",
 		"tracker": t,
 	}, "Tracker reposity created")
 
@@ -69,7 +68,6 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":       "remoteworkitem",
 		"trackerID": id,
 	}, "Loading tracker repository...")
 
@@ -101,7 +99,6 @@ func (r *GormTrackerRepository) List(ctx context.Context, criteria criteria.Expr
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":   "remoteworkitem",
 		"query": where,
 	}, "Executing tracker repository query...")
 
@@ -138,7 +135,6 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":       "remoteworkitem",
 		"trackerID": id,
 	}, "Looking for a tracker repository with id ", id)
 
@@ -170,7 +166,6 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "remoteworkitem",
 		"tracker": newT.ID,
 	}, "Tracker repository successfully updated")
 

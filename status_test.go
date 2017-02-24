@@ -12,7 +12,6 @@ import (
 )
 
 func TestShowStatusOK(t *testing.T) {
-	t.Parallel()
 	resource.Require(t, resource.Database)
 	controller := StatusController{db: DB}
 	_, res := test.ShowStatusOK(t, nil, nil, &controller)
