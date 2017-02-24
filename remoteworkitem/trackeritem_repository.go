@@ -121,7 +121,6 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
 	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
 	log.Info(nil, map[string]interface{}{
-		"pkg":  "remoteworkitem",
 		"wiID": workItemRemoteID,
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
@@ -133,7 +132,6 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 	var resultWorkItem *app.WorkItem
 	if existingWorkItem != nil {
 		log.Info(nil, map[string]interface{}{
-			"pkg":  "remoteworkitem",
 			"wiID": existingWorkItem.ID,
 		}, "Workitem exists, will be updated")
 		for key, value := range workItem.Fields {
@@ -144,9 +142,7 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 			return nil, errors.WithStack(err)
 		}
 	} else {
-		log.Info(nil, map[string]interface{}{
-			"pkg": "remoteworkitem",
-		}, "Workitem does not exist, will be created")
+		log.Info(nil, nil, "Workitem does not exist, will be created")
 		c := workItem.Fields[workitem.SystemCreator]
 		var creator uuid.UUID
 		if c != nil {
@@ -160,7 +156,6 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 		}
 	}
 	log.Info(nil, map[string]interface{}{
-		"pkg":  "remoteworkitem",
 		"wiID": workItem.ID,
 	}, "Result workitem: %v", resultWorkItem)
 

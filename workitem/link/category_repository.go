@@ -58,7 +58,6 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 		return nil, errors.NewNotFoundError("work item link category", ID)
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":    "link",
 		"wilcID": ID,
 	}, "Loading work item link category")
 
@@ -82,7 +81,6 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 // LoadCategoryFromDB return work item link category for the name
 func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Context, name string) (*WorkItemLinkCategory, error) {
 	log.Info(ctx, map[string]interface{}{
-		"pkg":          "link",
 		"categoryName": name,
 	}, "Loading work item link category: %s", name)
 
@@ -136,7 +134,6 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":    "link",
 		"wilcID": ID,
 	}, "Work item link category to delete")
 
@@ -216,7 +213,6 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":             "link",
 		"wilcID":          newLinkCat.ID,
 		"newLinkCategory": newLinkCat,
 	}, "Work item link category updated")

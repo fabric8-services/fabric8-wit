@@ -46,8 +46,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg": "workitem",
-		"id":  id,
+		"id": id,
 	}, "Loading work item")
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
@@ -74,8 +73,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg": "workitem",
-		"id":  id,
+		"id": id,
 	}, "Loading work iteme")
 
 	old := WorkItem{}

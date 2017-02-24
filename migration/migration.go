@@ -51,7 +51,6 @@ func Migrate(db *sql.DB) error {
 		if err != nil {
 			oldErr := err
 			log.Info(nil, map[string]interface{}{
-				"pkg":         "migration",
 				"nextVersion": nextVersion,
 				"migrations":  m,
 				"err":         err,
@@ -252,7 +251,6 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
 		log.Info(nil, map[string]interface{}{
-			"pkg":            "migration",
 			"nextVersion":    *nextVersion,
 			"currentVersion": currentVersion,
 		}, "Current version %d. Nothing to update.", currentVersion)
@@ -260,7 +258,6 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"pkg":            "migration",
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
 	}, "Attempt to update DB to version ", *nextVersion)
@@ -277,7 +274,6 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"pkg":            "migration",
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
 	}, "Successfully updated DB to version ", *nextVersion)
@@ -342,7 +338,6 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":      "migration",
 			"category": name,
 		}, "Work item link category %s exists, will update/overwrite the description", name)
 
@@ -381,7 +376,6 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":  "migration",
 			"wilt": name,
 		}, "Work item link type %s exists, will update/overwrite all fields", name)
 
@@ -481,7 +475,6 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":      "migration",
 			"typeName": typeName,
 		}, "Work item type %s exists, will update/overwrite the fields only and parentPath", typeName)
 
@@ -489,7 +482,6 @@ func createOrUpdateType(typeName string, extendedTypeName *string, fields map[st
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeName != nil {
 			log.Info(ctx, map[string]interface{}{
-				"pkg":              "migration",
 				"typeName":         typeName,
 				"extendedTypeName": *extendedTypeName,
 			}, "Work item type %s extends another type %v will copy fields from the extended type", typeName, *extendedTypeName)

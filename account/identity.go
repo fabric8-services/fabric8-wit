@@ -157,7 +157,6 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":        "identity",
 		"identityID": model.ID,
 	}, "Identity created!")
 
@@ -169,9 +168,7 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 	if username == "" || profileURL == "" || providerType == "" {
 		return nil, errors.New("Cannot lookup identity with empty username, profile URL or provider type")
 	}
-	log.Debug(nil, map[string]interface{}{
-		"pkg": "account",
-	}, "Looking for identity of user with profile URL=%s\n", profileURL)
+	log.Debug(nil, nil, "Looking for identity of user with profile URL=%s\n", profileURL)
 	// bind the assignee to an existing identity, or create a new one
 	identity, err := m.First(IdentityFilterByProfileURL(profileURL))
 	if err != nil {
@@ -179,9 +176,7 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 	}
 	if identity == nil {
 		// create the identity if it does not exist yet
-		log.Debug(nil, map[string]interface{}{
-			"pkg": "account",
-		}, "Creating an identity for username '%s' with profile '%s' on '%s'\n", username, profileURL, providerType)
+		log.Debug(nil, nil, "Creating an identity for username '%s' with profile '%s' on '%s'\n", username, profileURL, providerType)
 		identity = &Identity{
 			ProviderType: providerType,
 			Username:     username,
@@ -193,13 +188,9 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 		}
 	} else {
 		// use existing identity
-		log.Debug(nil, map[string]interface{}{
-			"pkg": "account",
-		}, "Using existing identity with ID: %v", identity.ID.String())
+		log.Debug(nil, nil, "Using existing identity with ID: %v", identity.ID.String())
 	}
-	log.Debug(nil, map[string]interface{}{
-		"pkg": "account",
-	}, "Found identity of user with profile URL=%s: %s", profileURL, identity.ID)
+	log.Debug(nil, nil, "Found identity of user with profile URL=%s: %s", profileURL, identity.ID)
 	return identity, nil
 }
 
@@ -219,7 +210,6 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 	err = m.db.Model(obj).Updates(model).Error
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":        "identity",
 		"identityID": model.ID,
 	}, "Identity saved!")
 
@@ -243,7 +233,6 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":        "identity",
 		"identityID": id,
 	}, "Identity deleted!")
 
@@ -261,7 +250,6 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"pkg":          "identity",
 		"identityList": objs,
 	}, "Identity query executed successfully!")
 
@@ -272,9 +260,7 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "first"}, time.Now())
 	var objs []*Identity
-	log.Debug(nil, map[string]interface{}{
-		"pkg": "identity",
-	}, "Looking for identity matching: %v", funcs)
+	log.Debug(nil, nil, "Looking for identity matching: %v", funcs)
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).First(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -282,13 +268,11 @@ func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Ident
 	}
 	if len(objs) != 0 && objs[0] != nil {
 		log.Debug(nil, map[string]interface{}{
-			"pkg":          "identity",
 			"identityList": objs,
 		}, "Found matching identity: %v", *objs[0])
 		return objs[0], nil
 	}
 	log.Debug(nil, map[string]interface{}{
-		"pkg":          "identity",
 		"identityList": objs,
 	}, "No matching identity found")
 	return nil, nil
@@ -346,7 +330,6 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":          "identity",
 		"identityList": &res,
 	}, "Identity List executed successfully!")
 
