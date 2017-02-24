@@ -10,7 +10,6 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -33,22 +32,18 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
-		currentUser, err := login.ContextIdentity(ctx)
+		currentUserIdentityID, err := login.ContextIdentity(ctx)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 		}
 
-		currentUserID, err := uuid.FromString(currentUser)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
-		}
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
 			ParentID:  ctx.ID,
 			Body:      reqComment.Attributes.Body,
 			Markup:    markup,
-			CreatedBy: currentUserID,
+			CreatedBy: *currentUserIdentityID,
 		}
 
 		err = appl.Comments().Create(ctx, &newComment)

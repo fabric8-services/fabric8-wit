@@ -86,7 +86,7 @@ func loadKeyCloakIdentity(appl application.Application, user *account.User) (*ac
 		return nil, err
 	}
 	for _, identity := range identities {
-		if identity.Provider == account.KeycloakIDP {
+		if identity.ProviderType == account.KeycloakIDP {
 			return identity, nil
 		}
 	}
@@ -99,7 +99,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	id := uuid.String()
 	fullName := identity.Username
 	userName := identity.Username
-	provider := identity.Provider
+	providerType := identity.ProviderType
 	var imageURL string
 	var bio string
 	var userURL string
@@ -116,13 +116,13 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Username: &userName,
-				FullName: &fullName,
-				ImageURL: &imageURL,
-				Bio:      &bio,
-				URL:      &userURL,
-				Provider: &provider,
-				Email:    &email,
+				Username:     &userName,
+				FullName:     &fullName,
+				ImageURL:     &imageURL,
+				Bio:          &bio,
+				URL:          &userURL,
+				ProviderType: &providerType,
+				Email:        &email,
 			},
 			Links: createUserLinks(request, uuid),
 		},

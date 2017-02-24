@@ -16,6 +16,7 @@ var _ = a.Resource("login", func() {
 		a.Description("Authorize with the ALM")
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.TemporaryRedirect)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("generate", func() {

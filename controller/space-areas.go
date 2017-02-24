@@ -25,7 +25,6 @@ func NewSpaceAreasController(service *goa.Service, db application.DB) *SpaceArea
 
 // Create runs the create action.
 func (c *SpaceAreasController) Create(ctx *app.CreateSpaceAreasContext) error {
-
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))

@@ -5,6 +5,8 @@ import (
 
 	"golang.org/x/net/context"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
@@ -20,9 +22,11 @@ type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
-	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
+	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
+	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
 }
 
 // GormWorkItemRepository implements WorkItemRepository using gorm
@@ -39,7 +43,6 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, ID string) (*Wo
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	log.Info(nil, map[string]interface{}{
-		"pkg":  "workitem",
 		"wiID": ID,
 	}, "Loading work item")
 
@@ -90,6 +93,8 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 		return errors.NewNotFoundError("work item", ID)
 	}
 
+	log.Debug(ctx, map[string]interface{}{"wiID": ID}, "Work item deleted successfully!")
+
 	return nil
 }
 
@@ -103,7 +108,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":  "workitem",
 		"wiID": wi.ID,
 	}, "Looking for id for the work item repository")
 	tx := r.db.First(&res, id)
@@ -153,7 +157,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":  "workitem",
 		"wiID": wi.ID,
 	}, "Updated work item repository")
 	return convertWorkItemModelToApp(wiType, &res)
@@ -161,7 +164,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("type", typeID)
@@ -170,7 +173,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		Type:   typeID,
 		Fields: Fields{},
 	}
-	fields[SystemCreator] = creator
+	fields[SystemCreator] = creator.String()
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
@@ -192,7 +195,15 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	if err = tx.Create(&wi).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(wiType, &wi)
+
+	witem, err := convertWorkItemModelToApp(wiType, &wi)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(ctx, map[string]interface{}{"wiID": wi.ID}, "Work item created successfully!")
+
+	return witem, nil
 }
 
 func convertWorkItemModelToApp(wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
@@ -216,7 +227,6 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":        "workitem",
 		"where":      where,
 		"parameters": parameters,
 	}, "Executing query : '%s' with params %v", where, parameters)
@@ -293,9 +303,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-
 	res := make([]*app.WorkItem, len(result))
-
 	for index, value := range result {
 		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
@@ -303,8 +311,23 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		}
 		res[index], err = convertWorkItemModelToApp(wiType, &value)
 	}
-
 	return res, count, nil
+}
+
+// Fetch fetches the (first) work item matching by the given criteria.Expression.
+func (r *GormWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
+	limit := 1
+	results, count, err := r.List(ctx, criteria, nil, &limit)
+	if err != nil {
+		return nil, err
+	}
+	// if no result
+	if count == 0 {
+		return nil, nil
+	}
+	// one result
+	result := results[0]
+	return result, nil
 }
 
 // GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration
@@ -315,7 +338,6 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 // 		on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
 // 		WHERE (iterations.space_id = '33406de1-25f1-4969-bcec-88f29d0a7de3'
 // 		and work_items.deleted_at IS NULL) GROUP BY IterationId
-
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var res []WICountsPerIteration
 	db := r.db.Table("work_items").Select(`iterations.id as IterationId, count(*) as Total,
@@ -328,6 +350,30 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	countsMap := map[string]WICountsPerIteration{}
 	for _, iterationWithCount := range res {
 		countsMap[iterationWithCount.IterationId] = iterationWithCount
+	}
+	return countsMap, nil
+}
+
+// GetCountsForIteration returns Closed and Total counts of WI for given iteration
+// It executes
+// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "work_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
+func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error) {
+	var res WICountsPerIteration
+	query := fmt.Sprintf(`SELECT count(*) as Total,
+						count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
+						FROM "work_items"
+						where fields@> concat('{"system.iteration": "%s"}')::jsonb
+						and work_items.deleted_at is null`, iterationID)
+	db := r.db.Raw(query)
+	db.Scan(&res)
+	if db.Error != nil {
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
+	countsMap := map[string]WICountsPerIteration{}
+	countsMap[iterationID.String()] = WICountsPerIteration{
+		IterationId: iterationID.String(),
+		Closed:      res.Closed,
+		Total:       res.Total,
 	}
 	return countsMap, nil
 }

@@ -33,10 +33,11 @@ func TestListIdentities(t *testing.T) {
 
 	identityRepo := app.Identities()
 
+	id := uuid.NewV4()
 	identity := account.Identity{
-		Username: "TestUser",
-		Provider: "test-idp",
-		ID:       uuid.NewV4(),
+		Username:     "TestUser",
+		ProviderType: "test-idp",
+		ID:           id,
 	}
 
 	err := identityRepo.Create(ctx, &identity)
@@ -51,10 +52,11 @@ func TestListIdentities(t *testing.T) {
 
 	assertIdent(t, identity, findIdent(identity.ID, ic2.Data))
 
+	id = uuid.NewV4()
 	identity2 := account.Identity{
-		Username: "TestUser2",
-		Provider: "test-idp",
-		ID:       uuid.NewV4(),
+		Username:     "TestUser2",
+		ProviderType: "test-idp",
+		ID:           id,
 	}
 
 	err = identityRepo.Create(ctx, &identity2)
@@ -81,5 +83,5 @@ func findIdent(id uuid.UUID, idents []*app.IdentityData) *app.IdentityData {
 
 func assertIdent(t *testing.T, expected account.Identity, actual *app.IdentityData) {
 	assert.Equal(t, expected.Username, *actual.Attributes.Username)
-	assert.Equal(t, expected.Provider, *actual.Attributes.Provider)
+	assert.Equal(t, expected.ProviderType, *actual.Attributes.ProviderType)
 }

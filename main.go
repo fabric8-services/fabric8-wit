@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
 	"os/user"
@@ -88,8 +87,8 @@ func main() {
 		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			db.Close()
-			log.Logger().Errorf("ERROR: Unable to open connection to database %v\n", err)
-			log.Logger().Infof("Retrying to connect in %v...\n", configuration.GetPostgresConnectionRetrySleep())
+			log.Logger().Errorf("ERROR: Unable to open connection to database %v", err)
+			log.Logger().Infof("Retrying to connect in %v...", configuration.GetPostgresConnectionRetrySleep())
 			time.Sleep(configuration.GetPostgresConnectionRetrySleep())
 		} else {
 			defer db.Close()
@@ -105,7 +104,7 @@ func main() {
 	err = migration.Migrate(db.DB())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
-			"err": fmt.Sprintf("%+v", err),
+			"err": err,
 		}, "failed migration")
 	}
 
@@ -124,14 +123,14 @@ func main() {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
-				"err": fmt.Sprintf("%+v", err),
+				"err": err,
 			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
-				"err": fmt.Sprintf("%+v", err),
+				"err": err,
 			}, "failed to bootstap work item linking")
 		}
 	}
@@ -156,7 +155,7 @@ func main() {
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
-			"err": fmt.Sprintf("%+v", err),
+			"err": err,
 		}, "failed to parse public token")
 	}
 
@@ -173,10 +172,7 @@ func main() {
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  configuration.GetKeycloakEndpointAuth(),
-			TokenURL: configuration.GetKeycloakEndpointToken(),
-		},
+		Endpoint:     oauth2.Endpoint{},
 	}
 
 	appDB := gormapplication.NewGormDB(db)
@@ -296,20 +292,24 @@ func printUserInfo() {
 	u, err := user.Current()
 	if err != nil {
 		log.Warn(nil, map[string]interface{}{
-			"err": fmt.Sprintf("%+v", err),
+			"err": err,
 		}, "failed to get current user")
 	} else {
 		log.Info(nil, map[string]interface{}{
 			"username": u.Username,
 			"uuid":     u.Uid,
 		}, "Running as user name '%s' with UID %s.", u.Username, u.Uid)
-		/*
-			g, err := user.LookupGroupId(u.Gid)
-			if err != nil {
-				fmt.Printf("Failed to lookup group: %", err.Error())
-			} else {
-				fmt.Printf("Running with group \"%s\" with GID %s.\n", g.Name, g.Gid)
-			}
-		*/
+		g, err := user.LookupGroupId(u.Gid)
+		if err != nil {
+			log.Warn(nil, map[string]interface{}{
+				"err": err,
+			}, "failed to lookup group")
+		} else {
+			log.Info(nil, map[string]interface{}{
+				"groupname": g.Name,
+				"gid":       g.Gid,
+			}, "Running as as group '%s' with GID %s.", g.Name, g.Gid)
+		}
 	}
+
 }

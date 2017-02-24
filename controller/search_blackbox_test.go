@@ -22,6 +22,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -49,7 +50,7 @@ func TestSearch(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 	q := "specialwordforsearch"
@@ -75,7 +76,7 @@ func TestSearchPagination(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -105,7 +106,7 @@ func TestSearchWithEmptyValue(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -131,7 +132,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 			workitem.SystemDescription: expectedDescription,
 			workitem.SystemCreator:     "baijum", workitem.SystemState: workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -159,7 +160,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -187,7 +188,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
@@ -215,7 +216,7 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		"")
+		uuid.NewV4())
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))

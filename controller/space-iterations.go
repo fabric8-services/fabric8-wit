@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"strings"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -8,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -62,9 +65,31 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		// For create, count will always be zero hence no need to query
+		// by passing empty map, updateIterationsWithCounts will be able to put zero values
+		wiCounts := make(map[string]workitem.WICountsPerIteration)
+		var responseData *app.Iteration
+		if newItr.Path != "" {
+			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
+			allParentsUUIDs := []uuid.UUID{}
+			for _, x := range allParents {
+				id, _ := uuid.FromString(x) // we can safely ignore this error.
+				allParentsUUIDs = append(allParentsUUIDs, id)
+			}
+			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
+			if error != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			itrMap := make(iterationIDMap)
+			for _, itr := range iterations {
+				itrMap[itr.ID] = itr
+			}
+			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+		} else {
+			responseData = ConvertIteration(ctx.RequestData, &newItr, updateIterationsWithCounts(wiCounts))
+		}
 		res := &app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, &newItr),
+			Data: responseData,
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -84,20 +109,21 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-
 		iterations, err := appl.Iterations().List(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		itrMap := make(iterationIDMap)
+		for _, itr := range iterations {
+			itrMap[itr.ID] = itr
+		}
 		// fetch extra information(counts of WI in each iteration of the space) to be added in response
 		wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations, UpdateIterationsWithCounts(wiCounts))
-
+		res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
 		return ctx.OK(res)
 	})
 }

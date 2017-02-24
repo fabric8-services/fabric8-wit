@@ -17,8 +17,11 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/configuration"
+	jsonapierrors "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
+	tokencontext "github.com/almighty/almighty-core/login/token_context"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
@@ -26,11 +29,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
-)
-
-const (
-	// InvalidCodeError could occure when the OAuth Exchange with Keycloak returns no valid AccessToken
-	InvalidCodeError string = "Invalid OAuth2.0 code"
 )
 
 // Service defines the basic entrypoint required to perform a remote oauth login
@@ -105,12 +103,12 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 		}
 
 		keycloakToken, err := keycloak.config.Exchange(ctx, code)
-		if err != nil || keycloakToken.AccessToken == "" {
+		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"code": code,
 				"err":  err,
 			}, "keycloak exchange operation failed")
-			return redirectWithError(ctx, knownReferer, InvalidCodeError)
+			return redirectWithError(ctx, knownReferer, err.Error())
 		}
 
 		_, _, err = keycloak.CreateKeycloakUser(keycloakToken.AccessToken, ctx)
@@ -140,7 +138,6 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	// store referer id to state for redirect later
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "login",
 		"referer": referer,
 	}, "Got Request from!")
 
@@ -151,6 +148,24 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	stateReferer[state] = referer
 
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak auth endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak auth endpoint URL "+err.Error()))
+	}
+
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak token endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+
+	keycloak.config.Endpoint.AuthURL = authEndpoint
+	keycloak.config.Endpoint.TokenURL = tokenEndpoint
 	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
 
 	redirectURL := keycloak.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
@@ -219,24 +234,24 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		user = new(account.User)
 		fillUser(claims, user)
 		err = application.Transactional(keycloak.db, func(appl application.Application) error {
-			err := keycloak.Users.Create(ctx, user)
+			err := appl.Users().Create(ctx, user)
 			if err != nil {
-				// TODO It seems that even if we return an error here the transaction is not rolled back and the user is created. Why?!
 				return err
 			}
 			identity = &account.Identity{
-				ID:       keycloakIdentityID,
-				Username: claims.Username,
-				Provider: account.KeycloakIDP,
-				UserID:   account.NullUUID{UUID: user.ID, Valid: true},
-				User:     *user}
-			err = keycloak.Identities.Create(ctx, identity)
+				ID:           keycloakIdentityID,
+				Username:     claims.Username,
+				ProviderType: account.KeycloakIDP,
+				UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+				User:         *user}
+			err = appl.Identities().Create(ctx, identity)
 			return err
 		})
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"identityID": identity.ID,
-				"err":        err,
+				"keyCloakIdentityID": keycloakIdentityID,
+				"username":           claims.Username,
+				"err":                err,
 			}, "unable to create user/identity")
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
@@ -332,58 +347,36 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 
 // ContextIdentity returns the identity's ID found in given context
 // Uses tokenManager.Locate to fetch the identity of currently logged in user
-func ContextIdentity(ctx context.Context) (string, error) {
-	tm := ReadTokenManagerFromContext(ctx)
+func ContextIdentity(ctx context.Context) (*uuid.UUID, error) {
+	tm := tokencontext.ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
 		}, "missing token manager")
 
-		return "", errs.New("Missing token manager")
+		return nil, errs.New("Missing token manager")
 	}
-	uuid, err := tm.Locate(ctx)
+	// As mentioned in token.go, we can now safely convert tm to a token.Manager
+	manager := tm.(token.Manager)
+	uuid, err := manager.Locate(ctx)
 	if err != nil {
 		// TODO : need a way to define user as Guest
 		log.Error(ctx, map[string]interface{}{
-			"uuid": uuid,
-			"tm":   tm,
-			"err":  err,
+			"uuid":         uuid,
+			"tokenManager": manager,
+			"err":          err,
 		}, "identity belongs to a Guest User")
 
-		return "", errs.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
-	return uuid.String(), nil
-}
-
-type contextTMKey int
-
-const (
-	//contextTokenManagerKey is a key that will be used to put and to get `tokenManager` from goa.context
-	contextTokenManagerKey contextTMKey = iota + 1
-)
-
-//ReadTokenManagerFromContext returns tokenManager from context.
-// Must have been set by ContextWithTokenManager ONLY
-func ReadTokenManagerFromContext(ctx context.Context) token.Manager {
-	tm := ctx.Value(contextTokenManagerKey)
-	if tm != nil {
-		return tm.(token.Manager)
-	}
-	return nil
-}
-
-// ContextWithTokenManager injects tokenManager in the context for every incoming request
-// Accepts Token.Manager in order to make sure that correct object is set in the context.
-// Only other possible value is nil
-func ContextWithTokenManager(ctx context.Context, tm token.Manager) context.Context {
-	return context.WithValue(ctx, contextTokenManagerKey, tm)
+	return &uuid, nil
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.
 func InjectTokenManager(tokenManager token.Manager) goa.Middleware {
 	return func(h goa.Handler) goa.Handler {
 		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) error {
-			ctxWithTM := ContextWithTokenManager(ctx, tokenManager)
+			ctxWithTM := tokencontext.ContextWithTokenManager(ctx, tokenManager)
 			return h(ctxWithTM, rw, req)
 		}
 	}

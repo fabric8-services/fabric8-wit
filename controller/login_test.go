@@ -25,8 +25,8 @@ func newTestKeycloakOAuthProvider() *login.KeycloakOAuthProvider {
 		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth",
-			TokenURL: "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token",
+			AuthURL:  "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth",
+			TokenURL: "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token",
 		},
 	}
 

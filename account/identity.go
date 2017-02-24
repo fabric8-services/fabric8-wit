@@ -58,11 +58,17 @@ func (u NullUUID) Value() (driver.Value, error) {
 // One User account can have many Identities
 type Identity struct {
 	gormsupport.Lifecycle
-	ID       uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
-	Username string    // The username of the Identity
-	Provider string    // The identity provider ID, such as "keycloak", "github", "oso", etc
-	UserID   NullUUID  `sql:"type:uuid"` // Belongs to User
-	User     User
+	// This is the ID PK field. For identities provided by Keyclaok this ID equals to the Keycloak. For other types of IDP (github, oso, etc) this ID is generated automaticaly
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// The username of the Identity
+	Username string
+	// ProviderType The type of provider, such as "keycloak", "github", "oso", etc
+	ProviderType string `gorm:"column:provider_type"`
+	// the URL of the profile on the remote work item service
+	ProfileURL *string `gorm:"column:profile_url"`
+	// Link to User
+	UserID NullUUID `sql:"type:uuid"`
+	User   User
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -80,8 +86,8 @@ func (m Identity) ConvertIdentityFromModel() *app.Identity {
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Username: &m.Username,
-				Provider: &m.Provider,
+				Username:     &m.Username,
+				ProviderType: &m.ProviderType,
 			},
 		},
 	}
@@ -103,6 +109,7 @@ func NewIdentityRepository(db *gorm.DB) *GormIdentityRepository {
 type IdentityRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Identity, error)
 	Create(ctx context.Context, identity *Identity) error
+	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
@@ -150,11 +157,41 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":        "identity",
 		"identityID": model.ID,
 	}, "Identity created!")
 
 	return nil
+}
+
+// Lookup looks for an existing identity with the given `profileURL` or creates a new one
+func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error) {
+	if username == "" || profileURL == "" || providerType == "" {
+		return nil, errors.New("Cannot lookup identity with empty username, profile URL or provider type")
+	}
+	log.Debug(nil, nil, "Looking for identity of user with profile URL=%s\n", profileURL)
+	// bind the assignee to an existing identity, or create a new one
+	identity, err := m.First(IdentityFilterByProfileURL(profileURL))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to lookup identity by profileURL '%s'", profileURL)
+	}
+	if identity == nil {
+		// create the identity if it does not exist yet
+		log.Debug(nil, nil, "Creating an identity for username '%s' with profile '%s' on '%s'\n", username, profileURL, providerType)
+		identity = &Identity{
+			ProviderType: providerType,
+			Username:     username,
+			ProfileURL:   &profileURL,
+		}
+		err = m.Create(context.Background(), identity)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create identity during lookup")
+		}
+	} else {
+		// use existing identity
+		log.Debug(nil, nil, "Using existing identity with ID: %v", identity.ID.String())
+	}
+	log.Debug(nil, nil, "Found identity of user with profile URL=%s: %s", profileURL, identity.ID)
+	return identity, nil
 }
 
 // Save modifies a single record.
@@ -173,7 +210,6 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 	err = m.db.Model(obj).Updates(model).Error
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":        "identity",
 		"identityID": model.ID,
 	}, "Identity saved!")
 
@@ -197,7 +233,6 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":        "identity",
 		"identityID": id,
 	}, "Identity deleted!")
 
@@ -215,11 +250,32 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"pkg":          "identity",
 		"identityList": objs,
 	}, "Identity query executed successfully!")
 
 	return objs, nil
+}
+
+// First returns the first Identity element that matches the given criteria
+func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Identity, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "identity", "first"}, time.Now())
+	var objs []*Identity
+	log.Debug(nil, nil, "Looking for identity matching: %v", funcs)
+
+	err := m.db.Scopes(funcs...).Table(m.TableName()).First(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errors.WithStack(err)
+	}
+	if len(objs) != 0 && objs[0] != nil {
+		log.Debug(nil, map[string]interface{}{
+			"identityList": objs,
+		}, "Found matching identity: %v", *objs[0])
+		return objs[0], nil
+	}
+	log.Debug(nil, map[string]interface{}{
+		"identityList": objs,
+	}, "No matching identity found")
+	return nil, nil
 }
 
 // IdentityFilterByUserID is a gorm filter for a Belongs To relationship.
@@ -229,14 +285,21 @@ func IdentityFilterByUserID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
-// IdentityFilterByUsename is a gorm filter by username
-func IdentityFilterByUsename(username string) func(db *gorm.DB) *gorm.DB {
+// IdentityFilterByUsername is a gorm filter by 'username'
+func IdentityFilterByUsername(username string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("username = ?", username)
+		return db.Where("username = ?", username).Limit(1)
 	}
 }
 
-// IdentityFilterByID is a gorm filter for Idenity ID.
+// IdentityFilterByProfileURL is a gorm filter by 'profile_url'
+func IdentityFilterByProfileURL(profileURL string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("profile_url = ?", profileURL).Limit(1)
+	}
+}
+
+// IdentityFilterByID is a gorm filter for Identity ID.
 func IdentityFilterByID(identityID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("id = ?", identityID)
@@ -267,7 +330,6 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"pkg":          "identity",
 		"identityList": &res,
 	}, "Identity List executed successfully!")
 

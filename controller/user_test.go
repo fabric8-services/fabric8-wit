@@ -72,7 +72,7 @@ func TestCurrentAuthorizedOK(t *testing.T) {
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
 
 	usr := account.User{FullName: "Test User", ImageURL: "someURL", Email: "email@domain.com", ID: uuid.NewV4()}
-	ident := account.Identity{ID: uuid.NewV4(), Username: "TestUser", Provider: account.KeycloakIDP, User: usr, UserID: account.NullUUID{UUID: usr.ID, Valid: true}}
+	ident := account.Identity{ID: uuid.NewV4(), Username: "TestUser", ProviderType: account.KeycloakIDP, User: usr, UserID: account.NullUUID{UUID: usr.ID, Valid: true}}
 	controller := newUserController(&ident, &usr)
 	_, identity := test.ShowUserOK(t, ctx, nil, controller)
 
@@ -82,7 +82,7 @@ func TestCurrentAuthorizedOK(t *testing.T) {
 	assert.Equal(t, ident.Username, *identity.Data.Attributes.Username)
 	assert.Equal(t, usr.ImageURL, *identity.Data.Attributes.ImageURL)
 	assert.Equal(t, usr.Email, *identity.Data.Attributes.Email)
-	assert.Equal(t, ident.Provider, *identity.Data.Attributes.Provider)
+	assert.Equal(t, ident.ProviderType, *identity.Data.Attributes.ProviderType)
 }
 
 type TestIdentityRepository struct {
@@ -101,6 +101,11 @@ func (m TestIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*accoun
 func (m TestIdentityRepository) Create(ctx context.Context, model *account.Identity) error {
 	m.Identity = model
 	return nil
+}
+
+// Lookup looks up a record or creates a new one.
+func (m TestIdentityRepository) Lookup(ctx context.Context, username, profileURL, providerType string) (*account.Identity, error) {
+	return nil, nil
 }
 
 // Save modifies a single record.

@@ -33,7 +33,7 @@ func TestUpdateIterationsWithCounts(t *testing.T) {
 		Closed:      1,
 	}
 
-	iterationSliceWithCounts := UpdateIterationsWithCounts(counts)
+	iterationSliceWithCounts := updateIterationsWithCounts(counts)
 
 	for _, iteration := range iterationSlice {
 		appIteration := &app.Iteration{
