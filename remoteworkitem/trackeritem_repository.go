@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // upload imports the items into database
@@ -143,9 +144,11 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 	} else {
 		log.Info(nil, nil, "Workitem does not exist, will be created")
 		c := workItem.Fields[workitem.SystemCreator]
-		var creator string
+		var creator uuid.UUID
 		if c != nil {
-			creator = c.(string)
+			if creator, err = uuid.FromString(c.(string)); err != nil {
+				return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
+			}
 		}
 		resultWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
