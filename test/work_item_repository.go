@@ -41,13 +41,13 @@ type WorkItemRepository struct {
 	deleteReturns struct {
 		result1 error
 	}
-	CreateStub        func(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
+	CreateStub        func(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		ctx     context.Context
 		typeID  string
 		fields  map[string]interface{}
-		creator string
+		creator uuid.UUID
 	}
 	createReturns struct {
 		result1 *app.WorkItem
@@ -74,6 +74,26 @@ type WorkItemRepository struct {
 	}
 	fetchReturns struct {
 		result1 *app.WorkItem
+		result2 error
+	}
+	GetCountsPerIterationStub        func(ctx context.Context, spaceID uuid.UUID) (map[string]workitem.WICountsPerIteration, error)
+	getCountsPerIterationMutex       sync.RWMutex
+	getCountsPerIterationArgsForCall []struct {
+		ctx     context.Context
+		spaceID uuid.UUID
+	}
+	getCountsPerIterationReturns struct {
+		result1 map[string]workitem.WICountsPerIteration
+		result2 error
+	}
+	GetCountsForIterationStub        func(ctx context.Context, iterationID uuid.UUID) (map[string]workitem.WICountsPerIteration, error)
+	getCountsForIterationMutex       sync.RWMutex
+	getCountsForIterationArgsForCall []struct {
+		ctx         context.Context
+		iterationID uuid.UUID
+	}
+	getCountsForIterationReturns struct {
+		result1 map[string]workitem.WICountsPerIteration
 		result2 error
 	}
 	invocations      map[string][][]interface{}
@@ -181,13 +201,13 @@ func (fake *WorkItemRepository) DeleteReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *WorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		ctx     context.Context
 		typeID  string
 		fields  map[string]interface{}
-		creator string
+		creator uuid.UUID
 	}{ctx, typeID, fields, creator})
 	fake.recordInvocation("Create", []interface{}{ctx, typeID, fields, creator})
 	fake.createMutex.Unlock()
@@ -203,7 +223,7 @@ func (fake *WorkItemRepository) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, string, map[string]interface{}, string) {
+func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, string, map[string]interface{}, uuid.UUID) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
 	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creator
@@ -288,6 +308,74 @@ func (fake *WorkItemRepository) FetchReturns(result1 *app.WorkItem, result2 erro
 	}{result1, result2}
 }
 
+func (fake *WorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
+	fake.getCountsPerIterationMutex.Lock()
+	fake.getCountsPerIterationArgsForCall = append(fake.getCountsPerIterationArgsForCall, struct {
+		ctx     context.Context
+		spaceID uuid.UUID
+	}{ctx, spaceID})
+	fake.recordInvocation("GetCountsPerIteration", []interface{}{ctx, spaceID})
+	fake.getCountsPerIterationMutex.Unlock()
+	if fake.GetCountsPerIterationStub != nil {
+		return fake.GetCountsPerIterationStub(ctx, spaceID)
+	}
+	return fake.getCountsPerIterationReturns.result1, fake.getCountsPerIterationReturns.result2
+}
+
+func (fake *WorkItemRepository) GetCountsPerIterationCallCount() int {
+	fake.getCountsPerIterationMutex.RLock()
+	defer fake.getCountsPerIterationMutex.RUnlock()
+	return len(fake.getCountsPerIterationArgsForCall)
+}
+
+func (fake *WorkItemRepository) GetCountsPerIterationArgsForCall(i int) (context.Context, uuid.UUID) {
+	fake.getCountsPerIterationMutex.RLock()
+	defer fake.getCountsPerIterationMutex.RUnlock()
+	return fake.getCountsPerIterationArgsForCall[i].ctx, fake.getCountsPerIterationArgsForCall[i].spaceID
+}
+
+func (fake *WorkItemRepository) GetCountsPerIterationReturns(result1 map[string]workitem.WICountsPerIteration, result2 error) {
+	fake.GetCountsPerIterationStub = nil
+	fake.getCountsPerIterationReturns = struct {
+		result1 map[string]workitem.WICountsPerIteration
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *WorkItemRepository) GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
+	fake.getCountsForIterationMutex.Lock()
+	fake.getCountsForIterationArgsForCall = append(fake.getCountsForIterationArgsForCall, struct {
+		ctx         context.Context
+		iterationID uuid.UUID
+	}{ctx, iterationID})
+	fake.recordInvocation("GetCountsForIteration", []interface{}{ctx, iterationID})
+	fake.getCountsForIterationMutex.Unlock()
+	if fake.GetCountsForIterationStub != nil {
+		return fake.GetCountsForIterationStub(ctx, iterationID)
+	}
+	return fake.getCountsForIterationReturns.result1, fake.getCountsForIterationReturns.result2
+}
+
+func (fake *WorkItemRepository) GetCountsForIterationCallCount() int {
+	fake.getCountsForIterationMutex.RLock()
+	defer fake.getCountsForIterationMutex.RUnlock()
+	return len(fake.getCountsForIterationArgsForCall)
+}
+
+func (fake *WorkItemRepository) GetCountsForIterationArgsForCall(i int) (context.Context, uuid.UUID) {
+	fake.getCountsForIterationMutex.RLock()
+	defer fake.getCountsForIterationMutex.RUnlock()
+	return fake.getCountsForIterationArgsForCall[i].ctx, fake.getCountsForIterationArgsForCall[i].iterationID
+}
+
+func (fake *WorkItemRepository) GetCountsForIterationReturns(result1 map[string]workitem.WICountsPerIteration, result2 error) {
+	fake.GetCountsForIterationStub = nil
+	fake.getCountsForIterationReturns = struct {
+		result1 map[string]workitem.WICountsPerIteration
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *WorkItemRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -303,6 +391,10 @@ func (fake *WorkItemRepository) Invocations() map[string][][]interface{} {
 	defer fake.listMutex.RUnlock()
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
+	fake.getCountsPerIterationMutex.RLock()
+	defer fake.getCountsPerIterationMutex.RUnlock()
+	fake.getCountsForIterationMutex.RLock()
+	defer fake.getCountsForIterationMutex.RUnlock()
 	return fake.invocations
 }
 
@@ -316,13 +408,6 @@ func (fake *WorkItemRepository) recordInvocation(key string, args []interface{})
 		fake.invocations[key] = [][]interface{}{}
 	}
 	fake.invocations[key] = append(fake.invocations[key], args)
-}
-
-func (fake *WorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
-	return map[string]workitem.WICountsPerIteration{}, nil
-}
-func (fake *WorkItemRepository) GetCountsForIteration(ctx context.Context, iterationId uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
-	return map[string]workitem.WICountsPerIteration{}, nil
 }
 
 var _ workitem.WorkItemRepository = new(WorkItemRepository)

@@ -32,7 +32,6 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":       "remoteworkitem",
 		"trackerID": tid,
 	}, "Tracker ID to be created")
 
@@ -56,7 +55,6 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		TrackerID: tracker}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":          "remoteworkitem",
 		"trackerID":    tid,
 		"trackerQuery": tq,
 	}, "Created tracker query")
@@ -74,7 +72,6 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":            "remoteworkitem",
 		"trackerQueryid": id,
 	}, "Loading the tracker query")
 
@@ -110,7 +107,6 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":       "remoteworkitem",
 		"trackerID": id,
 	}, "looking tracker query")
 
@@ -153,7 +149,6 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":          "remoteworkitem",
 		"trackerQuery": newTq,
 	}, "Updated tracker query")
 

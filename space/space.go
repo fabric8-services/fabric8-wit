@@ -166,7 +166,6 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "space",
 		"spaceID": p.ID,
 	}, "space updated successfully")
 	return p, nil
@@ -189,7 +188,6 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "space",
 		"spaceID": space.ID,
 	}, "Space created successfully")
 	return space, nil

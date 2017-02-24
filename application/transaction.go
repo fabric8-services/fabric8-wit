@@ -19,9 +19,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 	}
 
 	if err := todo(tx); err != nil {
-		log.Debug(nil, map[string]interface{}{
-			"pkg": "application",
-		}, "Rolling back the transaction...")
+		log.Debug(nil, map[string]interface{}{}, "Rolling back the transaction...")
 
 		tx.Rollback()
 
@@ -31,9 +29,7 @@ func Transactional(db DB, todo func(f Application) error) error {
 		return errors.WithStack(err)
 	}
 
-	log.Debug(nil, map[string]interface{}{
-		"pkg": "application",
-	}, "Commit the transaction!")
+	log.Debug(nil, map[string]interface{}{}, "Commit the transaction!")
 
 	return tx.Commit()
 }
