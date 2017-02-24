@@ -81,7 +81,7 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 	assert.Nil(t, err)
 
 	// ltree field doesnt accept "-" , so we will save them as "_"
-	expectedPath := path.Path{i.ID}
+	expectedPath := path.LtreePath{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: uuid.NewV4(),
@@ -165,7 +165,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	// *** Create 1st child area ***
 
 	// ltree field doesnt accept "-" , so we will save them as "_"
-	expectedPath := path.Path{i.ID}
+	expectedPath := path.LtreePath{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: uuid.NewV4(),
@@ -183,7 +183,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 
 	// *** Create 2nd child area ***
 
-	expectedPath = path.Path{i.ID}
+	expectedPath = path.LtreePath{i.ID}
 	area3 := area.Area{
 		Name:    name3,
 		SpaceID: uuid.NewV4(),
@@ -231,7 +231,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 
 	// *** Create 'son' area ***
 
-	expectedPath := path.Path{i.ID}
+	expectedPath := path.LtreePath{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: uuid.NewV4(),
@@ -246,7 +246,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 
 	// *** Create 'grandson' area ***
 
-	expectedPath = path.Path{i.ID, area2.ID}
+	expectedPath = path.LtreePath{i.ID, area2.ID}
 	area4 := area.Area{
 		Name:    name3,
 		SpaceID: uuid.NewV4(),
@@ -287,7 +287,7 @@ func (test *TestAreaRepository) TestListParentTree() {
 	assert.Nil(t, err)
 
 	// *** Create 'son' area ***
-	expectedPath := path.Path{i.ID}
+	expectedPath := path.LtreePath{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: uuid.NewV4(),

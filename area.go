@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -21,9 +22,6 @@ type AreaController struct {
 	*goa.Controller
 	db application.DB
 }
-
-const pathSepInService = "/"
-const pathSepInDatabase = "."
 
 // NewAreaController creates a area controller.
 func NewAreaController(service *goa.Service, db application.DB) *AreaController {
@@ -135,7 +133,7 @@ func getResolvePath(appl application.Application, a *area.Area) (*string, error)
 		if area == nil {
 			continue
 		}
-		pathResolved = pathResolved + pathSepInService + area.Name
+		pathResolved = pathResolved + path.SepInService + area.Name
 	}
 
 	// Add the leading "/" in the "area1/area2/area3" styled path
@@ -177,8 +175,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	// pathToTopMostParent := pathSepInService + area.ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
-	pathToTopMostParent := ar.Path.String()
+	pathToTopMostParent := ar.Path.String() // /uuid1/uuid2/uuid3s
 	i := &app.Area{
 		Type: areaType,
 		ID:   &ar.ID,

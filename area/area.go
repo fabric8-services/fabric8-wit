@@ -16,15 +16,13 @@ import (
 )
 
 const APIStringTypeAreas = "areas"
-const pathSepInService = "/"
-const pathSepInDatabase = "."
 
 // Area describes a single Area
 type Area struct {
 	gormsupport.Lifecycle
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
-	Path    path.Path
+	Path    path.LtreePath
 	Name    string
 	Version int
 }
@@ -133,7 +131,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 // ToExpression returns a string in ltree format.
 // Joins UUIDs in the first argument using `.`
 // Second argument is converted and appended if needed
-func ToExpression(p path.Path, this uuid.UUID) string {
+func ToExpression(p path.LtreePath, this uuid.UUID) string {
 	converted := strings.Replace(this.String(), "-", "_", -1)
 	existingPath := p.Convert()
 	if existingPath == "" {
