@@ -27,9 +27,11 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -542,10 +544,22 @@ func createOneRandomUserIdentity(ctx context.Context, db *gorm.DB) *account.Iden
 
 func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Iteration {
 	iterationRepo := iteration.NewIterationRepository(db)
-	itr := iteration.Iteration{
-		Name: "Sprint 101",
+	spaceRepo := space.NewRepository(db)
+
+	newSpace := space.Space{
+		Name: "Space iteration",
 	}
-	err := iterationRepo.Create(ctx, &itr)
+	space, err := spaceRepo.Create(ctx, &newSpace)
+	if err != nil {
+		fmt.Println("Failed to create space for iteration.")
+		return nil
+	}
+
+	itr := iteration.Iteration{
+		Name:    "Sprint 101",
+		SpaceID: space.ID,
+	}
+	err = iterationRepo.Create(ctx, &itr)
 	if err != nil {
 		fmt.Println("Failed to create iteration.")
 		return nil
@@ -555,10 +569,21 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 
 func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
 	areaRepo := area.NewAreaRepository(db)
-	ar := area.Area{
-		Name: "Area 51",
+	spaceRepo := space.NewRepository(db)
+
+	newSpace := space.Space{
+		Name: "Space area",
 	}
-	err := areaRepo.Create(ctx, &ar)
+	space, err := spaceRepo.Create(ctx, &newSpace)
+	if err != nil {
+		fmt.Println("Failed to create space for area.")
+		return nil
+	}
+	ar := area.Area{
+		Name:    "Area 51",
+		SpaceID: space.ID,
+	}
+	err = areaRepo.Create(ctx, &ar)
 	if err != nil {
 		fmt.Println("Failed to create area.")
 		return nil
