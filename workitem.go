@@ -124,7 +124,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 // Create does POST workitem
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	currentUserID, err := login.ContextIdentity(ctx)
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 		return ctx.Unauthorized(jerrors)
@@ -146,7 +146,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserID)
+		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}

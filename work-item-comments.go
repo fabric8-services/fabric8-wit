@@ -32,7 +32,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
-		currentUserID, err := login.ContextIdentity(ctx)
+		currentUserIdentityID, err := login.ContextIdentity(ctx)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 		}
@@ -43,7 +43,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 			ParentID:  ctx.ID,
 			Body:      reqComment.Attributes.Body,
 			Markup:    markup,
-			CreatedBy: *currentUserID,
+			CreatedBy: *currentUserIdentityID,
 		}
 
 		err = appl.Comments().Create(ctx, &newComment)
