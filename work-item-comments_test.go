@@ -84,7 +84,7 @@ func (rest *TestCommentREST) createDefaultWorkItem() string {
 				workitem.SystemTitle: "A",
 				workitem.SystemState: "new",
 			},
-			uuid.NewV4().String())
+			uuid.NewV4())
 		if err != nil {
 			return errors.WithStack(err)
 		}
