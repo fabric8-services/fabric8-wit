@@ -22,6 +22,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -162,17 +163,16 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	require.NotNil(s.T(), workItemLinkType)
 
 	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), workItemLinkType.Included, 1, "The work item link type should include it's work item link category.")
+	require.Len(s.T(), workItemLinkType.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := workItemLinkType.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link category is included in the response in the "included" array
-	/*require.Len(s.T(), workItemLinkType.Included, 2, "The work item link type should include it's space.")
 	spaceData, ok := workItemLinkType.Included[1].(*app.Space)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
-	*/
+
 	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 }
 
@@ -242,17 +242,15 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	require.NotNil(s.T(), lt.Data.Attributes.Description)
 	require.Equal(s.T(), newDescription, *lt.Data.Attributes.Description)
 	// Check that the link categories are included in the response in the "included" array
-	require.Len(s.T(), lt.Included, 1, "The work item link type should include it's work item link category.")
+	require.Len(s.T(), lt.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := lt.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link spaces are included in the response in the "included" array
-	/*require.Len(s.T(), lt.Included, 2, "The work item link type should include it's space.")
 	spaceData, ok := lt.Included[1].(*app.Space)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
-	*/
 }
 
 // func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {
@@ -279,17 +277,15 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.Nil(s.T(), link.ConvertLinkTypeToModel(*readIn, &actual))
 	require.True(s.T(), expected.Equal(actual))
 	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), readIn.Included, 1, "The work item link type should include it's work item link category.")
+	require.Len(s.T(), readIn.Included, 2, "The work item link type should include it's work item link category and category.")
 	categoryData, ok := readIn.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link space is included in the response in the "included" array
-	/*require.Len(s.T(), readIn.Included, 1, "The work item link type should include it's work item link space.")
-	spaceData, ok := readIn.Included[0].(*app.Space)
+	spaceData, ok := readIn.Included[1].(*app.Space)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
-	*/
 
 	require.NotNil(s.T(), readIn.Data.Links, "The link type MUST include a self link")
 	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link type MUST include a self link that's not empty")
@@ -335,17 +331,16 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item link types (bug-blocker and related) where found.")
 
 	// Check that the link categories are included in the response in the "included" array
-	require.Len(s.T(), linkTypeCollection.Included, 1, "The work item link type should include it's work item link category.")
+	require.Len(s.T(), linkTypeCollection.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := linkTypeCollection.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link spaces are included in the response in the "included" array
-	/*require.Len(s.T(), linkTypeCollection.Included, 2, "The work item link type should include it's work item link space.")
 	spaceData, ok := linkTypeCollection.Included[1].(*app.Space)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's category should have the name 'test-space'.")
-	*/
+
 }
 
 func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {

@@ -6,7 +6,9 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkTypeController implements the work-item-link-type resource.
@@ -43,6 +45,22 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	}
 	single.Included = append(single.Included, linkCat.Data)
 
+	// Now include the optional link space data in the work item link type "included" array
+	id, err := uuid.FromString(*single.Data.Relationships.Space.Data.ID)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+	}
+	space, err := ctx.Application.Spaces().Load(ctx.Context, id)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+	}
+	spaceSingle := &app.SpaceSingle{
+		Data: ConvertSpace(ctx.RequestData, space),
+	}
+	single.Included = append(single.Included, spaceSingle.Data)
+
 	return nil
 }
 
@@ -68,6 +86,29 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		list.Included = append(list.Included, linkCat.Data)
+	}
+
+	// Build our "set" of distinct space IDs already converted as strings
+	spaceIDMap := map[string]bool{}
+	for _, typeData := range list.Data {
+		spaceIDMap[*typeData.Relationships.Space.Data.ID] = true
+	}
+	// Now include the optional link space data in the work item link type "included" array
+	for spaceID := range spaceIDMap {
+		id, err := uuid.FromString(spaceID)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		space, err := ctx.Application.Spaces().Load(ctx.Context, id)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		spaceSingle := &app.SpaceSingle{
+			Data: ConvertSpace(ctx.RequestData, space),
+		}
+		list.Included = append(list.Included, spaceSingle.Data)
 	}
 	return nil
 }

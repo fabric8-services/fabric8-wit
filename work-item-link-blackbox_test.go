@@ -55,7 +55,7 @@ type workItemLinkSuite struct {
 	bug3ID               uint64
 	feature1ID           uint64
 	userLinkCategoryID   string
-	userSpaceID          string
+	userSpaceID          satoriuuid.UUID
 	bugBlockerLinkTypeID string
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
@@ -220,11 +220,11 @@ func (s *workItemLinkSuite) SetupTest() {
 	createSpacePayload := CreateSpacePayload("test-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.spaceCtrl, createSpacePayload)
 	require.NotNil(s.T(), space)
-	s.userSpaceID = space.Data.ID.String()
+	s.userSpaceID = *space.Data.ID
 	fmt.Printf("Created link space with ID: %s\n", *space.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID.String())
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
@@ -332,8 +332,6 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 
-	spaceID, _ := satoriuuid.FromString(s.userSpaceID)
-
 	// Test if related resources are included in the response
 	toBeFound := 2
 	for i := 0; i < len(workItemLink.Included) && toBeFound > 0; i++ {
@@ -344,7 +342,7 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 				toBeFound--
 			}
 		case *app.Space:
-			if *v.ID == spaceID {
+			if *v.ID == s.userSpaceID {
 				s.T().Log("Found work item link space in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
@@ -592,8 +590,6 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item links (%s and %s) where found.", *workItemLink1.Data.ID, *workItemLink2.Data.ID)
 
-	spaceID, _ := satoriuuid.FromString(s.userSpaceID)
-
 	toBeFound = 5 // 1 x link category, 1 x link type, 3 x work items
 	for i := 0; i < len(linkCollection.Included) && toBeFound > 0; i++ {
 		switch v := linkCollection.Included[i].(type) {
@@ -603,7 +599,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 				toBeFound--
 			}
 		case *app.Space:
-			if *v.ID == spaceID {
+			if *v.ID == s.userSpaceID {
 				s.T().Log("Found work item link space in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
