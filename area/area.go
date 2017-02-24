@@ -113,11 +113,6 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "querychild"}, time.Now())
 	var objs []*Area
 
-	// predicateString := (parentArea.ID).String()
-	// if parentArea.Path.IsEmpty() == false {
-	// 	predicateString = parentArea.Path.Convert() + "." + predicateString
-	// }
-
 	tx := m.db.Where("path ~ ?", ToExpression(parentArea.Path, parentArea.ID)).Find(&objs)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
