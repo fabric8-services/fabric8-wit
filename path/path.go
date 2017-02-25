@@ -37,7 +37,7 @@ func (p LtreePath) This() uuid.UUID {
 	return uuid.UUID{}
 }
 
-// Convert returns last element of the UUID slice
+// Convert returns ltree compatible string of UUID slice
 // 39fa8c5b_5732_436f_a084_0f2a247f3435.87762c8b_17f9_4cbb_b355_251b6a524f2f
 func (p LtreePath) Convert() string {
 	if len(p) == 0 {
@@ -62,7 +62,8 @@ func (p LtreePath) String() string {
 	for _, id := range p {
 		op = append(op, id.String())
 	}
-	return strings.Join(op, SepInService)
+	str := strings.Join(op, SepInService)
+	return SepInService + str
 }
 
 // Root retunrs a LtreePath instance with first element in the UUID slice

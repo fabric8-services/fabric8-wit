@@ -2,6 +2,7 @@ package area_test
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/path"
+
+	"fmt"
 
 	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
@@ -306,4 +309,20 @@ func (test *TestAreaRepository) TestListParentTree() {
 		assert.NotNil(t, searchInAreaSlice(listOfCreatedID[i], listOfCreatedAreas))
 	}
 
+}
+
+func (test *TestAreaRepository) TestToExpression() {
+	t := test.T()
+
+	resource.Require(t, resource.UnitTest)
+
+	uuid1 := uuid.NewV4()
+	uuid2 := uuid.NewV4()
+	uuid3 := uuid.NewV4()
+	actual := area.ToExpression(path.LtreePath{uuid1, uuid2}, uuid3)
+
+	expected := fmt.Sprintf("%s.%s.%s", uuid1, uuid2, uuid3)
+	expected = strings.Replace(expected, "-", "_", -1)
+
+	assert.Equal(t, expected, actual)
 }
