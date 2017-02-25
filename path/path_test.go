@@ -7,16 +7,21 @@ import (
 	"fmt"
 
 	"github.com/almighty/almighty-core/path"
+	"github.com/almighty/almighty-core/resource"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
 
 func TestIsEmpty(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	lp := path.LtreePath{}
 	require.True(t, lp.IsEmpty())
 }
 
 func TestThis(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	greatGrandParent := uuid.NewV4()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
@@ -28,6 +33,8 @@ func TestThis(t *testing.T) {
 }
 
 func TestConvert(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
 	lp := path.LtreePath{grandParent, immediateParent}
@@ -40,6 +47,8 @@ func TestConvert(t *testing.T) {
 }
 
 func TestToString(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
 	lp := path.LtreePath{grandParent, immediateParent}
@@ -51,6 +60,8 @@ func TestToString(t *testing.T) {
 }
 
 func TestRoot(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
 	lp := path.LtreePath{grandParent, immediateParent}
@@ -61,6 +72,8 @@ func TestRoot(t *testing.T) {
 }
 
 func TestParent(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
 	lp := path.LtreePath{grandParent, immediateParent}
