@@ -16,8 +16,8 @@ import (
 )
 
 // String returns the current configuration as a string
-func String() string {
-	allSettings := viper.AllSettings()
+func (c *ConfigurationData) String() string {
+	allSettings := c.v.AllSettings()
 	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
 		log.WithFields(map[string]interface{}{
@@ -121,16 +121,16 @@ func (c *ConfigurationData) setConfigDefaults() {
 	//---------
 	// Postgres
 	//---------
-	viper.SetTypeByDefaultValue(true)
-	viper.SetDefault(varPostgresHost, "localhost")
-	viper.SetDefault(varPostgresPort, 5432)
-	viper.SetDefault(varPostgresUser, "postgres")
-	viper.SetDefault(varPostgresDatabase, "postgres")
-	viper.SetDefault(varPostgresPassword, "mysecretpassword")
-	viper.SetDefault(varPostgresSSLMode, "disable")
-	viper.SetDefault(varPostgresConnectionTimeout, 5)
-	viper.SetDefault(varPostgresConnectionMaxIdle, -1)
-	viper.SetDefault(varPostgresConnectionMaxOpen, -1)
+	c.v.SetTypeByDefaultValue(true)
+	c.v.SetDefault(varPostgresHost, "localhost")
+	c.v.SetDefault(varPostgresPort, 5432)
+	c.v.SetDefault(varPostgresUser, "postgres")
+	c.v.SetDefault(varPostgresDatabase, "postgres")
+	c.v.SetDefault(varPostgresPassword, "mysecretpassword")
+	c.v.SetDefault(varPostgresSSLMode, "disable")
+	c.v.SetDefault(varPostgresConnectionTimeout, 5)
+	c.v.SetDefault(varPostgresConnectionMaxIdle, -1)
+	c.v.SetDefault(varPostgresConnectionMaxOpen, -1)
 
 	// Number of seconds to wait before trying to connect again
 	c.v.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
@@ -205,13 +205,13 @@ func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
 // GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
 // any given time. -1 represents no restrictions/default behavior
 func (c *ConfigurationData) GetPostgresConnectionMaxIdle() int {
-	return viper.GetInt(varPostgresConnectionMaxIdle)
+	return c.v.GetInt(varPostgresConnectionMaxIdle)
 }
 
 // GetPostgresConnectionMaxOpen returns the max number of open connections that should be open in the database connection pool.
 // -1 represents no restrictions/default behavior
 func (c *ConfigurationData) GetPostgresConnectionMaxOpen() int {
-	return viper.GetInt(varPostgresConnectionMaxOpen)
+	return c.v.GetInt(varPostgresConnectionMaxOpen)
 }
 
 // GetPostgresConfigString returns a ready to use string for usage in sql.Open()

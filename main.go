@@ -156,7 +156,7 @@ func main() {
 	scheduler = remoteworkitem.NewScheduler(db)
 	defer scheduler.Stop()
 
-	accessTokens := getAccessTokens(configuration) //configuration.GetGithubAuthToken()
+	accessTokens := getAccessTokens(configuration)
 	scheduler.ScheduleAllQueries(accessTokens)
 
 	// Create service
