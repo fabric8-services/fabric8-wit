@@ -47,8 +47,6 @@ func init() {
 			TokenURL: "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token",
 		},
 	}
-
-	fmt.Println(configuration.GetKeycloakClientID())
 }
 
 func setup() {

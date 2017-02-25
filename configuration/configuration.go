@@ -28,44 +28,6 @@ func String() string {
 	return fmt.Sprintf("%s\n", y)
 }
 
-/*
-// Setup sets up defaults for viper configuration options and
-// overrides these values with the values from the given configuration file
-// if it is not empty. Those values again are overwritten by environment
-// variables.
-func Setup(configFilePath string) error {
-	viper.Reset()
-
-	// Expect environment variables to be prefix with "ALMIGHTY_".
-	viper.SetEnvPrefix("ALMIGHTY")
-
-	// Automatically map environment variables to viper values
-	viper.AutomaticEnv()
-
-	// To override nested variables through environment variables, we
-	// need to make sure that we don't have to use dots (".") inside the
-	// environment variable names.
-	// To override foo.bar you need to set ALMIGHTY_FOO_BAR
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	viper.SetTypeByDefaultValue(true)
-	setConfigDefaults()
-
-	// Read the config
-	// Explicitly specify which file to load config from
-	if configFilePath != "" {
-		viper.SetConfigFile(configFilePath)
-		viper.SetConfigType("yaml")
-		err := viper.ReadInConfig() // Find and read the config file
-		if err != nil {             // Handle errors reading the config file
-			return fmt.Errorf("Fatal error config file: %s \n", err)
-		}
-	}
-
-	return nil
-}
-*/
-
 const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value

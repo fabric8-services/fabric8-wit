@@ -34,7 +34,6 @@ func (f *githubIssueFetcher) listIssues(query string, opts *github.SearchOptions
 func (g *GithubTracker) Fetch(githubAuthToken string) chan TrackerItemContent {
 	f := githubIssueFetcher{}
 	ts := oauth2.StaticTokenSource(
-		//&oauth2.Token{AccessToken: configuration.GetGithubAuthToken()},
 		&oauth2.Token{AccessToken: githubAuthToken},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)

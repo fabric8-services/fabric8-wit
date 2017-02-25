@@ -109,17 +109,15 @@ func TestKeycloakAuthorizationRedirect(t *testing.T) {
 		Request: &http.Request{Host: "demo.api.almighty.io"},
 	}
 	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
-	t.Log(authEndpoint)
 	require.Nil(t, err)
 	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
 	require.Nil(t, err)
-	t.Log(tokenEndpoint)
 
 	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	assert.Equal(t, 307, rw.Code)
-	//configuration.GetKeycloakEndpointAuth(authorizeCtx.RequestData)
 	assert.Contains(t, rw.Header().Get("Location"), oauth.Endpoint.AuthURL)
+	assert.NotEqual(t, oauth.Endpoint.AuthURL, "")
 }
 
 func TestValidOAuthAuthorizationCode(t *testing.T) {
