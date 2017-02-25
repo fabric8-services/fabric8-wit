@@ -117,7 +117,7 @@ func TestKeycloakAuthorizationRedirect(t *testing.T) {
 
 	assert.Equal(t, 307, rw.Code)
 	assert.Contains(t, rw.Header().Get("Location"), oauth.Endpoint.AuthURL)
-	assert.NotEqual(t, oauth.Endpoint.AuthURL, "")
+	assert.NotEqual(t, rw.Header().Get("Location"), "")
 }
 
 func TestValidOAuthAuthorizationCode(t *testing.T) {
