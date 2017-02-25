@@ -204,13 +204,13 @@ func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
 
 // GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
 // any given time. -1 represents no restrictions/default behavior
-func GetPostgresConnectionMaxIdle() int {
+func (c *ConfigurationData) GetPostgresConnectionMaxIdle() int {
 	return viper.GetInt(varPostgresConnectionMaxIdle)
 }
 
 // GetPostgresConnectionMaxOpen returns the max number of open connections that should be open in the database connection pool.
 // -1 represents no restrictions/default behavior
-func GetPostgresConnectionMaxOpen() int {
+func (c *ConfigurationData) GetPostgresConnectionMaxOpen() int {
 	return viper.GetInt(varPostgresConnectionMaxOpen)
 }
 
