@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // String constants for the local work item types.
@@ -27,22 +28,24 @@ const (
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
 
-	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
-	SystemPlannerItem = "planneritem"
-
-	SystemUserStory        = "userstory"
-	SystemValueProposition = "valueproposition"
-	SystemFundamental      = "fundamental"
-	SystemExperience       = "experience"
-	SystemFeature          = "feature"
-	SystemScenario         = "scenario"
-	SystemBug              = "bug"
-
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"
 	SystemStateInProgress = "in progress"
 	SystemStateResolved   = "resolved"
 	SystemStateClosed     = "closed"
+)
+
+// Never ever change these UUIDs!!!
+var (
+	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
+	SystemPlannerItem      = uuid.FromStringOrNil("86af5178-9b41-469b-9096-57e5155c3f31") // "planneritem"
+	SystemUserStory        = uuid.FromStringOrNil("bbf35418-04b6-426c-a60b-7f80beb0b624") // "userstory"
+	SystemValueProposition = uuid.FromStringOrNil("3194ab60-855b-4155-9005-9dce4a05f1eb") // "valueproposition"
+	SystemFundamental      = uuid.FromStringOrNil("ee7ca005-f81d-4eea-9b9b-1965df0988d0") // "fundamental"
+	SystemExperience       = uuid.FromStringOrNil("b9a71831-c803-4f66-8774-4193fffd1311") // "experience"
+	SystemFeature          = uuid.FromStringOrNil("0a24d3c2-e0a6-4686-8051-ec0ea1915a28") // "feature"
+	SystemScenario         = uuid.FromStringOrNil("71171e90-6d35-498f-a6a7-2083b5267c18") // "scenario"
+	SystemBug              = uuid.FromStringOrNil("26787039-b68f-4e28-8814-c2f93be1ef4e") // "bug"
 )
 
 // WorkItemType represents a work item type as it is stored in the db
