@@ -103,11 +103,11 @@ var _ = a.Resource("workitemtype", func() {
 	a.BasePath("/workitemtypes")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:name"),
 		)
 		a.Description("Retrieve work item type with given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "The name of the work item type")
+			a.Param("name", d.String, "The name of the work item type")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemTypeSingle)
@@ -144,20 +144,6 @@ var _ = a.Resource("workitemtype", func() {
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create work item type.")
-		a.Payload(workItemTypeSingle)
-		a.Response(d.Created, "/workitemtypes/.*", func() {
-			a.Media(workItemTypeSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("list-source-link-types", func() {

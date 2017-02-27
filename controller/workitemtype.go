@@ -30,7 +30,7 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB) *Workite
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.ID)
+		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
