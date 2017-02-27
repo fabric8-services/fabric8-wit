@@ -451,8 +451,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		Topology:       topology,
 		ForwardName:    forwardName,
 		ReverseName:    reverseName,
-		SourceTypeName: sourceTypeName,
-		TargetTypeName: targetTypeName,
+		SourceTypeID:   sourceTypeName,
+		TargetTypeID:   targetTypeName,
 		LinkCategoryID: cat.ID,
 		SpaceID:        space.ID,
 	}
@@ -460,7 +460,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID, lt.SpaceID)
+		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeID, lt.TargetTypeID, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID, lt.SpaceID)
 		if err != nil {
 			return errs.WithStack(err)
 		}

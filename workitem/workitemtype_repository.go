@@ -179,7 +179,7 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 func convertTypeFromModels(t *WorkItemType) app.WorkItemTypeData {
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
-		ID:   t.Name,
+		ID:   &t.ID,
 		Attributes: &app.WorkItemTypeAttributes{
 			Version: t.Version,
 			Fields:  map[string]*app.FieldDefinition{},

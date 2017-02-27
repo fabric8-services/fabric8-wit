@@ -48,8 +48,8 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 	linkType := &WorkItemLinkType{
 		Name:           name,
 		Description:    description,
-		SourceTypeName: sourceTypeName,
-		TargetTypeName: targetTypeName,
+		SourceTypeID: sourceTypeName,
+		TargetTypeID: targetTypeName,
 		ForwardName:    forwardName,
 		ReverseName:    reverseName,
 		Topology:       topology,

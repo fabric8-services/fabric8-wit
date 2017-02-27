@@ -291,8 +291,8 @@ func CreateWorkItemLinkType(name string, sourceType string, targetType string, c
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeName: sourceType,
-		TargetTypeName: targetType,
+		SourceTypeID: sourceType,
+		TargetTypeID: targetType,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
