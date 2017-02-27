@@ -6,7 +6,9 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/resource"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompatibleFields(t *testing.T) {
@@ -37,10 +39,13 @@ func TestConvertTypeFromModels(t *testing.T) {
 	// Work item type in model space
 	//------------------------------
 
+	descFoo := "Description of 'foo'"
 	a := WorkItemType{
-		Name:    "foo",
-		Version: 42,
-		Path:    "something",
+		ID:          uuid.NewV4(),
+		Name:        "foo",
+		Description: &descFoo,
+		Version:     42,
+		Path:        "something",
 		Fields: map[string]FieldDefinition{
 			"aListType": {
 				Type: EnumType{
@@ -68,14 +73,18 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
+	descAnimal := "Description of WIT 'animal'"
+	idAnimal := uuid.NewV4()
 	expected := app.WorkItemTypeSingle{
 		Data: &app.WorkItemTypeData{
-			ID:   "foo",
+			ID:   &idAnimal,
 			Type: "workitemtypes",
 			Attributes: &app.WorkItemTypeAttributes{
-				Version: 42,
+				Name:        "animal",
+				Description: &descAnimal,
+				Version:     42,
 				Fields: map[string]*app.FieldDefinition{
-					"aListType": &app.FieldDefinition{
+					"aListType": {
 						Required: true,
 						Type: &app.FieldType{
 							BaseType: &stString,
@@ -90,8 +99,12 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	result := convertTypeFromModels(&a)
 
-	assert.Equal(t, expected.Data.ID, result.ID)
+	require.NotNil(t, result.ID)
+	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))
 	assert.Equal(t, expected.Data.Attributes.Version, result.Attributes.Version)
+	assert.Equal(t, expected.Data.Attributes.Name, result.Attributes.Name)
+	require.NotNil(t, result.Attributes.Description)
+	assert.Equal(t, *expected.Data.Attributes.Description, *result.Attributes.Description)
 	assert.Len(t, result.Attributes.Fields, len(expected.Data.Attributes.Fields))
 	assert.Equal(t, expected.Data.Attributes.Fields, result.Attributes.Fields)
 }

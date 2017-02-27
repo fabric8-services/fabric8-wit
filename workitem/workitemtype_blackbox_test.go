@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -161,7 +162,8 @@ func TestWorkItemType_Equal(t *testing.T) {
 
 	// Test description
 	j := a
-	j.Description = "some other description"
+	otherDesc := "some other description"
+	j.Description = &otherDesc
 	assert.False(t, a.Equal(j))
 
 }
@@ -213,10 +215,10 @@ func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	// Prepare some UUIDs for use in tests
-	id1 := satoriuuid.FromStringOrNil("68e90fa9-dba1-4448-99a4-ae70fb2b45f9")
-	id2 := satoriuuid.FromStringOrNil("aa6ef831-36db-4e99-9e33-6f793472f769")
-	id3 := satoriuuid.FromStringOrNil("3566837f-aa98-4792-bce1-75c995d4e98c")
-	id4 := satoriuuid.FromStringOrNil("c88e6669-53f9-4aa1-be98-877b850daf88")
+	id1 := uuid.FromStringOrNil("68e90fa9-dba1-4448-99a4-ae70fb2b45f9")
+	id2 := uuid.FromStringOrNil("aa6ef831-36db-4e99-9e33-6f793472f769")
+	id3 := uuid.FromStringOrNil("3566837f-aa98-4792-bce1-75c995d4e98c")
+	id4 := uuid.FromStringOrNil("c88e6669-53f9-4aa1-be98-877b850daf88")
 	// Prepare the ltree nodes based on the IDs
 	node1 := strings.Replace(id1.String(), "-", "_", -1)
 	node2 := strings.Replace(id2.String(), "-", "_", -1)
