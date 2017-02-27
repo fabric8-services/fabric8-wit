@@ -30,7 +30,7 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB) *Workite
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
+		res, err := appl.WorkItemTypes().Load(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -45,7 +45,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
 			fields[key] = *fd
 		}
-		wit, err := appl.WorkItemTypes().Create(ctx.Context, ctx.Payload.Data.Attributes.ExtendedTypeName, ctx.Payload.Data.ID, fields)
+		wit, err := appl.WorkItemTypes().Create(ctx.Context, ctx.Payload.Data.ID, ctx.Payload.Data.Attributes.ExtendedTypeName, ctx.Payload.Data.Attributes.Name, ctx.Payload.Data.Attributes.Description, fields)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -73,13 +73,13 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkTypesWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
-		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
+		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
-		res, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.Name)
+		res, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -97,13 +97,13 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkTypesWorkitemtypeContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
-		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.Name)
+		_, err := appl.WorkItemTypes().Load(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg
-		res, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.Name)
+		res, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

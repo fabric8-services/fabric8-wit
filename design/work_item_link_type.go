@@ -71,7 +71,7 @@ For example, if a bug blocks a user story, the reverse name name is "blocked by"
 	//a.Required("name")
 })
 
-// rorkItemLinkTypeRelationships is the JSONAPI store for the relationships of a work item link type.
+// workItemLinkTypeRelationships is the JSONAPI store for the relationships of a work item link type.
 var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func() {
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)

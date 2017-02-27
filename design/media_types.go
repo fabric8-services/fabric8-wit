@@ -30,7 +30,7 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.Description("A work item hold field values according to a given field type")
 	a.Attribute("id", d.String, "unique id per installation")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("type", d.String, "Name of the type of this work item")
+	a.Attribute("type", d.UUID, "ID of the type of this work item")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, according to the field type")
 
 	a.Required("id")

@@ -70,6 +70,18 @@ func GetTypePathSeparator() string {
 	return pathSep
 }
 
+// LtreeSafeID returns the ID of the work item type in an postgres ltree safe manner.
+// The returned string can be used as an ltree node.
+func (wit WorkItemType) LtreeSafeID() string {
+	return LtreeSafeID(wit.ID)
+}
+
+// LtreeSafeID returns the ID of the work item type in an postgres ltree safe manner
+// The returned string can be used as an ltree node.
+func LtreeSafeID(witID satoriuuid.UUID) string {
+	return strings.Replace(witID.String(), "-", "_", -1)
+}
+
 // TableName implements gorm.tabler
 func (wit WorkItemType) TableName() string {
 	return "work_item_types"

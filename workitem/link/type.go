@@ -94,7 +94,7 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Topology != other.Topology {
 		return false
 	}
-	if !satoriuuid.Equal(t.SourceTypeName, other.SourceTypeName) {
+	if !satoriuuid.Equal(t.SourceTypeID, other.SourceTypeID) {
 		return false
 	}
 	if !satoriuuid.Equal(t.TargetTypeID, other.TargetTypeID) {
@@ -275,10 +275,10 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 		out.LinkCategoryID = rel.LinkCategory.Data.ID
 	}
 	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		out.SourceTypeID := rel.SourceType.Data.ID
+		out.SourceTypeID = rel.SourceType.Data.ID
 	}
 	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		out.TargetTypeID := rel.TargetType.Data.ID
+		out.TargetTypeID = rel.TargetType.Data.ID
 	}
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		out.SpaceID = *rel.Space.Data.ID

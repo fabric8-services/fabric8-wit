@@ -131,7 +131,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 		return ctx.Unauthorized(jerrors)
 	}
-	var wit *string
+	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
 		ctx.Payload.Data.Relationships.BaseType != nil && ctx.Payload.Data.Relationships.BaseType.Data != nil {
 		wit = &ctx.Payload.Data.Relationships.BaseType.Data.ID

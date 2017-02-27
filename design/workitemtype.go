@@ -54,11 +54,7 @@ for software developers to create a vertical slice of their work.`)
 	})
 
 	// TODO: Maybe this needs to be abandoned at some point
-	a.Attribute("extendedTypeName", d.String, "If newly created type extends any existing type (This is never present in any response and is only optional when creating.)", func() {
-		a.Example("(optional) parent work item type")
-		a.Pattern("^[a-zA-Z0-9_]+$")
-		a.MinLength(1)
-	})
+	a.Attribute("extendedTypeName", d.UUID, "If newly created type extends any existing type (This is never present in any response and is only optional when creating.)")
 
 	a.Required("version")
 	a.Required("fields")
