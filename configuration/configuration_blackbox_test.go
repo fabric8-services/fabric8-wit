@@ -17,9 +17,10 @@ import (
 )
 
 const (
-	varTokenPublicKey  = "token.publickey"
-	varTokenPrivateKey = "token.privatekey"
-	defaultConfigFile  = "config.yaml"
+	varTokenPublicKey           = "token.publickey"
+	varTokenPrivateKey          = "token.privatekey"
+	defaultConfigFilePath       = "../config.yaml"
+	defaultValuesConfigFilePath = "" // when the code defaults are to be used, the path to config file is ""
 )
 
 var reqLong *goa.RequestData
@@ -27,7 +28,7 @@ var reqShort *goa.RequestData
 var config *configuration.ConfigurationData
 
 func TestMain(m *testing.M) {
-	resetConfiguration()
+	resetConfiguration(defaultConfigFilePath)
 
 	reqLong = &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
@@ -38,9 +39,11 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func resetConfiguration() {
+func resetConfiguration(configPath string) {
 	var err error
-	config, err = configuration.NewConfigurationData("../config.yaml")
+
+	// calling NewConfigurationData("") is same as GetConfigurationData()
+	config, err = configuration.NewConfigurationData(configPath)
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -66,11 +69,11 @@ func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 	env := os.Getenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH")
 	defer func() {
 		os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", env)
-		resetConfiguration()
+		resetConfiguration(defaultValuesConfigFilePath)
 	}()
 
 	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", "authEndpoint")
-	resetConfiguration()
+	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := config.GetKeycloakEndpointAuth(reqLong)
 	assert.Nil(t, err)
@@ -101,11 +104,11 @@ func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 	env := os.Getenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN")
 	defer func() {
 		os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", env)
-		resetConfiguration()
+		resetConfiguration(defaultValuesConfigFilePath)
 	}()
 
 	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", "tokenEndpoint")
-	resetConfiguration()
+	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := config.GetKeycloakEndpointToken(reqLong)
 	assert.Nil(t, err)
@@ -136,11 +139,11 @@ func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 	env := os.Getenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO")
 	defer func() {
 		os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", env)
-		resetConfiguration()
+		resetConfiguration(defaultValuesConfigFilePath)
 	}()
 
 	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", "userinfoEndpoint")
-	resetConfiguration()
+	resetConfiguration(defaultValuesConfigFilePath)
 
 	url, err := config.GetKeycloakEndpointUserInfo(reqLong)
 	assert.Nil(t, err)
@@ -159,9 +162,10 @@ func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
 	os.Unsetenv(envKey)
 	defer func() {
 		os.Setenv(envKey, realEnvValue)
-		resetConfiguration()
+		resetConfiguration(defaultValuesConfigFilePath)
 	}()
 
+	resetConfiguration(defaultConfigFilePath)
 	// env variable NOT set, so we check with config.yaml's value
 
 	viperValue := config.GetTokenPrivateKey()
@@ -180,8 +184,10 @@ func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
 	os.Unsetenv(envKey)
 	defer func() {
 		os.Setenv(envKey, realEnvValue)
-		resetConfiguration()
+		resetConfiguration(defaultValuesConfigFilePath)
 	}()
+
+	resetConfiguration(defaultConfigFilePath)
 
 	// env variable is now unset for sure, this will lead to the test looking up for
 	// value in config.yaml
