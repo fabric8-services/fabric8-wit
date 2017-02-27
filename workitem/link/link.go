@@ -19,7 +19,7 @@ type WorkItemLink struct {
 	Version    int
 	SourceID   uint64
 	TargetID   uint64
-	LinkTypeID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()"`
+	LinkTypeID satoriuuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface

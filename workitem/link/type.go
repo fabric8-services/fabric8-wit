@@ -60,7 +60,8 @@ type WorkItemLinkType struct {
 	ForwardName string
 	ReverseName string
 
-	LinkCategoryID satoriuuid.UUID
+	LinkCategoryID satoriuuid.UUID `sql:"type:uuid"`
+	
 	// Reference to one Space
 	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
