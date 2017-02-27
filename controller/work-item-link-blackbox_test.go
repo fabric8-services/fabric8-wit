@@ -12,7 +12,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -23,6 +23,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -52,12 +53,22 @@ type workItemLinkSuite struct {
 	bug2ID               uint64
 	bug3ID               uint64
 	feature1ID           uint64
-	userLinkCategoryID   string
-	bugBlockerLinkTypeID string
+	userLinkCategoryID   satoriuuid.UUID
+	bugBlockerLinkTypeID satoriuuid.UUID
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
-	deleteWorkItemLinks []string
+	deleteWorkItemLinks []satoriuuid.UUID
 	deleteWorkItems     []string
+}
+
+var wiConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	wiConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
@@ -65,11 +76,7 @@ type workItemLinkSuite struct {
 func (s *workItemLinkSuite) SetupSuite() {
 	var err error
 
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+	s.db, err = gorm.Open("postgres", wiConfiguration.GetPostgresConfigString())
 
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
@@ -129,7 +136,7 @@ func (s *workItemLinkSuite) cleanup() {
 	// First delete work item links and then the types;
 	// otherwise referential integrity will be violated.
 	for _, id := range s.deleteWorkItemLinks {
-		db = db.Unscoped().Delete(&link.WorkItemLink{ID: satoriuuid.FromStringOrNil(id)})
+		db = db.Unscoped().Delete(&link.WorkItemLink{ID: id})
 		require.Nil(s.T(), db.Error)
 	}
 	s.deleteWorkItemLinks = nil
@@ -262,7 +269,7 @@ func CreateWorkItem(workItemType string, title string) *app.CreateWorkitemPayloa
 }
 
 // CreateWorkItemLinkType defines a work item link type
-func CreateWorkItemLinkType(name string, sourceType string, targetType string, categoryID string) *app.CreateWorkItemLinkTypePayload {
+func CreateWorkItemLinkType(name string, sourceType string, targetType string, categoryID satoriuuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
@@ -272,7 +279,7 @@ func CreateWorkItemLinkType(name string, sourceType string, targetType string, c
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
-		LinkCategoryID: satoriuuid.FromStringOrNil(categoryID),
+		LinkCategoryID: categoryID,
 	}
 	payload := link.ConvertLinkTypeFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
@@ -282,11 +289,11 @@ func CreateWorkItemLinkType(name string, sourceType string, targetType string, c
 }
 
 // CreateWorkItemLink defines a work item link
-func CreateWorkItemLink(sourceID uint64, targetID uint64, linkTypeID string) *app.CreateWorkItemLinkPayload {
+func CreateWorkItemLink(sourceID uint64, targetID uint64, linkTypeID satoriuuid.UUID) *app.CreateWorkItemLinkPayload {
 	lt := link.WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
-		LinkTypeID: satoriuuid.FromStringOrNil(linkTypeID),
+		LinkTypeID: linkTypeID,
 	}
 	payload := link.ConvertLinkFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
@@ -358,24 +365,24 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemRelationshipsLink() {
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToInvalidLinkTypeID() {
-	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.Nil.String())
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.Nil)
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToInvalidLinkTypeID() {
-	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.Nil.String())
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.Nil)
 	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundLinkType() {
-	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, "11122233-871b-43a6-9166-0c4bd573e333")
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.FromStringOrNil("11122233-871b-43a6-9166-0c4bd573e333"))
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipLinksBadRequestDueToNotFoundLinkType() {
-	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, "11122233-871b-43a6-9166-0c4bd573e333")
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, satoriuuid.FromStringOrNil("11122233-871b-43a6-9166-0c4bd573e333"))
 	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
@@ -432,16 +439,12 @@ func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToB
 }
 
 func (s *workItemLinkSuite) TestDeleteWorkItemLinkNotFound() {
-	test.DeleteWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "1e9a8b53-73a6-40de-b028-5177add79ffa")
-}
-
-func (s *workItemLinkSuite) TestDeleteWorkItemLinkNotFoundDueToBadID() {
-	_, _ = test.DeleteWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "something that is not a UUID")
+	test.DeleteWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, satoriuuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
 }
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkNotFound() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.userLinkCategoryID)
-	notExistingId := "46bbce9c-8219-4364-a450-dfd1b501654e"
+	notExistingId := satoriuuid.FromStringOrNil("46bbce9c-8219-4364-a450-dfd1b501654e")
 	createPayload.Data.ID = &notExistingId
 	// Wrap data portion in an update payload instead of a create payload
 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
@@ -490,13 +493,9 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link MUST include a self link that's not empty")
 }
 
-func (s *workItemLinkSuite) TestShowWorkItemLinkNotFoundDueToBadID() {
-	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "something that is not a UUID")
-}
-
 // TestShowWorkItemLinkNotFound tests if we can fetch a non existing work item link
 func (s *workItemLinkSuite) TestShowWorkItemLinkNotFound() {
-	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
+	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
 }
 
 func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.WorkItemLinkSingle) {
@@ -620,7 +619,7 @@ func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInval
 }
 
 func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiConfiguration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -780,7 +779,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
 func getWorkItemRelationshipLinksTestData(t *testing.T, wiID string) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiConfiguration.GetTokenPrivateKey()))
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}

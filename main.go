@@ -17,7 +17,7 @@ import (
 	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -65,8 +65,8 @@ func main() {
 		}
 	}
 
-	var err error
-	if err = configuration.Setup(configFilePath); err != nil {
+	configuration, err := config.NewConfigurationData(configFilePath)
+	if err != nil {
 		logrus.Panic(nil, map[string]interface{}{
 			"configFilePath": configFilePath,
 			"err":            err,
@@ -98,6 +98,15 @@ func main() {
 
 	if configuration.IsPostgresDeveloperModeEnabled() {
 		db = db.Debug()
+	}
+
+	if configuration.GetPostgresConnectionMaxIdle() > 0 {
+		log.Logger().Infof("Configured connection pool max idle %v", configuration.GetPostgresConnectionMaxIdle())
+		db.DB().SetMaxIdleConns(configuration.GetPostgresConnectionMaxIdle())
+	}
+	if configuration.GetPostgresConnectionMaxOpen() > 0 {
+		log.Logger().Infof("Configured connection pool max open %v", configuration.GetPostgresConnectionMaxOpen())
+		db.DB().SetMaxOpenConns(configuration.GetPostgresConnectionMaxOpen())
 	}
 
 	// Migrate the schema
@@ -138,7 +147,9 @@ func main() {
 	// Scheduler to fetch and import remote tracker items
 	scheduler = remoteworkitem.NewScheduler(db)
 	defer scheduler.Stop()
-	scheduler.ScheduleAllQueries()
+
+	accessTokens := controller.GetAccessTokens(configuration)
+	scheduler.ScheduleAllQueries(accessTokens)
 
 	// Create service
 	service := goa.New("alm")
@@ -178,7 +189,7 @@ func main() {
 	appDB := gormapplication.NewGormDB(db)
 
 	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
-	loginCtrl := controller.NewLoginController(service, loginService, tokenManager)
+	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 
 	// Mount "status" controller
@@ -218,11 +229,11 @@ func main() {
 	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "tracker" controller
-	c5 := controller.NewTrackerController(service, appDB, scheduler)
+	c5 := controller.NewTrackerController(service, appDB, scheduler, configuration)
 	app.MountTrackerController(service, c5)
 
 	// Mount "trackerquery" controller
-	c6 := controller.NewTrackerqueryController(service, appDB, scheduler)
+	c6 := controller.NewTrackerqueryController(service, appDB, scheduler, configuration)
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "space" controller
@@ -234,7 +245,7 @@ func main() {
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller
-	searchCtrl := controller.NewSearchController(service, appDB)
+	searchCtrl := controller.NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
 
 	// Mount "indentity" controller

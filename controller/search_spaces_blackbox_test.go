@@ -4,19 +4,21 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+
 	"github.com/goadesign/goa"
 	"golang.org/x/net/context"
-	"strings"
 )
 
 type args struct {
@@ -65,7 +67,12 @@ func TestSpacesSearchOK(t *testing.T) {
 	}
 
 	service := goa.New("TestSpacesSearch-Service")
-	controller := NewSearchController(service, tester.db)
+	configuration, err := config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+
+	controller := NewSearchController(service, tester.db, configuration)
 
 	for _, tt := range tests {
 		_, result := test.SpacesSearchOK(t, context.Background(), service, controller, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)

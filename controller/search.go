@@ -5,7 +5,6 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -15,18 +14,23 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+type searchConfiguration interface {
+	GetHTTPAddress() string
+}
+
 // SearchController implements the search resource.
 type SearchController struct {
 	*goa.Controller
-	db application.DB
+	db            application.DB
+	configuration searchConfiguration
 }
 
 // NewSearchController creates a search controller.
-func NewSearchController(service *goa.Service, db application.DB) *SearchController {
+func NewSearchController(service *goa.Service, db application.DB, configuration searchConfiguration) *SearchController {
 	if db == nil {
 		panic("db must not be nil")
 	}
-	return &SearchController{Controller: service.NewController("SearchController"), db: db}
+	return &SearchController{Controller: service.NewController("SearchController"), db: db, configuration: configuration}
 }
 
 // Show runs the show action.
@@ -39,7 +43,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	// ToDo : Keep URL registeration central somehow.
 	hostString := ctx.RequestData.Host
 	if hostString == "" {
-		hostString = configuration.GetHTTPAddress()
+		hostString = c.configuration.GetHTTPAddress()
 	}
 	urlRegexString := fmt.Sprintf("(?P<domain>%s)(?P<path>/work-item/list/detail/)(?P<id>\\d*)", hostString)
 	search.RegisterAsKnownURL(search.HostRegistrationKeyForListWI, urlRegexString)

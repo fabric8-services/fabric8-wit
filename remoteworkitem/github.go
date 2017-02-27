@@ -3,7 +3,6 @@ package remoteworkitem
 import (
 	"encoding/json"
 
-	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/log"
 
 	"github.com/google/go-github/github"
@@ -32,10 +31,10 @@ func (f *githubIssueFetcher) listIssues(query string, opts *github.SearchOptions
 }
 
 // Fetch tracker items from Github
-func (g *GithubTracker) Fetch() chan TrackerItemContent {
+func (g *GithubTracker) Fetch(githubAuthToken string) chan TrackerItemContent {
 	f := githubIssueFetcher{}
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: configuration.GetGithubAuthToken()},
+		&oauth2.Token{AccessToken: githubAuthToken},
 	)
 	tc := oauth2.NewClient(oauth2.NoContext, ts)
 	f.client = github.NewClient(tc)

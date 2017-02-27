@@ -10,7 +10,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -19,9 +19,11 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -40,16 +42,26 @@ type workItemLinkTypeSuite struct {
 	//	typeCtrl     *WorkitemtypeController
 }
 
+var wiltConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	wiltConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkTypeSuite) SetupSuite() {
 	var err error
-
-	if err = configuration.Setup(""); err != nil {
+	wiltConfiguration, err = config.GetConfigurationData()
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
-	s.db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+	s.db, err = gorm.Open("postgres", wiltConfiguration.GetPostgresConfigString())
 
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
@@ -170,16 +182,12 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 //}
 
 func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
-	test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "1e9a8b53-73a6-40de-b028-5177add79ffa")
-}
-
-func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFoundDueToBadID() {
-	_, _ = test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
+	test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, satoriuuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
 }
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 	createPayload := s.createDemoLinkType("test-bug-blocker")
-	notExistingId := "46bbce9c-8219-4364-a450-dfd1b501654e" // This ID does not exist
+	notExistingId := satoriuuid.FromStringOrNil("46bbce9c-8219-4364-a450-dfd1b501654e") // This ID does not exist
 	createPayload.Data.ID = &notExistingId
 	// Wrap data portion in an update payload instead of a create payload
 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
@@ -254,13 +262,9 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link type MUST include a self link that's not empty")
 }
 
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
-	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
-}
-
 // TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
-	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
+	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
 }
 
 // TestListWorkItemLinkTypeOK tests if we can find the work item link types
@@ -301,7 +305,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 }
 
 func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((configuration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiltConfiguration.GetTokenPrivateKey()))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}

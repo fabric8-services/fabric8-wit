@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
+	satoriuuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkTypeController implements the work-item-link-type resource.
@@ -56,7 +57,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		}
 	}
 	// Build our "set" of distinct category IDs already converted as strings
-	categoryIDMap := map[string]bool{}
+	categoryIDMap := map[satoriuuid.UUID]bool{}
 	for _, typeData := range list.Data {
 		categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
 	}

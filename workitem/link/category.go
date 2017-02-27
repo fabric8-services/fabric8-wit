@@ -60,11 +60,10 @@ func (c WorkItemLinkCategory) TableName() string {
 
 // ConvertLinkCategoryFromModel converts work item link category from model to app representation
 func ConvertLinkCategoryFromModel(t WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
-	id := t.ID.String()
 	var converted = app.WorkItemLinkCategorySingle{
 		Data: &app.WorkItemLinkCategoryData{
 			Type: EndpointWorkItemLinkCategories,
-			ID:   &id,
+			ID:   &t.ID,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
 				Name:        &t.Name,
 				Description: t.Description,

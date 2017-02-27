@@ -1,19 +1,32 @@
 package controller
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
+
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 )
 
+var trTestConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	trTestConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
 func TestCreateTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: trTestConfiguration}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -28,7 +41,7 @@ func TestCreateTracker(t *testing.T) {
 func TestGetTracker(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: trTestConfiguration}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -66,7 +79,7 @@ func TestGetTracker(t *testing.T) {
 func TestTrackerListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: trTestConfiguration}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
@@ -89,7 +102,7 @@ func TestTrackerListItemsNotNil(t *testing.T) {
 func TestCreateTrackerValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
-	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler}
+	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: trTestConfiguration}
 	payload := app.CreateTrackerAlternatePayload{
 		URL:  "http://issues.jboss.com",
 		Type: "jira",
