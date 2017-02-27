@@ -152,14 +152,15 @@ func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 }
 
 func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
-	t.Parallel()
 
 	envKey := generateEnvKey(varTokenPrivateKey)
-
 	realEnvValue := os.Getenv(envKey) // could be "" as well.
 
 	os.Unsetenv(envKey)
-	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
+	defer func() {
+		os.Setenv(envKey, realEnvValue)
+		resetConfiguration()
+	}()
 
 	// env variable NOT set, so we check with config.yaml's value
 
@@ -172,7 +173,6 @@ func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
 }
 
 func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
-	t.Parallel()
 
 	envKey := generateEnvKey(varTokenPublicKey)
 	realEnvValue := os.Getenv(envKey) // could be "" as well.
