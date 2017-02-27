@@ -75,6 +75,9 @@ func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, position *app.
 
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
+	if db.RecordNotFound() {
+		return nil, errors.NewNotFoundError("work item", string(id))
+	}
 	if db.Error != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
 	}
