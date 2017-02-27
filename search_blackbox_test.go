@@ -12,9 +12,11 @@ import (
 	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
+
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -27,6 +29,16 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
+
+var spaceBlackBoxTestConfiguration *config.ConfigurationData
+
+func init() {
+	var err error
+	spaceBlackBoxTestConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
 
 func getServiceAsUser() *goa.Service {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
@@ -52,7 +64,7 @@ func TestSearch(t *testing.T) {
 		},
 		uuid.NewV4())
 	require.Nil(t, err)
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := "specialwordforsearch"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	require.NotEmpty(t, sr.Data)
@@ -79,7 +91,7 @@ func TestSearchPagination(t *testing.T) {
 		uuid.NewV4())
 	require.Nil(t, err)
 
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := "specialwordforsearch2"
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 
@@ -109,7 +121,7 @@ func TestSearchWithEmptyValue(t *testing.T) {
 		uuid.NewV4())
 	require.Nil(t, err)
 
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := ""
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	require.NotNil(t, sr.Data)
@@ -135,7 +147,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 		uuid.NewV4())
 	require.Nil(t, err)
 
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := `"http://localhost:8080/detail/154687364529310"`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	require.NotEmpty(t, sr.Data)
@@ -163,7 +175,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 		uuid.NewV4())
 	require.Nil(t, err)
 
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := `"http://localhost/detail/876394"`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	require.NotEmpty(t, sr.Data)
@@ -191,7 +203,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 		uuid.NewV4())
 	require.Nil(t, err)
 
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := `http://some-other-domain:8080/different-path/`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
 	require.NotEmpty(t, sr.Data)
@@ -219,7 +231,7 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 		uuid.NewV4())
 	require.Nil(t, err)
 
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
+	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
 	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
@@ -275,7 +287,7 @@ func searchByURL(t *testing.T, customHost, queryString string) *app.SearchWorkIt
 	if err != nil {
 		panic("invalid test data " + err.Error()) // bug
 	}
-	ctrl := NewSearchController(service, gormapplication.NewGormDB(DB))
+	ctrl := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	// Perform action
 	err = ctrl.Show(showCtx)
 

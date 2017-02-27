@@ -13,9 +13,10 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	. "github.com/almighty/almighty-core/login"
+
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
@@ -23,30 +24,26 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
-	db           *gorm.DB
-	loginService Service
-	oauth        = &oauth2.Config{
-		ClientID:     configuration.GetKeycloakClientID(),
-		ClientSecret: configuration.GetKeycloakSecret(),
-		Scopes:       []string{"user:email"},
-		Endpoint: oauth2.Endpoint{
-			AuthURL:  "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth",
-			TokenURL: "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token",
-		},
-	}
+	db            *gorm.DB
+	loginService  Service
+	oauth         *oauth2.Config
+	configuration *config.ConfigurationData
 )
 
 func TestMain(m *testing.M) {
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		var err error
-		if err = configuration.Setup(""); err != nil {
-			panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-		}
+	var err error
+	configuration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
 
-		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+	if _, c := os.LookupEnv(resource.Database); c != false {
+
+		db, err := gorm.Open("postgres", configuration.GetPostgresConfigString())
 		if err != nil {
 			panic("Failed to connect database: " + err.Error())
 		}
@@ -60,6 +57,15 @@ func TestMain(m *testing.M) {
 
 	}
 
+	oauth = &oauth2.Config{
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
+		Scopes:       []string{"user:email"},
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth",
+			TokenURL: "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token",
+		},
+	}
 	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
 	if err != nil {
 		panic(err)
@@ -99,11 +105,19 @@ func TestKeycloakAuthorizationRedirect(t *testing.T) {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	err = loginService.Perform(authorizeCtx)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "demo.api.almighty.io"},
+	}
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(t, err)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	assert.Equal(t, 307, rw.Code)
-	configuration.GetKeycloakEndpointAuth(authorizeCtx.RequestData)
 	assert.Contains(t, rw.Header().Get("Location"), oauth.Endpoint.AuthURL)
+	assert.NotEqual(t, rw.Header().Get("Location"), "")
 }
 
 func TestValidOAuthAuthorizationCode(t *testing.T) {
@@ -157,7 +171,15 @@ func TestInvalidState(t *testing.T) {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	err = loginService.Perform(authorizeCtx)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "demo.api.almighty.io"},
+	}
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(t, err)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 	assert.Equal(t, 401, rw.Code)
 }
 
@@ -194,7 +216,15 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 		panic("invalid test data " + err.Error()) // bug
 	}
 
-	err = loginService.Perform(authorizeCtx)
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "demo.api.almighty.io"},
+	}
+	authEndpoint, err := configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(t, err)
+	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(r)
+	require.Nil(t, err)
+
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	assert.Equal(t, 307, rw.Code) // redirect to keycloak login page.
 
@@ -234,7 +264,7 @@ func TestInvalidOAuthAuthorizationCode(t *testing.T) {
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
 	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, goa.New("LoginService"))
 
-	err = loginService.Perform(authorizeCtx)
+	err = loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint)
 
 	locationString = rw.HeaderMap["Location"][0]
 	locationUrl, err = url.Parse(locationString)
