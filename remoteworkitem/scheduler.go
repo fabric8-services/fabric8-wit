@@ -44,14 +44,19 @@ func batchID() string {
 }
 
 // ScheduleAllQueries fetch and import of remote tracker items
-func (s *Scheduler) ScheduleAllQueries() {
+func (s *Scheduler) ScheduleAllQueries(accessTokens map[string]string) {
 	cr.Stop()
 
 	trackerQueries := fetchTrackerQueries(s.db)
 	for _, tq := range trackerQueries {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := lookupProvider(tq)
-			for i := range tr.Fetch() {
+			authToken := accessTokens[tq.TrackerType]
+
+			// In case of Jira, no auth token is needed hence the map wouldnt
+			// return anything. So effectively the authToken is optional.
+
+			for i := range tr.Fetch(authToken) {
 				models.Transactional(s.db, func(tx *gorm.DB) error {
 					// Save the remote items in a 'temporary' table.
 					err := upload(tx, tq.TrackerID, i)
@@ -98,7 +103,7 @@ type TrackerItemContent struct {
 
 // TrackerProvider represents a remote tracker
 type TrackerProvider interface {
-	Fetch() chan TrackerItemContent // TODO: Change to an interface to enforce the contract
+	Fetch(authToken string) chan TrackerItemContent // TODO: Change to an interface to enforce the contract
 }
 
 func init() {
