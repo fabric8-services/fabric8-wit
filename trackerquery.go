@@ -12,16 +12,29 @@ import (
 	errs "github.com/pkg/errors"
 )
 
+type trackerQueryConfiguration interface {
+	GetGithubAuthToken() string
+}
+
 // TrackerqueryController implements the trackerquery resource.
 type TrackerqueryController struct {
 	*goa.Controller
-	db        application.DB
-	scheduler *remoteworkitem.Scheduler
+	db            application.DB
+	scheduler     *remoteworkitem.Scheduler
+	configuration trackerQueryConfiguration
+}
+
+func getAccessTokensForTrackerQuery(configuration trackerQueryConfiguration) map[string]string {
+	tokens := map[string]string{
+		remoteworkitem.ProviderGithub: configuration.GetGithubAuthToken(),
+		// add tokens for other types
+	}
+	return tokens
 }
 
 // NewTrackerqueryController creates a trackerquery controller.
-func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler) *TrackerqueryController {
-	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler}
+func NewTrackerqueryController(service *goa.Service, db application.DB, scheduler *remoteworkitem.Scheduler, configuration trackerQueryConfiguration) *TrackerqueryController {
+	return &TrackerqueryController{Controller: service.NewController("TrackerqueryController"), db: db, scheduler: scheduler, configuration: configuration}
 }
 
 // Create runs the create action.
@@ -42,7 +55,8 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		ctx.ResponseData.Header().Set("Location", app.TrackerqueryHref(tq.ID))
 		return ctx.Created(tq)
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
@@ -92,7 +106,8 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		}
 		return ctx.OK(tq)
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
@@ -113,7 +128,8 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 		}
 		return ctx.OK([]byte{})
 	})
-	c.scheduler.ScheduleAllQueries()
+	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
+	c.scheduler.ScheduleAllQueries(accessTokens)
 	return result
 }
 
