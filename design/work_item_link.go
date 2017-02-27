@@ -40,9 +40,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemlinks")
 	})
-	a.Attribute("id", d.String, "ID of work item link (optional during creation)", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
+	a.Attribute("id", d.UUID, "ID of work item link (optional during creation)")
 	a.Attribute("attributes", workItemLinkAttributes)
 	a.Attribute("relationships", workItemLinkRelationships)
 	a.Attribute("links", genericLinks)
@@ -164,7 +162,7 @@ func showWorkItemLink() {
 		a.GET("/:linkId"),
 	)
 	a.Params(func() {
-		a.Param("linkId", d.String, "ID of the work item link to show")
+		a.Param("linkId", d.UUID, "ID of the work item link to show")
 	})
 	a.Response(d.OK, func() {
 		a.Media(workItemLink)
@@ -196,7 +194,7 @@ func deleteWorkItemLink() {
 		a.DELETE("/:linkId"),
 	)
 	a.Params(func() {
-		a.Param("linkId", d.String, "ID of the work item link to be deleted")
+		a.Param("linkId", d.UUID, "ID of the work item link to be deleted")
 	})
 	a.Response(d.OK)
 	a.Response(d.BadRequest, JSONAPIErrors)
@@ -212,7 +210,7 @@ func updateWorkItemLink() {
 		a.PATCH("/:linkId"),
 	)
 	a.Params(func() {
-		a.Param("linkId", d.String, "ID of the work item link to be updated")
+		a.Param("linkId", d.UUID, "ID of the work item link to be updated")
 	})
 	a.Payload(updateWorkItemLinkPayload)
 	a.Response(d.OK, func() {

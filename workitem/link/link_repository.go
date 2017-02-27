@@ -26,11 +26,11 @@ const (
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
 	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
-	Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error)
+	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkList, error)
 	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
 	DeleteRelatedLinks(ctx context.Context, wiIDStr string) error
-	Delete(ctx context.Context, ID string) error
+	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error)
 }
 
@@ -118,23 +118,17 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkSingle, error) {
-	id, err := satoriuuid.FromString(ID)
-	if err != nil {
-		// treat as not found: clients don't know it must be a UUID
-		return nil, errors.NewNotFoundError("work item link", ID)
-	}
+func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
 	log.Info(ctx, map[string]interface{}{
-		"pkg":   "link",
 		"wilID": ID,
 	}, "Loading work item link")
 	res := WorkItemLink{}
-	db := r.db.Where("id=?", id).Find(&res)
+	db := r.db.Where("id=?", ID).Find(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"wilID": ID,
 		}, "work item link not found")
-		return nil, errors.NewNotFoundError("work item link", id.String())
+		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
@@ -201,17 +195,11 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) error {
-	id, err := satoriuuid.FromString(ID)
-	if err != nil {
-		// treat as not found: clients don't know it must be a UUID
-		return errors.NewNotFoundError("work item link", ID)
-	}
+func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	var link = WorkItemLink{
-		ID: id,
+		ID: ID,
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":   "link",
 		"wilID": ID,
 	}, "Deleting the work item link repository")
 
@@ -224,7 +212,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID string) erro
 		return errors.NewInternalError(db.Error.Error())
 	}
 	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item link", id.String())
+		return errors.NewNotFoundError("work item link", ID.String())
 	}
 	return nil
 }
@@ -251,16 +239,17 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	if lt.Data.ID == nil {
 		return nil, errors.NewBadParameterError("work item link", nil)
 	}
-	db := r.db.Model(&res).Where("id=?", *lt.Data.ID).First(&res)
+	ID := *lt.Data.ID
+	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": *lt.Data.ID,
+			"wilID": ID,
 		}, "work item link not found")
-		return nil, errors.NewNotFoundError("work item link", *lt.Data.ID)
+		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": *lt.Data.ID,
+			"wilID": ID,
 			"err":   db.Error,
 		}, "unable to find work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
@@ -285,7 +274,6 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":   "link",
 		"wilID": res.ID,
 	}, "Work item link updated")
 	result := ConvertLinkFromModel(res)

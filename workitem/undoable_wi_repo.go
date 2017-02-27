@@ -46,8 +46,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg": "workitem",
-		"id":  id,
+		"id": id,
 	}, "Loading work item")
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
@@ -101,8 +100,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg": "workitem",
-		"id":  id,
+		"id": id,
 	}, "Loading work iteme")
 
 	old := WorkItem{}
@@ -123,7 +121,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 }
 
 // Create implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
+func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	result, err := r.wrapped.Create(ctx, typeID, fields, creator)
 	if err != nil {
 		return result, errs.WithStack(err)

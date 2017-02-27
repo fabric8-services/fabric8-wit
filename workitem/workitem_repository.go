@@ -27,7 +27,7 @@ type WorkItemRepository interface {
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
 	Reorder(ctx context.Context, position *app.WorkItemReorderPosition, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
-	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
+	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -48,7 +48,6 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, ID string) (*Wo
 		return nil, errors.NewNotFoundError("work item", ID)
 	}
 	log.Info(nil, map[string]interface{}{
-		"pkg":  "workitem",
 		"wiID": ID,
 	}, "Loading work item")
 
@@ -273,7 +272,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":  "workitem",
 		"wiID": wi.ID,
 	}, "Looking for id for the work item repository")
 	tx := r.db.First(&res, id)
@@ -322,7 +320,6 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":  "workitem",
 		"wiID": wi.ID,
 	}, "Updated work item repository")
 	return convertWorkItemModelToApp(wiType, &res)
@@ -330,7 +327,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("type", typeID)
@@ -348,8 +345,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		Fields:         Fields{},
 		Executionorder: pos,
 	}
-
-	fields[SystemCreator] = creator
+	fields[SystemCreator] = creator.String()
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
@@ -403,7 +399,6 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":        "workitem",
 		"where":      where,
 		"parameters": parameters,
 	}, "Executing query : '%s' with params %v", where, parameters)

@@ -5,9 +5,12 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"os"
 	"runtime"
+	"strings"
 
 	"golang.org/x/net/context"
 )
+
+const defaultPackageName = "github.com/almighty/almighty-core/"
 
 var (
 	logger = log.New()
@@ -95,9 +98,9 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 	if logger.Level >= log.ErrorLevel {
 		entry := log.WithField("pid", os.Getpid())
 
-		file, line, fName, err := extractCallerDetails()
-		if err != nil {
-			entry = entry.WithField("file", file).WithField("line", line).WithField("func", fName)
+		file, line, pName, fName, err := extractCallerDetails()
+		if err == nil {
+			entry = entry.WithField("file", file).WithField("pkg", pName).WithField("line", line).WithField("func", fName)
 		}
 
 		if ctx != nil {
@@ -126,9 +129,9 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 	if logger.Level >= log.WarnLevel {
 		entry := log.NewEntry(logger)
 
-		file, _, fName, err := extractCallerDetails()
-		if err != nil {
-			entry = log.WithField("file", file).WithField("func", fName)
+		file, _, pName, fName, err := extractCallerDetails()
+		if err == nil {
+			entry = entry.WithField("file", file).WithField("pkg", pName).WithField("func", fName)
 		}
 
 		if ctx != nil {
@@ -154,6 +157,11 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 func Info(ctx context.Context, fields map[string]interface{}, format string, args ...interface{}) {
 	if logger.Level >= log.InfoLevel {
 		entry := log.NewEntry(logger)
+
+		_, _, pName, _, err := extractCallerDetails()
+		if err == nil {
+			entry = entry.WithField("pkg", pName)
+		}
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
@@ -204,6 +212,11 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 	if logger.Level >= log.DebugLevel {
 		entry := log.NewEntry(logger)
 
+		_, _, pName, _, err := extractCallerDetails()
+		if err == nil {
+			entry = entry.WithField("pkg", pName)
+		}
+
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
 			identity_id, err := extractIdentityID(ctx)
@@ -222,11 +235,24 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 
 // extractCallerDetails gets information about the file, line and function that
 // called a certain logging method such as Error, Info, Debug, Warn and Panic.
-func extractCallerDetails() (string, int, string, error) {
+func extractCallerDetails() (file string, line int, pkg string, function string, err error) {
 	if pc, file, line, ok := runtime.Caller(2); ok {
 		fName := runtime.FuncForPC(pc).Name()
-		return file, line, fName, nil
+
+		parts := strings.Split(fName, ".")
+		pl := len(parts)
+		pName := ""
+
+		if parts[pl-2][0] == '(' {
+			pName = strings.Join(parts[0:pl-2], ".")
+		} else {
+			pName = strings.Join(parts[0:pl-1], ".")
+		}
+
+		pName = strings.Replace(pName, defaultPackageName, "", -1)
+
+		return file, line, pName, fName, nil
 	}
 
-	return "", 0, "", errors.New("Unable to extract the caller details")
+	return "", 0, "", "", errors.New("unable to extract the caller details")
 }

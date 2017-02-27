@@ -17,8 +17,6 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/configuration"
-	jsonapierrors "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	tokencontext "github.com/almighty/almighty-core/login/token_context"
@@ -31,14 +29,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
-const (
-	// InvalidCodeError could occure when the OAuth Exchange with Keycloak returns no valid AccessToken
-	InvalidCodeError string = "Invalid OAuth2.0 code"
-)
-
 // Service defines the basic entrypoint required to perform a remote oauth login
 type Service interface {
-	Perform(ctx *app.AuthorizeLoginContext) error
+	Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error
 }
 
 // NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
@@ -63,7 +56,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext) error
+	Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error
 	CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 }
 
@@ -82,7 +75,7 @@ var stateReferer = map[string]string{}
 var mapLock sync.RWMutex
 
 // Perform performs authenticatin
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 	referer := ctx.RequestData.Header.Get("Referer")
@@ -108,12 +101,12 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 		}
 
 		keycloakToken, err := keycloak.config.Exchange(ctx, code)
-		if err != nil || keycloakToken.AccessToken == "" {
+		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"code": code,
 				"err":  err,
 			}, "keycloak exchange operation failed")
-			return redirectWithError(ctx, knownReferer, InvalidCodeError)
+			return redirectWithError(ctx, knownReferer, err.Error())
 		}
 
 		_, _, err = keycloak.CreateKeycloakUser(keycloakToken.AccessToken, ctx)
@@ -143,7 +136,6 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 
 	// store referer id to state for redirect later
 	log.Info(ctx, map[string]interface{}{
-		"pkg":     "login",
 		"referer": referer,
 	}, "Got Request from!")
 
@@ -153,23 +145,6 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 	defer mapLock.Unlock()
 
 	stateReferer[state] = referer
-
-	authEndpoint, err := configuration.GetKeycloakEndpointAuth(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to get Keycloak auth endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak auth endpoint URL "+err.Error()))
-	}
-
-	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to get Keycloak token endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
-	}
-
 	keycloak.config.Endpoint.AuthURL = authEndpoint
 	keycloak.config.Endpoint.TokenURL = tokenEndpoint
 	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
@@ -240,9 +215,8 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		user = new(account.User)
 		fillUser(claims, user)
 		err = application.Transactional(keycloak.db, func(appl application.Application) error {
-			err := keycloak.Users.Create(ctx, user)
+			err := appl.Users().Create(ctx, user)
 			if err != nil {
-				// TODO It seems that even if we return an error here the transaction is not rolled back and the user is created. Why?!
 				return err
 			}
 			identity = &account.Identity{
@@ -251,13 +225,14 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 				ProviderType: account.KeycloakIDP,
 				UserID:       account.NullUUID{UUID: user.ID, Valid: true},
 				User:         *user}
-			err = keycloak.Identities.Create(ctx, identity)
+			err = appl.Identities().Create(ctx, identity)
 			return err
 		})
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"identityID": identity.ID,
-				"err":        err,
+				"keyCloakIdentityID": keycloakIdentityID,
+				"username":           claims.Username,
+				"err":                err,
 			}, "unable to create user/identity")
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
@@ -353,14 +328,14 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 
 // ContextIdentity returns the identity's ID found in given context
 // Uses tokenManager.Locate to fetch the identity of currently logged in user
-func ContextIdentity(ctx context.Context) (string, error) {
+func ContextIdentity(ctx context.Context) (*uuid.UUID, error) {
 	tm := tokencontext.ReadTokenManagerFromContext(ctx)
 	if tm == nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": tm,
 		}, "missing token manager")
 
-		return "", errs.New("Missing token manager")
+		return nil, errs.New("Missing token manager")
 	}
 	// As mentioned in token.go, we can now safely convert tm to a token.Manager
 	manager := tm.(token.Manager)
@@ -373,9 +348,9 @@ func ContextIdentity(ctx context.Context) (string, error) {
 			"err":          err,
 		}, "identity belongs to a Guest User")
 
-		return "", errs.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
-	return uuid.String(), nil
+	return &uuid, nil
 }
 
 // InjectTokenManager is a middleware responsible for setting up tokenManager in the context for every request.

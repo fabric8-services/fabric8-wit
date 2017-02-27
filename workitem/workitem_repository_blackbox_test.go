@@ -26,7 +26,9 @@ import (
 
 type workItemRepoBlackBoxTest struct {
 	gormsupport.DBTestSuite
-	repo workitem.WorkItemRepository
+	repo      workitem.WorkItemRepository
+	clean     func()
+	creatorID uuid.UUID
 }
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
@@ -51,122 +53,129 @@ func (s *workItemRepoBlackBoxTest) SetupSuite() {
 
 func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.repo = workitem.NewWorkItemRepository(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.creatorID = uuid.NewV4()
+}
+
+func (s *workItemRepoBlackBoxTest) TearDownTest() {
+	s.clean()
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsEffectedCheck
+	// given
 	_, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create work item")
-
+	// when
 	err = s.repo.Delete(context.Background(), "0")
-	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
+	// then
+	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsEffectedCheck
+	// given
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
+	// when
 	wi.ID = "0"
 	_, err = s.repo.Save(context.Background(), *wi)
-	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
+	// then
+	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsEffectedCheck
+	// given
 	_, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
-
+	// when
 	_, err = s.repo.Load(context.Background(), "0")
-	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
+	// then
+	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
+	// given
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
 			workitem.SystemAssignees: []string{"A", "B"},
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
-
+	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// then
 	require.Nil(s.T(), err)
-
 	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
 }
 
 func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
+	// given
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
-
+	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	require.Nil(s.T(), err)
-
 	wiNew, err := s.repo.Save(context.Background(), *wi)
+	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
+	// given
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemState:       workitem.SystemStateNew,
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
-
+	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// then
 	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
 
 func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
+	// given
 	wi, err := s.repo.Create(
 		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
 			workitem.SystemState:       workitem.SystemStateNew,
-		}, "xx")
+		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
+	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// then
 	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
@@ -176,75 +185,81 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 // a work item. NOTE: This functionality only works on the DB layer and is not
 // exposed to REST.
 func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create at least 1 item to avoid RowsAffectedCheck
+	// given
 	wi, err := s.repo.Create(
 		context.Background(), "bug",
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, "xx")
-
+		}, s.creatorID)
 	require.Nil(s.T(), err)
-
+	// when
 	wi.Type = "feature"
-
 	newWi, err := s.repo.Save(context.Background(), *wi)
+	// then
 	require.Nil(s.T(), err)
-	require.Equal(s.T(), "feature", newWi.Type)
+	assert.Equal(s.T(), "feature", newWi.Type)
 }
 
 // TestGetCountsPerIteration makes sure that the query being executed is correctly returning
 // the counts of work items
 func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
 	// create seed data
+	// given
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
 		Name: "Testing space",
 	}
 	spaceRepo.Create(context.Background(), &spaceInstance)
-	fmt.Println("space id = ", spaceInstance.ID)
 	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)
-
+	// when
 	iterationRepo := iteration.NewIterationRepository(s.DB)
 	iteration1 := iteration.Iteration{
 		Name:    "Sprint 1",
 		SpaceID: spaceInstance.ID,
 	}
-	iterationRepo.Create(context.Background(), &iteration1)
-	fmt.Println("iteration1 id = ", iteration1.ID)
+	err := iterationRepo.Create(context.Background(), &iteration1)
+	// then
+	require.Nil(s.T(), err)
+	s.T().Log("iteration1 id = ", iteration1.ID)
 	assert.NotEqual(s.T(), uuid.UUID{}, iteration1.ID)
-
+	// given
 	iteration2 := iteration.Iteration{
 		Name:    "Sprint 2",
 		SpaceID: spaceInstance.ID,
 	}
-	iterationRepo.Create(context.Background(), &iteration2)
-	fmt.Println("iteration2 id = ", iteration2.ID)
+	// when
+	err = iterationRepo.Create(context.Background(), &iteration2)
+	// then
+	require.Nil(s.T(), err)
+	s.T().Log("iteration2 id = ", iteration2.ID)
 	assert.NotEqual(s.T(), uuid.UUID{}, iteration2.ID)
-
+	// given
 	for i := 0; i < 3; i++ {
-		s.repo.Create(
+		_, err = s.repo.Create(
 			context.Background(), workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, "xx")
+			}, s.creatorID)
+		require.Nil(s.T(), err)
 	}
 	for i := 0; i < 2; i++ {
-		s.repo.Create(
+		_, err = s.repo.Create(
 			context.Background(), workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, "xx")
+			}, s.creatorID)
+		require.Nil(s.T(), err)
 	}
+	// when
 	countsMap, _ := s.repo.GetCountsPerIteration(context.Background(), spaceInstance.ID)
-	assert.Len(s.T(), countsMap, 1)
+	// then
+	require.Len(s.T(), countsMap, 1)
 	require.Contains(s.T(), countsMap, iteration1.ID.String())
 	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
 	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)

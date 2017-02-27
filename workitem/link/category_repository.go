@@ -13,9 +13,9 @@ import (
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
 	Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategorySingle, error)
-	Load(ctx context.Context, ID string) (*app.WorkItemLinkCategorySingle, error)
+	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkCategorySingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkCategoryList, error)
-	Delete(ctx context.Context, ID string) error
+	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkCategorySingle) (*app.WorkItemLinkCategorySingle, error)
 }
 
@@ -51,14 +51,8 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *s
 
 // Load returns the work item link category for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string) (*app.WorkItemLinkCategorySingle, error) {
-	id, err := satoriuuid.FromString(ID)
-	if err != nil {
-		// treat as not found: clients don't know it must be a UUID
-		return nil, errors.NewNotFoundError("work item link category", ID)
-	}
+func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkCategorySingle, error) {
 	log.Info(ctx, map[string]interface{}{
-		"pkg":    "link",
 		"wilcID": ID,
 	}, "Loading work item link category")
 
@@ -68,7 +62,7 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 		log.Error(ctx, map[string]interface{}{
 			"wilcID": ID,
 		}, "work item link category not found by id ", ID)
-		return nil, errors.NewNotFoundError("work item link category", id.String())
+		return nil, errors.NewNotFoundError("work item link category", ID.String())
 	}
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
@@ -82,7 +76,6 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID string
 // LoadCategoryFromDB return work item link category for the name
 func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Context, name string) (*WorkItemLinkCategory, error) {
 	log.Info(ctx, map[string]interface{}{
-		"pkg":          "link",
 		"categoryName": name,
 	}, "Loading work item link category: %s", name)
 
@@ -124,19 +117,12 @@ func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.Wor
 
 // Delete deletes the work item link category with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID string) error {
-	id, err := satoriuuid.FromString(ID)
-	if err != nil {
-		// treat as not found: clients don't know it must be a UUID
-		return errors.NewNotFoundError("work item link category", ID)
-	}
-
+func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	var cat = WorkItemLinkCategory{
-		ID: id,
+		ID: ID,
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"pkg":    "link",
 		"wilcID": ID,
 	}, "Work item link category to delete")
 
@@ -144,9 +130,8 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID stri
 	if db.Error != nil {
 		return errors.NewInternalError(db.Error.Error())
 	}
-
 	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item link category", id.String())
+		return errors.NewNotFoundError("work item link category", ID.String())
 	}
 	return nil
 }
@@ -158,35 +143,23 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 	if linkCat.Data.ID == nil {
 		return nil, errors.NewBadParameterError("data.id", linkCat.Data.ID)
 	}
-	id, err := satoriuuid.FromString(*linkCat.Data.ID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"wilcID": *linkCat.Data.ID,
-			"err":    err,
-		}, "error when converting %s to UUID: %s", *linkCat.Data.ID, err.Error())
-		// treat as not found: clients don't know it must be a UUID
-		return nil, errors.NewNotFoundError("work item link category", id.String())
-	}
-
-	if linkCat.Data.Type != EndpointWorkItemLinkCategories {
-		return nil, errors.NewBadParameterError("data.type", linkCat.Data.Type).Expected(EndpointWorkItemLinkCategories)
-	}
+	ID := *linkCat.Data.ID
 
 	// If the name is not nil, it MUST NOT be empty
 	if linkCat.Data.Attributes.Name != nil && *linkCat.Data.Attributes.Name == "" {
 		return nil, errors.NewBadParameterError("data.attributes.name", *linkCat.Data.Attributes.Name)
 	}
 
-	db := r.db.Model(&res).Where("id=?", *linkCat.Data.ID).First(&res)
+	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wilcID": *linkCat.Data.ID,
+			"wilcID": ID,
 		}, "work item link category not found")
-		return nil, errors.NewNotFoundError("work item link category", id.String())
+		return nil, errors.NewNotFoundError("work item link category", ID.String())
 	}
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilcID": *linkCat.Data.ID,
+			"wilcID": ID,
 			"err":    db.Error,
 		}, "unable to find work item link category")
 		return nil, errors.NewInternalError(db.Error.Error())
@@ -196,7 +169,7 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 	}
 
 	newLinkCat := WorkItemLinkCategory{
-		ID:      id,
+		ID:      ID,
 		Version: *linkCat.Data.Attributes.Version + 1,
 	}
 
@@ -216,7 +189,6 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
-		"pkg":             "link",
 		"wilcID":          newLinkCat.ID,
 		"newLinkCategory": newLinkCat,
 	}, "Work item link category updated")
