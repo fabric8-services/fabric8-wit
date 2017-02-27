@@ -3,14 +3,23 @@ package configuration_test
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"net/http"
 
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+const (
+	varTokenPublicKey  = "token.publickey"
+	varTokenPrivateKey = "token.privatekey"
+	defaultConfigFile  = "config.yaml"
 )
 
 var reqLong *goa.RequestData
@@ -31,7 +40,7 @@ func TestMain(m *testing.M) {
 
 func resetConfiguration() {
 	var err error
-	config, err = configuration.GetConfigurationData()
+	config, err = configuration.NewConfigurationData("../config.yaml")
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -140,4 +149,50 @@ func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 	url, err = config.GetKeycloakEndpointUserInfo(reqShort)
 	assert.Nil(t, err)
 	assert.Equal(t, "userinfoEndpoint", url)
+}
+
+func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
+	t.Parallel()
+
+	envKey := generateEnvKey(varTokenPrivateKey)
+
+	realEnvValue := os.Getenv(envKey) // could be "" as well.
+
+	os.Unsetenv(envKey)
+	defer os.Setenv(envKey, realEnvValue) // set it back before we leave.
+
+	// env variable NOT set, so we check with config.yaml's value
+
+	viperValue := config.GetTokenPrivateKey()
+	assert.NotNil(t, viperValue)
+
+	parsedKey, err := jwt.ParseRSAPrivateKeyFromPEM(viperValue)
+	require.Nil(t, err)
+	assert.NotNil(t, parsedKey)
+}
+
+func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
+	t.Parallel()
+
+	envKey := generateEnvKey(varTokenPublicKey)
+	realEnvValue := os.Getenv(envKey) // could be "" as well.
+
+	os.Unsetenv(envKey)
+	defer func() {
+		os.Setenv(envKey, realEnvValue)
+		resetConfiguration()
+	}()
+
+	// env variable is now unset for sure, this will lead to the test looking up for
+	// value in config.yaml
+	viperValue := config.GetTokenPublicKey()
+	assert.NotNil(t, viperValue)
+
+	parsedKey, err := jwt.ParseRSAPublicKeyFromPEM(viperValue)
+	require.Nil(t, err)
+	assert.NotNil(t, parsedKey)
+}
+
+func generateEnvKey(yamlKey string) string {
+	return "ALMIGHTY_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
 }
