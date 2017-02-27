@@ -64,8 +64,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	}
 	if ctx.FilterWorkitemtype != nil {
 		wit := ctx.FilterWorkitemtype
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]string{*wit})))
-		additionalQuery = append(additionalQuery, "filter[workitemtype]="+*wit)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*wit})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+wit.String())
 	}
 	if ctx.FilterArea != nil {
 		area := ctx.FilterArea

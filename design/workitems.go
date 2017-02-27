@@ -108,7 +108,7 @@ var _ = a.Resource("workitem", func() {
 			a.Param("page[limit]", d.Integer, "Paging size")
 			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
 			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
-			a.Param("filter[workitemtype]", d.String, "work item type to filter work items by")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 
 		})
