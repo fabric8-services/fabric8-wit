@@ -69,9 +69,7 @@ var workItemTypeData = a.Type("WorkItemTypeData", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemtypes")
 	})
-	a.Attribute("id", d.String, "ID of work item type (optional during creation)", func() {
-		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
-	})
+	a.Attribute("id", d.UUID, "ID of work item type (optional during creation)")
 	a.Attribute("attributes", workItemTypeAttributes)
 	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
@@ -111,7 +109,7 @@ var _ = a.Resource("workitemtype", func() {
 		)
 		a.Description("Retrieve work item type with given ID.")
 		a.Params(func() {
-			a.Param("witId", d.String, "The name of the work item type")
+			a.Param("witId", d.UUID, "ID of the work item type")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemTypeSingle)
@@ -155,7 +153,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.GET("/:witdId/source-link-types"),
 		)
 		a.Params(func() {
-			a.Param("witId", d.String, "ID of the work item type")
+			a.Param("witId", d.UUID, "ID of the work item type")
 		})
 		a.Description(`Retrieve work item link types where the
 given work item type can be used in the source of the link.`)
@@ -171,7 +169,7 @@ given work item type can be used in the source of the link.`)
 			a.GET("/:witId/target-link-types"),
 		)
 		a.Params(func() {
-			a.Param("witId", d.String, "ID of work item type")
+			a.Param("witId", d.UUID, "ID of work item type")
 		})
 		a.Description(`Retrieve work item link types where the
 given work item type can be used in the target of the link.`)
