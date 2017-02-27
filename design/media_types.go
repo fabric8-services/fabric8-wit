@@ -62,9 +62,10 @@ var meta = a.Type("workItemListResponseMeta", func() {
 // position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed
 var position = a.Type("workItemReorderPosition", func() {
 	a.Description("Position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed")
-	a.Attribute("above", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+	a.Attribute("id", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+	a.Attribute("direction", d.String, "position of workitem")
 
-	a.Required("above")
+	a.Required("id", "direction")
 })
 
 // fieldDefinition defines the possible values for a field in a work item type

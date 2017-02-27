@@ -66,7 +66,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 }
 
 // Reorder implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, before string, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, position *app.WorkItemReorderPosition, wi app.WorkItem) (*app.WorkItem, error) {
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
@@ -79,7 +79,7 @@ func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, before string,
 		return nil, errors.NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
 	}
 
-	res, err := r.wrapped.Reorder(ctx, before, wi)
+	res, err := r.wrapped.Reorder(ctx, position, wi)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
 			db = db.Save(&old)

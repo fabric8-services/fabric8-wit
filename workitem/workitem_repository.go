@@ -18,12 +18,14 @@ import (
 )
 
 const orderValue = 1000
+const above = "above"
+const below = "below"
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
-	Reorder(ctx context.Context, beforeID string, wi app.WorkItem) (*app.WorkItem, error)
+	Reorder(ctx context.Context, position *app.WorkItemReorderPosition, wi app.WorkItem) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string) error
 	Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -119,26 +121,76 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 	return nil
 }
 
-// Reorder places the to-be-reordered workitem(s) above the input workitem.
+// Calculates the order of the to-be-reordered workitem
+func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
+	itemOrder := (*above + *below) / 2
+	return itemOrder
+}
+
+// FindSecondItem returns the order of the second workitem required to reorder.
+// If position.direction == "above", then
+//	FindItemItem returns the value above which reorder item has to be placed
+//      FindSecondItem returns the value below which reorder item has to be placed
+// If position.direction == "below", then
+//	FindItemItem returns the value below which reorder item has to be placed
+//      FindSecondItem returns the value above which reorder item has to be placed
+func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem string, WorkItemId string) (*uint64, *float64, error) {
+	Item := WorkItem{}
+	if secondItem == below {
+		// Finds the item below which reorder item has to be placed
+		tx := r.db.Where("executionorder < ?", order).Order("executionorder desc", true).Last(&Item)
+		if tx.RecordNotFound() {
+			// Item is placed at first position
+			return nil, nil, nil
+		}
+		//return &Item.ID, &Item.Executionorder, nil
+	} else if secondItem == above {
+		// Finds the item above which reorder item has to be placed
+		tx := r.db.Where("executionorder > ?", order).Order("executionorder", true).Last(&Item)
+		if tx.RecordNotFound() {
+			// Item is placed at last position
+			return nil, nil, nil
+		}
+		//return &Item.ID, &Item.Executionorder, nil
+	}
+	return &Item.ID, &Item.Executionorder, nil
+}
+
+// FindFirstItem returns the order of the workitem whose id is specified in request payload as position.ID
+func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
+	Item := WorkItem{}
+	Id, err := strconv.ParseUint(id, 10, 64)
+	if err != nil || Id == 0 {
+		return nil, errors.NewNotFoundError("work item", string(Id))
+	}
+	tx := r.db.First(&Item, Id)
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	if tx.RecordNotFound() {
+		return nil, errors.NewNotFoundError("work item", string(Id))
+	}
+	return &Item.Executionorder, nil
+}
+
+// Reorder places the to-be-reordered workitem above the input workitem.
 // The order of workitems are spaced by a factor of 1000.
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, position *app.WorkItemReorderPosition, wi app.WorkItem) (*app.WorkItem, error) {
 	var order float64
 	res := WorkItem{}
-	beforeItem := WorkItem{}
-	afterItem := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil || id == 0 {
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
 	tx := r.db.First(&res, id)
-	if tx.RecordNotFound() {
-		return nil, errors.NewNotFoundError("work item", wi.ID)
-	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(err.Error())
+	}
+	if tx.RecordNotFound() {
+		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 	if res.Version != wi.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
@@ -148,79 +200,57 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, beforeID string, w
 	if err != nil {
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
-	if beforeID != "" {
-		beforeId, err := strconv.ParseUint(beforeID, 10, 64)
-		if err != nil || beforeId == 0 {
-			return nil, errors.NewNotFoundError("work item", string(beforeId))
+
+	if position.Direction == above {
+		// if position.Direction == "above", place the reorder item **above** the workitem having id equal to position.ID
+		aboveItemOrder, err := r.FindFirstItem(position.ID)
+		if aboveItemOrder == nil || err != nil {
+			return nil, errors.NewNotFoundError("work item", position.ID)
 		}
-		tx = r.db.First(&beforeItem, beforeId)
-		if tx.RecordNotFound() {
-			return nil, errors.NewNotFoundError("work item", string(beforeId))
-		}
-		if tx.Error != nil {
-			return nil, errors.NewInternalError(err.Error())
-		}
-		beforeOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", beforeItem.Executionorder), 64)
+		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, below, wi.ID)
 		if err != nil {
-			return nil, errors.NewBadParameterError("data.attributes.order", res.Executionorder)
+			return nil, errors.NewNotFoundError("work item", position.ID)
 		}
-		tx2 := r.db.Where("executionorder < ?", beforeItem.Executionorder).Order("executionorder desc", true).Last(&afterItem)
-		if afterItem.ID == 0 {
-			// The item is moved to first position
-			order = (0 + beforeOrder) / 2
+		if belowItemId == nil {
+			// Item is placed at first position
+			belowItemOrder := float64(0)
+			order = r.CalculateOrder(aboveItemOrder, &belowItemOrder)
+		} else if *belowItemId == res.ID {
+			// When same reorder request is made again
+			return &wi, nil
 		} else {
-			if afterItem.Executionorder == res.Executionorder {
-				// when a workitem is reordered at the same position again and again
-				order = afterItem.Executionorder
-				return &wi, nil
-			} else {
-				afterOrder, err := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Executionorder), 64)
-				if err != nil {
-					return nil, errors.NewBadParameterError("data.attributes.order", res.Executionorder)
-				}
-				if tx2.RecordNotFound() {
-					return nil, errors.NewNotFoundError("work item", string(beforeId))
-				}
-				if tx2.Error != nil {
-					return nil, errors.NewInternalError(err.Error())
-				}
-				order = (beforeOrder + afterOrder) / 2
-			}
+			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
-	} else {
-		// the item is moved at last position
-
-		tx2 := r.db.Order("executionorder desc", true).Last(&afterItem)
-		if tx2.RecordNotFound() {
-			return nil, errors.NewNotFoundError("work item", string(afterItem.ID))
+	} else if position.Direction == below {
+		// if position.Direction == "below", place the reorder item **below** the workitem having id equal to position.ID
+		belowItemOrder, _ := r.FindFirstItem(position.ID)
+		if belowItemOrder == nil || err != nil {
+			return nil, errors.NewNotFoundError("work item", position.ID)
 		}
-		if tx2.Error != nil {
-			return nil, errors.NewInternalError(err.Error())
+		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, above, wi.ID)
+		if err != nil {
+			return nil, errors.NewNotFoundError("work item", position.ID)
 		}
-		afterOrder, _ := strconv.ParseFloat(fmt.Sprintf("%v", afterItem.Executionorder), 64)
-		order = afterOrder + orderValue
+		if aboveItemId == nil {
+			// Item is placed at last position
+			order = *belowItemOrder + float64(orderValue)
+		} else if *aboveItemId == res.ID {
+			// When same reorder request is made again
+			return &wi, nil
+		} else {
+			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
+		}
 	}
-
+	fmt.Println(order)
 	res.Version = res.Version + 1
 	res.Type = wi.Type
-	res.Fields = Fields{}
+	res.Fields = wi.Fields
 
 	res.Executionorder = order
-
-	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt {
-			continue
-		}
-		fieldValue := wi.Fields[fieldName]
-		if fieldName == SystemOrder {
-			var err error
-			res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, order)
-			if err != nil {
-				return nil, errors.NewBadParameterError(fieldName, fieldValue)
-			}
-		} else {
-			res.Fields[fieldName] = fieldValue
-		}
+	fieldDef := wiType.Fields[SystemOrder]
+	res.Fields[SystemOrder], err = fieldDef.ConvertToModel(SystemOrder, order)
+	if err != nil {
+		return nil, errors.NewBadParameterError(SystemOrder, wi.Fields[SystemOrder])
 	}
 
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
