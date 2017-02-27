@@ -29,8 +29,7 @@ func (c *WorkItemChildrenController) List(ctx *app.ListWorkItemChildrenContext) 
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		response := app.WorkItem2List{
-			Links: &app.PagingLinks{},
-			Data:  ConvertWorkItems(ctx.RequestData, result),
+			Data: ConvertWorkItems(ctx.RequestData, result),
 		}
 		return ctx.OK(&response)
 	})
