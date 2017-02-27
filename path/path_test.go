@@ -99,6 +99,8 @@ func TestValuerImplementation(t *testing.T) {
 }
 
 func TestScannerImplementation(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
 	lp := path.LtreePath{grandParent, immediateParent}
@@ -116,4 +118,18 @@ func TestScannerImplementation(t *testing.T) {
 	err3 := lp2.Scan(nil)
 	require.Nil(t, err3)
 	assert.Len(t, lp3, 0)
+}
+
+func TestToExpression(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	uuid1 := uuid.NewV4()
+	uuid2 := uuid.NewV4()
+	uuid3 := uuid.NewV4()
+	actual := path.ToExpression(path.LtreePath{uuid1, uuid2}, uuid3)
+
+	expected := fmt.Sprintf("%s.%s.%s", uuid1, uuid2, uuid3)
+	expected = strings.Replace(expected, "-", "_", -1)
+
+	assert.Equal(t, expected, actual)
 }

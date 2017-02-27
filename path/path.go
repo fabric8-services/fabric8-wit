@@ -34,7 +34,7 @@ func (p LtreePath) This() uuid.UUID {
 	if len(p) > 0 {
 		return p[len(p)-1]
 	}
-	return uuid.UUID{}
+	return uuid.Nil
 }
 
 // Convert returns ltree compatible string of UUID slice
@@ -71,7 +71,7 @@ func (p LtreePath) Root() LtreePath {
 	if len(p) > 0 {
 		return LtreePath{p[0]}
 	}
-	return LtreePath{uuid.UUID{}}
+	return LtreePath{uuid.Nil}
 }
 
 // Parent returns a LtreePath instance with last element in the UUID slice
@@ -80,7 +80,7 @@ func (p LtreePath) Parent() LtreePath {
 	if len(p) > 0 {
 		return LtreePath{p[len(p)-1]}
 	}
-	return LtreePath{uuid.UUID{}}
+	return LtreePath{uuid.Nil}
 }
 
 func (p LtreePath) convertToLtree(id uuid.UUID) string {
@@ -173,4 +173,16 @@ func (p *LtreePath) UnmarshalJSON(b []byte) error {
 		*p = append(*p, id)
 	}
 	return nil
+}
+
+// ToExpression returns a string in ltree format.
+// Joins UUIDs in the first argument using `.`
+// Second argument is converted and appended if needed
+func ToExpression(p LtreePath, this uuid.UUID) string {
+	converted := strings.Replace(this.String(), "-", "_", -1)
+	existingPath := p.Convert()
+	if existingPath == "" {
+		return converted
+	}
+	return fmt.Sprintf("%s.%s", p.Convert(), converted)
 }
