@@ -25,6 +25,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -102,9 +103,14 @@ func (s *workItemTypeSuite) SetupTest() {
 // helper method
 //-----------------------------------------------------------------------------
 
+var (
+	animalID = uuid.FromStringOrNil("729431f2-bca4-4062-9087-c751807b569f")
+	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
+)
+
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
-func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
+func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
 
 	// Create an enumeration of animal names
 	typeStrings := []string{"elephant", "blue whale", "Tyrannosaurus rex"}
@@ -135,11 +141,14 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
+	desc := "Description for 'animal'"
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
-			ID:   "animal",
+			ID:   &animalID,
 			Attributes: &app.WorkItemTypeAttributes{
+				Name:        "animal",
+				Description: &desc,
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": &typeFieldDef,
 					"color":       &colorFieldDef,
@@ -153,7 +162,7 @@ func (s *WorkItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 
 // createWorkItemTypePerson defines a work item type "person" that consists of
 // a required "name" field.
-func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemType) {
+func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *app.WorkItemTypeSingle) {
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
 		Required: true,
@@ -163,11 +172,14 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	}
 
 	// Use the goa generated code to create a work item type
+	desc := "Description for 'person'"
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
-			ID:   "person",
+			ID:   &personID,
 			Type: "workitemtypes",
 			Attributes: &app.WorkItemTypeAttributes{
+				Name:        "person",
+				Description: &desc,
 				Fields: map[string]*app.FieldDefinition{
 					"name": &nameFieldDef,
 				},
@@ -187,7 +199,7 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
 	_, wit := s.createWorkItemTypeAnimal()
-	assrequireert.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit)
 	require.Equal(s.T(), "animal", wit.Data.ID)
 
 	_, wit = s.createWorkItemTypePerson()
@@ -206,8 +218,10 @@ func (s *workItemTypeSuite) TestShowWorkItemType() {
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
 
-	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, wit.Data.ID)
+	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID)
 
 	require.NotNil(s.T(), wit2)
 	require.EqualValues(s.T(), wit, wit2)
@@ -240,8 +254,10 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 	// Search for the work item types that must exist at minimum
 	toBeFound := 2
 	for i := 0; i < len(witCollection.Data) && toBeFound > 0; i++ {
-		if witCollection.Data[i].ID == "person" || witCollection.Data[i].ID == "animal" {
-			s.T().Log("Found work item type in collection: ", witCollection.Data[i].ID)
+		require.NotNil(s.T(), witCollection.Data[i])
+		require.NotNil(s.T(), witCollection.Data[i].ID)
+		if uuid.Equal(*witCollection.Data[i].ID, personID) || uuid.Equal(*witCollection.Data[i].ID, animalID) {
+			s.T().Log("Found work item type in collection: ", *witCollection.Data[i].ID)
 			toBeFound--
 		}
 	}
@@ -271,18 +287,18 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
-	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, "animal", workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create another work item link type
 	bugLinksToAnimalStr := "bug-links-to-animal"
-	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, "animal", *linkCat.Data.ID, *space.Data.ID)
+	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Fetch source link types
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "animal")
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
@@ -290,7 +306,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	require.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
 
 	// Fetch target link types
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "animal")
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
@@ -306,12 +322,12 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
 
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "person")
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, personID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
 
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, "person")
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, personID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
@@ -322,10 +338,10 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
 	defer cleaner.DeleteCreatedEntities(s.DB)()
 
-	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
+	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, uuid.Nil)
 	require.NotNil(s.T(), jerrors)
 
-	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, "not-existing-WIT")
+	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, uuid.Nil)
 	require.NotNil(s.T(), jerrors)
 }
 

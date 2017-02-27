@@ -358,7 +358,7 @@ func makeWorkItems(count int) []*app.WorkItem {
 	for index := range res {
 		res[index] = &app.WorkItem{
 			ID:     fmt.Sprintf("id%d", index),
-			Type:   "foobar",
+			Type:   uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{},
 		}
 	}
@@ -516,7 +516,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(wit string) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = &app.RelationBaseType{
 		Data: &app.BaseTypeData{

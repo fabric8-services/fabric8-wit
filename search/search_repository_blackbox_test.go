@@ -62,27 +62,32 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "subtwo"})
 
 	extended := workitem.SystemBug
-	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{})
+	base, err := typeRepo.Create(ctx, nil, &extended, "base", nil, map[string]app.FieldDefinition{})
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), base)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), base.Data)
+	require.NotNil(s.T(), base.Data.ID)
 
-	extended = "base"
-	sub1, err := typeRepo.Create(ctx, &extended, "sub1", map[string]app.FieldDefinition{})
+	sub1, err := typeRepo.Create(ctx, nil, base.Data.ID, "sub1", nil, map[string]app.FieldDefinition{})
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub1)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), sub1.Data)
+	require.NotNil(s.T(), sub1.Data.ID)
 
-	sub2, err := typeRepo.Create(ctx, &extended, "subtwo", map[string]app.FieldDefinition{})
+	sub2, err := typeRepo.Create(ctx, nil, base.Data.ID, "subtwo", nil, map[string]app.FieldDefinition{})
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub2)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), sub2.Data)
+	require.NotNil(s.T(), sub2.Data.ID)
 
-	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
+	wi1, err := wiRepo.Create(ctx, *sub1.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
 	}, testsupport.TestIdentity.ID)
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
-	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
+	wi2, err := wiRepo.Create(ctx, *sub2.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
 	}, testsupport.TestIdentity.ID)

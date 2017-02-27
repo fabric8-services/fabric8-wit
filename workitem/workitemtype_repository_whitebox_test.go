@@ -40,8 +40,9 @@ func TestConvertTypeFromModels(t *testing.T) {
 	//------------------------------
 
 	descFoo := "Description of 'foo'"
+	id := uuid.NewV4()
 	a := WorkItemType{
-		ID:          uuid.NewV4(),
+		ID:          id,
 		Name:        "foo",
 		Description: &descFoo,
 		Version:     42,
@@ -73,15 +74,13 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
-	descAnimal := "Description of WIT 'animal'"
-	idAnimal := uuid.NewV4()
 	expected := app.WorkItemTypeSingle{
 		Data: &app.WorkItemTypeData{
-			ID:   &idAnimal,
+			ID:   &id,
 			Type: "workitemtypes",
 			Attributes: &app.WorkItemTypeAttributes{
-				Name:        "animal",
-				Description: &descAnimal,
+				Name:        "foo",
+				Description: &descFoo,
 				Version:     42,
 				Fields: map[string]*app.FieldDefinition{
 					"aListType": {
