@@ -108,6 +108,15 @@ func main() {
 		db = db.Debug()
 	}
 
+	if configuration.GetPostgresConnectionMaxIdle() > 0 {
+		log.Logger().Infof("Configured connection pool max idle %v", configuration.GetPostgresConnectionMaxIdle())
+		db.DB().SetMaxIdleConns(configuration.GetPostgresConnectionMaxIdle())
+	}
+	if configuration.GetPostgresConnectionMaxOpen() > 0 {
+		log.Logger().Infof("Configured connection pool max open %v", configuration.GetPostgresConnectionMaxOpen())
+		db.DB().SetMaxOpenConns(configuration.GetPostgresConnectionMaxOpen())
+	}
+
 	// Migrate the schema
 	err = migration.Migrate(db.DB())
 	if err != nil {

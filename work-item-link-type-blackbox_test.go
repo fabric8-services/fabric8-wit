@@ -28,6 +28,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	satoriuuid "github.com/satori/go.uuid"
 )
 
 //-----------------------------------------------------------------------------
@@ -141,7 +143,7 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	require.NotNil(s.T(), space)
 
 	// 3. Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType(name, workitem.SystemBug, workitem.SystemBug, *workItemLinkCategory.Data.ID, space.Data.ID.String())
+	createLinkTypePayload := CreateWorkItemLinkType(name, workitem.SystemBug, workitem.SystemBug, *workItemLinkCategory.Data.ID, *space.Data.ID)
 	return createLinkTypePayload
 }
 
@@ -196,16 +198,12 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 //}
 
 func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
-	test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "1e9a8b53-73a6-40de-b028-5177add79ffa")
-}
-
-func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFoundDueToBadID() {
-	_, _ = test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
+	test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, satoriuuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
 }
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 	createPayload := s.createDemoLinkType("test-bug-blocker")
-	notExistingId := "46bbce9c-8219-4364-a450-dfd1b501654e" // This ID does not exist
+	notExistingId := satoriuuid.FromStringOrNil("46bbce9c-8219-4364-a450-dfd1b501654e") // This ID does not exist
 	createPayload.Data.ID = &notExistingId
 	// Wrap data portion in an update payload instead of a create payload
 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
@@ -291,13 +289,9 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link type MUST include a self link that's not empty")
 }
 
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFoundDueToBadID() {
-	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "something that is not a UUID")
-}
-
 // TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
-	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
+	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
 }
 
 // TestListWorkItemLinkTypeOK tests if we can find the work item link types

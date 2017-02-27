@@ -1,5 +1,5 @@
--- Alter the tables
-ALTER TABLE work_item_link_types ADD space_id uuid NOT NULL;
+-- Alter the table work_item_link_types
+ALTER TABLE work_item_link_types ADD space_id uuid;
 ALTER TABLE work_item_link_types ADD FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE;
 
 -- Create indexes

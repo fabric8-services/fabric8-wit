@@ -46,12 +46,7 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	single.Included = append(single.Included, linkCat.Data)
 
 	// Now include the optional link space data in the work item link type "included" array
-	id, err := uuid.FromString(*single.Data.Relationships.Space.Data.ID)
-	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-	}
-	space, err := ctx.Application.Spaces().Load(ctx.Context, id)
+	space, err := ctx.Application.Spaces().Load(ctx.Context, *single.Data.Relationships.Space.Data.ID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -74,7 +69,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		}
 	}
 	// Build our "set" of distinct category IDs already converted as strings
-	categoryIDMap := map[string]bool{}
+	categoryIDMap := map[uuid.UUID]bool{}
 	for _, typeData := range list.Data {
 		categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
 	}
@@ -89,18 +84,13 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 	}
 
 	// Build our "set" of distinct space IDs already converted as strings
-	spaceIDMap := map[string]bool{}
+	spaceIDMap := map[uuid.UUID]bool{}
 	for _, typeData := range list.Data {
 		spaceIDMap[*typeData.Relationships.Space.Data.ID] = true
 	}
 	// Now include the optional link space data in the work item link type "included" array
 	for spaceID := range spaceIDMap {
-		id, err := uuid.FromString(spaceID)
-		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-		}
-		space, err := ctx.Application.Spaces().Load(ctx.Context, id)
+		space, err := ctx.Application.Spaces().Load(ctx.Context, spaceID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)

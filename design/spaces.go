@@ -58,6 +58,24 @@ var spaceSingle = JSONSingle(
 	space,
 	nil)
 
+// relationSpaces is the JSONAPI store for the spaces
+var relationSpaces = a.Type("RelationSpaces", func() {
+	a.Attribute("data", relationSpacesData)
+	a.Attribute("links", genericLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
+// relationSpacesData is the JSONAPI data object of the space relationship objects
+var relationSpacesData = a.Type("RelationSpacesData", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("spaces")
+	})
+	a.Attribute("id", d.UUID, "UUID for the space", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
+	})
+	a.Attribute("links", genericLinks)
+})
+
 var _ = a.Resource("space", func() {
 	a.BasePath("/spaces")
 
