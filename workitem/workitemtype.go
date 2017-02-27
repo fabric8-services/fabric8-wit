@@ -59,7 +59,7 @@ type WorkItemType struct {
 	Description *string
 	// Version for optimistic concurrency control
 	Version int
-	// the id's of the parents, separated with some separator
+	// the IDs of the parents, separated with a dot (".") separator
 	Path string
 	// definitions of the fields this work item type supports
 	Fields FieldDefinitions `sql:"type:jsonb"`
@@ -156,21 +156,13 @@ func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, erro
 	return &result, nil
 }
 
-// IsTypeOrSubtypeOf returns true if the work item type is of the given type name,
-// or a subtype; otherwise false is returned.
-func (wit WorkItemType) IsTypeOrSubtypeOf(typeName string) bool {
-	// Remove any prefixed "."
-	for strings.HasPrefix(typeName, pathSep) && len(typeName) > 0 {
-		typeName = strings.TrimPrefix(typeName, pathSep)
-	}
-	// Remove any trailing "."
-	for strings.HasSuffix(typeName, pathSep) && len(typeName) > 0 {
-		typeName = strings.TrimSuffix(typeName, pathSep)
-	}
-	if len(typeName) <= 0 {
-		return false
-	}
+// IsTypeOrSubtypeOf returns true if the work item type with the given type ID,
+// is of the same type as the current WIT or of it is a subtype; otherwise false
+// is returned.
+func (wit WorkItemType) IsTypeOrSubtypeOf(typeID satoriuuid.UUID) bool {
+	// Make UUID comparible with ltree format
+	ltreeNode := strings.Replace(typeID.String(), "-", "_", -1)
 	// Check for complete inclusion (e.g. "bar" is contained in "foo.bar.cake")
 	// and for suffix (e.g. ".cake" is the suffix of "foo.bar.cake").
-	return wit.Name == typeName || strings.Contains(wit.Path, typeName+pathSep)
+	return satoriuuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, ltreeNode+pathSep)
 }

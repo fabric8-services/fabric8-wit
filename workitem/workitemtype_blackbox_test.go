@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"time"
@@ -211,22 +212,25 @@ func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
+	// Prepare some UUIDs for use in tests
+	id1 := satoriuuid.FromStringOrNil("68e90fa9-dba1-4448-99a4-ae70fb2b45f9")
+	id2 := satoriuuid.FromStringOrNil("aa6ef831-36db-4e99-9e33-6f793472f769")
+	id3 := satoriuuid.FromStringOrNil("3566837f-aa98-4792-bce1-75c995d4e98c")
+	id4 := satoriuuid.FromStringOrNil("c88e6669-53f9-4aa1-be98-877b850daf88")
+	// Prepare the ltree nodes based on the IDs
+	node1 := strings.Replace(id1.String(), "-", "_", -1)
+	node2 := strings.Replace(id2.String(), "-", "_", -1)
+	node3 := strings.Replace(id3.String(), "-", "_", -1)
+
 	// Test types and subtypes
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("foo"))
-	assert.True(t, workitem.WorkItemType{Name: "bar", Path: "foo.bar"}.IsTypeOrSubtypeOf("foo"))
-	assert.True(t, workitem.WorkItemType{Name: "bar", Path: "foo.bar"}.IsTypeOrSubtypeOf("bar"))
-	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("foo"))
-	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("bar"))
-	assert.True(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("cake"))
+	assert.True(t, workitem.WorkItemType{ID: id1, Path: node1}.IsTypeOrSubtypeOf(id1))
+	assert.True(t, workitem.WorkItemType{ID: id2, Path: node1 + "." + node2}.IsTypeOrSubtypeOf(id1))
+	assert.True(t, workitem.WorkItemType{ID: id2, Path: node1 + "." + node2}.IsTypeOrSubtypeOf(id2))
+	assert.True(t, workitem.WorkItemType{ID: id3, Path: node1 + "." + node2 + "." + node3}.IsTypeOrSubtypeOf(id1))
+	assert.True(t, workitem.WorkItemType{ID: id3, Path: node1 + "." + node2 + "." + node3}.IsTypeOrSubtypeOf(id2))
+	assert.True(t, workitem.WorkItemType{ID: id3, Path: node1 + "." + node2 + "." + node3}.IsTypeOrSubtypeOf(id3))
 
-	// Test we actually do return false sometimes
-	assert.False(t, workitem.WorkItemType{Name: "cake", Path: "foo.bar.cake"}.IsTypeOrSubtypeOf("fo"))
-	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("fo"))
-
-	// Test wrong argument with prefixed and trailing slashes
-	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf(""))
-	assert.False(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("."))
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf("foo."))
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf(".foo"))
-	assert.True(t, workitem.WorkItemType{Name: "foo", Path: "foo"}.IsTypeOrSubtypeOf(".foo."))
+	// Test we actually do return false someNodees
+	assert.False(t, workitem.WorkItemType{ID: id3, Path: node1 + "." + node2 + "." + node3}.IsTypeOrSubtypeOf(id4))
+	assert.False(t, workitem.WorkItemType{ID: id1, Path: node1}.IsTypeOrSubtypeOf(id4))
 }
