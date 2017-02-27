@@ -218,14 +218,15 @@ func getMigrations() migrations {
 }
 
 // executeSQLFile loads the given filename from the packaged SQL files and
-// executes it on the given database
-func executeSQLFile(filename string) fn {
+// executes it on the given database. fmt.Sprintf is used to handle all the
+// optional arguments
+func executeSQLFile(filename string, args ...interface{}) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		_, err = db.Exec(string(data))
+		_, err = db.Exec(fmt.Sprintf(string(data), args))
 		return errs.WithStack(err)
 	}
 }
