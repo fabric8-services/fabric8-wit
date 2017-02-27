@@ -150,7 +150,7 @@ var _ = a.Resource("workitemtype", func() {
 
 	a.Action("list-source-link-types", func() {
 		a.Routing(
-			a.GET("/:witdId/source-link-types"),
+			a.GET("/:witId/source-link-types"),
 		)
 		a.Params(func() {
 			a.Param("witId", d.UUID, "ID of the work item type")
