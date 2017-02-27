@@ -190,6 +190,9 @@ func getMigrations() migrations {
 	// Version 31
 	m = append(m, steps{executeSQLFile("031-iterations-parent-path-ltree.sql")})
 
+	// Version 32
+	m = append(m, steps{executeSQLFile("032-add-foreign-key-space-id.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
