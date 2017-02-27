@@ -12,6 +12,8 @@ postgres.sslmode: disable
 postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
+postgres.connection.maxidle: -1
+postgres.connection.maxopen: -1
 
 #------------------------
 # HTTP configuration

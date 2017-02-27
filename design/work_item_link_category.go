@@ -40,7 +40,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemlinkcategories")
 	})
-	a.Attribute("id", d.String, "ID of work item link category (optional during creation)", func() {
+	a.Attribute("id", d.UUID, "ID of work item link category (optional during creation)", func() {
 		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Attribute("attributes", workItemLinkCategoryAttributes)
@@ -79,9 +79,7 @@ var relationWorkItemLinkCategoryData = a.Type("RelationWorkItemLinkCategoryData"
 	a.Attribute("type", d.String, "The type of the related source", func() {
 		a.Enum("workitemlinkcategories")
 	})
-	a.Attribute("id", d.String, "ID of work item link category", func() {
-		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
-	})
+	a.Attribute("id", d.UUID, "ID of work item link category")
 	a.Required("type", "id")
 })
 
@@ -126,7 +124,7 @@ var _ = a.Resource("work-item-link-category", func() {
 		)
 		a.Description("Retrieve work item link category (as JSONAPI) for the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "ID of the work item link category")
+			a.Param("id", d.UUID, "ID of the work item link category")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkCategory)
@@ -170,7 +168,7 @@ var _ = a.Resource("work-item-link-category", func() {
 		)
 		a.Description("Delete work item link category with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -186,7 +184,7 @@ var _ = a.Resource("work-item-link-category", func() {
 		)
 		a.Description("Update the given work item link category with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Payload(updateWorkItemLinkCategoryPayload)
 		a.Response(d.OK, func() {

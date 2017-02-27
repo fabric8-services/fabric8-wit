@@ -24,6 +24,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	satoriuuid "github.com/satori/go.uuid"
 )
 
 //-----------------------------------------------------------------------------
@@ -101,7 +103,7 @@ func (s *workItemLinkCategorySuite) TearDownTest() {
 func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.ResponseWriter, *app.WorkItemLinkCategorySingle) {
 	name := "test-system"
 	description := "This work item link category is reserved for the core system."
-	id := "0e671e36-871b-43a6-9166-0c4bd573e231"
+	id := satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231")
 
 	// Use the goa generated code to create a work item link category
 	payload := app.CreateWorkItemLinkCategoryPayload{
@@ -122,7 +124,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.Res
 func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.ResponseWriter, *app.WorkItemLinkCategorySingle) {
 	name := "test-user"
 	description := "This work item link category is managed by an admin user."
-	id := "bf30167a-9446-42de-82be-6b3815152051"
+	id := satoriuuid.FromStringOrNil("bf30167a-9446-42de-82be-6b3815152051")
 
 	// Use the goa generated code to create a work item link category
 	payload := app.CreateWorkItemLinkCategoryPayload{
@@ -157,7 +159,7 @@ func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
 func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 	description := "New description for work item link category."
 	name := "" // This will lead to a bad parameter error
-	id := "88727441-4a21-4b35-aabe-007f8273cdBB"
+	id := satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
 	payload := &app.CreateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
@@ -172,16 +174,12 @@ func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 }
 
 func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
-	test.DeleteWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "01f6c751-53f3-401f-be9b-6a9a230db8AA")
-}
-
-func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFoundDueToBadID() {
-	test.DeleteWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "something that is not a UUID")
+	test.DeleteWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, satoriuuid.FromStringOrNil("01f6c751-53f3-401f-be9b-6a9a230db8AA"))
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 	description := "New description for work item link category."
-	id := "88727441-4a21-4b35-aabe-007f8273cd19"
+	id := satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
@@ -211,7 +209,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 
 func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBadType() {
 	description := "New description for work item link category."
-	id := "88727441-4a21-4b35-aabe-007f8273cd19"
+	id := satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
@@ -226,7 +224,7 @@ func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBad
 
 func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmptyName() {
 	name := "" // When updating the name, it must not be empty
-	id := "88727441-4a21-4b35-aabe-007f8273cd19"
+	id := satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
 		Data: &app.WorkItemLinkCategoryData{
 			ID:   &id,
@@ -298,13 +296,9 @@ func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryOK() {
 	require.EqualValues(s.T(), linkCat.Data, linkCat2.Data)
 }
 
-func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFoundDueToBadID() {
-	test.ShowWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "something that is not a UUID")
-}
-
 // TestShowWorkItemLinkCategoryNotFound tests if we can fetch a non existing work item link category
 func (s *workItemLinkCategorySuite) TestShowWorkItemLinkCategoryNotFound() {
-	test.ShowWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, "88727441-4a21-4b35-aabe-007f8273cd19")
+	test.ShowWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, satoriuuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
 }
 
 // TestListWorkItemLinkCategoryOK tests if we can find the work item link categories
