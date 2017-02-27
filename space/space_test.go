@@ -54,14 +54,6 @@ func (test *repoBBTest) TestLoad() {
 	assert.True(test.T(), (*res).Equal(*res2))
 }
 
-func (test *repoBBTest) TestLoadByName() {
-	expectSpace(test.load(satoriuuid.NewV4()), test.assertNotFound())
-	res, _ := expectSpace(test.create(testSpace), test.requireOk)
-
-	res2, _ := expectSpace(test.loadByName(res.Name), test.requireOk)
-	assert.True(test.T(), (*res).Equal(*res2))
-}
-
 func (test *repoBBTest) TestSaveOk() {
 	res, _ := expectSpace(test.create(testSpace), test.requireOk)
 
@@ -171,8 +163,4 @@ func (test *repoBBTest) delete(id satoriuuid.UUID) func() (*space.Space, error) 
 
 func (test *repoBBTest) list(start *int, length *int) ([]*space.Space, uint64, error) {
 	return test.repo.List(context.Background(), start, length)
-}
-
-func (test *repoBBTest) loadByName(name string) func() (*space.Space, error) {
-	return func() (*space.Space, error) { return test.repo.LoadSpaceFromDB(context.Background(), name) }
 }

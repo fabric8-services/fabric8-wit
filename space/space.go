@@ -1,6 +1,8 @@
 package space
 
 import (
+	"strings"
+
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -10,10 +12,9 @@ import (
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
-	"strings"
 )
 
-const SystemSpace = "system.space"
+var SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
 
 // Space represents a Space on the domain and db layer
 type Space struct {
@@ -58,7 +59,6 @@ type Repository interface {
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
 	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
-	LoadSpaceFromDB(ctx context.Context, name string) (*Space, error)
 }
 
 // NewRepository creates a new space repo
@@ -114,27 +114,6 @@ func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	}
 
 	return nil
-}
-
-// LoadSpaceFromDB return space for the name
-func (r *GormRepository) LoadSpaceFromDB(ctx context.Context, name string) (*Space, error) {
-	log.Info(ctx, map[string]interface{}{
-		"pkg":       "link",
-		"spaceName": name,
-	}, "Loading space: %s", name)
-
-	res := Space{}
-	db := r.db.Model(&res).Where("name=?", name).First(&res)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"spaceName": name,
-		}, "space not found")
-		return nil, errors.NewNotFoundError("space", name)
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &res, nil
 }
 
 // Save updates the given space in the db. Version must be the same as the one in the stored version

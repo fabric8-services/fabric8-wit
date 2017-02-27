@@ -16,6 +16,7 @@ import (
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -60,7 +61,7 @@ func Migrate(db *sql.DB) error {
 				"nextVersion": nextVersion,
 				"migrations":  m,
 				"err":         err,
-			}, "Rolling back transaction due to: ", err)
+			}, "Rolling back transaction due to: %v", err)
 
 			if err = tx.Rollback(); err != nil {
 				log.Error(nil, map[string]interface{}{
@@ -77,7 +78,7 @@ func Migrate(db *sql.DB) error {
 			log.Error(nil, map[string]interface{}{
 				"migrations": m,
 				"err":        err,
-			}, "error during transaction commit: ", err)
+			}, "error during transaction commit: %v", err)
 			return errs.Errorf("Error during transaction commit: %s\n", err)
 		}
 
@@ -87,7 +88,7 @@ func Migrate(db *sql.DB) error {
 		log.Error(nil, map[string]interface{}{
 			"migrations": m,
 			"err":        err,
-		}, "migration failed with error: ", err)
+		}, "migration failed with error: %v", err)
 		return errs.Errorf("Migration failed with error: %s\n", err)
 	}
 
@@ -377,12 +378,13 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 	return nil
 }
 
-func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, name, description string) error {
-	spa, err := spaceRepo.LoadSpaceFromDB(ctx, name)
+func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id satoriuuid.UUID, description string) error {
+	spa, err := spaceRepo.Load(ctx, id)
 	cause := errs.Cause(err)
 	space := &space.Space{
 		Description: description,
-		Name:        name,
+		Name:        "system.space",
+		ID:          id,
 	}
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -392,9 +394,9 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, n
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":       "migration",
-			"spaceName": name,
-		}, "space %s exists, will update/overwrite the description", name)
+			"pkg":     "migration",
+			"spaceID": id,
+		}, "space %s exists, will update/overwrite the description", id)
 
 		spa.Description = description
 		_, err = spaceRepo.Save(ctx, spa)
@@ -403,13 +405,13 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, n
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName, spaceName string) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string, spaceId satoriuuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 
-	space, err := spaceRepo.LoadSpaceFromDB(ctx, spaceName)
+	space, err := spaceRepo.Load(ctx, spaceId)
 	if err != nil {
 		return errs.WithStack(err)
 	}
