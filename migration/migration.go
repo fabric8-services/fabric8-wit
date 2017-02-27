@@ -1,6 +1,7 @@
 package migration
 
 import (
+	"fmt"
 	"database/sql"
 
 	"github.com/almighty/almighty-core/app"
