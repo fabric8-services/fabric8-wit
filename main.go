@@ -277,6 +277,9 @@ func main() {
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
+	filterCtrl := NewFilterController(service)
+	app.MountFilterController(service, filterCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
