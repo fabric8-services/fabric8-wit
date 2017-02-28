@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/util"
 )
 
 type EnumType struct {
@@ -14,11 +14,11 @@ type EnumType struct {
 }
 
 // Ensure EnumType implements the Equaler interface
-var _ convert.Equaler = EnumType{}
-var _ convert.Equaler = (*EnumType)(nil)
+var _ util.Equaler = EnumType{}
+var _ util.Equaler = (*EnumType)(nil)
 
 // Equal returns true if two EnumType objects are equal; otherwise false is returned.
-func (self EnumType) Equal(u convert.Equaler) bool {
+func (self EnumType) Equal(u util.Equaler) bool {
 	other, ok := u.(EnumType)
 	if !ok {
 		return false

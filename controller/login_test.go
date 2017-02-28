@@ -13,7 +13,7 @@ import (
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/almighty/almighty-core/token"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"

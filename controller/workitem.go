@@ -15,7 +15,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -304,9 +304,9 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
-	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
-	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+	selfURL := util.AbsoluteURL(request, app.WorkitemHref(wi.ID))
+	sourceLinkTypesURL := util.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
+	targetLinkTypesURL := util.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,

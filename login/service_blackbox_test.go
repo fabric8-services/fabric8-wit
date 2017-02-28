@@ -18,7 +18,7 @@ import (
 	. "github.com/almighty/almighty-core/login"
 
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"

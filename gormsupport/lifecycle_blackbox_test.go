@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
+	"github.com/almighty/almighty-core/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func TestLifecycle_Equal(t *testing.T) {
 	}
 
 	// Test for type difference
-	b := convert.DummyEqualer{}
+	b := util.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test CreateAt difference

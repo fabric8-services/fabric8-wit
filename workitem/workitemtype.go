@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/util"
 	"github.com/pkg/errors"
 )
 
@@ -69,11 +69,11 @@ func (wit WorkItemType) TableName() string {
 }
 
 // Ensure Fields implements the Equaler interface
-var _ convert.Equaler = WorkItemType{}
-var _ convert.Equaler = (*WorkItemType)(nil)
+var _ util.Equaler = WorkItemType{}
+var _ util.Equaler = (*WorkItemType)(nil)
 
 // Equal returns true if two WorkItemType objects are equal; otherwise false is returned.
-func (wit WorkItemType) Equal(u convert.Equaler) bool {
+func (wit WorkItemType) Equal(u util.Equaler) bool {
 	other, ok := u.(WorkItemType)
 	if !ok {
 		return false

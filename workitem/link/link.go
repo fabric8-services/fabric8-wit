@@ -4,9 +4,9 @@ import (
 	"strconv"
 
 	"github.com/almighty/almighty-core/app"
-	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/util"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
@@ -23,11 +23,11 @@ type WorkItemLink struct {
 }
 
 // Ensure Fields implements the Equaler interface
-var _ convert.Equaler = WorkItemLink{}
-var _ convert.Equaler = (*WorkItemLink)(nil)
+var _ util.Equaler = WorkItemLink{}
+var _ util.Equaler = (*WorkItemLink)(nil)
 
 // Equal returns true if two WorkItemLink objects are equal; otherwise false is returned.
-func (l WorkItemLink) Equal(u convert.Equaler) bool {
+func (l WorkItemLink) Equal(u util.Equaler) bool {
 	other, ok := u.(WorkItemLink)
 	if !ok {
 		return false

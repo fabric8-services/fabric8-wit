@@ -7,7 +7,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -148,8 +148,8 @@ func CreateCommentsRelation(request *goa.RequestData, wi *app.WorkItem) *app.Rel
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
 func CreateCommentsRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
-	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
-	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
+	commentsSelf := util.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
+	commentsRelated := util.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
 	return &app.GenericLinks{
 		Self:    &commentsSelf,
 		Related: &commentsRelated,

@@ -20,8 +20,8 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	tokencontext "github.com/almighty/almighty-core/login/token_context"
-	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/util"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -147,7 +147,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 	stateReferer[state] = referer
 	keycloak.config.Endpoint.AuthURL = authEndpoint
 	keycloak.config.Endpoint.TokenURL = tokenEndpoint
-	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
+	keycloak.config.RedirectURL = util.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
 
 	redirectURL := keycloak.config.AuthCodeURL(state, oauth2.AccessTypeOnline)
 

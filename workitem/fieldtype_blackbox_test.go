@@ -6,7 +6,7 @@ import (
 	"reflect"
 
 	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	. "github.com/almighty/almighty-core/workitem"
 )
 

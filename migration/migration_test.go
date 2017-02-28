@@ -8,7 +8,7 @@ import (
 
 	config "github.com/almighty/almighty-core/configuration"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )

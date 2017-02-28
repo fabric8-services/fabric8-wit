@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	jira "github.com/andygrunwald/go-jira"
 	"github.com/dnaeon/go-vcr/recorder"
 	"github.com/stretchr/testify/assert"

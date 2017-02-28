@@ -1,7 +1,7 @@
 package criteria
 
 import (
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"reflect"
 	"testing"
 )

@@ -1,10 +1,10 @@
 package space
 
 import (
-	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/util"
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -23,11 +23,11 @@ type Space struct {
 }
 
 // Ensure Fields implements the Equaler interface
-var _ convert.Equaler = Space{}
-var _ convert.Equaler = (*Space)(nil)
+var _ util.Equaler = Space{}
+var _ util.Equaler = (*Space)(nil)
 
 // Equal returns true if two Space objects are equal; otherwise false is returned.
-func (p Space) Equal(u convert.Equaler) bool {
+func (p Space) Equal(u util.Equaler) bool {
 	other, ok := u.(Space)
 	if !ok {
 		return false

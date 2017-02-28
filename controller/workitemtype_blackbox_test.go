@@ -17,7 +17,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/almighty/almighty-core/workitem"
 
 	jwt "github.com/dgrijalva/jwt-go"

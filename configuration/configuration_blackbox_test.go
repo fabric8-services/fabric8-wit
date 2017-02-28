@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"

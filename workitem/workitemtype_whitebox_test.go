@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 )
 
 func TestConvertFieldTypes(t *testing.T) {

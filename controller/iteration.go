@@ -10,7 +10,7 @@ import (
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -93,7 +93,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		res := &app.IterationSingle{
 			Data: responseData,
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", util.AbsoluteURL(ctx.RequestData, app.IterationHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -196,9 +196,9 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 
 	spaceID := itr.SpaceID.String()
 
-	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
+	selfURL := util.AbsoluteURL(request, app.IterationHref(itr.ID))
+	spaceSelfURL := util.AbsoluteURL(request, app.SpaceHref(spaceID))
+	workitemsRelatedURL := util.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
 	pathToTopMostParent := iteration.PathSepInService + iteration.ConvertFromLtreeFormat(itr.Path) // /uuid1/uuid2/uuid3s
 
 	i := &app.Iteration{
@@ -235,7 +235,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 	if itr.Path != "" {
 		allParents := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
 		parentID := allParents[len(allParents)-1]
-		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
+		parentSelfURL := util.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &iterationType,
@@ -264,7 +264,7 @@ func ConvertIterationSimple(request *goa.RequestData, id interface{}) *app.Gener
 }
 
 func createIterationLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := rest.AbsoluteURL(request, app.IterationHref(id))
+	selfURL := util.AbsoluteURL(request, app.IterationHref(id))
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}

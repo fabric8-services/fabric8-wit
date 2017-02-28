@@ -3,7 +3,7 @@ package remoteworkitem
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 )
 
 func TestUpload(t *testing.T) {

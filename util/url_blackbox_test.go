@@ -1,4 +1,4 @@
-package rest
+package util
 
 import (
 	"crypto/tls"
@@ -6,7 +6,7 @@ import (
 
 	"net/http"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 )

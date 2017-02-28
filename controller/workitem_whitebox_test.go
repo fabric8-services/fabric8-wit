@@ -14,7 +14,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"

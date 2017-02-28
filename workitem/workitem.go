@@ -3,9 +3,9 @@ package workitem
 import (
 	"strconv"
 
-	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/util"
 )
 
 // WorkItem represents a work item as it is stored in the database
@@ -26,11 +26,11 @@ func (w WorkItem) TableName() string {
 }
 
 // Ensure WorkItem implements the Equaler interface
-var _ convert.Equaler = WorkItem{}
-var _ convert.Equaler = (*WorkItem)(nil)
+var _ util.Equaler = WorkItem{}
+var _ util.Equaler = (*WorkItem)(nil)
 
 // Equal returns true if two WorkItem objects are equal; otherwise false is returned.
-func (wi WorkItem) Equal(u convert.Equaler) bool {
+func (wi WorkItem) Equal(u util.Equaler) bool {
 	other, ok := u.(WorkItem)
 	if !ok {
 		return false
