@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"strings"
 	"testing"
 
 	"time"
@@ -220,9 +219,9 @@ func TestWorkItemTypeIsTypeOrSubtypeOf(t *testing.T) {
 	id3 := uuid.FromStringOrNil("3566837f-aa98-4792-bce1-75c995d4e98c")
 	id4 := uuid.FromStringOrNil("c88e6669-53f9-4aa1-be98-877b850daf88")
 	// Prepare the ltree nodes based on the IDs
-	node1 := strings.Replace(id1.String(), "-", "_", -1)
-	node2 := strings.Replace(id2.String(), "-", "_", -1)
-	node3 := strings.Replace(id3.String(), "-", "_", -1)
+	node1 := workitem.LtreeSafeID(id1)
+	node2 := workitem.LtreeSafeID(id2)
+	node3 := workitem.LtreeSafeID(id3)
 
 	// Test types and subtypes
 	assert.True(t, workitem.WorkItemType{ID: id1, Path: node1}.IsTypeOrSubtypeOf(id1))
