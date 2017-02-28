@@ -1,11 +1,11 @@
 package area
 
 import (
-	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/path"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -13,15 +13,13 @@ import (
 )
 
 const APIStringTypeAreas = "areas"
-const pathSepInService = "/"
-const pathSepInDatabase = "."
 
 // Area describes a single Area
 type Area struct {
 	gormsupport.Lifecycle
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
-	Path    string
+	Path    path.Path
 	Name    string
 	Version int
 }
@@ -112,11 +110,7 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	defer goa.MeasureSince([]string{"goa", "db", "Area", "querychild"}, time.Now())
 	var objs []*Area
 
-	predicateString := (parentArea.ID).String()
-	if parentArea.Path != "" {
-		predicateString = parentArea.Path + "." + predicateString
-	}
-	tx := m.db.Where("path ~ ?", ConvertToLtreeFormat(predicateString)).Find(&objs)
+	tx := m.db.Where("path ~ ?", path.ToExpression(parentArea.Path, parentArea.ID)).Find(&objs)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("Area", parentArea.ID.String())
 	}
@@ -124,20 +118,4 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return objs, nil
-}
-
-// ConvertToLtreeFormat converts data in UUID format to ltree format.
-func ConvertToLtreeFormat(uuid string) string {
-	//Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "-", "_", -1)
-	converted = strings.Replace(converted, pathSepInService, pathSepInDatabase, -1)
-	return converted
-}
-
-// ConvertFromLtreeFormat converts data to UUID format from ltree format.
-func ConvertFromLtreeFormat(uuid string) string {
-	// Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "_", "-", -1)
-	converted = strings.Replace(converted, pathSepInDatabase, pathSepInService, -1)
-	return converted
 }
