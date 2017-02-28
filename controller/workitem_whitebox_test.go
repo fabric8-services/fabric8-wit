@@ -187,13 +187,28 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
 
+func prepareWI2(attributes map[string]interface{}) app.WorkItem2 {
+	return app.WorkItem2{
+		Type: "workitems",
+		Relationships: &app.WorkItemRelationships{
+			BaseType: &app.RelationBaseType{
+				Data: &app.BaseTypeData{
+					Type: "workitemtypes",
+					ID:   workitem.SystemBug,
+				},
+			},
+		},
+		Attributes: attributes,
+	}
+}
+
 func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: "description",
 	}
-	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	source := prepareWI2(attributes)
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
@@ -209,7 +224,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
 	}
-	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	source := prepareWI2(attributes)
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
@@ -225,7 +240,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
 	}
-	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	source := prepareWI2(attributes)
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
@@ -241,7 +256,7 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: title,
 	}
-	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	source := prepareWI2(attributes)
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
@@ -254,7 +269,7 @@ func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
 	// given
 	appl := new(application.Application)
 	attributes := map[string]interface{}{}
-	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	source := prepareWI2(attributes)
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
@@ -268,7 +283,7 @@ func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
 	attributes := map[string]interface{}{
 		workitem.SystemTitle: "",
 	}
-	source := app.WorkItem2{Type: workitem.SystemBug, Attributes: attributes}
+	source := prepareWI2(attributes)
 	target := &app.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
