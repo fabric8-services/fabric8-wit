@@ -3,8 +3,8 @@ package workitem_test
 import (
 	"testing"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
+	"github.com/almighty/almighty-core/util"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +20,7 @@ func TestEnumType_Equal(t *testing.T) {
 	}
 
 	// Test type inequality
-	assert.False(t, a.Equal(convert.DummyEqualer{}))
+	assert.False(t, a.Equal(util.DummyEqualer{}))
 
 	// Test simple type difference
 	stInteger := workitem.SimpleType{Kind: workitem.KindInteger}

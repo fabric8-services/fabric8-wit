@@ -7,7 +7,7 @@ import (
 
 	"strings"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/util"
 	"github.com/pkg/errors"
 )
 
@@ -44,7 +44,7 @@ type FieldType interface {
 	// ConvertFromModel converts a field value for use in the REST API layer
 	ConvertFromModel(value interface{}) (interface{}, error)
 	// Implement the Equaler interface
-	Equal(u convert.Equaler) bool
+	Equal(u util.Equaler) bool
 }
 
 // FieldDefinition describes type & other restrictions of a field
@@ -54,11 +54,11 @@ type FieldDefinition struct {
 }
 
 // Ensure FieldDefinition implements the Equaler interface
-var _ convert.Equaler = FieldDefinition{}
-var _ convert.Equaler = (*FieldDefinition)(nil)
+var _ util.Equaler = FieldDefinition{}
+var _ util.Equaler = (*FieldDefinition)(nil)
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
-func (self FieldDefinition) Equal(u convert.Equaler) bool {
+func (self FieldDefinition) Equal(u util.Equaler) bool {
 	other, ok := u.(FieldDefinition)
 	if !ok {
 		return false
@@ -91,11 +91,11 @@ type rawFieldDef struct {
 }
 
 // Ensure rawFieldDef implements the Equaler interface
-var _ convert.Equaler = rawFieldDef{}
-var _ convert.Equaler = (*rawFieldDef)(nil)
+var _ util.Equaler = rawFieldDef{}
+var _ util.Equaler = (*rawFieldDef)(nil)
 
 // Equal returns true if two rawFieldDef objects are equal; otherwise false is returned.
-func (self rawFieldDef) Equal(u convert.Equaler) bool {
+func (self rawFieldDef) Equal(u util.Equaler) bool {
 	other, ok := u.(rawFieldDef)
 	if !ok {
 		return false

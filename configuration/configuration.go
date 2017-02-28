@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
@@ -354,7 +354,7 @@ func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (s
 		// So, we need to treat it as an exception
 		newHost = ssoHostNameException
 	} else {
-		newHost, err = rest.ReplaceDomainPrefix(currentHost, c.GetKeycloakDomainPrefix())
+		newHost, err = util.ReplaceDomainPrefix(currentHost, c.GetKeycloakDomainPrefix())
 		if err != nil {
 			return "", err
 		}

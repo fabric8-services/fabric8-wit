@@ -7,7 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	testtoken "github.com/almighty/almighty-core/test/token"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"

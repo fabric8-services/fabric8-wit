@@ -3,7 +3,7 @@ package gormsupport
 import (
 	"time"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/util"
 	"github.com/jinzhu/gorm"
 )
 
@@ -24,11 +24,11 @@ func init() {
 }
 
 // Ensure Lifecyle implements the Equaler interface
-var _ convert.Equaler = Lifecycle{}
-var _ convert.Equaler = (*Lifecycle)(nil)
+var _ util.Equaler = Lifecycle{}
+var _ util.Equaler = (*Lifecycle)(nil)
 
 // Equal returns true if two Lifecycle objects are equal; otherwise false is returned.
-func (lc Lifecycle) Equal(u convert.Equaler) bool {
+func (lc Lifecycle) Equal(u util.Equaler) bool {
 	other, ok := u.(Lifecycle)
 	if !ok {
 		return false

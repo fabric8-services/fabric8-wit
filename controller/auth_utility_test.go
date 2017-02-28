@@ -12,7 +12,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	almtoken "github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"

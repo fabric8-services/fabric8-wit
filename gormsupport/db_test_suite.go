@@ -5,7 +5,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq" // need to import postgres driver

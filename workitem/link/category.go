@@ -2,8 +2,8 @@ package link
 
 import (
 	"github.com/almighty/almighty-core/app"
-	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/util"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
@@ -26,11 +26,11 @@ type WorkItemLinkCategory struct {
 }
 
 // Ensure Fields implements the Equaler interface
-var _ convert.Equaler = WorkItemLinkCategory{}
-var _ convert.Equaler = (*WorkItemLinkCategory)(nil)
+var _ util.Equaler = WorkItemLinkCategory{}
+var _ util.Equaler = (*WorkItemLinkCategory)(nil)
 
 // Equal returns true if two WorkItemLinkCategory objects are equal; otherwise false is returned.
-func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
+func (c WorkItemLinkCategory) Equal(u util.Equaler) bool {
 	other, ok := u.(WorkItemLinkCategory)
 	if !ok {
 		return false

@@ -10,7 +10,7 @@ import (
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

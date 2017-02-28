@@ -7,7 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -62,7 +62,7 @@ func (c *SpaceAreasController) Create(ctx *app.CreateSpaceAreasContext) error {
 		res := &app.AreaSingle{
 			Data: ConvertArea(appl, ctx.RequestData, &newArea, addResolvedPath),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", util.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }

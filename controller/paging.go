@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -115,7 +115,7 @@ func setPagingLinks(links *app.PagingLinks, path string, resultLen, offset, limi
 }
 
 func buildAbsoluteURL(req *goa.RequestData) string {
-	return rest.AbsoluteURL(req, req.URL.Path)
+	return util.AbsoluteURL(req, req.URL.Path)
 }
 
 func parseInts(s *string) ([]int, error) {

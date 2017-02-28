@@ -14,9 +14,9 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 
-	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/almighty/almighty-core/test/resource"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"

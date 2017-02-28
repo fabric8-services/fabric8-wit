@@ -12,7 +12,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -96,7 +96,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		res := &app.AreaSingle{
 			Data: ConvertArea(appl, ctx.RequestData, &newArea, addResolvedPath),
 		}
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
+		ctx.ResponseData.Header().Set("Location", util.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
 }
@@ -180,9 +180,9 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 
 	spaceID := ar.SpaceID.String()
 
-	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
-	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
+	selfURL := util.AbsoluteURL(request, app.AreaHref(ar.ID))
+	childURL := util.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
+	spaceSelfURL := util.AbsoluteURL(request, app.SpaceHref(spaceID))
 	pathToTopMostParent := pathSepInService + area.ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
 
 	i := &app.Area{
@@ -223,7 +223,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 		parentID := allParents[len(allParents)-1]
 
 		// Only the immediate parent's URL.
-		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
+		parentSelfURL := util.AbsoluteURL(request, app.AreaHref(parentID))
 
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
@@ -253,7 +253,7 @@ func ConvertAreaSimple(request *goa.RequestData, id interface{}) *app.GenericDat
 }
 
 func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := rest.AbsoluteURL(request, app.AreaHref(id))
+	selfURL := util.AbsoluteURL(request, app.AreaHref(id))
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}

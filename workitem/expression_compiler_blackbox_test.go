@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	. "github.com/almighty/almighty-core/criteria"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	. "github.com/almighty/almighty-core/workitem"
 	"github.com/stretchr/testify/assert"
 )

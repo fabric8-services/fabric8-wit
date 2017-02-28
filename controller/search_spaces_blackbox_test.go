@@ -14,8 +14,8 @@ import (
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/test/resource"
 
 	"github.com/goadesign/goa"
 	"golang.org/x/net/context"

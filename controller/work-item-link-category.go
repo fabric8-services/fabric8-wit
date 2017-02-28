@@ -4,7 +4,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 	//satoriuuid "github.com/satori/go.uuid"
 )
@@ -29,7 +29,7 @@ func NewWorkItemLinkCategoryController(service *goa.Service, db application.DB) 
 // enrichLinkCategorySingle includes related resources in the single's "included" array
 func enrichLinkCategorySingle(ctx *workItemLinkContext, single *app.WorkItemLinkCategorySingle) error {
 	// Add "links" element
-	selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
+	selfURL := util.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*single.Data.ID))
 	single.Data.Links = &app.GenericLinks{
 		Self: &selfURL,
 	}
@@ -40,7 +40,7 @@ func enrichLinkCategorySingle(ctx *workItemLinkContext, single *app.WorkItemLink
 func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCategoryList) error {
 	// Add "links" element
 	for _, data := range list.Data {
-		selfURL := rest.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
+		selfURL := util.AbsoluteURL(ctx.RequestData, ctx.LinkFunc(*data.ID))
 		data.Links = &app.GenericLinks{
 			Self: &selfURL,
 		}

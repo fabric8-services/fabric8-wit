@@ -11,8 +11,8 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/test/resource"
 
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"

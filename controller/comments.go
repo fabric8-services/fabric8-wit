@@ -9,7 +9,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rendering"
-	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/util"
 	"github.com/goadesign/goa"
 )
 
@@ -138,7 +138,7 @@ func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment
 
 // ConvertComment converts between internal and external REST representation
 func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
-	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
+	selfURL := util.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
 	c := &app.Comment{
@@ -180,7 +180,7 @@ func CommentIncludeParentWorkItem() CommentConvertFunc {
 
 // CommentIncludeParent adds the "parent" relationship to this Comment
 func CommentIncludeParent(request *goa.RequestData, comment *comment.Comment, data *app.Comment, ref HrefFunc, parentType string) {
-	parentSelf := rest.AbsoluteURL(request, ref(comment.ParentID))
+	parentSelf := util.AbsoluteURL(request, ref(comment.ParentID))
 
 	data.Relationships.Parent = &app.RelationGeneric{
 		Data: &app.GenericData{

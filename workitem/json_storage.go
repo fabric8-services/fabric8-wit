@@ -5,19 +5,19 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/almighty/almighty-core/convert"
+	"github.com/almighty/almighty-core/util"
 	"github.com/pkg/errors"
 )
 
 type Fields map[string]interface{}
 
 // Ensure Fields implements the Equaler interface
-var _ convert.Equaler = Fields{}
-var _ convert.Equaler = (*Fields)(nil)
+var _ util.Equaler = Fields{}
+var _ util.Equaler = (*Fields)(nil)
 
 // Equal returns true if two Fields objects are equal; otherwise false is returned.
 // TODO: (kwk) think about a better comparison for Fields map.
-func (self Fields) Equal(u convert.Equaler) bool {
+func (self Fields) Equal(u util.Equaler) bool {
 	other, ok := u.(Fields)
 	if !ok {
 		return false

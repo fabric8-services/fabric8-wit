@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
+	"github.com/almighty/almighty-core/util"
 	"github.com/almighty/almighty-core/workitem/link"
 	satoriuuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ func TestWorkItemLinkCategory_Equal(t *testing.T) {
 	}
 
 	// Test types
-	b := convert.DummyEqualer{}
+	b := util.DummyEqualer{}
 	require.False(t, a.Equal(b))
 
 	// Test lifecycle

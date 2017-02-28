@@ -8,9 +8,9 @@ import (
 
 	"time"
 
-	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
+	"github.com/almighty/almighty-core/util"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/stretchr/testify/assert"
 )
@@ -101,7 +101,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 	}
 
 	// Test types
-	b := convert.DummyEqualer{}
+	b := util.DummyEqualer{}
 	assert.False(t, a.Equal(b))
 
 	// Test lifecycle

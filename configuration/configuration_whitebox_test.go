@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 )

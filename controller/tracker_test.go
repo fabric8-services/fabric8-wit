@@ -10,7 +10,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/test/resource"
 )
 
 var trTestConfiguration *config.ConfigurationData
