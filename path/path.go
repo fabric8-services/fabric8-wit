@@ -24,7 +24,7 @@ const (
 	SepInDatabase = "."
 )
 
-// IsEmpty checks count of items in LtreePath
+// IsEmpty checks count of items in Path
 func (p Path) IsEmpty() bool {
 	return len(p) == 0
 }
@@ -51,7 +51,7 @@ func (p Path) Convert() string {
 	return strings.Replace(str, "-", "_", -1)
 }
 
-// String converts the LtreePath to representable format in string
+// String converts the Path to representable format in string
 // Currently separator is '/'
 // /87762c8b-17f9-4cbb-b355-251b6a524f2f/39fa8c5b-5732-436f-a084-0f2a247f3435/be54f2c4-cfa4-47af-ad06-280fba540872
 func (p Path) String() string {
@@ -66,7 +66,7 @@ func (p Path) String() string {
 	return SepInService + str
 }
 
-// Root retunrs a LtreePath instance with first element in the UUID slice
+// Root retunrs a Path instance with first element in the UUID slice
 func (p Path) Root() Path {
 	if len(p) > 0 {
 		return Path{p[0]}
@@ -74,8 +74,8 @@ func (p Path) Root() Path {
 	return Path{uuid.Nil}
 }
 
-// Parent returns a LtreePath instance with last element in the UUID slice
-// Similar to This but following funtion returns LtreePath instance and not just UUID
+// Parent returns a Path instance with last element in the UUID slice
+// Similar to `This` but following funtion returns Path instance and not just UUID
 func (p Path) Parent() Path {
 	if len(p) > 0 {
 		return Path{p[len(p)-1]}
@@ -103,7 +103,8 @@ func (p Path) convertFromLtree(uuidStr string) ([]uuid.UUID, error) {
 	return op, nil
 }
 
-// Value helps in implementing Valuer interfae on LtreePath
+// Value helps in implementing Valuer interfae on Path
+// This conversion uses Ltree specification
 func (p Path) Value() (driver.Value, error) {
 	op := []string{}
 	for _, x := range p {
@@ -113,7 +114,7 @@ func (p Path) Value() (driver.Value, error) {
 	return s, nil
 }
 
-// Scan helps in implementing Scanner interface on LtreePath
+// Scan helps in implementing Scanner interface on Path
 func (p *Path) Scan(value interface{}) error {
 	// if value is nil, false
 	if value == nil {
@@ -138,7 +139,7 @@ func (p *Path) Scan(value interface{}) error {
 	return errors.New("failed to scan MyPath")
 }
 
-// MarshalJSON allows LtreePath to be serialized
+// MarshalJSON allows Path to be serialized
 func (p Path) MarshalJSON() ([]byte, error) {
 	buffer := bytes.NewBufferString("{")
 	length := len(p)
@@ -158,7 +159,7 @@ func (p Path) MarshalJSON() ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-// UnmarshalJSON allows LtreePath to be deserialized
+// UnmarshalJSON allows Path to be deserialized
 func (p *Path) UnmarshalJSON(b []byte) error {
 	var stringMap map[string]string
 	err := json.Unmarshal(b, &stringMap)
