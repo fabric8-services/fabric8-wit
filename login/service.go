@@ -17,8 +17,6 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/configuration"
-	jsonapierrors "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	tokencontext "github.com/almighty/almighty-core/login/token_context"
@@ -33,7 +31,7 @@ import (
 
 // Service defines the basic entrypoint required to perform a remote oauth login
 type Service interface {
-	Perform(ctx *app.AuthorizeLoginContext) error
+	Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error
 }
 
 // NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
@@ -58,7 +56,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext) error
+	Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error
 	CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 }
 
@@ -77,7 +75,7 @@ var stateReferer = map[string]string{}
 var mapLock sync.RWMutex
 
 // Perform performs authenticatin
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 	referer := ctx.RequestData.Header.Get("Referer")
@@ -147,23 +145,6 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext) e
 	defer mapLock.Unlock()
 
 	stateReferer[state] = referer
-
-	authEndpoint, err := configuration.GetKeycloakEndpointAuth(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to get Keycloak auth endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak auth endpoint URL "+err.Error()))
-	}
-
-	tokenEndpoint, err := configuration.GetKeycloakEndpointToken(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to get Keycloak token endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, jsonapierrors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
-	}
-
 	keycloak.config.Endpoint.AuthURL = authEndpoint
 	keycloak.config.Endpoint.TokenURL = tokenEndpoint
 	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
