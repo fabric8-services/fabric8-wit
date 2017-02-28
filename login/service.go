@@ -210,9 +210,9 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		return nil, nil, errors.New("Error during querying for an identity by ID " + err.Error())
 	}
 
+	// TODO REMOVE THIS WORKAROUND
+	// ----------------- BEGIN WORKAROUND -----------------
 	if len(identities) == 0 {
-		// TODO REMOVE THIS WORKAROUND
-		// ----------------- BEGIN WORKAROUND -----------------
 		// This is not what actaully should happen.
 		// This is a workaround for Keyclaok and DB unsynchronization.
 		// The old identity will be removed. The new one with proper ID will be created.
@@ -267,8 +267,8 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 				identities = []*account.Identity{}
 			}
 		}
-		// ----------------- END WORKAROUND -----------------
 	}
+	// ----------------- END WORKAROUND -----------------
 
 	if len(identities) == 0 {
 		// No Idenity found, create a new Identity and User
