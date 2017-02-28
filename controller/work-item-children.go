@@ -4,6 +4,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 )
 
@@ -33,4 +34,24 @@ func (c *WorkItemChildrenController) List(ctx *app.ListWorkItemChildrenContext) 
 		}
 		return ctx.OK(&response)
 	})
+}
+
+// WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
+func WorkItemIncludeChildren(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+	wi2.Relationships.Children = CreateChildrenRelation(request, wi)
+}
+
+// CreateChildrenRelation returns a RelationGeneric object representing the relation for a workitem to comment relation
+func CreateChildrenRelation(request *goa.RequestData, wi *app.WorkItem) *app.RelationGeneric {
+	return &app.RelationGeneric{
+		Links: CreateChildrenRelationLinks(request, wi),
+	}
+}
+
+// CreateChildrenRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
+func CreateChildrenRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/children"
+	return &app.GenericLinks{
+		Related: &childrenRelated,
+	}
 }

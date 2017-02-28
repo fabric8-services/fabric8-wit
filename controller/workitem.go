@@ -389,6 +389,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)
+	WorkItemIncludeChildren(request, wi, op)
 	for _, add := range additional {
 		add(request, wi, op)
 	}
