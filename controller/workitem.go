@@ -137,7 +137,6 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 		if ctx.Payload.Position.Direction == "" {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Bad parameter position.direction", nil))
 		}
-
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
 			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)

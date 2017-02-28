@@ -126,13 +126,14 @@ func TestReorderWorkItem(t *testing.T) {
 	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 	_, result4 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result4.Data.ID)
+	_, result5 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result5.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem2
 	dataArray = append(dataArray, result2.Data, result3.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result1.Data.ID
 	payload2.Position.Direction = above
-
 	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2)
 	require.Len(t, reordered1.Data, 2)
 	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -142,14 +143,15 @@ func TestReorderWorkItem(t *testing.T) {
 
 	// clear the dataArray
 	dataArray = dataArray[:0]
-	dataArray = append(dataArray, result1.Data)
-	payload2.Data = dataArray
-	payload2.Position.ID = *result4.Data.ID
-	payload2.Position.Direction = below
-	_, reordered2 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2)
+	dataArray = append(dataArray, result4.Data)
+	payload3 := minimumRequiredReorderPayload()
+	payload3.Data = dataArray
+	payload3.Position.ID = *result5.Data.ID
+	payload3.Position.Direction = below
+	_, reordered2 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload3)
 	require.Len(t, reordered2.Data, 1)
-	assert.Equal(t, result1.Data.Attributes["version"].(int)+1, reordered2.Data[0].Attributes["version"])
-	assert.Equal(t, *result1.Data.ID, *reordered2.Data[0].ID)
+	assert.Equal(t, result4.Data.Attributes["version"].(int)+1, reordered2.Data[0].Attributes["version"])
+	assert.Equal(t, *result4.Data.ID, *reordered2.Data[0].ID)
 }
 
 func TestCreateWI(t *testing.T) {
