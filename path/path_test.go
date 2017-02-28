@@ -16,7 +16,7 @@ import (
 func TestIsEmpty(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	lp := path.LtreePath{}
+	lp := path.Path{}
 	require.True(t, lp.IsEmpty())
 }
 
@@ -26,10 +26,10 @@ func TestThis(t *testing.T) {
 	greatGrandParent := uuid.NewV4()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{greatGrandParent, grandParent, immediateParent}
+	lp := path.Path{greatGrandParent, grandParent, immediateParent}
 	assert.Equal(t, immediateParent, lp.This())
 
-	lp2 := path.LtreePath{}
+	lp2 := path.Path{}
 	require.Equal(t, uuid.Nil, lp2.This())
 }
 
@@ -38,12 +38,12 @@ func TestConvert(t *testing.T) {
 	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{grandParent, immediateParent}
+	lp := path.Path{grandParent, immediateParent}
 	expected := fmt.Sprintf("%s.%s", grandParent, immediateParent)
 	expected = strings.Replace(expected, "-", "_", -1)
 	assert.Equal(t, expected, lp.Convert())
 
-	lp2 := path.LtreePath{}
+	lp2 := path.Path{}
 	require.Empty(t, lp2.Convert())
 }
 
@@ -52,11 +52,11 @@ func TestToString(t *testing.T) {
 	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{grandParent, immediateParent}
+	lp := path.Path{grandParent, immediateParent}
 	expected := fmt.Sprintf("/%s/%s", grandParent, immediateParent)
 	require.Equal(t, expected, lp.String())
 
-	lp2 := path.LtreePath{}
+	lp2 := path.Path{}
 	require.Equal(t, path.SepInService, lp2.String())
 }
 
@@ -65,11 +65,11 @@ func TestRoot(t *testing.T) {
 	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{grandParent, immediateParent}
-	assert.Equal(t, path.LtreePath{grandParent}, lp.Root())
+	lp := path.Path{grandParent, immediateParent}
+	assert.Equal(t, path.Path{grandParent}, lp.Root())
 
-	lp2 := path.LtreePath{}
-	assert.Equal(t, path.LtreePath{uuid.Nil}, lp2.Root())
+	lp2 := path.Path{}
+	assert.Equal(t, path.Path{uuid.Nil}, lp2.Root())
 }
 
 func TestParent(t *testing.T) {
@@ -77,11 +77,11 @@ func TestParent(t *testing.T) {
 	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{grandParent, immediateParent}
-	require.Equal(t, path.LtreePath{immediateParent}, lp.Parent())
+	lp := path.Path{grandParent, immediateParent}
+	require.Equal(t, path.Path{immediateParent}, lp.Parent())
 
-	lp2 := path.LtreePath{}
-	require.Equal(t, path.LtreePath{uuid.Nil}, lp2.Parent())
+	lp2 := path.Path{}
+	require.Equal(t, path.Path{uuid.Nil}, lp2.Parent())
 }
 
 func TestValuerImplementation(t *testing.T) {
@@ -90,7 +90,7 @@ func TestValuerImplementation(t *testing.T) {
 
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{grandParent, immediateParent}
+	lp := path.Path{grandParent, immediateParent}
 	expected := fmt.Sprintf("%s.%s", grandParent, immediateParent)
 	expected = strings.Replace(expected, "-", "_", -1)
 	v, err := lp.Value()
@@ -103,18 +103,18 @@ func TestScannerImplementation(t *testing.T) {
 	t.Parallel()
 	grandParent := uuid.NewV4()
 	immediateParent := uuid.NewV4()
-	lp := path.LtreePath{grandParent, immediateParent}
+	lp := path.Path{grandParent, immediateParent}
 	v, err := lp.Value()
 	require.Nil(t, err)
 
-	lp2 := path.LtreePath{}
+	lp2 := path.Path{}
 	err2 := lp2.Scan([]byte(v.(string)))
 	require.Nil(t, err2)
 	require.Len(t, lp2, 2)
 	assert.Equal(t, lp2, lp)
 	assert.Equal(t, lp[0], lp2[0])
 
-	lp3 := path.LtreePath{}
+	lp3 := path.Path{}
 	err3 := lp2.Scan(nil)
 	require.Nil(t, err3)
 	assert.Len(t, lp3, 0)
@@ -126,7 +126,7 @@ func TestToExpression(t *testing.T) {
 	uuid1 := uuid.NewV4()
 	uuid2 := uuid.NewV4()
 	uuid3 := uuid.NewV4()
-	actual := path.ToExpression(path.LtreePath{uuid1, uuid2}, uuid3)
+	actual := path.ToExpression(path.Path{uuid1, uuid2}, uuid3)
 
 	expected := fmt.Sprintf("%s.%s.%s", uuid1, uuid2, uuid3)
 	expected = strings.Replace(expected, "-", "_", -1)

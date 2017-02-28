@@ -19,7 +19,7 @@ type Area struct {
 	gormsupport.Lifecycle
 	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID uuid.UUID `sql:"type:uuid"`
-	Path    path.LtreePath
+	Path    path.Path
 	Name    string
 	Version int
 }
