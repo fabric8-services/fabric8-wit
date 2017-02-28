@@ -59,11 +59,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	// Test that we can create a WIT with the same name as before.
 	wit3, err := s.repo.Create(context.Background(), nil, nil, "foo_bar", nil, map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
-	require.NotNil(s.T(), wit)
-	require.NotNil(s.T(), wit.Data)
-	require.NotNil(s.T(), wit.Data.ID)
+	require.NotNil(s.T(), wit3)
+	require.NotNil(s.T(), wit3.Data)
+	require.NotNil(s.T(), wit3.Data.ID)
 
-	wit2, err := s.repo.Load(context.Background(), *wit3.Data.ID)
+	wit2, err := s.repo.Load(context.Background(), *wit.Data.ID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.Data)

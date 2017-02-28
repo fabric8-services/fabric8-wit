@@ -167,7 +167,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
-		return nil, errors.NewBadParameterError("type", typeID)
+		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
 	wi := WorkItem{
 		TypeID: typeID,
