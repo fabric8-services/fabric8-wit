@@ -26,6 +26,7 @@ const (
 	SystemCreatedAt           = "system.created_at"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
+	SystemCodebase            = "system.codebase"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem = "planneritem"

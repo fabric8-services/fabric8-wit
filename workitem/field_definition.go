@@ -26,6 +26,7 @@ const (
 	KindList              Kind = "list"
 	KindMarkup            Kind = "markup"
 	KindArea              Kind = "area"
+	KindCodebase          Kind = "codebase"
 )
 
 // Kind is the kind of field type

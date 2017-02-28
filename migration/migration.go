@@ -431,7 +431,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false},
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false},
-
+		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false},
 		workitem.SystemAssignees: {
 			Type: &app.FieldType{
 				ComponentType: &stUser,
