@@ -277,7 +277,7 @@ func main() {
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	filterCtrl := NewFilterController(service)
+	filterCtrl := controller.NewFilterController(service)
 	app.MountFilterController(service, filterCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)

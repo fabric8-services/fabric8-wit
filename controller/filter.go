@@ -1,4 +1,4 @@
-package main
+package controller
 
 import (
 	"github.com/almighty/almighty-core/app"
@@ -58,5 +58,6 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 	result := &app.FilterList{
 		Data: arr,
 	}
+
 	return ctx.OK(result)
 }

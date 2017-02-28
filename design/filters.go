@@ -11,6 +11,7 @@ var filter = a.Type("filters", func() {
 		a.Enum("filters")
 	})
 	a.Attribute("attributes", filterAttributes)
+	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })
 
