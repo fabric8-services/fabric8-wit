@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
-	"net/http"
-	"net/url"
 	"text/template"
 
 	"github.com/almighty/almighty-core/app"
