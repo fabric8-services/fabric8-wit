@@ -39,7 +39,7 @@ func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UU
 	res, err := r.wrapped.Create(ctx, id, extendedTypeID, name, description, fields)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
-			db = db.Unscoped().Delete(&WorkItemType{ID: *id})
+			db = db.Unscoped().Delete(&WorkItemType{ID: *res.Data.ID})
 			return db.Error
 		})
 	}
