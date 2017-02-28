@@ -224,8 +224,8 @@ func getMigrations() migrations {
 }
 
 // executeSQLFile loads the given filename from the packaged SQL files and
-// executes it on the given database. fmt.Sprintf is used to handle all the
-// optional arguments
+// executes it on the given database. Golang text/template module is used 
+// to handle all the optional arguments passed to the sql files
 func executeSQLFile(filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
