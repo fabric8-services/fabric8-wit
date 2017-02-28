@@ -150,7 +150,7 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 				return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
 			}
 		}
-		resultWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator)
+		resultWorkItem, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, creator, *workItem.Relationships.Space.Data.ID)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

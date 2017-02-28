@@ -17,9 +17,11 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -84,7 +86,7 @@ func (rest *TestCommentREST) createDefaultWorkItem() string {
 				workitem.SystemTitle: "A",
 				workitem.SystemState: "new",
 			},
-			uuid.NewV4())
+			uuid.NewV4(), space.SystemSpace)
 		if err != nil {
 			return errors.WithStack(err)
 		}

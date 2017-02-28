@@ -6,6 +6,8 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+
+	satoriuuid "github.com/satori/go.uuid"
 )
 
 // WorkItem represents a work item as it is stored in the database
@@ -18,6 +20,8 @@ type WorkItem struct {
 	Version int
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
+	// Reference to one Space
+	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
 
 // TableName implements gorm.tabler
@@ -46,6 +50,9 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if wi.Version != other.Version {
+		return false
+	}
+	if wi.SpaceID != other.SpaceID {
 		return false
 	}
 	return wi.Fields.Equal(other.Fields)

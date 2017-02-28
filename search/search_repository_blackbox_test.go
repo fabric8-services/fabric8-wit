@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/jinzhu/gorm"
@@ -62,30 +63,30 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "subtwo"})
 
 	extended := workitem.SystemBug
-	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{})
+	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{}, space.SystemSpace)
 	require.NotNil(s.T(), base)
 	require.Nil(s.T(), err)
 
 	extended = "base"
-	sub1, err := typeRepo.Create(ctx, &extended, "sub1", map[string]app.FieldDefinition{})
+	sub1, err := typeRepo.Create(ctx, &extended, "sub1", map[string]app.FieldDefinition{}, space.SystemSpace)
 	require.NotNil(s.T(), sub1)
 	require.Nil(s.T(), err)
 
-	sub2, err := typeRepo.Create(ctx, &extended, "subtwo", map[string]app.FieldDefinition{})
+	sub2, err := typeRepo.Create(ctx, &extended, "subtwo", map[string]app.FieldDefinition{}, space.SystemSpace)
 	require.NotNil(s.T(), sub2)
 	require.Nil(s.T(), err)
 
 	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID)
+	}, testsupport.TestIdentity.ID, space.SystemSpace)
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
 	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID)
+	}, testsupport.TestIdentity.ID, space.SystemSpace)
 	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
 

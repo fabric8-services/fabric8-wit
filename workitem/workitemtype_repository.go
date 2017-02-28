@@ -9,9 +9,12 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/rest"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	satoriuuid "github.com/satori/go.uuid"
 )
 
 var cache = NewWorkItemTypeCache()
@@ -19,7 +22,7 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, name string) (*app.WorkItemType, error)
-	Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error)
+	Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition, spaceID satoriuuid.UUID) (*app.WorkItemType, error)
 	List(ctx context.Context, start *int, length *int) ([]*app.WorkItemType, error)
 }
 
@@ -46,7 +49,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*ap
 		return nil, errs.WithStack(err)
 	}
 
-	result := convertTypeFromModels(res)
+	result := convertTypeFromModels(goa.ContextRequest(ctx), res)
 	return &result, nil
 }
 
@@ -83,7 +86,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition, spaceID satoriuuid.UUID) (*app.WorkItemType, error) {
 	existing, _ := r.LoadTypeFromDB(ctx, name)
 	if existing != nil {
 		log.Error(ctx, map[string]interface{}{"witName": name}, "unable to create new work item type")
@@ -129,13 +132,14 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		Name:    name,
 		Path:    path,
 		Fields:  allFields,
+		SpaceID: spaceID,
 	}
 
 	if err := r.db.Save(&created).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
 
-	result := convertTypeFromModels(&created)
+	result := convertTypeFromModels(goa.ContextRequest(ctx), &created)
 
 	log.Debug(ctx, map[string]interface{}{"witName": created.Name}, "Work item type created successfully!")
 
@@ -163,7 +167,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	result := make([]*app.WorkItemType, len(rows))
 
 	for index, value := range rows {
-		wit := convertTypeFromModels(&value)
+		wit := convertTypeFromModels(goa.ContextRequest(ctx), &value)
 		result[index] = &wit
 	}
 
@@ -175,11 +179,25 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 }
 
 // converts from models to app representation
-func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
+func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkItemType {
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
+
 	var converted = app.WorkItemType{
 		Name:    t.Name,
 		Version: t.Version,
 		Fields:  map[string]*app.FieldDefinition{},
+		Relationships: &app.WorkItemTypeRelationships{
+			Space: &app.RelationSpaces{
+				Data: &app.RelationSpacesData{
+					Type: &spaceType,
+					ID:   &t.SpaceID,
+				},
+				Links: &app.GenericLinks{
+					Self: &spaceSelfURL,
+				},
+			},
+		},
 	}
 	for name, def := range t.Fields {
 		ct := convertFieldTypeFromModels(def.Type)

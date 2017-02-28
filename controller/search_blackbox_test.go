@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -61,7 +62,7 @@ func TestSearch(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 	q := "specialwordforsearch"
@@ -87,7 +88,7 @@ func TestSearchPagination(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
@@ -117,7 +118,7 @@ func TestSearchWithEmptyValue(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
@@ -143,7 +144,7 @@ func TestSearchWithDomainPortCombination(t *testing.T) {
 			workitem.SystemDescription: expectedDescription,
 			workitem.SystemCreator:     "baijum", workitem.SystemState: workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
@@ -171,7 +172,7 @@ func TestSearchURLWithoutPort(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
@@ -199,7 +200,7 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
@@ -227,7 +228,7 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
+		uuid.NewV4(), space.SystemSpace)
 	require.Nil(t, err)
 
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)

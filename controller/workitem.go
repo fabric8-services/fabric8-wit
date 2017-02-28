@@ -146,7 +146,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID, *ctx.Payload.Data.Relationships.Space.Data.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}

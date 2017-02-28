@@ -41,13 +41,14 @@ type WorkItemRepository struct {
 	deleteReturns struct {
 		result1 error
 	}
-	CreateStub        func(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error)
+	CreateStub        func(ctx context.Context, typeID string, fields map[string]interface{}, creator, spaceID uuid.UUID) (*app.WorkItem, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		ctx     context.Context
 		typeID  string
 		fields  map[string]interface{}
 		creator uuid.UUID
+		spaceID uuid.UUID
 	}
 	createReturns struct {
 		result1 *app.WorkItem
@@ -201,18 +202,19 @@ func (fake *WorkItemRepository) DeleteReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *WorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator, spaceID uuid.UUID) (*app.WorkItem, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		ctx     context.Context
 		typeID  string
 		fields  map[string]interface{}
 		creator uuid.UUID
-	}{ctx, typeID, fields, creator})
-	fake.recordInvocation("Create", []interface{}{ctx, typeID, fields, creator})
+		spaceID uuid.UUID
+	}{ctx, typeID, fields, creator, spaceID})
+	fake.recordInvocation("Create", []interface{}{ctx, typeID, fields, creator, spaceID})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(ctx, typeID, fields, creator)
+		return fake.CreateStub(ctx, typeID, fields, creator, spaceID)
 	}
 	return fake.createReturns.result1, fake.createReturns.result2
 }
@@ -223,10 +225,10 @@ func (fake *WorkItemRepository) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, string, map[string]interface{}, uuid.UUID) {
+func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, string, map[string]interface{}, uuid.UUID, uuid.UUID) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creator
+	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creator, fake.createArgsForCall[i].spaceID
 }
 
 func (fake *WorkItemRepository) CreateReturns(result1 *app.WorkItem, result2 error) {

@@ -32,17 +32,20 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("type", d.String, "Name of the type of this work item")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, according to the field type")
+	a.Attribute("relationships", workItemRelationships)
 
 	a.Required("id")
 	a.Required("version")
 	a.Required("type")
 	a.Required("fields")
+	a.Required("relationships")
 
 	a.View("default", func() {
 		a.Attribute("id")
 		a.Attribute("version")
 		a.Attribute("type")
 		a.Attribute("fields")
+		a.Attribute("relationships")
 	})
 })
 
@@ -91,20 +94,26 @@ var workItemType = a.MediaType("application/vnd.workitemtype+json", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("name", d.String, "User Readable Name of this item type")
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type")
+	a.Attribute("relationships", workItemTypeRelationships)
 
 	a.Required("version")
 	a.Required("name")
 	a.Required("fields")
+	a.Required("relationships")
 
 	a.View("default", func() {
 		a.Attribute("version")
 		a.Attribute("name")
 		a.Attribute("fields")
+		a.Attribute("relationships")
 	})
 	a.View("link", func() {
 		a.Attribute("name")
 	})
+})
 
+var workItemTypeRelationships = a.Type("WorkItemTypeRelationships", func() {
+	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
 })
 
 // Tracker configuration

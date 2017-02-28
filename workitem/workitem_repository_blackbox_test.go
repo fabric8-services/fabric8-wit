@@ -29,6 +29,7 @@ type workItemRepoBlackBoxTest struct {
 	repo      workitem.WorkItemRepository
 	clean     func()
 	creatorID uuid.UUID
+	spaceID   uuid.UUID
 }
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
@@ -55,6 +56,7 @@ func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.repo = workitem.NewWorkItemRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.creatorID = uuid.NewV4()
+	s.spaceID = space.SystemSpace
 }
 
 func (s *workItemRepoBlackBoxTest) TearDownTest() {
@@ -69,7 +71,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create work item")
 	// when
 	err = s.repo.Delete(context.Background(), "0")
@@ -85,7 +87,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi.ID = "0"
@@ -102,7 +104,7 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	_, err = s.repo.Load(context.Background(), "0")
@@ -118,7 +120,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 			workitem.SystemTitle:     "Title",
 			workitem.SystemState:     workitem.SystemStateNew,
 			workitem.SystemAssignees: []string{"A", "B"},
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -134,7 +136,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -153,7 +155,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
 			workitem.SystemState:       workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -171,7 +173,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 			workitem.SystemTitle:       "Title",
 			workitem.SystemDescription: rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown),
 			workitem.SystemState:       workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
@@ -192,7 +194,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
-		}, s.creatorID)
+		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err)
 	// when
 	wi.Type = "feature"
@@ -243,7 +245,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, s.creatorID)
+			}, s.creatorID, spaceInstance.ID)
 		require.Nil(s.T(), err)
 	}
 	for i := 0; i < 2; i++ {
@@ -253,7 +255,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: iteration1.ID.String(),
-			}, s.creatorID)
+			}, s.creatorID, spaceInstance.ID)
 		require.Nil(s.T(), err)
 	}
 	// when

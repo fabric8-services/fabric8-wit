@@ -192,7 +192,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: itr.ID.String(),
-			}, uuid.NewV4())
+			}, uuid.NewV4(), itr.SpaceID)
 		require.NotNil(t, wi)
 		require.Nil(t, err)
 	}
@@ -203,7 +203,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: itr.ID.String(),
-			}, uuid.NewV4())
+			}, uuid.NewV4(), itr.SpaceID)
 		require.NotNil(t, wi)
 		require.Nil(t, err)
 	}

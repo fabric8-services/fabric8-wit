@@ -8,7 +8,9 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,11 +53,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 			Required: true,
 			Type:     &app.FieldType{Kind: string(workitem.KindFloat)},
 		},
-	})
+	}, space.SystemSpace)
 	assert.Nil(s.T(), err)
 	assert.NotNil(s.T(), wit)
 
-	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
+	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{}, space.SystemSpace)
 	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
 	assert.Nil(s.T(), wit3)
 
@@ -81,11 +83,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 				Kind:          string(workitem.KindList),
 			},
 		},
-	})
+	}, space.SystemSpace)
 	assert.Nil(s.T(), err)
 	assert.NotNil(s.T(), wit)
 
-	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{})
+	wit3, err := s.repo.Create(context.Background(), nil, "foo_bar", map[string]app.FieldDefinition{}, space.SystemSpace)
 	assert.IsType(s.T(), errors.BadParameterError{}, errs.Cause(err))
 	assert.Nil(s.T(), wit3)
 
@@ -111,10 +113,10 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 				Kind:          string(workitem.KindList),
 			},
 		},
-	})
+	}, space.SystemSpace)
 	assert.Nil(s.T(), err)
 	assert.NotNil(s.T(), baseWit)
-	extendedWit, err := s.repo.Create(context.Background(), &basetype, "foo.baz", map[string]app.FieldDefinition{})
+	extendedWit, err := s.repo.Create(context.Background(), &basetype, "foo.baz", map[string]app.FieldDefinition{}, space.SystemSpace)
 	assert.Nil(s.T(), err)
 	assert.NotNil(s.T(), extendedWit)
 	// the Field 'foo' must exist since it is inherited from the base work item type
@@ -123,7 +125,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 	basetype := "unknown"
-	extendedWit, err := s.repo.Create(context.Background(), &basetype, "foo.baz", map[string]app.FieldDefinition{})
+	extendedWit, err := s.repo.Create(context.Background(), &basetype, "foo.baz", map[string]app.FieldDefinition{}, space.SystemSpace)
 	// expect an error as the given base type does not exist
 	assert.NotNil(s.T(), err)
 	assert.Nil(s.T(), extendedWit)

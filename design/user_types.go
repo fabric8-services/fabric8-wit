@@ -35,6 +35,8 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {
 		a.Example(0)
 	})
+	a.Attribute("relationships", workItemRelationships)
+
 	a.Required("type", "fields", "version")
 })
 
@@ -61,6 +63,8 @@ var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
 		a.MinLength(1)
 		a.Pattern("^[\\p{L}.]+$")
 	})
+	a.Attribute("relationships", workItemTypeRelationships)
+
 	a.Required("name", "fields")
 })
 

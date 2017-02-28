@@ -5,8 +5,10 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
+
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 var _ WorkItemTypeRepository = &UndoableWorkItemTypeRepository{}
@@ -34,8 +36,8 @@ func (r *UndoableWorkItemTypeRepository) List(ctx context.Context, start *int, l
 }
 
 // Create implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
-	res, err := r.wrapped.Create(ctx, extendedTypeID, name, fields)
+func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition, spaceID uuid.UUID) (*app.WorkItemType, error) {
+	res, err := r.wrapped.Create(ctx, extendedTypeID, name, fields, spaceID)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
 			db = db.Unscoped().Delete(&WorkItemType{Name: name})

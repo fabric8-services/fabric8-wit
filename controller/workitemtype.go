@@ -47,7 +47,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		for key, fd := range ctx.Payload.Fields {
 			fields[key] = *fd
 		}
-		wit, err := appl.WorkItemTypes().Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields)
+		wit, err := appl.WorkItemTypes().Create(ctx.Context, ctx.Payload.ExtendedTypeName, ctx.Payload.Name, fields, *ctx.Payload.Relationships.Space.Data.ID)
 
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
