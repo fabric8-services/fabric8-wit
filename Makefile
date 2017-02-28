@@ -44,7 +44,7 @@ PACKAGE_NAME := github.com/almighty/almighty-core
 CLEAN_TARGETS =
 
 # Pass in build time variables to main
-LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
+LDFLAGS=-ldflags "-X ${PACKAGE_NAME}/controller.Commit=${COMMIT} -X ${PACKAGE_NAME}/controller.BuildTime=${BUILD_TIME}"
 
 # Call this function with $(call log-info,"Your message")
 define log-info =
