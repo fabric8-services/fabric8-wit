@@ -47,11 +47,11 @@ func (test *TestAreaRepository) TestCreateArea() {
 
 	name := "Area 21"
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	i := area.Area{
 		Name:    name,
@@ -78,11 +78,11 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 	repo := area.NewAreaRepository(test.DB)
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	name := "Area #24"
 	name2 := "Area #24.1"
@@ -120,11 +120,11 @@ func (test *TestAreaRepository) TestListAreaBySpace() {
 	repo := area.NewAreaRepository(test.DB)
 
 	newSpace := space.Space{
-		Name: "Space #1",
+		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space1, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	var createdAreaIds []uuid.UUID
 	for i := 0; i < 3; i++ {
@@ -141,9 +141,11 @@ func (test *TestAreaRepository) TestListAreaBySpace() {
 	}
 
 	newSpace2 := space.Space{
-		Name: "Space #2",
+		Name: uuid.NewV4().String(),
 	}
 	space2, err := repoSpace.Create(context.Background(), &newSpace2)
+	require.Nil(t, err)
+
 	err = repo.Create(context.Background(), &area.Area{
 		Name:    "Other Test area #20",
 		SpaceID: space2.ID,
@@ -180,11 +182,11 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	var createdAreaIDs []uuid.UUID
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// *** Create Parent Area ***
 	i := area.Area{
@@ -254,11 +256,11 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	name3 := "Area #240.1.3"
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	// *** Create Parent Area ***
 
@@ -319,11 +321,11 @@ func (test *TestAreaRepository) TestListParentTree() {
 	name2 := "Area #240.1"
 
 	newSpace := space.Space{
-		Name: "Space 1",
+		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
+	require.Nil(t, err)
 	// *** Create Parent Area ***
 	i := area.Area{
 		Name:    name,
