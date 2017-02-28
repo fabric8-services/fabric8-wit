@@ -71,20 +71,20 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 		return errs.WithStack(err)
 	}
 	// Fetch the concrete work item types of the target and the source.
-	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, source.Type)
+	sourceWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, source.TypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, target.Type)
+	targetWorkItemType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, target.TypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	// Check type paths
 	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeID) {
-		return errors.NewBadParameterError("source work item type", source.Type)
+		return errors.NewBadParameterError("source work item type", source.TypeID)
 	}
 	if !targetWorkItemType.IsTypeOrSubtypeOf(linkType.TargetTypeID) {
-		return errors.NewBadParameterError("target work item type", target.Type)
+		return errors.NewBadParameterError("target work item type", target.TypeID)
 	}
 	return nil
 }

@@ -64,7 +64,7 @@ func lookupIdentities(db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType s
 	identityRepository := account.NewIdentityRepository(db)
 	workItem := app.WorkItem{
 		ID:     remoteWorkItem.ID,
-		Type:   remoteWorkItem.Type,
+		TypeID: remoteWorkItem.Type,
 		Fields: make(map[string]interface{}),
 	}
 	// copy all fields from remoteworkitem into result workitem

@@ -150,7 +150,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
+		TypeID:  workItem.TypeID,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{}}
 

@@ -67,7 +67,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	wiType, err := r.wir.LoadTypeFromDB(ctx, res.Type)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, res.TypeID)
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -124,13 +124,13 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
-	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
+	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.TypeID)
 	if err != nil {
-		return nil, errors.NewBadParameterError("Type", wi.Type)
+		return nil, errors.NewBadParameterError("TypeID", wi.TypeID)
 	}
 
 	res.Version = res.Version + 1
-	res.Type = wi.Type
+	res.TypeID = wi.TypeID
 	res.Fields = Fields{}
 
 	for fieldName, fieldDef := range wiType.Fields {
@@ -170,7 +170,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 		return nil, errors.NewBadParameterError("type", typeID)
 	}
 	wi := WorkItem{
-		Type:   typeID,
+		TypeID: typeID,
 		Fields: Fields{},
 	}
 	fields[SystemCreator] = creator.String()
@@ -305,7 +305,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	}
 	res := make([]*app.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.TypeID)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}

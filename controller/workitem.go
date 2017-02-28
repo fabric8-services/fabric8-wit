@@ -103,12 +103,12 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		}
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
-		oldType := wi.Type
+		oldTypeID := wi.TypeID
 		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		wi.Type = oldType
+		wi.TypeID = oldTypeID
 		wi, err = appl.WorkItems().Save(ctx, *wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
@@ -254,7 +254,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 	}
 	if source.Relationships != nil && source.Relationships.BaseType != nil {
 		if source.Relationships.BaseType.Data != nil {
-			target.Type = source.Relationships.BaseType.Data.ID
+			target.TypeID = source.Relationships.BaseType.Data.ID
 		}
 	}
 
@@ -307,8 +307,8 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
 	// construct default values from input WI
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
-	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
-	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.TypeID)+sourceLinkTypesRouteEnd)
+	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.TypeID)+targetLinkTypesRouteEnd)
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -318,7 +318,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 		Relationships: &app.WorkItemRelationships{
 			BaseType: &app.RelationBaseType{
 				Data: &app.BaseTypeData{
-					ID:   wi.Type,
+					ID:   wi.TypeID,
 					Type: APIStringTypeWorkItemType,
 				},
 			},
