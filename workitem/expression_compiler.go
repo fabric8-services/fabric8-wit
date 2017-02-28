@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/almighty/almighty-core/criteria"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -41,7 +42,7 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 // does the field name reference a json field or a column?
 func isJSONField(fieldName string) bool {
 	switch fieldName {
-	case "ID", "Type", "Version":
+	case "ID", "TypeID", "Version":
 		return false
 	}
 	return true
@@ -161,6 +162,8 @@ func (c *expressionCompiler) convertToString(value interface{}) (string, error) 
 		result = "\"" + t + "\""
 	case bool:
 		result = strconv.FormatBool(t)
+	case uuid.UUID:
+		result = t.String()
 	default:
 		return "", fmt.Errorf("unknown value type of %v: %T", value, value)
 	}

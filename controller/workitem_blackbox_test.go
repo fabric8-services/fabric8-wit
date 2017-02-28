@@ -1203,8 +1203,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	witBug := workitem.SystemBug
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &witBug, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
