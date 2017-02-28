@@ -1,9 +1,12 @@
 package migration
 
 import (
+	"bufio"
+	"bytes"
 	"database/sql"
 	"net/http"
 	"net/url"
+	"text/template"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
@@ -201,7 +204,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("032-add-foreign-key-space-id.sql")})
 
 	// Version 33
-	m = append(m, steps{executeSQLFile("033-add-space-id-wilt.sql")})
+	m = append(m, steps{executeSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
 
 	// Version N
 	//
@@ -231,14 +234,33 @@ func getMigrations() migrations {
 }
 
 // executeSQLFile loads the given filename from the packaged SQL files and
-// executes it on the given database
-func executeSQLFile(filename string) fn {
+// executes it on the given database. Golang text/template module is used
+// to handle all the optional arguments passed to the sql files
+func executeSQLFile(filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
 			return errs.WithStack(err)
 		}
-		_, err = db.Exec(string(data))
+
+		if len(args) > 0 {
+			tmpl, err := template.New("sql").Parse(string(data))
+			if err != nil {
+				return errs.WithStack(err)
+			}
+			var sqlScript bytes.Buffer
+			writer := bufio.NewWriter(&sqlScript)
+			err = tmpl.Execute(writer, args)
+			if err != nil {
+				return errs.WithStack(err)
+			}
+			// We need to flush the content of the writer
+			writer.Flush()
+			_, err = db.Exec(sqlScript.String())
+		} else {
+			_, err = db.Exec(string(data))
+		}
+
 		return errs.WithStack(err)
 	}
 }
