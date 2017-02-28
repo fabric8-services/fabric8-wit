@@ -211,6 +211,12 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 	}
 
 	if len(identities) == 0 {
+		// TODO REMOVE THIS WORKAROUND
+		// ----------------- BEGIN WORKAROUND -----------------
+		// This is not what actaully should happen.
+		// This is a workaround for Keyclaok and DB unsynchronization.
+		// The old identity will be removed. The new one with proper ID will be created.
+		// All links to the old identities (in Work Items for example) will still point to the deleted identity.
 		// No Idenity with the keycloak user ID is found, try to search by the username
 		identities, err = keycloak.Identities.Query(account.IdentityFilterByUsername(claims.Username), account.IdentityWithUser())
 		if err != nil {
@@ -223,10 +229,6 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		if len(identities) != 0 {
 			idn := identities[0]
 			if idn.ProviderType == account.KeycloakIDP {
-				// This is not what actaully should happen.
-				// This is a workaround for Keyclaok and DB unsynchronization.
-				// The old identity will be removed. The new one with proper ID will be created.
-				// All links to the old identities (in Work Items for example) will still point to the deleted identity.
 				log.Warn(ctx, map[string]interface{}{
 					"keycloakIdentityID":       keycloakIdentityID,
 					"coreIdentityID":           idn.ID,
@@ -265,6 +267,7 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 				identities = []*account.Identity{}
 			}
 		}
+		// ----------------- END WORKAROUND -----------------
 	}
 
 	if len(identities) == 0 {
