@@ -12,7 +12,7 @@ import (
 
 var reqLong *goa.RequestData
 var reqShort *goa.RequestData
-var isConfigurationSet bool
+var config *ConfigurationData
 
 func init() {
 
@@ -27,7 +27,9 @@ func init() {
 }
 
 func resetConfiguration() {
-	if err := Setup(""); err != nil {
+	var err error
+	config, err = GetConfigurationData()
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 }
@@ -36,7 +38,7 @@ func TestOpenIDConnectPathOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
-	path := openIDConnectPath("somesufix")
+	path := config.openIDConnectPath("somesufix")
 	assert.Equal(t, "auth/realms/fabric8/protocol/openid-connect/somesufix", path)
 }
 
@@ -44,11 +46,11 @@ func TestGetKeycloakURLOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
-	url, err := getKeycloakURL(reqLong, "somepath")
+	url, err := config.getKeycloakURL(reqLong, "somepath")
 	assert.Nil(t, err)
 	assert.Equal(t, "http://sso.service.domain.org/somepath", url)
 
-	url, err = getKeycloakURL(reqShort, "somepath2")
+	url, err = config.getKeycloakURL(reqShort, "somepath2")
 	assert.Nil(t, err)
 	assert.Equal(t, "http://sso.domain.org/somepath2", url)
 }
@@ -60,7 +62,7 @@ func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "org"},
 	}
-	_, err := getKeycloakURL(r, "somepath")
+	_, err := config.getKeycloakURL(r, "somepath")
 	assert.NotNil(t, err)
 }
 
@@ -76,7 +78,7 @@ func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
 		Request: &http.Request{Host: "demo.api.almighty.io"},
 	}
 
-	url, err := getKeycloakURL(r, "somepath3")
+	url, err := config.getKeycloakURL(r, "somepath3")
 	assert.Nil(t, err)
 	assert.Equal(t, "http://sso.demo.almighty.io/somepath3", url)
 }

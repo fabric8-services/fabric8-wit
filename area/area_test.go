@@ -11,8 +11,9 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -45,10 +46,16 @@ func (test *TestAreaRepository) TestCreateArea() {
 	repo := area.NewAreaRepository(test.DB)
 
 	name := "Area 21"
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
 
 	i := area.Area{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 	}
 
 	repo.Create(context.Background(), &i)
@@ -70,21 +77,28 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 
 	repo := area.NewAreaRepository(test.DB)
 
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
+
 	name := "Area #24"
 	name2 := "Area #24.1"
 
 	i := area.Area{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 	}
-	err := repo.Create(context.Background(), &i)
+	err = repo.Create(context.Background(), &i)
 	assert.Nil(t, err)
 
 	// ltree field doesnt accept "-" , so we will save them as "_"
 	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
 	area2 := area.Area{
 		Name:    name2,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
@@ -105,7 +119,12 @@ func (test *TestAreaRepository) TestListAreaBySpace() {
 
 	repo := area.NewAreaRepository(test.DB)
 
-	spaceID := uuid.NewV4()
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space1, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
 
 	var createdAreaIds []uuid.UUID
 	for i := 0; i < 3; i++ {
@@ -113,20 +132,27 @@ func (test *TestAreaRepository) TestListAreaBySpace() {
 
 		a := area.Area{
 			Name:    name,
-			SpaceID: spaceID,
+			SpaceID: space1.ID,
 		}
 		err := repo.Create(context.Background(), &a)
 		assert.Equal(t, nil, err)
 		createdAreaIds = append(createdAreaIds, a.ID)
 		t.Log(a.ID)
 	}
-	err := repo.Create(context.Background(), &area.Area{
+
+	newSpace2 := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	space2, err := repoSpace.Create(context.Background(), &newSpace2)
+	require.Nil(t, err)
+
+	err = repo.Create(context.Background(), &area.Area{
 		Name:    "Other Test area #20",
-		SpaceID: uuid.NewV4(),
+		SpaceID: space2.ID,
 	})
 	assert.Equal(t, nil, err)
 
-	its, err := repo.List(context.Background(), spaceID)
+	its, err := repo.List(context.Background(), space1.ID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 
@@ -154,13 +180,20 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	name2 := "Area #240.1"
 	name3 := "Area #240.2"
 	var createdAreaIDs []uuid.UUID
-	// *** Create Parent Area ***
 
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
+
+	// *** Create Parent Area ***
 	i := area.Area{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 	}
-	err := repo.Create(context.Background(), &i)
+	err = repo.Create(context.Background(), &i)
 	require.Nil(t, err)
 
 	// *** Create 1st child area ***
@@ -169,7 +202,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
 	area2 := area.Area{
 		Name:    name2,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
@@ -187,7 +220,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	expectedPath = strings.Replace((i.ID).String(), "-", "_", -1)
 	area3 := area.Area{
 		Name:    name3,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area3)
@@ -222,13 +255,20 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	name2 := "Area #240.1"
 	name3 := "Area #240.1.3"
 
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
+
 	// *** Create Parent Area ***
 
 	i := area.Area{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 	}
-	err := repo.Create(context.Background(), &i)
+	err = repo.Create(context.Background(), &i)
 	assert.Nil(t, err)
 
 	// *** Create 'son' area ***
@@ -236,7 +276,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
 	area2 := area.Area{
 		Name:    name2,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
@@ -251,7 +291,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 	expectedPath = strings.Replace((i.ID).String()+"."+(area2.ID.String()), "-", "_", -1)
 	area4 := area.Area{
 		Name:    name3,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area4)
@@ -280,13 +320,18 @@ func (test *TestAreaRepository) TestListParentTree() {
 	name := "Area #240"
 	name2 := "Area #240.1"
 
+	newSpace := space.Space{
+		Name: uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
 	// *** Create Parent Area ***
-
 	i := area.Area{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: newSpace.ID,
 	}
-	err := repo.Create(context.Background(), &i)
+	err = repo.Create(context.Background(), &i)
 	assert.Nil(t, err)
 
 	// *** Create 'son' area ***
@@ -294,7 +339,7 @@ func (test *TestAreaRepository) TestListParentTree() {
 	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
 	area2 := area.Area{
 		Name:    name2,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
