@@ -206,9 +206,69 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		log.Error(ctx, map[string]interface{}{
 			"keycloakIdentityID": keycloakIdentityID,
 			"err":                err,
-		}, "unable to  query for an identity")
-		return nil, nil, errors.New("Error during querying for an identity " + err.Error())
+		}, "unable to  query for an identity by ID")
+		return nil, nil, errors.New("Error during querying for an identity by ID " + err.Error())
 	}
+
+	// TODO REMOVE THIS WORKAROUND
+	// ----------------- BEGIN WORKAROUND -----------------
+	if len(identities) == 0 {
+		// This is not what actaully should happen.
+		// This is a workaround for Keyclaok and DB unsynchronization.
+		// The old identity will be removed. The new one with proper ID will be created.
+		// All links to the old identities (in Work Items for example) will still point to the deleted identity.
+		// No Idenity with the keycloak user ID is found, try to search by the username
+		identities, err = keycloak.Identities.Query(account.IdentityFilterByUsername(claims.Username), account.IdentityWithUser())
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"keycloakIdentityUsername": claims.Username,
+				"err": err,
+			}, "unable to  query for an identity by username")
+			return nil, nil, errors.New("Error during querying for an identity by username " + err.Error())
+		}
+		if len(identities) != 0 {
+			idn := identities[0]
+			if idn.ProviderType == account.KeycloakIDP {
+				log.Warn(ctx, map[string]interface{}{
+					"keycloakIdentityID":       keycloakIdentityID,
+					"coreIdentityID":           idn.ID,
+					"keycloakIdentityUsername": claims.Username,
+				}, "the identity ID fetched from Keycloak and the identity ID from the core DB for the same username don't match. The identity will be re-created.")
+
+				err = application.Transactional(keycloak.db, func(appl application.Application) error {
+					user = &idn.User
+					identity = &account.Identity{
+						ID:           keycloakIdentityID,
+						Username:     claims.Username,
+						ProviderType: account.KeycloakIDP,
+						UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+						User:         *user}
+					err := appl.Identities().Delete(ctx, idn.ID)
+					if err != nil {
+						return err
+					}
+					err = appl.Identities().Create(ctx, identity)
+					return err
+				})
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"keycloakIdentityID":       keycloakIdentityID,
+						"coreIdentityID":           idn.ID,
+						"keycloakIdentityUsername": claims.Username,
+						"err": err,
+					}, "unable to update identity")
+					return nil, nil, errors.New("Cant' create user/identity " + err.Error())
+				}
+				identities[0] = identity
+			} else {
+				// The found identity is not a KC identity, ignore it
+				// TODO we also should make sure that the email used by this Identity is not the same.
+				// It may happen if the found identity was imported from a remote issue tracker and has the same email
+				identities = []*account.Identity{}
+			}
+		}
+	}
+	// ----------------- END WORKAROUND -----------------
 
 	if len(identities) == 0 {
 		// No Idenity found, create a new Identity and User

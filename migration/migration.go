@@ -190,8 +190,11 @@ func getMigrations() migrations {
 	// Version 31
 	m = append(m, steps{executeSQLFile("031-iterations-parent-path-ltree.sql")})
 
-	// version 29
-	m = append(m, steps{executeSQLFile("029-adds-order-to-existing-wi.sql")})
+	// Version 32
+	m = append(m, steps{executeSQLFile("032-add-foreign-key-space-id.sql")})
+
+	// version 33
+	m = append(m, steps{executeSQLFile("033-adds-order-to-existing-wi.sql")})
 
 	// Version N
 	//
