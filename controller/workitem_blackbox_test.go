@@ -130,17 +130,31 @@ func TestReorderWorkItem(t *testing.T) {
 	_, result5 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result5.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
-	var dataArray []*app.WorkItem2
+
+	// This case reorders two workitems -> result2 and result3 and places them above result1
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result2.Data, result3.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result1.Data.ID
+	payload2.Position.ID = *result1.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) have to be places
 	payload2.Position.Direction = above
-	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2)
-	require.Len(t, reordered1.Data, 2)
+
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which have reordered
+
+	require.Len(t, reordered1.Data, 2) // checks the correct number of workitems reordered
+
 	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
 	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
+
 	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
 	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
+
+	// Return error if order of reordered workitem is greater than the workitem position.id
+	if (reordered1.Data[0].Attributes["order"].(float64) > result1.Data.Attributes["order"].(float64)) || reordered1.Data[1].Attributes["order"].(float64) > result1.Data.Attributes["order"].(float64) {
+		t.Error("Reorder incorrect1111")
+	}
+
+	// This case reorders one workitem -> result4 and placed it below result5
 
 	// clear the dataArray
 	dataArray = dataArray[:0]
@@ -153,6 +167,11 @@ func TestReorderWorkItem(t *testing.T) {
 	require.Len(t, reordered2.Data, 1)
 	assert.Equal(t, result4.Data.Attributes["version"].(int)+1, reordered2.Data[0].Attributes["version"])
 	assert.Equal(t, *result4.Data.ID, *reordered2.Data[0].ID)
+
+	// Return error if order of reordered workitem is less than the workitem position.id
+	if reordered2.Data[0].Attributes["order"].(float64) < result4.Data.Attributes["order"].(float64) {
+		t.Error("Reorder incorrect")
+	}
 }
 
 func TestCreateWI(t *testing.T) {

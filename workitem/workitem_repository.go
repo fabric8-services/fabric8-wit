@@ -122,8 +122,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
 
 // Calculates the order of the to-reorder workitem
 func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
-	itemOrder := (*above + *below) / 2
-	return itemOrder
+	return (*above + *below) / 2
 }
 
 // Reordering a workitem requires order of two closest workitems: above and below.
@@ -136,39 +135,28 @@ func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 //      FindSecondItem returns the value above which reorder item has to be placed
 func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem string, WorkItemId string) (*string, *float64, error) {
 	Item := WorkItem{}
+	var tx *gorm.DB
 	switch secondItem {
 	case below:
 		// Finds the item below which reorder item has to be placed
-		tx := r.db.Where("executionorder < ?", order).Order("executionorder desc", true).Last(&Item)
-		if Item.ID == 0 {
-			// Item is placed at first position
-			ItemId := strconv.FormatUint(Item.ID, 10)
-			return &ItemId, &Item.Executionorder, nil
-		} else if tx.Error != nil {
-			return nil, nil, tx.Error
-		} else if tx.RecordNotFound() {
-			return nil, nil, tx.Error
-		} else {
-			ItemId := strconv.FormatUint(Item.ID, 10)
-			return &ItemId, &Item.Executionorder, nil
-		}
+		tx = r.db.Where("executionorder < ?", order).Order("executionorder desc", true).Last(&Item)
 	case above:
 		// Finds the item above which reorder item has to be placed
-		tx := r.db.Where("executionorder > ?", order).Order("executionorder", true).Last(&Item)
-		if Item.ID == 0 {
-			// Item is placed at last position
-			ItemId := strconv.FormatUint(Item.ID, 10)
-			return &ItemId, &Item.Executionorder, nil
-		} else if tx.Error != nil {
-			return nil, nil, tx.Error
-		} else if tx.RecordNotFound() {
-			return nil, nil, tx.Error
-		} else {
-			ItemId := strconv.FormatUint(Item.ID, 10)
-			return &ItemId, &Item.Executionorder, nil
-		}
+		tx = r.db.Where("executionorder > ?", order).Order("executionorder", true).Last(&Item)
 	default:
 		return nil, nil, nil
+	}
+	if Item.ID == 0 {
+		// Item is placed at first position
+		ItemId := strconv.FormatUint(Item.ID, 10)
+		return &ItemId, &Item.Executionorder, nil
+	} else if tx.Error != nil {
+		return nil, nil, tx.Error
+	} else if tx.RecordNotFound() {
+		return nil, nil, tx.Error
+	} else {
+		ItemId := strconv.FormatUint(Item.ID, 10)
+		return &ItemId, &Item.Executionorder, nil
 	}
 }
 
@@ -233,7 +221,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, position *app.Work
 			// Item is placed at first position
 			belowItemOrder := float64(0)
 			order = r.CalculateOrder(aboveItemOrder, &belowItemOrder)
-		} else if *belowItemId == string(res.ID) {
+		} else if *belowItemId == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
 			return &wi, nil
 		} else {
