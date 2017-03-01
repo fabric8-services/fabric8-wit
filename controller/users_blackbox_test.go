@@ -81,10 +81,9 @@ func createRandomIdentity(user account.User) account.Identity {
 	identity := account.Identity{
 		Username:     "TestUpdateUserIntegration123" + uuid.NewV4().String(),
 		ProviderType: account.KeycloakIDP,
-		//	ID:           uuid.NewV4(),
-		User:       user,
-		UserID:     account.NullUUID{UUID: user.ID, Valid: true},
-		ProfileURL: &profile,
+		User:         user,
+		UserID:       account.NullUUID{UUID: user.ID, Valid: true},
+		ProfileURL:   &profile,
 	}
 	return identity
 }
@@ -266,7 +265,7 @@ func assertUser(t *testing.T, actual *app.IdentityData, expectedUser account.Use
 	assert.Equal(t, expectedUser.Email, *actual.Attributes.Email)
 }
 
-func createUpdateUsersPayload(email *string, fullName *string, bio *string, imageURL *string, profileURL *string) *app.UpdateUsersPayload {
+func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL *string) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
