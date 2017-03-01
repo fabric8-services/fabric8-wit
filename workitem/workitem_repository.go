@@ -154,10 +154,11 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem strin
 		return nil, nil, tx.Error
 	} else if tx.RecordNotFound() {
 		return nil, nil, tx.Error
-	} else {
-		ItemId := strconv.FormatUint(Item.ID, 10)
-		return &ItemId, &Item.Executionorder, nil
 	}
+
+	ItemId := strconv.FormatUint(Item.ID, 10)
+	return &ItemId, &Item.Executionorder, nil
+
 }
 
 // FindFirstItem returns the order of the workitem whose id is specified in request payload as position.ID
