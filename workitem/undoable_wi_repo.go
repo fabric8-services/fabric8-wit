@@ -120,11 +120,6 @@ func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria
 	return r.wrapped.List(ctx, criteria, start, length)
 }
 
-// ListChildren implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) ListChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
-	return r.wrapped.ListChildren(ctx, parent)
-}
-
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
 func (r *UndoableWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
 	return r.wrapped.Fetch(ctx, criteria)

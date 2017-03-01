@@ -253,10 +253,6 @@ func (fake *WorkItemRepository) List(ctx context.Context, c criteria.Expression,
 	return fake.listReturns.result1, fake.listReturns.result2, fake.listReturns.result3
 }
 
-func (fake *WorkItemRepository) ListChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
-	return nil, nil
-}
-
 func (fake *WorkItemRepository) ListCallCount() int {
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()

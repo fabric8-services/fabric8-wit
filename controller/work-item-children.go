@@ -25,7 +25,7 @@ func (c *WorkItemChildrenController) List(ctx *app.ListWorkItemChildrenContext) 
 
 	// Put your logic here
 	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.WorkItems().ListChildren(ctx, ctx.ID)
+		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
