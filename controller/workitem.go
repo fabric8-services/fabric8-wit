@@ -134,12 +134,12 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 		for i := 0; i < len(ctx.Payload.Data); i++ {
 			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Failed to reorder work item"))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 
 			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Failed to reorder work item"))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 			wi, err = appl.WorkItems().Reorder(ctx, ctx.Payload.Position, *wi)
 			if err != nil {
