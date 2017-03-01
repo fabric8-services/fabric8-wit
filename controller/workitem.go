@@ -72,6 +72,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*area))))
 		additionalQuery = append(additionalQuery, "filter[area]="+*area)
 	}
+
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
 		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
@@ -85,6 +86,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
+		addFilterLinks(response.Links, ctx.RequestData)
 		return ctx.OK(&response)
 	})
 }

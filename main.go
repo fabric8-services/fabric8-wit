@@ -26,12 +26,12 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/client"
 	goalogrus "github.com/goadesign/goa/logging/logrus"
 	"github.com/goadesign/goa/middleware"
 	"github.com/goadesign/goa/middleware/gzip"
@@ -124,9 +124,7 @@ func main() {
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if configuration.GetPopulateCommonTypes() {
-		// set a random request ID for the context
-		ctx, req_id := client.ContextWithRequestID(context.Background())
-		log.Debug(ctx, nil, "Initializing the population of the database... Request ID: %v", req_id)
+		ctx := migration.NewMigrationContext(context.Background())
 
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -136,7 +134,7 @@ func main() {
 			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
 				"err": err,
@@ -278,6 +276,9 @@ func main() {
 
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
+
+	filterCtrl := controller.NewFilterController(service)
+	app.MountFilterController(service, filterCtrl)
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)

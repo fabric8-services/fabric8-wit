@@ -5,6 +5,9 @@ import (
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/rest"
+
+	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -58,6 +61,8 @@ type WorkItemLinkType struct {
 	ReverseName string
 
 	LinkCategoryID satoriuuid.UUID
+	// Reference to one Space
+	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -103,6 +108,9 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !satoriuuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
 		return false
 	}
+	if !satoriuuid.Equal(t.SpaceID, other.SpaceID) {
+		return false
+	}
 	return true
 }
 
@@ -130,6 +138,9 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.LinkCategoryID == satoriuuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
+	if t.SpaceID == satoriuuid.Nil {
+		return errors.NewBadParameterError("space_id", t.SpaceID)
+	}
 	return nil
 }
 
@@ -148,7 +159,10 @@ func CheckValidTopology(t string) error {
 }
 
 // ConvertLinkTypeFromModel converts a work item link type from model to REST representation
-func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
+func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.WorkItemLinkTypeSingle {
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
+
 	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
 			Type: EndpointWorkItemLinkTypes,
@@ -178,6 +192,15 @@ func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 					Data: &app.RelationWorkItemTypeData{
 						Type: EndpointWorkItemTypes,
 						ID:   t.TargetTypeName,
+					},
+				},
+				Space: &app.RelationSpaces{
+					Data: &app.RelationSpacesData{
+						Type: &spaceType,
+						ID:   &t.SpaceID,
+					},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
 					},
 				},
 			},
@@ -267,6 +290,10 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 			return errors.NewBadParameterError("data.relationships.target_type.data.id", d.ID)
 		}
 		out.TargetTypeName = d.ID
+	}
+
+	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
+		out.SpaceID = *rel.Space.Data.ID
 	}
 
 	return nil

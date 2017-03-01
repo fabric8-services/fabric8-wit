@@ -31,6 +31,7 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
 		LinkCategoryID: satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
+		SpaceID:        satoriuuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
 	// Test equality
@@ -96,6 +97,11 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 	b = a
 	b.LinkCategoryID = satoriuuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0c4bd573eCCC")
 	require.False(t, a.Equal(b))
+
+	// Test SpaceID
+	b = a
+	b.SpaceID = satoriuuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0v5ce684dBBB")
+	require.False(t, a.Equal(b))
 }
 
 func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
@@ -114,6 +120,7 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
 		LinkCategoryID: satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
+		SpaceID:        satoriuuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
 	// Check valid
@@ -153,5 +160,10 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	// Check empty LinkCategoryID
 	b = a
 	b.LinkCategoryID = satoriuuid.Nil
+	require.NotNil(t, b.CheckValidForCreation())
+
+	// Check empty SpaceID
+	b = a
+	b.SpaceID = satoriuuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 }

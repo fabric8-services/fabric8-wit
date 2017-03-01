@@ -4,15 +4,22 @@ import (
 	"bufio"
 	"bytes"
 	"database/sql"
+	"net/http"
+	"net/url"
 	"text/template"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+
+	"github.com/goadesign/goa"
+	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -57,7 +64,7 @@ func Migrate(db *sql.DB) error {
 				"nextVersion": nextVersion,
 				"migrations":  m,
 				"err":         err,
-			}, "Rolling back transaction due to: ", err)
+			}, "Rolling back transaction due to: %v", err)
 
 			if err = tx.Rollback(); err != nil {
 				log.Error(nil, map[string]interface{}{
@@ -74,7 +81,7 @@ func Migrate(db *sql.DB) error {
 			log.Error(nil, map[string]interface{}{
 				"migrations": m,
 				"err":        err,
-			}, "error during transaction commit: ", err)
+			}, "error during transaction commit: %v", err)
 			return errs.Errorf("Error during transaction commit: %s\n", err)
 		}
 
@@ -84,7 +91,7 @@ func Migrate(db *sql.DB) error {
 		log.Error(nil, map[string]interface{}{
 			"migrations": m,
 			"err":        err,
-		}, "migration failed with error: ", err)
+		}, "migration failed with error: %v", err)
 		return errs.Errorf("Migration failed with error: %s\n", err)
 	}
 
@@ -196,9 +203,11 @@ func getMigrations() migrations {
 	// Version 32
 	m = append(m, steps{executeSQLFile("032-add-foreign-key-space-id.sql")})
 
-	// version 33
-	m = append(m, steps{executeSQLFile("033-adds-order-to-existing-wi.sql")})
+	// Version 33
+	m = append(m, steps{executeSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
 
+	// version 34
+	m = append(m, steps{executeSQLFile("034-adds-order-to-existing-wi.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -288,7 +297,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	log.Info(nil, map[string]interface{}{
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
-	}, "Attempt to update DB to version ", *nextVersion)
+	}, "Attempt to update DB to version %v", *nextVersion)
 
 	// Apply all the updates of the next version
 	for j := range m[*nextVersion] {
@@ -304,7 +313,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	log.Info(nil, map[string]interface{}{
 		"nextVersion":    *nextVersion,
 		"currentVersion": currentVersion,
-	}, "Successfully updated DB to version ", *nextVersion)
+	}, "Successfully updated DB to version %v", *nextVersion)
 
 	return nil
 }
@@ -338,18 +347,37 @@ func getCurrentVersion(db *sql.Tx) (int64, error) {
 	return current, nil
 }
 
+// NewMigrationContext aims to create a new goa context where to initialize the
+// request and req_id context keys.
+// NOTE: We need this function to initialize the goa.ContextRequest
+func NewMigrationContext(ctx context.Context) context.Context {
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx = goa.NewContext(ctx, nil, req, params)
+	// set a random request ID for the context
+	var req_id string
+	ctx, req_id = client.ContextWithRequestID(ctx)
+
+	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", req_id)
+
+	return ctx
+}
+
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
-func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
+		return errs.WithStack(err)
+	}
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
 		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
 	return nil
@@ -377,8 +405,40 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string) error {
+func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id satoriuuid.UUID, description string) error {
+	spa, err := spaceRepo.Load(ctx, id)
+	cause := errs.Cause(err)
+	space := &space.Space{
+		Description: description,
+		Name:        "system.space",
+		ID:          id,
+	}
+	switch cause.(type) {
+	case errors.NotFoundError:
+		_, err := spaceRepo.Create(ctx, space)
+		if err != nil {
+			return errs.WithStack(err)
+		}
+	case nil:
+		log.Info(ctx, map[string]interface{}{
+			"pkg":     "migration",
+			"spaceID": id,
+		}, "space %s exists, will update/overwrite the description", id)
+
+		spa.Description = description
+		_, err = spaceRepo.Save(ctx, spa)
+		return errs.WithStack(err)
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName, sourceTypeName, targetTypeName, linkCatName string, spaceId satoriuuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+
+	space, err := spaceRepo.Load(ctx, spaceId)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -393,12 +453,13 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		SourceTypeName: sourceTypeName,
 		TargetTypeName: targetTypeName,
 		LinkCategoryID: cat.ID,
+		SpaceID:        space.ID,
 	}
 
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID)
+		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeName, lt.TargetTypeName, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID, lt.SpaceID)
 		if err != nil {
 			return errs.WithStack(err)
 		}
@@ -409,7 +470,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 
 		lt.ID = linkType.ID
 		lt.Version = linkType.Version
-		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(lt))
+
+		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(goa.ContextRequest(ctx), lt))
 		return errs.WithStack(err)
 	}
 	return nil
