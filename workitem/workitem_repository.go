@@ -251,7 +251,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, position *app.Work
 	default:
 		return &wi, nil
 	}
-	fmt.Println(order)
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = wi.Fields
