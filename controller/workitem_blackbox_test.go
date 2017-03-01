@@ -138,10 +138,10 @@ func TestSuccessReorder(t *testing.T) {
 	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result2.Data, result3.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result1.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) have to be places
+	payload2.Position.ID = *result1.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = above
 
-	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which have reordered
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(t, reordered1.Data, 2) // checks the correct number of workitems reordered
 
