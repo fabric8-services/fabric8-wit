@@ -27,7 +27,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 			Description: "Filter by assignee",
 			Type:        "users",
 		},
-		Type: "Filters",
+		Type: "filters",
 	},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
@@ -36,7 +36,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Description: "Filter by area",
 				Type:        "areas",
 			},
-			Type: "Filters",
+			Type: "filters",
 		},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
@@ -45,7 +45,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Description: "Filter by iteration",
 				Type:        "iterations",
 			},
-			Type: "Filters",
+			Type: "filters",
 		},
 		&app.Filters{
 			Attributes: &app.FilterAttributes{
@@ -54,7 +54,7 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 				Description: "Filter by workitemtype",
 				Type:        "workitemtypes",
 			},
-			Type: "Filters",
+			Type: "filters",
 		},
 	)
 	result := &app.FilterList{
@@ -65,6 +65,6 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 }
 
 func addFilterLinks(links *app.PagingLinks, path string) {
-	filter := fmt.Sprintf("%s?", path)
+	filter := fmt.Sprintf("/api/filters")
 	links.Filters = &filter
 }

@@ -19,19 +19,16 @@ var filterAttributes = a.Type("filterAttributes", func() {
 	a.Attribute("title", d.String, "The Filter name", func() {
 		a.Example("Assignee")
 	})
-	a.Required("title")
 	a.Attribute("description", d.String, "When the filter was created", func() {
 		a.Example("Filter by assignee")
 	})
-	a.Required("description")
 	a.Attribute("query", d.String, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example("filter[assignee]={id}")
 	})
-	a.Required("query")
 	a.Attribute("type", d.String, "Path to the topmost parent", func() {
 		a.Example("users")
 	})
-	a.Required("type")
+	a.Required("type", "title", "description", "query")
 })
 
 var filterList = JSONList(
