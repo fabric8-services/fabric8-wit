@@ -203,7 +203,7 @@ func TestFailReorderMissingReorderItem(t *testing.T) {
 }
 
 // TestFailReorderMissingPosition is negative test which tests unsuccessful reorder by providing invalid input
-func TestFailReorderMissingPosition(t *testing.T) {
+func TestFailReorderWorkItemNotFound(t *testing.T) {
 	resource.Require(t, resource.Database)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
