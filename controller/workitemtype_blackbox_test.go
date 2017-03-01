@@ -157,7 +157,12 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 		},
 	}
 
-	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	require.NotNil(s.T(), wi)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.ID)
+	require.True(s.T(), uuid.Equal(animalID, *wi.Data.ID), "ANIMAL TYPE NOT CREATED")
+	return responseWriter, wi
 }
 
 // createWorkItemTypePerson defines a work item type "person" that consists of
@@ -200,15 +205,15 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 
 	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
-	require.Equal(s.T(), "animal", wit.Data.ID)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	assert.True(s.T(), uuid.Equal(animalID, *wit.Data.ID))
 
 	_, wit = s.createWorkItemTypePerson()
 	require.NotNil(s.T(), wit)
-	require.Equal(s.T(), "person", wit.Data.ID)
-
-	_, wit = s.createWorkItemTypePerson()
-	assert.NotNil(s.T(), wit)
-	assert.Equal(s.T(), "person", wit.Data.ID)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	assert.True(s.T(), uuid.Equal(personID, *wit.Data.ID))
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
