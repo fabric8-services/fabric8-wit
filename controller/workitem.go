@@ -130,13 +130,6 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
 		}
 
-		if ctx.Payload.Position.ID == "" {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Bad Parameter position.id", nil))
-		}
-
-		if ctx.Payload.Position.Direction == "" {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Bad parameter position.direction", nil))
-		}
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
 			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)

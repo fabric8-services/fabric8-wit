@@ -108,7 +108,8 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
 
-func TestReorderWorkItem(t *testing.T) {
+// TestSuccessReorder is positive test which tests successful reorder by providing valid input
+func TestSuccessReorder(t *testing.T) {
 	resource.Require(t, resource.Database)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
@@ -132,6 +133,7 @@ func TestReorderWorkItem(t *testing.T) {
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case reorders two workitems -> result2 and result3 and places them above result1
+	// This also tests reordering of multiple work items
 
 	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result2.Data, result3.Data)
@@ -172,6 +174,61 @@ func TestReorderWorkItem(t *testing.T) {
 	if reordered2.Data[0].Attributes["order"].(float64) < result4.Data.Attributes["order"].(float64) {
 		t.Error("Reorder incorrect")
 	}
+}
+
+// TestFailReorderMissingReorderItem is negative test which tests unsuccessful reorder by providing invalid input
+func TestFailReorderMissingReorderItem(t *testing.T) {
+	resource.Require(t, resource.Database)
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
+	payload2 := minimumRequiredReorderPayload()
+
+	// This case gives empty dataArray as input
+	// Response is Bad Parameter
+	// Reorder is unsuccessful
+
+	var dataArray []*app.WorkItem2
+	payload2.Data = dataArray
+	payload2.Position.ID = *result1.Data.ID
+	payload2.Position.Direction = above
+	test.ReorderWorkitemBadRequest(t, nil, nil, controller, &payload2)
+}
+
+// TestFailReorderMissingPosition is negative test which tests unsuccessful reorder by providing invalid input
+func TestFailReorderMissingPosition(t *testing.T) {
+	resource.Require(t, resource.Database)
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
+	payload2 := minimumRequiredReorderPayload()
+
+	// This case gives id of workitem in position.ID which is not present in db as input
+	// Response is Not Found
+	// Reorder is unsuccessful
+
+	var dataArray []*app.WorkItem2
+	dataArray = append(dataArray, result2.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = "78"
+	payload2.Position.Direction = above
+	test.ReorderWorkitemNotFound(t, nil, nil, controller, &payload2)
 }
 
 func TestCreateWI(t *testing.T) {
