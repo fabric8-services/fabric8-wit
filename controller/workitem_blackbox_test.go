@@ -108,8 +108,8 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
 
-// TestSuccessReorder is positive test which tests successful reorder by providing valid input
-func TestSuccessReorder(t *testing.T) {
+// TestReorderWorkitemOK is positive test which tests successful reorder by providing valid input
+func TestReorderWorkitemOK(t *testing.T) {
 	resource.Require(t, resource.Database)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
@@ -151,11 +151,9 @@ func TestSuccessReorder(t *testing.T) {
 	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
 	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
 
-	// Return error if order of reordered workitem is greater than the workitem position.id
-	if (reordered1.Data[0].Attributes["order"].(float64) > result1.Data.Attributes["order"].(float64)) || reordered1.Data[1].Attributes["order"].(float64) > result1.Data.Attributes["order"].(float64) {
-		t.Error("Reorder incorrect1111")
-	}
-
+	//Order of reordered workitems should be less than the order of workitem position.id when position.direction is above
+	assert.True(t, reordered1.Data[0].Attributes["order"].(float64) < result1.Data.Attributes["order"].(float64))
+	assert.True(t, reordered1.Data[1].Attributes["order"].(float64) < result1.Data.Attributes["order"].(float64))
 	// This case reorders one workitem -> result4 and placed it below result5
 
 	// clear the dataArray
@@ -170,14 +168,12 @@ func TestSuccessReorder(t *testing.T) {
 	assert.Equal(t, result4.Data.Attributes["version"].(int)+1, reordered2.Data[0].Attributes["version"])
 	assert.Equal(t, *result4.Data.ID, *reordered2.Data[0].ID)
 
-	// Return error if order of reordered workitem is less than the workitem position.id
-	if reordered2.Data[0].Attributes["order"].(float64) < result4.Data.Attributes["order"].(float64) {
-		t.Error("Reorder incorrect")
-	}
+	//Order of reordered workitems should be greater than the order of workitem position.id when position.direction is below
+	assert.True(t, reordered2.Data[0].Attributes["order"].(float64) > result4.Data.Attributes["order"].(float64))
 }
 
-// TestFailReorderMissingReorderItem is negative test which tests unsuccessful reorder by providing invalid input
-func TestFailReorderMissingReorderItem(t *testing.T) {
+// TestReorderWorkitemBadRequest is negative test which tests unsuccessful reorder by providing invalid input
+func TestReorderWorkitemBadRequest(t *testing.T) {
 	resource.Require(t, resource.Database)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
@@ -202,8 +198,8 @@ func TestFailReorderMissingReorderItem(t *testing.T) {
 	test.ReorderWorkitemBadRequest(t, nil, nil, controller, &payload2)
 }
 
-// TestFailReorderPositionWorkItemNotFound is negative test which tests unsuccessful reorder by providing invalid input
-func TestFailReorderPositionWorkItemNotFound(t *testing.T) {
+// TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
+func TestReorderWorkitemNotFound(t *testing.T) {
 	resource.Require(t, resource.Database)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
