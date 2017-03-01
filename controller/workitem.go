@@ -73,6 +73,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*area))))
 		additionalQuery = append(additionalQuery, "filter[area]="+*area)
 	}
+	if ctx.FilterWorkitemstate != nil {
+		wis := ctx.FilterWorkitemstate
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*wis))))
+		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*wis)
+	}
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
