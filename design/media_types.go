@@ -51,6 +51,7 @@ var pagingLinks = a.Type("pagingLinks", func() {
 	a.Attribute("next", d.String)
 	a.Attribute("first", d.String)
 	a.Attribute("last", d.String)
+	a.Attribute("filters", d.String)
 })
 
 var meta = a.Type("workItemListResponseMeta", func() {
