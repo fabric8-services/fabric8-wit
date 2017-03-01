@@ -1119,7 +1119,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	for _, actualWI := range actual.Data {
 		assert.Equal(s.T(), expected.Data.Attributes[workitem.SystemState], actualWI.Attributes[workitem.SystemState])
 		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
-		if assert.Equal(*expected.Data.ID, *actualWI.ID) {
+		if uuid.Equal(*expected.Data.ID, *actualWI.ID) {
 			foundExpected = true
 		}
 	}
