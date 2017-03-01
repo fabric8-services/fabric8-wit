@@ -50,6 +50,7 @@ func init() {
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemTypeSuite struct {
 	gormsupport.DBTestSuite
+	clean        func()
 	typeCtrl     *WorkitemtypeController
 	linkTypeCtrl *WorkItemLinkTypeController
 	linkCatCtrl  *WorkItemLinkCategoryController
@@ -84,6 +85,7 @@ func (s *workItemTypeSuite) SetupSuite() {
 
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	svc := goa.New("workItemTypeSuite-Service")
 	assert.NotNil(s.T(), svc)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB))
@@ -97,6 +99,10 @@ func (s *workItemTypeSuite) SetupTest() {
 	s.svcSpace = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.spaceCtrl)
+}
+
+func (s *workItemTypeSuite) TearDownTest() {
+	s.clean()
 }
 
 //-----------------------------------------------------------------------------
@@ -142,10 +148,11 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'animal'"
+	id := animalID
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
-			ID:   &animalID,
+			ID:   &id,
 			Attributes: &app.WorkItemTypeAttributes{
 				Name:        "animal",
 				Description: &desc,
@@ -161,7 +168,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
-	require.True(s.T(), uuid.Equal(animalID, *wi.Data.ID), "ANIMAL TYPE NOT CREATED")
+	require.True(s.T(), uuid.Equal(animalID, *wi.Data.ID))
 	return responseWriter, wi
 }
 
@@ -178,9 +185,10 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
+	id := personID
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
-			ID:   &personID,
+			ID:   &id,
 			Type: "workitemtypes",
 			Attributes: &app.WorkItemTypeAttributes{
 				Name:        "person",
@@ -192,7 +200,12 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		},
 	}
 
-	return test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	require.NotNil(s.T(), wi)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.ID)
+	require.True(s.T(), uuid.Equal(personID, *wi.Data.ID))
+	return responseWriter, wi
 }
 
 //-----------------------------------------------------------------------------
@@ -201,25 +214,12 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 
 // TestCreateWorkItemType tests if we can create two work item types: "animal" and "person"
 func (s *workItemTypeSuite) TestCreateWorkItemType() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
-	_, wit := s.createWorkItemTypeAnimal()
-	require.NotNil(s.T(), wit)
-	require.NotNil(s.T(), wit.Data)
-	require.NotNil(s.T(), wit.Data.ID)
-	assert.True(s.T(), uuid.Equal(animalID, *wit.Data.ID))
-
-	_, wit = s.createWorkItemTypePerson()
-	require.NotNil(s.T(), wit)
-	require.NotNil(s.T(), wit.Data)
-	require.NotNil(s.T(), wit.Data.ID)
-	assert.True(s.T(), uuid.Equal(personID, *wit.Data.ID))
+	_, _ = s.createWorkItemTypeAnimal()
+	_, _ = s.createWorkItemTypePerson()
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
 func (s *workItemTypeSuite) TestShowWorkItemType() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
@@ -235,8 +235,6 @@ func (s *workItemTypeSuite) TestShowWorkItemType() {
 // TestListWorkItemType tests if we can find the work item types
 // "person" and "animal" in the list of work item types
 func (s *workItemTypeSuite) TestListWorkItemType() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
@@ -261,8 +259,10 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 	for i := 0; i < len(witCollection.Data) && toBeFound > 0; i++ {
 		require.NotNil(s.T(), witCollection.Data[i])
 		require.NotNil(s.T(), witCollection.Data[i].ID)
-		if uuid.Equal(*witCollection.Data[i].ID, personID) || uuid.Equal(*witCollection.Data[i].ID, animalID) {
-			s.T().Log("Found work item type in collection: ", *witCollection.Data[i].ID)
+		id := *witCollection.Data[i].ID
+		name := witCollection.Data[i].Attributes.Name
+		if uuid.Equal(id, personID) || uuid.Equal(id, animalID) {
+			s.T().Log("Found work item type in collection: ID=", id, " name=", name)
 			toBeFound--
 		}
 	}
@@ -272,8 +272,6 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 // TestListSourceAndTargetLinkTypes tests if we can find the work item link
 // types for a given WIT.
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
@@ -322,8 +320,6 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 // TestListSourceAndTargetLinkTypesEmpty tests that no link type is returned for
 // WITs that don't have link types associated to them
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
 
@@ -341,8 +337,6 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 // TestListSourceAndTargetLinkTypesNotFound tests that a NotFound error is
 // returned when you query a non existing WIT.
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
-	defer cleaner.DeleteCreatedEntities(s.DB)()
-
 	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, uuid.Nil)
 	require.NotNil(s.T(), jerrors)
 
@@ -395,21 +389,21 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                endpointWorkItemTypes + "/someRandomTestWIT8712",
+			url:                endpointWorkItemTypes + "/2e889d4e-49a9-463b-8cd4-6a3a95155103",
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
 			jwtToken:           "",
 		}, {
 			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, "someNotExistingWIT"),
+			url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
 			jwtToken:           "",
 		}, {
 			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, "someNotExistingWIT"),
+			url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
