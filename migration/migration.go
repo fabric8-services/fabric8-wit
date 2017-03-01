@@ -433,7 +433,7 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceId uuid.UUID) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceId uuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return errs.WithStack(err)
