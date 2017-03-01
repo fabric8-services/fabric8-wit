@@ -18,7 +18,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	a := workitem.WorkItem{
 		ID:      0,
-		TypeID:  uuid.NewV4(),
+		Type:    uuid.NewV4(),
 		Version: 0,
 		Fields: workitem.Fields{
 			"foo": "bar",
@@ -36,7 +36,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test type difference
 	d := a
-	d.TypeID = uuid.NewV4()
+	d.Type = uuid.NewV4()
 	assert.False(t, a.Equal(d))
 
 	// Test version difference
@@ -61,7 +61,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	i := workitem.WorkItem{
 		ID:      0,
-		TypeID:  a.TypeID,
+		Type:    a.Type,
 		Version: 0,
 		Fields: workitem.Fields{
 			"foo": "bar",

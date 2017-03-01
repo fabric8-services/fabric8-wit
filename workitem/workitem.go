@@ -14,7 +14,7 @@ type WorkItem struct {
 	gormsupport.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// Id of the type of this work item
-	TypeID uuid.UUID `sql:"type:uuid"`
+	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control
 	Version int
 	// the field values
@@ -40,7 +40,7 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 
-	if !uuid.Equal(wi.TypeID, other.TypeID) {
+	if !uuid.Equal(wi.Type, other.Type) {
 		return false
 	}
 	if wi.ID != other.ID {

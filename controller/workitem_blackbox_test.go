@@ -358,7 +358,7 @@ func makeWorkItems(count int) []*app.WorkItem {
 	for index := range res {
 		res[index] = &app.WorkItem{
 			ID:     fmt.Sprintf("id%d", index),
-			TypeID: uuid.NewV4(), // used to be "foobar"
+			Type:   uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{},
 		}
 	}

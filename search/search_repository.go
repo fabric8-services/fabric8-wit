@@ -47,7 +47,7 @@ func generateSearchQuery(q string) (string, error) {
 func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
-		TypeID:  workItem.TypeID,
+		Type:    workItem.Type,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{}}
 
@@ -361,7 +361,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.TypeID)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}

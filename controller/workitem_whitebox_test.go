@@ -215,7 +215,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.TypeID))
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
@@ -232,7 +232,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.TypeID))
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
@@ -249,7 +249,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.TypeID))
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
@@ -266,7 +266,7 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
-	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.TypeID))
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
 }
 

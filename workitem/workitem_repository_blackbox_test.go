@@ -195,11 +195,11 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 		}, s.creatorID)
 	require.Nil(s.T(), err)
 	// when
-	wi.TypeID = workitem.SystemFeature
+	wi.Type = workitem.SystemFeature
 	newWi, err := s.repo.Save(context.Background(), *wi)
 	// then
 	require.Nil(s.T(), err)
-	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.TypeID))
+	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.Type))
 }
 
 // TestGetCountsPerIteration makes sure that the query being executed is correctly returning

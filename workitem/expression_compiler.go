@@ -2,7 +2,6 @@ package workitem
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -43,7 +42,7 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 // does the field name reference a json field or a column?
 func isJSONField(fieldName string) bool {
 	switch fieldName {
-	case "ID", "TypeID", "Version":
+	case "ID", "Type", "Version":
 		return false
 	}
 	return true
@@ -63,25 +62,9 @@ type expressionCompiler struct {
 // visitor implementation
 // the convention is to return nil when the expression cannot be compiled and to append an error to the err field
 
-var camel = regexp.MustCompile("(^[^A-Z]*|[A-Z]*)([A-Z][^A-Z]+|$)")
-
-// underscore converts a CamelCase field name into lowercase field names with under_scores.
-func underscore(s string) string {
-	var a []string
-	for _, sub := range camel.FindAllStringSubmatch(s, -1) {
-		if sub[1] != "" {
-			a = append(a, sub[1])
-		}
-		if sub[2] != "" {
-			a = append(a, sub[2])
-		}
-	}
-	return strings.ToLower(strings.Join(a, "_"))
-}
-
 func (c *expressionCompiler) Field(f *criteria.FieldExpression) interface{} {
 	if !isJSONField(f.FieldName) {
-		return underscore(f.FieldName)
+		return f.FieldName
 	}
 	if strings.Contains(f.FieldName, "'") {
 		// beware of injection, it's a reasonable restriction for field names, make sure it's not allowed when creating wi types

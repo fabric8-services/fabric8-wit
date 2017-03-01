@@ -87,8 +87,7 @@ ALTER TABLE work_item_link_types DROP COLUMN target_type_name;
 --------------------
 
 -- NOTE: The foreign key is new!
-ALTER TABLE work_items ADD COLUMN type_id uuid NOT NULL REFERENCES work_item_types(id) ON DELETE CASCADE;
-
-UPDATE work_items SET type_id = (SELECT id FROM work_item_types WHERE name = type);
-
-ALTER TABLE work_items DROP COLUMN type;
+ALTER TABLE work_items RENAME type TO type_old;
+ALTER TABLE work_items ADD COLUMN type uuid NOT NULL REFERENCES work_item_types(id) ON DELETE CASCADE;
+UPDATE work_items SET type = (SELECT id FROM work_item_types WHERE name = type_old);
+ALTER TABLE work_items DROP COLUMN type_old;
