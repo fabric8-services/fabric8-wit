@@ -29,7 +29,7 @@ func (c *Codebase) ToMap() map[string]interface{} {
 }
 
 // NewCodebase build Codebase instance from input Map.
-func NewCodebase(value map[string]interface{}) Codebase {
+func NewCodebase(value map[string]interface{}) (Codebase, error) {
 	cb := Codebase{}
 	validKeys := []string{RepositoryKey, BranchKey, FileNameKey, LineNumberKey}
 	for _, key := range validKeys {
@@ -52,13 +52,6 @@ func NewCodebase(value map[string]interface{}) Codebase {
 			}
 		}
 	}
-	return cb
-}
-
-// ValidateCodebase build Codebase instance from input Map.
-// If no valid keys found in the map then returns error.
-func ValidateCodebase(value map[string]interface{}) (Codebase, error) {
-	cb := NewCodebase(value)
 	emptyCodebase := Codebase{}
 	if cb == emptyCodebase {
 		// Not a single valid key found in `value`

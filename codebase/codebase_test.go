@@ -31,7 +31,8 @@ func TestCodebaseToMap(t *testing.T) {
 func TestNewCodebase(t *testing.T) {
 	// Test for empty map
 	codebaseMap := map[string]interface{}{}
-	cb := codebase.NewCodebase(codebaseMap)
+	cb, err := codebase.NewCodebase(codebaseMap)
+	require.NotNil(t, err)
 	assert.Equal(t, "", cb.Repository)
 	assert.Equal(t, "", cb.Branch)
 	assert.Equal(t, "", cb.FileName)
@@ -48,31 +49,7 @@ func TestNewCodebase(t *testing.T) {
 		codebase.FileNameKey:   file,
 		codebase.LineNumberKey: line,
 	}
-	cb = codebase.NewCodebase(codebaseMap)
-	assert.Equal(t, repo, cb.Repository)
-	assert.Equal(t, branch, cb.Branch)
-	assert.Equal(t, file, cb.FileName)
-	assert.Equal(t, line, cb.LineNumber)
-}
-
-func TestValidateCodebase(t *testing.T) {
-	// Test for empty map, should return error
-	codebaseMap := map[string]interface{}{}
-	_, err := codebase.ValidateCodebase(codebaseMap)
-	require.NotNil(t, err)
-
-	// test for all values in codebase
-	branch := "task-101"
-	repo := "golang-project"
-	file := "main.go"
-	line := 200
-	codebaseMap = map[string]interface{}{
-		codebase.RepositoryKey: repo,
-		codebase.BranchKey:     branch,
-		codebase.FileNameKey:   file,
-		codebase.LineNumberKey: line,
-	}
-	cb, err := codebase.ValidateCodebase(codebaseMap)
+	cb, err = codebase.NewCodebase(codebaseMap)
 	require.Nil(t, err)
 	assert.Equal(t, repo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
