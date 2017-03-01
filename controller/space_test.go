@@ -278,6 +278,18 @@ func minimumRequiredCreateSpace() *app.CreateSpacePayload {
 	}
 }
 
+func CreateSpacePayload(name, description string) *app.CreateSpacePayload {
+	return &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name:        &name,
+				Description: &description,
+			},
+		},
+	}
+}
+
 func minimumRequiredUpdateSpace() *app.UpdateSpacePayload {
 	return &app.UpdateSpacePayload{
 		Data: &app.Space{

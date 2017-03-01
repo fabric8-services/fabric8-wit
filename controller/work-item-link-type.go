@@ -6,8 +6,9 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
+
 	"github.com/goadesign/goa"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkTypeController implements the work-item-link-type resource.
@@ -44,6 +45,17 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	}
 	single.Included = append(single.Included, linkCat.Data)
 
+	// Now include the optional link space data in the work item link type "included" array
+	space, err := ctx.Application.Spaces().Load(ctx.Context, *single.Data.Relationships.Space.Data.ID)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+	}
+	spaceSingle := &app.SpaceSingle{
+		Data: ConvertSpace(ctx.RequestData, space),
+	}
+	single.Included = append(single.Included, spaceSingle.Data)
+
 	return nil
 }
 
@@ -57,7 +69,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 		}
 	}
 	// Build our "set" of distinct category IDs already converted as strings
-	categoryIDMap := map[satoriuuid.UUID]bool{}
+	categoryIDMap := map[uuid.UUID]bool{}
 	for _, typeData := range list.Data {
 		categoryIDMap[typeData.Relationships.LinkCategory.Data.ID] = true
 	}
@@ -69,6 +81,24 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		list.Included = append(list.Included, linkCat.Data)
+	}
+
+	// Build our "set" of distinct space IDs already converted as strings
+	spaceIDMap := map[uuid.UUID]bool{}
+	for _, typeData := range list.Data {
+		spaceIDMap[*typeData.Relationships.Space.Data.ID] = true
+	}
+	// Now include the optional link space data in the work item link type "included" array
+	for spaceID := range spaceIDMap {
+		space, err := ctx.Application.Spaces().Load(ctx.Context, spaceID)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		spaceSingle := &app.SpaceSingle{
+			Data: ConvertSpace(ctx.RequestData, space),
+		}
+		list.Included = append(list.Included, spaceSingle.Data)
 	}
 	return nil
 }
@@ -87,7 +117,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		return ctx.BadRequest(jerrors)
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		linkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, model.Name, model.Description, model.SourceTypeName, model.TargetTypeName, model.ForwardName, model.ReverseName, model.Topology, model.LinkCategoryID)
+		linkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, model.Name, model.Description, model.SourceTypeName, model.TargetTypeName, model.ForwardName, model.ReverseName, model.Topology, model.LinkCategoryID, model.SpaceID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
