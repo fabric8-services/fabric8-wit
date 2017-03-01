@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"strings"
 
 	"golang.org/x/net/context"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -22,9 +22,6 @@ type AreaController struct {
 	*goa.Controller
 	db application.DB
 }
-
-const pathSepInService = "/"
-const pathSepInDatabase = "."
 
 // NewAreaController creates a area controller.
 func NewAreaController(service *goa.Service, db application.DB) *AreaController {
@@ -78,10 +75,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		childPath := area.ConvertToLtreeFormat(parentID.String())
-		if parent.Path != "" {
-			childPath = parent.Path + pathSepInDatabase + childPath
-		}
+		childPath := append(parent.Path, parent.ID)
 		newArea := area.Area{
 			SpaceID: parent.SpaceID,
 			Path:    childPath,
@@ -125,12 +119,10 @@ func addResolvedPath(appl application.Application, req *goa.RequestData, mArea *
 	pathResolved, error := getResolvePath(appl, mArea)
 	sArea.Attributes.ParentPathResolved = pathResolved
 	return error
-
 }
 
 func getResolvePath(appl application.Application, a *area.Area) (*string, error) {
-	parentUuidStrings := strings.Split(area.ConvertFromLtreeFormat(a.Path), pathSepInService)
-	parentUuids := convertToUuid(parentUuidStrings)
+	parentUuids := a.Path
 	parentAreas, err := appl.Areas().LoadMultiple(context.Background(), parentUuids)
 	if err != nil {
 		return nil, err
@@ -141,7 +133,7 @@ func getResolvePath(appl application.Application, a *area.Area) (*string, error)
 		if area == nil {
 			continue
 		}
-		pathResolved = pathResolved + pathSepInService + area.Name
+		pathResolved = pathResolved + path.SepInService + area.Name
 	}
 
 	// Add the leading "/" in the "area1/area2/area3" styled path
@@ -183,8 +175,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	pathToTopMostParent := pathSepInService + area.ConvertFromLtreeFormat(ar.Path) // /uuid1/uuid2/uuid3s
-
+	pathToTopMostParent := ar.Path.String() // /uuid1/uuid2/uuid3s
 	i := &app.Area{
 		Type: areaType,
 		ID:   &ar.ID,
@@ -217,18 +208,15 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 
 	// Now check the path, if the path is empty, then this is the topmost area
 	// in a specific space.
-	if ar.Path != "" {
-
-		allParents := strings.Split(area.ConvertFromLtreeFormat(ar.Path), pathSepInService)
-		parentID := allParents[len(allParents)-1]
-
+	if ar.Path.IsEmpty() == false {
+		parent := ar.Path.This().String()
 		// Only the immediate parent's URL.
-		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parentID))
+		parentSelfURL := rest.AbsoluteURL(request, app.AreaHref(parent))
 
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &areaType,
-				ID:   &parentID,
+				ID:   &parent,
 			},
 			Links: &app.GenericLinks{
 				Self: &parentSelfURL,
@@ -257,14 +245,4 @@ func createAreaLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
-}
-
-func convertToUuid(uuidStrings []string) []uuid.UUID {
-	var uUIDs []uuid.UUID
-
-	for i := 0; i < len(uuidStrings); i++ {
-		uuidString, _ := uuid.FromString(uuidStrings[i])
-		uUIDs = append(uUIDs, uuidString)
-	}
-	return uUIDs
 }
