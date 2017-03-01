@@ -70,11 +70,10 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 
 		var user *account.User
-		userID := identity.UserID
-		if userID.Valid {
-			user, err = appl.Users().Load(ctx.Context, userID.UUID)
+		if identity.UserID.Valid {
+			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", userID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
 			}
 		}
 
