@@ -89,7 +89,7 @@ func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	if tx.Error != nil {
 		return 0, errors.NewInternalError(tx.Error.Error())
 	}
-	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.Executionorder), 64)
+	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.ExecutionOrder), 64)
 	if err != nil {
 		return 0, errors.NewInternalError(err.Error())
 	}
