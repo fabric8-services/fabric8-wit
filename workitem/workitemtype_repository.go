@@ -100,7 +100,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, 
 	path := LtreeSafeID(*id)
 	if extendedTypeID != nil {
 		extendedType := WorkItemType{}
-		db := r.db.Debug().First(&extendedType, "id = ?", *extendedTypeID)
+		db := r.db.First(&extendedType, "id = ?", *extendedTypeID)
 		if db.RecordNotFound() {
 			return nil, errors.NewBadParameterError("extendedTypeID", *extendedTypeID)
 		}
@@ -186,9 +186,10 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 
 // converts from models to app representation
 func convertTypeFromModels(t *WorkItemType) app.WorkItemTypeData {
+	id := t.ID
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
-		ID:   &t.ID,
+		ID:   &id,
 		Attributes: &app.WorkItemTypeAttributes{
 			Version:     t.Version,
 			Description: t.Description,
