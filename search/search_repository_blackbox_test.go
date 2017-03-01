@@ -12,15 +12,23 @@ import (
 	"github.com/almighty/almighty-core/search"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
+func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+}
+
 type searchRepositoryBlackboxTest struct {
 	gormsupport.DBTestSuite
+	modifierID uuid.UUID
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -37,12 +45,14 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	}
 }
 
-func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+func (s *searchRepositoryBlackboxTest) SetupTest() {
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
+	require.Nil(s.T(), err)
+	s.modifierID = testIdentity.ID
 }
 
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
-	resource.Require(s.T(), resource.Database)
+	// given
 	undoScript := &gormsupport.DBScript{}
 	defer undoScript.Run(s.DB)
 	typeRepo := workitem.NewUndoableWorkItemTypeRepository(workitem.NewWorkItemTypeRepository(s.DB), undoScript)
@@ -54,7 +64,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
-		wiRepo.Delete(ctx, wi.ID)
+		wiRepo.Delete(ctx, wi.ID, s.modifierID)
 	}
 
 	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "base"})
@@ -78,14 +88,14 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID)
+	}, s.modifierID)
 	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 
 	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID)
+	}, s.modifierID)
 	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
 
