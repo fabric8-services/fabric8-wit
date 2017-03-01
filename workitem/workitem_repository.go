@@ -149,7 +149,7 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem strin
 	if Item.ID == 0 {
 		// Item is placed at first position
 		ItemId := strconv.FormatUint(Item.ID, 10)
-		return &ItemId, &Item.Executionorder, nil
+		return &ItemId, &Item.ExecutionOrder, nil
 	} else if tx.Error != nil {
 		return nil, nil, tx.Error
 	} else if tx.RecordNotFound() {
@@ -157,7 +157,7 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem strin
 	}
 
 	ItemId := strconv.FormatUint(Item.ID, 10)
-	return &ItemId, &Item.Executionorder, nil
+	return &ItemId, &Item.ExecutionOrder, nil
 
 }
 
@@ -175,7 +175,7 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return &Item.Executionorder, nil
+	return &Item.ExecutionOrder, nil
 }
 
 // Reorder places the to-be-reordered workitem above the input workitem.
@@ -255,7 +255,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, position *app.Work
 	res.Type = wi.Type
 	res.Fields = wi.Fields
 
-	res.Executionorder = order
+	res.ExecutionOrder = order
 	fieldDef := wiType.Fields[SystemOrder]
 	res.Fields[SystemOrder], err = fieldDef.ConvertToModel(SystemOrder, order)
 	if err != nil {
@@ -353,7 +353,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 	wi := WorkItem{
 		Type:           typeID,
 		Fields:         Fields{},
-		Executionorder: pos,
+		ExecutionOrder: pos,
 	}
 	fields[SystemCreator] = creator.String()
 	for fieldName, fieldDef := range wiType.Fields {

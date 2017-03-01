@@ -19,7 +19,7 @@ type WorkItem struct {
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
 	// the position of workitem
-	Executionorder float64
+	ExecutionOrder float64
 }
 
 // TableName implements gorm.tabler
