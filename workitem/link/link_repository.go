@@ -288,7 +288,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
 	wilt := WorkItemLinkType{}
-	r.db.Where("forward_name = ?", "relates to").First(&wilt)
+	r.db.Where("forward_name = ?", "parent of").First(&wilt)
 
 	where := "id in (select target_id from work_item_links where source_id = ? and link_type_id = ?)"
 	db := r.db.Model(&workitem.WorkItem{}).Where(where, parent, wilt.ID)

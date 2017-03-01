@@ -20,6 +20,7 @@ const (
 	// hare are more human-readable.
 	SystemWorkItemLinkTypeBugBlocker     = "Bug blocker"
 	SystemWorkItemLinkPlannerItemRelated = "Related planner item"
+	SystemWorkItemLinkTypeParentChild    = "Parent child item"
 )
 
 // returns true if the left hand and right hand side string
