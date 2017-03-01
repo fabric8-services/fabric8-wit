@@ -26,6 +26,7 @@ const (
 	SystemCreatedAt           = "system.created_at"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
+	SystemOrder               = "order"
 
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem = "planneritem"
@@ -43,8 +44,6 @@ const (
 	SystemStateInProgress = "in progress"
 	SystemStateResolved   = "resolved"
 	SystemStateClosed     = "closed"
-
-	SystemOrder = "order"
 )
 
 // WorkItemType represents a work item type as it is stored in the db
