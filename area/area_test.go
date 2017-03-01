@@ -2,7 +2,6 @@ package area_test
 
 import (
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +10,8 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/path"
+
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
@@ -95,7 +96,7 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 	assert.Nil(t, err)
 
 	// ltree field doesnt accept "-" , so we will save them as "_"
-	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
+	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: space.ID,
@@ -173,7 +174,6 @@ func searchInAreaSlice(searchKey uuid.UUID, areaList []*area.Area) *area.Area {
 func (test *TestAreaRepository) TestListChildrenOfParents() {
 	t := test.T()
 	resource.Require(t, resource.Database)
-	//test.DBTestSuite.DB = test.DBTestSuite.DB.Debug()
 	repo := area.NewAreaRepository(test.DB)
 
 	name := "Area #240"
@@ -199,7 +199,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	// *** Create 1st child area ***
 
 	// ltree field doesnt accept "-" , so we will save them as "_"
-	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
+	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: space.ID,
@@ -217,7 +217,7 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 
 	// *** Create 2nd child area ***
 
-	expectedPath = strings.Replace((i.ID).String(), "-", "_", -1)
+	expectedPath = path.Path{i.ID}
 	area3 := area.Area{
 		Name:    name3,
 		SpaceID: space.ID,
@@ -234,7 +234,6 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 	assert.Equal(t, expectedPath, actualPath)
 
 	// *** Validate that there are 2 children
-
 	childAreaList, err := repo.ListChildren(context.Background(), &i)
 	require.Nil(t, err)
 
@@ -273,7 +272,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 
 	// *** Create 'son' area ***
 
-	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
+	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: space.ID,
@@ -288,7 +287,7 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 
 	// *** Create 'grandson' area ***
 
-	expectedPath = strings.Replace((i.ID).String()+"."+(area2.ID.String()), "-", "_", -1)
+	expectedPath = path.Path{i.ID, area2.ID}
 	area4 := area.Area{
 		Name:    name3,
 		SpaceID: space.ID,
@@ -335,8 +334,7 @@ func (test *TestAreaRepository) TestListParentTree() {
 	assert.Nil(t, err)
 
 	// *** Create 'son' area ***
-
-	expectedPath := strings.Replace((i.ID).String(), "-", "_", -1)
+	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
 		Name:    name2,
 		SpaceID: space.ID,
@@ -355,28 +353,4 @@ func (test *TestAreaRepository) TestListParentTree() {
 		assert.NotNil(t, searchInAreaSlice(listOfCreatedID[i], listOfCreatedAreas))
 	}
 
-}
-
-func (test *TestAreaRepository) TestConvertToLtreeFormat() {
-	t := test.T()
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	testString := "aaaaa1111-43284723hjkjhk-hkh432h423/aaaaaa22323232-4343434343/434343-4343sfsdfds-2423423"
-	expected := "aaaaa1111_43284723hjkjhk_hkh432h423.aaaaaa22323232_4343434343.434343_4343sfsdfds_2423423"
-	actual := area.ConvertToLtreeFormat(testString)
-
-	assert.Equal(t, expected, actual)
-}
-
-func (test *TestAreaRepository) TestConvertFromLtreeFormat() {
-	t := test.T()
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
-
-	expected := "aaaaa1111-43284723hjkjhk-hkh432h423/aaaaaa22323232-4343434343/434343-4343sfsdfds-2423423"
-	testString := "aaaaa1111_43284723hjkjhk_hkh432h423.aaaaaa22323232_4343434343.434343_4343sfsdfds_2423423"
-	actual := area.ConvertFromLtreeFormat(testString)
-
-	assert.Equal(t, expected, actual)
 }
