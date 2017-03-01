@@ -44,6 +44,7 @@ var filterSingle = JSONSingle(
 
 var _ = a.Resource("filter", func() {
 	a.BasePath("/filters")
+	a.CanonicalActionName("list")
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),

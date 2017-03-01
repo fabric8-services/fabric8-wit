@@ -86,7 +86,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
-		addFilterLinks(response.Links, buildAbsoluteURL(ctx.RequestData))
+		addFilterLinks(response.Links, ctx.RequestData)
 		return ctx.OK(&response)
 	})
 }
