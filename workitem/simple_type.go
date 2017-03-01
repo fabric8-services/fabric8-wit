@@ -99,7 +99,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		if valueType.Kind() != reflect.Map {
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
-		validCodebase, err := codebase.NewCodebase(value.(map[string]interface{}))
+		validCodebase, err := codebase.ValidateCodebase(value.(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}
@@ -135,10 +135,7 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		if valueType.Kind() != reflect.Map {
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
-		cb, err := codebase.NewCodebase(value.(map[string]interface{}))
-		if err != nil {
-			return nil, err
-		}
+		cb := codebase.NewCodebase(value.(map[string]interface{}))
 		return cb, nil
 	default:
 		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())

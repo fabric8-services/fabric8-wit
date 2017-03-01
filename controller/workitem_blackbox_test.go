@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/codebase"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -1766,6 +1768,49 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
 	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
 	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+}
+
+func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
+	t := s.T()
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemPlannerItem,
+		},
+	}
+	branch := "earth-recycle-101"
+	repo := "golang-project"
+	file := "main.go"
+	line := 200
+	cbase := codebase.Codebase{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(t, createdWi)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	require.NotNil(t, fetchedWi.Data)
+	require.NotNil(t, fetchedWi.Data.Attributes)
+	assert.Equal(t, title, fetchedWi.Data.Attributes[workitem.SystemTitle])
+	cb := fetchedWi.Data.Attributes[workitem.SystemCodebase].(codebase.Codebase)
+	assert.Equal(t, repo, cb.Repository)
+	assert.Equal(t, branch, cb.Branch)
+	assert.Equal(t, file, cb.FileName)
+	assert.Equal(t, line, cb.LineNumber)
+
+	require.NotNil(t, fetchedWi.Data.Relationships.Codebase)
+	require.NotNil(t, fetchedWi.Data.Relationships.Codebase.Links.Meta)
+	expectedURL := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+	expectedURL = url.QueryEscape(expectedURL)
+	meta := fetchedWi.Data.Relationships.Codebase.Links.Meta
+	assert.Contains(t, meta["edit"], expectedURL)
 }
 
 // a normal test function that will kick off WorkItem2Suite

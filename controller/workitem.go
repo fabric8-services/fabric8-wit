@@ -7,8 +7,11 @@ import (
 
 	"golang.org/x/net/context"
 
+	"net/url"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -373,7 +376,21 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Attributes[workitem.SystemDescriptionRendered] =
 					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
 			}
-
+		case workitem.SystemCodebase:
+			if val != nil {
+				op.Attributes[name] = val
+				cb := val.(codebase.Codebase)
+				// Following format is TBD
+				urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+				editCodebaseURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
+				op.Relationships.Codebase = &app.RelationGeneric{
+					Links: &app.GenericLinks{
+						Meta: map[string]interface{}{
+							"edit": editCodebaseURL,
+						},
+					},
+				}
+			}
 		default:
 			op.Attributes[name] = val
 		}
