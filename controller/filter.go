@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/goadesign/goa"
 )
@@ -60,4 +62,9 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 	}
 
 	return ctx.OK(result)
+}
+
+func addFilterLinks(links *app.PagingLinks, path string) {
+	filter := fmt.Sprintf("%s?", path)
+	links.Filters = &filter
 }
