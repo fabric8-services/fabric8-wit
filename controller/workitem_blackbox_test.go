@@ -611,6 +611,7 @@ type WorkItem2Suite struct {
 	linkCtrl       app.WorkItemLinkController
 	linkCatCtrl    app.WorkItemLinkCategoryController
 	linkTypeCtrl   app.WorkItemLinkTypeController
+	spaceCtrl      app.SpaceController
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
@@ -644,6 +645,9 @@ func (s *WorkItem2Suite) SetupSuite() {
 
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkCtrl)
+
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.spaceCtrl)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
@@ -1436,8 +1440,13 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
+	// Create link space
+	spacePayload := CreateSpacePayload("test-space", "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
+	require.NotNil(s.T(), space)
+
 	// Create work item link type payload
-	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID)
+	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
