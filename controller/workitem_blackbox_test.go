@@ -1110,6 +1110,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	require.NotNil(s.T(), expected.Data.Type)
 	require.NotNil(s.T(), expected.Data.Attributes)
 	wisNew := workitem.SystemStateNew
+	var foundExpected bool
 	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &wisNew, nil, nil, nil)
 
 	require.NotNil(s.T(), actual)
@@ -1118,7 +1119,11 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	for _, actualWI := range actual.Data {
 		assert.Equal(s.T(), expected.Data.Attributes[workitem.SystemState], actualWI.Attributes[workitem.SystemState])
 		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
+		if assert.Equal(*expected.Data.ID, *actualWI.ID) {
+			foundExpected = true
+		}
 	}
+	assert.True(s.T(), foundExpected, "did not find expected work item in filtered list response")
 }
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
