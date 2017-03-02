@@ -24,10 +24,6 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 
 	a.Required("required")
 	a.Required("type")
-
-	//	a.View("default", func() {
-	//		a.Attribute("kind")
-	//	})
 })
 
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
