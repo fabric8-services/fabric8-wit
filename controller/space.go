@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
@@ -27,10 +28,11 @@ func NewSpaceController(service *goa.Service, db application.DB) *SpaceControlle
 
 // Create runs the create action.
 func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = validateCreateSpace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -40,7 +42,8 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		reqSpace := ctx.Payload.Data
 
 		newSpace := space.Space{
-			Name: *reqSpace.Attributes.Name,
+			Name:    *reqSpace.Attributes.Name,
+			OwnerId: *currentUser,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description
@@ -124,7 +127,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 
 // Update runs the update action.
 func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -143,6 +146,12 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		if !satoriuuid.Equal(*currentUser, s.OwnerId) {
+			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerId}, "Current user is not owner")
+			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the space owner"))
+		}
+
 		s.Version = *ctx.Payload.Data.Attributes.Version
 		if ctx.Payload.Data.Attributes.Name != nil {
 			s.Name = *ctx.Payload.Data.Attributes.Name
@@ -225,6 +234,12 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Self: &selfURL,
 		},
 		Relationships: &app.SpaceRelationships{
+			OwnedBy: &app.SpaceOwnedBy{
+				Data: &app.IdentityRelationData{
+					Type: "identities",
+					ID:   &p.OwnerId,
+				},
+			},
 			Iterations: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedIterationList,
