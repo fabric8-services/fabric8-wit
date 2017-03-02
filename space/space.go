@@ -23,6 +23,7 @@ type Space struct {
 	Version     int
 	Name        string
 	Description string
+	OwnerId     satoriuuid.UUID `sql:"type:uuid"` // Belongs To Identity
 }
 
 // Ensure Fields implements the Equaler interface
@@ -48,6 +49,9 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Description != other.Description {
 		return false
 	}
+	if !satoriuuid.Equal(p.OwnerId, other.OwnerId) {
+		return false
+	}
 	return true
 }
 
@@ -57,6 +61,7 @@ type Repository interface {
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
 	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
 }
@@ -267,4 +272,20 @@ func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limi
 	}
 
 	return result, count, nil
+}
+
+func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error) {
+	res := Space{}
+	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userId, *spaceName).First(&res)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"spaceName": *spaceName,
+			"userId":    *userId,
+		}, "Could not find space under owner")
+		return nil, errors.NewNotFoundError("space", *spaceName)
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return &res, nil
 }

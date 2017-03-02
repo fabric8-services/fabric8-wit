@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"time"
+
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/jinzhu/gorm"
@@ -38,6 +40,7 @@ func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID 
 	}, "Storing a revision after operation on work item.")
 	tx := r.db
 	workitemRevision := &WorkItemRevision{
+		Time:             time.Now(),
 		ModifierIdentity: modifierID,
 		Type:             revisionType,
 		WorkItemID:       workitem.ID,

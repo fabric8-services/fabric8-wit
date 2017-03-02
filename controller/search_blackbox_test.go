@@ -36,21 +36,21 @@ import (
 
 func TestRunSearchTests(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestSearch{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
-type TestSearch struct {
+type searchBlackBoxTest struct {
 	gormsupport.DBTestSuite
 	db                             *gormapplication.GormDB
 	svc                            *goa.Service
 	clean                          func()
 	testIdentity                   account.Identity
-	wiRepo                         workitem.WorkItemRepository
+	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
 	spaceBlackBoxTestConfiguration *config.ConfigurationData
 }
 
-func (s *TestSearch) SetupSuite() {
+func (s *searchBlackBoxTest) SetupSuite() {
 	var err error
 	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
 	if err != nil {
@@ -78,11 +78,11 @@ func (s *TestSearch) SetupSuite() {
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
 }
 
-func (s *TestSearch) TearDownTest() {
+func (s *searchBlackBoxTest) TearDownTest() {
 	s.clean()
 }
 
-func (s *TestSearch) TestSearchWorkItems() {
+func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	// given
 	_, err := s.wiRepo.Create(
 		context.Background(),
@@ -104,7 +104,7 @@ func (s *TestSearch) TestSearchWorkItems() {
 	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
 }
 
-func (s *TestSearch) TestSearchPagination() {
+func (s *searchBlackBoxTest) TestSearchPagination() {
 	// given
 	_, err := s.wiRepo.Create(
 		context.Background(),
@@ -129,8 +129,7 @@ func (s *TestSearch) TestSearchPagination() {
 	assert.Equal(s.T(), "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
 }
 
-func (s *TestSearch) TestSearchWithEmptyValue() {
-	// given
+func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	_, err := s.wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
@@ -150,8 +149,7 @@ func (s *TestSearch) TestSearchWithEmptyValue() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *TestSearch) TestSearchWithDomainPortCombination() {
-	// given
+func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
@@ -173,8 +171,7 @@ func (s *TestSearch) TestSearchWithDomainPortCombination() {
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func (s *TestSearch) TestSearchURLWithoutPort() {
-	// given
+func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
@@ -197,8 +194,7 @@ func (s *TestSearch) TestSearchURLWithoutPort() {
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func (s *TestSearch) TestUnregisteredURLWithPort() {
-	// given
+func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
@@ -221,9 +217,9 @@ func (s *TestSearch) TestUnregisteredURLWithPort() {
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func (s *TestSearch) TestUnwantedCharactersRelatedToSearchLogic() {
-	// given
+func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
+
 	_, err := s.wiRepo.Create(
 		context.Background(),
 		workitem.SystemBug,
@@ -244,7 +240,7 @@ func (s *TestSearch) TestUnwantedCharactersRelatedToSearchLogic() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 	c := app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
@@ -264,29 +260,15 @@ func getWICreatePayload() *app.CreateWorkitemPayload {
 	return &c
 }
 
-// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
-// Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
-func (s *TestSearch) TestAutoRegisterHostURL() {
-	// given
-	// create a WI, search by `list view URL` of newly created item
-	newWI := getWICreatePayload()
-	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI)
-	require.NotNil(s.T(), wi)
-	// when/then 1
-	customHost := "own.domain.one"
-	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
-	s.verifySearchByKnownURLs(wi, customHost, queryString)
-	// when/then 2
-	// Search by `board view URL` of newly created item
-	customHost2 := "own.domain.two"
-	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
-	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
+func getServiceAsUser(testIdentity account.Identity) *goa.Service {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	return service
 }
 
 // searchByURL copies much of the codebase from search_testing.go->ShowSearchOK
 // and customises the values to add custom Host in the call.
-func (s *TestSearch) searchByURL(customHost, queryString string) *app.SearchWorkItemList {
+func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.SearchWorkItemList {
 	var resp interface{}
 	var respSetter goatest.ResponseSetterFunc = func(r interface{}) { resp = r }
 	newEncoder := func(io.Writer) goa.Encoder { return respSetter }
@@ -300,16 +282,12 @@ func (s *TestSearch) searchByURL(customHost, queryString string) *app.SearchWork
 		Host:     customHost,
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		panic("invalid test " + err.Error()) // bug
-	}
+	require.Nil(s.T(), err)
 	prms := url.Values{}
 	prms["q"] = []string{queryString} // any value will do
 	goaCtx := goa.NewContext(goa.WithAction(s.svc.Context, "SearchTest"), rw, req, prms)
 	showCtx, err := app.NewShowSearchContext(goaCtx, req, s.svc)
-	if err != nil {
-		panic("invalid test data " + err.Error()) // bug
-	}
+	require.Nil(s.T(), err)
 	// Perform action
 	err = s.controller.Show(showCtx)
 	// Validate response
@@ -321,12 +299,33 @@ func (s *TestSearch) searchByURL(customHost, queryString string) *app.SearchWork
 }
 
 // verifySearchByKnownURLs performs actual tests on search result and knwonURL map
-func (s *TestSearch) verifySearchByKnownURLs(wi *app.WorkItem2Single, host, searchQuery string) {
+func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItem2Single, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
-	require.NotEmpty(s.T(), result.Data)
+	assert.NotEmpty(s.T(), result.Data)
 	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)
+
 	known := search.GetAllRegisteredURLs()
-	require.NotEmpty(s.T(), known)
+	require.NotNil(s.T(), known)
+	assert.NotEmpty(s.T(), known)
 	assert.Contains(s.T(), known[search.HostRegistrationKeyForListWI].URLRegex, host)
 	assert.Contains(s.T(), known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
+}
+
+// TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
+// Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
+func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
+	// service := getServiceAsUser(s.testIdentity)
+	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	// create a WI, search by `list view URL` of newly created item
+	newWI := s.getWICreatePayload()
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI)
+	require.NotNil(s.T(), wi)
+	customHost := "own.domain.one"
+	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
+	s.verifySearchByKnownURLs(wi, customHost, queryString)
+
+	// Search by `board view URL` of newly created item
+	customHost2 := "own.domain.two"
+	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
+	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
 }
