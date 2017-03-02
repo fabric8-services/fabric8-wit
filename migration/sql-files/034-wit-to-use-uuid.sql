@@ -4,8 +4,11 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ------------------------------------------------------------------------------
 -- Update the work item type table itself:
 --
--- 1. In parallel to the current primary key ("name" column), we'll add a column
+-- 0. In parallel to the current primary key ("name" column), we'll add a column
 -- "id" that will become the new primary key later down the road.
+--
+-- 1. For all system-defined WITs, do not use the UUID as it was generated
+-- during the migration instead use the one that is defined in the code.
 --
 -- 2. Add new "description" column and fill with the default value of 'This is
 -- the description for the work item type "X".'.
@@ -20,6 +23,17 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -------------------------------------------------------------------------------
 
 ALTER TABLE work_item_types ADD COLUMN id uuid DEFAULT uuid_generate_v4() NOT NULL;
+
+-- Use WIT IDs define in the code
+UPDATE work_item_types SET id = '{{index . 0}}' WHERE name = 'planneritem';
+UPDATE work_item_types SET id = '{{index . 1}}' WHERE name = 'userstory';
+UPDATE work_item_types SET id = '{{index . 2}}' WHERE name = 'valueproposition';
+UPDATE work_item_types SET id = '{{index . 3}}' WHERE name = 'fundamental';
+UPDATE work_item_types SET id = '{{index . 4}}' WHERE name = 'experience';
+UPDATE work_item_types SET id = '{{index . 5}}' WHERE name = 'feature';
+UPDATE work_item_types SET id = '{{index . 6}}' WHERE name = 'scenario';
+UPDATE work_item_types SET id = '{{index . 7}}' WHERE name = 'bug';
+
 ALTER TABLE work_item_types ADD COLUMN description text;
 UPDATE work_item_types SET description = concat('This is the description for the work item type "', name, '".');
 

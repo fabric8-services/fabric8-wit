@@ -207,7 +207,16 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
 
 	// Version 34
-	m = append(m, steps{executeSQLFile("034-wit-to-use-uuid.sql")})
+	m = append(m, steps{executeSQLFile("034-wit-to-use-uuid.sql",
+		workitem.SystemPlannerItem.String(),
+		workitem.SystemUserStory.String(),
+		workitem.SystemValueProposition.String(),
+		workitem.SystemFundamental.String(),
+		workitem.SystemExperience.String(),
+		workitem.SystemFeature.String(),
+		workitem.SystemScenario.String(),
+		workitem.SystemBug.String(),
+	)})
 
 	// Version N
 	//
