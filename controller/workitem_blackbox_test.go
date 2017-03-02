@@ -1814,12 +1814,10 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	assert.Equal(t, file, cb.FileName)
 	assert.Equal(t, line, cb.LineNumber)
 
-	require.NotNil(t, fetchedWi.Data.Relationships.Codebase)
-	require.NotNil(t, fetchedWi.Data.Relationships.Codebase.Links.Meta)
+	require.NotNil(t, fetchedWi.Data.Links)
 	expectedURL := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
 	expectedURL = url.QueryEscape(expectedURL)
-	meta := fetchedWi.Data.Relationships.Codebase.Links.Meta
-	assert.Contains(t, meta["edit"], expectedURL)
+	assert.Contains(t, *fetchedWi.Data.Links.Doit, expectedURL)
 }
 
 // a normal test function that will kick off WorkItem2Suite

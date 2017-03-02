@@ -384,14 +384,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				cb := val.(codebase.CodebaseContent)
 				// Following format is TBD
 				urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
-				editCodebaseURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
-				op.Relationships.Codebase = &app.RelationGeneric{
-					Links: &app.GenericLinks{
-						Meta: map[string]interface{}{
-							"edit": editCodebaseURL,
-						},
-					},
-				}
+				doitURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
+				op.Links.Doit = &doitURL
 			}
 		default:
 			op.Attributes[name] = val
