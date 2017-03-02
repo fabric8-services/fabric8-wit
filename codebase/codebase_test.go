@@ -13,7 +13,7 @@ func TestCodebaseToMap(t *testing.T) {
 	repo := "golang-project"
 	file := "main.go"
 	line := 200
-	cb := codebase.Codebase{
+	cb := codebase.CodebaseContent{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,

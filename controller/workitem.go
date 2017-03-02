@@ -381,7 +381,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 		case workitem.SystemCodebase:
 			if val != nil {
 				op.Attributes[name] = val
-				cb := val.(codebase.Codebase)
+				cb := val.(codebase.CodebaseContent)
 				// Following format is TBD
 				urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
 				editCodebaseURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))

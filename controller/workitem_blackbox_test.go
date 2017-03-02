@@ -1795,7 +1795,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	repo := "golang-project"
 	file := "main.go"
 	line := 200
-	cbase := codebase.Codebase{
+	cbase := codebase.CodebaseContent{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -1808,7 +1808,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	require.NotNil(t, fetchedWi.Data)
 	require.NotNil(t, fetchedWi.Data.Attributes)
 	assert.Equal(t, title, fetchedWi.Data.Attributes[workitem.SystemTitle])
-	cb := fetchedWi.Data.Attributes[workitem.SystemCodebase].(codebase.Codebase)
+	cb := fetchedWi.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
 	assert.Equal(t, repo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)

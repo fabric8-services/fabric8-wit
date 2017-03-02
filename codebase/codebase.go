@@ -2,8 +2,8 @@ package codebase
 
 import "errors"
 
-// Codebase defines all parameters those are useful to associate Che Editor's window to a WI
-type Codebase struct {
+// CodebaseContent defines all parameters those are useful to associate Che Editor's window to a WI
+type CodebaseContent struct {
 	Repository string `json:"repository"`
 	Branch     string `json:"branch"`
 	FileName   string `json:"filename"`
@@ -18,8 +18,8 @@ const (
 	LineNumberKey = "linenumber"
 )
 
-// ToMap converts Codebase to a map of string->Interface{}
-func (c *Codebase) ToMap() map[string]interface{} {
+// ToMap converts CodebaseContent to a map of string->Interface{}
+func (c *CodebaseContent) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res[RepositoryKey] = c.Repository
 	res[BranchKey] = c.Branch
@@ -28,9 +28,9 @@ func (c *Codebase) ToMap() map[string]interface{} {
 	return res
 }
 
-// NewCodebase build Codebase instance from input Map.
-func NewCodebase(value map[string]interface{}) (Codebase, error) {
-	cb := Codebase{}
+// NewCodebase build CodebaseContent instance from input Map.
+func NewCodebase(value map[string]interface{}) (CodebaseContent, error) {
+	cb := CodebaseContent{}
 	validKeys := []string{RepositoryKey, BranchKey, FileNameKey, LineNumberKey}
 	for _, key := range validKeys {
 		if v, ok := value[key]; ok {
@@ -52,7 +52,7 @@ func NewCodebase(value map[string]interface{}) (Codebase, error) {
 			}
 		}
 	}
-	emptyCodebase := Codebase{}
+	emptyCodebase := CodebaseContent{}
 	if cb == emptyCodebase {
 		// Not a single valid key found in `value`
 		return emptyCodebase, errors.New("Invalid keys for Codebase")
