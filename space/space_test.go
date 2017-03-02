@@ -108,6 +108,30 @@ func (test *repoBBTest) TestListDoNotReturnPointerToSameObject() {
 	assert.True(test.T(), spaces[0].Name != spaces[1].Name)
 }
 
+func (test *repoBBTest) TestLoadSpaceByName() {
+	expectSpace(test.load(satoriuuid.NewV4()), test.assertNotFound())
+	res, _ := expectSpace(test.create(testSpace), test.requireOk)
+
+	res2, _ := expectSpace(test.loadByUserIdAndName(satoriuuid.Nil, res.Name), test.requireOk)
+	assert.True(test.T(), (*res).Equal(*res2))
+}
+
+func (test *repoBBTest) TestLoadSpaceByNameDifferentOwner() {
+	expectSpace(test.load(satoriuuid.NewV4()), test.assertNotFound())
+	res, _ := expectSpace(test.create(testSpace), test.requireOk)
+
+	_, err := expectSpace(test.loadByUserIdAndName(satoriuuid.NewV4(), res.Name), test.requireErrorType(errors.NotFoundError{}))
+	assert.NotNil(test.T(), err)
+}
+
+func (test *repoBBTest) TestLoadSpaceByNameNonExistentSpaceName() {
+	expectSpace(test.load(satoriuuid.NewV4()), test.assertNotFound())
+	expectSpace(test.create(testSpace), test.requireOk)
+
+	_, err := expectSpace(test.loadByUserIdAndName(satoriuuid.Nil, satoriuuid.NewV4().String()), test.requireErrorType(errors.NotFoundError{}))
+	assert.NotNil(test.T(), err)
+}
+
 type spaceExpectation func(p *space.Space, err error)
 
 func expectSpace(f func() (*space.Space, error), e spaceExpectation) (*space.Space, error) {
@@ -144,7 +168,8 @@ func (test *repoBBTest) requireErrorType(e error) func(p *space.Space, err error
 
 func (test *repoBBTest) create(name string) func() (*space.Space, error) {
 	newSpace := space.Space{
-		Name: name,
+		Name:    name,
+		OwnerId: satoriuuid.Nil,
 	}
 	return func() (*space.Space, error) { return test.repo.Create(context.Background(), &newSpace) }
 }
@@ -155,6 +180,12 @@ func (test *repoBBTest) save(p space.Space) func() (*space.Space, error) {
 
 func (test *repoBBTest) load(id satoriuuid.UUID) func() (*space.Space, error) {
 	return func() (*space.Space, error) { return test.repo.Load(context.Background(), id) }
+}
+
+func (test *repoBBTest) loadByUserIdAndName(userId satoriuuid.UUID, spaceName string) func() (*space.Space, error) {
+	return func() (*space.Space, error) {
+		return test.repo.LoadByOwnerAndName(context.Background(), &userId, &spaceName)
+	}
 }
 
 func (test *repoBBTest) delete(id satoriuuid.UUID) func() (*space.Space, error) {
