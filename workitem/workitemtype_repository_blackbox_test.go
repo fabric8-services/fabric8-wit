@@ -1,13 +1,20 @@
 package workitem_test
 
 import (
+	"os"
+
 	"golang.org/x/net/context"
 
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,31 +23,38 @@ import (
 
 type workItemTypeRepoBlackBoxTest struct {
 	gormsupport.DBTestSuite
-	undoScript *gormsupport.DBScript
-	repo       workitem.WorkItemTypeRepository
+	clean func()
+	repo  workitem.WorkItemTypeRepository
 }
 
 func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
 	suite.Run(t, &workItemTypeRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
-	s.undoScript = &gormsupport.DBScript{}
+// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+// The SetupSuite method will run before the tests in the suite are run.
+// It sets up a database connection for all the tests in this suite without polluting global space.
+func (s *workItemTypeRepoBlackBoxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
 
-	gWitRepo := workitem.NewWorkItemTypeRepository(s.DB)
-	s.repo = workitem.NewUndoableWorkItemTypeRepository(gWitRepo, s.undoScript)
-
-	db2 := s.DB.Unscoped().Delete(workitem.WorkItemType{Name: "foo_bar"})
-
-	if db2.Error != nil {
-		s.T().Fatalf("Could not setup test %s", db2.Error.Error())
-		return
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if _, c := os.LookupEnv(resource.Database); c != false {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
 	}
+}
+
+func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.repo = workitem.NewWorkItemTypeRepository(s.DB)
 	workitem.ClearGlobalWorkItemTypeCache()
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
-	s.undoScript.Run(s.DB)
+	s.clean()
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {

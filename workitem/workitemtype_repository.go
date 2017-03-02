@@ -100,7 +100,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, 
 	path := LtreeSafeID(*id)
 	if extendedTypeID != nil {
 		extendedType := WorkItemType{}
-		db := r.db.First(&extendedType, "id = ?", *extendedTypeID)
+		db := r.db.Model(&extendedType).Where("id=?", extendedTypeID).First(&extendedType)
 		if db.RecordNotFound() {
 			return nil, errors.NewBadParameterError("extendedTypeID", *extendedTypeID)
 		}
