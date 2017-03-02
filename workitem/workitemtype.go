@@ -172,9 +172,7 @@ func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, erro
 // is of the same type as the current WIT or of it is a subtype; otherwise false
 // is returned.
 func (wit WorkItemType) IsTypeOrSubtypeOf(typeID satoriuuid.UUID) bool {
-	// Make UUID comparible with ltree format
-	ltreeNode := strings.Replace(typeID.String(), "-", "_", -1)
 	// Check for complete inclusion (e.g. "bar" is contained in "foo.bar.cake")
 	// and for suffix (e.g. ".cake" is the suffix of "foo.bar.cake").
-	return satoriuuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, ltreeNode+pathSep)
+	return satoriuuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, LtreeSafeID(typeID)+pathSep)
 }
