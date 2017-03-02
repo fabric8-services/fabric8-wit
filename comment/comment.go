@@ -1,13 +1,13 @@
 package comment
 
 import (
-	"log"
 	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -29,6 +29,7 @@ type Comment struct {
 type Repository interface {
 	Create(ctx context.Context, u *Comment) error
 	Save(ctx context.Context, comment *Comment) (*Comment, error)
+	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 	Count(ctx context.Context, parent string) (int, error)
@@ -59,9 +60,16 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment) er
 		comment.Markup = rendering.SystemMarkupDefault
 	}
 	if err := m.db.Create(comment).Error; err != nil {
-		goa.LogError(ctx, "error adding Comment", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+			"err":       err,
+		}, "unable to create the comment")
 		return errs.WithStack(err)
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"commentID": comment.ID,
+	}, "Comment created!")
 
 	return nil
 }
@@ -71,10 +79,18 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	c := Comment{}
 	tx := m.db.Where("id=?", comment.ID).First(&c)
 	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+		}, "comment not found!")
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("comment", comment.ID.String())
 	}
 	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+			"err":       err,
+		}, "comment search operation failed!")
+
 		return nil, errors.NewInternalError(err.Error())
 	}
 	// make sure no comment is created with an empty 'markup' value
@@ -83,10 +99,34 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment) (*Co
 	}
 	tx = tx.Save(comment)
 	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"commentID": comment.ID,
+			"err":       err,
+		}, "unable to save the comment!")
+
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("updated comment to %v\n", comment)
+
+	log.Debug(ctx, map[string]interface{}{
+		"commentID": comment.ID,
+	}, "Comment updated!")
+
 	return comment, nil
+}
+
+// Delete a single comment
+func (m *GormCommentRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
+		return errors.NewNotFoundError("comment", id.String())
+	}
+	tx := m.db.Delete(&Comment{ID: id})
+	if tx.RowsAffected == 0 {
+		return errors.NewNotFoundError("comment", id.String())
+	}
+	if err := tx.Error; err != nil {
+		return errors.NewInternalError(err.Error())
+	}
+	return nil
 }
 
 // List all comments related to a single item
@@ -145,7 +185,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 
 	}
 	if first {
-		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+		// means 0 rows were returned from the first query (maybe because of offset outside of total count),
 		// need to do a count(*) to find out total
 		orgDB := orgDB.Select("count(*)")
 		rows2, err := orgDB.Rows()
@@ -176,9 +216,18 @@ func (m *GormCommentRepository) Load(ctx context.Context, id uuid.UUID) (*Commen
 
 	tx := m.db.Where("id=?", id).First(&obj)
 	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"commentID": id.String(),
+		}, "comment search operation failed!")
+
 		return nil, errors.NewNotFoundError("comment", id.String())
 	}
 	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"commentID": id.String(),
+			"err":       tx.Error,
+		}, "unable to load the comment")
+
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &obj, nil

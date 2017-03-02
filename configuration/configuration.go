@@ -2,71 +2,46 @@ package configuration
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/pkg/errors"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/almighty/almighty-core/rest"
+	"github.com/goadesign/goa"
 	"github.com/spf13/viper"
 )
 
 // String returns the current configuration as a string
-func String() string {
-	allSettings := viper.AllSettings()
+func (c *ConfigurationData) String() string {
+	allSettings := c.v.AllSettings()
 	y, err := yaml.Marshal(&allSettings)
 	if err != nil {
-		panic(fmt.Errorf("Failed to marshall config to string: %s", err.Error()))
+		log.WithFields(map[string]interface{}{
+			"settings": allSettings,
+			"err":      err,
+		}).Panicln("Failed to marshall config to string")
 	}
 	return fmt.Sprintf("%s\n", y)
 }
 
-// Setup sets up defaults for viper configuration options and
-// overrides these values with the values from the given configuration file
-// if it is not empty. Those values again are overwritten by environment
-// variables.
-func Setup(configFilePath string) error {
-	viper.Reset()
-
-	// Expect environment variables to be prefix with "ALMIGHTY_".
-	viper.SetEnvPrefix("ALMIGHTY")
-
-	// Automatically map environment variables to viper values
-	viper.AutomaticEnv()
-
-	// To override nested variables through environment variables, we
-	// need to make sure that we don't have to use dots (".") inside the
-	// environment variable names.
-	// To override foo.bar you need to set ALM_FOO_BAR
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-
-	viper.SetTypeByDefaultValue(true)
-	setConfigDefaults()
-
-	// Read the config
-	// Explicitly specify which file to load config from
-	if configFilePath != "" {
-		viper.SetConfigFile(configFilePath)
-		viper.SetConfigType("yaml")
-		err := viper.ReadInConfig() // Find and read the config file
-		if err != nil {             // Handle errors reading the config file
-			return fmt.Errorf("Fatal error config file: %s \n", err)
-		}
-	}
-
-	return nil
-}
-
-// Constants for viper variable names. Will be used to set
-// default values as well as to get each value
 const (
+	// Constants for viper variable names. Will be used to set
+	// default values as well as to get each value
+
 	varPostgresHost                 = "postgres.host"
 	varPostgresPort                 = "postgres.port"
 	varPostgresUser                 = "postgres.user"
 	varPostgresDatabase             = "postgres.database"
 	varPostgresPassword             = "postgres.password"
 	varPostgresSSLMode              = "postgres.sslmode"
-	varPostgresConnectionMaxRetries = "postgres.connection.maxretries"
+	varPostgresConnectionTimeout    = "postgres.connection.timeout"
 	varPostgresConnectionRetrySleep = "postgres.connection.retrysleep"
+	varPostgresConnectionMaxIdle    = "postgres.connection.maxidle"
+	varPostgresConnectionMaxOpen    = "postgres.connection.maxopen"
 	varPopulateCommonTypes          = "populate.commontypes"
 	varHTTPAddress                  = "http.address"
 	varDeveloperModeEnabled         = "developer.mode.enabled"
@@ -75,180 +50,318 @@ const (
 	varKeycloakClientID             = "keycloak.client.id"
 	varKeycloakEndpointAuth         = "keycloak.endpoint.auth"
 	varKeycloakEndpointToken        = "keycloak.endpoint.token"
+	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
+	varKeycloakRealm                = "keycloak.realm"
 	varKeycloakEndpointUserinfo     = "keycloak.endpoint.userinfo"
 	varKeycloakTesUserName          = "keycloak.testuser.name"
 	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
 	varTokenPublicKey               = "token.publickey"
 	varTokenPrivateKey              = "token.privatekey"
+	defaultConfigFile               = "config.yaml"
+
+	// The host name exception of the api service to be taken into account
+	// when converting it to sso.demo.almighty.io
+	// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
+	// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
+	// So, we need to treat it as an exception
+
+	apiHostNameException = "demo.api.almighty.io"
+	ssoHostNameException = "sso.demo.almighty.io"
 )
 
-func setConfigDefaults() {
+// ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
+type ConfigurationData struct {
+	v *viper.Viper
+}
+
+// NewConfigurationData creates a configuration reader object using a configurable configuration file path
+func NewConfigurationData(configFilePath string) (*ConfigurationData, error) {
+	c := ConfigurationData{
+		v: viper.New(),
+	}
+	c.v.SetEnvPrefix("ALMIGHTY")
+	c.v.AutomaticEnv()
+	c.v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	c.v.SetTypeByDefaultValue(true)
+	c.setConfigDefaults()
+
+	if configFilePath != "" {
+		c.v.SetConfigType("yaml")
+		c.v.SetConfigFile(configFilePath)
+		err := c.v.ReadInConfig() // Find and read the config file
+		if err != nil {           // Handle errors reading the config file
+			return nil, errors.Errorf("Fatal error config file: %s \n", err)
+		}
+	}
+	return &c, nil
+}
+
+func getConfigFilePath() string {
+	// This was either passed as a env var Or, set inside main.go from --config
+	envConfigPath, ok := os.LookupEnv("ALMIGHTY_CONFIG_FILE_PATH")
+	if !ok {
+		return ""
+	}
+	return envConfigPath
+}
+
+// GetDefaultConfigurationFiler eturns the default configuration file.
+func (c *ConfigurationData) GetDefaultConfigurationFile() string {
+	return defaultConfigFile
+}
+
+// GetConfigurationData is a wrapper over NewConfigurationData which reads configuration file path
+// from the environment variable.
+func GetConfigurationData() (*ConfigurationData, error) {
+	cd, err := NewConfigurationData(getConfigFilePath())
+	return cd, err
+}
+
+func (c *ConfigurationData) setConfigDefaults() {
 	//---------
 	// Postgres
 	//---------
-	viper.SetTypeByDefaultValue(true)
-	viper.SetDefault(varPostgresHost, "localhost")
-	viper.SetDefault(varPostgresPort, 5432)
-	viper.SetDefault(varPostgresUser, "postgres")
-	viper.SetDefault(varPostgresDatabase, "postgres")
-	viper.SetDefault(varPostgresPassword, "mysecretpassword")
-	viper.SetDefault(varPostgresSSLMode, "disable")
-	// The number of times alm server will attempt to open a connection to the database before it gives up
-	viper.SetDefault(varPostgresConnectionMaxRetries, 50)
+	c.v.SetTypeByDefaultValue(true)
+	c.v.SetDefault(varPostgresHost, "localhost")
+	c.v.SetDefault(varPostgresPort, 5432)
+	c.v.SetDefault(varPostgresUser, "postgres")
+	c.v.SetDefault(varPostgresDatabase, "postgres")
+	c.v.SetDefault(varPostgresPassword, "mysecretpassword")
+	c.v.SetDefault(varPostgresSSLMode, "disable")
+	c.v.SetDefault(varPostgresConnectionTimeout, 5)
+	c.v.SetDefault(varPostgresConnectionMaxIdle, -1)
+	c.v.SetDefault(varPostgresConnectionMaxOpen, -1)
+
 	// Number of seconds to wait before trying to connect again
-	viper.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
+	c.v.SetDefault(varPostgresConnectionRetrySleep, time.Duration(time.Second))
 
 	//-----
 	// HTTP
 	//-----
-	viper.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
 
 	//-----
 	// Misc
 	//-----
 
 	// Enable development related features, e.g. token generation endpoint
-	viper.SetDefault(varDeveloperModeEnabled, false)
+	c.v.SetDefault(varDeveloperModeEnabled, false)
 
-	viper.SetDefault(varPopulateCommonTypes, true)
+	c.v.SetDefault(varPopulateCommonTypes, true)
 
 	// Auth-related defaults
-	viper.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
-	viper.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
-	viper.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
-	viper.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
-	viper.SetDefault(varGithubAuthToken, defaultActualToken)
-	viper.SetDefault(varKeycloakEndpointAuth, defaultKeycloakEndpointAuth)
-	viper.SetDefault(varKeycloakEndpointToken, defaultKeycloakEndpointToken)
-	viper.SetDefault(varKeycloakEndpointUserinfo, defaultKeycloakEndpointUserinfo)
-	viper.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
-	viper.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
+	c.v.SetDefault(varTokenPublicKey, defaultTokenPublicKey)
+	c.v.SetDefault(varTokenPrivateKey, defaultTokenPrivateKey)
+	c.v.SetDefault(varKeycloakClientID, defaultKeycloakClientID)
+	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
+	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
+	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
+	c.v.SetDefault(varKeycloakRealm, defaultKeycloakRealm)
+	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
+	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
-func GetPostgresHost() string {
-	return viper.GetString(varPostgresHost)
+func (c *ConfigurationData) GetPostgresHost() string {
+	return c.v.GetString(varPostgresHost)
 }
 
 // GetPostgresPort returns the postgres port as set via default, config file, or environment variable
-func GetPostgresPort() int64 {
-	return viper.GetInt64(varPostgresPort)
+func (c *ConfigurationData) GetPostgresPort() int64 {
+	return c.v.GetInt64(varPostgresPort)
 }
 
 // GetPostgresUser returns the postgres user as set via default, config file, or environment variable
-func GetPostgresUser() string {
-	return viper.GetString(varPostgresUser)
+func (c *ConfigurationData) GetPostgresUser() string {
+	return c.v.GetString(varPostgresUser)
 }
 
 // GetPostgresDatabase returns the postgres database as set via default, config file, or environment variable
-func GetPostgresDatabase() string {
-	return viper.GetString(varPostgresDatabase)
+func (c *ConfigurationData) GetPostgresDatabase() string {
+	return c.v.GetString(varPostgresDatabase)
 }
 
 // GetPostgresPassword returns the postgres password as set via default, config file, or environment variable
-func GetPostgresPassword() string {
-	return viper.GetString(varPostgresPassword)
+func (c *ConfigurationData) GetPostgresPassword() string {
+	return c.v.GetString(varPostgresPassword)
 }
 
 // GetPostgresSSLMode returns the postgres sslmode as set via default, config file, or environment variable
-func GetPostgresSSLMode() string {
-	return viper.GetString(varPostgresSSLMode)
+func (c *ConfigurationData) GetPostgresSSLMode() string {
+	return c.v.GetString(varPostgresSSLMode)
 }
 
-// GetPostgresConnectionMaxRetries returns the number of times (as set via default, config file, or environment variable)
-// alm server will attempt to open a connection to the database before it gives up
-func GetPostgresConnectionMaxRetries() int {
-	return viper.GetInt(varPostgresConnectionMaxRetries)
+// GetPostgresConnectionTimeout returns the postgres connection timeout as set via default, config file, or environment variable
+func (c *ConfigurationData) GetPostgresConnectionTimeout() int64 {
+	return c.v.GetInt64(varPostgresConnectionTimeout)
 }
 
 // GetPostgresConnectionRetrySleep returns the number of seconds (as set via default, config file, or environment variable)
 // to wait before trying to connect again
-func GetPostgresConnectionRetrySleep() time.Duration {
-	return viper.GetDuration(varPostgresConnectionRetrySleep)
+func (c *ConfigurationData) GetPostgresConnectionRetrySleep() time.Duration {
+	return c.v.GetDuration(varPostgresConnectionRetrySleep)
+}
+
+// GetPostgresConnectionMaxIdle returns the number of connections that should be keept alive in the database connection pool at
+// any given time. -1 represents no restrictions/default behavior
+func (c *ConfigurationData) GetPostgresConnectionMaxIdle() int {
+	return c.v.GetInt(varPostgresConnectionMaxIdle)
+}
+
+// GetPostgresConnectionMaxOpen returns the max number of open connections that should be open in the database connection pool.
+// -1 represents no restrictions/default behavior
+func (c *ConfigurationData) GetPostgresConnectionMaxOpen() int {
+	return c.v.GetInt(varPostgresConnectionMaxOpen)
 }
 
 // GetPostgresConfigString returns a ready to use string for usage in sql.Open()
-func GetPostgresConfigString() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s DB.name=%s sslmode=%s",
-		GetPostgresHost(),
-		GetPostgresPort(),
-		GetPostgresUser(),
-		GetPostgresPassword(),
-		GetPostgresDatabase(),
-		GetPostgresSSLMode(),
+func (c *ConfigurationData) GetPostgresConfigString() string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
+		c.GetPostgresHost(),
+		c.GetPostgresPort(),
+		c.GetPostgresUser(),
+		c.GetPostgresPassword(),
+		c.GetPostgresDatabase(),
+		c.GetPostgresSSLMode(),
+		c.GetPostgresConnectionTimeout(),
 	)
 }
 
 // GetPopulateCommonTypes returns true if the (as set via default, config file, or environment variable)
 // the common work item types such as bug or feature shall be created.
-func GetPopulateCommonTypes() bool {
-	return viper.GetBool(varPopulateCommonTypes)
+func (c *ConfigurationData) GetPopulateCommonTypes() bool {
+	return c.v.GetBool(varPopulateCommonTypes)
 }
 
 // GetHTTPAddress returns the HTTP address (as set via default, config file, or environment variable)
 // that the alm server binds to (e.g. "0.0.0.0:8080")
-func GetHTTPAddress() string {
-	return viper.GetString(varHTTPAddress)
+func (c *ConfigurationData) GetHTTPAddress() string {
+	return c.v.GetString(varHTTPAddress)
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
 // e.g. token generation endpoint are enabled
-func IsPostgresDeveloperModeEnabled() bool {
-	return viper.GetBool(varDeveloperModeEnabled)
+func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
+	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
-func GetTokenPrivateKey() []byte {
-	return []byte(viper.GetString(varTokenPrivateKey))
+func (c *ConfigurationData) GetTokenPrivateKey() []byte {
+	return []byte(c.v.GetString(varTokenPrivateKey))
 }
 
 // GetTokenPublicKey returns the public key (as set via config file or environment variable)
 // that is used to decrypt the authentication token.
-func GetTokenPublicKey() []byte {
-	return []byte(viper.GetString(varTokenPublicKey))
+func (c *ConfigurationData) GetTokenPublicKey() []byte {
+	return []byte(c.v.GetString(varTokenPublicKey))
 }
 
 // GetGithubAuthToken returns the actual Github OAuth Access Token
-func GetGithubAuthToken() string {
-	return viper.GetString(varGithubAuthToken)
+func (c *ConfigurationData) GetGithubAuthToken() string {
+	return c.v.GetString(varGithubAuthToken)
 }
 
 // GetKeycloakSecret returns the keycloak client secret (as set via config file or environment variable)
 // that is used to make authorized Keycloak API Calls.
-func GetKeycloakSecret() string {
-	return viper.GetString(varKeycloakSecret)
+func (c *ConfigurationData) GetKeycloakSecret() string {
+	return c.v.GetString(varKeycloakSecret)
 }
 
 // GetKeycloakClientID returns the keycloak client ID (as set via config file or environment variable)
 // that is used to make authorized Keycloak API Calls.
-func GetKeycloakClientID() string {
-	return viper.GetString(varKeycloakClientID)
+func (c *ConfigurationData) GetKeycloakClientID() string {
+	return c.v.GetString(varKeycloakClientID)
 }
 
-// GetKeycloakEndpointAuth returns the keycloak auth endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointAuth() string {
-	return viper.GetString(varKeycloakEndpointAuth)
+// GetKeycloakDomainPrefix returns the domain prefix which should be used in all Keycloak requests
+func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
+	return c.v.GetString(varKeycloakDomainPrefix)
 }
 
-// GetKeycloakEndpointToken returns the keycloak token endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointToken() string {
-	return viper.GetString(varKeycloakEndpointToken)
-}
-
-// GetKeycloakEndpointUserinfo returns the keycloak userinfo endpoint (as set via config file or environment variable)
-func GetKeycloakEndpointUserinfo() string {
-	return viper.GetString(varKeycloakEndpointUserinfo)
+// GetKeycloakRealm returns the keyclaok realm name
+func (c *ConfigurationData) GetKeycloakRealm() string {
+	return c.v.GetString(varKeycloakRealm)
 }
 
 // GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
-func GetKeycloakTestUserName() string {
-	return viper.GetString(varKeycloakTesUserName)
+func (c *ConfigurationData) GetKeycloakTestUserName() string {
+	return c.v.GetString(varKeycloakTesUserName)
 }
 
 // GetKeycloakTestUserSecret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
-func GetKeycloakTestUserSecret() string {
-	return viper.GetString(varKeycloakTesUserSecret)
+func (c *ConfigurationData) GetKeycloakTestUserSecret() string {
+	return c.v.GetString(varKeycloakTesUserSecret)
+}
+
+// GetKeycloakEndpointAuth returns the keycloak auth endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuth, devModeKeycloakEndpointAuth, "auth")
+}
+
+// GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointToken, devModeKeycloakEndpointToken, "token")
+}
+
+// GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointUserinfo, devModeKeycloakEndpointUserinfo, "userinfo")
+}
+
+func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVarName string, devModeEndpoint string, pathSufix string) (string, error) {
+	if c.v.IsSet(endpointVarName) {
+		return c.v.GetString(endpointVarName), nil
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return devModeEndpoint, nil
+	}
+	endpoint, err := c.getKeycloakURL(req, c.openIDConnectPath(pathSufix))
+	if err != nil {
+		return "", err
+	}
+	c.v.Set(endpointVarName, endpoint) // Set the variable, so, we don't have to recalculate it again the next time
+	return endpoint, nil
+}
+
+func (c *ConfigurationData) openIDConnectPath(suffix string) string {
+	return "auth/realms/" + c.GetKeycloakRealm() + "/protocol/openid-connect/" + suffix
+}
+
+func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (string, error) {
+	scheme := "http"
+	if req.TLS != nil { // isHTTPS
+		scheme = "https"
+	}
+	currentHost := req.Host
+	var newHost string
+	var err error
+	if currentHost == apiHostNameException {
+		// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
+		// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
+		// So, we need to treat it as an exception
+		newHost = ssoHostNameException
+	} else {
+		newHost, err = rest.ReplaceDomainPrefix(currentHost, c.GetKeycloakDomainPrefix())
+		if err != nil {
+			return "", err
+		}
+	}
+	newURL := fmt.Sprintf("%s://%s/%s", scheme, newHost, path)
+
+	return newURL, nil
 }
 
 // Auth-related defaults
@@ -298,9 +411,8 @@ JwIDAQAB
 var defaultKeycloakClientID = "fabric8-online-platform"
 var defaultKeycloakSecret = "08a8bcd1-f362-446a-9d2b-d34b8d464185"
 
-var defaultKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth"
-var defaultKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token"
-var defaultKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo"
+var defaultKeycloakDomainPrefix = "sso"
+var defaultKeycloakRealm = "fabric8"
 
 // Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
@@ -310,3 +422,8 @@ var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[
 
 var defaultKeycloakTesUserName = "testuser"
 var defaultKeycloakTesUserSecret = "testuser"
+
+// Keycloak URLs to be used in dev mode. Can be overridden by setting up keycloak.endpoint.*
+var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth"
+var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token"
+var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo"

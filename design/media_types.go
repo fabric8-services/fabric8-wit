@@ -23,19 +23,6 @@ var ALMStatus = a.MediaType("application/vnd.status+json", func() {
 	})
 })
 
-// AuthToken represents an authentication JWT Token
-var AuthToken = a.MediaType("application/vnd.authtoken+json", func() {
-	a.TypeName("AuthToken")
-	a.Description("JWT Token")
-	a.Attributes(func() {
-		a.Attribute("token", d.String, "JWT Token")
-		a.Required("token")
-	})
-	a.View("default", func() {
-		a.Attribute("token")
-	})
-})
-
 // workItem is the media type for work items
 // Deprecated, but kept around as internal model for now.
 var workItem = a.MediaType("application/vnd.workitem+json", func() {
@@ -64,6 +51,7 @@ var pagingLinks = a.Type("pagingLinks", func() {
 	a.Attribute("next", d.String)
 	a.Attribute("first", d.String)
 	a.Attribute("last", d.String)
+	a.Attribute("filters", d.String)
 })
 
 var meta = a.Type("workItemListResponseMeta", func() {

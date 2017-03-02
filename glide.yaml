@@ -15,6 +15,7 @@ import:
   - goagen
   - goagen/codegen
   - goagen/gen_app
+  - goagen/gen_controllers
   - goagen/utils
   - goatest
   - middleware
@@ -92,3 +93,4 @@ import:
 - package: github.com/shurcooL/sanitized_anchor_name
 - package: github.com/golang/lint/golint
 - package: github.com/golang/fzipp/gocyclo
+- package: github.com/Sirupsen/logrus

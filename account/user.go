@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -79,9 +81,16 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 
 	err := m.db.Create(u).Error
 	if err != nil {
-		goa.LogError(ctx, "error adding User", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"userID": u.ID,
+			"err":    err,
+		}, "unable to create the user")
 		return errors.WithStack(err)
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"userID": u.ID,
+	}, "User created!")
 
 	return nil
 }
@@ -92,13 +101,20 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
-		goa.LogError(ctx, "error updating User", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"userID": model.ID,
+			"err":    err,
+		}, "unable to update user")
 		return errors.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 	if err != nil {
 		return errors.WithStack(err)
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"userID": model.ID,
+	}, "User saved!")
 	return nil
 }
 
@@ -111,9 +127,16 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	err := m.db.Delete(&obj, id).Error
 
 	if err != nil {
-		goa.LogError(ctx, "error deleting User", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{
+			"userID": id,
+			"err":    err,
+		}, "unable to delete the user")
 		return errors.WithStack(err)
 	}
+
+	log.Debug(ctx, map[string]interface{}{
+		"userID": id,
+	}, "User deleted!")
 
 	return nil
 }
@@ -139,5 +162,10 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errors.WithStack(err)
 	}
+
+	log.Debug(nil, map[string]interface{}{
+		"userList": objs,
+	}, "User query done successfully!")
+
 	return objs, nil
 }

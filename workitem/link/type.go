@@ -5,6 +5,9 @@ import (
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/rest"
+
+	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -58,6 +61,8 @@ type WorkItemLinkType struct {
 	ReverseName string
 
 	LinkCategoryID satoriuuid.UUID
+	// Reference to one Space
+	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -103,6 +108,9 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !satoriuuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
 		return false
 	}
+	if !satoriuuid.Equal(t.SpaceID, other.SpaceID) {
+		return false
+	}
 	return true
 }
 
@@ -130,6 +138,9 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.LinkCategoryID == satoriuuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
+	if t.SpaceID == satoriuuid.Nil {
+		return errors.NewBadParameterError("space_id", t.SpaceID)
+	}
 	return nil
 }
 
@@ -148,12 +159,14 @@ func CheckValidTopology(t string) error {
 }
 
 // ConvertLinkTypeFromModel converts a work item link type from model to REST representation
-func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
-	id := t.ID.String()
+func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.WorkItemLinkTypeSingle {
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
+
 	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
 			Type: EndpointWorkItemLinkTypes,
-			ID:   &id,
+			ID:   &t.ID,
 			Attributes: &app.WorkItemLinkTypeAttributes{
 				Name:        &t.Name,
 				Description: t.Description,
@@ -166,7 +179,7 @@ func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 				LinkCategory: &app.RelationWorkItemLinkCategory{
 					Data: &app.RelationWorkItemLinkCategoryData{
 						Type: EndpointWorkItemLinkCategories,
-						ID:   t.LinkCategoryID.String(),
+						ID:   t.LinkCategoryID,
 					},
 				},
 				SourceType: &app.RelationWorkItemType{
@@ -181,6 +194,15 @@ func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 						ID:   t.TargetTypeName,
 					},
 				},
+				Space: &app.RelationSpaces{
+					Data: &app.RelationSpacesData{
+						Type: &spaceType,
+						ID:   &t.SpaceID,
+					},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
+					},
+				},
 			},
 		},
 	}
@@ -190,22 +212,21 @@ func ConvertLinkTypeFromModel(t WorkItemLinkType) app.WorkItemLinkTypeSingle {
 // ConvertLinkTypeToModel converts the incoming app representation of a work item link type to the model layout.
 // Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
 func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType) error {
-	attrs := in.Data.Attributes
-	rel := in.Data.Relationships
-	var err error
-
-	if in.Data.ID != nil {
-		id, err := satoriuuid.FromString(*in.Data.ID)
-		if err != nil {
-			//log.Printf("Error when converting %s to UUID: %s", *in.Data.ID, err.Error())
-			// treat as not found: clients don't know it must be a UUID
-			return errors.NewNotFoundError("work item link type", id.String())
-		}
-		out.ID = id
+	if in.Data == nil {
+		return errors.NewBadParameterError("data", nil).Expected("not <nil>")
+	}
+	if in.Data.Attributes == nil {
+		return errors.NewBadParameterError("data.attributes", nil).Expected("not <nil>")
+	}
+	if in.Data.Relationships == nil {
+		return errors.NewBadParameterError("data.relationships", nil).Expected("not <nil>")
 	}
 
-	if in.Data.Type != EndpointWorkItemLinkTypes {
-		return errors.NewBadParameterError("data.type", in.Data.Type).Expected(EndpointWorkItemLinkTypes)
+	attrs := in.Data.Attributes
+	rel := in.Data.Relationships
+
+	if in.Data.ID != nil {
+		out.ID = *in.Data.ID
 	}
 
 	if attrs != nil {
@@ -250,29 +271,11 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 	}
 
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
-		d := rel.LinkCategory.Data
-		// If the the link category is not nil, it MUST be "workitemlinkcategories"
-		if d.Type != EndpointWorkItemLinkCategories {
-			return errors.NewBadParameterError("data.relationships.link_category.data.type", d.Type).Expected(EndpointWorkItemLinkCategories)
-		}
-		// The the link category MUST NOT be empty
-		if d.ID == "" {
-			return errors.NewBadParameterError("data.relationships.link_category.data.id", d.ID)
-		}
-		out.LinkCategoryID, err = satoriuuid.FromString(d.ID)
-		if err != nil {
-			//log.Printf("Error when converting %s to UUID: %s", in.Data.ID, err.Error())
-			// treat as not found: clients don't know it must be a UUID
-			return errors.NewNotFoundError("work item link category", d.ID)
-		}
+		out.LinkCategoryID = rel.LinkCategory.Data.ID
 	}
 
 	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
 		d := rel.SourceType.Data
-		// If the the link type is not nil, it MUST be "workitemlinktypes"
-		if d.Type != EndpointWorkItemTypes {
-			return errors.NewBadParameterError("data.relationships.source_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
-		}
 		// The the link type MUST NOT be empty
 		if d.ID == "" {
 			return errors.NewBadParameterError("data.relationships.source_type.data.id", d.ID)
@@ -282,15 +285,15 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 
 	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
 		d := rel.TargetType.Data
-		// If the the link type is not nil, it MUST be "workitemlinktypes"
-		if d.Type != EndpointWorkItemTypes {
-			return errors.NewBadParameterError("data.relationships.target_type.data.type", d.Type).Expected(EndpointWorkItemTypes)
-		}
 		// The the link type MUST NOT be empty
 		if d.ID == "" {
 			return errors.NewBadParameterError("data.relationships.target_type.data.id", d.ID)
 		}
 		out.TargetTypeName = d.ID
+	}
+
+	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
+		out.SpaceID = *rel.Space.Data.ID
 	}
 
 	return nil

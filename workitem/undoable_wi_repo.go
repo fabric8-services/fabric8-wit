@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"log"
 	"strconv"
 
 	"golang.org/x/net/context"
@@ -12,8 +11,11 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 var _ WorkItemRepository = &UndoableWorkItemRepository{}
@@ -43,7 +45,9 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
 
-	log.Printf("loading work item %d", id)
+	log.Info(ctx, map[string]interface{}{
+		"id": id,
+	}, "Loading work item")
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
@@ -68,7 +72,10 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 		return errors.NewNotFoundError("work item", ID)
 	}
 
-	log.Printf("loading work item %d", id)
+	log.Info(ctx, map[string]interface{}{
+		"id": id,
+	}, "Loading work iteme")
+
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
@@ -87,7 +94,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 }
 
 // Create implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator string) (*app.WorkItem, error) {
+func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	result, err := r.wrapped.Create(ctx, typeID, fields, creator)
 	if err != nil {
 		return result, errs.WithStack(err)
@@ -111,4 +118,17 @@ func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, 
 // List implements application.WorkItemRepository
 func (r *UndoableWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
 	return r.wrapped.List(ctx, criteria, start, length)
+}
+
+// Fetch fetches the (first) work item matching by the given criteria.Expression.
+func (r *UndoableWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
+	return r.wrapped.Fetch(ctx, criteria)
+}
+
+func (r *UndoableWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceId uuid.UUID) (map[string]WICountsPerIteration, error) {
+	return map[string]WICountsPerIteration{}, nil
+}
+
+func (r *UndoableWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationId uuid.UUID) (map[string]WICountsPerIteration, error) {
+	return map[string]WICountsPerIteration{}, nil
 }

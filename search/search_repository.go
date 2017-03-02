@@ -16,6 +16,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
@@ -227,7 +228,9 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 
 		part, err := url.QueryUnescape(part)
 		if err != nil {
-			fmt.Println("Could not escape url", err)
+			log.Warn(nil, map[string]interface{}{
+				"part": part,
+			}, "unable to escape url!")
 		}
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.
@@ -358,7 +361,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.wir.LoadTypeFromDB(value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}

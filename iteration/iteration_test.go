@@ -12,6 +12,8 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
+
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,9 +48,16 @@ func (test *TestIterationRepository) TestCreateIteration() {
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
 
+	newSpace := space.Space{
+		Name: "Space 1",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
 	i := iteration.Iteration{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		StartAt: &start,
 		EndAt:   &end,
 	}
@@ -77,27 +86,38 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	name := "Sprint #24"
 	name2 := "Sprint #24.1"
 
+	newSpace := space.Space{
+		Name: "Space 1",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
 	i := iteration.Iteration{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		StartAt: &start,
 		EndAt:   &end,
 	}
 	repo.Create(context.Background(), &i)
 
+	parentPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
-		Name:     name2,
-		SpaceID:  uuid.NewV4(),
-		StartAt:  &start,
-		EndAt:    &end,
-		ParentID: i.ID,
+		Name:    name2,
+		SpaceID: space.ID,
+		StartAt: &start,
+		EndAt:   &end,
+		Path:    parentPath,
 	}
 	repo.Create(context.Background(), &i2)
 
 	i2L, err := repo.Load(context.Background(), i2.ID)
 	require.Nil(t, err)
-	assert.NotEqual(t, uuid.Nil, i2.ParentID)
-	assert.Equal(t, i2.ParentID, i2L.ParentID)
+	assert.NotEmpty(t, i2.Path)
+	expectedPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	require.NotNil(t, i2L)
+	assert.Equal(t, expectedPath, i2L.Path)
 }
 
 func (test *TestIterationRepository) TestListIterationBySpace() {
@@ -106,7 +126,12 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 
 	repo := iteration.NewIterationRepository(test.DB)
 
-	spaceID := uuid.NewV4()
+	newSpace := space.Space{
+		Name: "Space 1",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
 
 	for i := 0; i < 3; i++ {
 		start := time.Now()
@@ -115,7 +140,7 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 
 		i := iteration.Iteration{
 			Name:    name,
-			SpaceID: spaceID,
+			SpaceID: space.ID,
 			StartAt: &start,
 			EndAt:   &end,
 		}
@@ -126,7 +151,7 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 		SpaceID: uuid.NewV4(),
 	})
 
-	its, err := repo.List(context.Background(), spaceID)
+	its, err := repo.List(context.Background(), space.ID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 }
@@ -141,9 +166,16 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	end := start.Add(time.Hour * (24 * 8 * 3))
 	name := "Sprint #24"
 
+	newSpace := space.Space{
+		Name: "Space 1",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
 	i := iteration.Iteration{
 		Name:    name,
-		SpaceID: uuid.NewV4(),
+		SpaceID: space.ID,
 		StartAt: &start,
 		EndAt:   &end,
 	}

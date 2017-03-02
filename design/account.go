@@ -5,6 +5,29 @@ import (
 	a "github.com/goadesign/goa/design/apidsl"
 )
 
+var updateIdentity = a.MediaType("application/vnd.updateidentity+json", func() {
+	a.UseTrait("jsonapi-media-type")
+	a.TypeName("UpdateIdentity")
+	a.Description("ALM User Update Identity")
+	a.Attributes(func() {
+		a.Attribute("data", updateIdentityData)
+		a.Required("data")
+
+	})
+	a.View("default", func() {
+		a.Attribute("data")
+		a.Required("data")
+	})
+})
+
+// identityData represents an identified user object
+var updateIdentityData = a.Type("UpdateIdentityData", func() {
+	a.Attribute("type", d.String, "type of the user identity")
+	a.Attribute("attributes", identityDataAttributes, "Attributes of the user identity")
+	a.Attribute("links", genericLinks)
+	a.Required("type", "attributes")
+})
+
 // identity represents an identified user object
 var identity = a.MediaType("application/vnd.identity+json", func() {
 	a.UseTrait("jsonapi-media-type")
@@ -69,7 +92,6 @@ var _ = a.Resource("user", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
-
 })
 
 var _ = a.Resource("identity", func() {
@@ -107,6 +129,23 @@ var _ = a.Resource("users", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
+	a.Action("update", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH(""),
+		)
+		a.Description("update the authenticated user")
+		a.Payload(updateIdentity)
+		a.Response(d.OK, func() {
+			a.Media(identity)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
+	})
+
 	a.Action("list", func() {
 		a.Routing(
 			a.GET(""),
@@ -128,7 +167,7 @@ var identityDataAttributes = a.Type("IdentityDataAttributes", func() {
 	a.Attribute("email", d.String, "The email")
 	a.Attribute("bio", d.String, "The bio")
 	a.Attribute("url", d.String, "The url")
-	a.Attribute("provider", d.String, "The IDP provided this identity")
+	a.Attribute("providerType", d.String, "The IDP provided this identity")
 })
 
 // identityData represents an identified user object
