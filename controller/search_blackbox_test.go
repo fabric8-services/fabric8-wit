@@ -101,7 +101,7 @@ func (s *searchBlackBoxTest) TestSearch() {
 	require.Nil(s.T(), err)
 	controller := NewSearchController(s.service, gormapplication.NewGormDB(s.DB), s.spaceBlackBoxTestConfiguration)
 	q := "specialwordforsearch"
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, controller, nil, nil, q)
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
@@ -191,7 +191,7 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 
 	controller := NewSearchController(s.service, gormapplication.NewGormDB(s.DB), s.spaceBlackBoxTestConfiguration)
 	q := `"http://localhost/detail/876394"`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, controller, nil, nil, q)
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
@@ -214,7 +214,7 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 
 	controller := NewSearchController(s.service, gormapplication.NewGormDB(s.DB), s.spaceBlackBoxTestConfiguration)
 	q := `http://some-other-domain:8080/different-path/`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, controller, nil, nil, q)
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
 	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
@@ -238,7 +238,7 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	controller := NewSearchController(s.service, gormapplication.NewGormDB(s.DB), s.spaceBlackBoxTestConfiguration)
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, controller, nil, nil, q)
 	require.NotNil(s.T(), sr.Data)
 	assert.Empty(s.T(), sr.Data)
 }
@@ -327,7 +327,7 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	wiCtrl := NewWorkitemController(s.service, gormapplication.NewGormDB(s.DB))
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(t, s.service.Context, s.service, wiCtrl, newWI)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.service.Context, s.service, wiCtrl, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
