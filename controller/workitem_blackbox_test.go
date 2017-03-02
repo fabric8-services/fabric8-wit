@@ -111,6 +111,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 // TestReorderWorkitemOK is positive test which tests successful reorder by providing valid input
 func TestReorderWorkitemOK(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(t, svc)
@@ -121,15 +122,10 @@ func TestReorderWorkitemOK(t *testing.T) {
 	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
 	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
 	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
 	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result3.Data.ID)
 	_, result4 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result4.Data.ID)
 	_, result5 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result5.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case reorders two workitems -> result2 and result3 and places them above result1
@@ -175,6 +171,7 @@ func TestReorderWorkitemOK(t *testing.T) {
 // TestReorderWorkitemBadRequest is negative test which tests unsuccessful reorder by providing invalid input
 func TestReorderWorkitemBadRequest(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(t, svc)
@@ -184,7 +181,6 @@ func TestReorderWorkitemBadRequest(t *testing.T) {
 	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives empty dataArray as input
@@ -201,6 +197,7 @@ func TestReorderWorkitemBadRequest(t *testing.T) {
 // TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
 func TestReorderWorkitemNotFound(t *testing.T) {
 	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(t, svc)
@@ -210,9 +207,6 @@ func TestReorderWorkitemNotFound(t *testing.T) {
 	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result1.Data.ID)
-	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	defer test.DeleteWorkitemOK(t, nil, nil, controller, *result2.Data.ID)
 	payload2 := minimumRequiredReorderPayload()
 
 	// This case gives id of workitem in position.ID which is not present in db as input
@@ -220,7 +214,7 @@ func TestReorderWorkitemNotFound(t *testing.T) {
 	// Reorder is unsuccessful
 
 	var dataArray []*app.WorkItem2
-	dataArray = append(dataArray, result2.Data)
+	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = "78"
 	payload2.Position.Direction = above
