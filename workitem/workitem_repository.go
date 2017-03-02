@@ -106,7 +106,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, 
 		return errors.NewNotFoundError("work item", workitemID)
 	}
 	// store a revision of the deleted work item
-	err = r.wirr.Store(context.Background(), modifier, DELETE_WORKITEM_REVISION_TYPE, workItem)
+	err = r.wirr.Create(context.Background(), modifier, RevisionTypeWorkItemDelete, workItem)
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Store(context.Background(), modifier, UPDATE_WORKITEM_REVISION_TYPE, res)
+	err = r.wirr.Create(context.Background(), modifier, RevisionTypeWorkItemUpdate, res)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		return nil, err
 	}
 	// store a revision of the created work item
-	err = r.wirr.Store(context.Background(), creator, CREATE_WORKITEM_REVISION_TYPE, wi)
+	err = r.wirr.Create(context.Background(), creator, RevisionTypeWorkItemCreate, wi)
 	if err != nil {
 		return nil, err
 	}

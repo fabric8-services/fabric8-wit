@@ -5,7 +5,6 @@ import (
 
 	"fmt"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/jinzhu/gorm"
@@ -14,11 +13,10 @@ import (
 
 // WorkItemRevisionRepository encapsulates storage & retrieval of historical versions of work items
 type WorkItemRevisionRepository interface {
-	// TODO: use a 'Revision' structure to hold all parameters (except Context) ?
-	// Store stores a new revision for the given work item.
-	Store(ctx context.Context, modifierID uuid.UUID, operationType int, workitem WorkItem) error
+	// Create stores a new revision for the given work item.
+	Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error
 	// List retrieves all revisions for a given work item
-	List(ctx context.Context, workitem app.WorkItem) ([]WorkItemRevision, error)
+	List(ctx context.Context, workitemID string) ([]WorkItemRevision, error)
 }
 
 // NewWorkItemRevisionRepository creates a GormWorkItemRevisionRepository
@@ -32,8 +30,8 @@ type GormWorkItemRevisionRepository struct {
 	db *gorm.DB
 }
 
-// Store stores a new revision for the given work item.
-func (r *GormWorkItemRevisionRepository) Store(ctx context.Context, modifierID uuid.UUID, operationType int, workitem WorkItem) error {
+// Create stores a new revision for the given work item.
+func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error {
 	log.Info(nil, map[string]interface{}{
 		"pkg":              "workitem",
 		"ModifierIdentity": modifierID,
@@ -41,7 +39,7 @@ func (r *GormWorkItemRevisionRepository) Store(ctx context.Context, modifierID u
 	tx := r.db
 	workitemRevision := &WorkItemRevision{
 		ModifierIdentity: modifierID,
-		Type:             operationType,
+		Type:             revisionType,
 		WorkItemID:       workitem.ID,
 		WorkItemType:     workitem.Type,
 		WorkItemVersion:  workitem.Version,
@@ -56,12 +54,12 @@ func (r *GormWorkItemRevisionRepository) Store(ctx context.Context, modifierID u
 }
 
 // List retrieves all revisions for a given work item
-func (r *GormWorkItemRevisionRepository) List(ctx context.Context, workitem app.WorkItem) ([]WorkItemRevision, error) {
+func (r *GormWorkItemRevisionRepository) List(ctx context.Context, workitemID string) ([]WorkItemRevision, error) {
 	log.Debug(nil, map[string]interface{}{
 		"pkg": "workitem",
-	}, "List all revisions for work item with ID=%v", workitem.ID)
+	}, "List all revisions for work item with ID=%v", workitemID)
 	revisions := make([]WorkItemRevision, 0)
-	if err := r.db.Where("work_item_id = ?", workitem.ID).Order("work_item_version asc").Find(&revisions).Error; err != nil {
+	if err := r.db.Where("work_item_id = ?", workitemID).Order("work_item_version asc").Find(&revisions).Error; err != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("Failed to retrieve work item revisions: %s", err.Error()))
 	}
 	return revisions, nil

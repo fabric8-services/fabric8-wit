@@ -1,6 +1,6 @@
 -- create a revision table for work items, using the some columns + identity of the user and timestamp of the operation
 CREATE TABLE work_item_revisions (
-    id bigint NOT NULL,
+    id uuid primary key DEFAULT uuid_generate_v4() NOT NULL,
     revision_time timestamp with time zone default current_timestamp,
     revision_type int NOT NULL,
     modifier_id uuid NOT NULL,
@@ -9,18 +9,6 @@ CREATE TABLE work_item_revisions (
     work_item_version integer,
     work_item_fields jsonb
 );
-
-CREATE SEQUENCE work_item_revisions_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE work_item_revisions ALTER COLUMN id SET DEFAULT nextval('work_item_revisions_id_seq'::regclass);
-
-ALTER TABLE work_item_revisions
-    ADD CONSTRAINT work_items_history_pkey PRIMARY KEY (id);
 
 CREATE INDEX work_item_revisions_work_items_idx ON work_item_revisions USING BTREE (work_item_id);
 
