@@ -56,6 +56,12 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	u.ID = uuid.NewV4()
 
 	err := m.db.Create(u).Error
+
+	// ( name, spaceID ,path ) needs to be unique
+	if gormsupport.IsUniqueViolation(err, "areas_name_space_id_unique") {
+		return errors.NewBadParameterError("Name & Space", u.Name).Expected("unique")
+	}
+
 	if err != nil {
 		goa.LogError(ctx, "error adding Area", "error", err.Error())
 		return err

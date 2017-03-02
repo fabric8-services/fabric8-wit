@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -53,6 +54,24 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		/*
+			Should we create the new area
+			- over the wire(service) something like app.NewCreateSpaceAreasContext(..), OR
+			- as part of a db transaction ?
+
+			The argument 'for' creating it at a transaction level is :
+			You absolutely need both space creation + area creation
+			to happen in a single transaction as per requirements.
+		*/
+
+		newArea := area.Area{
+			ID:      satoriuuid.NewV4(),
+			SpaceID: space.ID,
+			Name:    space.Name,
+			Path:    "", // top-level
+		}
+		err = appl.Areas().Create(ctx, &newArea)
+
 		res := &app.SpaceSingle{
 			Data: ConvertSpace(ctx.RequestData, space),
 		}

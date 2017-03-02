@@ -239,6 +239,9 @@ func getMigrations() migrations {
 	// Version 40
 	m = append(m, steps{executeSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
+	// version 39
+	m = append(m, steps{executeSQLFile("039-unique-area-name-and-space.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
