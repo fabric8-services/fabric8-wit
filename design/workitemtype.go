@@ -91,7 +91,7 @@ var workItemTypeList = JSONList(
 	pagingLinks,
 	workItemTypeListMeta)
 
-// workItemTypeSingle is the media type for work item types
+// workItemTypeSingle is the media type for for a single work item type
 var workItemTypeSingle = JSONSingle(
 	"WorkItemType", "A work item type describes the values a work item type instance can hold.",
 	workItemTypeData,
