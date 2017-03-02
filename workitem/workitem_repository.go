@@ -20,9 +20,9 @@ import (
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
-	Save(ctx context.Context, wi app.WorkItem, modifier uuid.UUID) (*app.WorkItem, error)
-	Delete(ctx context.Context, ID string, modifier uuid.UUID) error
-	Create(ctx context.Context, typeID string, fields map[string]interface{}, modifier uuid.UUID) (*app.WorkItem, error)
+	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
+	Create(ctx context.Context, typeID string, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -87,7 +87,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, modifier uuid.UUID) error {
+func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, suppressorID uuid.UUID) error {
 	var workItem = WorkItem{}
 	id, err := strconv.ParseUint(workitemID, 10, 64)
 	if err != nil || id == 0 {
@@ -106,11 +106,10 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, 
 		return errors.NewNotFoundError("work item", workitemID)
 	}
 	// store a revision of the deleted work item
-	err = r.wirr.Create(context.Background(), modifier, RevisionTypeWorkItemDelete, workItem)
+	err = r.wirr.Create(context.Background(), suppressorID, RevisionTypeWorkItemDelete, workItem)
 	if err != nil {
 		return err
 	}
-
 	log.Debug(ctx, map[string]interface{}{"wiID": workitemID}, "Work item deleted successfully!")
 	return nil
 }
