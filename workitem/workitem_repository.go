@@ -126,7 +126,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
 	if err != nil {
-		return nil, errors.NewBadParameterError("TypeID", wi.Type)
+		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
 
 	res.Version = res.Version + 1

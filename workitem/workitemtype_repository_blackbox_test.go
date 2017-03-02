@@ -109,7 +109,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 
 	wit3, err := s.repo.Create(context.Background(), nil, nil, "foo_bar", nil, map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
-	require.Nil(s.T(), wit3)
+	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.Data)
 	require.NotNil(s.T(), wit3.Data.ID)
 

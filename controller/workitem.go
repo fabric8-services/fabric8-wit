@@ -64,7 +64,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	}
 	if ctx.FilterWorkitemtype != nil {
 		wit := ctx.FilterWorkitemtype
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("TypeID"), criteria.Literal([]uuid.UUID{*wit})))
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*wit})))
 		additionalQuery = append(additionalQuery, "filter[workitemtype]="+wit.String())
 	}
 	if ctx.FilterArea != nil {
@@ -331,7 +331,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 
 	// Move fields into Relationships or Attributes as needed
-	// TODO: Loop based on WorKItemType and match against Field.Type instead of directly to field value
+	// TODO: Loop based on WorkItemType and match against Field.Type instead of directly to field value
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
