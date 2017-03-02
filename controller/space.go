@@ -68,7 +68,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			ID:      satoriuuid.NewV4(),
 			SpaceID: space.ID,
 			Name:    space.Name,
-			Path:    "", // top-level
 		}
 		err = appl.Areas().Create(ctx, &newArea)
 
