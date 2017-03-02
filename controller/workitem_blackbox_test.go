@@ -73,7 +73,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
 	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
-	assert.NotNil(t, result.Data.Attributes["order"])
+	assert.NotNil(t, result.Data.Attributes[workitem.SystemOrder])
 	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 
 	if wi == nil {
@@ -98,7 +98,7 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 
 	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
 	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, updated.Data.Attributes["order"])
+	assert.NotNil(t, updated.Data.Attributes[workitem.SystemOrder])
 
 	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
@@ -152,8 +152,8 @@ func TestReorderWorkitemOK(t *testing.T) {
 	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
 
 	//Order of reordered workitems should be less than the order of workitem position.id when position.direction is above
-	assert.True(t, reordered1.Data[0].Attributes["order"].(float64) < result1.Data.Attributes["order"].(float64))
-	assert.True(t, reordered1.Data[1].Attributes["order"].(float64) < result1.Data.Attributes["order"].(float64))
+	assert.True(t, reordered1.Data[0].Attributes[workitem.SystemOrder].(float64) < result1.Data.Attributes[workitem.SystemOrder].(float64))
+	assert.True(t, reordered1.Data[1].Attributes[workitem.SystemOrder].(float64) < result1.Data.Attributes[workitem.SystemOrder].(float64))
 	// This case reorders one workitem -> result4 and placed it below result5
 
 	// clear the dataArray
@@ -169,7 +169,7 @@ func TestReorderWorkitemOK(t *testing.T) {
 	assert.Equal(t, *result4.Data.ID, *reordered2.Data[0].ID)
 
 	//Order of reordered workitems should be greater than the order of workitem position.id when position.direction is below
-	assert.True(t, reordered2.Data[0].Attributes["order"].(float64) > result4.Data.Attributes["order"].(float64))
+	assert.True(t, reordered2.Data[0].Attributes[workitem.SystemOrder].(float64) > result4.Data.Attributes[workitem.SystemOrder].(float64))
 }
 
 // TestReorderWorkitemBadRequest is negative test which tests unsuccessful reorder by providing invalid input
@@ -244,7 +244,7 @@ func TestCreateWI(t *testing.T) {
 		t.Error("no id")
 	}
 	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, created.Data.Attributes["order"])
+	assert.NotNil(t, created.Data.Attributes[workitem.SystemOrder])
 	assert.NotNil(t, created.Data.Relationships.Creator.Data)
 	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
 }

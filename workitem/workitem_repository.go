@@ -82,7 +82,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 // LoadHighestOrder returns the highest order
 func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	res := WorkItem{}
-	tx := r.db.Order("executionorder desc").Last(&res)
+	tx := r.db.Order("execution_order desc").Last(&res)
 	if tx.RecordNotFound() {
 		return 0, nil
 	}
@@ -139,10 +139,10 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem strin
 	switch secondItem {
 	case below:
 		// Finds the item below which reorder item has to be placed
-		tx = r.db.Where("executionorder < ?", order).Order("executionorder desc", true).Last(&Item)
+		tx = r.db.Where("execution_order < ?", order).Order("execution_order desc", true).Last(&Item)
 	case above:
 		// Finds the item above which reorder item has to be placed
-		tx = r.db.Where("executionorder > ?", order).Order("executionorder", true).Last(&Item)
+		tx = r.db.Where("execution_order > ?", order).Order("execution_order", true).Last(&Item)
 	default:
 		return nil, nil, nil
 	}
@@ -427,7 +427,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("executionorder")
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order")
 
 	rows, err := db.Rows()
 	if err != nil {
