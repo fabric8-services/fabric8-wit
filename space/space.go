@@ -1,6 +1,8 @@
 package space
 
 import (
+	"strings"
+
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -10,8 +12,9 @@ import (
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
-	"strings"
 )
+
+var SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
 
 // Space represents a Space on the domain and db layer
 type Space struct {

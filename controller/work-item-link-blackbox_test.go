@@ -19,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -46,6 +47,7 @@ type workItemLinkSuite struct {
 	workItemLinkCtrl         *WorkItemLinkController
 	workItemCtrl             *WorkitemController
 	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
+	spaceCtrl                *SpaceController
 	workItemSvc              *goa.Service
 
 	// These IDs can safely be used by all tests
@@ -55,6 +57,7 @@ type workItemLinkSuite struct {
 	feature1ID           uint64
 	userLinkCategoryID   satoriuuid.UUID
 	bugBlockerLinkTypeID satoriuuid.UUID
+	userSpaceID          satoriuuid.UUID
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	deleteWorkItemLinks []satoriuuid.UUID
@@ -102,6 +105,11 @@ func (s *workItemLinkSuite) SetupSuite() {
 	require.NotNil(s.T(), svc)
 	s.workItemLinkCategoryCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemLinkCategoryCtrl)
+
+	svc = goa.New("TestWorkItemLinkSpace-Service")
+	require.NotNil(s.T(), svc)
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(s.T(), s.spaceCtrl)
 
 	svc = goa.New("TestWorkItemLink-Service")
 	require.NotNil(s.T(), svc)
@@ -151,6 +159,8 @@ func (s *workItemLinkSuite) cleanup() {
 	db = db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-bug-blocker"})
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
+	require.Nil(s.T(), db.Error)
+	db = db.Unscoped().Delete(&space.Space{Name: "test-space"})
 	require.Nil(s.T(), db.Error)
 
 	// Last but not least delete the work items
@@ -213,8 +223,15 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.userLinkCategoryID = *workItemLinkCategory.Data.ID
 	fmt.Printf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
+	// Create a work item link space
+	createSpacePayload := CreateSpacePayload("test-space", "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.spaceCtrl, createSpacePayload)
+	require.NotNil(s.T(), space)
+	s.userSpaceID = *space.Data.ID
+	fmt.Printf("Created link space with ID: %s\n", *space.Data.ID)
+
 	// Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID)
+	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
@@ -269,7 +286,7 @@ func CreateWorkItem(workItemType string, title string) *app.CreateWorkitemPayloa
 }
 
 // CreateWorkItemLinkType defines a work item link type
-func CreateWorkItemLinkType(name string, sourceType string, targetType string, categoryID satoriuuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func CreateWorkItemLinkType(name string, sourceType string, targetType string, categoryID, spaceID satoriuuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
@@ -280,8 +297,12 @@ func CreateWorkItemLinkType(name string, sourceType string, targetType string, c
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
 		LinkCategoryID: categoryID,
+		SpaceID:        spaceID,
 	}
-	payload := link.ConvertLinkTypeFromModel(lt)
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	payload := link.ConvertLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
@@ -325,6 +346,11 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 		case *app.WorkItemLinkCategoryData:
 			if *v.ID == s.userLinkCategoryID {
 				s.T().Log("Found work item link category in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
+		case *app.Space:
+			if *v.ID == s.userSpaceID {
+				s.T().Log("Found work item link space in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
 		case *app.WorkItemLinkTypeData:
@@ -569,6 +595,11 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 		case *app.WorkItemLinkCategoryData:
 			if *v.ID == s.userLinkCategoryID {
 				s.T().Log("Found work item link category in \"included\" element: ", *v.ID)
+				toBeFound--
+			}
+		case *app.Space:
+			if *v.ID == s.userSpaceID {
+				s.T().Log("Found work item link space in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
 		case *app.WorkItemLinkTypeData:
