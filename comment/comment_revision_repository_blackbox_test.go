@@ -68,7 +68,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 }
 
 func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
-	//s.clean()
+	s.clean()
 }
 
 func (s *revisionRepositoryBlackBoxTest) TestStoreCommentRevisions() {
