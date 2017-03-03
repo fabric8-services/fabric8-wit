@@ -38,7 +38,6 @@ func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID 
 		"pkg":              "workitem",
 		"ModifierIdentity": modifierID,
 	}, "Storing a revision after operation on work item.")
-	tx := r.db
 	workitemRevision := &WorkItemRevision{
 		Time:             time.Now(),
 		ModifierIdentity: modifierID,
@@ -48,7 +47,11 @@ func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID 
 		WorkItemVersion:  workitem.Version,
 		WorkItemFields:   workitem.Fields,
 	}
-
+	// do not store fields when the work item is deleted
+	if workitemRevision.Type == RevisionTypeWorkItemDelete {
+		workitemRevision.WorkItemFields = Fields{}
+	}
+	tx := r.db
 	if err := tx.Create(&workitemRevision).Error; err != nil {
 		return errors.NewInternalError(fmt.Sprintf("Failed to create new work item revision: %s", err.Error()))
 	}
@@ -62,7 +65,7 @@ func (r *GormWorkItemRevisionRepository) List(ctx context.Context, workitemID st
 		"pkg": "workitem",
 	}, "List all revisions for work item with ID=%v", workitemID)
 	revisions := make([]WorkItemRevision, 0)
-	if err := r.db.Where("work_item_id = ?", workitemID).Order("work_item_version asc").Find(&revisions).Error; err != nil {
+	if err := r.db.Where("work_item_id = ?", workitemID).Order("revision_time asc").Find(&revisions).Error; err != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("Failed to retrieve work item revisions: %s", err.Error()))
 	}
 	return revisions, nil

@@ -35,7 +35,7 @@ type WorkItemRevision struct {
 	WorkItemType string `gorm:"column:work_item_type"`
 	// Version of the workitem that was modified
 	WorkItemVersion int `gorm:"column:work_item_version"`
-	// the field values
+	// the field values (or empty when the work item was deleted)
 	WorkItemFields Fields `gorm:"column:work_item_fields" sql:"type:jsonb"`
 }
 

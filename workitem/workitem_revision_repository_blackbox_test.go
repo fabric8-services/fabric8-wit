@@ -69,7 +69,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) SetupTest() {
 }
 
 func (s *workItemRevisionRepositoryBlackBoxTest) TearDownTest() {
-	s.clean()
+	//s.clean()
 }
 
 func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreWorkItemRevisions() {
@@ -103,36 +103,42 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreWorkItemRevisions() {
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), workitemRevisions, 4)
+	// revision 1
 	workitemRevision1 := workitemRevisions[0]
 	s.T().Log(fmt.Sprintf("Work item revision 1: modifier:%s type: %v version:%v fields:%v", workitemRevision1.ModifierIdentity, workitemRevision1.Type, workitemRevision1.WorkItemVersion, workitemRevision1.WorkItemFields))
 	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(workitemRevision1.WorkItemID, 10))
 	assert.Equal(s.T(), workitem.RevisionTypeWorkItemCreate, workitemRevision1.Type)
 	assert.Equal(s.T(), workItem.Type, workitemRevision1.WorkItemType)
+	assert.Equal(s.T(), s.testIdentity1.ID, workitemRevision1.ModifierIdentity)
+	require.NotNil(s.T(), workitemRevision1.WorkItemFields)
 	assert.Equal(s.T(), "Title", workitemRevision1.WorkItemFields[workitem.SystemTitle])
 	assert.Equal(s.T(), workitem.SystemStateNew, workitemRevision1.WorkItemFields[workitem.SystemState])
-	assert.Equal(s.T(), s.testIdentity1.ID, workitemRevision1.ModifierIdentity)
+	// revision 2
 	workitemRevision2 := workitemRevisions[1]
-	s.T().Log(fmt.Sprintf("Work item revision 2: modifier:%s type: %v version:%v fields:%v", workitemRevision2.ModifierIdentity, workitemRevision1.Type, workitemRevision2.WorkItemVersion, workitemRevision2.WorkItemFields))
+	s.T().Log(fmt.Sprintf("Work item revision 2: modifier:%s type: %v version:%v fields:%v", workitemRevision2.ModifierIdentity, workitemRevision2.Type, workitemRevision2.WorkItemVersion, workitemRevision2.WorkItemFields))
 	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(workitemRevision2.WorkItemID, 10))
 	assert.Equal(s.T(), workitem.RevisionTypeWorkItemUpdate, workitemRevision2.Type)
 	assert.Equal(s.T(), workItem.Type, workitemRevision2.WorkItemType)
+	assert.Equal(s.T(), s.testIdentity2.ID, workitemRevision2.ModifierIdentity)
+	require.NotNil(s.T(), workitemRevision2.WorkItemFields)
 	assert.Equal(s.T(), "Updated Title", workitemRevision2.WorkItemFields[workitem.SystemTitle])
 	assert.Equal(s.T(), workitem.SystemStateOpen, workitemRevision2.WorkItemFields[workitem.SystemState])
-	assert.Equal(s.T(), s.testIdentity2.ID, workitemRevision2.ModifierIdentity)
+	// revision 3
 	workitemRevision3 := workitemRevisions[2]
-	s.T().Log(fmt.Sprintf("Work item revision 3: modifier:%s type: %v version:%v fields:%v", workitemRevision2.ModifierIdentity, workitemRevision1.Type, workitemRevision2.WorkItemVersion, workitemRevision2.WorkItemFields))
+	s.T().Log(fmt.Sprintf("Work item revision 3: modifier:%s type: %v version:%v fields:%v", workitemRevision3.ModifierIdentity, workitemRevision3.Type, workitemRevision3.WorkItemVersion, workitemRevision3.WorkItemFields))
 	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(workitemRevision3.WorkItemID, 10))
 	assert.Equal(s.T(), workitem.RevisionTypeWorkItemUpdate, workitemRevision3.Type)
 	assert.Equal(s.T(), workItem.Type, workitemRevision3.WorkItemType)
+	require.NotNil(s.T(), workitemRevision3.WorkItemFields)
 	assert.Equal(s.T(), "Updated Title2", workitemRevision3.WorkItemFields[workitem.SystemTitle])
 	assert.Equal(s.T(), workitem.SystemStateInProgress, workitemRevision3.WorkItemFields[workitem.SystemState])
 	assert.Equal(s.T(), s.testIdentity2.ID, workitemRevision3.ModifierIdentity)
+	// revision 4
 	workitemRevision4 := workitemRevisions[3]
-	s.T().Log(fmt.Sprintf("Work item revision 3: modifier:%s type: %v version:%v fields:%v", workitemRevision4.ModifierIdentity, workitemRevision1.Type, workitemRevision4.WorkItemVersion, workitemRevision4.WorkItemFields))
+	s.T().Log(fmt.Sprintf("Work item revision 4: modifier:%s type: %v version:%v fields:%v", workitemRevision4.ModifierIdentity, workitemRevision4.Type, workitemRevision4.WorkItemVersion, workitemRevision4.WorkItemFields))
 	assert.Equal(s.T(), workItem.ID, strconv.FormatUint(workitemRevision4.WorkItemID, 10))
 	assert.Equal(s.T(), workitem.RevisionTypeWorkItemDelete, workitemRevision4.Type)
 	assert.Equal(s.T(), workItem.Type, workitemRevision4.WorkItemType)
-	assert.Nil(s.T(), workitemRevision4.WorkItemFields[workitem.SystemTitle])
-	assert.Nil(s.T(), workitemRevision4.WorkItemFields[workitem.SystemState])
 	assert.Equal(s.T(), s.testIdentity3.ID, workitemRevision4.ModifierIdentity)
+	require.Empty(s.T(), workitemRevision4.WorkItemFields)
 }
