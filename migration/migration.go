@@ -221,6 +221,9 @@ func getMigrations() migrations {
 		workitem.SystemBug.String(),
 	)})
 
+	// Version 35
+	m = append(m, steps{executeSQLFile("035-add-icon-to-wit.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -497,25 +500,25 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, "User Story", "Desciption for User Story", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, "User Story", "Desciption for User Story", "fa-mapmarker", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, "Value Proposition", "Description for value proposition", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, "Value Proposition", "Description for value proposition", "fa-gift", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, "Fundamental", "Description for Fundamental", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, "Fundamental", "Description for Fundamental", "fa-bank", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, "Experience", "Description for Experience", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, "Experience", "Description for Experience", "fa-map", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, "Scenario", "Description for Scenario", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, "Scenario", "Description for Scenario", "fa-adjust", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, "Feature", "Description for Feature", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, "Feature", "Description for Feature", "fa-mouse-pointer", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, "Bug", "Description for Bug", ctx, witr, db); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, "Bug", "Description for Bug", "fa-bug", ctx, witr, db); err != nil {
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
@@ -528,6 +531,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	description := "Description for Planner Item"
 	stString := "string"
 	stUser := "user"
+	icon := "fa-bookmark"
 	workItemTypeFields := map[string]app.FieldDefinition{
 		workitem.SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true},
 		workitem.SystemDescription:  {Type: &app.FieldType{Kind: "markup"}, Required: false},
@@ -560,21 +564,21 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		},
 	}
 
-	return createOrUpdateType(typeID, typeName, description, nil, workItemTypeFields, ctx, witr, db)
+	return createOrUpdateType(typeID, typeName, description, nil, workItemTypeFields, icon, ctx, witr, db)
 }
 
-func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, description string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, description string, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	workItemTypeFields := map[string]app.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
-	return createOrUpdateType(typeID, name, description, &extTypeName, workItemTypeFields, ctx, witr, db)
+	return createOrUpdateType(typeID, name, description, &extTypeName, workItemTypeFields, icon, ctx, witr, db)
 }
 
-func createOrUpdateType(typeID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]app.FieldDefinition, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateType(typeID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]app.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := witr.Create(ctx, &typeID, extendedTypeID, name, &description, fields)
+		_, err := witr.Create(ctx, &typeID, extendedTypeID, name, &description, icon, fields)
 		if err != nil {
 			return errs.WithStack(err)
 		}

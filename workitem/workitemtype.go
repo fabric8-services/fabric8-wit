@@ -57,6 +57,8 @@ type WorkItemType struct {
 	Name string
 	// Description is an optional description of the work item type
 	Description *string
+	// The CSS icon class to render an icon for the WIT
+	Icon string
 	// Version for optimistic concurrency control
 	Version int
 	// the IDs of the parents, separated with a dot (".") separator
@@ -126,6 +128,9 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if !strPtrIsNilOrContentIsEqual(wit.Description, other.Description) {
+		return false
+	}
+	if wit.Icon != other.Icon {
 		return false
 	}
 	if wit.Path != other.Path {

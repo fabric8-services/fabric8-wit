@@ -69,19 +69,19 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	}
 
 	extended := workitem.SystemBug
-	base, err := s.witRepo.Create(ctx, nil, &extended, "base", nil, map[string]app.FieldDefinition{})
+	base, err := s.witRepo.Create(ctx, nil, &extended, "base", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), base)
 	require.NotNil(s.T(), base.Data)
 	require.NotNil(s.T(), base.Data.ID)
 
-	sub1, err := s.witRepo.Create(ctx, nil, base.Data.ID, "sub1", nil, map[string]app.FieldDefinition{})
+	sub1, err := s.witRepo.Create(ctx, nil, base.Data.ID, "sub1", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub1)
 	require.NotNil(s.T(), sub1.Data)
 	require.NotNil(s.T(), sub1.Data.ID)
 
-	sub2, err := s.witRepo.Create(ctx, nil, base.Data.ID, "subtwo", nil, map[string]app.FieldDefinition{})
+	sub2, err := s.witRepo.Create(ctx, nil, base.Data.ID, "subtwo", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub2)
 	require.NotNil(s.T(), sub2.Data)

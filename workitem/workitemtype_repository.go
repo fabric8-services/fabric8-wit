@@ -20,7 +20,7 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error)
-	Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
+	Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
 	List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
@@ -84,7 +84,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
 	// Make sure this WIT has an ID
 	if id == nil {
 		tmpID := uuid.NewV4()
@@ -136,6 +136,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, 
 		ID:          *id,
 		Name:        name,
 		Description: description,
+		Icon:        icon,
 		Path:        path,
 		Fields:      allFields,
 	}
@@ -193,6 +194,7 @@ func convertTypeFromModels(t *WorkItemType) app.WorkItemTypeData {
 		Attributes: &app.WorkItemTypeAttributes{
 			Version:     t.Version,
 			Description: t.Description,
+			Icon:        t.Icon,
 			Name:        t.Name,
 			Fields:      map[string]*app.FieldDefinition{},
 		},
