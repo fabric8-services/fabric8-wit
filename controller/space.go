@@ -70,6 +70,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			Name:    space.Name,
 		}
 		err = appl.Areas().Create(ctx, &newArea)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 
 		res := &app.SpaceSingle{
 			Data: ConvertSpace(ctx.RequestData, space),
