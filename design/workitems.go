@@ -14,6 +14,7 @@ in which the current work item can be used in the source part of the link`)
 	a.Attribute("targetLinkTypes", d.String, `URL to those work item link types
 in which the current work item can be used in the target part of the link`)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
+	a.Attribute("doit", d.String, "URL to generate Che-editor's link based on values of codebase field")
 })
 
 // workItem2 defines how an update payload will look like
@@ -40,7 +41,6 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 	a.Attribute("comments", relationGeneric, "This defines comments on the Work Item")
 	a.Attribute("iteration", relationGeneric, "This defines the iteration this work item belong to")
 	a.Attribute("area", relationGeneric, "This defines the area this work item belongs to")
-
 })
 
 // relationBaseType is top level block for WorkItemType relationship

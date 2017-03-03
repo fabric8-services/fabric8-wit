@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -263,4 +264,38 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	require.Contains(s.T(), countsMap, iteration1.ID.String())
 	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
 	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)
+}
+
+func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
+	// given
+	title := "solution on global warming"
+	branch := "earth-recycle-101"
+	repo := "golang-project"
+	file := "main.go"
+	line := 200
+	cbase := codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	wi, err := s.repo.Create(
+		context.Background(), workitem.SystemPlannerItem,
+		map[string]interface{}{
+			workitem.SystemTitle:    title,
+			workitem.SystemState:    workitem.SystemStateNew,
+			workitem.SystemCodebase: cbase,
+		}, s.creatorID)
+	require.Nil(s.T(), err, "Could not create workitem")
+	// when
+	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// then
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))
+	require.NotNil(s.T(), wi.Fields[workitem.SystemCodebase])
+	cb := wi.Fields[workitem.SystemCodebase].(codebase.CodebaseContent)
+	assert.Equal(s.T(), repo, cb.Repository)
+	assert.Equal(s.T(), branch, cb.Branch)
+	assert.Equal(s.T(), file, cb.FileName)
+	assert.Equal(s.T(), line, cb.LineNumber)
 }
