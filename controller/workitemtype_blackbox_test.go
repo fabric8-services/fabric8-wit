@@ -156,6 +156,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 			Attributes: &app.WorkItemTypeAttributes{
 				Name:        "animal",
 				Description: &desc,
+				Icon:        "fa-hand-lizard-o",
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": &typeFieldDef,
 					"color":       &colorFieldDef,
@@ -193,6 +194,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 			Attributes: &app.WorkItemTypeAttributes{
 				Name:        "person",
 				Description: &desc,
+				Icon:        "fa-user",
 				Fields: map[string]*app.FieldDefinition{
 					"name": &nameFieldDef,
 				},

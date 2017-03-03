@@ -35,8 +35,8 @@ func (r *UndoableWorkItemTypeRepository) List(ctx context.Context, start *int, l
 }
 
 // Create implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
-	res, err := r.wrapped.Create(ctx, id, extendedTypeID, name, description, fields)
+func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
+	res, err := r.wrapped.Create(ctx, id, extendedTypeID, name, description, icon, fields)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
 			db = db.Unscoped().Delete(&WorkItemType{ID: *res.Data.ID})

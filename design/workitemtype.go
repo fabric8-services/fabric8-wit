@@ -52,9 +52,17 @@ for software developers to create a vertical slice of their work.`)
 	// TODO: Maybe this needs to be abandoned at some point
 	a.Attribute("extendedTypeName", d.UUID, "If newly created type extends any existing type (This is never present in any response and is only optional when creating.)")
 
+	a.Attribute("icon", d.String, "A font-awesome icon class name (see http://fontawesome.io/icons/)", func() {
+		a.Example("fa-bug")
+		a.MinLength(1)
+		// TODO: Add a pattern that disallows whitespaces
+		//a.Pattern(^[^\\s]+$)
+	})
+
 	a.Required("version")
 	a.Required("fields")
 	a.Required("name")
+	a.Required("icon")
 })
 
 var workItemTypeData = a.Type("WorkItemTypeData", func() {

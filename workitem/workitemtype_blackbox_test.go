@@ -100,6 +100,7 @@ func TestWorkItemType_Equal(t *testing.T) {
 	a := workitem.WorkItemType{
 		Name:        "foo",
 		Description: &desc,
+		Icon:        "fa-bug",
 		Fields: map[string]workitem.FieldDefinition{
 			"aListType": fd,
 		},
@@ -165,6 +166,10 @@ func TestWorkItemType_Equal(t *testing.T) {
 	j.Description = &otherDesc
 	assert.False(t, a.Equal(j))
 
+	// Test icon
+	j = a
+	j.Icon = "fa-cog"
+	assert.False(t, a.Equal(j))
 }
 
 func TestMarshalFieldDef(t *testing.T) {
