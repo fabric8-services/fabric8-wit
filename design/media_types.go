@@ -30,7 +30,7 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.Description("A work item hold field values according to a given field type")
 	a.Attribute("id", d.String, "unique id per installation")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("type", d.String, "Name of the type of this work item")
+	a.Attribute("type", d.UUID, "ID of the type of this work item")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, according to the field type")
 
 	a.Required("id")
@@ -58,54 +58,6 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Attribute("totalCount", d.Integer)
 
 	a.Required("totalCount")
-})
-
-// fieldDefinition defines the possible values for a field in a work item type
-var fieldDefinition = a.Type("fieldDefinition", func() {
-	a.Description("A fieldDescription aggregates a fieldType and additional field metadata")
-	a.Attribute("required", d.Boolean)
-	a.Attribute("type", fieldType)
-
-	a.Required("required")
-	a.Required("type")
-
-	a.View("default", func() {
-		a.Attribute("kind")
-	})
-})
-
-// fieldType is the datatype of a single field in a work item type
-var fieldType = a.Type("fieldType", func() {
-	a.Description("A fieldType describes the values a particular field can hold")
-	a.Attribute("kind", d.String, "The constant indicating the kind of type, for example 'string' or 'enum' or 'instant'")
-	a.Attribute("componentType", d.String, "The kind of type of the individual elements for a list type. Required for list types. Must be a simple type, not  enum or list")
-	a.Attribute("baseType", d.String, "The kind of type of the enumeration values for an enum type. Required for enum types. Must be a simple type, not  enum or list")
-	a.Attribute("values", a.ArrayOf(d.Any), "The possible values for an enum type. The values must be of a type convertible to the base type")
-
-	a.Required("kind")
-})
-
-// workItemType is the media type representing a work item type.
-var workItemType = a.MediaType("application/vnd.workitemtype+json", func() {
-	a.TypeName("WorkItemType")
-	a.Description("A work item type describes the values a work item type instance can hold.")
-	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("name", d.String, "User Readable Name of this item type")
-	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type")
-
-	a.Required("version")
-	a.Required("name")
-	a.Required("fields")
-
-	a.View("default", func() {
-		a.Attribute("version")
-		a.Attribute("name")
-		a.Attribute("fields")
-	})
-	a.View("link", func() {
-		a.Attribute("name")
-	})
-
 })
 
 // Tracker configuration

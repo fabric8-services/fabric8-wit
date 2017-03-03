@@ -193,8 +193,8 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: itr.ID.String(),
 			}, uuid.NewV4())
-		require.NotNil(t, wi)
 		require.Nil(t, err)
+		require.NotNil(t, wi)
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
@@ -204,8 +204,8 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: itr.ID.String(),
 			}, uuid.NewV4())
-		require.NotNil(t, wi)
 		require.Nil(t, err)
+		require.NotNil(t, wi)
 	}
 	svc, ctrl := rest.SecuredController()
 	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)

@@ -14,7 +14,9 @@ func TestListFieldDefMarshalling(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	def := FieldDefinition{
-		Required: true,
+		Required:    true,
+		Label:       "Salt",
+		Description: "Put it in your soup",
 		Type: ListType{
 			SimpleType:    SimpleType{Kind: KindList},
 			ComponentType: SimpleType{Kind: KindString},
