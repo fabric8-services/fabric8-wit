@@ -370,9 +370,9 @@ func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
 				},
 				"relationships": {
 					"link_category": {"data": {"type":"workitemlinkcategories", "id": "a75ea296-6378-4578-8573-90f11b8efb00"}},
-					"source_type": {"data": {"type":"workitemtypes", "id": "bug"}},
-					"target_type": {"data": {"type":"workitemtypes", "id": "bug"}},
 					"space": {"data": {"type":"spaces", "id": "6ba7b810-9dad-11d1-80b4-00c04fd430c8"}, "links":{"self": "http://localhost:8080/api/spaces/6ba7b810-9dad-11d1-80b4-00c04fd430c8"}},
+					"source_type": {"data": {"type":"workitemtypes", "id": "e7492516-4d7d-4962-a820-75bea73a322e"}},
+					"target_type": {"data": {"type":"workitemtypes", "id": "e7492516-4d7d-4962-a820-75bea73a322e"}}
 				}
 			}
 		}

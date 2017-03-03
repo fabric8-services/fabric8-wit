@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/codebase"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -358,7 +359,7 @@ func makeWorkItems(count int) []*app.WorkItem {
 	for index := range res {
 		res[index] = &app.WorkItem{
 			ID:     fmt.Sprintf("id%d", index),
-			Type:   "foobar",
+			Type:   uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{},
 		}
 	}
@@ -516,7 +517,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(wit string) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = &app.RelationBaseType{
 		Data: &app.BaseTypeData{
@@ -1203,8 +1204,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	witBug := workitem.SystemBug
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &witBug, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
@@ -1775,6 +1775,68 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
 	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
 	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+}
+
+func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
+	t := s.T()
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemPlannerItem,
+		},
+	}
+	branch := "earth-recycle-101"
+	repo := "golang-project"
+	file := "main.go"
+	line := 200
+	cbase := codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(t, createdWi)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	require.NotNil(t, fetchedWi.Data)
+	require.NotNil(t, fetchedWi.Data.Attributes)
+	assert.Equal(t, title, fetchedWi.Data.Attributes[workitem.SystemTitle])
+	cb := fetchedWi.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	assert.Equal(t, repo, cb.Repository)
+	assert.Equal(t, branch, cb.Branch)
+	assert.Equal(t, file, cb.FileName)
+	assert.Equal(t, line, cb.LineNumber)
+
+	// TODO: Uncomment following block that tests DO-IT URL
+	// require.NotNil(t, fetchedWi.Data.Links)
+	// expectedURL := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+	// expectedURL = url.QueryEscape(expectedURL)
+	// assert.Contains(t, *fetchedWi.Data.Links.Doit, expectedURL)
+}
+
+func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
+	t := s.T()
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemPlannerItem,
+		},
+	}
+	branch := "earth-recycle-101"
+	cbase := codebase.CodebaseContent{
+		Branch: branch,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
 
 // a normal test function that will kick off WorkItem2Suite

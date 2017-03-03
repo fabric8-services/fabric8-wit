@@ -7,7 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItem represents a work item as it is stored in the database
@@ -15,13 +15,13 @@ type WorkItem struct {
 	gormsupport.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// Id of the type of this work item
-	Type string
+	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control
 	Version int
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
 	// Reference to one Space
-	SpaceID satoriuuid.UUID `sql:"type:uuid"`
+	SpaceID uuid.UUID `sql:"type:uuid"`
 }
 
 // TableName implements gorm.tabler
@@ -43,7 +43,7 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 
-	if wi.Type != other.Type {
+	if !uuid.Equal(wi.Type, other.Type) {
 		return false
 	}
 	if wi.ID != other.ID {

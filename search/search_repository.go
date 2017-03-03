@@ -21,6 +21,7 @@ import (
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // KnownURL registration key constants
@@ -67,7 +68,7 @@ func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) 
 
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
-	workItemTypes []string
+	workItemTypes []uuid.UUID
 	id            []string
 	words         []string
 }
@@ -237,11 +238,15 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 		if strings.HasPrefix(part, "id:") {
 			res.id = append(res.id, strings.TrimPrefix(part, "id:")+":*A")
 		} else if strings.HasPrefix(part, "type:") {
-			typeName := strings.TrimPrefix(part, "type:")
-			if len(typeName) == 0 {
-				return res, errors.NewBadParameterError("Type name must not be empty", part)
+			typeIDStr := strings.TrimPrefix(part, "type:")
+			if len(typeIDStr) == 0 {
+				return res, errors.NewBadParameterError("Type ID must not be empty", part)
 			}
-			res.workItemTypes = append(res.workItemTypes, typeName)
+			typeID, err := uuid.FromString(typeIDStr)
+			if err != nil {
+				return res, errors.NewBadParameterError("failed to parse type ID string as UUID", typeIDStr)
+			}
+			res.workItemTypes = append(res.workItemTypes, typeID)
 		} else if govalidator.IsURL(part) {
 			part := strings.ToLower(part)
 			part = trimProtocolFromURLString(part)
@@ -270,7 +275,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	db := r.db.Model(workitem.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -287,9 +292,9 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	if len(workItemTypes) > 0 {
 		// restrict to all given types and their subtypes
 		query := fmt.Sprintf("%[1]s.type in ("+
-			"select distinct subtype.name from %[2]s subtype "+
+			"select distinct subtype.id from %[2]s subtype "+
 			"join %[2]s supertype on subtype.path <@ supertype.path "+
-			"where supertype.name in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
+			"where supertype.id in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
 		db = db.Where(query, workItemTypes)
 	}
 

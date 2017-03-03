@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 
 	uuid "github.com/satori/go.uuid"
@@ -20,7 +21,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	a := workitem.WorkItem{
 		ID:      0,
-		Type:    "foo",
+		Type:    uuid.NewV4(),
 		Version: 0,
 		Fields: workitem.Fields{
 			"foo": "bar",
@@ -39,7 +40,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	// Test type difference
 	d := a
-	d.Type = "something else"
+	d.Type = uuid.NewV4()
 	assert.False(t, a.Equal(d))
 
 	// Test version difference
@@ -69,7 +70,7 @@ func TestWorkItem_Equal(t *testing.T) {
 
 	j := workitem.WorkItem{
 		ID:      0,
-		Type:    "foo",
+		Type:    a.Type,
 		Version: 0,
 		Fields: workitem.Fields{
 			"foo": "bar",

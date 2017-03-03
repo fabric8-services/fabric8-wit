@@ -7,11 +7,7 @@ import (
 
 // CreateWorkItemPayload defines the structure of work item payload
 var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
-	a.Attribute("type", d.String, "The type of the newly created work item", func() {
-		a.Example("userstory")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}.]+$")
-	})
+	a.Attribute("type", d.UUID, "ID of the work item type of the newly created work item")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
 		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
 		a.MinLength(1)
@@ -23,11 +19,7 @@ var CreateWorkItemPayload = a.Type("CreateWorkItemPayload", func() {
 // not be used since it mandated the presence of the ID in the payload
 // which ideally should be optional. The ID should be passed on to REST URL.
 var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
-	a.Attribute("type", d.String, "The type of the newly created work item", func() {
-		a.Example("userstory")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}.]+$")
-	})
+	a.Attribute("type", d.UUID, "ID of the work item type")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, must conform to the type", func() {
 		a.Example(map[string]interface{}{"system.creator": "user-ref", "system.state": "new", "system.title": "Example story"})
 		a.MinLength(1)
@@ -38,34 +30,6 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("relationships", workItemRelationships)
 
 	a.Required("type", "fields", "version")
-})
-
-// CreateWorkItemTypePayload explains how input payload should look like
-var CreateWorkItemTypePayload = a.Type("CreateWorkItemTypePayload", func() {
-	a.Attribute("name", d.String, "Readable name of the type like Task, Issue, Bug, Epic etc.", func() {
-		a.Example("Epic")
-		a.Pattern("^[\\p{L}.]+$")
-		a.MinLength(1)
-	})
-	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Type fields those must be followed by respective Work Items.", func() {
-		a.Example(map[string]interface{}{
-			"system.administrator": map[string]interface{}{
-				"Type": map[string]interface{}{
-					"Kind": "string",
-				},
-				"Required": true,
-			},
-		})
-		a.MinLength(1)
-	})
-	a.Attribute("extendedTypeName", d.String, "If newly created type extends any existing type", func() {
-		a.Example("(optional field)Parent type name")
-		a.MinLength(1)
-		a.Pattern("^[\\p{L}.]+$")
-	})
-	a.Attribute("relationships", workItemTypeRelationships)
-
-	a.Required("name", "fields")
 })
 
 // CreateTrackerAlternatePayload defines the structure of tracker payload for create

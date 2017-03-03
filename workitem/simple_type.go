@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/asaskevich/govalidator"
@@ -94,6 +95,14 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		default:
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
 		}
+	case KindCodebase:
+		switch value.(type) {
+		case codebase.CodebaseContent:
+			cb := value.(codebase.CodebaseContent)
+			return cb.ToMap(), nil
+		default:
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
+		}
 	default:
 		return nil, errors.Errorf("unexpected type constant: '%s'", fieldType.GetKind())
 	}
@@ -121,6 +130,15 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		}
 		markupContent := rendering.NewMarkupContentFromMap(value.(map[string]interface{}))
 		return markupContent, nil
+	case KindCodebase:
+		if valueType.Kind() != reflect.Map {
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
+		}
+		cb, err := codebase.NewCodebaseContent(value.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		return cb, nil
 	default:
 		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())
 	}
