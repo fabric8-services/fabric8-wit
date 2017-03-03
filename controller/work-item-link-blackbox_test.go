@@ -267,7 +267,7 @@ func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayl
 }
 
 // CreateWorkItem defines a work item link
-func CreateWorkItem(workItemType string, title string) *app.CreateWorkitemPayload {
+func CreateWorkItem(workItemType satoriuuid.UUID, title string) *app.CreateWorkitemPayload {
 	payload := app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Attributes: map[string]interface{}{
@@ -289,13 +289,13 @@ func CreateWorkItem(workItemType string, title string) *app.CreateWorkitemPayloa
 }
 
 // CreateWorkItemLinkType defines a work item link type
-func CreateWorkItemLinkType(name string, sourceType string, targetType string, categoryID, spaceID satoriuuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func CreateWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID, spaceID satoriuuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeName: sourceType,
-		TargetTypeName: targetType,
+		SourceTypeID:   sourceTypeID,
+		TargetTypeID:   targetTypeID,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,

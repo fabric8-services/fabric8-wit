@@ -360,7 +360,7 @@ func makeWorkItems(count int) []*app.WorkItem {
 	for index := range res {
 		res[index] = &app.WorkItem{
 			ID:     fmt.Sprintf("id%d", index),
-			Type:   "foobar",
+			Type:   uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{},
 		}
 	}
@@ -389,7 +389,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(wit string) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = &app.RelationBaseType{
 		Data: &app.BaseTypeData{
@@ -1078,8 +1078,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	witBug := workitem.SystemBug
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &witBug, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))

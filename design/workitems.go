@@ -54,9 +54,7 @@ var baseTypeData = a.Type("BaseTypeData", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemtypes")
 	})
-	a.Attribute("id", d.String, func() {
-		a.Example("userstory")
-	})
+	a.Attribute("id", d.UUID, "ID of the work item type")
 	a.Required("type", "id")
 })
 
@@ -110,7 +108,7 @@ var _ = a.Resource("workitem", func() {
 			a.Param("page[limit]", d.Integer, "Paging size")
 			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
 			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
-			a.Param("filter[workitemtype]", d.String, "work item type to filter work items by")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 
 		})

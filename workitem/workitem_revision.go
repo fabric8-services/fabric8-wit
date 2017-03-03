@@ -32,7 +32,7 @@ type WorkItemRevision struct {
 	// the id of the work item that changed
 	WorkItemID uint64 `gorm:"column:work_item_id"`
 	// Id of the type of this work item
-	WorkItemType string `gorm:"column:work_item_type"`
+	WorkItemTypeID uuid.UUID `gorm:"column:work_item_type_id"`
 	// Version of the workitem that was modified
 	WorkItemVersion int `gorm:"column:work_item_version"`
 	// the field values (or empty when the work item was deleted)

@@ -193,18 +193,18 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	// Create at least 1 item to avoid RowsAffectedCheck
 	// given
 	wi, err := s.repo.Create(
-		context.Background(), "bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.creatorID)
 	require.Nil(s.T(), err)
 	// when
-	wi.Type = "feature"
+	wi.Type = workitem.SystemFeature
 	newWi, err := s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
-	assert.Equal(s.T(), "feature", newWi.Type)
+	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.Type))
 }
 
 // TestGetCountsPerIteration makes sure that the query being executed is correctly returning

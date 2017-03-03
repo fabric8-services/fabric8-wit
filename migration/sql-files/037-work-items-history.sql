@@ -5,7 +5,7 @@ CREATE TABLE work_item_revisions (
     revision_type int NOT NULL,
     modifier_id uuid NOT NULL,
     work_item_id bigint NOT NULL,
-    work_item_type text,
+    work_item_type_id uuid,
     work_item_version integer,
     work_item_fields jsonb
 );

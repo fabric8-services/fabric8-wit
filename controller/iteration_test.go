@@ -197,6 +197,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 			}, testIdentity.ID)
 		require.NotNil(t, wi)
 		require.Nil(t, err)
+		require.NotNil(t, wi)
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
@@ -208,6 +209,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 			}, testIdentity.ID)
 		require.NotNil(t, wi)
 		require.Nil(t, err)
+		require.NotNil(t, wi)
 	}
 	svc, ctrl := rest.SecuredController()
 	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)

@@ -43,7 +43,7 @@ func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID 
 		ModifierIdentity: modifierID,
 		Type:             revisionType,
 		WorkItemID:       workitem.ID,
-		WorkItemType:     workitem.Type,
+		WorkItemTypeID:   workitem.Type,
 		WorkItemVersion:  workitem.Version,
 		WorkItemFields:   workitem.Fields,
 	}

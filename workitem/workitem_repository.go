@@ -22,7 +22,7 @@ type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
-	Create(ctx context.Context, typeID string, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
+	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -116,7 +116,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, 
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modifier uuid.UUID) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil || id == 0 {
@@ -173,7 +173,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifier, RevisionTypeWorkItemUpdate, res)
+	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeWorkItemUpdate, res)
 	if err != nil {
 		return nil, err
 	}
@@ -185,16 +185,16 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
 	wiType, err := r.witr.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
-		return nil, errors.NewBadParameterError("type", typeID)
+		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
 	wi := WorkItem{
 		Type:   typeID,
 		Fields: Fields{},
 	}
-	fields[SystemCreator] = creator.String()
+	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
@@ -222,7 +222,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID string, fiel
 		return nil, err
 	}
 	// store a revision of the created work item
-	err = r.wirr.Create(context.Background(), creator, RevisionTypeWorkItemCreate, wi)
+	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeWorkItemCreate, wi)
 	if err != nil {
 		return nil, err
 	}

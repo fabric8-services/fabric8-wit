@@ -75,7 +75,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
 	// when
-	newEmail := "updated@email.com"
+	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
 	newFullName := "newFull Name"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
