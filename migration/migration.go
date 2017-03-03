@@ -533,20 +533,22 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	stUser := "user"
 	icon := "fa-bookmark"
 	workItemTypeFields := map[string]app.FieldDefinition{
-		workitem.SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true},
-		workitem.SystemDescription:  {Type: &app.FieldType{Kind: "markup"}, Required: false},
-		workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true},
-		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false},
-		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false},
-		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false},
-		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false},
+		workitem.SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
+		workitem.SystemDescription:  {Type: &app.FieldType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
+		workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
+		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
+		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
+		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
+		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 
 		workitem.SystemAssignees: {
 			Type: &app.FieldType{
 				ComponentType: &stUser,
 				Kind:          "list",
 			},
-			Required: false,
+			Required:    false,
+			Label:       "Assignees",
+			Description: "The users that are assigned to the work item",
 		},
 		workitem.SystemState: {
 			Type: &app.FieldType{
@@ -560,7 +562,9 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 					workitem.SystemStateClosed,
 				},
 			},
-			Required: true,
+			Required:    true,
+			Label:       "State",
+			Description: "The state of the work item",
 		},
 	}
 
@@ -625,6 +629,14 @@ func loadFields(ctx context.Context, wit *workitem.WorkItemType, into workitem.F
 		// do not overwrite already defined fields in the map
 		if _, exist := into[key]; !exist {
 			into[key] = value
+		} else {
+			// If field already exist, overwrite only the label and description
+			into[key] = workitem.FieldDefinition{
+				Label:       value.Label,
+				Description: value.Description,
+				Required:    into[key].Required,
+				Type:        into[key].Type,
+			}
 		}
 	}
 

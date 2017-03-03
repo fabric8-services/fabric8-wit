@@ -15,14 +15,18 @@ func TestCompatibleFields(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	a := FieldDefinition{
-		Required: true,
+		Label:       "a",
+		Description: "description for 'a'",
+		Required:    true,
 		Type: ListType{
 			SimpleType:    SimpleType{Kind: KindList},
 			ComponentType: SimpleType{Kind: KindString},
 		},
 	}
 	b := FieldDefinition{
-		Required: true,
+		Label:       "b",
+		Description: "description for 'b'",
+		Required:    true,
 		Type: ListType{
 			SimpleType:    SimpleType{Kind: KindList},
 			ComponentType: SimpleType{Kind: KindString},
@@ -49,6 +53,8 @@ func TestConvertTypeFromModels(t *testing.T) {
 		Path:        "something",
 		Fields: map[string]FieldDefinition{
 			"aListType": {
+				Label:       "some list type",
+				Description: "description for 'some list type'",
 				Type: EnumType{
 					BaseType:   SimpleType{KindString},
 					SimpleType: SimpleType{KindEnum},
@@ -84,7 +90,9 @@ func TestConvertTypeFromModels(t *testing.T) {
 				Version:     42,
 				Fields: map[string]*app.FieldDefinition{
 					"aListType": {
-						Required: true,
+						Required:    true,
+						Label:       "some list type",
+						Description: "description for 'some list type'",
 						Type: &app.FieldType{
 							BaseType: &stString,
 							Kind:     "enum",
@@ -158,10 +166,10 @@ func TestTempConvertFieldsToModels(t *testing.T) {
 	stString := "string"
 
 	newFields := map[string]app.FieldDefinition{
-		SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true},
-		SystemDescription:  {Type: &app.FieldType{Kind: "string"}, Required: false},
-		SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true},
-		SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false},
+		SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true, Label: "l1", Description: "d1"},
+		SystemDescription:  {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "l2", Description: "d2"},
+		SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true, Label: "l3", Description: "d3"},
+		SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "l4", Description: "d4"},
 		SystemState: {
 			Type: &app.FieldType{
 				BaseType: &stString,
@@ -174,11 +182,13 @@ func TestTempConvertFieldsToModels(t *testing.T) {
 					SystemStateClosed,
 				},
 			},
-			Required: true,
+			Required:    true,
+			Label:       "l5",
+			Description: "d5",
 		},
 	}
 
-	expectedJSON := `{"system.creator":{"Required":true,"Type":{"Kind":"user"}},"system.description":{"Required":false,"Type":{"Kind":"string"}},"system.remote_item_id":{"Required":false,"Type":{"Kind":"string"}},"system.state":{"Required":true,"Type":{"Kind":"enum","BaseType":{"Kind":"string"},"Values":["new","open","in progress","resolved","closed"]}},"system.title":{"Required":true,"Type":{"Kind":"string"}}}`
+	expectedJSON := `{"system.creator":{"Required":true,"Label":"l3","Description":"d3","Type":{"Kind":"user"}},"system.description":{"Required":false,"Label":"l2","Description":"d2","Type":{"Kind":"string"}},"system.remote_item_id":{"Required":false,"Label":"l4","Description":"d4","Type":{"Kind":"string"}},"system.state":{"Required":true,"Label":"l5","Description":"d5","Type":{"Kind":"enum","BaseType":{"Kind":"string"},"Values":["new","open","in progress","resolved","closed"]}},"system.title":{"Required":true,"Label":"l1","Description":"d1","Type":{"Kind":"string"}}}`
 
 	convertedFields, err := TEMPConvertFieldTypesToModel(newFields)
 	jsonArray, err := json.Marshal(convertedFields)

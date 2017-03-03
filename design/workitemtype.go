@@ -18,12 +18,18 @@ var fieldType = a.Type("fieldType", func() {
 
 // fieldDefinition defines the possible values for a field in a work item type
 var fieldDefinition = a.Type("fieldDefinition", func() {
-	a.Description("A fieldDescription aggregates a fieldType and additional field metadata")
+	a.Description("A fieldDefinition aggregates a fieldType and additional field metadata")
 	a.Attribute("required", d.Boolean)
 	a.Attribute("type", fieldType)
-
-	a.Required("required")
-	a.Required("type")
+	a.Attribute("label", d.String, "A label for the field that is shown in the UI", func() {
+		a.Example("Iteration")
+		a.MinLength(1)
+	})
+	a.Attribute("description", d.String, "A description for the field", func() {
+		a.Example("The iteration field tells to which iteration a work item belongs.")
+		a.MinLength(1)
+	})
+	a.Required("required", "type", "label", "description")
 })
 
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {

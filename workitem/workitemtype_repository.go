@@ -122,8 +122,10 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, 
 			return nil, errs.WithStack(err)
 		}
 		converted := FieldDefinition{
-			Required: definition.Required,
-			Type:     ct,
+			Label:       definition.Label,
+			Description: definition.Description,
+			Required:    definition.Required,
+			Type:        ct,
 		}
 		if exists && !compatibleFields(existing, converted) {
 			return nil, fmt.Errorf("incompatible change for field %s", field)
@@ -181,8 +183,14 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	return result, nil
 }
 
+// compatibleFields returns true if the existing and new field are compatible;
+// otherwise false is returned. It does so by comparing all members of the field
+// definition except for the label and description.
 func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
-	return reflect.DeepEqual(existing, new)
+	if existing.Required != new.Required {
+		return false
+	}
+	return reflect.DeepEqual(existing.Type, new.Type)
 }
 
 // converts from models to app representation
@@ -202,8 +210,10 @@ func convertTypeFromModels(t *WorkItemType) app.WorkItemTypeData {
 	for name, def := range t.Fields {
 		ct := convertFieldTypeFromModels(def.Type)
 		converted.Attributes.Fields[name] = &app.FieldDefinition{
-			Required: def.Required,
-			Type:     &ct,
+			Required:    def.Required,
+			Label:       def.Label,
+			Description: def.Description,
+			Type:        &ct,
 		}
 	}
 	return converted
@@ -291,8 +301,10 @@ func TEMPConvertFieldTypesToModel(fields map[string]app.FieldDefinition) (map[st
 			return nil, errs.WithStack(err)
 		}
 		converted := FieldDefinition{
-			Required: definition.Required,
-			Type:     ct,
+			Required:    definition.Required,
+			Label:       definition.Label,
+			Description: definition.Description,
+			Type:        ct,
 		}
 		allFields[field] = converted
 	}
