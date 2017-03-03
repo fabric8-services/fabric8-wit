@@ -1,10 +1,12 @@
 package controller_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -14,8 +16,19 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+var namedspaceConfiguration *configuration.ConfigurationData
+
+func init() {
+	var err error
+	namedspaceConfiguration, err = configuration.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
@@ -49,31 +62,30 @@ func (rest *TestNamedSpaceREST) UnSecuredNamedSpaceController() (*goa.Service, *
 	return svc, NewNamedspacesController(svc, rest.db)
 }
 
-func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceController) {
+func (rest *TestNamedSpaceREST) SecuredSpaceController(identity account.Identity) (*goa.Service, *SpaceController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewSpaceController(svc, rest.db)
+	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
+	return svc, NewSpaceController(svc, rest.db, namedspaceConfiguration)
 }
 
 func (rest *TestNamedSpaceREST) UnSecuredSpaceController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, namedspaceConfiguration)
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	spaceSvc, spaceCtrl := rest.SecuredSpaceController()
-
 	identityRepo := account.NewIdentityRepository(rest.DB)
-	identity := testsupport.TestIdentity
-	identity.ProviderType = account.KeycloakIDP
-	err := identityRepo.Create(spaceSvc.Context, &identity)
-	if err != nil {
-		assert.Fail(t, "Failed to create an identity")
-	}
+
+	identity := getTestIdentity()
+
+	spaceSvc, spaceCtrl := rest.SecuredSpaceController(*identity)
+
+	err := createIdentity(spaceSvc.Context, identity, identityRepo)
+	require.Nil(t, err)
 
 	name := "Test 24"
 
@@ -90,8 +102,8 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 	assert.NotNil(t, created.Data.Links)
 	assert.NotNil(t, created.Data.Links.Self)
 
-	namedSpaceSvc, namedSpacectrl := rest.SecuredNamedSpaceController(testsupport.TestIdentity)
-	_, namedspace := test.ShowNamedspacesOK(t, namedSpaceSvc.Context, namedSpaceSvc, namedSpacectrl, testsupport.TestIdentity.Username, name)
+	namedSpaceSvc, namedSpacectrl := rest.SecuredNamedSpaceController(*identity)
+	_, namedspace := test.ShowNamedspacesOK(t, namedSpaceSvc.Context, namedSpaceSvc, namedSpacectrl, identity.Username, name)
 	assert.NotNil(t, namedspace)
 	assert.Equal(t, created.Data.Attributes.Name, namedspace.Data.Attributes.Name)
 	assert.Equal(t, created.Data.Attributes.Description, namedspace.Data.Attributes.Description)

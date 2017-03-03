@@ -235,7 +235,7 @@ func main() {
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "space" controller
-	spaceCtrl := controller.NewSpaceController(service, appDB)
+	spaceCtrl := controller.NewSpaceController(service, appDB, configuration)
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller

@@ -6,8 +6,11 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/auth"
+<<<<<<< 0f9a219d2390f962f20d3479ca088663e6c555e4
 	"github.com/almighty/almighty-core/area"
+=======
+	"github.com/almighty/almighty-core/auth"
+>>>>>>> Create Keycloak resource when space created
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -15,8 +18,12 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
+<<<<<<< 0f9a219d2390f962f20d3479ca088663e6c555e4
 	errs "github.com/pkg/errors"
+	satoriuuid "github.com/satori/go.uuid"
+=======
 	uuid "github.com/satori/go.uuid"
+>>>>>>> Create Keycloak resource when space created
 )
 
 const (

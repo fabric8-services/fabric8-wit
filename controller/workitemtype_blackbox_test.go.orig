@@ -78,7 +78,7 @@ func (s *workItemTypeSuite) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -98,8 +98,13 @@ func (s *workItemTypeSuite) SetupTest() {
 	require.NotNil(s.T(), s.linkCatCtrl)
 
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), initTestIdenity(DB))
+<<<<<<< 0f9a219d2390f962f20d3479ca088663e6c555e4
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB))
+=======
+	s.svcSpace = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), initTestIdenity(DB))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB), witbConfiguration)
+>>>>>>> Create Keycloak resource when space created
 	require.NotNil(s.T(), s.spaceCtrl)
 }
 
@@ -340,9 +345,14 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	s.T().Log("Created work item link category")
 
 	// Create work item link space
+<<<<<<< 0f9a219d2390f962f20d3479ca088663e6c555e4
 	spacePayload := CreateSpacePayload("some-link-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
+=======
+	spacePayload := CreateSpacePayload("some-test-link-space", "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.svcSpace.Context, s.svcSpace, s.spaceCtrl, spacePayload)
+>>>>>>> Create Keycloak resource when space created
 
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
@@ -471,12 +481,11 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
-func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
-	t := s.T()
+func TestUnauthorizeWorkItemTypeCreate(t *testing.T) {
 	UnauthorizeCreateUpdateDeleteTest(t, getWorkItemTypeTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWIT-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(s.DB))
+		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(DB))
 		app.MountWorkitemtypeController(service, controller)
 		return nil
 	})
