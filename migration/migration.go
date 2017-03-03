@@ -240,7 +240,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
 	// version 39
-	m = append(m, steps{executeSQLFile("038-unique-area-name-create-new-area.sql")})
+	m = append(m, steps{executeSQLFile("039-unique-area-name-create-new-area.sql")})
 
 	// Version N
 	//
