@@ -76,9 +76,9 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 // Create creates a new record.
 func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "create"}, time.Now())
-
-	u.ID = uuid.NewV4()
-
+	if u.ID == uuid.Nil {
+		u.ID = uuid.NewV4()
+	}
 	err := m.db.Create(u).Error
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -87,11 +87,9 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 		}, "unable to create the user")
 		return errors.WithStack(err)
 	}
-
 	log.Debug(ctx, map[string]interface{}{
 		"userID": u.ID,
 	}, "User created!")
-
 	return nil
 }
 

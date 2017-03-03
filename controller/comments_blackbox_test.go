@@ -34,13 +34,21 @@ func TestSuiteComments(t *testing.T) {
 // ========== TestSuiteComments struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type CommentsSuite struct {
 	gormsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db            *gormapplication.GormDB
+	clean         func()
+	testIdentity  account.Identity
+	testIdentity2 account.Identity
 }
 
 func (s *CommentsSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = testIdentity
+	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "test user2", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity2 = testIdentity2
 }
 
 func (s *CommentsSuite) TearDownTest() {
@@ -142,13 +150,13 @@ func (s *CommentsSuite) validateComment(result *app.CommentSingle, expectedBody 
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy)
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy.Data)
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy.Data.ID)
-	assert.Equal(s.T(), testsupport.TestIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	assert.Equal(s.T(), s.testIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
 }
 
 func (s *CommentsSuite) TestShowCommentWithoutAuth() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &markdownMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &markdownMarkup)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
@@ -158,8 +166,8 @@ func (s *CommentsSuite) TestShowCommentWithoutAuth() {
 
 func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", nil)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", nil)
 	// when
 	userSvc, commentsCtrl := s.unsecuredController()
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
@@ -169,10 +177,10 @@ func (s *CommentsSuite) TestShowCommentWithoutAuthWithMarkup() {
 
 func (s *CommentsSuite) TestShowCommentWithAuth() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
 	// when
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 	// then
 	s.validateComment(result, "body", rendering.SystemMarkupPlainText)
@@ -180,10 +188,10 @@ func (s *CommentsSuite) TestShowCommentWithAuth() {
 
 func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "<img src=x onerror=alert('body') />", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "<img src=x onerror=alert('body') />", &plaintextMarkup)
 	// when
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.ShowCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 	// then
 	s.validateComment(result, "<img src=x onerror=alert('body') />", rendering.SystemMarkupPlainText)
@@ -191,8 +199,8 @@ func (s *CommentsSuite) TestShowCommentWithEscapedScriptInjection() {
 
 func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
 	userSvc, commentsCtrl := s.unsecuredController()
@@ -201,30 +209,30 @@ func (s *CommentsSuite) TestUpdateCommentWithoutAuth() {
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithOtherMarkup() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", &markdownMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, updateCommentPayload)
 	s.validateComment(result, "updated body", rendering.SystemMarkupMarkdown)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithSameUserWithNilMarkup() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
 	// when
 	updateCommentPayload := s.newUpdateCommentsPayload("updated body", nil)
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	_, result := test.UpdateCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, updateCommentPayload)
 	s.validateComment(result, "updated body", rendering.SystemMarkupDefault)
 }
 
 func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
 	// when
 	updatedCommentBody := "An updated comment"
 	updateCommentPayload := &app.UpdateCommentsPayload{
@@ -236,30 +244,30 @@ func (s *CommentsSuite) TestUpdateCommentWithOtherUser() {
 		},
 	}
 	// when/then
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
 	test.UpdateCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId, updateCommentPayload)
 }
 
 func (s *CommentsSuite) TestDeleteCommentWithSameAuthenticatedUser() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity)
 	test.DeleteCommentsOK(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 }
 
 func (s *CommentsSuite) TestDeleteCommentWithoutAuth() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
 	userSvc, commentsCtrl := s.unsecuredController()
 	test.DeleteCommentsUnauthorized(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 }
 
 func (s *CommentsSuite) TestDeleteCommentWithOtherAuthenticatedUser() {
 	// given
-	workitemId := s.createWorkItem(testsupport.TestIdentity)
-	commentId := s.createWorkItemComment(testsupport.TestIdentity, workitemId, "body", &plaintextMarkup)
-	userSvc, _, _, commentsCtrl := s.securedControllers(testsupport.TestIdentity2)
+	workitemId := s.createWorkItem(s.testIdentity)
+	commentId := s.createWorkItemComment(s.testIdentity, workitemId, "body", &plaintextMarkup)
+	userSvc, _, _, commentsCtrl := s.securedControllers(s.testIdentity2)
 	test.DeleteCommentsForbidden(s.T(), userSvc.Context, userSvc, commentsCtrl, commentId)
 }
