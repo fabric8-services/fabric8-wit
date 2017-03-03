@@ -210,7 +210,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("034-space-owner.sql")})
 
 	// Version 35
-	m = append(m, steps{executeSQLFile("035-wit-to-use-uuid.sql"))
+	m = append(m, steps{executeSQLFile("035-wit-to-use-uuid.sql")})
 
 	// Version 36
 	m = append(m, steps{executeSQLFile("036-add-icon-to-wit.sql")})
