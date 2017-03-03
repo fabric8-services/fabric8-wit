@@ -13,34 +13,35 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// WorkItemRevisionRepository encapsulates storage & retrieval of historical versions of work items
-type WorkItemRevisionRepository interface {
+// RevisionRepository encapsulates storage & retrieval of historical versions of work items
+type RevisionRepository interface {
 	// Create stores a new revision for the given work item.
 	Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error
 	// List retrieves all revisions for a given work item
-	List(ctx context.Context, workitemID string) ([]WorkItemRevision, error)
+	List(ctx context.Context, workitemID string) ([]Revision, error)
 }
 
-// NewWorkItemRevisionRepository creates a GormWorkItemRevisionRepository
-func NewWorkItemRevisionRepository(db *gorm.DB) *GormWorkItemRevisionRepository {
-	repository := &GormWorkItemRevisionRepository{db}
+// NewRevisionRepository creates a GormRevisionRepository
+func NewRevisionRepository(db *gorm.DB) *GormRevisionRepository {
+	repository := &GormRevisionRepository{db}
 	return repository
 }
 
-// GormWorkItemRevisionRepository implements WorkItemRevisionRepository using gorm
-type GormWorkItemRevisionRepository struct {
+// GormRevisionRepository implements RevisionRepository using gorm
+type GormRevisionRepository struct {
 	db *gorm.DB
 }
 
 // Create stores a new revision for the given work item.
-func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error {
+func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error {
 	log.Info(nil, map[string]interface{}{
 		"pkg":              "workitem",
 		"ModifierIdentity": modifierID,
 	}, "Storing a revision after operation on work item.")
-	workitemRevision := &WorkItemRevision{
-		Time:             time.Now(),
+	tx := r.db
+	workitemRevision := &Revision{
 		ModifierIdentity: modifierID,
+		Time:             time.Now(),
 		Type:             revisionType,
 		WorkItemID:       workitem.ID,
 		WorkItemTypeID:   workitem.Type,
@@ -48,10 +49,9 @@ func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID 
 		WorkItemFields:   workitem.Fields,
 	}
 	// do not store fields when the work item is deleted
-	if workitemRevision.Type == RevisionTypeWorkItemDelete {
+	if workitemRevision.Type == RevisionTypeDelete {
 		workitemRevision.WorkItemFields = Fields{}
 	}
-	tx := r.db
 	if err := tx.Create(&workitemRevision).Error; err != nil {
 		return errors.NewInternalError(fmt.Sprintf("Failed to create new work item revision: %s", err.Error()))
 	}
@@ -60,11 +60,11 @@ func (r *GormWorkItemRevisionRepository) Create(ctx context.Context, modifierID 
 }
 
 // List retrieves all revisions for a given work item
-func (r *GormWorkItemRevisionRepository) List(ctx context.Context, workitemID string) ([]WorkItemRevision, error) {
+func (r *GormRevisionRepository) List(ctx context.Context, workitemID string) ([]Revision, error) {
 	log.Debug(nil, map[string]interface{}{
 		"pkg": "workitem",
 	}, "List all revisions for work item with ID=%v", workitemID)
-	revisions := make([]WorkItemRevision, 0)
+	revisions := make([]Revision, 0)
 	if err := r.db.Where("work_item_id = ?", workitemID).Order("revision_time asc").Find(&revisions).Error; err != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("Failed to retrieve work item revisions: %s", err.Error()))
 	}

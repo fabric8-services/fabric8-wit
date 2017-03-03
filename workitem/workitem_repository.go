@@ -31,7 +31,7 @@ type WorkItemRepository interface {
 
 // NewWorkItemRepository creates a GormWorkItemRepository
 func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
-	repository := &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}, &GormWorkItemRevisionRepository{db}}
+	repository := &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}, &GormRevisionRepository{db}}
 	return repository
 }
 
@@ -39,7 +39,7 @@ func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
 type GormWorkItemRepository struct {
 	db   *gorm.DB
 	witr *GormWorkItemTypeRepository
-	wirr *GormWorkItemRevisionRepository
+	wirr *GormRevisionRepository
 }
 
 // ************************************************
@@ -106,7 +106,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, 
 		return errors.NewNotFoundError("work item", workitemID)
 	}
 	// store a revision of the deleted work item
-	err = r.wirr.Create(context.Background(), suppressorID, RevisionTypeWorkItemDelete, workItem)
+	err = r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeWorkItemUpdate, res)
+	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +222,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 		return nil, err
 	}
 	// store a revision of the created work item
-	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeWorkItemCreate, wi)
+	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
 	if err != nil {
 		return nil, err
 	}
