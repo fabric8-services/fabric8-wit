@@ -25,14 +25,14 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ALTER TABLE work_item_types ADD COLUMN id uuid DEFAULT uuid_generate_v4() NOT NULL;
 
 -- Use WIT IDs define in the code
-UPDATE work_item_types SET id = '{{index . 0}}' WHERE name = 'planneritem';
-UPDATE work_item_types SET id = '{{index . 1}}' WHERE name = 'userstory';
-UPDATE work_item_types SET id = '{{index . 2}}' WHERE name = 'valueproposition';
-UPDATE work_item_types SET id = '{{index . 3}}' WHERE name = 'fundamental';
-UPDATE work_item_types SET id = '{{index . 4}}' WHERE name = 'experience';
-UPDATE work_item_types SET id = '{{index . 5}}' WHERE name = 'feature';
-UPDATE work_item_types SET id = '{{index . 6}}' WHERE name = 'scenario';
-UPDATE work_item_types SET id = '{{index . 7}}' WHERE name = 'bug';
+UPDATE work_item_types SET id = '86af5178-9b41-469b-9096-57e5155c3f31' WHERE name = 'planneritem';
+UPDATE work_item_types SET id = 'bbf35418-04b6-426c-a60b-7f80beb0b624' WHERE name = 'userstory';
+UPDATE work_item_types SET id = '3194ab60-855b-4155-9005-9dce4a05f1eb' WHERE name = 'valueproposition';
+UPDATE work_item_types SET id = 'ee7ca005-f81d-4eea-9b9b-1965df0988d0' WHERE name = 'fundamental';
+UPDATE work_item_types SET id = 'b9a71831-c803-4f66-8774-4193fffd1311' WHERE name = 'experience';
+UPDATE work_item_types SET id = '0a24d3c2-e0a6-4686-8051-ec0ea1915a28' WHERE name = 'feature';
+UPDATE work_item_types SET id = '71171e90-6d35-498f-a6a7-2083b5267c18' WHERE name = 'scenario';
+UPDATE work_item_types SET id = '26787039-b68f-4e28-8814-c2f93be1ef4e' WHERE name = 'bug';
 
 ALTER TABLE work_item_types ADD COLUMN description text;
 UPDATE work_item_types SET description = concat('This is the description for the work item type "', name, '".');
