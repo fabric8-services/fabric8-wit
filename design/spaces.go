@@ -19,11 +19,17 @@ var space = a.Type("Space", func() {
 })
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
+	a.Attribute("owned-by", spaceOwnedBy, "The owner of the Space")
 	a.Attribute("iterations", relationGeneric, "Space can have one or many iterations")
 	a.Attribute("areas", relationGeneric, "Space can have one or many areas")
 	a.Attribute("workitemlinktypes", relationGeneric, "Space can have one or many work item link types")
 	a.Attribute("workitemtypes", relationGeneric, "Space can have one or many work item types")
 	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
+})
+
+var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
+	a.Attribute("data", identityRelationData)
+	a.Required("data")
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
@@ -161,5 +167,6 @@ var _ = a.Resource("space", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 })

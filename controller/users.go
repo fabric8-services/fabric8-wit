@@ -7,6 +7,8 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -45,6 +47,67 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("User ID %s not valid", userID.UUID)))
 			}
 		}
+		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
+	})
+}
+
+// Update updates the authorized user based on the provided Token
+func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
+
+	id, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		identity, err := appl.Identities().Load(ctx, *id)
+		if err != nil || identity == nil {
+			log.Error(ctx, map[string]interface{}{
+				"identityID": id,
+			}, "auth token contains id %s of unknown Identity", *id)
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", *id)))
+			return ctx.Unauthorized(jerrors)
+		}
+
+		var user *account.User
+		if identity.UserID.Valid {
+			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
+			}
+		}
+
+		updatedEmail := ctx.Payload.Data.Attributes.Email
+		if updatedEmail != nil {
+			user.Email = *updatedEmail
+		}
+		updatedBio := ctx.Payload.Data.Attributes.Bio
+		if updatedBio != nil {
+			user.Bio = *updatedBio
+		}
+		updatedFullName := ctx.Payload.Data.Attributes.FullName
+		if updatedFullName != nil {
+			user.FullName = *updatedFullName
+		}
+		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
+		if updatedImageURL != nil {
+			user.ImageURL = *updatedImageURL
+		}
+		updateURL := ctx.Payload.Data.Attributes.URL
+		if updateURL != nil {
+			user.URL = *updateURL
+		}
+
+		err = appl.Users().Save(ctx, user)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		err = appl.Identities().Save(ctx, identity)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
 }
