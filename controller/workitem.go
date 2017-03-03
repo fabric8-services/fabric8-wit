@@ -267,6 +267,12 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
 				target.Fields[key] = *m
 			}
+		} else if key == workitem.SystemCodebase {
+			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
+				target.Fields[key] = *m
+			} else {
+				return err
+			}
 		} else {
 			target.Fields[key] = val
 		}

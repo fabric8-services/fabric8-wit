@@ -96,14 +96,13 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
 		}
 	case KindCodebase:
-		if valueType.Kind() != reflect.Map {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
+		switch value.(type) {
+		case codebase.CodebaseContent:
+			cb := value.(codebase.CodebaseContent)
+			return cb.ToMap(), nil
+		default:
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
 		}
-		validCodebase, err := codebase.NewCodebase(value.(map[string]interface{}))
-		if err != nil {
-			return nil, err
-		}
-		return validCodebase.ToMap(), nil
 	default:
 		return nil, errors.Errorf("unexpected type constant: '%s'", fieldType.GetKind())
 	}
@@ -135,7 +134,7 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		if valueType.Kind() != reflect.Map {
 			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
-		cb, err := codebase.NewCodebase(value.(map[string]interface{}))
+		cb, err := codebase.NewCodebaseContent(value.(map[string]interface{}))
 		if err != nil {
 			return nil, err
 		}

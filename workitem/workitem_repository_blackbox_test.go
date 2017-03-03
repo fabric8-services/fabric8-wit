@@ -284,7 +284,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 		map[string]interface{}{
 			workitem.SystemTitle:    title,
 			workitem.SystemState:    workitem.SystemStateNew,
-			workitem.SystemCodebase: cbase.ToMap(),
+			workitem.SystemCodebase: cbase,
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when

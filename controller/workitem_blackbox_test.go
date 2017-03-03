@@ -1820,6 +1820,26 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	assert.Contains(t, *fetchedWi.Data.Links.Doit, expectedURL)
 }
 
+func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
+	t := s.T()
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemPlannerItem,
+		},
+	}
+	branch := "earth-recycle-101"
+	cbase := codebase.CodebaseContent{
+		Branch: branch,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
 // a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)

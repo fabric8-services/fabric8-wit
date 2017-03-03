@@ -1,6 +1,6 @@
 package codebase
 
-import "errors"
+import "github.com/almighty/almighty-core/errors"
 
 // CodebaseContent defines all parameters those are useful to associate Che Editor's window to a WI
 type CodebaseContent struct {
@@ -28,8 +28,17 @@ func (c *CodebaseContent) ToMap() map[string]interface{} {
 	return res
 }
 
-// NewCodebase build CodebaseContent instance from input Map.
-func NewCodebase(value map[string]interface{}) (CodebaseContent, error) {
+// IsValid perform following checks
+// Repository value is mandatory
+func (c *CodebaseContent) IsValid() error {
+	if c.Repository == "" {
+		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is mandatory")
+	}
+	return nil
+}
+
+// NewCodebaseContent builds CodebaseContent instance from input Map.
+func NewCodebaseContent(value map[string]interface{}) (CodebaseContent, error) {
 	cb := CodebaseContent{}
 	validKeys := []string{RepositoryKey, BranchKey, FileNameKey, LineNumberKey}
 	for _, key := range validKeys {
@@ -52,10 +61,29 @@ func NewCodebase(value map[string]interface{}) (CodebaseContent, error) {
 			}
 		}
 	}
-	emptyCodebase := CodebaseContent{}
-	if cb == emptyCodebase {
-		// Not a single valid key found in `value`
-		return emptyCodebase, errors.New("Invalid keys for Codebase")
+	err := cb.IsValid()
+	if err != nil {
+		return cb, err
 	}
 	return cb, nil
+}
+
+// NewCodebaseContentFromValue builds CodebaseContent from interface{}
+func NewCodebaseContentFromValue(value interface{}) (*CodebaseContent, error) {
+	if value == nil {
+		return nil, nil
+	}
+	switch value.(type) {
+	case CodebaseContent:
+		result := value.(CodebaseContent)
+		return &result, nil
+	case map[string]interface{}:
+		result, err := NewCodebaseContent(value.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
+		return &result, nil
+	default:
+		return nil, nil
+	}
 }

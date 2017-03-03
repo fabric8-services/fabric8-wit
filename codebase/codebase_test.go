@@ -31,7 +31,7 @@ func TestCodebaseToMap(t *testing.T) {
 func TestNewCodebase(t *testing.T) {
 	// Test for empty map
 	codebaseMap := map[string]interface{}{}
-	cb, err := codebase.NewCodebase(codebaseMap)
+	cb, err := codebase.NewCodebaseContent(codebaseMap)
 	require.NotNil(t, err)
 	assert.Equal(t, "", cb.Repository)
 	assert.Equal(t, "", cb.Branch)
@@ -49,10 +49,20 @@ func TestNewCodebase(t *testing.T) {
 		codebase.FileNameKey:   file,
 		codebase.LineNumberKey: line,
 	}
-	cb, err = codebase.NewCodebase(codebaseMap)
+	cb, err = codebase.NewCodebaseContent(codebaseMap)
 	require.Nil(t, err)
 	assert.Equal(t, repo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)
 	assert.Equal(t, line, cb.LineNumber)
+}
+
+func TestIsValid(t *testing.T) {
+	cb := codebase.CodebaseContent{
+		Repository: "hello",
+	}
+	assert.Nil(t, cb.IsValid())
+
+	cb = codebase.CodebaseContent{}
+	assert.NotNil(t, cb.IsValid())
 }
