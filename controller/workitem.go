@@ -65,8 +65,8 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	}
 	if ctx.FilterWorkitemtype != nil {
 		wit := ctx.FilterWorkitemtype
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]string{*wit})))
-		additionalQuery = append(additionalQuery, "filter[workitemtype]="+*wit)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*wit})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+wit.String())
 	}
 	if ctx.FilterArea != nil {
 		area := ctx.FilterArea
@@ -132,7 +132,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 		return ctx.Unauthorized(jerrors)
 	}
-	var wit *string
+	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
 		ctx.Payload.Data.Relationships.BaseType != nil && ctx.Payload.Data.Relationships.BaseType.Data != nil {
 		wit = &ctx.Payload.Data.Relationships.BaseType.Data.ID
@@ -338,7 +338,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 
 	// Move fields into Relationships or Attributes as needed
-	// TODO: Loop based on WorKItemType and match against Field.Type instead of directly to field value
+	// TODO: Loop based on WorkItemType and match against Field.Type instead of directly to field value
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:

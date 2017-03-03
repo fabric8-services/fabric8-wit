@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -21,6 +22,10 @@ import (
 
 type searchRepositoryBlackboxTest struct {
 	gormsupport.DBTestSuite
+	clean      func()
+	searchRepo *search.GormSearchRepository
+	wiRepo     *workitem.GormWorkItemRepository
+	witRepo    *workitem.GormWorkItemTypeRepository
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -37,89 +42,96 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	}
 }
 
+func (s *searchRepositoryBlackboxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.witRepo = workitem.NewWorkItemTypeRepository(s.DB)
+	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
+	s.searchRepo = search.NewGormSearchRepository(s.DB)
+}
+
+func (s *searchRepositoryBlackboxTest) TearDownTest() {
+	s.clean()
+}
+
 func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	resource.Require(s.T(), resource.Database)
-	undoScript := &gormsupport.DBScript{}
-	defer undoScript.Run(s.DB)
-	typeRepo := workitem.NewUndoableWorkItemTypeRepository(workitem.NewWorkItemTypeRepository(s.DB), undoScript)
-	wiRepo := workitem.NewUndoableWorkItemRepository(workitem.NewWorkItemRepository(s.DB), undoScript)
-	searchRepo := search.NewGormSearchRepository(s.DB)
 
 	ctx := context.Background()
-	res, count, err := searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
+	res, count, err := s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
-		wiRepo.Delete(ctx, wi.ID)
+		s.wiRepo.Delete(ctx, wi.ID)
 	}
 
-	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "base"})
-	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "sub1"})
-	s.DB.Unscoped().Delete(&workitem.WorkItemType{Name: "subtwo"})
-
 	extended := workitem.SystemBug
-	base, err := typeRepo.Create(ctx, &extended, "base", map[string]app.FieldDefinition{})
+	base, err := s.witRepo.Create(ctx, nil, &extended, "base", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), base)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), base.Data)
+	require.NotNil(s.T(), base.Data.ID)
 
-	extended = "base"
-	sub1, err := typeRepo.Create(ctx, &extended, "sub1", map[string]app.FieldDefinition{})
+	sub1, err := s.witRepo.Create(ctx, nil, base.Data.ID, "sub1", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub1)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), sub1.Data)
+	require.NotNil(s.T(), sub1.Data.ID)
 
-	sub2, err := typeRepo.Create(ctx, &extended, "subtwo", map[string]app.FieldDefinition{})
+	sub2, err := s.witRepo.Create(ctx, nil, base.Data.ID, "subtwo", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub2)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), sub2.Data)
+	require.NotNil(s.T(), sub2.Data.ID)
 
-	wi1, err := wiRepo.Create(ctx, "sub1", map[string]interface{}{
+	wi1, err := s.wiRepo.Create(ctx, *sub1.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
 	}, testsupport.TestIdentity.ID)
-	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
+	require.NotNil(s.T(), wi1)
 
-	wi2, err := wiRepo.Create(ctx, "subtwo", map[string]interface{}{
+	wi2, err := s.wiRepo.Create(ctx, *sub2.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
 	}, testsupport.TestIdentity.ID)
-	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
+	require.NotNil(s.T(), wi2)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:sub1", nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub1.Data.ID.String(), nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
 		assert.Equal(s.T(), wi1.ID, res[0].ID)
 	}
 
-	res, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:subtwo", nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.Data.ID.String(), nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
 		assert.Equal(s.T(), wi2.ID, res[0].ID)
 	}
 
-	_, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base", nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.Data.ID.String(), nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	_, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:subtwo type:sub1", nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.Data.ID.String()+" type:"+sub1.Data.ID.String(), nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	_, count, err = searchRepo.SearchFullText(ctx, "TestRestrictByType type:base type:sub1", nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.Data.ID.String()+" type:"+sub1.Data.ID.String(), nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	_, count, err = searchRepo.SearchFullText(ctx, "TRBTgorxi type:base", nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TRBTgorxi type:"+base.Data.ID.String(), nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(0), count)
 }

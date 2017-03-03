@@ -50,8 +50,10 @@ type FieldType interface {
 
 // FieldDefinition describes type & other restrictions of a field
 type FieldDefinition struct {
-	Required bool
-	Type     FieldType
+	Required    bool
+	Label       string
+	Description string
+	Type        FieldType
 }
 
 // Ensure FieldDefinition implements the Equaler interface
@@ -59,15 +61,21 @@ var _ convert.Equaler = FieldDefinition{}
 var _ convert.Equaler = (*FieldDefinition)(nil)
 
 // Equal returns true if two FieldDefinition objects are equal; otherwise false is returned.
-func (self FieldDefinition) Equal(u convert.Equaler) bool {
+func (f FieldDefinition) Equal(u convert.Equaler) bool {
 	other, ok := u.(FieldDefinition)
 	if !ok {
 		return false
 	}
-	if self.Required != other.Required {
+	if f.Required != other.Required {
 		return false
 	}
-	return self.Type.Equal(other.Type)
+	if f.Label != other.Label {
+		return false
+	}
+	if f.Description != other.Description {
+		return false
+	}
+	return f.Type.Equal(other.Type)
 }
 
 // ConvertToModel converts a field value for use in the persistence layer
@@ -87,8 +95,10 @@ func (f FieldDefinition) ConvertFromModel(name string, value interface{}) (inter
 }
 
 type rawFieldDef struct {
-	Required bool
-	Type     *json.RawMessage
+	Required    bool
+	Label       string
+	Description string
+	Type        *json.RawMessage
 }
 
 // Ensure rawFieldDef implements the Equaler interface
@@ -96,19 +106,25 @@ var _ convert.Equaler = rawFieldDef{}
 var _ convert.Equaler = (*rawFieldDef)(nil)
 
 // Equal returns true if two rawFieldDef objects are equal; otherwise false is returned.
-func (self rawFieldDef) Equal(u convert.Equaler) bool {
+func (f rawFieldDef) Equal(u convert.Equaler) bool {
 	other, ok := u.(rawFieldDef)
 	if !ok {
 		return false
 	}
-	if self.Required != other.Required {
+	if f.Required != other.Required {
 		return false
 	}
-	if self.Type == nil && other.Type == nil {
+	if f.Label != other.Label {
+		return false
+	}
+	if f.Description != other.Description {
+		return false
+	}
+	if f.Type == nil && other.Type == nil {
 		return true
 	}
-	if self.Type != nil && other.Type != nil {
-		return reflect.DeepEqual(self.Type, other.Type)
+	if f.Type != nil && other.Type != nil {
+		return reflect.DeepEqual(f.Type, other.Type)
 	}
 	return false
 }
@@ -136,21 +152,21 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
 	case KindEnum:
 		theType := EnumType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
 	default:
 		theType := SimpleType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
 			return errors.WithStack(err)
 		}
-		*f = FieldDefinition{Type: theType, Required: temp.Required}
+		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
 	}
 	return nil
 }
