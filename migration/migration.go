@@ -218,11 +218,10 @@ func getMigrations() migrations {
 		workitem.SystemExperience.String(),
 		workitem.SystemFeature.String(),
 		workitem.SystemScenario.String(),
-		workitem.SystemBug.String(),
-	)})
+		workitem.SystemBug.String())})
 
-	// Version 35
-	m = append(m, steps{executeSQLFile("035-add-icon-to-wit.sql")})
+	// Version 36
+	m = append(m, steps{executeSQLFile("036-add-icon-to-wit.sql")})
 
 	// Version N
 	//
