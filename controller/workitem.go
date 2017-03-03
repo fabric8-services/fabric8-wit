@@ -94,6 +94,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 // Update does PATCH workitem
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
@@ -110,7 +115,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		wi.Type = oldType
-		wi, err = appl.WorkItems().Save(ctx, *wi)
+		wi, err = appl.WorkItems().Save(ctx, *wi, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
@@ -183,8 +188,13 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItems().Delete(ctx, ctx.ID)
+		err := appl.WorkItems().Delete(ctx, ctx.ID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
 		}

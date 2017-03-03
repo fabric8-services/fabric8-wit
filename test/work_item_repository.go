@@ -22,32 +22,34 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	SaveStub        func(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
+	SaveStub        func(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	saveMutex       sync.RWMutex
 	saveArgsForCall []struct {
-		ctx context.Context
-		wi  app.WorkItem
+		ctx        context.Context
+		wi         app.WorkItem
+		modifierID uuid.UUID
 	}
 	saveReturns struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	DeleteStub        func(ctx context.Context, ID string) error
+	DeleteStub        func(ctx context.Context, ID string, suppressorID uuid.UUID) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
-		ctx context.Context
-		ID  string
+		ctx          context.Context
+		ID           string
+		suppressorID uuid.UUID
 	}
 	deleteReturns struct {
 		result1 error
 	}
-	CreateStub        func(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error)
+	CreateStub        func(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
-		ctx     context.Context
-		typeID  uuid.UUID
-		fields  map[string]interface{}
-		creator uuid.UUID
+		ctx       context.Context
+		typeID    uuid.UUID
+		fields    map[string]interface{}
+		creatorID uuid.UUID
 	}
 	createReturns struct {
 		result1 *app.WorkItem
@@ -134,16 +136,17 @@ func (fake *WorkItemRepository) LoadReturns(result1 *app.WorkItem, result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	fake.saveMutex.Lock()
 	fake.saveArgsForCall = append(fake.saveArgsForCall, struct {
-		ctx context.Context
-		wi  app.WorkItem
-	}{ctx, wi})
-	fake.recordInvocation("Save", []interface{}{ctx, wi})
+		ctx        context.Context
+		wi         app.WorkItem
+		modifierID uuid.UUID
+	}{ctx, wi, modifierID})
+	fake.recordInvocation("Save", []interface{}{ctx, wi, modifierID})
 	fake.saveMutex.Unlock()
 	if fake.SaveStub != nil {
-		return fake.SaveStub(ctx, wi)
+		return fake.SaveStub(ctx, wi, modifierID)
 	}
 	return fake.saveReturns.result1, fake.saveReturns.result2
 }
@@ -154,10 +157,10 @@ func (fake *WorkItemRepository) SaveCallCount() int {
 	return len(fake.saveArgsForCall)
 }
 
-func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, app.WorkItem) {
+func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, app.WorkItem, uuid.UUID) {
 	fake.saveMutex.RLock()
 	defer fake.saveMutex.RUnlock()
-	return fake.saveArgsForCall[i].ctx, fake.saveArgsForCall[i].wi
+	return fake.saveArgsForCall[i].ctx, fake.saveArgsForCall[i].wi, fake.saveArgsForCall[i].modifierID
 }
 
 func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error) {
@@ -168,16 +171,17 @@ func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Delete(ctx context.Context, ID string) error {
+func (fake *WorkItemRepository) Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error {
 	fake.deleteMutex.Lock()
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
-		ctx context.Context
-		ID  string
-	}{ctx, ID})
-	fake.recordInvocation("Delete", []interface{}{ctx, ID})
+		ctx          context.Context
+		ID           string
+		suppressorID uuid.UUID
+	}{ctx, ID, suppressorID})
+	fake.recordInvocation("Delete", []interface{}{ctx, ID, suppressorID})
 	fake.deleteMutex.Unlock()
 	if fake.DeleteStub != nil {
-		return fake.DeleteStub(ctx, ID)
+		return fake.DeleteStub(ctx, ID, suppressorID)
 	}
 	return fake.deleteReturns.result1
 }
@@ -188,10 +192,10 @@ func (fake *WorkItemRepository) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
-func (fake *WorkItemRepository) DeleteArgsForCall(i int) (context.Context, string) {
+func (fake *WorkItemRepository) DeleteArgsForCall(i int) (context.Context, string, uuid.UUID) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	return fake.deleteArgsForCall[i].ctx, fake.deleteArgsForCall[i].ID
+	return fake.deleteArgsForCall[i].ctx, fake.deleteArgsForCall[i].ID, fake.deleteArgsForCall[i].suppressorID
 }
 
 func (fake *WorkItemRepository) DeleteReturns(result1 error) {
@@ -201,18 +205,18 @@ func (fake *WorkItemRepository) DeleteReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *WorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
-		ctx     context.Context
-		typeID  uuid.UUID
-		fields  map[string]interface{}
-		creator uuid.UUID
-	}{ctx, typeID, fields, creator})
-	fake.recordInvocation("Create", []interface{}{ctx, typeID, fields, creator})
+		ctx       context.Context
+		typeID    uuid.UUID
+		fields    map[string]interface{}
+		creatorID uuid.UUID
+	}{ctx, typeID, fields, creatorID})
+	fake.recordInvocation("Create", []interface{}{ctx, typeID, fields, creatorID})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(ctx, typeID, fields, creator)
+		return fake.CreateStub(ctx, typeID, fields, creatorID)
 	}
 	return fake.createReturns.result1, fake.createReturns.result2
 }
@@ -226,7 +230,7 @@ func (fake *WorkItemRepository) CreateCallCount() int {
 func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, uuid.UUID, map[string]interface{}, uuid.UUID) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creator
+	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creatorID
 }
 
 func (fake *WorkItemRepository) CreateReturns(result1 *app.WorkItem, result2 error) {

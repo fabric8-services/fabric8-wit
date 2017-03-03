@@ -1,7 +1,11 @@
 package test
 
 import (
+	"context"
+
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/models"
+	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -40,4 +44,17 @@ var TestIdentity2 = account.Identity{
 	ID:       uuid.NewV4(),
 	Username: "TestDeveloper2",
 	User:     TestUser2,
+}
+
+// CreateTestIdentity creates an identity with the given `username` in the database. For testing purpose only.
+func CreateTestIdentity(db *gorm.DB, username, providerType string) (account.Identity, error) {
+	identityRepository := account.NewIdentityRepository(db)
+	testIdentity := account.Identity{
+		Username:     username,
+		ProviderType: providerType,
+	}
+	err := models.Transactional(db, func(tx *gorm.DB) error {
+		return identityRepository.Create(context.Background(), &testIdentity)
+	})
+	return testIdentity, err
 }

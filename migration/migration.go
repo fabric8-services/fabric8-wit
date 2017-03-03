@@ -206,7 +206,7 @@ func getMigrations() migrations {
 	// Version 33
 	m = append(m, steps{executeSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
 
-	// version 34
+	// Version 34
 	m = append(m, steps{executeSQLFile("034-space-owner.sql")})
 
 	// Version 35
@@ -222,6 +222,9 @@ func getMigrations() migrations {
 
 	// Version 36
 	m = append(m, steps{executeSQLFile("036-add-icon-to-wit.sql")})
+
+	// version 37
+	m = append(m, steps{executeSQLFile("037-work-items-history.sql")})
 
 	// Version N
 	//

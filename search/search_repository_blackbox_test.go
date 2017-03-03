@@ -13,15 +13,23 @@ import (
 	"github.com/almighty/almighty-core/search"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
+func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+}
+
 type searchRepositoryBlackboxTest struct {
 	gormsupport.DBTestSuite
+	modifierID uuid.UUID
 	clean      func()
 	searchRepo *search.GormSearchRepository
 	wiRepo     *workitem.GormWorkItemRepository
@@ -43,6 +51,9 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 }
 
 func (s *searchRepositoryBlackboxTest) SetupTest() {
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
+	require.Nil(s.T(), err)
+	s.modifierID = testIdentity.ID
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.witRepo = workitem.NewWorkItemTypeRepository(s.DB)
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
@@ -53,19 +64,14 @@ func (s *searchRepositoryBlackboxTest) TearDownTest() {
 	s.clean()
 }
 
-func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
-}
-
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
-	resource.Require(s.T(), resource.Database)
-
+	// given
 	ctx := context.Background()
 	res, count, err := s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
-		s.wiRepo.Delete(ctx, wi.ID)
+		s.wiRepo.Delete(ctx, wi.ID, s.modifierID)
 	}
 
 	extended := workitem.SystemBug
@@ -90,14 +96,16 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	wi1, err := s.wiRepo.Create(ctx, *sub1.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID)
+	}, s.modifierID)
+	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wi1)
 
 	wi2, err := s.wiRepo.Create(ctx, *sub2.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
-	}, testsupport.TestIdentity.ID)
+	}, s.modifierID)
+	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wi2)
 
