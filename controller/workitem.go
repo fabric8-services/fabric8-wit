@@ -131,7 +131,6 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
 		}
-
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
 			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)
@@ -143,7 +142,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
-			wi, err = appl.WorkItems().Reorder(ctx, ctx.Payload.Position, *wi)
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.Payload.Position.Direction, ctx.Payload.Position.ID, *wi)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

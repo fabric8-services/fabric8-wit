@@ -108,8 +108,42 @@ func TestGetWorkItemWithLegacyDescription(t *testing.T) {
 	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
 }
 
-// TestReorderWorkitemOK is positive test which tests successful reorder by providing valid input
-func TestReorderWorkitemOK(t *testing.T) {
+// TestReorderAbove is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result3 and places it **above** result2
+func TestReorderWorkitemAboveOK(t *testing.T) {
+	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
+	test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result3.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = above
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which are reordered
+
+	require.Len(t, reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, *result3.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderBelow is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result1 and places it **below** result1
+func TestReorderWorkitemBelowOK(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
@@ -123,49 +157,126 @@ func TestReorderWorkitemOK(t *testing.T) {
 
 	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
 	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	_, result4 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
-	_, result5 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+
+	// This workitem is created but not used to clearly demonstrate that the reorder workitem is moved between **two** workitems i.e. result2 and result3 and not to the **bottom** of the list
+	test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+
 	payload2 := minimumRequiredReorderPayload()
 
-	// This case reorders two workitems -> result2 and result3 and places them above result1
-	// This also tests reordering of multiple work items
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result1.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = below
 
-	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
-	dataArray = append(dataArray, result2.Data, result3.Data)
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which are reordered
+
+	require.Len(t, reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(t, result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, *result1.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderTop is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result2 and places it to the top of the list
+func TestReorderWorkitemTopOK(t *testing.T) {
+	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	// There are two workitems in the list -> result1 and result2
+	// In this case, we reorder result2 to the top of the list i.e. above result1
+	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result2.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result1.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = above
 
 	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which are reordered
 
+	require.Len(t, reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderBottom is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result1 and places it to the bottom of the list
+func TestReorderWorkitemBottomOK(t *testing.T) {
+	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	// There are two workitems in the list -> result1 and result2
+	// In this case, we reorder result1 to the bottom of the list i.e. below result2
+	_, result1 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result1.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = below
+
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which are reordered
+
+	require.Len(t, reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(t, result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, *result1.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderMultipleWorkitem is positive test which tests successful reorder by providing valid input
+// This case reorders two workitems -> result3 and result4 and places them above result2
+func TestReorderMultipleWorkitems(t *testing.T) {
+	resource.Require(t, resource.Database)
+	defer cleaner.DeleteCreatedEntities(DB)()
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(t, svc)
+	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
+	require.NotNil(t, controller)
+	payload1 := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload1.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload1.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result2 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result3 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	_, result4 := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload1)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
+	dataArray = append(dataArray, result3.Data, result4.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = above
+
+	_, reordered1 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload2) // Returns the workitems which are reordered
+
 	require.Len(t, reordered1.Data, 2) // checks the correct number of workitems reordered
 
-	assert.Equal(t, result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
-	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
+	assert.Equal(t, result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(t, result4.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
 
-	assert.Equal(t, *result2.Data.ID, *reordered1.Data[0].ID)
-	assert.Equal(t, *result3.Data.ID, *reordered1.Data[1].ID)
-
-	//Order of reordered workitems should be less than the order of workitem position.id when position.direction is above
-	assert.True(t, reordered1.Data[0].Attributes[workitem.SystemOrder].(float64) < result1.Data.Attributes[workitem.SystemOrder].(float64))
-	assert.True(t, reordered1.Data[1].Attributes[workitem.SystemOrder].(float64) < result1.Data.Attributes[workitem.SystemOrder].(float64))
-	// This case reorders one workitem -> result4 and placed it below result5
-
-	// clear the dataArray
-	dataArray = dataArray[:0]
-	dataArray = append(dataArray, result4.Data)
-	payload3 := minimumRequiredReorderPayload()
-	payload3.Data = dataArray
-	payload3.Position.ID = *result5.Data.ID
-	payload3.Position.Direction = below
-	_, reordered2 := test.ReorderWorkitemOK(t, nil, nil, controller, &payload3)
-	require.Len(t, reordered2.Data, 1)
-	assert.Equal(t, result4.Data.Attributes["version"].(int)+1, reordered2.Data[0].Attributes["version"])
-	assert.Equal(t, *result4.Data.ID, *reordered2.Data[0].ID)
-
-	//Order of reordered workitems should be greater than the order of workitem position.id when position.direction is below
-	assert.True(t, reordered2.Data[0].Attributes[workitem.SystemOrder].(float64) > result4.Data.Attributes[workitem.SystemOrder].(float64))
+	assert.Equal(t, *result3.Data.ID, *reordered1.Data[0].ID)
+	assert.Equal(t, *result4.Data.ID, *reordered1.Data[1].ID)
 }
 
 // TestReorderWorkitemBadRequest is negative test which tests unsuccessful reorder by providing invalid input
