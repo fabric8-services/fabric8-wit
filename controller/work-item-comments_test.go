@@ -23,7 +23,6 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -144,10 +143,10 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 	wiid := rest.createDefaultWorkItem()
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: uuid.NewV4()})
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: uuid.NewV4()})
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: uuid.NewV4()})
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid + "_other", Body: "Test 1", CreatedBy: uuid.NewV4()})
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
 		return nil
 	})
 	// when

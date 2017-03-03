@@ -46,7 +46,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 			CreatedBy: *currentUserIdentityID,
 		}
 
-		err = appl.Comments().Create(ctx, &newComment)
+		err = appl.Comments().Create(ctx, &newComment, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
