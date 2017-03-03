@@ -11,17 +11,17 @@ type RevisionType int
 
 const (
 	_ RevisionType = iota // ignore first value by assigning to blank identifier
-	// RevisionTypeWorkItemCreate a work item creation
-	RevisionTypeWorkItemCreate // 1
-	// RevisionTypeWorkItemDelete a work item deletion
-	RevisionTypeWorkItemDelete // 2
-	_                          // ignore 3rd value
-	// RevisionTypeWorkItemUpdate a work item update
-	RevisionTypeWorkItemUpdate // 4
+	// RevisionTypeCreate a work item creation
+	RevisionTypeCreate // 1
+	// RevisionTypeDelete a work item deletion
+	RevisionTypeDelete // 2
+	_                  // ignore 3rd value
+	// RevisionTypeUpdate a work item update
+	RevisionTypeUpdate // 4
 )
 
-// WorkItemRevision represents a version of a work item
-type WorkItemRevision struct {
+// Revision represents a version of a work item
+type Revision struct {
 	ID uuid.UUID `gorm:"primary_key"`
 	// the timestamp of the modification
 	Time time.Time `gorm:"column:revision_time"`
@@ -40,10 +40,10 @@ type WorkItemRevision struct {
 }
 
 const (
-	workitemRevisionTableName = "work_item_revisions"
+	revisionTableName = "work_item_revisions"
 )
 
 // TableName implements gorm.tabler
-func (w WorkItemRevision) TableName() string {
-	return workitemRevisionTableName
+func (w Revision) TableName() string {
+	return revisionTableName
 }

@@ -226,6 +226,9 @@ func getMigrations() migrations {
 	// version 37
 	m = append(m, steps{executeSQLFile("037-work-items-history.sql")})
 
+	// Version 38
+	m = append(m, steps{executeSQLFile("038-comments-history.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
