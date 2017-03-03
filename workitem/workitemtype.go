@@ -27,6 +27,7 @@ const (
 	SystemCreatedAt           = "system.created_at"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
+	SystemCodebase            = "system.codebase"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"

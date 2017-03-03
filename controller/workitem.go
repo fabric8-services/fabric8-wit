@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -264,6 +265,12 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
 				target.Fields[key] = *m
 			}
+		} else if key == workitem.SystemCodebase {
+			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
+				target.Fields[key] = *m
+			} else {
+				return err
+			}
 		} else {
 			target.Fields[key] = val
 		}
@@ -375,7 +382,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Attributes[workitem.SystemDescriptionRendered] =
 					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
 			}
-
+		case workitem.SystemCodebase:
+			if val != nil {
+				op.Attributes[name] = val
+				// TODO: Following format is TBD and hence commented out
+				// cb := val.(codebase.CodebaseContent)
+				// urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+				// doitURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
+				// op.Links.Doit = &doitURL
+			}
 		default:
 			op.Attributes[name] = val
 		}
