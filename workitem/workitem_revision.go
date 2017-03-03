@@ -6,7 +6,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// WorkIteRevisionTypemRevisionType defines the type of revision for a work item
+// RevisionType defines the type of revision for a work item
 type RevisionType int
 
 const (
@@ -40,10 +40,10 @@ type Revision struct {
 }
 
 const (
-	workitemRevisionTableName = "work_item_revisions"
+	revisionTableName = "work_item_revisions"
 )
 
 // TableName implements gorm.tabler
 func (w Revision) TableName() string {
-	return workitemRevisionTableName
+	return revisionTableName
 }
