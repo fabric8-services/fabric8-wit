@@ -69,7 +69,7 @@ func (s *workItemRevisionRepositoryBlackBoxTest) SetupTest() {
 }
 
 func (s *workItemRevisionRepositoryBlackBoxTest) TearDownTest() {
-	//s.clean()
+	s.clean()
 }
 
 func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreWorkItemRevisions() {
