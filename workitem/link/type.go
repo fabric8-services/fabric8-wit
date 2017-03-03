@@ -46,21 +46,22 @@ type WorkItemLinkType struct {
 	gormsupport.Lifecycle
 	// ID
 	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// Name is the unique name of this work item link category.
+	// Name is the unique name of this work item link type.
 	Name string
-	// Description is an optional description of the work item link category
+	// Description is an optional description of the work item link type
 	Description *string
 	// Version for optimistic concurrency control
 	Version  int
 	Topology string // Valid values: network, directed_network, dependency, tree
 
-	SourceTypeName string
-	TargetTypeName string
+	SourceTypeID satoriuuid.UUID `sql:"type:uuid"`
+	TargetTypeID satoriuuid.UUID `sql:"type:uuid"`
 
 	ForwardName string
 	ReverseName string
 
-	LinkCategoryID satoriuuid.UUID
+	LinkCategoryID satoriuuid.UUID `sql:"type:uuid"`
+
 	// Reference to one Space
 	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
@@ -93,10 +94,10 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Topology != other.Topology {
 		return false
 	}
-	if t.SourceTypeName != other.SourceTypeName {
+	if !satoriuuid.Equal(t.SourceTypeID, other.SourceTypeID) {
 		return false
 	}
-	if t.TargetTypeName != other.TargetTypeName {
+	if !satoriuuid.Equal(t.TargetTypeID, other.TargetTypeID) {
 		return false
 	}
 	if t.ForwardName != other.ForwardName {
@@ -120,11 +121,11 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
 	}
-	if t.SourceTypeName == "" {
-		return errors.NewBadParameterError("source_type_name", t.SourceTypeName)
+	if satoriuuid.Equal(t.SourceTypeID, satoriuuid.Nil) {
+		return errors.NewBadParameterError("source_type_name", t.SourceTypeID)
 	}
-	if t.TargetTypeName == "" {
-		return errors.NewBadParameterError("target_type_name", t.TargetTypeName)
+	if satoriuuid.Equal(t.TargetTypeID, satoriuuid.Nil) {
+		return errors.NewBadParameterError("target_type_name", t.TargetTypeID)
 	}
 	if t.ForwardName == "" {
 		return errors.NewBadParameterError("forward_name", t.ForwardName)
@@ -185,13 +186,13 @@ func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.
 				SourceType: &app.RelationWorkItemType{
 					Data: &app.RelationWorkItemTypeData{
 						Type: EndpointWorkItemTypes,
-						ID:   t.SourceTypeName,
+						ID:   t.SourceTypeID,
 					},
 				},
 				TargetType: &app.RelationWorkItemType{
 					Data: &app.RelationWorkItemTypeData{
 						Type: EndpointWorkItemTypes,
-						ID:   t.TargetTypeName,
+						ID:   t.TargetTypeID,
 					},
 				},
 				Space: &app.RelationSpaces{
@@ -273,25 +274,12 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
 		out.LinkCategoryID = rel.LinkCategory.Data.ID
 	}
-
 	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		d := rel.SourceType.Data
-		// The the link type MUST NOT be empty
-		if d.ID == "" {
-			return errors.NewBadParameterError("data.relationships.source_type.data.id", d.ID)
-		}
-		out.SourceTypeName = d.ID
+		out.SourceTypeID = rel.SourceType.Data.ID
 	}
-
 	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		d := rel.TargetType.Data
-		// The the link type MUST NOT be empty
-		if d.ID == "" {
-			return errors.NewBadParameterError("data.relationships.target_type.data.id", d.ID)
-		}
-		out.TargetTypeName = d.ID
+		out.TargetTypeID = rel.TargetType.Data.ID
 	}
-
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		out.SpaceID = *rel.Space.Data.ID
 	}

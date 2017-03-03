@@ -19,17 +19,17 @@ import (
 
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
-	Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategory, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
+	Create(ctx context.Context, name string, description *string, sourceTypeID, targetTypeID satoriuuid.UUID, forwardName, reverseName, topology string, linkCategory, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkTypeList, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkTypeSingle) (*app.WorkItemLinkTypeSingle, error)
 	// ListSourceLinkTypes returns the possible link types for where the given
 	// WIT can be used in the source.
-	ListSourceLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error)
+	ListSourceLinkTypes(ctx context.Context, witID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error)
 	// ListSourceLinkTypes returns the possible link types for where the given
 	// WIT can be used in the target.
-	ListTargetLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error)
+	ListTargetLinkTypes(ctx context.Context, witID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error)
 }
 
 // NewWorkItemLinkTypeRepository creates a work item link type repository based on gorm
@@ -44,12 +44,12 @@ type GormWorkItemLinkTypeRepository struct {
 
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeName, targetTypeName, forwardName, reverseName, topology string, linkCategoryID, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
+func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeID, targetTypeID satoriuuid.UUID, forwardName, reverseName, topology string, linkCategoryID, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
 	linkType := &WorkItemLinkType{
 		Name:           name,
 		Description:    description,
-		SourceTypeName: sourceTypeName,
-		TargetTypeName: targetTypeName,
+		SourceTypeID:   sourceTypeID,
+		TargetTypeID:   targetTypeID,
 		ForwardName:    forwardName,
 		ReverseName:    reverseName,
 		Topology:       topology,
@@ -263,19 +263,19 @@ func (r *GormWorkItemLinkTypeRepository) listLinkTypes(ctx context.Context, fetc
 	return &res, nil
 }
 
-func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error) {
+func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, witID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error) {
 	return r.listLinkTypes(ctx, func() ([]WorkItemLinkType, error) {
 		db := r.db.Model(WorkItemLinkType{})
 		query := fmt.Sprintf(`
 			-- Get link types we can use with a specific WIT if the WIT is at the
 			-- source of the link.
-			(SELECT path FROM %[2]s WHERE name = %[1]s.source_type_name LIMIT 1)
+			(SELECT path FROM %[2]s WHERE id = %[1]s.source_type_id LIMIT 1)
 			@>
-			(SELECT path FROM %[2]s WHERE name = ? LIMIT 1)`,
+			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
 			WorkItemLinkType{}.TableName(),
 			workitem.WorkItemType{}.TableName(),
 		)
-		db = db.Where(query, witName)
+		db = db.Where(query, witID)
 		var rows []WorkItemLinkType
 		db = db.Find(&rows)
 		if db.RecordNotFound() {
@@ -288,19 +288,19 @@ func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context
 	})
 }
 
-func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, witName string) (*app.WorkItemLinkTypeList, error) {
+func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, witID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error) {
 	return r.listLinkTypes(ctx, func() ([]WorkItemLinkType, error) {
 		db := r.db.Model(WorkItemLinkType{})
 		query := fmt.Sprintf(`
 			-- Get link types we can use with a specific WIT if the WIT is at the
 			-- target of the link.
-			(SELECT path FROM %[2]s WHERE name = %[1]s.target_type_name LIMIT 1)
+			(SELECT path FROM %[2]s WHERE id = %[1]s.target_type_id LIMIT 1)
 			@>
-			(SELECT path FROM %[2]s WHERE name = ? LIMIT 1)`,
+			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
 			WorkItemLinkType{}.TableName(),
 			workitem.WorkItemType{}.TableName(),
 		)
-		db = db.Where(query, witName)
+		db = db.Where(query, witID)
 		var rows []WorkItemLinkType
 		db = db.Find(&rows)
 		if db.RecordNotFound() {

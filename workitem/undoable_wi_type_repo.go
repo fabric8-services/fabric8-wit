@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 var _ WorkItemTypeRepository = &UndoableWorkItemTypeRepository{}
@@ -24,21 +25,21 @@ type UndoableWorkItemTypeRepository struct {
 }
 
 // Load implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
-	return r.wrapped.Load(ctx, name)
+func (r *UndoableWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+	return r.wrapped.Load(ctx, id)
 }
 
 // List implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) List(ctx context.Context, start *int, length *int) ([]*app.WorkItemType, error) {
+func (r *UndoableWorkItemTypeRepository) List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error) {
 	return r.wrapped.List(ctx, start, length)
 }
 
 // Create implements application.WorkItemTypeRepository
-func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
-	res, err := r.wrapped.Create(ctx, extendedTypeID, name, fields)
+func (r *UndoableWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
+	res, err := r.wrapped.Create(ctx, id, extendedTypeID, name, description, icon, fields)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
-			db = db.Unscoped().Delete(&WorkItemType{Name: name})
+			db = db.Unscoped().Delete(&WorkItemType{ID: *res.Data.ID})
 			return db.Error
 		})
 	}
