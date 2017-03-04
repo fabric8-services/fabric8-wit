@@ -15,7 +15,9 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -34,6 +36,7 @@ type workItemRepoBlackBoxTest struct {
 }
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
+	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -56,8 +59,10 @@ func (s *workItemRepoBlackBoxTest) SetupSuite() {
 func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.repo = workitem.NewWorkItemRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	s.creatorID = uuid.NewV4()
 	s.spaceID = space.SystemSpace
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
+	require.Nil(s.T(), err)
+	s.creatorID = testIdentity.ID
 }
 
 func (s *workItemRepoBlackBoxTest) TearDownTest() {
@@ -75,9 +80,9 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 		}, s.creatorID, s.spaceID)
 	require.Nil(s.T(), err, "Could not create work item")
 	// when
-	err = s.repo.Delete(context.Background(), "0")
+	err = s.repo.Delete(context.Background(), "0", s.creatorID)
 	// then
-	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
+	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
@@ -92,7 +97,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi.ID = "0"
-	_, err = s.repo.Save(context.Background(), *wi)
+	_, err = s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -142,7 +147,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	require.Nil(s.T(), err)
-	wiNew, err := s.repo.Save(context.Background(), *wi)
+	wiNew, err := s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
@@ -199,7 +204,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	require.Nil(s.T(), err)
 	// when
 	wi.Type = workitem.SystemFeature
-	newWi, err := s.repo.Save(context.Background(), *wi)
+	newWi, err := s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
 	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.Type))

@@ -26,11 +26,6 @@ type WorkItemTypeRepository interface {
 	List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
-// NewWorkItemRepository creates a wi repository based on gorm
-func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
-	return &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}}
-}
-
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
 func NewWorkItemTypeRepository(db *gorm.DB) *GormWorkItemTypeRepository {
 	return &GormWorkItemTypeRepository{db}
@@ -75,7 +70,6 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid
 		}
 		cache.Put(res)
 	}
-
 	return &res, nil
 }
 

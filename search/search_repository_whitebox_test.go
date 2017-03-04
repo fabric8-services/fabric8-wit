@@ -20,13 +20,21 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
+func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+}
+
 type searchRepositoryWhiteboxTest struct {
 	gormsupport.DBTestSuite
+	modifierID uuid.UUID
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -43,8 +51,10 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	}
 }
 
-func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
-	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+func (s *searchRepositoryWhiteboxTest) SetupTest() {
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
+	require.Nil(s.T(), err)
+	s.modifierID = testIdentity.ID
 }
 
 type SearchTestDescriptor struct {
@@ -156,12 +166,12 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults := testData.minimumResults
 			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
 
-			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID, space.SystemSpace)
+			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, s.modifierID, space.SystemSpace)
 			if err != nil {
 				s.T().Fatal("Couldnt create test data")
 			}
 
-			defer wir.Delete(context.Background(), createdWorkItem.ID)
+			defer wir.Delete(context.Background(), createdWorkItem.ID, s.modifierID)
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
@@ -257,17 +267,17 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			workitem.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID, space.SystemSpace)
+		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, s.modifierID, space.SystemSpace)
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(context.Background(), createdWorkItem.ID)
+		defer wir.Delete(context.Background(), createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
 
 		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, testsupport.TestIdentity.ID, space.SystemSpace)
+		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, s.modifierID, space.SystemSpace)
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}

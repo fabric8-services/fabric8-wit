@@ -7,6 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -24,7 +25,6 @@ import (
 
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -32,9 +32,9 @@ import (
 
 type TestCommentREST struct {
 	gormsupport.DBTestSuite
-
-	db    *gormapplication.GormDB
-	clean func()
+	db           *gormapplication.GormDB
+	clean        func()
+	testIdentity account.Identity
 }
 
 func TestRunCommentREST(t *testing.T) {
@@ -45,6 +45,9 @@ func (rest *TestCommentREST) SetupTest() {
 	resource.Require(rest.T(), resource.Database)
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	require.Nil(rest.T(), err)
+	rest.testIdentity = testIdentity
 }
 
 func (rest *TestCommentREST) TearDownTest() {
@@ -53,8 +56,7 @@ func (rest *TestCommentREST) TearDownTest() {
 
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-
-	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
 	return svc, NewWorkItemCommentsController(svc, rest.db)
 }
 
@@ -77,6 +79,7 @@ func (rest *TestCommentREST) newCreateWorkItemCommentsPayload(body string, marku
 
 func (rest *TestCommentREST) createDefaultWorkItem() string {
 	var wiid string
+	rest.T().Log("Creating work item with modifier ID:", rest.testIdentity.ID)
 	err := application.Transactional(rest.db, func(appl application.Application) error {
 		repo := appl.WorkItems()
 		wi, err := repo.Create(
@@ -86,7 +89,7 @@ func (rest *TestCommentREST) createDefaultWorkItem() string {
 				workitem.SystemTitle: "A",
 				workitem.SystemState: "new",
 			},
-			uuid.NewV4(), space.SystemSpace)
+			rest.testIdentity.ID, space.SystemSpace)
 		if err != nil {
 			return errors.WithStack(err)
 		}
@@ -142,10 +145,10 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 	wiid := rest.createDefaultWorkItem()
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: uuid.NewV4()})
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: uuid.NewV4()})
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: uuid.NewV4()})
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid + "_other", Body: "Test 1", CreatedBy: uuid.NewV4()})
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(context.Background(), &comment.Comment{ParentID: wiid + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
 		return nil
 	})
 	// when

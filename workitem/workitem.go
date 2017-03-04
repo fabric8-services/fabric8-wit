@@ -24,9 +24,13 @@ type WorkItem struct {
 	SpaceID uuid.UUID `sql:"type:uuid"`
 }
 
+const (
+	workitemTableName = "work_items"
+)
+
 // TableName implements gorm.tabler
 func (w WorkItem) TableName() string {
-	return "work_items"
+	return workitemTableName
 }
 
 // Ensure WorkItem implements the Equaler interface

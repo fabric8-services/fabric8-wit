@@ -22,39 +22,50 @@ import (
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
-	Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error)
-	Delete(ctx context.Context, ID string) error
-	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator, spaceID uuid.UUID) (*app.WorkItem, error)
+	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
+	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID, spaceID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
 }
 
-// GormWorkItemRepository implements WorkItemRepository using gorm
-type GormWorkItemRepository struct {
-	db  *gorm.DB
-	wir *GormWorkItemTypeRepository
+// NewWorkItemRepository creates a GormWorkItemRepository
+func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
+	repository := &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}, &GormRevisionRepository{db}}
+	return repository
 }
 
+// GormWorkItemRepository implements WorkItemRepository using gorm
+type GormWorkItemRepository struct {
+	db   *gorm.DB
+	witr *GormWorkItemTypeRepository
+	wirr *GormRevisionRepository
+}
+
+// ************************************************
+// WorkItemRepository implementation
+// ************************************************
+
 // LoadFromDB returns the work item with the given ID in model representation.
-func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, ID string) (*WorkItem, error) {
-	id, err := strconv.ParseUint(ID, 10, 64)
+func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID string) (*WorkItem, error) {
+	id, err := strconv.ParseUint(workitemID, 10, 64)
 	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, errors.NewNotFoundError("work item", ID)
+		return nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	log.Info(nil, map[string]interface{}{
-		"wiID": ID,
+		"wiID": workitemID,
 	}, "Loading work item")
 
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(nil, map[string]interface{}{
-			"wiID": ID,
+			"wiID": workitemID,
 		}, "work item not found")
-		return nil, errors.NewNotFoundError("work item", ID)
+		return nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(tx.Error.Error())
@@ -69,7 +80,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	wiType, err := r.wir.LoadTypeFromDB(ctx, res.Type)
+	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -78,31 +89,36 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 
 // Delete deletes the work item with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemRepository) Delete(ctx context.Context, ID string) error {
+func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, suppressorID uuid.UUID) error {
 	var workItem = WorkItem{}
-	id, err := strconv.ParseUint(ID, 10, 64)
+	id, err := strconv.ParseUint(workitemID, 10, 64)
 	if err != nil || id == 0 {
 		// treat as not found: clients don't know it must be a number
-		return errors.NewNotFoundError("work item", ID)
+		return errors.NewNotFoundError("work item", workitemID)
 	}
 	workItem.ID = id
+	// retrieve the current version of the work item to delete
+	r.db.Select("id, version, type").Where("id = ?", workItem.ID).Find(&workItem)
+	// delete the work item
 	tx := r.db.Delete(workItem)
-
 	if err = tx.Error; err != nil {
 		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item", ID)
+		return errors.NewNotFoundError("work item", workitemID)
 	}
-
-	log.Debug(ctx, map[string]interface{}{"wiID": ID}, "Work item deleted successfully!")
-
+	// store a revision of the deleted work item
+	err = r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
+	if err != nil {
+		return err
+	}
+	log.Debug(ctx, map[string]interface{}{"wiID": workitemID}, "Work item deleted successfully!")
 	return nil
 }
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	res := WorkItem{}
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil || id == 0 {
@@ -126,7 +142,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 
-	wiType, err := r.wir.LoadTypeFromDB(ctx, wi.Type)
+	wiType, err := r.witr.LoadTypeFromDB(ctx, wi.Type)
 	if err != nil {
 		return nil, errors.NewBadParameterError("Type", wi.Type)
 	}
@@ -158,6 +174,11 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
+	// store a revision of the modified work item
+	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	if err != nil {
+		return nil, err
+	}
 	log.Info(ctx, map[string]interface{}{
 		"wiID": wi.ID,
 	}, "Updated work item repository")
@@ -166,8 +187,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*ap
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator, spaceID uuid.UUID) (*app.WorkItem, error) {
-	wiType, err := r.wir.LoadTypeFromDB(ctx, typeID)
+func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID, spaceID uuid.UUID) (*app.WorkItem, error) {
+	wiType, err := r.witr.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("typeID", typeID)
 	}
@@ -176,7 +197,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 		Fields:  Fields{},
 		SpaceID: spaceID,
 	}
-	fields[SystemCreator] = creator.String()
+	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt {
 			continue
@@ -196,16 +217,19 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 	}
 	tx := r.db
 	if err = tx.Create(&wi).Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, errs.Wrapf(err, "Failed to create work item")
 	}
 
 	witem, err := convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
 	if err != nil {
 		return nil, err
 	}
-
-	log.Debug(ctx, map[string]interface{}{"wiID": wi.ID}, "Work item created successfully!")
-
+	// store a revision of the created work item
+	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wiID": wi.ID}, "Work item created successfully!")
 	return witem, nil
 }
 
@@ -308,7 +332,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 	}
 	res := make([]*app.WorkItem, len(result))
 	for index, value := range result {
-		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
+		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}

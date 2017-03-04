@@ -137,7 +137,8 @@ func upsert(db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
-		resultWorkItem, err = wir.Save(context.Background(), *existingWorkItem)
+		//TODO: we should probably assign the change author to a specific identity...
+		resultWorkItem, err = wir.Save(context.Background(), *existingWorkItem, uuid.Nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
