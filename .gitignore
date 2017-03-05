@@ -21,6 +21,9 @@ local.properties
 # Eclipse Core
 .project
 
+# Emacs backup files
+*~
+
 # External tool builders
 .externalToolBuilders/
 

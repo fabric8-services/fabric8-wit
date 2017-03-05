@@ -1,0 +1,108 @@
+= Remote Work Items
+
+:toc:
+:sectnums:
+:experimental:
+
+== Overview
+
+The remote work item is a work item that is tracked remotely. The
+remote work item implemented using four major components:
+
+Tracker:: The basic configuration for a remote tracker (type, URL)
+Tracker Query:: The tracker specific query and schedule to fetch and import remote items
+Tracker Item:: Store the raw data with a remote item ID
+Remote Work Item Mapping:: Creates a remote work item from the tracker item and map the
+fields used in ALMighty and the remote tracker
+
+== Tracker
+
+To create a new tracker configuration:
+
+[source, bash]
+----
+./bin/alm-cli create tracker --payload '{"type": "github", "url": "https://api.github.com/"}' -H localhost:8080
+----
+
+To update an existing tracker configuration:
+
+[source, bash]
+----
+./bin/alm-cli update tracker --id=1 --payload '{"type": "github", "url": "https://api.local.example.com/"}' -H localhost:8080
+----
+
+To list all tracker configurations:
+
+[source, bash]
+----
+./bin/alm-cli list tracker -H localhost:8080
+----
+
+To show one tracker configuration:
+
+[source, bash]
+----
+./bin/alm-cli show tracker --id=1 -H localhost:8080
+----
+
+To soft delete an existing tracker configuration:
+
+[source, bash]
+----
+./bin/alm-cli delete tracker --id=1 -H localhost:8080
+----
+
+== Tracker Query
+
+To create a new tracker query:
+
+[source, bash]
+----
+./bin/alm-cli create trackerquery --payload {"query": "is:open is:issue user:almighty", "schedule": "0 0/15 * * * *", "trackerID": 1} -H localhost:8080
+----
+
+To update an existing tracker query:
+
+[source, bash]
+----
+./bin/alm-cli create trackerquery --id=1 --payload {"query": "is:closed is:issue user:almighty", "schedule": "0 0/15 * * * *", "trackerID": 1} -H localhost:8080
+----
+
+To list all tracker queries:
+
+[source, bash]
+----
+./bin/alm-cli list trackerquery -H localhost:8080
+----
+
+To show one tracker query:
+
+[source, bash]
+----
+./bin/alm-cli show trackerquery --id=1 -H localhost:8080
+----
+
+To soft delete an existing tracker query:
+
+[source, bash]
+----
+./bin/alm-cli delete trackerquery --id=1 -H localhost:8080
+----
+
+== Tracker Item
+
+The work item is created or updated from tracker item based on the
+remote item ID.  The tracker item could be issue/bug/ticket depends on
+the type of the remote tracker.  So, the remote item ID is fetched
+from the remote tracker.  For example, the remote ID for GitHub
+could be like this: https://github.com/golang/go/issues/7619
+
+The tracker creation is taking place through the schedule which starts
+during the process startup.  There is a method as part of the public API
+which can be called to re-schedule fetch and import.  This method is
+invoked when any modification (Create/Update/Delete) happens to
+tracker and tracker query.
+
+== Remote Work Item Mapping
+
+This is a WIP.
