@@ -22,7 +22,7 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error)
-	Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition, spaceID uuid.UUID) (*app.WorkItemTypeSingle, error)
+	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
 	List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
@@ -80,7 +80,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition, spaceID uuid.UUID) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
 	// Make sure this WIT has an ID
 	if id == nil {
 		tmpID := uuid.NewV4()
@@ -137,7 +137,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, 
 		Icon:        icon,
 		Path:        path,
 		Fields:      allFields,
-		SpaceID: spaceID,
+		SpaceID:     spaceID,
 	}
 
 	if err := r.db.Create(&created).Error; err != nil {
@@ -173,7 +173,7 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	result.Data = make([]*app.WorkItemTypeData, len(rows))
 
 	for index, value := range rows {
-		wit := convertTypeFromModels(goa.ContextRequest(ctx),&value)
+		wit := convertTypeFromModels(goa.ContextRequest(ctx), &value)
 		result.Data[index] = &wit
 	}
 

@@ -90,16 +90,23 @@ var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
 	a.Attribute("query", d.String, "Search query")
 	a.Attribute("schedule", d.String, "Schedule for fetch and import")
 	a.Attribute("trackerID", d.String, "Tracker ID")
+	a.Attribute("relationships", trackerQueryRelationships)
 
 	a.Required("id")
 	a.Required("query")
 	a.Required("schedule")
 	a.Required("trackerID")
+	a.Required("relationships")
 
 	a.View("default", func() {
 		a.Attribute("id")
 		a.Attribute("query")
 		a.Attribute("schedule")
 		a.Attribute("trackerID")
+		a.Attribute("relationships")
 	})
+})
+
+var trackerQueryRelationships = a.Type("TrackerQueryRelationships", func() {
+	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
 })

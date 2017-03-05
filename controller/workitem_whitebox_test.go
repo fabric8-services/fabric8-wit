@@ -15,7 +15,10 @@ import (
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
@@ -47,8 +50,9 @@ func TestMain(m *testing.M) {
 
 		// Make sure the database is populated with the correct types (e.g. bug etc.)
 		if configuration.GetPopulateCommonTypes() {
+			ctx := migration.NewMigrationContext(context.Background())
 			if err := models.Transactional(DB, func(tx *gorm.DB) error {
-				return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+				return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 			}); err != nil {
 				panic(err.Error())
 			}
@@ -165,8 +169,22 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: "description",
 	}
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
+
 	wi := app.WorkItem{
 		Fields: fields,
+		Relationships: &app.WorkItemRelationships{
+			Space: &app.RelationSpaces{
+				Data: &app.RelationSpacesData{
+					Type: &spaceType,
+					ID:   &space.SystemSpace,
+				},
+				Links: &app.GenericLinks{
+					Self: &spaceSelfURL,
+				},
+			},
+		},
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
@@ -180,8 +198,23 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 	fields := map[string]interface{}{
 		workitem.SystemTitle: "title",
 	}
+
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
+
 	wi := app.WorkItem{
 		Fields: fields,
+		Relationships: &app.WorkItemRelationships{
+			Space: &app.RelationSpaces{
+				Data: &app.RelationSpacesData{
+					Type: &spaceType,
+					ID:   &space.SystemSpace,
+				},
+				Links: &app.GenericLinks{
+					Self: &spaceSelfURL,
+				},
+			},
+		},
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
@@ -189,6 +222,10 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 }
 
 func prepareWI2(attributes map[string]interface{}) app.WorkItem2 {
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
 	return app.WorkItem2{
 		Type: "workitems",
 		Relationships: &app.WorkItemRelationships{
@@ -196,6 +233,15 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem2 {
 				Data: &app.BaseTypeData{
 					Type: "workitemtypes",
 					ID:   workitem.SystemBug,
+				},
+			},
+			Space: &app.RelationSpaces{
+				Data: &app.RelationSpacesData{
+					Type: &spaceType,
+					ID:   &space.SystemSpace,
+				},
+				Links: &app.GenericLinks{
+					Self: &spaceSelfURL,
 				},
 			},
 		},

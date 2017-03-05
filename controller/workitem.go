@@ -18,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -154,7 +155,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID, *ctx.Payload.Data.Relationships.Space.Data.ID)
+		wi, err := appl.WorkItems().Create(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -326,6 +327,10 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
 	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.Space.Data.ID.String()))
+
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -337,6 +342,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				Data: &app.BaseTypeData{
 					ID:   wi.Type,
 					Type: APIStringTypeWorkItemType,
+				},
+			},
+			Space: &app.RelationSpaces{
+				Data: &app.RelationSpacesData{
+					Type: &spaceType,
+					ID:   wi.Relationships.Space.Data.ID,
+				},
+				Links: &app.GenericLinks{
+					Self: &spaceSelfURL,
 				},
 			},
 		},

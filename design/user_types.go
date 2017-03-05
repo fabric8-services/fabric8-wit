@@ -76,6 +76,8 @@ var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayl
 		a.MinLength(1)
 		a.Pattern("^[\\p{N}]+$")
 	})
+	a.Attribute("relationships", trackerQueryRelationships)
+
 	a.Required("query", "schedule", "trackerID")
 })
 
@@ -95,5 +97,7 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 		a.MinLength(1)
 		a.Pattern("[\\p{N}]+")
 	})
+	a.Attribute("relationships", trackerQueryRelationships)
+
 	a.Required("query", "schedule", "trackerID")
 })

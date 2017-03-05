@@ -9,10 +9,9 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
-	uuid "github.com/satori/go.uuid"
-	"github.com/stretchr/testify/assert"
 
 	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWorkItem_Equal(t *testing.T) {

@@ -18,6 +18,8 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -149,6 +151,11 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'animal'"
 	id := animalID
+	typeSpaces := "spaces"
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
@@ -160,6 +167,17 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 				Fields: map[string]*app.FieldDefinition{
 					"animal_type": &typeFieldDef,
 					"color":       &colorFieldDef,
+				},
+			},
+			Relationships: &app.WorkItemTypeRelationships{
+				Space: &app.RelationSpaces{
+					Data: &app.RelationSpacesData{
+						Type: &typeSpaces,
+						ID:   &space.SystemSpace,
+					},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
+					},
 				},
 			},
 		},
@@ -187,6 +205,11 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
 	id := personID
+	typeSpaces := "spaces"
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -199,6 +222,17 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 					"name": &nameFieldDef,
 				},
 			},
+			Relationships: &app.WorkItemTypeRelationships{
+				Space: &app.RelationSpaces{
+					Data: &app.RelationSpacesData{
+						Type: &typeSpaces,
+						ID:   &space.SystemSpace,
+					},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
+					},
+				},
+			},
 		},
 	}
 
@@ -208,6 +242,51 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	require.NotNil(s.T(), wi.Data.ID)
 	require.True(s.T(), uuid.Equal(personID, *wi.Data.ID))
 	return responseWriter, wi
+}
+
+func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
+	// Create the type for the "color" field
+	nameFieldDef := app.FieldDefinition{
+		Required: false,
+		Type: &app.FieldType{
+			Kind: "string",
+		},
+	}
+
+	// Use the goa generated code to create a work item type
+	desc := "Description for 'person'"
+	typeSpaces := "spaces"
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
+	payload := app.CreateWorkitemtypePayload{
+		Data: &app.WorkItemTypeData{
+			ID:   &id,
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Name:        "person",
+				Description: &desc,
+				Icon:        "fa-user",
+				Fields: map[string]*app.FieldDefinition{
+					"test": &nameFieldDef,
+				},
+			},
+			Relationships: &app.WorkItemTypeRelationships{
+				Space: &app.RelationSpaces{
+					Data: &app.RelationSpacesData{
+						Type: &typeSpaces,
+						ID:   &spaceID,
+					},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
+					},
+				},
+			},
+		},
+	}
+
+	return payload
 }
 
 //-----------------------------------------------------------------------------

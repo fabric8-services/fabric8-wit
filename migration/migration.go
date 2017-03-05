@@ -230,7 +230,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("038-comments-history.sql")})
 
 	// Version 39
-	m = append(m, steps{executeSQLFile("039-add-space-id-wi-wit.sql", space.SystemSpace.String())})
+	m = append(m, steps{executeSQLFile("039-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
 	// Version N
 	//
@@ -430,28 +430,23 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 }
 
 func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	spa, err := spaceRepo.Load(ctx, id)
+	_, err := spaceRepo.Load(ctx, id)
 	cause := errs.Cause(err)
-	space := &space.Space{
+	newSpace := &space.Space{
 		Description: description,
 		Name:        "system.space",
 		ID:          id,
 	}
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := spaceRepo.Create(ctx, space)
-		if err != nil {
-			return errs.WithStack(err)
-		}
-	case nil:
 		log.Info(ctx, map[string]interface{}{
 			"pkg":     "migration",
 			"spaceID": id,
-		}, "space %s exists, will update/overwrite the description", id)
-
-		spa.Description = description
-		_, err = spaceRepo.Save(ctx, spa)
-		return errs.WithStack(err)
+		}, "space %s will be created", id)
+		_, err := spaceRepo.Create(ctx, newSpace)
+		if err != nil {
+			return errs.WithStack(err)
+		}
 	}
 	return nil
 }
@@ -503,6 +498,9 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
+	if err := createOrUpdateSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
+		return errs.WithStack(err)
+	}
 
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
@@ -576,21 +574,22 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		},
 	}
 
-	return createOrUpdateType(typeID, typeName, description, nil, workItemTypeFields, icon, ctx, witr, db, spaceID)
+	return createOrUpdateType(typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, ctx, witr, db)
 }
 
 func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, description string, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
 	workItemTypeFields := map[string]app.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
-	return createOrUpdateType(typeID, name, description, &extTypeName, workItemTypeFields, icon, ctx, witr, db, spaceID)
+	return createOrUpdateType(typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, ctx, witr, db)
 }
 
-func createOrUpdateType(typeID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]app.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
+func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]app.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)
+
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := witr.Create(ctx, &typeID, extendedTypeID, name, &description, icon, fields, spaceID)
+		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields)
 		if err != nil {
 			return errs.WithStack(err)
 		}

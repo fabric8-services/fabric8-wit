@@ -21,7 +21,7 @@ func TestPagingLinks(t *testing.T) {
 	controller := NewWorkitemController(svc, db)
 
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
-	pagingTest := createPagingTest(t, controller, repo, 13)
+	pagingTest := createPagingTest(t, svc.Context, controller, repo, 13)
 	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=12&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
 	pagingTest(10, 3, "page[offset]=0&page[limit]=1", "page[offset]=10&page[limit]=3", "page[offset]=7&page[limit]=3", "")
 	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=4", "", "page[offset]=4&page[limit]=4")
@@ -33,7 +33,7 @@ func TestPagingLinks(t *testing.T) {
 	pagingTest(3, 50, "page[offset]=0&page[limit]=3", "page[offset]=3&page[limit]=50", "page[offset]=0&page[limit]=3", "")
 	pagingTest(0, 50, "page[offset]=0&page[limit]=50", "page[offset]=0&page[limit]=50", "", "")
 
-	pagingTest = createPagingTest(t, controller, repo, 0)
+	pagingTest = createPagingTest(t, svc.Context, controller, repo, 0)
 	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "", "")
 }
 

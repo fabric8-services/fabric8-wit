@@ -17,8 +17,11 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/asaskevich/govalidator"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -45,12 +48,26 @@ func generateSearchQuery(q string) (string, error) {
 	return q, nil
 }
 
-func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
+func convertFromModel(request *goa.RequestData, wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
+	spaceType := "spaces"
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
 		Version: workItem.Version,
-		Fields:  map[string]interface{}{}}
+		Fields:  map[string]interface{}{},
+		Relationships: &app.WorkItemRelationships{
+			Space: &app.RelationSpaces{
+				Data: &app.RelationSpacesData{
+					Type: &spaceType,
+					ID:   &workItem.SpaceID,
+				},
+				Links: &app.GenericLinks{
+					Self: &spaceSelfURL,
+				},
+			},
+		},
+	}
 
 	for name, field := range wiType.Fields {
 		if name == workitem.SystemCreatedAt {
@@ -370,7 +387,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		result[index], err = convertFromModel(*wiType, value)
+		result[index], err = convertFromModel(goa.ContextRequest(ctx), *wiType, value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}

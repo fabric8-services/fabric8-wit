@@ -112,15 +112,15 @@ func TestConvertTypeFromModels(t *testing.T) {
 					},
 				},
 			},
-		},
-		Relationships: &app.WorkItemTypeRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &typeSpaces,
-					ID:   &space.SystemSpace,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
+			Relationships: &app.WorkItemTypeRelationships{
+				Space: &app.RelationSpaces{
+					Data: &app.RelationSpacesData{
+						Type: &typeSpaces,
+						ID:   &space.SystemSpace,
+					},
+					Links: &app.GenericLinks{
+						Self: &spaceSelfURL,
+					},
 				},
 			},
 		},

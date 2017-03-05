@@ -79,6 +79,8 @@ type GormRepository struct {
 // Load returns the space for the given id
 // returns NotFoundError or InternalError
 func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error) {
+	fake.listMutex.RLock()
+	defer fake.listMutex.RUnlock()
 	res := Space{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
@@ -158,7 +160,10 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
 func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, error) {
-	space.ID = satoriuuid.NewV4()
+	// We might want to create a space with a specific ID, e.g. space.SystemSpace
+	if space.ID == satoriuuid.Nil {
+		space.ID = satoriuuid.NewV4()
+	}
 
 	tx := r.db.Create(space)
 	if err := tx.Error; err != nil {

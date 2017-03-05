@@ -94,9 +94,8 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, workitemID stri
 }
 
 // Create implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator, spaceID uuid.UUID) (*app.WorkItem, error) {
-	result, err := r.wrapped.Create(ctx, typeID, fields, creator, spaceID)
-
+func (r *UndoableWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
+	result, err := r.wrapped.Create(ctx, spaceID, typeID, fields, creator)
 	if err != nil {
 		return result, errs.WithStack(err)
 	}
