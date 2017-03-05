@@ -79,8 +79,6 @@ type GormRepository struct {
 // Load returns the space for the given id
 // returns NotFoundError or InternalError
 func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error) {
-	fake.listMutex.RLock()
-	defer fake.listMutex.RUnlock()
 	res := Space{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
