@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -14,7 +15,9 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -32,6 +35,7 @@ type workItemRepoBlackBoxTest struct {
 }
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
+	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -54,7 +58,9 @@ func (s *workItemRepoBlackBoxTest) SetupSuite() {
 func (s *workItemRepoBlackBoxTest) SetupTest() {
 	s.repo = workitem.NewWorkItemRepository(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	s.creatorID = uuid.NewV4()
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
+	require.Nil(s.T(), err)
+	s.creatorID = testIdentity.ID
 }
 
 func (s *workItemRepoBlackBoxTest) TearDownTest() {
@@ -72,9 +78,9 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create work item")
 	// when
-	err = s.repo.Delete(context.Background(), "0")
+	err = s.repo.Delete(context.Background(), "0", s.creatorID)
 	// then
-	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
+	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
 
 func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
@@ -89,7 +95,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi.ID = "0"
-	_, err = s.repo.Save(context.Background(), *wi)
+	_, err = s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -139,7 +145,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 	// when
 	wi, err = s.repo.Load(context.Background(), wi.ID)
 	require.Nil(s.T(), err)
-	wiNew, err := s.repo.Save(context.Background(), *wi)
+	wiNew, err := s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
@@ -188,18 +194,18 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	// Create at least 1 item to avoid RowsAffectedCheck
 	// given
 	wi, err := s.repo.Create(
-		context.Background(), "bug",
+		context.Background(), workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.creatorID)
 	require.Nil(s.T(), err)
 	// when
-	wi.Type = "feature"
-	newWi, err := s.repo.Save(context.Background(), *wi)
+	wi.Type = workitem.SystemFeature
+	newWi, err := s.repo.Save(context.Background(), *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
-	assert.Equal(s.T(), "feature", newWi.Type)
+	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.Type))
 }
 
 // TestGetCountsPerIteration makes sure that the query being executed is correctly returning
@@ -263,4 +269,38 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	require.Contains(s.T(), countsMap, iteration1.ID.String())
 	assert.Equal(s.T(), 5, countsMap[iteration1.ID.String()].Total)
 	assert.Equal(s.T(), 2, countsMap[iteration1.ID.String()].Closed)
+}
+
+func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
+	// given
+	title := "solution on global warming"
+	branch := "earth-recycle-101"
+	repo := "golang-project"
+	file := "main.go"
+	line := 200
+	cbase := codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	wi, err := s.repo.Create(
+		context.Background(), workitem.SystemPlannerItem,
+		map[string]interface{}{
+			workitem.SystemTitle:    title,
+			workitem.SystemState:    workitem.SystemStateNew,
+			workitem.SystemCodebase: cbase,
+		}, s.creatorID)
+	require.Nil(s.T(), err, "Could not create workitem")
+	// when
+	wi, err = s.repo.Load(context.Background(), wi.ID)
+	// then
+	require.Nil(s.T(), err)
+	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))
+	require.NotNil(s.T(), wi.Fields[workitem.SystemCodebase])
+	cb := wi.Fields[workitem.SystemCodebase].(codebase.CodebaseContent)
+	assert.Equal(s.T(), repo, cb.Repository)
+	assert.Equal(s.T(), branch, cb.Branch)
+	assert.Equal(s.T(), file, cb.FileName)
+	assert.Equal(s.T(), line, cb.LineNumber)
 }

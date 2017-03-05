@@ -18,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
@@ -214,6 +215,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
@@ -230,6 +232,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContentFromLegacy("description")
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
@@ -246,6 +249,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	expectedDescription := rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown)
 	assert.Equal(t, expectedDescription, target.Fields[workitem.SystemDescription])
 }
@@ -262,6 +266,7 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
+	require.True(t, uuid.Equal(source.Relationships.BaseType.Data.ID, target.Type))
 	assert.Equal(t, title, target.Fields[workitem.SystemTitle])
 }
 

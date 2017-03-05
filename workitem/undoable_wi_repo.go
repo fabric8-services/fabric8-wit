@@ -33,12 +33,12 @@ type UndoableWorkItemRepository struct {
 }
 
 // Load implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
-	return r.wrapped.Load(ctx, ID)
+func (r *UndoableWorkItemRepository) Load(ctx context.Context, workitemID string) (*app.WorkItem, error) {
+	return r.wrapped.Load(ctx, workitemID)
 }
 
 // Save implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, currentUser uuid.UUID) (*app.WorkItem, error) {
 	id, err := strconv.ParseUint(wi.ID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
@@ -54,7 +54,7 @@ func (r *UndoableWorkItemRepository) Save(ctx context.Context, wi app.WorkItem) 
 		return nil, errors.NewInternalError(fmt.Sprintf("could not load %s, %s", wi.ID, db.Error.Error()))
 	}
 
-	res, err := r.wrapped.Save(ctx, wi)
+	res, err := r.wrapped.Save(ctx, wi, currentUser)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
 			db = db.Save(&old)
@@ -92,11 +92,11 @@ func (r *UndoableWorkItemRepository) Reorder(ctx context.Context, direction stri
 }
 
 // Delete implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) error {
-	id, err := strconv.ParseUint(ID, 10, 64)
+func (r *UndoableWorkItemRepository) Delete(ctx context.Context, workitemID string, currentUser uuid.UUID) error {
+	id, err := strconv.ParseUint(workitemID, 10, 64)
 	if err != nil {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return errors.NewNotFoundError("work item", ID)
+		return errors.NewNotFoundError("work item", workitemID)
 	}
 
 	log.Info(ctx, map[string]interface{}{
@@ -106,10 +106,10 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 	old := WorkItem{}
 	db := r.wrapped.db.First(&old, id)
 	if db.Error != nil {
-		return errors.NewInternalError(fmt.Sprintf("could not load %s, %s", ID, db.Error.Error()))
+		return errors.NewInternalError(fmt.Sprintf("could not load %s, %s", workitemID, db.Error.Error()))
 	}
 
-	err = r.wrapped.Delete(ctx, ID)
+	err = r.wrapped.Delete(ctx, workitemID, currentUser)
 	if err == nil {
 		r.undo.Append(func(db *gorm.DB) error {
 			old.DeletedAt = nil
@@ -121,7 +121,7 @@ func (r *UndoableWorkItemRepository) Delete(ctx context.Context, ID string) erro
 }
 
 // Create implements application.WorkItemRepository
-func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID string, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
+func (r *UndoableWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creator uuid.UUID) (*app.WorkItem, error) {
 	result, err := r.wrapped.Create(ctx, typeID, fields, creator)
 	if err != nil {
 		return result, errs.WithStack(err)

@@ -64,7 +64,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 
 		cm.Body = *ctx.Payload.Data.Attributes.Body
 		cm.Markup = rendering.NilSafeGetMarkup(ctx.Payload.Data.Attributes.Markup)
-		cm, err = appl.Comments().Save(ctx.Context, cm)
+		err = appl.Comments().Save(ctx.Context, cm, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -94,7 +94,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the comment author"))
 		}
 
-		err = appl.Comments().Delete(ctx.Context, cm.ID)
+		err = appl.Comments().Delete(ctx.Context, cm.ID, *identityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

@@ -287,10 +287,10 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	_, cs := test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
 	assert.Len(t, cs.Data, 2)
 	for _, iterationItem := range cs.Data {
-		if iterationItem.ID.String() == iteration1.ID.String() {
+		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
 			assert.Equal(t, 5, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(t, 2, iterationItem.Relationships.Workitems.Meta["closed"])
-		} else if iterationItem.ID.String() == iteration2.ID.String() {
+		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
 			assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
 		}
@@ -308,10 +308,10 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	_, cs = test.ListSpaceIterationsOK(t, svc.Context, svc, ctrl, spaceInstance.ID.String())
 	assert.Len(t, cs.Data, 2)
 	for _, iterationItem := range cs.Data {
-		if iterationItem.ID.String() == iteration1.ID.String() {
+		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
 			assert.Equal(t, 5, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(t, 2, iterationItem.Relationships.Workitems.Meta["closed"])
-		} else if iterationItem.ID.String() == iteration2.ID.String() {
+		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
 			assert.Equal(t, 5, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
 		}
