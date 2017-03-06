@@ -189,8 +189,8 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("work item", id)
 	}
-	if err := tx.Error; err != nil {
-		return nil, errors.NewInternalError(err.Error())
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &Item.ExecutionOrder, nil
 }
