@@ -167,10 +167,6 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 	default:
 		return nil, nil, nil
 	}
-	if Item.ID == 0 {
-		ItemId := strconv.FormatUint(Item.ID, 10)
-		return &ItemId, &Item.ExecutionOrder, nil
-	}
 	if tx.RecordNotFound() {
 		return nil, nil, tx.Error
 	}
