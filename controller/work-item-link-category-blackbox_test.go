@@ -39,6 +39,7 @@ type workItemLinkCategorySuite struct {
 	suite.Suite
 	db          *gorm.DB
 	linkCatCtrl *WorkItemLinkCategoryController
+	ctx         context.Context
 }
 
 var wilCatConfiguration *config.ConfigurationData
@@ -64,7 +65,8 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		s.ctx = migration.NewMigrationContext(context.Background())
+		return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 	}); err != nil {
 		panic(err.Error())
 	}

@@ -1,6 +1,8 @@
 package controller_test
 
 import (
+	"net/http"
+	"net/url"
 	"strconv"
 	"testing"
 	"time"
@@ -22,6 +24,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -34,6 +37,7 @@ type TestSpaceIterationREST struct {
 
 	db    *gormapplication.GormDB
 	clean func()
+	ctx   context.Context
 }
 
 func TestRunSpaceIterationREST(t *testing.T) {
@@ -43,6 +47,10 @@ func TestRunSpaceIterationREST(t *testing.T) {
 func (rest *TestSpaceIterationREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
 }
 
 func (rest *TestSpaceIterationREST) TearDownTest() {
@@ -73,7 +81,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		newSpace := space.Space{
 			Name: "Test 1",
 		}
-		p, _ = repo.Create(context.Background(), &newSpace)
+		p, _ = repo.Create(rest.ctx, &newSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -102,7 +110,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 		testSpace := space.Space{
 			Name: "Test 1",
 		}
-		p, _ = repo.Create(context.Background(), &testSpace)
+		p, _ = repo.Create(rest.ctx, &testSpace)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
@@ -133,7 +141,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		newSpace := space.Space{
 			Name: "Test 1",
 		}
-		p, err := app.Spaces().Create(context.Background(), &newSpace)
+		p, err := app.Spaces().Create(rest.ctx, &newSpace)
 		if err != nil {
 			t.Error(err)
 		}
@@ -150,7 +158,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 				StartAt: &start,
 				EndAt:   &end,
 			}
-			repo.Create(context.Background(), &i)
+			repo.Create(rest.ctx, &i)
 		}
 
 		// create one child iteration and test for relationships.Parent
@@ -158,21 +166,21 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 			Name:    "Parent Iteration",
 			SpaceID: spaceID,
 		}
-		repo.Create(context.Background(), fatherIteration)
+		repo.Create(rest.ctx, fatherIteration)
 
 		childIteration = &iteration.Iteration{
 			Name:    "Child Iteration",
 			SpaceID: spaceID,
 			Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
 		}
-		repo.Create(context.Background(), childIteration)
+		repo.Create(rest.ctx, childIteration)
 
 		grandChildIteration = &iteration.Iteration{
 			Name:    "Grand Child Iteration",
 			SpaceID: spaceID,
 			Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
 		}
-		repo.Create(context.Background(), grandChildIteration)
+		repo.Create(rest.ctx, grandChildIteration)
 
 		return nil
 	})
@@ -241,7 +249,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	spaceInstance := space.Space{
 		Name: "Testing space",
 	}
-	_, e := spaceRepo.Create(context.Background(), &spaceInstance)
+	_, e := spaceRepo.Create(rest.ctx, &spaceInstance)
 	require.Nil(rest.T(), e)
 	fmt.Println("space id = ", spaceInstance.ID)
 	require.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
@@ -251,7 +259,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		Name:    "Sprint 1",
 		SpaceID: spaceInstance.ID,
 	}
-	iterationRepo.Create(context.Background(), &iteration1)
+	iterationRepo.Create(rest.ctx, &iteration1)
 	fmt.Println("iteration1 id = ", iteration1.ID)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
 
@@ -259,7 +267,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		Name:    "Sprint 2",
 		SpaceID: spaceInstance.ID,
 	}
-	iterationRepo.Create(context.Background(), &iteration2)
+	iterationRepo.Create(rest.ctx, &iteration2)
 	fmt.Println("iteration2 id = ", iteration2.ID)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
 
@@ -267,7 +275,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 
 	for i := 0; i < 3; i++ {
 		wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -276,7 +284,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	}
 	for i := 0; i < 2; i++ {
 		wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
@@ -298,7 +306,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// seed 5 WI to iteration2
 	for i := 0; i < 5; i++ {
 		wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,

@@ -2,6 +2,8 @@ package controller_test
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -19,6 +21,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -187,9 +190,13 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
 	require.Nil(rest.T(), err)
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx := goa.NewContext(context.Background(), nil, req, params)
+
 	for i := 0; i < 4; i++ {
 		wi, err := wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			ctx, itr.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -201,7 +208,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			ctx, itr.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
