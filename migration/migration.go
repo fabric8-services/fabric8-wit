@@ -224,10 +224,13 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("036-add-icon-to-wit.sql")})
 
 	// version 37
-	m = append(m, steps{executeSQLFile("037-work-items-history.sql")})
+	m = append(m, steps{executeSQLFile("037-work-item-revisions.sql")})
 
 	// Version 38
-	m = append(m, steps{executeSQLFile("038-comments-history.sql")})
+	m = append(m, steps{executeSQLFile("038-comment-revisions.sql")})
+
+	// Version 39
+	m = append(m, steps{executeSQLFile("039-comment-revisions-parentid.sql")})
 
 	// version 39
 	m = append(m, steps{executeSQLFile("039-adds-order-to-existing-wi.sql")})
