@@ -1098,19 +1098,19 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
+		},
 	}
 	l := minimumRequiredCreatePayload()
 	l.Data.Attributes[workitem.SystemTitle] = "Title"
 	l.Data.Attributes[workitem.SystemState] = workitem.SystemStateInProgress
 	l.Data.Relationships.BaseType = &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
+		},
 	}
 	// when
 	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
