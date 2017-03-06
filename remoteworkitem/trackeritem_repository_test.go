@@ -6,8 +6,8 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/test"
@@ -21,12 +21,12 @@ import (
 // a normal test function that will kick off TestSuiteTrackerItemRepository
 func TestSuiteTrackerItemRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TrackerItemRepositorySuite{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TrackerItemRepositorySuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // ========== TrackeItemRepositorySuite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type TrackerItemRepositorySuite struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	clean        func()
 	trackerQuery TrackerQuery
 }

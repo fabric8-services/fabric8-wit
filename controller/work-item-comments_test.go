@@ -14,8 +14,8 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -29,14 +29,14 @@ import (
 )
 
 type TestCommentREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	db           *gormapplication.GormDB
 	clean        func()
 	testIdentity account.Identity
 }
 
 func TestRunCommentREST(t *testing.T) {
-	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestCommentREST) SetupTest() {

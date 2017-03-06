@@ -1,4 +1,4 @@
-package gormsupport
+package gormtestsupport
 
 import (
 	"os"

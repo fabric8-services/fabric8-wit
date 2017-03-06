@@ -8,7 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 )
 

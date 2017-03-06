@@ -12,8 +12,8 @@ import (
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -49,7 +49,7 @@ func init() {
 // The WorkItemTypeTestSuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemTypeSuite struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	clean        func()
 	typeCtrl     *WorkitemtypeController
 	linkTypeCtrl *WorkItemLinkTypeController
@@ -64,7 +64,7 @@ type workItemTypeSuite struct {
 func TestSuiteWorkItemType(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemTypeSuite{
-		DBTestSuite: gormsupport.NewDBTestSuite(""),
+		DBTestSuite: gormtestsupport.NewDBTestSuite(""),
 	})
 }
 

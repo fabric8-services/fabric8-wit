@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
@@ -28,11 +28,11 @@ import (
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type searchRepositoryWhiteboxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	modifierID uuid.UUID
 }
 

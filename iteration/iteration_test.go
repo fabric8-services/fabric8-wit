@@ -8,8 +8,8 @@ import (
 
 	"strconv"
 
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -21,13 +21,13 @@ import (
 )
 
 type TestIterationRepository struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	clean func()
 }
 
 func TestRunIterationRepository(t *testing.T) {
-	suite.Run(t, &TestIterationRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (test *TestIterationRepository) SetupTest() {

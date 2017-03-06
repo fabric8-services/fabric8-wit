@@ -7,8 +7,8 @@ import (
 
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -28,7 +28,7 @@ import (
 )
 
 type workItemRepoBlackBoxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	repo      workitem.WorkItemRepository
 	clean     func()
 	creatorID uuid.UUID
@@ -36,7 +36,7 @@ type workItemRepoBlackBoxTest struct {
 
 func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else

@@ -10,8 +10,8 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -28,12 +28,12 @@ import (
 // a normal test function that will kick off TestSuiteComments
 func TestSuiteComments(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &CommentsSuite{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &CommentsSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // ========== TestSuiteComments struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
 type CommentsSuite struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	db            *gormapplication.GormDB
 	clean         func()
 	testIdentity  account.Identity
