@@ -54,29 +54,24 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
 	if ctx.FilterAssignee != nil {
-		assignee := ctx.FilterAssignee
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
-		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+		additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
 	}
 	if ctx.FilterIteration != nil {
-		iteration := ctx.FilterIteration
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
-		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
 	}
 	if ctx.FilterWorkitemtype != nil {
-		wit := ctx.FilterWorkitemtype
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*wit})))
-		additionalQuery = append(additionalQuery, "filter[workitemtype]="+wit.String())
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+ctx.FilterWorkitemtype.String())
 	}
 	if ctx.FilterArea != nil {
-		area := ctx.FilterArea
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*area))))
-		additionalQuery = append(additionalQuery, "filter[area]="+*area)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+		additionalQuery = append(additionalQuery, "filter[area]="+*ctx.FilterArea)
 	}
 	if ctx.FilterWorkitemstate != nil {
-		wis := ctx.FilterWorkitemstate
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*wis))))
-		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*wis)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
+		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
