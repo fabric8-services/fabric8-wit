@@ -201,7 +201,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = below
 
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), nil, nil, s.controller, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
 	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
@@ -286,7 +286,7 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = above
 
-	_, reordered1 := test.ReorderWorkitemOK(s.T(), nil, nil, s.controller, &payload2) // Returns the workitems which are reordered
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 2) // checks the correct number of workitems reordered
 
@@ -313,7 +313,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = *result1.Data.ID
 	payload2.Position.Direction = above
-	test.ReorderWorkitemBadRequest(s.T(), nil, nil, s.controller, &payload2)
+	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.controller, &payload2)
 }
 
 // TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
@@ -333,7 +333,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	payload2.Data = dataArray
 	payload2.Position.ID = "78"
 	payload2.Position.Direction = above
-	test.ReorderWorkitemNotFound(s.T(), nil, nil, s.controller, &payload2)
+	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, &payload2)
 }
 
 func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
