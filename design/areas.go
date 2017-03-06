@@ -110,7 +110,7 @@ var _ = a.Resource("area", func() {
 })
 
 // new version of "list" for migration
-var _ = a.Resource("space-areas", func() {
+var _ = a.Resource("space_areas", func() {
 	a.Parent("space")
 
 	a.Action("list", func() {

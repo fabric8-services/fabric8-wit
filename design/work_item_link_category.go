@@ -115,7 +115,7 @@ var workItemLinkCategoryList = JSONList(
 //
 // ############################################################################
 
-var _ = a.Resource("work-item-link-category", func() {
+var _ = a.Resource("work_item_link_category", func() {
 	a.BasePath("/workitemlinkcategories")
 
 	a.Action("show", func() {
