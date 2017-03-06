@@ -1,5 +1,6 @@
 ------ You can't allow the same area name and the same ancestry inside a space
 
+ALTER TABLE areas DROP CONSTRAINT  areas_name_space_id_path_unique;
 ALTER TABLE areas ADD CONSTRAINT areas_name_space_id_path_unique UNIQUE(space_id,name,path);
 
 ------  For existing spaces in production, which dont have a default area, create one.
@@ -71,7 +72,7 @@ $rootarea$  LANGUAGE plpgsql ;
 
 -- Move all areas under that space into the root area ( except of course the root area ;) ), 
 
-UPDATE AREAS set path=GetUpdatedAreaPath(id,space_id,path) 
+UPDATE AREAS set path=GetUpdatedAreaPath(id,space_id,path) ;
 
 -- cleanup
 
