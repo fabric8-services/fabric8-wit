@@ -8,7 +8,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
@@ -24,11 +24,11 @@ import (
 
 func TestRunCommentRevisionRepositoryBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &revisionRepositoryBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &revisionRepositoryBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type revisionRepositoryBlackBoxTest struct {
-	gormtestsupport.DBTestSuite
+	gormsupport.DBTestSuite
 	repository         comment.Repository
 	revisionRepository comment.RevisionRepository
 	clean              func()

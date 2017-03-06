@@ -15,7 +15,7 @@ import (
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
@@ -38,11 +38,11 @@ import (
 
 func TestRunSearchTests(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type searchBlackBoxTest struct {
-	gormtestsupport.DBTestSuite
+	gormsupport.DBTestSuite
 	db                             *gormapplication.GormDB
 	svc                            *goa.Service
 	clean                          func()

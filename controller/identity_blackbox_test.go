@@ -8,7 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"

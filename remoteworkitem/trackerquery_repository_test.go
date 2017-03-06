@@ -8,7 +8,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"

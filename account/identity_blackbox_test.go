@@ -6,7 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -21,14 +21,14 @@ import (
 )
 
 type identityBlackBoxTest struct {
-	gormtestsupport.DBTestSuite
+	gormsupport.DBTestSuite
 	repo  account.IdentityRepository
 	clean func()
 	ctx   context.Context
 }
 
 func TestRunIdentityBlackBoxTest(t *testing.T) {
-	suite.Run(t, &identityBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &identityBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else

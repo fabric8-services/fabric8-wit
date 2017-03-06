@@ -9,7 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/path"
 
 	"github.com/almighty/almighty-core/resource"
@@ -22,13 +22,13 @@ import (
 )
 
 type TestAreaRepository struct {
-	gormtestsupport.DBTestSuite
+	gormsupport.DBTestSuite
 
 	clean func()
 }
 
 func TestRunAreaRepository(t *testing.T) {
-	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestAreaRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (test *TestAreaRepository) SetupTest() {

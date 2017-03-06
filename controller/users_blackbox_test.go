@@ -10,7 +10,7 @@ import (
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/gormtestsupport/cleaner"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -25,7 +25,7 @@ import (
 
 func TestUsers(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestUsersSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestUsersSuite{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func createSecureController(t *testing.T, identity account.Identity) (*UsersController, *goa.Service) {
@@ -38,7 +38,7 @@ func createSecureController(t *testing.T, identity account.Identity) (*UsersCont
 }
 
 type TestUsersSuite struct {
-	gormtestsupport.DBTestSuite
+	gormsupport.DBTestSuite
 	db           *gormapplication.GormDB
 	svc          *goa.Service
 	clean        func()
