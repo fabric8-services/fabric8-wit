@@ -186,14 +186,14 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	tqPayload := fmt.Sprintf(`{
 		"query": "abcdefgh",
 		"schedule": "1 1 * * * *",
-		"trackerID": "%s",
+		"trackerID": "%[1]s",
 		"relationships":{
 			"space":{
-				"data":{"id": "%s", "type": "spaces"},
-				"links": {"self": "http://localhost:8080/api/spaces/%s"}
+				"data":{"id": "%[2]s", "type": "spaces"},
+				"links": {"self": "http://localhost:8080/api/spaces/%[2]s"}
 			}
 		}
-	}`, tracker.ID, space.SystemSpace, space.SystemSpace)
+	}`, tracker.ID.String(), space.SystemSpace.String())
 	trackerQueryCreateURL := "/api/trackerqueries"
 	req, _ := http.NewRequest("POST", server.URL+trackerQueryCreateURL, strings.NewReader(tqPayload))
 
