@@ -1,6 +1,5 @@
 ------ You can't allow the same area name and the same ancestry inside a space
 
-ALTER TABLE areas DROP CONSTRAINT  areas_name_space_id_path_unique;
 ALTER TABLE areas ADD CONSTRAINT areas_name_space_id_path_unique UNIQUE(space_id,name,path);
 
 ------  For existing spaces in production, which dont have a default area, create one.
