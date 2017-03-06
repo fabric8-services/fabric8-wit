@@ -132,6 +132,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 // Reorder does PATCH workitem
 func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var dataArray []*app.WorkItem2
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
@@ -148,7 +153,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
-			wi, err = appl.WorkItems().Reorder(ctx, ctx.Payload.Position.Direction, ctx.Payload.Position.ID, *wi)
+			wi, err = appl.WorkItems().Reorder(ctx, ctx.Payload.Position.Direction, ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

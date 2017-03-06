@@ -25,7 +25,7 @@ const below = "below"
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
-	Reorder(ctx context.Context, direction string, targetID string, wi app.WorkItem) (*app.WorkItem, error)
+	Reorder(ctx context.Context, direction string, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -169,8 +169,8 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem strin
 	if tx.RecordNotFound() {
 		return nil, nil, tx.Error
 	}
-	if err := tx.Error; err != nil {
-		return nil, nil, errors.NewInternalError(err.Error())
+	if tx.Error != nil {
+		return nil, nil, errors.NewInternalError(tx.Error.Error())
 	}
 
 	ItemId := strconv.FormatUint(Item.ID, 10)
@@ -199,7 +199,7 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 // The order of workitems are spaced by a factor of 1000.
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction string, targetID string, wi app.WorkItem) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction string, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	var order float64
 	res := WorkItem{}
 
@@ -285,6 +285,11 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction string, 
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
+	}
+	// store a revision of the modified work item
+	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	if err != nil {
+		return nil, err
 	}
 	return convertWorkItemModelToApp(wiType, &res)
 }
