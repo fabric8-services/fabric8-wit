@@ -236,8 +236,8 @@ func getMigrations() migrations {
 	// Version 39
 	m = append(m, steps{executeSQLFile("039-comment-revisions-parentid.sql")})
 
-	// Version 39
-	m = append(m, steps{executeSQLFile("039-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
+	// Version 40
+	m = append(m, steps{executeSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
 	// Version N
 	//
