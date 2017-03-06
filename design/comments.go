@@ -160,7 +160,7 @@ var _ = a.Resource("comments", func() {
 
 })
 
-var _ = a.Resource("work-item-comments", func() {
+var _ = a.Resource("work_item_comments", func() {
 	a.Parent("workitem")
 
 	a.Action("list", func() {
