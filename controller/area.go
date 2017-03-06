@@ -13,6 +13,8 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -168,10 +170,7 @@ func ConvertAreas(appl application.Application, request *goa.RequestData, areas 
 // ConvertArea converts between internal and external REST representation
 func ConvertArea(appl application.Application, request *goa.RequestData, ar *area.Area, additional ...AreaConvertFunc) *app.Area {
 	areaType := area.APIStringTypeAreas
-	spaceType := "spaces"
-
 	spaceID := ar.SpaceID.String()
-
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
 	childURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID)+"/children")
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
@@ -188,7 +187,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 		Relationships: &app.AreaRelations{
 			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &spaceType,
+					Type: &space.SpaceType,
 					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{

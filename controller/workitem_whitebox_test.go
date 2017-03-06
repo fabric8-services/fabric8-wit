@@ -169,21 +169,12 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		workitem.SystemTitle:       "title",
 		workitem.SystemDescription: "description",
 	}
-	spaceType := "spaces"
-	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
 
+	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
 	wi := app.WorkItem{
 		Fields: fields,
 		Relationships: &app.WorkItemRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &space.SystemSpace,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
@@ -199,21 +190,11 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 		workitem.SystemTitle: "title",
 	}
 
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
-
 	wi := app.WorkItem{
 		Fields: fields,
 		Relationships: &app.WorkItemRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &space.SystemSpace,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
@@ -222,7 +203,6 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 }
 
 func prepareWI2(attributes map[string]interface{}) app.WorkItem2 {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -235,15 +215,7 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem2 {
 					ID:   workitem.SystemBug,
 				},
 			},
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &space.SystemSpace,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 		Attributes: attributes,
 	}

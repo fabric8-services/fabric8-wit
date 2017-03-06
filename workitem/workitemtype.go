@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
@@ -162,24 +163,14 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 
 // ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
 func (wit WorkItemType) ConvertFromModel(request *goa.RequestData, workItem WorkItem) (*app.WorkItem, error) {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
-
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{},
 		Relationships: &app.WorkItemRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &workItem.SpaceID,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
 		},
 	}
 

@@ -17,6 +17,7 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -327,8 +328,6 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
 	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
-
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.Space.Data.ID.String()))
 
 	op := &app.WorkItem2{
@@ -344,15 +343,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Type: APIStringTypeWorkItemType,
 				},
 			},
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   wi.Relationships.Space.Data.ID,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(*wi.Relationships.Space.Data.ID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,

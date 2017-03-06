@@ -143,7 +143,6 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	createSpacePayload := CreateSpacePayload("test-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svcSpace.Context, s.svcSpace, s.spaceCtrl, createSpacePayload)
 	s.spaceID = space.Data.ID
-	require.NotNil(s.T(), space)
 
 	//	 2. Create at least one work item type
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)

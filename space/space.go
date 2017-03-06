@@ -3,6 +3,7 @@ package space
 import (
 	"strings"
 
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -14,7 +15,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-var SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
+var (
+	SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
+	SpaceType   = "spaces"
+)
 
 // Space represents a Space on the domain and db layer
 type Space struct {
@@ -291,4 +295,17 @@ func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *satoriu
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &res, nil
+}
+
+func NewSpaceRelation(id satoriuuid.UUID, selfURL string) *app.RelationSpaces {
+	spaceType := "spaces"
+	return &app.RelationSpaces{
+		Data: &app.RelationSpacesData{
+			Type: &spaceType,
+			ID:   &id,
+		},
+		Links: &app.GenericLinks{
+			Self: &selfURL,
+		},
+	}
 }

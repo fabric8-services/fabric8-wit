@@ -194,9 +194,8 @@ func (s *workItemLinkSuite) SetupTest() {
 	// Create a work item link space
 	createSpacePayload := CreateSpacePayload("test-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.spaceCtrl, createSpacePayload)
-	require.NotNil(s.T(), space)
 	s.userSpaceID = *space.Data.ID
-	fmt.Printf("Created link space with ID: %s\n", *space.Data.ID)
+	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
 
 	payload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
 	_, wit := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
@@ -211,7 +210,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug1.Data.ID)
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created bug1 with ID: %s\n", *bug1.Data.ID)
+	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
 	bug2Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug2")
 	_, bug2 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug2Payload)
@@ -219,7 +218,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug2.Data.ID)
 	s.bug2ID, err = strconv.ParseUint(*bug2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created bug2 with ID: %s\n", *bug2.Data.ID)
+	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
 	bug3Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug3")
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug3Payload)
@@ -227,7 +226,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug3.Data.ID)
 	s.bug3ID, err = strconv.ParseUint(*bug3.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created bug3 with ID: %s\n", *bug3.Data.ID)
+	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
 	feature1Payload := CreateWorkItem(s.userSpaceID, *wit2.Data.ID, "feature1")
 	_, feature1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, feature1Payload)
@@ -235,7 +234,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.deleteWorkItems = append(s.deleteWorkItems, *feature1.Data.ID)
 	s.feature1ID, err = strconv.ParseUint(*feature1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	fmt.Printf("Created feature with ID: %s\n", *feature1.Data.ID)
+	s.T().Logf("Created feature with ID: %s\n", *feature1.Data.ID)
 
 	// Create a work item link category
 	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
@@ -243,7 +242,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.NotNil(s.T(), workItemLinkCategory)
 	//s.deleteWorkItemLinkCategories = append(s.deleteWorkItemLinkCategories, *workItemLinkCategory.Data.ID)
 	s.userLinkCategoryID = *workItemLinkCategory.Data.ID
-	fmt.Printf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
+	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
 	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", *wit.Data.ID, *wit.Data.ID, s.userLinkCategoryID, s.userSpaceID)
@@ -251,7 +250,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
-	fmt.Printf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
 }
 
 // The TearDownTest method will be run after every test in the suite.
@@ -280,7 +279,6 @@ func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayl
 
 // CreateWorkItem defines a work item link
 func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemPayload {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))
@@ -297,15 +295,7 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 						Type: "workitemtypes",
 					},
 				},
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &spaceID,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 			Type: "workitems",
 		},

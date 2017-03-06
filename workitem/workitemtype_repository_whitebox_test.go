@@ -86,7 +86,6 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
-	typeSpaces := "spaces"
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -115,7 +114,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: &app.RelationSpaces{
 					Data: &app.RelationSpacesData{
-						Type: &typeSpaces,
+						Type: &space.SpaceType,
 						ID:   &space.SystemSpace,
 					},
 					Links: &app.GenericLinks{

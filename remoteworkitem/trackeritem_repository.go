@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -65,23 +66,13 @@ func convert(ctx context.Context, db *gorm.DB, tID int, item TrackerItemContent,
 // lookupIdentities looks up creator and assignee remote identities to local identities (already existing or to be created)
 func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType string, spaceID uuid.UUID) (*app.WorkItem, error) {
 	identityRepository := account.NewIdentityRepository(db)
-
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
 	workItem := app.WorkItem{
 		ID:     remoteWorkItem.ID,
 		Type:   remoteWorkItem.Type,
 		Fields: make(map[string]interface{}),
 		Relationships: &app.WorkItemRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &spaceID,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
 		},
 	}
 	// copy all fields from remoteworkitem into result workitem

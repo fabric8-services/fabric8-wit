@@ -100,7 +100,6 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
 
-	spaceType := "spaces"
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -110,15 +109,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		Schedule:  tqr.Schedule,
 		TrackerID: result.ID,
 		Relationships: &app.TrackerQueryRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &space.SystemSpace,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 	}
 
@@ -185,7 +176,6 @@ func TestCreateTrackerQueryValidId(t *testing.T) {
 }
 
 func getCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAlternatePayload {
-	spaceType := "spaces"
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -195,15 +185,7 @@ func getCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAltern
 		Schedule:  "15 * * * * *",
 		TrackerID: trackerID,
 		Relationships: &app.TrackerQueryRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &space.SystemSpace,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 	}
 }

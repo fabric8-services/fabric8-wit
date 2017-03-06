@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -192,7 +193,6 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 
 // converts from models to app representation
 func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkItemTypeData {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID
 	var converted = app.WorkItemTypeData{
@@ -206,15 +206,7 @@ func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkIt
 			Fields:      map[string]*app.FieldDefinition{},
 		},
 		Relationships: &app.WorkItemTypeRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &t.SpaceID,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
 		},
 	}
 	for name, def := range t.Fields {

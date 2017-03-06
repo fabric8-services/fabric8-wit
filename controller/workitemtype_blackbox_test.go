@@ -151,7 +151,6 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'animal'"
 	id := animalID
-	typeSpaces := "spaces"
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -170,15 +169,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 				},
 			},
 			Relationships: &app.WorkItemTypeRelationships{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &typeSpaces,
-						ID:   &space.SystemSpace,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -205,7 +196,6 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
 	id := personID
-	typeSpaces := "spaces"
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -223,15 +213,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 				},
 			},
 			Relationships: &app.WorkItemTypeRelationships{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &typeSpaces,
-						ID:   &space.SystemSpace,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -255,7 +237,6 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 
 	// Use the goa generated code to create a work item type
 	desc := "Description for 'person'"
-	typeSpaces := "spaces"
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -273,15 +254,7 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 				},
 			},
 			Relationships: &app.WorkItemTypeRelationships{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &typeSpaces,
-						ID:   &spaceID,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 		},
 	}
@@ -367,7 +340,6 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	// Create work item link space
 	spacePayload := CreateSpacePayload("some-link-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svcSpace.Context, s.svcSpace, s.spaceCtrl, spacePayload)
-	require.NotNil(s.T(), space)
 
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"

@@ -81,7 +81,6 @@ func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Serv
 
 // createWorkItem creates a workitem that will be used to perform the comment operations during the tests.
 func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -98,15 +97,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 						ID:   workitem.SystemBug,
 					},
 				},
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &space.SystemSpace,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}

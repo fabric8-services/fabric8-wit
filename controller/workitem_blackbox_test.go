@@ -361,7 +361,7 @@ func computeCount(totalCount int, start int, limit int) int {
 
 func makeWorkItems(count int) []*app.WorkItem {
 	res := make([]*app.WorkItem, count)
-	spaceType := "spaces"
+
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
@@ -372,15 +372,7 @@ func makeWorkItems(count int) []*app.WorkItem {
 			Type:   uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &space.SystemSpace,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		}
 	}
@@ -402,7 +394,6 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem2) *app.UpdateWorkitemPaylo
 }
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -411,15 +402,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &space.SystemSpace,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -437,7 +420,6 @@ func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 }
 
 func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -447,15 +429,7 @@ func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &space.SystemSpace,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -1330,7 +1304,6 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	// Create link space
 	spacePayload := CreateSpacePayload("test-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
-	require.NotNil(s.T(), space)
 
 	// Create work item link type payload
 	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
@@ -1371,7 +1344,6 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -1382,15 +1354,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 				ID:   workitem.SystemBug,
 			},
 		},
-		Space: &app.RelationSpaces{
-			Data: &app.RelationSpacesData{
-				Type: &spaceType,
-				ID:   &space.SystemSpace,
-			},
-			Links: &app.GenericLinks{
-				Self: &spaceSelfURL,
-			},
-		},
+		Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Area: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &arType,
@@ -1476,7 +1440,6 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -1488,15 +1451,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 				ID:   workitem.SystemBug,
 			},
 		},
-		Space: &app.RelationSpaces{
-			Data: &app.RelationSpacesData{
-				Type: &spaceType,
-				ID:   &space.SystemSpace,
-			},
-			Links: &app.GenericLinks{
-				Self: &spaceSelfURL,
-			},
-		},
+		Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Iteration: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &itType,

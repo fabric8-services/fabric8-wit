@@ -18,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/asaskevich/govalidator"
@@ -49,7 +50,6 @@ func generateSearchQuery(q string) (string, error) {
 }
 
 func convertFromModel(request *goa.RequestData, wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
@@ -57,15 +57,7 @@ func convertFromModel(request *goa.RequestData, wiType workitem.WorkItemType, wo
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{},
 		Relationships: &app.WorkItemRelationships{
-			Space: &app.RelationSpaces{
-				Data: &app.RelationSpacesData{
-					Type: &spaceType,
-					ID:   &workItem.SpaceID,
-				},
-				Links: &app.GenericLinks{
-					Self: &spaceSelfURL,
-				},
-			},
+			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
 		},
 	}
 

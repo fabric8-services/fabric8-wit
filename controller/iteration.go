@@ -11,7 +11,9 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -192,10 +194,8 @@ func ConvertIterations(request *goa.RequestData, Iterations []*iteration.Iterati
 // ConvertIteration converts between internal and external REST representation
 func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := iteration.APIStringTypeIteration
-	spaceType := "spaces"
 
 	spaceID := itr.SpaceID.String()
-
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
@@ -215,7 +215,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &spaceType,
+					Type: &space.SpaceType,
 					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{

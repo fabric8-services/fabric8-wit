@@ -1,5 +1,5 @@
 -- Alter the table work_items
-ALTER TABLE work_items ADD space_id uuid DEFAULT '{{index . 0}}' NOT NULL;;
+ALTER TABLE work_items ADD space_id uuid DEFAULT '{{index . 0}}' NOT NULL;
 -- Once we set the values to the default. We drop this default constraint
 ALTER TABLE work_items ALTER space_id DROP DEFAULT;
 ALTER TABLE work_items ADD FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE;

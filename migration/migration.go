@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"net/http"
 	"net/url"
+	"sync"
 	"text/template"
 
 	"github.com/almighty/almighty-core/app"
@@ -35,6 +36,9 @@ type steps []fn
 
 // migrations defines all a collection of all the steps
 type migrations []steps
+
+// mutex variable to lock/unlock the population of common types
+var populateLocker = &sync.Mutex{}
 
 // Migrate executes the required migration of the database on startup.
 // For each successful migration, an entry will be written into the "version"
@@ -430,7 +434,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 }
 
 func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
-	_, err := spaceRepo.Load(ctx, id)
+	s, err := spaceRepo.Load(ctx, id)
 	cause := errs.Cause(err)
 	newSpace := &space.Space{
 		Description: description,
@@ -445,8 +449,17 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 		}, "space %s will be created", id)
 		_, err := spaceRepo.Create(ctx, newSpace)
 		if err != nil {
-			return errs.WithStack(err)
+			return errs.Wrapf(err, "failed to create space %s", id)
 		}
+	case nil:
+		log.Info(ctx, map[string]interface{}{
+			"pkg":     "migration",
+			"spaceID": id,
+		}, "space %s exists, will update/overwrite the description", id)
+
+		s.Description = description
+		_, err = spaceRepo.Save(ctx, s)
+		return errs.WithStack(err)
 	}
 	return nil
 }
@@ -498,6 +511,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
+	populateLocker.Lock()
+	defer populateLocker.Unlock()
 	if err := createOrUpdateSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
