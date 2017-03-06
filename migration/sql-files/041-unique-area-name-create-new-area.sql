@@ -23,3 +23,58 @@ WHERE  id NOT IN (SELECT s.id
                          INNER JOIN areas AS a
                                  ON s.name = a.name
                                     AND s.id = a.space_id);  
+
+
+----- for all other existing areas in production, move them under the default 'root' area.
+
+
+-- Get Root area for a space
+                           
+CREATE OR REPLACE FUNCTION GetRootArea(s_id uuid,OUT root_id uuid) AS $$ BEGIN
+     select id from areas 
+          where name in ( SELECT name as space_name
+          from spaces 
+              where id=s_id )
+                  and space_id =s_id 
+                           into root_id;
+END; $$ LANGUAGE plpgsql ;
+
+-- Convert Text to Ltree , use standard library FUNCTION?
+
+CREATE OR REPLACE FUNCTION TextToLtreeNode(u text, OUT node ltree) AS $$ BEGIN
+    SELECT replace(u::text, '-', '_') INTO node;
+END; $$ LANGUAGE plpgsql;
+
+
+
+-- Migrate all existing areas into the new tree where the parent is always the root area
+
+CREATE OR REPLACE FUNCTION GetUpdatedAreaPath(area_id uuid,space_id uuid, path ltree, OUT updated_path ltree) AS $rootarea$ 
+     DECLARE 
+          rootarea uuid;                                            
+     BEGIN
+     
+     select GetRootArea(space_id) into rootarea;
+     IF rootarea != area_id 
+         THEN                  
+         IF path=''
+            THEN 
+             select TextToLtreeNode(rootarea::text) into updated_path ;
+         ELSE 
+             select TextToLtreeNode(concat(rootarea::text,'.',path::text)) into updated_path;
+         END IF;
+     ELSE 
+         updated_path:='';        
+     END IF;
+END; 
+$rootarea$  LANGUAGE plpgsql ;   
+
+-- Move all areas under that space into the root area ( except of course the root area ;) ), 
+
+UPDATE AREAS set path=GetUpdatedAreaPath(id,space_id,path) 
+
+-- cleanup
+
+DROP FUNCTION GetUpdatedAreaPath(uuid,uuid,ltree);
+DROP FUNCTION GetRootArea(uuid);
+DROP FUNCTION TextToLtreeNode(text);
