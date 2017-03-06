@@ -1,30 +1,31 @@
 package controller_test
 
 import (
+	"testing"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
 type TestNamedSpaceREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
-	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestNamedSpaceREST) SetupTest() {
