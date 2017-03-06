@@ -3,6 +3,8 @@ package application
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -17,7 +19,7 @@ type TrackerRepository interface {
 
 // TrackerQueryRepository encapsulate storage & retrieval of tracker queries
 type TrackerQueryRepository interface {
-	Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error)
+	Create(ctx context.Context, query string, schedule string, tracker string, spaceID uuid.UUID) (*app.TrackerQuery, error)
 	Save(ctx context.Context, tq app.TrackerQuery) (*app.TrackerQuery, error)
 	Load(ctx context.Context, ID string) (*app.TrackerQuery, error)
 	Delete(ctx context.Context, ID string) error

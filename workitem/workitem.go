@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -19,6 +20,8 @@ type WorkItem struct {
 	Version int
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
+	// Reference to one Space
+	SpaceID uuid.UUID `sql:"type:uuid"`
 }
 
 const (
@@ -51,6 +54,9 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if wi.Version != other.Version {
+		return false
+	}
+	if wi.SpaceID != other.SpaceID {
 		return false
 	}
 	return wi.Fields.Equal(other.Fields)

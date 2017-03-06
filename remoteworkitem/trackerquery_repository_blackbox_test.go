@@ -11,7 +11,9 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -23,6 +25,7 @@ type trackerQueryRepoBlackBoxTest struct {
 	repo   application.TrackerQueryRepository
 	trRepo application.TrackerRepository
 	clean  func()
+	ctx    context.Context
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -32,7 +35,8 @@ func (s *trackerQueryRepoBlackBoxTest) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -56,7 +60,7 @@ func (s *trackerQueryRepoBlackBoxTest) TearDownTest() {
 func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
-		context.Background(),
+		s.ctx,
 		"http://api.github.com",
 		remoteworkitem.ProviderGithub)
 	if err != nil {
@@ -64,22 +68,22 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailDeleteZeroID() {
 	}
 
 	_, err = s.repo.Create(
-		context.Background(),
+		s.ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID)
+		tr.ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
 
-	err = s.repo.Delete(context.Background(), "0")
+	err = s.repo.Delete(s.ctx, "0")
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
-		context.Background(),
+		s.ctx,
 		"http://api.github.com",
 		remoteworkitem.ProviderGithub)
 	if err != nil {
@@ -87,23 +91,23 @@ func (s *trackerQueryRepoBlackBoxTest) TestFailSaveZeroID() {
 	}
 
 	tq, err := s.repo.Create(
-		context.Background(),
+		s.ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID)
+		tr.ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
 	tq.ID = "0"
 
-	_, err = s.repo.Save(context.Background(), *tq)
+	_, err = s.repo.Save(s.ctx, *tq)
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
 }
 
 func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 	// Create at least 1 item to avoid RowsEffectedCheck
 	tr, err := s.trRepo.Create(
-		context.Background(),
+		s.ctx,
 		"http://api.github.com",
 		remoteworkitem.ProviderGithub)
 	if err != nil {
@@ -111,14 +115,14 @@ func (s *trackerQueryRepoBlackBoxTest) TestFaiLoadZeroID() {
 	}
 
 	_, err = s.repo.Create(
-		context.Background(),
+		s.ctx,
 		"project = ARQ AND text ~ 'arquillian'",
 		"15 * * * * *",
-		tr.ID)
+		tr.ID, space.SystemSpace)
 	if err != nil {
 		s.T().Error("Could not create tracker query", err)
 	}
 
-	_, err = s.repo.Load(context.Background(), "0")
+	_, err = s.repo.Load(s.ctx, "0")
 	require.IsType(s.T(), remoteworkitem.NotFoundError{}, err)
 }

@@ -27,6 +27,8 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {
 		a.Example(0)
 	})
+	a.Attribute("relationships", workItemRelationships)
+
 	a.Required("type", "fields", "version")
 })
 
@@ -74,6 +76,8 @@ var CreateTrackerQueryAlternatePayload = a.Type("CreateTrackerQueryAlternatePayl
 		a.MinLength(1)
 		a.Pattern("^[\\p{N}]+$")
 	})
+	a.Attribute("relationships", trackerQueryRelationships)
+
 	a.Required("query", "schedule", "trackerID")
 })
 
@@ -93,5 +97,7 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 		a.MinLength(1)
 		a.Pattern("[\\p{N}]+")
 	})
+	a.Attribute("relationships", trackerQueryRelationships)
+
 	a.Required("query", "schedule", "trackerID")
 })

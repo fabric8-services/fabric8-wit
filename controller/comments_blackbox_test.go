@@ -3,6 +3,7 @@ package controller_test
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -14,6 +15,8 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -78,6 +81,9 @@ func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Serv
 
 // createWorkItem creates a workitem that will be used to perform the comment operations during the tests.
 func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
 	createWorkitemPayload := app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type: APIStringTypeWorkItem,
@@ -91,6 +97,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 						ID:   workitem.SystemBug,
 					},
 				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}

@@ -1,6 +1,10 @@
 package remoteworkitem
 
-import "github.com/almighty/almighty-core/gormsupport"
+import (
+	"github.com/almighty/almighty-core/gormsupport"
+
+	uuid "github.com/satori/go.uuid"
+)
 
 // TrackerQuery represents tracker query
 type TrackerQuery struct {
@@ -12,4 +16,6 @@ type TrackerQuery struct {
 	Schedule string
 	// TrackerID is a foreign key for a tracker
 	TrackerID uint64 `gorm:"ForeignKey:Tracker"`
+	// SpaceID is a foreign key for a space
+	SpaceID uuid.UUID `gorm:"ForeignKey:Space"`
 }
