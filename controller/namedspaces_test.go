@@ -7,8 +7,8 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -18,14 +18,14 @@ import (
 )
 
 type TestNamedSpaceREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
 }
 
 func TestRunNamedSpacesREST(t *testing.T) {
-	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestNamedSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestNamedSpaceREST) SetupTest() {

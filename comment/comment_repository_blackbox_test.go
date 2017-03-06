@@ -9,8 +9,8 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
@@ -25,7 +25,7 @@ import (
 )
 
 type TestCommentRepository struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	clean        func()
 	testIdentity account.Identity
 	repo         comment.Repository
@@ -34,7 +34,7 @@ type TestCommentRepository struct {
 
 func TestRunCommentRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestCommentRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else

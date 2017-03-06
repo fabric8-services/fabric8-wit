@@ -16,8 +16,8 @@ import (
 	"github.com/almighty/almighty-core/application"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -33,7 +33,7 @@ import (
 )
 
 type TestSpaceIterationREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
@@ -41,7 +41,7 @@ type TestSpaceIterationREST struct {
 }
 
 func TestRunSpaceIterationREST(t *testing.T) {
-	suite.Run(t, &TestSpaceIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestSpaceIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestSpaceIterationREST) SetupTest() {

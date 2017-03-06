@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -28,11 +28,11 @@ import (
 
 func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type searchRepositoryBlackboxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	modifierID uuid.UUID
 	clean      func()
 	searchRepo *search.GormSearchRepository

@@ -32,11 +32,11 @@ import (
 
 func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type searchRepositoryWhiteboxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	modifierID uuid.UUID
 }
 
