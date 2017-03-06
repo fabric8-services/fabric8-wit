@@ -41,7 +41,6 @@ func TestRunCommentRepository(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *TestCommentRepository) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
