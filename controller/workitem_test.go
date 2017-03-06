@@ -47,28 +47,28 @@ func TestPagingErrors(t *testing.T) {
 
 	var offset string = "-1"
 	var limit int = 2
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[offset]=0") {
 		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = 0
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "0"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
 
 	offset = "-3"
 	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
 	}
@@ -78,7 +78,7 @@ func TestPagingErrors(t *testing.T) {
 
 	offset = "ALPHA"
 	limit = 40
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=40") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
 	}
@@ -99,7 +99,7 @@ func TestPagingLinksHasAbsoluteURL(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.HasPrefix(*result.Links.First, "http://") {
 		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
 	}
@@ -125,18 +125,18 @@ func TestPagingDefaultAndMaxSize(t *testing.T) {
 	repo := db.WorkItems().(*testsupport.WorkItemRepository)
 	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
 
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &offset)
+	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, nil, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=20") {
 		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
 	}
 	limit = 1000
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=100") {
 		assert.Fail(t, "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
 	}
 
 	limit = 50
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 	if !strings.Contains(*result.Links.First, "page[limit]=50") {
 		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
 	}

@@ -168,14 +168,14 @@ func (s *WorkItemSuite) TestListByFields() {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, nil, &limit, &offset)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, &filter, nil, nil, nil, nil, nil, &limit, &offset)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
@@ -323,7 +323,7 @@ func createPagingTest(t *testing.T, controller *WorkitemController, repo *testsu
 		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
-		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &limit, &offset)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -1054,7 +1054,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &newUserID, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &newUserID, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
@@ -1079,7 +1079,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
@@ -1087,6 +1087,58 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 		assert.Equal(s.T(), expected.Data.Type, actualWI.Type)
 		require.NotNil(s.T(), actualWI.ID)
 	}
+}
+
+func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	l := minimumRequiredCreatePayload()
+	l.Data.Attributes[workitem.SystemTitle] = "Title"
+	l.Data.Attributes[workitem.SystemState] = workitem.SystemStateInProgress
+	l.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+	// when
+	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, notExpected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &l)
+	// then
+	assert.NotNil(s.T(), expected.Data)
+	require.NotNil(s.T(), expected.Data.ID)
+	require.NotNil(s.T(), expected.Data.Type)
+	require.NotNil(s.T(), expected.Data.Attributes)
+	var dataArray []*app.WorkItem2Single
+	dataArray = append(dataArray, notExpected)
+	dataArray = append(dataArray, expected)
+	wiNew := workitem.SystemStateNew
+	// var foundExpected bool
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &wiNew, nil, nil, nil)
+
+	require.NotNil(s.T(), actual)
+	require.True(s.T(), len(actual.Data) > 1)
+	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	for _, actualWI := range actual.Data {
+		assert.Equal(s.T(), expected.Data.Attributes[workitem.SystemState], actualWI.Attributes[workitem.SystemState])
+		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
+		// if *expected.Data.ID == *actualWI.ID {
+		// 	foundExpected = true
+		// }
+	}
+	// assert.True(s.T(), foundExpected, "did not find expected work item in filtered list response")
 }
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
@@ -1117,7 +1169,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
 	assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &areaID, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &areaID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), areaID, *list.Data[0].Relationships.Area.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[area]"))
@@ -1151,7 +1203,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &iterationID, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &iterationID, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
