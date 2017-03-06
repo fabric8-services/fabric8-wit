@@ -18,14 +18,19 @@ import (
 )
 
 const orderValue = 1000
-const above = "above"
-const below = "below"
+
+type DirectionType string
+
+const (
+	DirectionAbove DirectionType = "above"
+	DirectionBelow DirectionType = "below"
+)
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
-	Reorder(ctx context.Context, direction string, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	Reorder(ctx context.Context, direction DirectionType, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -149,14 +154,14 @@ func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 // If direction == "below", then
 //	FindFirstItem returns the value below which reorder item has to be placed
 //      FindSecondItem returns the value above which reorder item has to be placed
-func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItem string, WorkItemId string) (*string, *float64, error) {
+func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirection DirectionType, WorkItemId string) (*string, *float64, error) {
 	Item := WorkItem{}
 	var tx *gorm.DB
-	switch secondItem {
-	case below:
+	switch secondItemDirection {
+	case DirectionBelow:
 		// Finds the item below which reorder item has to be placed
 		tx = r.db.Where("execution_order < ?", order).Order("execution_order desc", true).Last(&Item)
-	case above:
+	case DirectionAbove:
 		// Finds the item above which reorder item has to be placed
 		tx = r.db.Where("execution_order > ?", order).Order("execution_order", true).Last(&Item)
 	default:
@@ -199,7 +204,7 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 // The order of workitems are spaced by a factor of 1000.
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction string, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction DirectionType, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	var order float64
 	res := WorkItem{}
 
@@ -225,13 +230,13 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction string, 
 	}
 
 	switch direction {
-	case above:
+	case DirectionAbove:
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
 		aboveItemOrder, err := r.FindFirstItem(targetID)
 		if aboveItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", targetID)
 		}
-		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, below, wi.ID)
+		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionBelow, wi.ID)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", targetID)
 		}
@@ -245,14 +250,14 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction string, 
 		} else {
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
-	case below:
+	case DirectionBelow:
 		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
 
 		belowItemOrder, _ := r.FindFirstItem(targetID)
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", targetID)
 		}
-		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, above, wi.ID)
+		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionAbove, wi.ID)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", targetID)
 		}

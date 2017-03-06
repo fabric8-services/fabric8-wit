@@ -28,8 +28,7 @@ const (
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
 	SystemOrder               = "system.order"
-
-	SystemCodebase = "system.codebase"
+	SystemCodebase            = "system.codebase"
 
 	SystemStateOpen       = "open"
 	SystemStateNew        = "new"

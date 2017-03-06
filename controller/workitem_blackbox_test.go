@@ -42,9 +42,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+type DirectionType string
+
 const (
-	above = "above"
-	below = "below"
+	DirectionAbove DirectionType = "above"
+	DirectionBelow DirectionType = "below"
 )
 
 var wibConfiguration *config.ConfigurationData
@@ -113,7 +115,6 @@ func (s *WorkItemSuite) SetupTest() {
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
-	//s.minimumPayload = getminimumRequiredReorderPayload(s.wi)
 }
 
 func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
@@ -172,7 +173,7 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	dataArray = append(dataArray, result3.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = above
+	payload2.Position.Direction = string(DirectionAbove)
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
@@ -199,7 +200,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = below
+	payload2.Position.Direction = string(DirectionBelow)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
@@ -225,7 +226,7 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	dataArray = append(dataArray, result2.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result1.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = above
+	payload2.Position.Direction = string(DirectionAbove)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
@@ -258,7 +259,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = below
+	payload2.Position.Direction = string(DirectionBelow)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
@@ -284,7 +285,7 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	dataArray = append(dataArray, result3.Data, result4.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = above
+	payload2.Position.Direction = string(DirectionAbove)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
@@ -312,7 +313,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	var dataArray []*app.WorkItem2
 	payload2.Data = dataArray
 	payload2.Position.ID = *result1.Data.ID
-	payload2.Position.Direction = above
+	payload2.Position.Direction = string(DirectionAbove)
 	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.controller, &payload2)
 }
 
@@ -332,7 +333,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = "78"
-	payload2.Position.Direction = above
+	payload2.Position.Direction = string(DirectionAbove)
 	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, &payload2)
 }
 
