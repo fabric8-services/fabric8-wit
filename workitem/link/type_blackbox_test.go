@@ -26,11 +26,12 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 		Description:    &description,
 		Topology:       "network",
 		Version:        0,
-		SourceTypeName: workitem.SystemBug,
-		TargetTypeName: workitem.SystemUserStory,
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemUserStory,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
 		LinkCategoryID: satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
+		SpaceID:        satoriuuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
 	// Test equality
@@ -72,14 +73,14 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 	b.Topology = "tree"
 	require.False(t, a.Equal(b))
 
-	// Test SourceTypeName
+	// Test SourceTypeID
 	b = a
-	b.SourceTypeName = "foobar"
+	b.SourceTypeID = satoriuuid.Nil
 	require.False(t, a.Equal(b))
 
-	// Test TargetTypeName
+	// Test TargetTypeID
 	b = a
-	b.TargetTypeName = "fooooobar"
+	b.TargetTypeID = satoriuuid.Nil
 	require.False(t, a.Equal(b))
 
 	// Test ForwardName
@@ -96,6 +97,11 @@ func TestWorkItemLinkType_Equal(t *testing.T) {
 	b = a
 	b.LinkCategoryID = satoriuuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0c4bd573eCCC")
 	require.False(t, a.Equal(b))
+
+	// Test SpaceID
+	b = a
+	b.SpaceID = satoriuuid.FromStringOrNil("aaa71e36-871b-43a6-9166-0v5ce684dBBB")
+	require.False(t, a.Equal(b))
 }
 
 func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
@@ -109,11 +115,12 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 		Description:    &description,
 		Topology:       link.TopologyNetwork,
 		Version:        0,
-		SourceTypeName: workitem.SystemBug,
-		TargetTypeName: workitem.SystemUserStory,
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemUserStory,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
 		LinkCategoryID: satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573eAAA"),
+		SpaceID:        satoriuuid.FromStringOrNil("6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
 	}
 
 	// Check valid
@@ -125,14 +132,14 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	b.Name = ""
 	require.NotNil(t, b.CheckValidForCreation())
 
-	// Check empty SourceTypeName
+	// Check empty SourceTypeID
 	b = a
-	b.SourceTypeName = ""
+	b.SourceTypeID = satoriuuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 
-	// Check empty TargetTypeName
+	// Check empty TargetTypeID
 	b = a
-	b.TargetTypeName = ""
+	b.TargetTypeID = satoriuuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 
 	// Check empty ForwardName
@@ -153,5 +160,10 @@ func TestWorkItemLinkTypeCheckValidForCreation(t *testing.T) {
 	// Check empty LinkCategoryID
 	b = a
 	b.LinkCategoryID = satoriuuid.Nil
+	require.NotNil(t, b.CheckValidForCreation())
+
+	// Check empty SpaceID
+	b = a
+	b.SpaceID = satoriuuid.Nil
 	require.NotNil(t, b.CheckValidForCreation())
 }

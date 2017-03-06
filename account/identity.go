@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/app"
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
@@ -220,16 +221,18 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "delete"}, time.Now())
 
-	var obj Identity
+	obj := Identity{ID: id}
+	db := m.db.Delete(obj)
 
-	err := m.db.Delete(&obj, id).Error
-
-	if err != nil {
+	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
 			"identityID": id,
-			"err":        err,
+			"err":        db.Error,
 		}, "unable to delete the identity")
-		return errors.WithStack(err)
+		return errors.WithStack(db.Error)
+	}
+	if db.RowsAffected == 0 {
+		return errs.NewNotFoundError("identity", id.String())
 	}
 
 	log.Debug(ctx, map[string]interface{}{

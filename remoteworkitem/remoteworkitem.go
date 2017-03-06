@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // List of supported attributes
@@ -45,7 +46,7 @@ type RemoteWorkItem struct {
 	// unique id per installation
 	ID string
 	// Name of the type of this work item
-	Type string
+	Type uuid.UUID `sql:"type:uuid"`
 }
 
 const (

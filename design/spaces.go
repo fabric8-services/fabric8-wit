@@ -19,8 +19,15 @@ var space = a.Type("Space", func() {
 })
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
+	a.Attribute("owned-by", spaceOwnedBy, "The owner of the Space")
 	a.Attribute("iterations", relationGeneric, "Space can have one or many iterations")
 	a.Attribute("areas", relationGeneric, "Space can have one or many areas")
+	a.Attribute("workitemlinktypes", relationGeneric, "Space can have one or many work item link types")
+})
+
+var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
+	a.Attribute("data", identityRelationData)
+	a.Required("data")
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
@@ -56,6 +63,24 @@ var spaceSingle = JSONSingle(
 	"Space", "Holds a single response to a space request",
 	space,
 	nil)
+
+// relationSpaces is the JSONAPI store for the spaces
+var relationSpaces = a.Type("RelationSpaces", func() {
+	a.Attribute("data", relationSpacesData)
+	a.Attribute("links", genericLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
+
+// relationSpacesData is the JSONAPI data object of the space relationship objects
+var relationSpacesData = a.Type("RelationSpacesData", func() {
+	a.Attribute("type", d.String, func() {
+		a.Enum("spaces")
+	})
+	a.Attribute("id", d.UUID, "UUID for the space", func() {
+		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
+	})
+	a.Attribute("links", genericLinks)
+})
 
 var _ = a.Resource("space", func() {
 	a.BasePath("/spaces")
@@ -140,5 +165,6 @@ var _ = a.Resource("space", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 })

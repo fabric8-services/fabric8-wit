@@ -15,6 +15,7 @@ import:
   - goagen
   - goagen/codegen
   - goagen/gen_app
+  - goagen/gen_controllers
   - goagen/utils
   - goatest
   - middleware

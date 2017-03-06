@@ -12,20 +12,16 @@ import (
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
-	Load(ctx context.Context, name string) (*app.WorkItemType, error)
-	Create(ctx context.Context, extendedTypeID *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error)
-	List(ctx context.Context, start *int, length *int) ([]*app.WorkItemType, error)
-}
-
-// NewWorkItemRepository creates a wi repository based on gorm
-func NewWorkItemRepository(db *gorm.DB) *GormWorkItemRepository {
-	return &GormWorkItemRepository{db, &GormWorkItemTypeRepository{db}}
+	Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error)
+	Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
+	List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -40,39 +36,38 @@ type GormWorkItemTypeRepository struct {
 
 // Load returns the work item for the given id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) Load(ctx context.Context, name string) (*app.WorkItemType, error) {
-	res, err := r.LoadTypeFromDB(ctx, name)
+func (r *GormWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+	res, err := r.LoadTypeFromDB(ctx, id)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
 
 	result := convertTypeFromModels(res)
-	return &result, nil
+	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
 
 // LoadTypeFromDB return work item type for the given id
-func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, name string) (*WorkItemType, error) {
-	log.Logger().Infoln("Loading work item type", name)
-	res, ok := cache.Get(name)
+func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
+	log.Logger().Infoln("Loading work item type", id)
+	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
-			"type": name,
+			"witID": id,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
-		db := r.db.Model(&res).Where("name=?", name).First(&res)
+		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
 			log.Error(ctx, map[string]interface{}{
-				"witName": name,
-			}, "work item type repository not found")
-			return nil, errors.NewNotFoundError("work item type", name)
+				"witID": id,
+			}, "work item type not found")
+			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
 		if err := db.Error; err != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
 		cache.Put(res)
 	}
-
 	return &res, nil
 }
 
@@ -83,19 +78,25 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeName *string, name string, fields map[string]app.FieldDefinition) (*app.WorkItemType, error) {
-	existing, _ := r.LoadTypeFromDB(ctx, name)
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
+	// Make sure this WIT has an ID
+	if id == nil {
+		tmpID := uuid.NewV4()
+		id = &tmpID
+	}
+
+	existing, _ := r.LoadTypeFromDB(ctx, *id)
 	if existing != nil {
-		log.Error(ctx, map[string]interface{}{"witName": name}, "unable to create new work item type")
-		return nil, errors.NewBadParameterError("name", name)
+		log.Error(ctx, map[string]interface{}{"witID": *id}, "unable to create new work item type")
+		return nil, errors.NewBadParameterError("name", *id)
 	}
 	allFields := map[string]FieldDefinition{}
-	path := name
-	if extendedTypeName != nil {
+	path := LtreeSafeID(*id)
+	if extendedTypeID != nil {
 		extendedType := WorkItemType{}
-		db := r.db.First(&extendedType, "name = ?", extendedTypeName)
+		db := r.db.Model(&extendedType).Where("id=?", extendedTypeID).First(&extendedType)
 		if db.RecordNotFound() {
-			return nil, errors.NewBadParameterError("extendedTypeName", *extendedTypeName)
+			return nil, errors.NewBadParameterError("extendedTypeID", *extendedTypeID)
 		}
 		if err := db.Error; err != nil {
 			return nil, errors.NewInternalError(err.Error())
@@ -104,7 +105,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 		for key, value := range extendedType.Fields {
 			allFields[key] = value
 		}
-		path = extendedType.Path + pathSep + name
+		path = extendedType.Path + pathSep + path
 	}
 
 	// now process new fields, checking whether they are ok to add.
@@ -115,8 +116,10 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 			return nil, errs.WithStack(err)
 		}
 		converted := FieldDefinition{
-			Required: definition.Required,
-			Type:     ct,
+			Label:       definition.Label,
+			Description: definition.Description,
+			Required:    definition.Required,
+			Type:        ct,
 		}
 		if exists && !compatibleFields(existing, converted) {
 			return nil, fmt.Errorf("incompatible change for field %s", field)
@@ -125,25 +128,28 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, extendedTypeNam
 	}
 
 	created := WorkItemType{
-		Version: 0,
-		Name:    name,
-		Path:    path,
-		Fields:  allFields,
+		Version:     0,
+		ID:          *id,
+		Name:        name,
+		Description: description,
+		Icon:        icon,
+		Path:        path,
+		Fields:      allFields,
 	}
 
-	if err := r.db.Save(&created).Error; err != nil {
+	if err := r.db.Create(&created).Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
 
 	result := convertTypeFromModels(&created)
 
-	log.Debug(ctx, map[string]interface{}{"witName": created.Name}, "Work item type created successfully!")
+	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
 
-	return &result, nil
+	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
 
 // List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit *int) ([]*app.WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit *int) (*app.WorkItemTypeList, error) {
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
 	var where string
@@ -160,32 +166,48 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit
 	if err := db.Find(&rows).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}
-	result := make([]*app.WorkItemType, len(rows))
+	result := &app.WorkItemTypeList{}
+	result.Data = make([]*app.WorkItemTypeData, len(rows))
 
 	for index, value := range rows {
 		wit := convertTypeFromModels(&value)
-		result[index] = &wit
+		result.Data[index] = &wit
 	}
 
 	return result, nil
 }
 
+// compatibleFields returns true if the existing and new field are compatible;
+// otherwise false is returned. It does so by comparing all members of the field
+// definition except for the label and description.
 func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
-	return reflect.DeepEqual(existing, new)
+	if existing.Required != new.Required {
+		return false
+	}
+	return reflect.DeepEqual(existing.Type, new.Type)
 }
 
 // converts from models to app representation
-func convertTypeFromModels(t *WorkItemType) app.WorkItemType {
-	var converted = app.WorkItemType{
-		Name:    t.Name,
-		Version: t.Version,
-		Fields:  map[string]*app.FieldDefinition{},
+func convertTypeFromModels(t *WorkItemType) app.WorkItemTypeData {
+	id := t.ID
+	var converted = app.WorkItemTypeData{
+		Type: "workitemtypes",
+		ID:   &id,
+		Attributes: &app.WorkItemTypeAttributes{
+			Version:     t.Version,
+			Description: t.Description,
+			Icon:        t.Icon,
+			Name:        t.Name,
+			Fields:      map[string]*app.FieldDefinition{},
+		},
 	}
 	for name, def := range t.Fields {
 		ct := convertFieldTypeFromModels(def.Type)
-		converted.Fields[name] = &app.FieldDefinition{
-			Required: def.Required,
-			Type:     &ct,
+		converted.Attributes.Fields[name] = &app.FieldDefinition{
+			Required:    def.Required,
+			Label:       def.Label,
+			Description: def.Description,
+			Type:        &ct,
 		}
 	}
 	return converted
@@ -220,7 +242,7 @@ func convertAnyToKind(any interface{}) (*Kind, error) {
 func convertStringToKind(k string) (*Kind, error) {
 	kind := Kind(k)
 	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea:
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase:
 		return &kind, nil
 	}
 	return nil, fmt.Errorf("Not a simple type")
@@ -273,8 +295,10 @@ func TEMPConvertFieldTypesToModel(fields map[string]app.FieldDefinition) (map[st
 			return nil, errs.WithStack(err)
 		}
 		converted := FieldDefinition{
-			Required: definition.Required,
-			Type:     ct,
+			Required:    definition.Required,
+			Label:       definition.Label,
+			Description: definition.Description,
+			Type:        ct,
 		}
 		allFields[field] = converted
 	}

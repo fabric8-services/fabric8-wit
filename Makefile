@@ -44,7 +44,7 @@ PACKAGE_NAME := github.com/almighty/almighty-core
 CLEAN_TARGETS =
 
 # Pass in build time variables to main
-LDFLAGS=-ldflags "-X main.Commit=${COMMIT} -X main.BuildTime=${BUILD_TIME}"
+LDFLAGS=-ldflags "-X ${PACKAGE_NAME}/controller.Commit=${COMMIT} -X ${PACKAGE_NAME}/controller.BuildTime=${BUILD_TIME}"
 
 # Call this function with $(call log-info,"Your message")
 define log-info =
@@ -206,7 +206,11 @@ $(VENDOR_DIR): glide.lock glide.yaml
 deps: $(VENDOR_DIR)
 
 app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
-	$(GOAGEN_BIN) bootstrap -d ${PACKAGE_NAME}/${DESIGN_DIR}
+	$(GOAGEN_BIN) app -d ${PACKAGE_NAME}/${DESIGN_DIR}
+	$(GOAGEN_BIN) controller -d ${PACKAGE_NAME}/${DESIGN_DIR} -o controller/ --pkg controller --app-pkg app
+	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
+	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
+
 
 assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) js -d ${PACKAGE_NAME}/${DESIGN_DIR} -o assets/ --noexample

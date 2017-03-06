@@ -37,7 +37,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
-  version: 7fc6b55040a7f8a800500c44c547692a0d7aed77
+  version: 9eda81168b626a13825cd0e9c0d607411fb0b5b5
   vcs: git
   subpackages:
   - client

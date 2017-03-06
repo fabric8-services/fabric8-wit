@@ -12,6 +12,8 @@ postgres.sslmode: disable
 postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
+postgres.connection.maxidle: -1
+postgres.connection.maxopen: -1
 
 #------------------------
 # HTTP configuration
@@ -33,7 +35,7 @@ populate.commontypes: true
 # Authentication configuration
 # ----------------------------
 
-token.privatekey : >
+token.privatekey : |
                     -----BEGIN RSA PRIVATE KEY-----
                     MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
                     DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
@@ -62,7 +64,7 @@ token.privatekey : >
                     OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
                     -----END RSA PRIVATE KEY-----
 
-token.publickey : >
+token.publickey : |
                     -----BEGIN PUBLIC KEY-----
                     MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
                     TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R

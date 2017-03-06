@@ -32,9 +32,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemlinktypes")
 	})
-	a.Attribute("id", d.String, "ID of work item link type (optional during creation)", func() {
-		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
-	})
+	a.Attribute("id", d.UUID, "ID of work item link type (optional during creation)")
 	a.Attribute("attributes", workItemLinkTypeAttributes)
 	a.Attribute("relationships", workItemLinkTypeRelationships)
 	a.Attribute("links", genericLinks)
@@ -73,13 +71,14 @@ For example, if a bug blocks a user story, the reverse name name is "blocked by"
 	//a.Required("name")
 })
 
-// rorkItemLinkTypeRelationships is the JSONAPI store for the relationships of a work item link type.
+// workItemLinkTypeRelationships is the JSONAPI store for the relationships of a work item link type.
 var workItemLinkTypeRelationships = a.Type("WorkItemLinkTypeRelationships", func() {
 	a.Description(`JSONAPI store for the data of a work item link type.
 See also http://jsonapi.org/format/#document-resource-object-relationships`)
 	a.Attribute("link_category", relationWorkItemLinkCategory, "The work item link category of this work item link type.")
 	a.Attribute("source_type", relationWorkItemType, "The source type specifies the type of work item that can be used as a source.")
 	a.Attribute("target_type", relationWorkItemType, "The target type specifies the type of work item that can be used as a target.")
+	a.Attribute("space", relationSpaces, "This defines the owning space of this work item link type.")
 })
 
 // relationWorkItemType is the JSONAPI store for the work item type relationship objects
@@ -92,9 +91,7 @@ var relationWorkItemTypeData = a.Type("RelationWorkItemTypeData", func() {
 	a.Attribute("type", d.String, "The type of the related resource", func() {
 		a.Enum("workitemtypes")
 	})
-	a.Attribute("id", d.String, "Name work item type", func() {
-		a.Example("bug")
-	})
+	a.Attribute("id", d.UUID, "ID of a work item type")
 	a.Required("type", "id")
 })
 
@@ -108,9 +105,7 @@ var relationWorkItemLinkTypeData = a.Type("RelationWorkItemLinkTypeData", func()
 	a.Attribute("type", d.String, "The type of the related source", func() {
 		a.Enum("workitemlinktypes")
 	})
-	a.Attribute("id", d.String, "ID of work item link type", func() {
-		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
-	})
+	a.Attribute("id", d.UUID, "ID of work item link type")
 	a.Required("type", "id")
 })
 
@@ -160,7 +155,7 @@ var _ = a.Resource("work-item-link-type", func() {
 		)
 		a.Description("Retrieve work item link type (as JSONAPI) for the given link ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "ID of the work item link type")
+			a.Param("id", d.UUID, "ID of the work item link type")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkType)
@@ -204,7 +199,7 @@ var _ = a.Resource("work-item-link-type", func() {
 		)
 		a.Description("Delete work item link type with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -220,7 +215,7 @@ var _ = a.Resource("work-item-link-type", func() {
 		)
 		a.Description("Update the given work item link type with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("id", d.UUID, "id")
 		})
 		a.Payload(updateWorkItemLinkTypePayload)
 		a.Response(d.OK, func() {
