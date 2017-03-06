@@ -112,7 +112,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 				},
 			},
 			Relationships: &app.WorkItemTypeRelationships{
-				Space: space.NewRelationSpaces(space.SystemSpace, spaceSelfURL),
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
