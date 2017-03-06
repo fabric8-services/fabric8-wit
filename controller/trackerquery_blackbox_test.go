@@ -193,7 +193,7 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 				"links": {"self": "http://localhost:8080/api/spaces/%[2]s"}
 			}
 		}
-	}`, tracker.ID.String(), space.SystemSpace.String())
+	}`, tracker.ID, space.SystemSpace.String())
 	trackerQueryCreateURL := "/api/trackerqueries"
 	req, _ := http.NewRequest("POST", server.URL+trackerQueryCreateURL, strings.NewReader(tqPayload))
 
