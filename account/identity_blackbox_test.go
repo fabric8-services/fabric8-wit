@@ -1,7 +1,6 @@
 package account_test
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -12,17 +11,20 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/jinzhu/gorm"
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
 )
 
 type identityBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	repo  account.IdentityRepository
 	clean func()
+	ctx   context.Context
 }
 
 func TestRunIdentityBlackBoxTest(t *testing.T) {
@@ -38,7 +40,8 @@ func (s *identityBlackBoxTest) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -66,15 +69,15 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 		Username:     "onemoreuserTestIdentity",
 		ProviderType: account.KeycloakIDP}
 
-	err := s.repo.Create(context.Background(), identity)
+	err := s.repo.Create(s.ctx, identity)
 	require.Nil(s.T(), err, "Could not create identity")
-	err = s.repo.Create(context.Background(), identity2)
+	err = s.repo.Create(s.ctx, identity2)
 	require.Nil(s.T(), err, "Could not create identity")
 	// when
-	err = s.repo.Delete(context.Background(), identity.ID)
+	err = s.repo.Delete(s.ctx, identity.ID)
 	// then
 	assert.Nil(s.T(), err)
-	identities, err := s.repo.List(context.Background())
+	identities, err := s.repo.List(s.ctx)
 	require.Nil(s.T(), err, "Could not list identities")
 	require.True(s.T(), len(identities.Data) > 0)
 	for _, data := range identities.Data {
@@ -91,7 +94,7 @@ func (s *identityBlackBoxTest) TestOKToSave() {
 	identity := createAndLoad(s)
 	// when
 	identity.Username = "newusernameTestIdentity"
-	err := s.repo.Save(context.Background(), identity)
+	err := s.repo.Save(s.ctx, identity)
 	// then
 	require.Nil(s.T(), err, "Could not update identity")
 }
@@ -102,10 +105,10 @@ func createAndLoad(s *identityBlackBoxTest) *account.Identity {
 		Username:     "someuserTestIdentity2",
 		ProviderType: account.KeycloakIDP}
 
-	err := s.repo.Create(context.Background(), identity)
+	err := s.repo.Create(s.ctx, identity)
 	require.Nil(s.T(), err, "Could not create identity")
 	// when
-	idnt, err := s.repo.Load(context.Background(), identity.ID)
+	idnt, err := s.repo.Load(s.ctx, identity.ID)
 	// then
 	require.Nil(s.T(), err, "Could not load identity")
 	require.Equal(s.T(), "someuserTestIdentity2", idnt.Username)

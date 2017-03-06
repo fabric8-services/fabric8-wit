@@ -43,10 +43,11 @@ type WorkItemRepository struct {
 	deleteReturns struct {
 		result1 error
 	}
-	CreateStub        func(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
+	CreateStub        func(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		ctx       context.Context
+		spaceID   uuid.UUID
 		typeID    uuid.UUID
 		fields    map[string]interface{}
 		creatorID uuid.UUID
@@ -205,18 +206,19 @@ func (fake *WorkItemRepository) DeleteReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *WorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		ctx       context.Context
+		spaceID   uuid.UUID
 		typeID    uuid.UUID
 		fields    map[string]interface{}
 		creatorID uuid.UUID
-	}{ctx, typeID, fields, creatorID})
-	fake.recordInvocation("Create", []interface{}{ctx, typeID, fields, creatorID})
+	}{ctx, spaceID, typeID, fields, creatorID})
+	fake.recordInvocation("Create", []interface{}{ctx, spaceID, typeID, fields, creatorID})
 	fake.createMutex.Unlock()
 	if fake.CreateStub != nil {
-		return fake.CreateStub(ctx, typeID, fields, creatorID)
+		return fake.CreateStub(ctx, spaceID, typeID, fields, creatorID)
 	}
 	return fake.createReturns.result1, fake.createReturns.result2
 }
@@ -227,10 +229,10 @@ func (fake *WorkItemRepository) CreateCallCount() int {
 	return len(fake.createArgsForCall)
 }
 
-func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, uuid.UUID, map[string]interface{}, uuid.UUID) {
+func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, uuid.UUID, uuid.UUID, map[string]interface{}, uuid.UUID) {
 	fake.createMutex.RLock()
 	defer fake.createMutex.RUnlock()
-	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creatorID
+	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].spaceID, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creatorID
 }
 
 func (fake *WorkItemRepository) CreateReturns(result1 *app.WorkItem, result2 error) {

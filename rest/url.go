@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/almighty/almighty-core/errors"
+
 	"github.com/goadesign/goa"
 )
 

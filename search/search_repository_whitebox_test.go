@@ -2,6 +2,8 @@ package search
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -13,9 +15,11 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/pkg/errors"
@@ -43,7 +47,8 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			ctx := migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -164,13 +169,16 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
 			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
+			req := &http.Request{Host: "localhost"}
+			params := url.Values{}
+			ctx := goa.NewContext(context.Background(), nil, req, params)
 
-			createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, s.modifierID)
+			createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 			if err != nil {
 				s.T().Fatal("Couldnt create test data")
 			}
 
-			defer wir.Delete(context.Background(), createdWorkItem.ID, s.modifierID)
+			defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
@@ -182,7 +190,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			s.T().Log("using search string: " + searchString)
 			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
-			workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
+			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit)
 			if err != nil {
 				s.T().Fatal("Error getting search result ", err)
 			}
@@ -254,6 +262,10 @@ func stringInSlice(str string, list []string) bool {
 func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 	models.Transactional(s.DB, func(tx *gorm.DB) error {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
+
 		wir := workitem.NewWorkItemRepository(tx)
 
 		workItem := app.WorkItem{Fields: make(map[string]interface{})}
@@ -266,17 +278,17 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 			workitem.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, s.modifierID)
+		createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(context.Background(), createdWorkItem.ID, s.modifierID)
+		defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
 
 		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), workitem.SystemBug, workItem.Fields, s.modifierID)
+		_, err = wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
@@ -285,7 +297,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		var start, limit int = 0, 100
 		searchString := "id:" + createdWorkItem.ID
-		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
+		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit)
 		if err != nil {
 			s.T().Fatal("Error gettig search result ", err)
 		}

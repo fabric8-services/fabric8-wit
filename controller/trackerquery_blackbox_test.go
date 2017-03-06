@@ -15,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	almtoken "github.com/almighty/almighty-core/token"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -182,7 +183,17 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	app.MountTrackerqueryController(service, controller2)
 
 	server := httptest.NewServer(service.Mux)
-	tqPayload := fmt.Sprintf(`{"query": "abcdefgh", "schedule": "1 1 * * * *", "trackerID": "%s"}`, tracker.ID)
+	tqPayload := fmt.Sprintf(`{
+		"query": "abcdefgh",
+		"schedule": "1 1 * * * *",
+		"trackerID": "%[1]s",
+		"relationships":{
+			"space":{
+				"data":{"id": "%[2]s", "type": "spaces"},
+				"links": {"self": "http://localhost:8080/api/spaces/%[2]s"}
+			}
+		}
+	}`, tracker.ID, space.SystemSpace.String())
 	trackerQueryCreateURL := "/api/trackerqueries"
 	req, _ := http.NewRequest("POST", server.URL+trackerQueryCreateURL, strings.NewReader(tqPayload))
 
