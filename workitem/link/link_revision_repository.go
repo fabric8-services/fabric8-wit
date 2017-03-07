@@ -35,7 +35,6 @@ type GormWorkItemLinkRevisionRepository struct {
 // Create stores a new revision for the given work item link.
 func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, l WorkItemLink) error {
 	log.Info(nil, map[string]interface{}{
-		"pkg":               "workitem/link",
 		"modifier_identity": modifierID,
 		"revision_type":     revisionType,
 	}, "Storing a revision after operation on work item link.")
@@ -51,7 +50,7 @@ func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifie
 		WorkItemLinkTypeID:   l.LinkTypeID,
 	}
 	if err := tx.Create(&revision).Error; err != nil {
-		return errors.NewInternalError(fmt.Sprintf("Failed to create new work item link revision: %s", err.Error()))
+		return errors.NewInternalError(fmt.Sprintf("failed to create new work item link revision: %s", err.Error()))
 	}
 	log.Debug(ctx, map[string]interface{}{"workItemLink.ID": l.ID}, "work item link revision occurrence created")
 	return nil
@@ -59,12 +58,10 @@ func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifie
 
 // List retrieves all revisions for a given work item link
 func (r *GormWorkItemLinkRevisionRepository) List(ctx context.Context, commentID uuid.UUID) ([]Revision, error) {
-	log.Debug(nil, map[string]interface{}{
-		"pkg": "workitem/link",
-	}, "List all revisions for work item link with ID=%v", commentID.String())
+	log.Debug(nil, map[string]interface{}{}, "List all revisions for work item link with ID=%v", commentID.String())
 	revisions := make([]Revision, 0)
 	if err := r.db.Where("work_item_link_id = ?", commentID.String()).Order("revision_time asc").Find(&revisions).Error; err != nil {
-		return nil, errors.NewInternalError(fmt.Sprintf("Failed to retrieve work item link revisions: %s", err.Error()))
+		return nil, errors.NewInternalError(fmt.Sprintf("failed to retrieve work item link revisions: %s", err.Error()))
 	}
 	return revisions, nil
 }

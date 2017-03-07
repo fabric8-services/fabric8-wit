@@ -35,7 +35,6 @@ type GormRevisionRepository struct {
 // Create stores a new revision for the given work item.
 func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error {
 	log.Info(nil, map[string]interface{}{
-		"pkg":               "workitem",
 		"modifier_identity": modifierID,
 		"revision_type":     revisionType,
 	}, "Storing a revision after operation on work item.")
@@ -54,7 +53,7 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 		workitemRevision.WorkItemFields = Fields{}
 	}
 	if err := tx.Create(&workitemRevision).Error; err != nil {
-		return errors.NewInternalError(fmt.Sprintf("Failed to create new work item revision: %s", err.Error()))
+		return errors.NewInternalError(fmt.Sprintf("failed to create new work item revision: %s", err.Error()))
 	}
 	log.Debug(ctx, map[string]interface{}{"wi.ID": workitem.ID}, "Work item revision occurrence created")
 	return nil
@@ -62,12 +61,10 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 
 // List retrieves all revisions for a given work item
 func (r *GormRevisionRepository) List(ctx context.Context, workitemID string) ([]Revision, error) {
-	log.Debug(nil, map[string]interface{}{
-		"pkg": "workitem",
-	}, "List all revisions for work item with ID=%v", workitemID)
+	log.Debug(nil, map[string]interface{}{}, "List all revisions for work item with ID=%v", workitemID)
 	revisions := make([]Revision, 0)
 	if err := r.db.Where("work_item_id = ?", workitemID).Order("revision_time asc").Find(&revisions).Error; err != nil {
-		return nil, errors.NewInternalError(fmt.Sprintf("Failed to retrieve work item revisions: %s", err.Error()))
+		return nil, errors.NewInternalError(fmt.Sprintf("failed to retrieve work item revisions: %s", err.Error()))
 	}
 	return revisions, nil
 }

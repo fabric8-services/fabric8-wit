@@ -273,8 +273,7 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	linkCtx := newWorkItemLinkContext(ctx.Context, c.db, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
 	return createWorkItemLink(linkCtx, ctx, ctx.Payload)
@@ -297,8 +296,7 @@ func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs,
 func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
@@ -387,8 +385,7 @@ func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs,
 func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {

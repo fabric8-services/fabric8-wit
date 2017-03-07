@@ -6,6 +6,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/workitem/link"
@@ -41,8 +42,7 @@ func parseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
 func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRelationshipsLinksContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Check that current work item does indeed exist

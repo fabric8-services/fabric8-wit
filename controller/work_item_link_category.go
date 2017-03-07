@@ -3,6 +3,7 @@ package controller
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
@@ -53,8 +54,7 @@ func enrichLinkCategoryList(ctx *workItemLinkContext, list *app.WorkItemLinkCate
 func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCategoryContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		cat, err := appl.WorkItemLinkCategories().Create(ctx.Context, ctx.Payload.Data.Attributes.Name, ctx.Payload.Data.Attributes.Description)
@@ -126,8 +126,7 @@ func (c *WorkItemLinkCategoryController) Delete(ctx *app.DeleteWorkItemLinkCateg
 func (c *WorkItemLinkCategoryController) Update(ctx *app.UpdateWorkItemLinkCategoryContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		toSave := app.WorkItemLinkCategorySingle{
