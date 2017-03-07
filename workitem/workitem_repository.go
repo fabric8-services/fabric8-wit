@@ -330,7 +330,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	res.Type = wi.Type
 	res.Fields = Fields{}
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -426,6 +426,9 @@ func convertWorkItemModelToApp(wiType *WorkItemType, wi *WorkItem) (*app.WorkIte
 	}
 	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
 		result.Fields[SystemCreatedAt] = wi.CreatedAt
+	}
+	if _, ok := wiType.Fields[SystemOrder]; ok {
+		result.Fields[SystemOrder] = wi.ExecutionOrder
 	}
 	return result, nil
 
