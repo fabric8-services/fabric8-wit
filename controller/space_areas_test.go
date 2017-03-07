@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -79,7 +78,7 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 	resource.Require(t, resource.Database)
 
 	/*
-		Space X --> Area 2 ---> Area 21-0
+		Space X --> Area 2000A---> Area 21-00000A
 	*/
 	var createdAreaUuids []uuid.UUID
 
@@ -109,7 +108,6 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
 
 	// Now use Space-Areas list action to see all areas under this space.
-	fmt.Println("Created areas...")
 	svcSpaceAreas, ctrlSpaceAreas := rest.SecuredController()
 	_, areaList := test.ListSpaceAreasOK(t, svcSpaceAreas.Context, svcSpaceAreas, ctrlSpaceAreas, parentArea.SpaceID.String())
 	assert.Len(t, areaList.Data, 3)
