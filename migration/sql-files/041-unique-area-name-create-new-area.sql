@@ -28,9 +28,10 @@ WHERE  id NOT IN (SELECT s.id
 ----- for all other existing areas in production, move them under the default 'root' area.
 
 
--- Get Root area for a space
+
                            
 CREATE OR REPLACE FUNCTION GetRootArea(s_id uuid,OUT root_id uuid) AS $$ BEGIN
+-- Get Root area for a space
      select id from areas 
           where name in ( SELECT name as space_name
           from spaces 
@@ -50,6 +51,8 @@ END; $$ LANGUAGE plpgsql;
 -- Migrate all existing areas into the new tree where the parent is always the root area
 
 CREATE OR REPLACE FUNCTION GetUpdatedAreaPath(area_id uuid,space_id uuid, path ltree, OUT updated_path ltree) AS $rootarea$ 
+-- Migrate all existing areas into the new tree where the parent is always the root area
+
      DECLARE 
           rootarea uuid;                                            
      BEGIN
