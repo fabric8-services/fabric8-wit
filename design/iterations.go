@@ -118,7 +118,7 @@ var _ = a.Resource("iteration", func() {
 })
 
 // new version of "list" for migration
-var _ = a.Resource("space-iterations", func() {
+var _ = a.Resource("space_iterations", func() {
 	a.Parent("space")
 
 	a.Action("list", func() {

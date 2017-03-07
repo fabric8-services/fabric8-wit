@@ -84,10 +84,10 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 		return errs.WithStack(err)
 	}
 	// Check type paths
-	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeName) {
+	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeID) {
 		return errors.NewBadParameterError("source work item type", source.Type)
 	}
-	if !targetWorkItemType.IsTypeOrSubtypeOf(linkType.TargetTypeName) {
+	if !targetWorkItemType.IsTypeOrSubtypeOf(linkType.TargetTypeID) {
 		return errors.NewBadParameterError("target work item type", target.Type)
 	}
 	return nil

@@ -3,6 +3,7 @@ package space
 import (
 	"strings"
 
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -14,7 +15,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-var SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
+var (
+	SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
+	SpaceType   = "spaces"
+)
 
 // Space represents a Space on the domain and db layer
 type Space struct {
@@ -23,6 +27,7 @@ type Space struct {
 	Version     int
 	Name        string
 	Description string
+	OwnerId     satoriuuid.UUID `sql:"type:uuid"` // Belongs To Identity
 }
 
 // Ensure Fields implements the Equaler interface
@@ -48,6 +53,9 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Description != other.Description {
 		return false
 	}
+	if !satoriuuid.Equal(p.OwnerId, other.OwnerId) {
+		return false
+	}
 	return true
 }
 
@@ -57,6 +65,7 @@ type Repository interface {
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
 	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
 }
@@ -153,7 +162,10 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
 func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, error) {
-	space.ID = satoriuuid.NewV4()
+	// We might want to create a space with a specific ID, e.g. space.SystemSpace
+	if space.ID == satoriuuid.Nil {
+		space.ID = satoriuuid.NewV4()
+	}
 
 	tx := r.db.Create(space)
 	if err := tx.Error; err != nil {
@@ -267,4 +279,33 @@ func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limi
 	}
 
 	return result, count, nil
+}
+
+func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error) {
+	res := Space{}
+	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userId, *spaceName).First(&res)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"spaceName": *spaceName,
+			"userId":    *userId,
+		}, "Could not find space under owner")
+		return nil, errors.NewNotFoundError("space", *spaceName)
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return &res, nil
+}
+
+func NewSpaceRelation(id satoriuuid.UUID, selfURL string) *app.RelationSpaces {
+	spaceType := "spaces"
+	return &app.RelationSpaces{
+		Data: &app.RelationSpacesData{
+			Type: &spaceType,
+			ID:   &id,
+		},
+		Links: &app.GenericLinks{
+			Self: &selfURL,
+		},
+	}
 }

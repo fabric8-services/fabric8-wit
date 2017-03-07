@@ -6,9 +6,13 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
 
@@ -24,7 +28,7 @@ func NewTrackerQueryRepository(db *gorm.DB) *GormTrackerQueryRepository {
 
 // Create creates a new tracker query in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker string) (*app.TrackerQuery, error) {
+func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, schedule string, tracker string, spaceID uuid.UUID) (*app.TrackerQuery, error) {
 	tid, err := strconv.ParseUint(tracker, 10, 64)
 	if err != nil || tid == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
@@ -38,7 +42,9 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	tq := TrackerQuery{
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: tid}
+		TrackerID: tid,
+		SpaceID:   spaceID,
+	}
 	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -48,11 +54,16 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		return nil, InternalError{simpleError{err.Error()}}
 	}
 
+	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
 	tq2 := app.TrackerQuery{
 		ID:        strconv.FormatUint(tq.ID, 10),
 		Query:     query,
 		Schedule:  schedule,
-		TrackerID: tracker}
+		TrackerID: tracker,
+		Relationships: &app.TrackerQueryRelationships{
+			Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
+		},
+	}
 
 	log.Info(ctx, map[string]interface{}{
 		"trackerID":    tid,
@@ -82,11 +93,17 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		}, "tracker resource not found")
 		return nil, NotFoundError{"tracker query", ID}
 	}
+
+	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(res.SpaceID.String()))
 	tq := app.TrackerQuery{
 		ID:        strconv.FormatUint(res.ID, 10),
 		Query:     res.Query,
 		Schedule:  res.Schedule,
-		TrackerID: strconv.FormatUint(res.TrackerID, 10)}
+		TrackerID: strconv.FormatUint(res.TrackerID, 10),
+		Relationships: &app.TrackerQueryRelationships{
+			Space: space.NewSpaceRelation(res.SpaceID, spaceSelfURL),
+		},
+	}
 
 	return &tq, nil
 }
@@ -137,7 +154,9 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		ID:        id,
 		Schedule:  tq.Schedule,
 		Query:     tq.Query,
-		TrackerID: tid}
+		TrackerID: tid,
+		SpaceID:   *tq.Relationships.Space.Data.ID,
+	}
 
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -152,11 +171,16 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		"trackerQuery": newTq,
 	}, "Updated tracker query")
 
+	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(tq.Relationships.Space.Data.ID.String()))
 	t2 := app.TrackerQuery{
 		ID:        tq.ID,
 		Schedule:  tq.Schedule,
 		Query:     tq.Query,
-		TrackerID: tq.TrackerID}
+		TrackerID: tq.TrackerID,
+		Relationships: &app.TrackerQueryRelationships{
+			Space: space.NewSpaceRelation(*tq.Relationships.Space.Data.ID, spaceSelfURL),
+		},
+	}
 
 	return &t2, nil
 }
@@ -189,12 +213,18 @@ func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQu
 		return nil, errors.WithStack(err)
 	}
 	result := make([]*app.TrackerQuery, len(rows))
+
 	for i, tq := range rows {
+		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(tq.SpaceID.String()))
 		t := app.TrackerQuery{
 			ID:        strconv.FormatUint(tq.ID, 10),
 			Schedule:  tq.Schedule,
 			Query:     tq.Query,
-			TrackerID: strconv.FormatUint(tq.TrackerID, 10)}
+			TrackerID: strconv.FormatUint(tq.TrackerID, 10),
+			Relationships: &app.TrackerQueryRelationships{
+				Space: space.NewSpaceRelation(tq.SpaceID, spaceSelfURL),
+			},
+		}
 		result[i] = &t
 	}
 	return result, nil

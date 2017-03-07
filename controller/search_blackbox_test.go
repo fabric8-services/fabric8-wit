@@ -8,52 +8,89 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
-var spaceBlackBoxTestConfiguration *config.ConfigurationData
-
-func init() {
-	var err error
-	spaceBlackBoxTestConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-}
-
-func getServiceAsUser() *goa.Service {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return service
-}
-
-func TestSearch(t *testing.T) {
+func TestRunSearchTests(t *testing.T) {
 	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
+	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+}
 
-	service := getServiceAsUser()
-	wiRepo := workitem.NewWorkItemRepository(DB)
+type searchBlackBoxTest struct {
+	gormtestsupport.DBTestSuite
+	db                             *gormapplication.GormDB
+	svc                            *goa.Service
+	clean                          func()
+	testIdentity                   account.Identity
+	wiRepo                         *workitem.GormWorkItemRepository
+	controller                     *SearchController
+	spaceBlackBoxTestConfiguration *config.ConfigurationData
+	ctx                            context.Context
+}
 
-	_, err := wiRepo.Create(
-		context.Background(),
+func (s *searchBlackBoxTest) SetupSuite() {
+	var err error
+	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
+	if err != nil {
+		panic("Failed to connect database: " + err.Error())
+	}
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = testIdentity
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if wibConfiguration.GetPopulateCommonTypes() {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
+	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
+	require.Nil(s.T(), err)
+	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+}
+
+func (s *searchBlackBoxTest) TearDownTest() {
+	s.clean()
+}
+
+func (s *searchBlackBoxTest) TestSearchWorkItems() {
+	// given
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch",
@@ -61,25 +98,22 @@ func TestSearch(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	q := "specialwordforsearch"
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	require.NotEmpty(t, sr.Data)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, "specialwordforsearch", r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), "specialwordforsearch", r.Attributes[workitem.SystemTitle])
 }
 
-func TestSearchPagination(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-
-	wiRepo := workitem.NewWorkItemRepository(DB)
-
-	_, err := wiRepo.Create(
-		context.Background(),
+func (s *searchBlackBoxTest) TestSearchPagination() {
+	// given
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch2",
@@ -87,29 +121,24 @@ func TestSearchPagination(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	q := "specialwordforsearch2"
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
 	// defaults in paging.go is 'pageSizeDefault = 20'
-	assert.Equal(t, "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.First)
-	assert.Equal(t, "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.Last)
-	require.NotEmpty(t, sr.Data)
+	assert.Equal(s.T(), "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.First)
+	assert.Equal(s.T(), "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.Last)
+	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), "specialwordforsearch2", r.Attributes[workitem.SystemTitle])
 }
 
-func TestSearchWithEmptyValue(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-	wiRepo := workitem.NewWorkItemRepository(DB)
-
-	_, err := wiRepo.Create(
-		context.Background(),
+func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch",
@@ -117,53 +146,45 @@ func TestSearchWithEmptyValue(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	q := ""
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	require.NotNil(t, sr.Data)
-	assert.Empty(t, sr.Data)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
+	require.NotNil(s.T(), sr.Data)
+	assert.Empty(s.T(), sr.Data)
 }
 
-func TestSearchWithDomainPortCombination(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-	wiRepo := workitem.NewWorkItemRepository(DB)
-
+func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
-	_, err := wiRepo.Create(
-		context.Background(),
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_new",
 			workitem.SystemDescription: expectedDescription,
 			workitem.SystemCreator:     "baijum", workitem.SystemState: workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	q := `"http://localhost:8080/detail/154687364529310"`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	require.NotEmpty(t, sr.Data)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, description, r.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func TestSearchURLWithoutPort(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-	wiRepo := workitem.NewWorkItemRepository(DB)
-
+func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
-	_, err := wiRepo.Create(
-		context.Background(),
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_without_port",
@@ -171,27 +192,23 @@ func TestSearchURLWithoutPort(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	q := `"http://localhost/detail/876394"`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	require.NotEmpty(t, sr.Data)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, description, r.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func TestUnregisteredURLWithPort(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-	wiRepo := workitem.NewWorkItemRepository(DB)
-
+func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
-	_, err := wiRepo.Create(
-		context.Background(),
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_new",
@@ -199,27 +216,23 @@ func TestUnregisteredURLWithPort(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	q := `http://some-other-domain:8080/different-path/`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	require.NotEmpty(t, sr.Data)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
-	assert.Equal(t, description, r.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), description, r.Attributes[workitem.SystemDescription])
 }
 
-func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-	wiRepo := workitem.NewWorkItemRepository(DB)
-
+func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
 
-	_, err := wiRepo.Create(
-		context.Background(),
+	_, err := s.wiRepo.Create(
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_new",
@@ -227,18 +240,21 @@ func TestUnwantedCharactersRelatedToSearchLogic(t *testing.T) {
 			workitem.SystemCreator:     "baijum",
 			workitem.SystemState:       workitem.SystemStateClosed,
 		},
-		uuid.NewV4())
-	require.Nil(t, err)
-
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+		s.testIdentity.ID)
+	require.Nil(s.T(), err)
+	// when
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
-	_, sr := test.ShowSearchOK(t, nil, nil, controller, nil, nil, q)
-	require.NotNil(t, sr.Data)
-	assert.Empty(t, sr.Data)
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	// then
+	require.NotNil(s.T(), sr.Data)
+	assert.Empty(s.T(), sr.Data)
 }
 
-func getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
 	c := app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
@@ -250,6 +266,7 @@ func getWICreatePayload() *app.CreateWorkitemPayload {
 						ID:   workitem.SystemUserStory,
 					},
 				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -258,15 +275,20 @@ func getWICreatePayload() *app.CreateWorkitemPayload {
 	return &c
 }
 
+func getServiceAsUser(testIdentity account.Identity) *goa.Service {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	service := testsupport.ServiceAsUser("TestSearch-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	return service
+}
+
 // searchByURL copies much of the codebase from search_testing.go->ShowSearchOK
 // and customises the values to add custom Host in the call.
-func searchByURL(t *testing.T, customHost, queryString string) *app.SearchWorkItemList {
-	service := getServiceAsUser()
+func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.SearchWorkItemList {
 	var resp interface{}
 	var respSetter goatest.ResponseSetterFunc = func(r interface{}) { resp = r }
 	newEncoder := func(io.Writer) goa.Encoder { return respSetter }
-	service.Encoder = goa.NewHTTPEncoder()
-	service.Encoder.Register(newEncoder, "*/*")
+	s.svc.Encoder = goa.NewHTTPEncoder()
+	s.svc.Encoder.Register(newEncoder, "*/*")
 	rw := httptest.NewRecorder()
 	query := url.Values{}
 	u := &url.URL{
@@ -275,65 +297,50 @@ func searchByURL(t *testing.T, customHost, queryString string) *app.SearchWorkIt
 		Host:     customHost,
 	}
 	req, err := http.NewRequest("GET", u.String(), nil)
-	if err != nil {
-		panic("invalid test " + err.Error()) // bug
-	}
+	require.Nil(s.T(), err)
 	prms := url.Values{}
 	prms["q"] = []string{queryString} // any value will do
-	ctx := service.Context
-	goaCtx := goa.NewContext(goa.WithAction(ctx, "SearchTest"), rw, req, prms)
-	showCtx, err := app.NewShowSearchContext(goaCtx, req, service)
-	if err != nil {
-		panic("invalid test data " + err.Error()) // bug
-	}
-	ctrl := NewSearchController(service, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+	goaCtx := goa.NewContext(goa.WithAction(s.svc.Context, "SearchTest"), rw, req, prms)
+	showCtx, err := app.NewShowSearchContext(goaCtx, req, s.svc)
+	require.Nil(s.T(), err)
 	// Perform action
-	err = ctrl.Show(showCtx)
-
+	err = s.controller.Show(showCtx)
 	// Validate response
-	if err != nil {
-		t.Fatalf("controller returned %s", err)
-	}
-	if rw.Code != 200 {
-		t.Fatalf("invalid response status code: got %+v, expected 200", rw.Code)
-	}
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), 200, rw.Code)
 	mt, ok := resp.(*app.SearchWorkItemList)
-	if !ok {
-		t.Fatalf("invalid response media: got %+v, expected instance of app.SearchWorkItemList", resp)
-	}
+	require.True(s.T(), ok)
 	return mt
 }
 
 // verifySearchByKnownURLs performs actual tests on search result and knwonURL map
-func verifySearchByKnownURLs(t *testing.T, wi *app.WorkItem2Single, host, searchQuery string) {
-	result := searchByURL(t, host, searchQuery)
-	assert.NotEmpty(t, result.Data)
-	assert.Equal(t, *wi.Data.ID, *result.Data[0].ID)
+func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItem2Single, host, searchQuery string) {
+	result := s.searchByURL(host, searchQuery)
+	assert.NotEmpty(s.T(), result.Data)
+	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)
 
 	known := search.GetAllRegisteredURLs()
-	require.NotNil(t, known)
-	assert.NotEmpty(t, known)
-	assert.Contains(t, known[search.HostRegistrationKeyForListWI].URLRegex, host)
-	assert.Contains(t, known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
+	require.NotNil(s.T(), known)
+	assert.NotEmpty(s.T(), known)
+	assert.Contains(s.T(), known[search.HostRegistrationKeyForListWI].URLRegex, host)
+	assert.Contains(s.T(), known[search.HostRegistrationKeyForBoardWI].URLRegex, host)
 }
 
 // TestAutoRegisterHostURL checks if client's host is neatly registered as a KnwonURL or not
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
-func TestAutoRegisterHostURL(t *testing.T) {
-	resource.Require(t, resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	service := getServiceAsUser()
-	wiCtrl := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
+	// service := getServiceAsUser(s.testIdentity)
+	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
 	// create a WI, search by `list view URL` of newly created item
-	newWI := getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(t, service.Context, service, wiCtrl, newWI)
-	require.NotNil(t, wi)
+	newWI := s.getWICreatePayload()
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI)
+	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
-	verifySearchByKnownURLs(t, wi, customHost, queryString)
+	s.verifySearchByKnownURLs(wi, customHost, queryString)
 
 	// Search by `board view URL` of newly created item
 	customHost2 := "own.domain.two"
 	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
-	verifySearchByKnownURLs(t, wi, customHost2, queryString2)
+	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
 }

@@ -114,7 +114,7 @@ func (g *GormBase) WorkItemLinks() link.WorkItemLinkRepository {
 
 // Comments returns a work item comments repository
 func (g *GormBase) Comments() comment.Repository {
-	return comment.NewCommentRepository(g.db)
+	return comment.NewRepository(g.db)
 }
 
 // Iterations returns a iteration repository

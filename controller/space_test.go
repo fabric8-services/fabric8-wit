@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -20,14 +21,14 @@ import (
 )
 
 type TestSpaceREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
 }
 
 func TestRunProjectREST(t *testing.T) {
-	suite.Run(t, &TestSpaceREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestSpaceREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestSpaceREST) SetupTest() {
@@ -39,10 +40,10 @@ func (rest *TestSpaceREST) TearDownTest() {
 	rest.clean()
 }
 
-func (rest *TestSpaceREST) SecuredController() (*goa.Service, *SpaceController) {
+func (rest *TestSpaceREST) SecuredController(identity account.Identity) (*goa.Service, *SpaceController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
 	return svc, NewSpaceController(svc, rest.db)
 }
 
@@ -67,7 +68,7 @@ func (rest *TestSpaceREST) TestFailCreateSpaceMissingName() {
 
 	p := minimumRequiredCreateSpace()
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	test.CreateSpaceBadRequest(t, svc.Context, svc, ctrl, p)
 }
 
@@ -80,7 +81,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 	assert.NotNil(t, created.Data)
 	assert.NotNil(t, created.Data.Attributes)
@@ -103,7 +104,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
 	p.Data.Attributes.Name = &name
 	p.Data.Attributes.Description = &description
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 	assert.NotNil(t, created.Data)
 	assert.NotNil(t, created.Data.Attributes)
@@ -130,7 +131,7 @@ func (rest *TestSpaceREST) TestSuccessUpdateProject() {
 	p.Data.Attributes.Name = &name
 	p.Data.Attributes.Description = &description
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
 	u := minimumRequiredUpdateSpace()
@@ -142,6 +143,34 @@ func (rest *TestSpaceREST) TestSuccessUpdateProject() {
 	_, updated := test.UpdateSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), u)
 	assert.Equal(t, newName, *updated.Data.Attributes.Name)
 	assert.Equal(t, newDescription, *updated.Data.Attributes.Description)
+}
+
+func (rest *TestSpaceREST) TestFailUpdateProjectDifferentOwner() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	name := "Test 25"
+	description := "Space for Test 25"
+	newName := "Test 26"
+	newDescription := "Space for Test 25"
+
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+
+	u := minimumRequiredUpdateSpace()
+	u.Data.ID = created.Data.ID
+	u.Data.Attributes.Version = created.Data.Attributes.Version
+	u.Data.Attributes.Name = &newName
+	u.Data.Attributes.Description = &newDescription
+
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
+	_, errors := test.UpdateSpaceForbidden(t, svc2.Context, svc2, ctrl2, created.Data.ID.String(), u)
+	assert.NotEmpty(t, errors.Errors)
+	assert.Contains(t, errors.Errors[0].Detail, "User is not the space owner")
 }
 
 func (rest *TestSpaceREST) TestFailUpdateProjectUnSecure() {
@@ -167,7 +196,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
 	u.Data.Attributes.Version = &version
 	u.Data.ID = &id
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	test.UpdateSpaceNotFound(t, svc.Context, svc, ctrl, id.String(), u)
 }
 
@@ -180,7 +209,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceMissingName() {
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
 	u := minimumRequiredUpdateSpace()
@@ -200,7 +229,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceMissingVersion() {
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
 	u := minimumRequiredUpdateSpace()
@@ -220,7 +249,7 @@ func (rest *TestSpaceREST) TestSuccessShowProject() {
 	p.Data.Attributes.Name = &name
 	p.Data.Attributes.Description = &description
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
 	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String())
@@ -255,7 +284,7 @@ func (rest *TestSpaceREST) TestSuccessListSpaces() {
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
-	svc, ctrl := rest.SecuredController()
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 
 	_, list := test.ListSpaceOK(t, svc.Context, svc, ctrl, nil, nil)

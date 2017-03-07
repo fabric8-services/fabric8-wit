@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -16,7 +17,9 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -53,24 +56,24 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
 	if ctx.FilterAssignee != nil {
-		assignee := ctx.FilterAssignee
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
-		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+		additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
 	}
 	if ctx.FilterIteration != nil {
-		iteration := ctx.FilterIteration
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
-		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
 	}
 	if ctx.FilterWorkitemtype != nil {
-		wit := ctx.FilterWorkitemtype
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]string{*wit})))
-		additionalQuery = append(additionalQuery, "filter[workitemtype]="+*wit)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+ctx.FilterWorkitemtype.String())
 	}
 	if ctx.FilterArea != nil {
-		area := ctx.FilterArea
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*area))))
-		additionalQuery = append(additionalQuery, "filter[area]="+*area)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+		additionalQuery = append(additionalQuery, "filter[area]="+*ctx.FilterArea)
+	}
+	if ctx.FilterWorkitemstate != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
+		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
@@ -93,6 +96,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 // Update does PATCH workitem
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
@@ -109,7 +117,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		wi.Type = oldType
-		wi, err = appl.WorkItems().Save(ctx, *wi)
+		wi, err = appl.WorkItems().Save(ctx, *wi, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
@@ -131,7 +139,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 		return ctx.Unauthorized(jerrors)
 	}
-	var wit *string
+	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
 		ctx.Payload.Data.Relationships.BaseType != nil && ctx.Payload.Data.Relationships.BaseType.Data != nil {
 		wit = &ctx.Payload.Data.Relationships.BaseType.Data.ID
@@ -148,7 +156,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err := appl.WorkItems().Create(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -182,8 +190,13 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItems().Delete(ctx, ctx.ID)
+		err := appl.WorkItems().Delete(ctx, ctx.ID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
 		}
@@ -264,6 +277,12 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
 				target.Fields[key] = *m
 			}
+		} else if key == workitem.SystemCodebase {
+			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
+				target.Fields[key] = *m
+			} else {
+				return err
+			}
 		} else {
 			target.Fields[key] = val
 		}
@@ -309,6 +328,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
 	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.Space.Data.ID.String()))
+
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -322,6 +343,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Type: APIStringTypeWorkItemType,
 				},
 			},
+			Space: space.NewSpaceRelation(*wi.Relationships.Space.Data.ID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,
@@ -331,7 +353,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 
 	// Move fields into Relationships or Attributes as needed
-	// TODO: Loop based on WorKItemType and match against Field.Type instead of directly to field value
+	// TODO: Loop based on WorkItemType and match against Field.Type instead of directly to field value
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
@@ -375,7 +397,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Attributes[workitem.SystemDescriptionRendered] =
 					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
 			}
-
+		case workitem.SystemCodebase:
+			if val != nil {
+				op.Attributes[name] = val
+				// TODO: Following format is TBD and hence commented out
+				// cb := val.(codebase.CodebaseContent)
+				// urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+				// doitURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
+				// op.Links.Doit = &doitURL
+			}
 		default:
 			op.Attributes[name] = val
 		}
