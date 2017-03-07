@@ -114,7 +114,7 @@
   # Merge in other fields defined outside
   << : [ *ChangedBy, *CreatedBy, *ClosedBy, *StateChanged ]
   title: !!map
-    label: "title"
+    label: "Title"
     description: "A small text title that is displayed in lists and alike"
     type: *KindString
     required: !!bool yes
