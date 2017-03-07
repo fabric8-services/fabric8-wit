@@ -43,7 +43,7 @@ END; $$ LANGUAGE plpgsql ;
 -- Convert Text to Ltree , use standard library FUNCTION?
 
 CREATE OR REPLACE FUNCTION TextToLtreeNode(u text, OUT node ltree) AS $$ BEGIN
-    SELECT replace(u::text, '-', '_') INTO node;
+    SELECT replace(u, '-', '_') INTO node;
 END; $$ LANGUAGE plpgsql;
 
 
