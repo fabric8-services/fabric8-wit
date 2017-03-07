@@ -147,16 +147,30 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if wit == nil { // TODO Figure out path source etc. Should be a required relation
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.BaseType.Data.ID", err))
 	}
+	// Following is a temporary fix. Until the API itself understands space context we will add default space like this
+	// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+	spaceID := space.SystemSpace
+	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
+		ctx.Payload.Data.Relationships.Space != nil && ctx.Payload.Data.Relationships.Space.Data != nil {
+		spaceID = *ctx.Payload.Data.Relationships.Space.Data.ID
+	}
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		//verify spaceID:
+		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+		if spaceID != space.SystemSpace {
+			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+			if spaceLoadErr != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("sapce", "string").Expected("valid space UUID"))
+			}
+		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-
-		wi, err := appl.WorkItems().Create(ctx, *ctx.Payload.Data.Relationships.Space.Data.ID, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}

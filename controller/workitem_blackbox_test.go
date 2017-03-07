@@ -1738,3 +1738,58 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
 	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
+
+func (s *WorkItem2Suite) TestCreateWorkItemWithDefaultSpace() {
+	t := s.T()
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// remove Space relation and see if WI gets default space.
+	c.Data.Relationships.Space = nil
+	_, item := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(t, item)
+	assert.Equal(t, title, item.Data.Attributes[workitem.SystemTitle])
+	require.NotNil(t, item.Data.Relationships)
+	require.NotNil(t, item.Data.Relationships.Space)
+	assert.Equal(t, space.SystemSpace, *item.Data.Relationships.Space.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
+	t := s.T()
+	spaceName := "My own Space"
+	sp := &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name: &spaceName,
+			},
+		},
+	}
+	_, customSpace := test.CreateSpaceCreated(t, s.svc.Context, s.svc, s.spaceCtrl, sp)
+	require.NotNil(t, customSpace)
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// set custom space and see if WI gets custom space
+	c.Data.Relationships.Space.Data.ID = customSpace.Data.ID
+	_, item := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	require.NotNil(t, item)
+	assert.Equal(t, title, item.Data.Attributes[workitem.SystemTitle])
+	require.NotNil(t, item.Data.Relationships)
+	require.NotNil(t, item.Data.Relationships.Space)
+	assert.Equal(t, *customSpace.Data.ID, *item.Data.Relationships.Space.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
+	t := s.T()
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// set custom space and see if WI gets custom space
+	fakeSpaceID := uuid.NewV4()
+	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
