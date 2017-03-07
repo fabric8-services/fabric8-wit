@@ -11,7 +11,9 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/path"
+	"github.com/pkg/errors"
 
+	localerror "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
@@ -64,9 +66,7 @@ func (test *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 		t.Errorf("Area was not created, ID nil")
 	}
 
-	if i.CreatedAt.After(time.Now()) {
-		t.Errorf("Area was not created, CreatedAt after Now()?")
-	}
+	require.False(t, i.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()")
 
 	assert.Equal(t, name, i.Name)
 
@@ -75,7 +75,11 @@ func (test *TestAreaRepository) TestCreateAreaWithSameNameFail() {
 		SpaceID: space.ID,
 	}
 	err = repo.Create(context.Background(), &anotherAreaWithSameName)
-	assert.NotNil(t, err) // Is there a way to check error code?
+	assert.NotNil(t, err)
+
+	// In case of unique constrain error, a BadParameterError is returned.
+	_, ok := errors.Cause(err).(localerror.BadParameterError)
+	assert.True(t, ok)
 }
 
 func (test *TestAreaRepository) TestCreateArea() {
