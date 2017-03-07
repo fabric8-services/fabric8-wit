@@ -21,7 +21,7 @@
 # If we use top-level non-null keys chances are, that those are used required
 # entries for a space template.
 
-# These define the potential field types that ca be used in the fields of work
+# These define the potential field types that can be used in the fields of work
 # item types. We've included them here so you can easier reference each field
 # type by using one of the &KindXY handles.
 ~:
