@@ -561,7 +561,6 @@ func (s *WorkItem2Suite) SetupSuite() {
 		}
 	}
 	s.clean = cleaner.DeleteCreatedEntities(s.db)
-	// s.db.LogMode(true)
 }
 
 func (s *WorkItem2Suite) TearDownSuite() {
