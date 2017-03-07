@@ -236,7 +236,10 @@
 ~: &TimeCriticality !!map
   time_criticality: !!map
     label: "Time criticality"
-    description: "TBD"
+    description: >
+      Time Criticality captures how the business value decreases over
+      time for a Feature or Epic. Higher values indicate that the item
+      is inherently more time critical than those items with lower values.
     type: *KindFloat
     required: !!bool no
 
