@@ -62,7 +62,7 @@ CREATE OR REPLACE FUNCTION GetUpdatedAreaPath(area_id uuid,space_id uuid, path l
          THEN                  
          IF path=''
             THEN 
-             select TextToLtreeNode(rootarea::text) into updated_path ;
+             select UUIDToLtreeNode(rootarea) into updated_path ;
          ELSE 
              select TextToLtreeNode(concat(rootarea::text,'.',path::text)) into updated_path;
          END IF;
