@@ -163,7 +163,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if spaceID != space.SystemSpace {
 			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
 			if spaceLoadErr != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("sapce", "string").Expected("valid space UUID"))
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 			}
 		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
