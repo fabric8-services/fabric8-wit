@@ -87,7 +87,7 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 
 	parentID := parentArea.ID
-	name := "Area 2"
+	name := "Area 2000A"
 	ci := createChildArea(&name)
 
 	svc, ctrl := rest.SecuredAreasController()
@@ -97,7 +97,7 @@ func (rest *TestSpaceAreaREST) TestListAreas() {
 	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
 
 	// Create a child of the child created above.
-	name = "Area 21-0"
+	name = "Area 21-00000A"
 	ci = createChildArea(&name)
 	newParentID := *created.Data.Relationships.Parent.Data.ID
 	_, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ci)
