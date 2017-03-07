@@ -50,7 +50,7 @@ type TestUsersSuite struct {
 func (s *TestUsersSuite) SetupSuite() {
 	var err error
 	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	s.DB.LogMode(true)
+	//s.DB.LogMode(true)
 	require.Nil(s.T(), err)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.svc = goa.New("test")

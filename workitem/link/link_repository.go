@@ -25,13 +25,13 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
-	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
+	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID, creatorID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkList, error)
 	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
-	DeleteRelatedLinks(ctx context.Context, wiIDStr string) error
-	Delete(ctx context.Context, ID satoriuuid.UUID) error
-	Save(ctx context.Context, linkCat app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error)
+	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID satoriuuid.UUID) error
+	Delete(ctx context.Context, ID satoriuuid.UUID, suppressorID satoriuuid.UUID) error
+	Save(ctx context.Context, linkCat app.WorkItemLinkSingle, modifierID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -41,6 +41,7 @@ func NewWorkItemLinkRepository(db *gorm.DB) *GormWorkItemLinkRepository {
 		workItemRepo:         workitem.NewWorkItemRepository(db),
 		workItemTypeRepo:     workitem.NewWorkItemTypeRepository(db),
 		workItemLinkTypeRepo: NewWorkItemLinkTypeRepository(db),
+		revisionRepo:         NewRevisionRepository(db),
 	}
 }
 
@@ -50,6 +51,7 @@ type GormWorkItemLinkRepository struct {
 	workItemRepo         *workitem.GormWorkItemRepository
 	workItemTypeRepo     *workitem.GormWorkItemTypeRepository
 	workItemLinkTypeRepo *GormWorkItemLinkTypeRepository
+	revisionRepo         *GormWorkItemLinkRevisionRepository
 }
 
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
@@ -91,7 +93,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID, creatorID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -110,6 +112,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 			return nil, errors.NewBadParameterError("data.relationships.source_id + data.relationships.target_id + data.relationships.link_type_id", sourceID).Expected("unique")
 		}
 		return nil, errors.NewInternalError(db.Error.Error())
+	}
+	// save a revision of the created work item link
+	if err := r.revisionRepo.Create(ctx, creatorID, RevisionTypeCreate, *link); err != nil {
+		return nil, errs.WithStack(err)
 	}
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkFromModel(*link)
@@ -195,31 +201,35 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
-	var link = WorkItemLink{
-		ID: ID,
-	}
+func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID satoriuuid.UUID, suppressorID satoriuuid.UUID) error {
+	var l = WorkItemLink{}
+	tx := r.db.Where("id = ?", linkID).Find(&l)
 	log.Info(ctx, map[string]interface{}{
-		"wilID": ID,
+		"wilID": linkID,
 	}, "Deleting the work item link repository")
 
-	db := r.db.Delete(&link)
-	if db.Error != nil {
+	tx.Delete(&l)
+	if tx.RowsAffected == 0 {
+		return errors.NewNotFoundError("work item link", linkID.String())
+	}
+	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": ID,
-			"err":   db.Error,
-		}, "unable to delete work item link repository")
-		return errors.NewInternalError(db.Error.Error())
+			"wilID": linkID,
+			"err":   tx.Error,
+		}, "unable to delete work item link")
+		return errors.NewInternalError(tx.Error.Error())
 	}
-	if db.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item link", ID.String())
+	// save a revision of the deleted work item link
+	if err := r.revisionRepo.Create(ctx, suppressorID, RevisionTypeDelete, l); err != nil {
+		return errs.WithStack(err)
 	}
+
 	return nil
 }
 
 // DeleteRelatedLinks deletes all links in which the source or target equals the
 // given work item ID.
-func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string) error {
+func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, modifierID satoriuuid.UUID) error {
 	wiId, err := strconv.ParseUint(wiIDStr, 10, 64)
 	if err != nil {
 		// treat as not found: clients don't know it must be a uint64
@@ -234,7 +244,7 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLinkSingle) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLinkSingle, modifierID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
 	res := WorkItemLink{}
 	if lt.Data.ID == nil {
 		return nil, errors.NewBadParameterError("work item link", nil)
@@ -272,7 +282,10 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 		}, "unable to save work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-
+	// save a revision of the modified work item link
+	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, res); err != nil {
+		return nil, errs.WithStack(err)
+	}
 	log.Info(ctx, map[string]interface{}{
 		"wilID": res.ID,
 	}, "Work item link updated")

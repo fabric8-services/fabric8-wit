@@ -56,6 +56,7 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment, cr
 		}, "unable to create the comment")
 		return errs.WithStack(err)
 	}
+	// save a revision of the created comment
 	if err := m.revisionRepository.Create(ctx, creatorID, RevisionTypeCreate, *comment); err != nil {
 		return errs.WithStack(err)
 	}
@@ -98,6 +99,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment, modi
 
 		return errors.NewInternalError(err.Error())
 	}
+	// save a revision of the updated comment
 	if err := m.revisionRepository.Create(ctx, modifierID, RevisionTypeUpdate, *comment); err != nil {
 		return errs.WithStack(err)
 	}
@@ -123,6 +125,7 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 	if err := tx.Error; err != nil {
 		return errors.NewInternalError(err.Error())
 	}
+	// save a revision of the deleted comment
 	if err := m.revisionRepository.Create(ctx, suppressorID, RevisionTypeDelete, c); err != nil {
 		return errs.WithStack(err)
 	}

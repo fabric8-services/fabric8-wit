@@ -200,7 +200,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
 		}
-		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID); err != nil {
+		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID, *currentUserIdentityID); err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.ID))
 		}
 		return ctx.OK([]byte{})

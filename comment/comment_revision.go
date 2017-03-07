@@ -6,7 +6,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// CommentRevisionType defines the type of revision for a comment
+// RevisionType defines the type of revision for a comment
 type RevisionType int
 
 const (
