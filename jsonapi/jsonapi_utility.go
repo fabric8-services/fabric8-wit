@@ -52,6 +52,10 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 		code = ErrorCodeInternalError
 		title = "Internal error"
 		statusCode = http.StatusInternalServerError
+	case errors.UnauthorizedError:
+		code = ErrorCodeUnauthorizedError
+		title = "Unauthorized error"
+		statusCode = http.StatusUnauthorized
 	default:
 		code = ErrorCodeUnknownError
 		title = "Unknown error"
