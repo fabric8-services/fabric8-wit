@@ -10,120 +10,1045 @@ interactions:
     url: https://issues.jboss.org/rest/api/2/search?jql=project+%3D+Arquillian+AND+status+%3D+Closed+AND+assignee+%3D+aslak+AND+fixVersion+%3D+1.1.11.Final+AND+priority+%3D+Major+ORDER+BY+created+ASC
     method: GET
   response:
-    body: '{"expand":"schema,names","startAt":0,"maxResults":50,"total":5,"issues":[{"expand":"operations,editmeta,changelog,transitions,renderedFields","id":"12566592","self":"https://issues.jboss.org/rest/api/2/issue/12566592","key":"ARQ-1937","fields":{"issuetype":{"self":"https://issues.jboss.org/rest/api/2/issuetype/1","id":"1","description":"A
-      problem which impairs or prevents the functions of the product.","iconUrl":"https://issues.jboss.org/images/icons/issuetypes/bug.png","name":"Bug","subtask":false},"timespent":null,"project":{"self":"https://issues.jboss.org/rest/api/2/project/12310885","id":"12310885","key":"ARQ","name":"Arquillian","avatarUrls":{"48x48":"https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660","24x24":"https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660","16x16":"https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660","32x32":"https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"},"projectCategory":{"self":"https://issues.jboss.org/rest/api/2/projectCategory/10099","id":"10099","description":"Projects
-      related to Tool and Testing technologies.","name":"k) Tools & Testing"}},"fixVersions":[{"self":"https://issues.jboss.org/rest/api/2/version/12329472","id":"12329472","name":"1.1.11.Final","archived":false,"released":true,"releaseDate":"2016-01-27"}],"aggregatetimespent":null,"resolution":{"self":"https://issues.jboss.org/rest/api/2/resolution/1","id":"1","description":"The
-      issue is resolved as requested - bug fixed, feature completed, etc.","name":"Done"},"customfield_12310220":["https://github.com/arquillian/arquillian-core/pull/83"],"customfield_12310341":null,"customfield_12310340":null,"customfield_12312640":null,"customfield_12310183":null,"resolutiondate":"2016-01-27T12:18:50.000-0500","workratio":-1,"customfield_12310940":null,"lastViewed":null,"watches":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-1937/watchers","watchCount":4,"isWatching":false},"created":"2015-03-23T06:22:19.000-0400","customfield_12313140":null,"priority":{"self":"https://issues.jboss.org/rest/api/2/priority/3","iconUrl":"https://issues.jboss.org/images/icons/priorities/major.png","name":"Major","id":"3"},"labels":[],"customfield_12311244":null,"customfield_12311640":null,"customfield_12311245":null,"customfield_12311641":null,"customfield_12311242":null,"customfield_12311243":null,"customfield_12311240":null,"timeestimate":null,"aggregatetimeoriginalestimate":null,"versions":[{"self":"https://issues.jboss.org/rest/api/2/version/12322322","id":"12322322","description":"Minor
-      enhancement","name":"1.1.1.Final","archived":false,"released":true,"releaseDate":"2013-08-04"}],"customfield_12311241":null,"customfield_12310031":null,"issuelinks":[],"assignee":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"updated":"2016-02-15T09:17:14.000-0500","customfield_12311246":null,"customfield_12311840":null,"status":{"self":"https://issues.jboss.org/rest/api/2/status/6","description":"The
-      issue is considered finished, the resolution is correct. Issues which are not
-      closed can be reopened.","iconUrl":"https://issues.jboss.org/images/icons/statuses/closed.png","name":"Closed","id":"6","statusCategory":{"self":"https://issues.jboss.org/rest/api/2/statuscategory/3","id":3,"key":"done","colorName":"green","name":"Done"}},"components":[{"self":"https://issues.jboss.org/rest/api/2/component/12313040","id":"12313040","name":"Deployable
-      Containers SPI","description":"The Deployable Containers SPI allows control
-      of the lifecycle of the container, deployment of artifacts :: arquillian-core"}],"timeoriginalestimate":null,"customfield_12310080":null,"description":"Steps
-      to reproduce:\r\n1) inject a Deployer via @ArquillianResource\r\n2) declare
-      a deployment as managed=false, use the deployer to deploy artifacts to a managed
-      container\r\n3) run a test method that operates on the deployment\r\n4) check
-      that classes inside the test method have the same classloader as the test class
-      itself (see the code below where I call cache.getClass().getClassLoader())\r\n5)
-      this does not happen when the deployment is managed=true and deployer API is
-      NOT used. In this case, the classes have a different class loader\r\n\r\nIn
-      the test below, I tried to load different versions of Infinispan in two deployments
-      and test backward compatibility. However, due to this class loading issue the
-      Infinispan classes are of the latest version regardless of libraries bundled
-      in the WAR. This is probably due to the fact that the Maven test module has
-      the latest Infinispan libraries defined in <dependencies> while the older version
-      is downloaded separately via Maven dependency plugin.\r\n\r\n{code}\r\npackage
-      com.jboss.datagrid.test.backwardcompatibility;\r\n\r\n\r\n@RunWith(Arquillian.class)\r\npublic
-      class SingleFileStoreBackwardCompatibilityIT {\r\n\r\n    private DefaultCacheManager
-      dfc;\r\n    private String cacheName = \"testCache\";\r\n\r\n    private static
-      final String OLD_ISPN = \"dep1_with_old_ispn\";\r\n    private static final
-      String NEW_ISPN = \"dep2_with_new_ispn\";\r\n\r\n    private static Map<String,
-      String> storedMap;\r\n\r\n    @ArquillianResource\r\n    Deployer deployer;\r\n\r\n    @Deployment(name
-      = OLD_ISPN, testable = true, managed = true, order=1)\r\n    @TargetsContainer(\"container1\")\r\n    public
-      static WebArchive createDeploymentOld() {\r\n        WebArchive jar = DeploymentBuilder.createTestArchiveWithPreviousJDG(\"test1.war\",
-      \"previous\");\r\n        System.out.println(\"ClassLoader: \" + SingleFileStoreBackwardCompatibilityIT.class.getClassLoader());\r\n        return
-      jar;\r\n    }\r\n\r\n    @Deployment(name = NEW_ISPN, testable = true, managed
-      = true, order=2)\r\n    @TargetsContainer(\"container2\")\r\n    public static
-      WebArchive createDeploymentNew() {\r\n        WebArchive jar = DeploymentBuilder.createTestArchive(\"test2.war\",
-      \"current\");\r\n        return jar;\r\n    }\r\n\r\n    private DefaultCacheManager
-      configureCacheManager(boolean clearCacheStore) throws Exception {\r\n        GlobalConfiguration
-      glob = new GlobalConfigurationBuilder().nonClusteredDefault()\r\n                .globalJmxStatistics().allowDuplicateDomains(true).\r\n                        build();\r\n        ConfigurationBuilder
-      c = new ConfigurationBuilder();\r\n        c.clustering().cacheMode(CacheMode.LOCAL);\r\n\r\n        File
-      tmpStore = new File(\"/tmp/cache/\" + cacheName + \".dat\");\r\n        if (clearCacheStore
-      && tmpStore.exists()) {\r\n            tmpStore.delete();\r\n        }\r\n        c.persistence().passivation(false).addSingleFileStore().purgeOnStartup(false).location(\"/tmp/cache/\");\r\n        Configuration
-      cnf = c.build();\r\n        DefaultCacheManager manager = new DefaultCacheManager(glob);\r\n\r\n        manager.defineConfiguration(cacheName,
-      cnf);\r\n        return manager;\r\n    }\r\n\r\n    @Test\r\n    @OperateOnDeployment(OLD_ISPN)\r\n    @InSequence(1)\r\n    public
-      void testStoreWithOldJDG() throws Exception {\r\n        deployer.deploy(OLD_ISPN);\r\n        dfc
-      = configureCacheManager(true);\r\n        dfc.start();\r\n        Cache<Object,
-      Object> cache = dfc.getCache(cacheName);\r\n        System.out.println(\"Version:
-      \" + cache.getVersion());\r\n        System.out.println(\"ClassLoader: \" +
-      cache.getClass().getClassLoader());\r\n        storedMap = new HashMap<String,
-      String>();\r\n        storedMap.put(\"k\", \"v\");\r\n        cache.put(\"mapKey\",
-      storedMap);\r\n        dfc.stop();\r\n        deployer.undeploy(OLD_ISPN);\r\n    }\r\n\r\n    @Test\r\n    @OperateOnDeployment(NEW_ISPN)\r\n    @InSequence(2)\r\n    public
-      void testReadWithNewJDG() throws Exception {\r\n        deployer.deploy(NEW_ISPN);\r\n        dfc
-      = configureCacheManager(false);\r\n        dfc.start();\r\n        Cache<Object,
-      Object> cache = dfc.getCache(cacheName);\r\n        System.out.println(\"ClassLoader:
-      \" + cache.getClass().getClassLoader());\r\n        System.out.println(\"Version:
-      \" + cache.getVersion());\r\n        assertEquals(storedMap, cache.get(\"mapKey\"));\r\n        dfc.stop();\r\n        deployer.undeploy(NEW_ISPN);\r\n    }\r\n\r\n}\r\n\r\n{code}","customfield_12310440":null,"customfield_12310120":null,"customfield_12310241":null,"customfield_12310640":"13.0","customfield_12310243":null,"aggregatetimeestimate":null,"customfield_12310840":"9223372036854775807","customfield_12310641":"0.0","summary":"Class
-      loading issue with injected deployer ","creator":{"self":"https://issues.jboss.org/rest/api/2/user?username=mgencur","name":"mgencur","key":"mgencur","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=32"},"displayName":"Martin
-      Gencur","active":true,"timeZone":"America/New_York"},"subtasks":[],"customfield_12310091":null,"customfield_12310090":null,"reporter":{"self":"https://issues.jboss.org/rest/api/2/user?username=mgencur","name":"mgencur","key":"mgencur","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=32"},"displayName":"Martin
-      Gencur","active":true,"timeZone":"America/New_York"},"customfield_12310092":null,"aggregateprogress":{"progress":0,"total":0},"customfield_10002":null,"customfield_12310010":null,"environment":null,"customfield_12310211":null,"duedate":null,"customfield_12311140":null,"progress":{"progress":0,"total":0},"votes":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-1937/votes","votes":0,"hasVoted":false},"customfield_12311941":null,"customfield_12311940":"1|hzvljr:"}},{"expand":"operations,editmeta,changelog,transitions,renderedFields","id":"12573304","self":"https://issues.jboss.org/rest/api/2/issue/12573304","key":"ARQ-1956","fields":{"issuetype":{"self":"https://issues.jboss.org/rest/api/2/issuetype/2","id":"2","description":"A
-      new feature of the product, which has yet to be developed.","iconUrl":"https://issues.jboss.org/images/icons/issuetypes/newfeature.png","name":"Feature
-      Request","subtask":false},"timespent":null,"project":{"self":"https://issues.jboss.org/rest/api/2/project/12310885","id":"12310885","key":"ARQ","name":"Arquillian","avatarUrls":{"48x48":"https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660","24x24":"https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660","16x16":"https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660","32x32":"https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"},"projectCategory":{"self":"https://issues.jboss.org/rest/api/2/projectCategory/10099","id":"10099","description":"Projects
-      related to Tool and Testing technologies.","name":"k) Tools & Testing"}},"fixVersions":[{"self":"https://issues.jboss.org/rest/api/2/version/12329472","id":"12329472","name":"1.1.11.Final","archived":false,"released":true,"releaseDate":"2016-01-27"}],"aggregatetimespent":null,"resolution":{"self":"https://issues.jboss.org/rest/api/2/resolution/1","id":"1","description":"The
-      issue is resolved as requested - bug fixed, feature completed, etc.","name":"Done"},"customfield_12310220":["https://github.com/arquillian/arquillian-core/pull/84"],"customfield_12310341":null,"customfield_12310340":null,"customfield_12312640":null,"resolutiondate":"2016-01-27T12:07:45.000-0500","workratio":-1,"customfield_12310940":null,"lastViewed":null,"watches":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-1956/watchers","watchCount":1,"isWatching":false},"created":"2015-05-29T10:27:38.000-0400","customfield_12313140":null,"priority":{"self":"https://issues.jboss.org/rest/api/2/priority/3","iconUrl":"https://issues.jboss.org/images/icons/priorities/major.png","name":"Major","id":"3"},"labels":[],"customfield_12311244":null,"customfield_12311640":null,"customfield_12311245":null,"customfield_12311641":null,"customfield_12311242":null,"customfield_12311243":null,"customfield_12311240":null,"timeestimate":null,"aggregatetimeoriginalestimate":null,"versions":[{"self":"https://issues.jboss.org/rest/api/2/version/12326688","id":"12326688","name":"1.1.8.Final","archived":false,"released":true,"releaseDate":"2015-04-17"}],"customfield_12311241":null,"customfield_12310031":null,"issuelinks":[],"assignee":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"updated":"2016-01-27T12:07:45.000-0500","customfield_12311246":null,"customfield_12311840":null,"status":{"self":"https://issues.jboss.org/rest/api/2/status/6","description":"The
-      issue is considered finished, the resolution is correct. Issues which are not
-      closed can be reopened.","iconUrl":"https://issues.jboss.org/images/icons/statuses/closed.png","name":"Closed","id":"6","statusCategory":{"self":"https://issues.jboss.org/rest/api/2/statuscategory/3","id":3,"key":"done","colorName":"green","name":"Done"}},"components":[{"self":"https://issues.jboss.org/rest/api/2/component/12313452","id":"12313452","name":"Base
-      Implementation","description":"Issues pertaining to the internal Arquillian
-      implementation :: arquillian-core"}],"timeoriginalestimate":null,"customfield_12310080":null,"description":null,"customfield_12310440":null,"customfield_12310120":null,"customfield_12310241":null,"customfield_12310640":"1.0","customfield_12310243":null,"aggregatetimeestimate":null,"customfield_12310840":"9223372036854775807","customfield_12310641":"0.0","summary":"Add
-      Instance to Before|AfterEnrichment events","creator":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"subtasks":[],"reporter":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"customfield_12310092":null,"aggregateprogress":{"progress":0,"total":0},"customfield_10002":null,"customfield_12310010":null,"environment":null,"customfield_12310211":null,"duedate":null,"customfield_12311140":null,"progress":{"progress":0,"total":0},"votes":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-1956/votes","votes":0,"hasVoted":false},"customfield_12311941":null,"customfield_12311940":"1|hzwna7:"}},{"expand":"operations,editmeta,changelog,transitions,renderedFields","id":"12590629","self":"https://issues.jboss.org/rest/api/2/issue/12590629","key":"ARQ-1996","fields":{"issuetype":{"self":"https://issues.jboss.org/rest/api/2/issuetype/12","id":"12","description":"A
-      task tracking an update to a bundled component","iconUrl":"https://issues.jboss.org/images/icons/box.gif","name":"Component
-      Upgrade","subtask":false},"timespent":null,"project":{"self":"https://issues.jboss.org/rest/api/2/project/12310885","id":"12310885","key":"ARQ","name":"Arquillian","avatarUrls":{"48x48":"https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660","24x24":"https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660","16x16":"https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660","32x32":"https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"},"projectCategory":{"self":"https://issues.jboss.org/rest/api/2/projectCategory/10099","id":"10099","description":"Projects
-      related to Tool and Testing technologies.","name":"k) Tools & Testing"}},"fixVersions":[{"self":"https://issues.jboss.org/rest/api/2/version/12329472","id":"12329472","name":"1.1.11.Final","archived":false,"released":true,"releaseDate":"2016-01-27"}],"aggregatetimespent":null,"resolution":{"self":"https://issues.jboss.org/rest/api/2/resolution/1","id":"1","description":"The
-      issue is resolved as requested - bug fixed, feature completed, etc.","name":"Done"},"customfield_12310220":["https://github.com/arquillian/arquillian-core/pull/95"],"customfield_12310341":null,"customfield_12310340":null,"customfield_12312640":null,"resolutiondate":"2015-10-27T15:58:21.000-0400","workratio":-1,"customfield_12310940":null,"lastViewed":null,"watches":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-1996/watchers","watchCount":1,"isWatching":false},"created":"2015-10-27T15:54:51.000-0400","customfield_12313140":null,"priority":{"self":"https://issues.jboss.org/rest/api/2/priority/3","iconUrl":"https://issues.jboss.org/images/icons/priorities/major.png","name":"Major","id":"3"},"labels":[],"customfield_12311244":null,"customfield_12311640":null,"customfield_12311245":null,"customfield_12311641":null,"customfield_12311242":null,"customfield_12311243":null,"customfield_12311240":null,"timeestimate":null,"aggregatetimeoriginalestimate":null,"versions":[{"self":"https://issues.jboss.org/rest/api/2/version/12328572","id":"12328572","name":"1.1.10.Final","archived":false,"released":true,"releaseDate":"2015-10-19"}],"customfield_12311241":null,"customfield_12310031":null,"issuelinks":[],"assignee":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"updated":"2016-01-27T12:20:06.000-0500","customfield_12311246":null,"customfield_12311840":null,"status":{"self":"https://issues.jboss.org/rest/api/2/status/6","description":"The
-      issue is considered finished, the resolution is correct. Issues which are not
-      closed can be reopened.","iconUrl":"https://issues.jboss.org/images/icons/statuses/closed.png","name":"Closed","id":"6","statusCategory":{"self":"https://issues.jboss.org/rest/api/2/statuscategory/3","id":3,"key":"done","colorName":"green","name":"Done"}},"components":[{"self":"https://issues.jboss.org/rest/api/2/component/12313452","id":"12313452","name":"Base
-      Implementation","description":"Issues pertaining to the internal Arquillian
-      implementation :: arquillian-core"}],"timeoriginalestimate":null,"customfield_12310080":null,"description":null,"customfield_12310440":null,"customfield_12310120":null,"customfield_12310241":null,"customfield_12310640":"1.0","customfield_12310243":null,"aggregatetimeestimate":null,"customfield_12310840":"9223372036854775807","customfield_12310641":"0.0","summary":"Upgrade
-      to ShrinkWrap 1.2.3","creator":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"subtasks":[],"reporter":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"customfield_12310092":null,"aggregateprogress":{"progress":0,"total":0},"customfield_10002":null,"customfield_12310010":null,"environment":null,"customfield_12310211":null,"duedate":null,"customfield_12311140":null,"progress":{"progress":0,"total":0},"votes":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-1996/votes","votes":0,"hasVoted":false},"customfield_12311941":null,"customfield_12311940":"1|hzzcnz:"}},{"expand":"operations,editmeta,changelog,transitions,renderedFields","id":"12601505","self":"https://issues.jboss.org/rest/api/2/issue/12601505","key":"ARQ-2009","fields":{"issuetype":{"self":"https://issues.jboss.org/rest/api/2/issuetype/1","id":"1","description":"A
-      problem which impairs or prevents the functions of the product.","iconUrl":"https://issues.jboss.org/images/icons/issuetypes/bug.png","name":"Bug","subtask":false},"timespent":null,"project":{"self":"https://issues.jboss.org/rest/api/2/project/12310885","id":"12310885","key":"ARQ","name":"Arquillian","avatarUrls":{"48x48":"https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660","24x24":"https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660","16x16":"https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660","32x32":"https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"},"projectCategory":{"self":"https://issues.jboss.org/rest/api/2/projectCategory/10099","id":"10099","description":"Projects
-      related to Tool and Testing technologies.","name":"k) Tools & Testing"}},"fixVersions":[{"self":"https://issues.jboss.org/rest/api/2/version/12329472","id":"12329472","name":"1.1.11.Final","archived":false,"released":true,"releaseDate":"2016-01-27"}],"aggregatetimespent":null,"resolution":{"self":"https://issues.jboss.org/rest/api/2/resolution/1","id":"1","description":"The
-      issue is resolved as requested - bug fixed, feature completed, etc.","name":"Done"},"customfield_12310220":null,"customfield_12310341":null,"customfield_12310340":null,"customfield_12312640":null,"customfield_12310183":null,"resolutiondate":"2016-01-27T11:19:22.000-0500","workratio":-1,"customfield_12310940":null,"lastViewed":null,"watches":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-2009/watchers","watchCount":1,"isWatching":false},"created":"2016-01-27T10:41:49.000-0500","customfield_12313140":null,"priority":{"self":"https://issues.jboss.org/rest/api/2/priority/3","iconUrl":"https://issues.jboss.org/images/icons/priorities/major.png","name":"Major","id":"3"},"labels":[],"customfield_12311244":null,"customfield_12311640":null,"customfield_12311245":null,"customfield_12311641":null,"customfield_12311242":null,"customfield_12311243":null,"customfield_12311240":null,"timeestimate":null,"aggregatetimeoriginalestimate":null,"versions":[{"self":"https://issues.jboss.org/rest/api/2/version/12328572","id":"12328572","name":"1.1.10.Final","archived":false,"released":true,"releaseDate":"2015-10-19"}],"customfield_12311241":null,"customfield_12310031":null,"issuelinks":[],"assignee":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"updated":"2016-01-27T12:20:06.000-0500","customfield_12311246":null,"customfield_12311840":null,"status":{"self":"https://issues.jboss.org/rest/api/2/status/6","description":"The
-      issue is considered finished, the resolution is correct. Issues which are not
-      closed can be reopened.","iconUrl":"https://issues.jboss.org/images/icons/statuses/closed.png","name":"Closed","id":"6","statusCategory":{"self":"https://issues.jboss.org/rest/api/2/statuscategory/3","id":3,"key":"done","colorName":"green","name":"Done"}},"components":[{"self":"https://issues.jboss.org/rest/api/2/component/12313036","id":"12313036","name":"Test
-      Protocol SPIs and Implementation","description":"Test protocols allow Arquillian
-      to communicate with the deployable container to execute the test :: arquillian-core"}],"timeoriginalestimate":null,"customfield_12310080":null,"description":null,"customfield_12310440":null,"customfield_12310120":null,"customfield_12310241":null,"customfield_12310640":"0.0","customfield_12310243":null,"aggregatetimeestimate":null,"customfield_12310840":"9223372036854775807","customfield_12310641":"0.0","summary":"ServletProtocol
-      depend on Servlet 3.0","creator":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"subtasks":[],"customfield_12310091":"Regression
-      due to ARQ-1975\r\n\r\nHttpServletRequest.getServletContext() is Servlet 3.0.
-      Change to use this.getServletContext()","customfield_12310090":null,"reporter":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"customfield_12310092":null,"aggregateprogress":{"progress":0,"total":0},"customfield_10002":null,"customfield_12310010":null,"environment":null,"customfield_12310211":null,"duedate":null,"customfield_12311140":null,"progress":{"progress":0,"total":0},"votes":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-2009/votes","votes":0,"hasVoted":false},"customfield_12311941":null,"customfield_12311940":"1|hypqxf:"}},{"expand":"operations,editmeta,changelog,transitions,renderedFields","id":"12601515","self":"https://issues.jboss.org/rest/api/2/issue/12601515","key":"ARQ-2010","fields":{"issuetype":{"self":"https://issues.jboss.org/rest/api/2/issuetype/13","id":"13","description":"An
-      enhancement or refactoring of existing functionality","iconUrl":"https://issues.jboss.org/images/icons/issuetypes/health.png","name":"Enhancement","subtask":false},"timespent":null,"project":{"self":"https://issues.jboss.org/rest/api/2/project/12310885","id":"12310885","key":"ARQ","name":"Arquillian","avatarUrls":{"48x48":"https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660","24x24":"https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660","16x16":"https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660","32x32":"https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"},"projectCategory":{"self":"https://issues.jboss.org/rest/api/2/projectCategory/10099","id":"10099","description":"Projects
-      related to Tool and Testing technologies.","name":"k) Tools & Testing"}},"fixVersions":[{"self":"https://issues.jboss.org/rest/api/2/version/12329472","id":"12329472","name":"1.1.11.Final","archived":false,"released":true,"releaseDate":"2016-01-27"}],"aggregatetimespent":null,"resolution":{"self":"https://issues.jboss.org/rest/api/2/resolution/1","id":"1","description":"The
-      issue is resolved as requested - bug fixed, feature completed, etc.","name":"Done"},"customfield_12310220":["https://github.com/arquillian/arquillian-core/pull/97"],"customfield_12310341":null,"customfield_12310340":null,"customfield_12312640":null,"resolutiondate":"2016-01-27T11:26:49.000-0500","workratio":-1,"customfield_12310940":null,"lastViewed":null,"watches":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-2010/watchers","watchCount":1,"isWatching":false},"created":"2016-01-27T11:22:13.000-0500","customfield_12313140":null,"priority":{"self":"https://issues.jboss.org/rest/api/2/priority/3","iconUrl":"https://issues.jboss.org/images/icons/priorities/major.png","name":"Major","id":"3"},"labels":[],"customfield_12311244":null,"customfield_12311640":null,"customfield_12311245":null,"customfield_12311641":null,"customfield_12311242":null,"customfield_12311243":null,"customfield_12311240":null,"timeestimate":null,"aggregatetimeoriginalestimate":null,"versions":[{"self":"https://issues.jboss.org/rest/api/2/version/12328572","id":"12328572","name":"1.1.10.Final","archived":false,"released":true,"releaseDate":"2015-10-19"}],"customfield_12311241":null,"customfield_12310031":null,"issuelinks":[],"assignee":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"updated":"2016-01-27T12:20:06.000-0500","customfield_12311246":null,"customfield_12311840":null,"status":{"self":"https://issues.jboss.org/rest/api/2/status/6","description":"The
-      issue is considered finished, the resolution is correct. Issues which are not
-      closed can be reopened.","iconUrl":"https://issues.jboss.org/images/icons/statuses/closed.png","name":"Closed","id":"6","statusCategory":{"self":"https://issues.jboss.org/rest/api/2/statuscategory/3","id":3,"key":"done","colorName":"green","name":"Done"}},"components":[{"self":"https://issues.jboss.org/rest/api/2/component/12313036","id":"12313036","name":"Test
-      Protocol SPIs and Implementation","description":"Test protocols allow Arquillian
-      to communicate with the deployable container to execute the test :: arquillian-core"}],"timeoriginalestimate":null,"customfield_12310080":null,"description":"In
-      particular when testing with the Arquillian Persistence extension it can be
-      very difficult to diagnose problems in a test:\r\nUsually when seeding of the
-      database fails some other After event listener fails as well, e.g. evaluation
-      of @ShouldMatchDataSet.\r\nThen Arquillian only reports the last error that
-      the actual result differs from the expected one.\r\nThis makes fixing the test
-      very hard.\r\n\r\nThis PR changes the JUnitTestRunner so that it keeps the first
-      exception that passes by ExpectedExceptionHolder.testFailure() instead of the
-      last one.","customfield_12310440":null,"customfield_12310120":null,"customfield_12310241":null,"customfield_12310640":"0.0","customfield_12310243":null,"aggregatetimeestimate":null,"customfield_12310840":"9223372036854775807","customfield_12310641":"0.0","summary":"Report
-      first Exception caught in TestRunner","creator":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"subtasks":[],"reporter":{"self":"https://issues.jboss.org/rest/api/2/user?username=aslak","name":"aslak","key":"aslak","avatarUrls":{"48x48":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48","24x24":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24","16x16":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16","32x32":"https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"},"displayName":"Aslak
-      Knutsen","active":true,"timeZone":"Europe/Berlin"},"customfield_12310092":null,"aggregateprogress":{"progress":0,"total":0},"customfield_10002":null,"customfield_12310010":null,"environment":null,"customfield_12310211":null,"duedate":null,"customfield_12311140":null,"progress":{"progress":0,"total":0},"votes":{"self":"https://issues.jboss.org/rest/api/2/issue/ARQ-2010/votes","votes":0,"hasVoted":false},"customfield_12311941":null,"customfield_12311940":"1|i0135z:"}}]}'
+    body: |
+        {
+          "expand": "schema,names",
+          "startAt": 0,
+          "maxResults": 50,
+          "total": 5,
+          "issues": [
+            {
+              "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+              "id": "12566592",
+              "self": "https://issues.jboss.org/rest/api/2/issue/12566592",
+              "key": "ARQ-1937",
+              "fields": {
+                "issuetype": {
+                  "self": "https://issues.jboss.org/rest/api/2/issuetype/1",
+                  "id": "1",
+                  "description": "A problem which impairs or prevents the functions of the product.",
+                  "iconUrl": "https://issues.jboss.org/secure/viewavatar?size=xsmall&avatarId=13263&avatarType=issuetype",
+                  "name": "Bug",
+                  "subtask": false,
+                  "avatarId": 13263
+                },
+                "timespent": null,
+                "project": {
+                  "self": "https://issues.jboss.org/rest/api/2/project/12310885",
+                  "id": "12310885",
+                  "key": "ARQ",
+                  "name": "Arquillian",
+                  "avatarUrls": {
+                    "48x48": "https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660",
+                    "24x24": "https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660",
+                    "16x16": "https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660",
+                    "32x32": "https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"
+                  },
+                  "projectCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/projectCategory/10099",
+                    "id": "10099",
+                    "description": "Projects related to Tool and Testing technologies.",
+                    "name": "k) Tools & Testing"
+                  }
+                },
+                "fixVersions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12329472",
+                    "id": "12329472",
+                    "name": "1.1.11.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2016-01-27"
+                  }
+                ],
+                "aggregatetimespent": null,
+                "resolution": {
+                  "self": "https://issues.jboss.org/rest/api/2/resolution/1",
+                  "id": "1",
+                  "description": "The issue is resolved as requested - bug fixed, feature completed, etc.",
+                  "name": "Done"
+                },
+                "customfield_12310220": [
+                  "https://github.com/arquillian/arquillian-core/pull/83"
+                ],
+                "customfield_12310341": null,
+                "customfield_12310340": null,
+                "customfield_12312640": null,
+                "customfield_12310183": null,
+                "resolutiondate": "2016-01-27T12:18:50.000-0500",
+                "workratio": -1,
+                "customfield_12310940": null,
+                "lastViewed": null,
+                "watches": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-1937/watchers",
+                  "watchCount": 4,
+                  "isWatching": false
+                },
+                "created": "2015-03-23T06:22:19.000-0400",
+                "customfield_12313140": null,
+                "priority": {
+                  "self": "https://issues.jboss.org/rest/api/2/priority/3",
+                  "iconUrl": "https://issues.jboss.org/images/icons/priorities/major.svg",
+                  "name": "Major",
+                  "id": "3"
+                },
+                "labels": [],
+                "customfield_12311244": null,
+                "customfield_12311640": null,
+                "customfield_12311245": null,
+                "customfield_12311641": null,
+                "customfield_12311242": null,
+                "customfield_12311243": null,
+                "customfield_12311240": null,
+                "timeestimate": null,
+                "aggregatetimeoriginalestimate": null,
+                "versions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12322322",
+                    "id": "12322322",
+                    "description": "Minor enhancement",
+                    "name": "1.1.1.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2013-08-04"
+                  }
+                ],
+                "customfield_12311241": null,
+                "customfield_12310031": null,
+                "customfield_12313340": null,
+                "issuelinks": [],
+                "assignee": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "updated": "2016-02-15T09:17:14.000-0500",
+                "customfield_12311246": null,
+                "customfield_12311840": null,
+                "status": {
+                  "self": "https://issues.jboss.org/rest/api/2/status/6",
+                  "description": "The issue is considered finished, the resolution is correct. Issues which are not closed can be reopened.",
+                  "iconUrl": "https://issues.jboss.org/images/icons/statuses/closed.png",
+                  "name": "Closed",
+                  "id": "6",
+                  "statusCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/statuscategory/3",
+                    "id": 3,
+                    "key": "done",
+                    "colorName": "green",
+                    "name": "Done"
+                  }
+                },
+                "components": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/component/12313040",
+                    "id": "12313040",
+                    "name": "Deployable Containers SPI",
+                    "description": "The Deployable Containers SPI allows control of the lifecycle of the container, deployment of artifacts :: arquillian-core"
+                  }
+                ],
+                "timeoriginalestimate": null,
+                "customfield_12310080": null,
+                "description": "Steps to reproduce:\r\n1) inject a Deployer via @ArquillianResource\r\n2) declare a deployment as managed=false, use the deployer to deploy artifacts to a managed container\r\n3) run a test method that operates on the deployment\r\n4) check that classes inside the test method have the same classloader as the test class itself (see the code below where I call cache.getClass().getClassLoader())\r\n5) this does not happen when the deployment is managed=true and deployer API is NOT used. In this case, the classes have a different class loader\r\n\r\nIn the test below, I tried to load different versions of Infinispan in two deployments and test backward compatibility. However, due to this class loading issue the Infinispan classes are of the latest version regardless of libraries bundled in the WAR. This is probably due to the fact that the Maven test module has the latest Infinispan libraries defined in <dependencies> while the older version is downloaded separately via Maven dependency plugin.\r\n\r\n{code}\r\npackage com.jboss.datagrid.test.backwardcompatibility;\r\n\r\n\r\n@RunWith(Arquillian.class)\r\npublic class SingleFileStoreBackwardCompatibilityIT {\r\n\r\n    private DefaultCacheManager dfc;\r\n    private String cacheName = \"testCache\";\r\n\r\n    private static final String OLD_ISPN = \"dep1_with_old_ispn\";\r\n    private static final String NEW_ISPN = \"dep2_with_new_ispn\";\r\n\r\n    private static Map<String, String> storedMap;\r\n\r\n    @ArquillianResource\r\n    Deployer deployer;\r\n\r\n    @Deployment(name = OLD_ISPN, testable = true, managed = true, order=1)\r\n    @TargetsContainer(\"container1\")\r\n    public static WebArchive createDeploymentOld() {\r\n        WebArchive jar = DeploymentBuilder.createTestArchiveWithPreviousJDG(\"test1.war\", \"previous\");\r\n        System.out.println(\"ClassLoader: \" + SingleFileStoreBackwardCompatibilityIT.class.getClassLoader());\r\n        return jar;\r\n    }\r\n\r\n    @Deployment(name = NEW_ISPN, testable = true, managed = true, order=2)\r\n    @TargetsContainer(\"container2\")\r\n    public static WebArchive createDeploymentNew() {\r\n        WebArchive jar = DeploymentBuilder.createTestArchive(\"test2.war\", \"current\");\r\n        return jar;\r\n    }\r\n\r\n    private DefaultCacheManager configureCacheManager(boolean clearCacheStore) throws Exception {\r\n        GlobalConfiguration glob = new GlobalConfigurationBuilder().nonClusteredDefault()\r\n                .globalJmxStatistics().allowDuplicateDomains(true).\r\n                        build();\r\n        ConfigurationBuilder c = new ConfigurationBuilder();\r\n        c.clustering().cacheMode(CacheMode.LOCAL);\r\n\r\n        File tmpStore = new File(\"/tmp/cache/\" + cacheName + \".dat\");\r\n        if (clearCacheStore && tmpStore.exists()) {\r\n            tmpStore.delete();\r\n        }\r\n        c.persistence().passivation(false).addSingleFileStore().purgeOnStartup(false).location(\"/tmp/cache/\");\r\n        Configuration cnf = c.build();\r\n        DefaultCacheManager manager = new DefaultCacheManager(glob);\r\n\r\n        manager.defineConfiguration(cacheName, cnf);\r\n        return manager;\r\n    }\r\n\r\n    @Test\r\n    @OperateOnDeployment(OLD_ISPN)\r\n    @InSequence(1)\r\n    public void testStoreWithOldJDG() throws Exception {\r\n        deployer.deploy(OLD_ISPN);\r\n        dfc = configureCacheManager(true);\r\n        dfc.start();\r\n        Cache<Object, Object> cache = dfc.getCache(cacheName);\r\n        System.out.println(\"Version: \" + cache.getVersion());\r\n        System.out.println(\"ClassLoader: \" + cache.getClass().getClassLoader());\r\n        storedMap = new HashMap<String, String>();\r\n        storedMap.put(\"k\", \"v\");\r\n        cache.put(\"mapKey\", storedMap);\r\n        dfc.stop();\r\n        deployer.undeploy(OLD_ISPN);\r\n    }\r\n\r\n    @Test\r\n    @OperateOnDeployment(NEW_ISPN)\r\n    @InSequence(2)\r\n    public void testReadWithNewJDG() throws Exception {\r\n        deployer.deploy(NEW_ISPN);\r\n        dfc = configureCacheManager(false);\r\n        dfc.start();\r\n        Cache<Object, Object> cache = dfc.getCache(cacheName);\r\n        System.out.println(\"ClassLoader: \" + cache.getClass().getClassLoader());\r\n        System.out.println(\"Version: \" + cache.getVersion());\r\n        assertEquals(storedMap, cache.get(\"mapKey\"));\r\n        dfc.stop();\r\n        deployer.undeploy(NEW_ISPN);\r\n    }\r\n\r\n}\r\n\r\n{code}",
+                "customfield_12310440": null,
+                "customfield_12310120": null,
+                "customfield_12310241": null,
+                "customfield_12310640": "13.0",
+                "customfield_12310243": null,
+                "aggregatetimeestimate": null,
+                "customfield_12310840": "9223372036854775807",
+                "customfield_12310641": "0.0",
+                "summary": "Class loading issue with injected deployer ",
+                "creator": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=mgencur",
+                  "name": "mgencur",
+                  "key": "mgencur",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=32"
+                  },
+                  "displayName": "Martin Gencur",
+                  "active": true,
+                  "timeZone": "America/New_York"
+                },
+                "subtasks": [],
+                "customfield_12310091": null,
+                "customfield_12310090": null,
+                "reporter": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=mgencur",
+                  "name": "mgencur",
+                  "key": "mgencur",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/aa83cd0c9d42d7413ba04a4dece53471?d=mm&s=32"
+                  },
+                  "displayName": "Martin Gencur",
+                  "active": true,
+                  "timeZone": "America/New_York"
+                },
+                "customfield_12310092": null,
+                "aggregateprogress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "customfield_10002": null,
+                "customfield_12310010": null,
+                "environment": null,
+                "customfield_12310211": null,
+                "customfield_12313441": "",
+                "customfield_12313440": "",
+                "duedate": null,
+                "customfield_12313240": null,
+                "customfield_12311140": null,
+                "progress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "votes": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-1937/votes",
+                  "votes": 0,
+                  "hasVoted": false
+                },
+                "customfield_12311941": null,
+                "customfield_12311940": "1|hzvljr:"
+              }
+            },
+            {
+              "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+              "id": "12573304",
+              "self": "https://issues.jboss.org/rest/api/2/issue/12573304",
+              "key": "ARQ-1956",
+              "fields": {
+                "issuetype": {
+                  "self": "https://issues.jboss.org/rest/api/2/issuetype/2",
+                  "id": "2",
+                  "description": "A new feature of the product, which has yet to be developed.",
+                  "iconUrl": "https://issues.jboss.org/secure/viewavatar?size=xsmall&avatarId=13271&avatarType=issuetype",
+                  "name": "Feature Request",
+                  "subtask": false,
+                  "avatarId": 13271
+                },
+                "timespent": null,
+                "project": {
+                  "self": "https://issues.jboss.org/rest/api/2/project/12310885",
+                  "id": "12310885",
+                  "key": "ARQ",
+                  "name": "Arquillian",
+                  "avatarUrls": {
+                    "48x48": "https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660",
+                    "24x24": "https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660",
+                    "16x16": "https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660",
+                    "32x32": "https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"
+                  },
+                  "projectCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/projectCategory/10099",
+                    "id": "10099",
+                    "description": "Projects related to Tool and Testing technologies.",
+                    "name": "k) Tools & Testing"
+                  }
+                },
+                "fixVersions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12329472",
+                    "id": "12329472",
+                    "name": "1.1.11.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2016-01-27"
+                  }
+                ],
+                "aggregatetimespent": null,
+                "resolution": {
+                  "self": "https://issues.jboss.org/rest/api/2/resolution/1",
+                  "id": "1",
+                  "description": "The issue is resolved as requested - bug fixed, feature completed, etc.",
+                  "name": "Done"
+                },
+                "customfield_12310220": [
+                  "https://github.com/arquillian/arquillian-core/pull/84"
+                ],
+                "customfield_12310341": null,
+                "customfield_12310340": null,
+                "customfield_12312640": null,
+                "resolutiondate": "2016-01-27T12:07:45.000-0500",
+                "workratio": -1,
+                "customfield_12310940": null,
+                "lastViewed": null,
+                "watches": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-1956/watchers",
+                  "watchCount": 1,
+                  "isWatching": false
+                },
+                "created": "2015-05-29T10:27:38.000-0400",
+                "customfield_12313140": null,
+                "priority": {
+                  "self": "https://issues.jboss.org/rest/api/2/priority/3",
+                  "iconUrl": "https://issues.jboss.org/images/icons/priorities/major.svg",
+                  "name": "Major",
+                  "id": "3"
+                },
+                "labels": [],
+                "customfield_12311244": null,
+                "customfield_12311640": null,
+                "customfield_12311245": null,
+                "customfield_12311641": null,
+                "customfield_12311242": null,
+                "customfield_12311243": null,
+                "customfield_12311240": null,
+                "timeestimate": null,
+                "aggregatetimeoriginalestimate": null,
+                "versions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12326688",
+                    "id": "12326688",
+                    "name": "1.1.8.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2015-04-17"
+                  }
+                ],
+                "customfield_12311241": null,
+                "customfield_12310031": null,
+                "customfield_12313340": null,
+                "issuelinks": [],
+                "assignee": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "updated": "2016-01-27T12:07:45.000-0500",
+                "customfield_12311246": null,
+                "customfield_12311840": null,
+                "status": {
+                  "self": "https://issues.jboss.org/rest/api/2/status/6",
+                  "description": "The issue is considered finished, the resolution is correct. Issues which are not closed can be reopened.",
+                  "iconUrl": "https://issues.jboss.org/images/icons/statuses/closed.png",
+                  "name": "Closed",
+                  "id": "6",
+                  "statusCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/statuscategory/3",
+                    "id": 3,
+                    "key": "done",
+                    "colorName": "green",
+                    "name": "Done"
+                  }
+                },
+                "components": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/component/12313452",
+                    "id": "12313452",
+                    "name": "Base Implementation",
+                    "description": "Issues pertaining to the internal Arquillian implementation :: arquillian-core"
+                  }
+                ],
+                "timeoriginalestimate": null,
+                "customfield_12310080": null,
+                "description": null,
+                "customfield_12310440": null,
+                "customfield_12310120": null,
+                "customfield_12310241": null,
+                "customfield_12310640": "1.0",
+                "customfield_12310243": null,
+                "aggregatetimeestimate": null,
+                "customfield_12310840": "9223372036854775807",
+                "customfield_12310641": "0.0",
+                "summary": "Add Instance to Before|AfterEnrichment events",
+                "creator": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "subtasks": [],
+                "reporter": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "customfield_12310092": null,
+                "aggregateprogress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "customfield_10002": null,
+                "customfield_12310010": null,
+                "environment": null,
+                "customfield_12310211": null,
+                "customfield_12313441": "",
+                "customfield_12313440": "",
+                "duedate": null,
+                "customfield_12313240": null,
+                "customfield_12311140": null,
+                "progress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "votes": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-1956/votes",
+                  "votes": 0,
+                  "hasVoted": false
+                },
+                "customfield_12311941": null,
+                "customfield_12311940": "1|hzwna7:"
+              }
+            },
+            {
+              "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+              "id": "12590629",
+              "self": "https://issues.jboss.org/rest/api/2/issue/12590629",
+              "key": "ARQ-1996",
+              "fields": {
+                "issuetype": {
+                  "self": "https://issues.jboss.org/rest/api/2/issuetype/12",
+                  "id": "12",
+                  "description": "A task tracking an update to a bundled component",
+                  "iconUrl": "https://issues.jboss.org/secure/viewavatar?size=xsmall&avatarId=13270&avatarType=issuetype",
+                  "name": "Component Upgrade",
+                  "subtask": false,
+                  "avatarId": 13270
+                },
+                "timespent": null,
+                "project": {
+                  "self": "https://issues.jboss.org/rest/api/2/project/12310885",
+                  "id": "12310885",
+                  "key": "ARQ",
+                  "name": "Arquillian",
+                  "avatarUrls": {
+                    "48x48": "https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660",
+                    "24x24": "https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660",
+                    "16x16": "https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660",
+                    "32x32": "https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"
+                  },
+                  "projectCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/projectCategory/10099",
+                    "id": "10099",
+                    "description": "Projects related to Tool and Testing technologies.",
+                    "name": "k) Tools & Testing"
+                  }
+                },
+                "fixVersions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12329472",
+                    "id": "12329472",
+                    "name": "1.1.11.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2016-01-27"
+                  }
+                ],
+                "aggregatetimespent": null,
+                "resolution": {
+                  "self": "https://issues.jboss.org/rest/api/2/resolution/1",
+                  "id": "1",
+                  "description": "The issue is resolved as requested - bug fixed, feature completed, etc.",
+                  "name": "Done"
+                },
+                "customfield_12310220": [
+                  "https://github.com/arquillian/arquillian-core/pull/95"
+                ],
+                "customfield_12310341": null,
+                "customfield_12310340": null,
+                "customfield_12312640": null,
+                "resolutiondate": "2015-10-27T15:58:21.000-0400",
+                "workratio": -1,
+                "customfield_12310940": null,
+                "lastViewed": null,
+                "watches": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-1996/watchers",
+                  "watchCount": 1,
+                  "isWatching": false
+                },
+                "created": "2015-10-27T15:54:51.000-0400",
+                "customfield_12313140": null,
+                "priority": {
+                  "self": "https://issues.jboss.org/rest/api/2/priority/3",
+                  "iconUrl": "https://issues.jboss.org/images/icons/priorities/major.svg",
+                  "name": "Major",
+                  "id": "3"
+                },
+                "labels": [],
+                "customfield_12311244": null,
+                "customfield_12311640": null,
+                "customfield_12311245": null,
+                "customfield_12311641": null,
+                "customfield_12311242": null,
+                "customfield_12311243": null,
+                "customfield_12311240": null,
+                "timeestimate": null,
+                "aggregatetimeoriginalestimate": null,
+                "versions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12328572",
+                    "id": "12328572",
+                    "name": "1.1.10.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2015-10-19"
+                  }
+                ],
+                "customfield_12311241": null,
+                "customfield_12310031": null,
+                "customfield_12313340": null,
+                "issuelinks": [],
+                "assignee": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "updated": "2016-01-27T12:20:06.000-0500",
+                "customfield_12311246": null,
+                "customfield_12311840": null,
+                "status": {
+                  "self": "https://issues.jboss.org/rest/api/2/status/6",
+                  "description": "The issue is considered finished, the resolution is correct. Issues which are not closed can be reopened.",
+                  "iconUrl": "https://issues.jboss.org/images/icons/statuses/closed.png",
+                  "name": "Closed",
+                  "id": "6",
+                  "statusCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/statuscategory/3",
+                    "id": 3,
+                    "key": "done",
+                    "colorName": "green",
+                    "name": "Done"
+                  }
+                },
+                "components": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/component/12313452",
+                    "id": "12313452",
+                    "name": "Base Implementation",
+                    "description": "Issues pertaining to the internal Arquillian implementation :: arquillian-core"
+                  }
+                ],
+                "timeoriginalestimate": null,
+                "customfield_12310080": null,
+                "description": null,
+                "customfield_12310440": null,
+                "customfield_12310120": null,
+                "customfield_12310241": null,
+                "customfield_12310640": "1.0",
+                "customfield_12310243": null,
+                "aggregatetimeestimate": null,
+                "customfield_12310840": "9223372036854775807",
+                "customfield_12310641": "0.0",
+                "summary": "Upgrade to ShrinkWrap 1.2.3",
+                "creator": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "subtasks": [],
+                "reporter": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "customfield_12310092": null,
+                "aggregateprogress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "customfield_10002": null,
+                "customfield_12310010": null,
+                "environment": null,
+                "customfield_12310211": null,
+                "customfield_12313441": "",
+                "customfield_12313440": "",
+                "duedate": null,
+                "customfield_12313240": null,
+                "customfield_12311140": null,
+                "progress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "votes": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-1996/votes",
+                  "votes": 0,
+                  "hasVoted": false
+                },
+                "customfield_12311941": null,
+                "customfield_12311940": "1|hzzcnz:"
+              }
+            },
+            {
+              "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+              "id": "12601505",
+              "self": "https://issues.jboss.org/rest/api/2/issue/12601505",
+              "key": "ARQ-2009",
+              "fields": {
+                "issuetype": {
+                  "self": "https://issues.jboss.org/rest/api/2/issuetype/1",
+                  "id": "1",
+                  "description": "A problem which impairs or prevents the functions of the product.",
+                  "iconUrl": "https://issues.jboss.org/secure/viewavatar?size=xsmall&avatarId=13263&avatarType=issuetype",
+                  "name": "Bug",
+                  "subtask": false,
+                  "avatarId": 13263
+                },
+                "timespent": null,
+                "project": {
+                  "self": "https://issues.jboss.org/rest/api/2/project/12310885",
+                  "id": "12310885",
+                  "key": "ARQ",
+                  "name": "Arquillian",
+                  "avatarUrls": {
+                    "48x48": "https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660",
+                    "24x24": "https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660",
+                    "16x16": "https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660",
+                    "32x32": "https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"
+                  },
+                  "projectCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/projectCategory/10099",
+                    "id": "10099",
+                    "description": "Projects related to Tool and Testing technologies.",
+                    "name": "k) Tools & Testing"
+                  }
+                },
+                "fixVersions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12329472",
+                    "id": "12329472",
+                    "name": "1.1.11.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2016-01-27"
+                  }
+                ],
+                "aggregatetimespent": null,
+                "resolution": {
+                  "self": "https://issues.jboss.org/rest/api/2/resolution/1",
+                  "id": "1",
+                  "description": "The issue is resolved as requested - bug fixed, feature completed, etc.",
+                  "name": "Done"
+                },
+                "customfield_12310220": null,
+                "customfield_12310341": null,
+                "customfield_12310340": null,
+                "customfield_12312640": null,
+                "customfield_12310183": null,
+                "resolutiondate": "2016-01-27T11:19:22.000-0500",
+                "workratio": -1,
+                "customfield_12310940": null,
+                "lastViewed": null,
+                "watches": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-2009/watchers",
+                  "watchCount": 1,
+                  "isWatching": false
+                },
+                "created": "2016-01-27T10:41:49.000-0500",
+                "customfield_12313140": null,
+                "priority": {
+                  "self": "https://issues.jboss.org/rest/api/2/priority/3",
+                  "iconUrl": "https://issues.jboss.org/images/icons/priorities/major.svg",
+                  "name": "Major",
+                  "id": "3"
+                },
+                "labels": [],
+                "customfield_12311244": null,
+                "customfield_12311640": null,
+                "customfield_12311245": null,
+                "customfield_12311641": null,
+                "customfield_12311242": null,
+                "customfield_12311243": null,
+                "customfield_12311240": null,
+                "timeestimate": null,
+                "aggregatetimeoriginalestimate": null,
+                "versions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12328572",
+                    "id": "12328572",
+                    "name": "1.1.10.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2015-10-19"
+                  }
+                ],
+                "customfield_12311241": null,
+                "customfield_12310031": null,
+                "customfield_12313340": null,
+                "issuelinks": [],
+                "assignee": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "updated": "2016-01-27T12:20:06.000-0500",
+                "customfield_12311246": null,
+                "customfield_12311840": null,
+                "status": {
+                  "self": "https://issues.jboss.org/rest/api/2/status/6",
+                  "description": "The issue is considered finished, the resolution is correct. Issues which are not closed can be reopened.",
+                  "iconUrl": "https://issues.jboss.org/images/icons/statuses/closed.png",
+                  "name": "Closed",
+                  "id": "6",
+                  "statusCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/statuscategory/3",
+                    "id": 3,
+                    "key": "done",
+                    "colorName": "green",
+                    "name": "Done"
+                  }
+                },
+                "components": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/component/12313036",
+                    "id": "12313036",
+                    "name": "Test Protocol SPIs and Implementation",
+                    "description": "Test protocols allow Arquillian to communicate with the deployable container to execute the test :: arquillian-core"
+                  }
+                ],
+                "timeoriginalestimate": null,
+                "customfield_12310080": null,
+                "description": null,
+                "customfield_12310440": null,
+                "customfield_12310120": null,
+                "customfield_12310241": null,
+                "customfield_12310640": "0.0",
+                "customfield_12310243": null,
+                "aggregatetimeestimate": null,
+                "customfield_12310840": "9223372036854775807",
+                "customfield_12310641": "0.0",
+                "summary": "ServletProtocol depend on Servlet 3.0",
+                "creator": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "subtasks": [],
+                "customfield_12310091": "Regression due to ARQ-1975\r\n\r\nHttpServletRequest.getServletContext() is Servlet 3.0. Change to use this.getServletContext()",
+                "customfield_12310090": null,
+                "reporter": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "customfield_12310092": null,
+                "aggregateprogress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "customfield_10002": null,
+                "customfield_12310010": null,
+                "environment": null,
+                "customfield_12310211": null,
+                "customfield_12313441": "",
+                "customfield_12313440": "",
+                "duedate": null,
+                "customfield_12313240": null,
+                "customfield_12311140": null,
+                "progress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "votes": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-2009/votes",
+                  "votes": 0,
+                  "hasVoted": false
+                },
+                "customfield_12311941": null,
+                "customfield_12311940": "1|hypqxf:"
+              }
+            },
+            {
+              "expand": "operations,versionedRepresentations,editmeta,changelog,renderedFields",
+              "id": "12601515",
+              "self": "https://issues.jboss.org/rest/api/2/issue/12601515",
+              "key": "ARQ-2010",
+              "fields": {
+                "issuetype": {
+                  "self": "https://issues.jboss.org/rest/api/2/issuetype/13",
+                  "id": "13",
+                  "description": "An enhancement or refactoring of existing functionality",
+                  "iconUrl": "https://issues.jboss.org/secure/viewavatar?size=xsmall&avatarId=13269&avatarType=issuetype",
+                  "name": "Enhancement",
+                  "subtask": false,
+                  "avatarId": 13269
+                },
+                "timespent": null,
+                "project": {
+                  "self": "https://issues.jboss.org/rest/api/2/project/12310885",
+                  "id": "12310885",
+                  "key": "ARQ",
+                  "name": "Arquillian",
+                  "avatarUrls": {
+                    "48x48": "https://issues.jboss.org/secure/projectavatar?pid=12310885&avatarId=10660",
+                    "24x24": "https://issues.jboss.org/secure/projectavatar?size=small&pid=12310885&avatarId=10660",
+                    "16x16": "https://issues.jboss.org/secure/projectavatar?size=xsmall&pid=12310885&avatarId=10660",
+                    "32x32": "https://issues.jboss.org/secure/projectavatar?size=medium&pid=12310885&avatarId=10660"
+                  },
+                  "projectCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/projectCategory/10099",
+                    "id": "10099",
+                    "description": "Projects related to Tool and Testing technologies.",
+                    "name": "k) Tools & Testing"
+                  }
+                },
+                "fixVersions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12329472",
+                    "id": "12329472",
+                    "name": "1.1.11.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2016-01-27"
+                  }
+                ],
+                "aggregatetimespent": null,
+                "resolution": {
+                  "self": "https://issues.jboss.org/rest/api/2/resolution/1",
+                  "id": "1",
+                  "description": "The issue is resolved as requested - bug fixed, feature completed, etc.",
+                  "name": "Done"
+                },
+                "customfield_12310220": [
+                  "https://github.com/arquillian/arquillian-core/pull/97"
+                ],
+                "customfield_12310341": null,
+                "customfield_12310340": null,
+                "customfield_12312640": null,
+                "resolutiondate": "2016-01-27T11:26:49.000-0500",
+                "workratio": -1,
+                "customfield_12310940": null,
+                "lastViewed": null,
+                "watches": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-2010/watchers",
+                  "watchCount": 1,
+                  "isWatching": false
+                },
+                "created": "2016-01-27T11:22:13.000-0500",
+                "customfield_12313140": null,
+                "priority": {
+                  "self": "https://issues.jboss.org/rest/api/2/priority/3",
+                  "iconUrl": "https://issues.jboss.org/images/icons/priorities/major.svg",
+                  "name": "Major",
+                  "id": "3"
+                },
+                "labels": [],
+                "customfield_12311244": null,
+                "customfield_12311640": null,
+                "customfield_12311245": null,
+                "customfield_12311641": null,
+                "customfield_12311242": null,
+                "customfield_12311243": null,
+                "customfield_12311240": null,
+                "timeestimate": null,
+                "aggregatetimeoriginalestimate": null,
+                "versions": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/version/12328572",
+                    "id": "12328572",
+                    "name": "1.1.10.Final",
+                    "archived": false,
+                    "released": true,
+                    "releaseDate": "2015-10-19"
+                  }
+                ],
+                "customfield_12311241": null,
+                "customfield_12310031": null,
+                "customfield_12313340": null,
+                "issuelinks": [],
+                "assignee": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "updated": "2016-01-27T12:20:06.000-0500",
+                "customfield_12311246": null,
+                "customfield_12311840": null,
+                "status": {
+                  "self": "https://issues.jboss.org/rest/api/2/status/6",
+                  "description": "The issue is considered finished, the resolution is correct. Issues which are not closed can be reopened.",
+                  "iconUrl": "https://issues.jboss.org/images/icons/statuses/closed.png",
+                  "name": "Closed",
+                  "id": "6",
+                  "statusCategory": {
+                    "self": "https://issues.jboss.org/rest/api/2/statuscategory/3",
+                    "id": 3,
+                    "key": "done",
+                    "colorName": "green",
+                    "name": "Done"
+                  }
+                },
+                "components": [
+                  {
+                    "self": "https://issues.jboss.org/rest/api/2/component/12313036",
+                    "id": "12313036",
+                    "name": "Test Protocol SPIs and Implementation",
+                    "description": "Test protocols allow Arquillian to communicate with the deployable container to execute the test :: arquillian-core"
+                  }
+                ],
+                "timeoriginalestimate": null,
+                "customfield_12310080": null,
+                "description": "In particular when testing with the Arquillian Persistence extension it can be very difficult to diagnose problems in a test:\r\nUsually when seeding of the database fails some other After event listener fails as well, e.g. evaluation of @ShouldMatchDataSet.\r\nThen Arquillian only reports the last error that the actual result differs from the expected one.\r\nThis makes fixing the test very hard.\r\n\r\nThis PR changes the JUnitTestRunner so that it keeps the first exception that passes by ExpectedExceptionHolder.testFailure() instead of the last one.",
+                "customfield_12310440": null,
+                "customfield_12310120": null,
+                "customfield_12310241": null,
+                "customfield_12310640": "0.0",
+                "customfield_12310243": null,
+                "aggregatetimeestimate": null,
+                "customfield_12310840": "9223372036854775807",
+                "customfield_12310641": "0.0",
+                "summary": "Report first Exception caught in TestRunner",
+                "creator": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "subtasks": [],
+                "reporter": {
+                  "self": "https://issues.jboss.org/rest/api/2/user?username=aslak",
+                  "name": "aslak",
+                  "key": "aslak",
+                  "avatarUrls": {
+                    "48x48": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=48",
+                    "24x24": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=24",
+                    "16x16": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=16",
+                    "32x32": "https://static.jboss.org/developer/gravatar/3f27861ec08730fd02c91fe4129d2668?d=mm&s=32"
+                  },
+                  "displayName": "Aslak Knutsen",
+                  "active": true,
+                  "timeZone": "Europe/Berlin"
+                },
+                "customfield_12310092": null,
+                "aggregateprogress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "customfield_10002": null,
+                "customfield_12310010": null,
+                "environment": null,
+                "customfield_12310211": null,
+                "customfield_12313441": "",
+                "customfield_12313440": "",
+                "duedate": null,
+                "customfield_12313240": null,
+                "customfield_12311140": null,
+                "progress": {
+                  "progress": 0,
+                  "total": 0
+                },
+                "votes": {
+                  "self": "https://issues.jboss.org/rest/api/2/issue/ARQ-2010/votes",
+                  "votes": 0,
+                  "hasVoted": false
+                },
+                "customfield_12311941": null,
+                "customfield_12311940": "1|i0135z:"
+              }
+            }
+          ]
+        }
     headers:
       Cache-Control:
       - no-cache, no-store, no-transform

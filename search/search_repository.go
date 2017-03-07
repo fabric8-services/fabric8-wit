@@ -16,10 +16,16 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/asaskevich/govalidator"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // KnownURL registration key constants
@@ -43,12 +49,17 @@ func generateSearchQuery(q string) (string, error) {
 	return q, nil
 }
 
-func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
+func convertFromModel(request *goa.RequestData, wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
 		Version: workItem.Version,
-		Fields:  map[string]interface{}{}}
+		Fields:  map[string]interface{}{},
+		Relationships: &app.WorkItemRelationships{
+			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
+		},
+	}
 
 	for name, field := range wiType.Fields {
 		if name == workitem.SystemCreatedAt {
@@ -66,7 +77,7 @@ func convertFromModel(wiType workitem.WorkItemType, workItem workitem.WorkItem) 
 
 //searchKeyword defines how a decomposed raw search query will look like
 type searchKeyword struct {
-	workItemTypes []string
+	workItemTypes []uuid.UUID
 	id            []string
 	words         []string
 }
@@ -113,7 +124,7 @@ func GetAllRegisteredURLs() map[string]KnownURL {
 
 /*
 isKnownURL compares with registered URLs in our system.
-Iterates over knownURLs and finds out most relevent matching pattern.
+Iterates over knownURLs and finds out most relevant matching pattern.
 If found, it returns true along with "name" of the KnownURL
 */
 func isKnownURL(url string) (bool, string) {
@@ -222,23 +233,29 @@ func parseSearchString(rawSearchString string) (searchKeyword, error) {
 	for _, part := range parts {
 		// QueryUnescape is required in case of encoded url strings.
 		// And does not harm regular search strings
-		// but this processing is required becasue at this moment, we do not know if
+		// but this processing is required because at this moment, we do not know if
 		// search input is a regular string or a URL
 
 		part, err := url.QueryUnescape(part)
 		if err != nil {
-			fmt.Println("Could not escape url", err)
+			log.Warn(nil, map[string]interface{}{
+				"part": part,
+			}, "unable to escape url!")
 		}
 		// IF part is for search with id:1234
 		// TODO: need to find out the way to use ID fields.
 		if strings.HasPrefix(part, "id:") {
 			res.id = append(res.id, strings.TrimPrefix(part, "id:")+":*A")
 		} else if strings.HasPrefix(part, "type:") {
-			typeName := strings.TrimPrefix(part, "type:")
-			if len(typeName) == 0 {
-				return res, errors.NewBadParameterError("Type name must not be empty", part)
+			typeIDStr := strings.TrimPrefix(part, "type:")
+			if len(typeIDStr) == 0 {
+				return res, errors.NewBadParameterError("Type ID must not be empty", part)
 			}
-			res.workItemTypes = append(res.workItemTypes, typeName)
+			typeID, err := uuid.FromString(typeIDStr)
+			if err != nil {
+				return res, errors.NewBadParameterError("failed to parse type ID string as UUID", typeIDStr)
+			}
+			res.workItemTypes = append(res.workItemTypes, typeID)
 		} else if govalidator.IsURL(part) {
 			part := strings.ToLower(part)
 			part = trimProtocolFromURLString(part)
@@ -267,7 +284,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	db := r.db.Model(workitem.WorkItem{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -284,9 +301,9 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	if len(workItemTypes) > 0 {
 		// restrict to all given types and their subtypes
 		query := fmt.Sprintf("%[1]s.type in ("+
-			"select distinct subtype.name from %[2]s subtype "+
+			"select distinct subtype.id from %[2]s subtype "+
 			"join %[2]s supertype on subtype.path <@ supertype.path "+
-			"where supertype.name in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
+			"where supertype.id in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
 		db = db.Where(query, workItemTypes)
 	}
 
@@ -358,11 +375,11 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	for index, value := range rows {
 		var err error
 		// FIXME: Against best practice http://go-database-sql.org/retrieving.html
-		wiType, err := r.wir.LoadTypeFromDB(value.Type)
+		wiType, err := r.wir.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		result[index], err = convertFromModel(*wiType, value)
+		result[index], err = convertFromModel(goa.ContextRequest(ctx), *wiType, value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}
@@ -372,8 +389,8 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 }
 
 func init() {
-	// While registering URLs do not include protocol becasue it will be removed before scanning starts
-	// Please do not include trailing slashes becasue it will be removed before scanning starts
+	// While registering URLs do not include protocol because it will be removed before scanning starts
+	// Please do not include trailing slashes because it will be removed before scanning starts
 	RegisterAsKnownURL("test-work-item-list-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/list/detail/)(?P<id>\d*)`)
 	RegisterAsKnownURL("test-work-item-board-details", `(?P<domain>demo.almighty.io)(?P<path>/work-item/board/detail/)(?P<id>\d*)`)
 }

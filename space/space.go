@@ -1,15 +1,23 @@
 package space
 
 import (
-	"log"
+	"strings"
 
+	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
+)
+
+var (
+	SystemSpace = satoriuuid.FromStringOrNil("2e0698d8-753e-4cef-bb7c-f027634824a2")
+	SpaceType   = "spaces"
 )
 
 // Space represents a Space on the domain and db layer
@@ -19,6 +27,7 @@ type Space struct {
 	Version     int
 	Name        string
 	Description string
+	OwnerId     satoriuuid.UUID `sql:"type:uuid"` // Belongs To Identity
 }
 
 // Ensure Fields implements the Equaler interface
@@ -44,6 +53,9 @@ func (p Space) Equal(u convert.Equaler) bool {
 	if p.Description != other.Description {
 		return false
 	}
+	if !satoriuuid.Equal(p.OwnerId, other.OwnerId) {
+		return false
+	}
 	return true
 }
 
@@ -53,7 +65,9 @@ type Repository interface {
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
+	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
 }
 
 // NewRepository creates a new space repo
@@ -72,6 +86,9 @@ func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, 
 	res := Space{}
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": ID.String(),
+		}, "state or known referer was empty")
 		return nil, errors.NewNotFoundError("space", ID.String())
 	}
 	if tx.Error != nil {
@@ -84,15 +101,24 @@ func (r *GormRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*Space, 
 // returns NotFoundError or InternalError
 func (r *GormRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
 	if ID == satoriuuid.Nil {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": ID.String(),
+		}, "unable to find the space by ID")
 		return errors.NewNotFoundError("space", ID.String())
 	}
 	space := Space{ID: ID}
 	tx := r.db.Delete(space)
 
 	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": ID.String(),
+		}, "unable to delete the space")
 		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": ID.String(),
+		}, "none row was affected by the deletion operation")
 		return errors.NewNotFoundError("space", ID.String())
 	}
 
@@ -126,14 +152,20 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	log.Printf("updated space to %v\n", p)
+
+	log.Info(ctx, map[string]interface{}{
+		"spaceID": p.ID,
+	}, "space updated successfully")
 	return p, nil
 }
 
 // Create creates a new Space in the db
 // returns BadParameterError or InternalError
 func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, error) {
-	space.ID = satoriuuid.NewV4()
+	// We might want to create a space with a specific ID, e.g. space.SystemSpace
+	if space.ID == satoriuuid.Nil {
+		space.ID = satoriuuid.NewV4()
+	}
 
 	tx := r.db.Create(space)
 	if err := tx.Error; err != nil {
@@ -145,13 +177,16 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 		}
 		return nil, errors.NewInternalError(err.Error())
 	}
-	log.Printf("created space %v\n", space)
+
+	log.Info(ctx, map[string]interface{}{
+		"spaceID": space.ID,
+	}, "Space created successfully")
 	return space, nil
 }
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
 
 	db := r.db.Model(&Space{})
 	orgDB := db
@@ -168,6 +203,10 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 		db = db.Limit(*limit)
 	}
 	db = db.Select("count(*) over () as cnt2 , *")
+	if q != nil {
+		db = db.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(*q)+"%")
+		db = db.Or("LOWER(description) LIKE ?", "%"+strings.ToLower(*q)+"%")
+	}
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -204,26 +243,69 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, start *int, limit 
 		result = append(result, &value)
 	}
 	if first {
-		// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
-		// need to do a count(*) to find out total
-		orgDB := orgDB.Select("count(*)")
-		rows2, err := orgDB.Rows()
-		defer rows2.Close()
-		if err != nil {
-			return nil, 0, errs.WithStack(err)
+		if q != nil {
+			// If 0 rows were returned from first query during search, then total is 0
+			count = 0
+		} else {
+			// means 0 rows were returned from the first query (maybe becaus of offset outside of total count),
+			// need to do a count(*) to find out total
+			orgDB := orgDB.Select("count(*)")
+			rows2, err := orgDB.Rows()
+			defer rows2.Close()
+			if err != nil {
+				return nil, 0, errs.WithStack(err)
+			}
+			rows2.Next() // count(*) will always return a row
+			rows2.Scan(&count)
 		}
-		rows2.Next() // count(*) will always return a row
-		rows2.Scan(&count)
 	}
 	return result, count, nil
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
-	result, count, err := r.listSpaceFromDB(ctx, start, limit)
+	result, count, err := r.listSpaceFromDB(ctx, nil, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
 
 	return result, count, nil
+}
+
+func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
+	result, count, err := r.listSpaceFromDB(ctx, q, start, limit)
+	if err != nil {
+		return nil, 0, errs.WithStack(err)
+	}
+
+	return result, count, nil
+}
+
+func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error) {
+	res := Space{}
+	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userId, *spaceName).First(&res)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"spaceName": *spaceName,
+			"userId":    *userId,
+		}, "Could not find space under owner")
+		return nil, errors.NewNotFoundError("space", *spaceName)
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return &res, nil
+}
+
+func NewSpaceRelation(id satoriuuid.UUID, selfURL string) *app.RelationSpaces {
+	spaceType := "spaces"
+	return &app.RelationSpaces{
+		Data: &app.RelationSpacesData{
+			Type: &spaceType,
+			ID:   &id,
+		},
+		Links: &app.GenericLinks{
+			Self: &selfURL,
+		},
+	}
 }

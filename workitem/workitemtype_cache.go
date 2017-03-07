@@ -1,29 +1,33 @@
 package workitem
 
 import (
-	"log"
 	"sync"
+
+	"github.com/almighty/almighty-core/log"
+	uuid "github.com/satori/go.uuid"
 )
+
+type witCacheMap map[uuid.UUID]WorkItemType
 
 // WorkItemTypeCache represents WorkItemType cache
 type WorkItemTypeCache struct {
-	cache   map[string]WorkItemType
+	cache   witCacheMap
 	mapLock sync.RWMutex
 }
 
 // NewWorkItemTypeCache constructs WorkItemTypeCache
 func NewWorkItemTypeCache() *WorkItemTypeCache {
 	witCache := WorkItemTypeCache{}
-	witCache.cache = make(map[string]WorkItemType)
+	witCache.cache = make(witCacheMap)
 	return &witCache
 }
 
-// Get returns WorkItemType by name.
+// Get returns WorkItemType by ID.
 // The second value (ok) is a bool that is true if the WorkItemType exists in the cache, and false if not.
-func (c *WorkItemTypeCache) Get(typeName string) (WorkItemType, bool) {
+func (c *WorkItemTypeCache) Get(id uuid.UUID) (WorkItemType, bool) {
 	c.mapLock.RLock()
 	defer c.mapLock.RUnlock()
-	w, ok := c.cache[typeName]
+	w, ok := c.cache[id]
 	return w, ok
 }
 
@@ -31,13 +35,14 @@ func (c *WorkItemTypeCache) Get(typeName string) (WorkItemType, bool) {
 func (c *WorkItemTypeCache) Put(wit WorkItemType) {
 	c.mapLock.Lock()
 	defer c.mapLock.Unlock()
-	c.cache[wit.Name] = wit
+	c.cache[wit.ID] = wit
 }
 
 // Clear clears the cache
 func (c *WorkItemTypeCache) Clear() {
 	c.mapLock.Lock()
 	defer c.mapLock.Unlock()
-	log.Println("Clearing work item cache")
-	c.cache = make(map[string]WorkItemType)
+	log.Info(nil, nil, "Clearing work item cache")
+
+	c.cache = make(witCacheMap)
 }

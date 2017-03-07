@@ -8,10 +8,12 @@ postgres.user: postgres
 postgres.password: mysecretpassword
 postgres.database: postgres
 postgres.sslmode: disable
-# The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+# The amount of time before the connection times out
+postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
+postgres.connection.maxidle: -1
+postgres.connection.maxopen: -1
 
 #------------------------
 # HTTP configuration
@@ -33,7 +35,7 @@ populate.commontypes: true
 # Authentication configuration
 # ----------------------------
 
-token.privatekey : > 
+token.privatekey : |
                     -----BEGIN RSA PRIVATE KEY-----
                     MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
                     DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
@@ -62,15 +64,15 @@ token.privatekey : >
                     OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
                     -----END RSA PRIVATE KEY-----
 
-token.publickey : >
+token.publickey : |
                     -----BEGIN PUBLIC KEY-----
-                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnwrjH5iTSErw9xUptp6Q
-                    SFoUfpHUXZ+PaslYSUrpLjw1q27ODSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nw
-                    xBobS723okFaIkshRrf6qgtD6coTHlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3
-                    bwTIFlLlVMiZf7XVE7P3yuOCpqkk2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpj
-                    O5QnY+Exx98E30iEdPHZpsfNhsjh9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbv
-                    enbR9Q59d88lbnEeHKgSMe2RQpFR3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWm
-                    PwIDAQAB
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
+                    TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R
+                    SkAzBjPxVW5+hi5AJjUbAxtFX/aYJpZePVhK0Dv8StCPSv9GC3T6bUSF3q3E9R9n
+                    G1SZFkN9m2DhL+45us4THzX2eau6s0bISjAUqEGNifPyYYUzKVmXmHS9fiZJR61h
+                    6TulPwxv68DUSk+7iIJvJfQ3lH/XNWlxWNMMehetcmdy8EDR2IkJCCAbjx9yxgKV
+                    JXdQ7zylRlpaLopock0FGiZrJhEaAh6BGuaoUWLiMEvqrLuyZnJYEg9f/vyxUJSD
+                    JwIDAQAB
                     -----END PUBLIC KEY-----
 
 # ----------------------------
@@ -79,6 +81,12 @@ token.publickey : >
 
 keycloak.client.id : fabric8-online-platform
 keycloak.secret : 08a8bcd1-f362-446a-9d2b-d34b8d464185
-keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/auth
-keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/token
-keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/demo/protocol/openid-connect/userinfo
+keycloak.domain.prefix : sso
+keycloak.realm : fabric8
+keycloak.testuser.name : testuser
+keycloak.testuser.secret : testuser
+
+# Uncomment if FQDN URL's should be used instead of relative URL's:
+# keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth
+# keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token
+# keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo

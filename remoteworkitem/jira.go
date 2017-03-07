@@ -30,7 +30,7 @@ func (f *jiraIssueFetcher) getIssue(issueID string) (*jira.Issue, *jira.Response
 }
 
 // Fetch collects data from Jira
-func (j *JiraTracker) Fetch() chan TrackerItemContent {
+func (j *JiraTracker) Fetch(authToken string) chan TrackerItemContent {
 	f := jiraIssueFetcher{}
 	client, _ := jira.NewClient(nil, j.URL)
 	f.client = client

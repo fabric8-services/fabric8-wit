@@ -1,5 +1,3 @@
-// Package criteria holds a representation of expression trees and code for their manipulation
-// This package serves to decouple the concrete query language from the execution of the queries against the database
 package criteria
 
 // Expression is used to express conditions for selecting an entity
@@ -30,7 +28,7 @@ func IterateParents(exp Expression, f func(Expression) bool) {
 }
 
 // BinaryExpression represents expressions with 2 children
-// This could be generalized to n-ary expressions, but that is not neccessary right now
+// This could be generalized to n-ary expressions, but that is not necessary right now
 type BinaryExpression interface {
 	Expression
 	Left() Expression

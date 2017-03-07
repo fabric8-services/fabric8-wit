@@ -6,6 +6,8 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItem represents a work item as it is stored in the database
@@ -13,16 +15,22 @@ type WorkItem struct {
 	gormsupport.Lifecycle
 	ID uint64 `gorm:"primary_key"`
 	// Id of the type of this work item
-	Type string
+	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control
 	Version int
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
+	// Reference to one Space
+	SpaceID uuid.UUID `sql:"type:uuid"`
 }
+
+const (
+	workitemTableName = "work_items"
+)
 
 // TableName implements gorm.tabler
 func (w WorkItem) TableName() string {
-	return "work_items"
+	return workitemTableName
 }
 
 // Ensure WorkItem implements the Equaler interface
@@ -39,13 +47,16 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 
-	if wi.Type != other.Type {
+	if !uuid.Equal(wi.Type, other.Type) {
 		return false
 	}
 	if wi.ID != other.ID {
 		return false
 	}
 	if wi.Version != other.Version {
+		return false
+	}
+	if wi.SpaceID != other.SpaceID {
 		return false
 	}
 	return wi.Fields.Equal(other.Fields)
@@ -58,4 +69,10 @@ func ParseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
 		return 0, errors.NewNotFoundError("work item ID", wiIDStr)
 	}
 	return wiID, nil
+}
+
+type WICountsPerIteration struct {
+	IterationId string `gorm:"column:iterationid"`
+	Total       int
+	Closed      int
 }

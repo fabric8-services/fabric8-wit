@@ -1,7 +1,6 @@
 package remoteworkitem
 
 import (
-	"log"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -9,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
@@ -41,7 +41,6 @@ func TestTrackerSave(t *testing.T) {
 		tracker, _ = trackerRepo.Create(context.Background(), "http://api.github.com", ProviderGithub)
 		tracker.Type = "blabla"
 		tracker2, err := trackerRepo.Save(context.Background(), *tracker)
-		log.Println("--------", tracker2)
 		assert.IsType(t, BadParameterError{}, err)
 		assert.Nil(t, tracker2)
 
@@ -111,6 +110,7 @@ func TestTrackerList(t *testing.T) {
 
 func doWithTrackerRepository(t *testing.T, todo func(repo application.TrackerRepository)) {
 	doWithTransaction(t, func(db *gorm.DB) {
+		defer cleaner.DeleteCreatedEntities(db)()
 		trackerRepo := NewTrackerRepository(db)
 		todo(trackerRepo)
 	})

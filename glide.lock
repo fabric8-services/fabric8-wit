@@ -37,7 +37,7 @@ imports:
 - name: github.com/fsnotify/fsnotify
   version: 629574ca2a5df945712d3079857300b5e4da0236
 - name: github.com/goadesign/goa
-  version: 7fc6b55040a7f8a800500c44c547692a0d7aed77
+  version: 9eda81168b626a13825cd0e9c0d607411fb0b5b5
   vcs: git
   subpackages:
   - client
@@ -198,4 +198,12 @@ imports:
   version: 7664702784775e51966f0885f5cd27435916517b
 - name: gopkg.in/yaml.v2
   version: a5b47d31c556af34a302ce5d659e6fea44d90de0
+- name: github.com/golang/lint
+  version: c7bacac2b21ca01afa1dee0acf64df3ce047c28f
+  subpackages:
+  - golint
+- name: github.com/fzipp/gocyclo
+  version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
+- name: github.com/Sirupsen/logrus
+  version: c078b1e43f58d563c74cebe63c85789e76ddb627
 testImports: []

@@ -8,6 +8,7 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/resource"
+	testtoken "github.com/almighty/almighty-core/test/token"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -15,25 +16,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGenerateToken(t *testing.T) {
+func TestExtractToken(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
 	manager := createManager(t)
 
-	fullName := "Mr Test Case"
-
-	tokenString, err := manager.Generate(account.Identity{
+	identity := account.Identity{
 		ID:       uuid.NewV4(),
-		FullName: fullName,
-		ImageURL: "http://some.com/image",
-		Emails:   []account.User{account.User{Email: "mr@test.com"}},
-	})
+		Username: "testuser",
+	}
+	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
+	if err != nil {
+		t.Fatal("Could not parse private key", err)
+	}
 
-	ident, err := manager.Extract(tokenString)
+	token, err := testtoken.GenerateToken(identity.ID.String(), identity.Username, privateKey)
+	if err != nil {
+		t.Fatal("Could not generate test token", err)
+	}
+
+	ident, err := manager.Extract(token)
 	if err != nil {
 		t.Fatal("Could not extract Identity from generated token", err)
 	}
-	assert.Equal(t, fullName, ident.FullName)
+	assert.Equal(t, identity.Username, ident.Username)
 }
 
 func TestExtractWithInvalidToken(t *testing.T) {
@@ -46,7 +52,7 @@ func TestExtractWithInvalidToken(t *testing.T) {
 
 	tok := jwt.New(jwt.SigningMethodRS256)
 	// add already expired time to "exp" claim"
-	claims := jwt.MapClaims{"uuid": "some_uuid", "exp": float64(time.Now().Unix() - 100)}
+	claims := jwt.MapClaims{"sub": "some_uuid", "exp": float64(time.Now().Unix() - 100)}
 	tok.Claims = claims
 	tokenStr, err := tok.SignedString(privateKey)
 	if err != nil {
@@ -70,7 +76,7 @@ func TestExtractWithInvalidToken(t *testing.T) {
 	}
 
 	// now set UUID to empty String
-	claims = jwt.MapClaims{"uuid": ""}
+	claims = jwt.MapClaims{"sub": ""}
 	tok.Claims = claims
 	tokenStr, err = tok.SignedString(privateKey)
 	if err != nil {
@@ -86,7 +92,7 @@ func TestLocateTokenInContex(t *testing.T) {
 	id := uuid.NewV4()
 
 	tk := jwt.New(jwt.SigningMethodRS256)
-	tk.Claims.(jwt.MapClaims)["uuid"] = id.String()
+	tk.Claims.(jwt.MapClaims)["sub"] = id.String()
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	manager := createManager(t)
@@ -123,7 +129,7 @@ func TestLocateMissingUUIDInTokenInContext(t *testing.T) {
 
 func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
 	tk := jwt.New(jwt.SigningMethodRS256)
-	tk.Claims.(jwt.MapClaims)["uuid"] = "131"
+	tk.Claims.(jwt.MapClaims)["sub"] = "131"
 	ctx := goajwt.WithJWT(context.Background(), tk)
 
 	manager := createManager(t)
@@ -135,15 +141,10 @@ func TestLocateInvalidUUIDInTokenInContext(t *testing.T) {
 }
 
 func createManager(t *testing.T) token.Manager {
-	publicKey, err := token.ParsePublicKey([]byte(token.RSAPublicKey))
-	if err != nil {
-		t.Fatal("Could not parse public key")
-	}
-
 	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))
 	if err != nil {
 		t.Fatal("Could not parse private key")
 	}
 
-	return token.NewManager(publicKey, privateKey)
+	return token.NewManagerWithPrivateKey(privateKey)
 }

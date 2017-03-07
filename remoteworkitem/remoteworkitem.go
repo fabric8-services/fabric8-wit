@@ -2,55 +2,85 @@ package remoteworkitem
 
 import (
 	"encoding/json"
+	"strconv"
+	"strings"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 // List of supported attributes
 const (
-	// The keys in the flattened response JSON of a typical Github issue.
-
-	GithubTitle       = "title"
-	GithubDescription = "body"
-	GithubState       = "state"
-	GithubID          = "url"
-	GithubCreator     = "user.login"
-	GithubAssignee    = "assignee.login"
-
-	// The keys in the flattened response JSON of a typical Jira issue.
-
-	JiraTitle    = "fields.summary"
-	JiraBody     = "fields.description"
-	JiraState    = "fields.status.name"
-	JiraID       = "self"
-	JiraCreator  = "fields.creator.key"
-	JiraAssignee = "fields.assignee"
-
 	ProviderGithub = "github"
 	ProviderJira   = "jira"
+
+	// The keys in the flattened response JSON of a typical Github issue.
+	GithubTitle                      = "title"
+	GithubDescription                = "body"
+	GithubState                      = "state"
+	GithubID                         = "url"
+	GithubCreatorLogin               = "user.login"
+	GithubCreatorProfileURL          = "user.url"
+	GithubAssigneesLogin             = "assignees.0.login"
+	GithubAssigneesLoginPattern      = "assignees.?.login"
+	GithubAssigneesProfileURL        = "assignees.0.url"
+	GithubAssigneesProfileURLPattern = "assignees.?.url"
+
+	// The keys in the flattened response JSON of a typical Jira issue.
+	JiraTitle              = "fields.summary"
+	JiraBody               = "fields.description"
+	JiraState              = "fields.status.name"
+	JiraID                 = "self"
+	JiraCreatorLogin       = "fields.creator.key"
+	JiraCreatorProfileURL  = "fields.creator.self"
+	JiraAssigneeLogin      = "fields.assignee.key"
+	JiraAssigneeProfileURL = "fields.assignee.self"
 )
 
-// WorkItemKeyMaps relate remote attribute keys to internal representation
-var WorkItemKeyMaps = map[string]WorkItemMap{
-	ProviderGithub: WorkItemMap{
-		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                             workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                        workitem.SystemState,
-		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(GithubCreator), StringConverter{}}:                                           workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(GithubAssignee), ListStringConverter{}}:                                      workitem.SystemAssignees,
+// RemoteWorkItem a temporary structure that holds the relevant field values retrieved from a remote work item
+type RemoteWorkItem struct {
+	// The field values, according to the field type
+	Fields map[string]interface{}
+	// unique id per installation
+	ID string
+	// Name of the type of this work item
+	Type uuid.UUID `sql:"type:uuid"`
+}
+
+const (
+	remoteTitle               = workitem.SystemTitle
+	remoteDescription         = workitem.SystemDescription
+	remoteState               = workitem.SystemState
+	remoteItemID              = workitem.SystemRemoteItemID
+	remoteCreatorLogin        = "system.creator.login"
+	remoteCreatorProfileURL   = "system.creator.profile_url"
+	remoteAssigneeLogins      = "system.assignees.login"
+	remoteAssigneeProfileURLs = "system.assignees.profile_url"
+)
+
+// RemoteWorkItemKeyMaps relate remote attribute keys to internal representation
+var RemoteWorkItemKeyMaps = map[string]RemoteWorkItemMap{
+	ProviderGithub: {
+		AttributeMapper{AttributeExpression(GithubTitle), StringConverter{}}:                                                               remoteTitle,
+		AttributeMapper{AttributeExpression(GithubDescription), MarkupConverter{markup: rendering.SystemMarkupMarkdown}}:                   remoteDescription,
+		AttributeMapper{AttributeExpression(GithubState), GithubStateConverter{}}:                                                          remoteState,
+		AttributeMapper{AttributeExpression(GithubID), StringConverter{}}:                                                                  remoteItemID,
+		AttributeMapper{AttributeExpression(GithubCreatorLogin), StringConverter{}}:                                                        remoteCreatorLogin,
+		AttributeMapper{AttributeExpression(GithubCreatorProfileURL), StringConverter{}}:                                                   remoteCreatorProfileURL,
+		AttributeMapper{AttributeExpression(GithubAssigneesLogin), PatternToListConverter{pattern: GithubAssigneesLoginPattern}}:           remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(GithubAssigneesProfileURL), PatternToListConverter{pattern: GithubAssigneesProfileURLPattern}}: remoteAssigneeProfileURLs,
 	},
-	ProviderJira: WorkItemMap{
-		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      workitem.SystemTitle,
-		AttributeMapper{AttributeExpression(JiraBody), StringConverter{}}:                                       workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: workitem.SystemDescription,
-		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   workitem.SystemState,
-		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         workitem.SystemRemoteItemID,
-		AttributeMapper{AttributeExpression(JiraCreator), StringConverter{}}:                                    workitem.SystemCreator,
-		AttributeMapper{AttributeExpression(JiraAssignee), ListStringConverter{}}:                               workitem.SystemAssignees,
+	ProviderJira: {
+		AttributeMapper{AttributeExpression(JiraTitle), StringConverter{}}:                                      remoteTitle,
+		AttributeMapper{AttributeExpression(JiraBody), MarkupConverter{markup: rendering.SystemMarkupJiraWiki}}: remoteDescription,
+		AttributeMapper{AttributeExpression(JiraState), JiraStateConverter{}}:                                   remoteState,
+		AttributeMapper{AttributeExpression(JiraID), StringConverter{}}:                                         remoteItemID,
+		AttributeMapper{AttributeExpression(JiraCreatorLogin), StringConverter{}}:                               remoteCreatorLogin,
+		AttributeMapper{AttributeExpression(JiraCreatorProfileURL), StringConverter{}}:                          remoteCreatorProfileURL,
+		AttributeMapper{AttributeExpression(JiraAssigneeLogin), ListConverter{}}:                                remoteAssigneeLogins,
+		AttributeMapper{AttributeExpression(JiraAssigneeProfileURL), ListConverter{}}:                           remoteAssigneeProfileURLs,
 	},
 }
 
@@ -58,9 +88,19 @@ type AttributeConverter interface {
 	Convert(interface{}, AttributeAccessor) (interface{}, error)
 }
 
+// StateConverter converts a remote work item state
 type StateConverter interface{}
 
+// StringConverter converts a value to a string
 type StringConverter struct{}
+
+// ListConverter converts a value into a list containing a single element
+type ListConverter struct{}
+
+// PatternToListConverter joins multiple elements matching a regular expression into a single array
+type PatternToListConverter struct {
+	pattern string
+}
 
 // MarkupConverter converts to a 'MarkupContent' element with the given 'Markup' value
 type MarkupConverter struct {
@@ -73,9 +113,35 @@ type GithubStateConverter struct{}
 
 type JiraStateConverter struct{}
 
-// Convert method map the external tracker item to ALM WorkItem
-func (sc StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+// Convert converts the given value to a string
+func (converter StringConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
 	return value, nil
+}
+
+// Convert converts the given value to a list containing this single value as string
+func (converter ListConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	if value == nil {
+		return make([]string, 0), nil
+	}
+	result := make([]string, 1)
+	result[0] = value.(string)
+	return result, nil
+}
+
+// Convert converts all fields from the given item that match this RegexpConverter's pattern, and returns an array of matching values as string
+func (converter PatternToListConverter) Convert(value interface{}, item AttributeAccessor) (interface{}, error) {
+	result := make([]string, 0)
+	i := 0
+	for {
+		key := AttributeExpression(strings.Replace(converter.pattern, "?", strconv.Itoa(i), 1))
+		if v := item.Get(key); v != nil {
+			result = append(result, v.(string))
+		} else {
+			break
+		}
+		i++
+	}
+	return result, nil
 }
 
 // Convert returns the given `value` if the `item` is not nil`, otherwise returns `nil`
@@ -124,8 +190,8 @@ type AttributeMapper struct {
 	attributeConverter AttributeConverter
 }
 
-// WorkItemMap will define mappings between remote<->internal attribute
-type WorkItemMap map[AttributeMapper]string
+// RemoteWorkItemMap will define mappings between remote<->internal attribute
+type RemoteWorkItemMap map[AttributeMapper]string
 
 // AttributeExpression represents a commonly understood String format for a target path
 type AttributeExpression string
@@ -185,15 +251,15 @@ func (jira JiraRemoteWorkItem) Get(field AttributeExpression) interface{} {
 	return jira.issue[string(field)]
 }
 
-// Map maps the remote WorkItem to a local WorkItem
-func Map(item AttributeAccessor, mapping WorkItemMap) (app.WorkItem, error) {
-	workItem := app.WorkItem{Fields: make(map[string]interface{})}
+// Map maps the remote WorkItem to a local RemoteWorkItem
+func Map(remoteItem AttributeAccessor, mapping RemoteWorkItemMap) (RemoteWorkItem, error) {
+	remoteWorkItem := RemoteWorkItem{Fields: make(map[string]interface{})}
 	for from, to := range mapping {
-		originalValue := item.Get(from.expression)
-		convertedValue, err := from.attributeConverter.Convert(originalValue, item)
+		originalValue := remoteItem.Get(from.expression)
+		convertedValue, err := from.attributeConverter.Convert(originalValue, remoteItem)
 		if err == nil {
-			workItem.Fields[to] = convertedValue
+			remoteWorkItem.Fields[to] = convertedValue
 		}
 	}
-	return workItem, nil
+	return remoteWorkItem, nil
 }

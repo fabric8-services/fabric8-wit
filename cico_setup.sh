@@ -29,7 +29,6 @@ function install_deps() {
     git \
     curl
 
-  sed -i '/OPTIONS=.*/c\OPTIONS="--selinux-enabled --log-driver=journald --insecure-registry registry.ci.centos.org:5000"' /etc/sysconfig/docker
   service docker start
   echo 'CICO: Dependencies installed'
 }
@@ -46,6 +45,7 @@ function prepare() {
   make docker-start
   make docker-check-go-format
   make docker-deps
+  make docker-analyze-go-code
   make docker-generate
   make docker-build
   echo 'CICO: Preparation complete'
@@ -63,7 +63,7 @@ function run_tests_without_coverage() {
 function run_tests_with_coverage() {
   # Run the unit tests that generate coverage information
   make docker-test-unit
-  
+
   make integration-test-env-prepare
   trap cleanup_env EXIT
 
@@ -84,8 +84,8 @@ function run_tests_with_coverage() {
 function deploy() {
   # Let's deploy
   make docker-image-deploy
-  docker tag almighty-core-deploy registry.ci.centos.org:5000/almighty/almighty-core:latest 
-  docker push registry.ci.centos.org:5000/almighty/almighty-core:latest
+  docker tag almighty-core-deploy registry.devshift.net/almighty/almighty-core:latest
+  docker push registry.devshift.net/almighty/almighty-core:latest
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 
