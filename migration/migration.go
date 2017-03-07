@@ -614,7 +614,7 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 	case nil:
 		log.Info(ctx, map[string]interface{}{
 			"typeID": typeID,
-		}, "Work item type %s exists, will update/overwrite the fields only and parentPath", typeID.String())
+		}, "Work item type %s exists, will update/overwrite the fields, name, icon, description and parentPath", typeID.String())
 
 		path := workitem.LtreeSafeID(typeID)
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
@@ -640,6 +640,9 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		if err != nil {
 			return errs.WithStack(err)
 		}
+		wit.Name = name
+		wit.Description = &description
+		wit.Icon = icon
 		wit.Fields = convertedFields
 		wit.Path = path
 		db = db.Save(wit)
