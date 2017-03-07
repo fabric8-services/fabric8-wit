@@ -311,7 +311,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 		if err != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
-		res[index], err = workitem.ConvertWorkItemModelToApp(wiType, value)
+		res[index], err = workitem.ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, value)
 	}
 
 	return res, nil

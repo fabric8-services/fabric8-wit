@@ -84,7 +84,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, res)
 }
 
 // Delete deletes the work item with the given id
@@ -182,7 +182,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	log.Info(ctx, map[string]interface{}{
 		"wiID": wi.ID,
 	}, "Updated work item repository")
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // Create creates a new work item in the repository
@@ -220,7 +220,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errs.Wrapf(err, "Failed to create work item")
 	}
 
-	witem, err := convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
+	witem, err := ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,8 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	return witem, nil
 }
 
-func convertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
+// ConvertWorkItemModelToApp convert work item model to app WI
+func ConvertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
 	result, err := wiType.ConvertFromModel(request, *wi)
 	if err != nil {
 		return nil, errors.NewConversionError(err.Error())
@@ -336,7 +337,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		res[index], err = convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
+		res[index], err = ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
 	}
 	return res, count, nil
 }
