@@ -1,19 +1,23 @@
 package search_test
 
 import (
+	"net/http"
+	"net/url"
 	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -24,11 +28,11 @@ import (
 
 func TestRunSearchRepositoryBlackboxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchRepositoryBlackboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type searchRepositoryBlackboxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	modifierID uuid.UUID
 	clean      func()
 	searchRepo *search.GormSearchRepository
@@ -66,7 +70,10 @@ func (s *searchRepositoryBlackboxTest) TearDownTest() {
 
 func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	// given
-	ctx := context.Background()
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx := goa.NewContext(context.Background(), nil, req, params)
+
 	res, count, err := s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
@@ -75,37 +82,35 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	}
 
 	extended := workitem.SystemBug
-	base, err := s.witRepo.Create(ctx, nil, &extended, "base", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), base)
 	require.NotNil(s.T(), base.Data)
 	require.NotNil(s.T(), base.Data.ID)
 
-	sub1, err := s.witRepo.Create(ctx, nil, base.Data.ID, "sub1", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, base.Data.ID, "sub1", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub1)
 	require.NotNil(s.T(), sub1.Data)
 	require.NotNil(s.T(), sub1.Data.ID)
 
-	sub2, err := s.witRepo.Create(ctx, nil, base.Data.ID, "subtwo", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, base.Data.ID, "subtwo", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub2)
 	require.NotNil(s.T(), sub2.Data)
 	require.NotNil(s.T(), sub2.Data.ID)
 
-	wi1, err := s.wiRepo.Create(ctx, *sub1.Data.ID, map[string]interface{}{
+	wi1, err := s.wiRepo.Create(ctx, space.SystemSpace, *sub1.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType",
 		workitem.SystemState: "closed",
 	}, s.modifierID)
-	require.NotNil(s.T(), wi1)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wi1)
 
-	wi2, err := s.wiRepo.Create(ctx, *sub2.Data.ID, map[string]interface{}{
+	wi2, err := s.wiRepo.Create(ctx, space.SystemSpace, *sub2.Data.ID, map[string]interface{}{
 		workitem.SystemTitle: "Test TestRestrictByType 2",
 		workitem.SystemState: "closed",
 	}, s.modifierID)
-	require.NotNil(s.T(), wi2)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wi2)
 

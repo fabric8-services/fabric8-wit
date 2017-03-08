@@ -142,13 +142,6 @@ func main() {
 		}
 	}
 
-	// Scheduler to fetch and import remote tracker items
-	scheduler = remoteworkitem.NewScheduler(db)
-	defer scheduler.Stop()
-
-	accessTokens := controller.GetAccessTokens(configuration)
-	scheduler.ScheduleAllQueries(accessTokens)
-
 	// Create service
 	service := goa.New("alm")
 
@@ -160,6 +153,13 @@ func main() {
 	service.Use(middleware.Recover())
 
 	service.WithLogger(goalogrus.New(log.Logger()))
+
+	// Scheduler to fetch and import remote tracker items
+	scheduler = remoteworkitem.NewScheduler(db)
+	defer scheduler.Stop()
+
+	accessTokens := controller.GetAccessTokens(configuration)
+	scheduler.ScheduleAllQueries(service.Context, accessTokens)
 
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {

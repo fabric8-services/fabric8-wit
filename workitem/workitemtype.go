@@ -7,6 +7,10 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
+
+	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
@@ -67,6 +71,8 @@ type WorkItemType struct {
 	Path string
 	// definitions of the fields this work item type supports
 	Fields FieldDefinitions `sql:"type:jsonb"`
+	// Reference to one Space
+	SpaceID satoriuuid.UUID `sql:"type:uuid"`
 }
 
 // GetTypePathSeparator returns the work item type's path separator "."
@@ -150,16 +156,24 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 			return false
 		}
 	}
+	if wit.SpaceID != other.SpaceID {
+		return false
+	}
 	return true
 }
 
 // ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
-func (wit WorkItemType) ConvertFromModel(workItem WorkItem) (*app.WorkItem, error) {
+func (wit WorkItemType) ConvertFromModel(request *goa.RequestData, workItem WorkItem) (*app.WorkItem, error) {
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
 	result := app.WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
 		Version: workItem.Version,
-		Fields:  map[string]interface{}{}}
+		Fields:  map[string]interface{}{},
+		Relationships: &app.WorkItemRelationships{
+			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
+		},
+	}
 
 	for name, field := range wit.Fields {
 		var err error

@@ -2,6 +2,8 @@ package controller_test
 
 import (
 	"html"
+	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -14,13 +16,15 @@ import (
 	"github.com/almighty/almighty-core/comment"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -29,14 +33,15 @@ import (
 )
 
 type TestCommentREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	db           *gormapplication.GormDB
 	clean        func()
 	testIdentity account.Identity
+	ctx          context.Context
 }
 
 func TestRunCommentREST(t *testing.T) {
-	suite.Run(t, &TestCommentREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestCommentREST) SetupTest() {
@@ -46,6 +51,10 @@ func (rest *TestCommentREST) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
+
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
 }
 
 func (rest *TestCommentREST) TearDownTest() {
@@ -81,7 +90,8 @@ func (rest *TestCommentREST) createDefaultWorkItem() string {
 	err := application.Transactional(rest.db, func(appl application.Application) error {
 		repo := appl.WorkItems()
 		wi, err := repo.Create(
-			context.Background(),
+			rest.ctx,
+			space.SystemSpace,
 			workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle: "A",
@@ -143,10 +153,10 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 	wiid := rest.createDefaultWorkItem()
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
-		repo.Create(context.Background(), &comment.Comment{ParentID: wiid + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(rest.ctx, &comment.Comment{ParentID: wiid, Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(rest.ctx, &comment.Comment{ParentID: wiid, Body: "Test 2", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(rest.ctx, &comment.Comment{ParentID: wiid, Body: "Test 3", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		repo.Create(rest.ctx, &comment.Comment{ParentID: wiid + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
 		return nil
 	})
 	// when

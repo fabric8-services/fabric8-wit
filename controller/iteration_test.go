@@ -2,6 +2,8 @@ package controller_test
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -11,14 +13,15 @@ import (
 	"github.com/almighty/almighty-core/application"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -28,14 +31,14 @@ import (
 )
 
 type TestIterationREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
 }
 
 func TestRunIterationREST(t *testing.T) {
-	suite.Run(t, &TestIterationREST{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestIterationREST) SetupTest() {
@@ -187,9 +190,13 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
 	require.Nil(rest.T(), err)
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx := goa.NewContext(context.Background(), nil, req, params)
+
 	for i := 0; i < 4; i++ {
 		wi, err := wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			ctx, itr.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateNew,
@@ -201,7 +208,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
-			context.Background(), workitem.SystemBug,
+			ctx, itr.SpaceID, workitem.SystemBug,
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,

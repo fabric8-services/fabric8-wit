@@ -6,6 +6,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -161,7 +162,6 @@ func CheckValidTopology(t string) error {
 
 // ConvertLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.WorkItemLinkTypeSingle {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 
 	var converted = app.WorkItemLinkTypeSingle{
@@ -195,15 +195,7 @@ func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.
 						ID:   t.TargetTypeID,
 					},
 				},
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &t.SpaceID,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
 			},
 		},
 	}

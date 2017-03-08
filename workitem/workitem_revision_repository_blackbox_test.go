@@ -2,21 +2,24 @@ package workitem_test
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
-	"fmt"
-
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,11 +28,11 @@ import (
 
 func TestRunRevisionRepositoryBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemRevisionRepositoryBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemRevisionRepositoryBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type workItemRevisionRepositoryBlackBoxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	repository         workitem.WorkItemRepository
 	revisionRepository workitem.RevisionRepository
 	clean              func()
@@ -73,10 +76,14 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TearDownTest() {
 }
 
 func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	ctx := goa.NewContext(context.Background(), nil, req, params)
+
 	// given
 	// create a workitem
 	workItem, err := s.repository.Create(
-		context.Background(), workitem.SystemBug,
+		ctx, space.SystemSpace, workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle: "Title",
 			workitem.SystemState: workitem.SystemStateNew,
@@ -86,20 +93,20 @@ func (s *workItemRevisionRepositoryBlackBoxTest) TestStoreRevisions() {
 	workItem.Fields[workitem.SystemTitle] = "Updated Title"
 	workItem.Fields[workitem.SystemState] = workitem.SystemStateOpen
 	workItem, err = s.repository.Save(
-		context.Background(), *workItem, s.testIdentity2.ID)
+		ctx, *workItem, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// modify again the workitem
 	workItem.Fields[workitem.SystemTitle] = "Updated Title2"
 	workItem.Fields[workitem.SystemState] = workitem.SystemStateInProgress
 	workItem, err = s.repository.Save(
-		context.Background(), *workItem, s.testIdentity2.ID)
+		ctx, *workItem, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// delete the workitem
 	err = s.repository.Delete(
-		context.Background(), workItem.ID, s.testIdentity3.ID)
+		ctx, workItem.ID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
-	revisions, err := s.revisionRepository.List(context.Background(), workItem.ID)
+	revisions, err := s.revisionRepository.List(ctx, workItem.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), revisions, 4)

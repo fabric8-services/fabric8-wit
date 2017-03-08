@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/space"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
@@ -19,11 +19,11 @@ var testSpace string = satoriuuid.NewV4().String()
 var testSpace2 string = satoriuuid.NewV4().String()
 
 func TestRunRepoBBTest(t *testing.T) {
-	suite.Run(t, &repoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &repoBBTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type repoBBTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	repo  space.Repository
 	clean func()
 }

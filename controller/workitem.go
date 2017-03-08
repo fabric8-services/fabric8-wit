@@ -17,7 +17,9 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -183,16 +185,30 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if wit == nil { // TODO Figure out path source etc. Should be a required relation
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.BaseType.Data.ID", err))
 	}
+	// Following is a temporary fix. Until the API itself understands space context we will add default space like this
+	// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+	spaceID := space.SystemSpace
+	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
+		ctx.Payload.Data.Relationships.Space != nil && ctx.Payload.Data.Relationships.Space.Data != nil {
+		spaceID = *ctx.Payload.Data.Relationships.Space.Data.ID
+	}
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		//verify spaceID:
+		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+		if spaceID != space.SystemSpace {
+			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+			if spaceLoadErr != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+			}
+		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -364,6 +380,8 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
 	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.Space.Data.ID.String()))
+
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -377,6 +395,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Type: APIStringTypeWorkItemType,
 				},
 			},
+			Space: space.NewSpaceRelation(*wi.Relationships.Space.Data.ID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,

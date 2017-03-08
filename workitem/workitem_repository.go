@@ -12,6 +12,8 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
+
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -34,7 +36,7 @@ type WorkItemRepository interface {
 	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
-	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
+	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -94,7 +96,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(wiType, res)
+	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, res)
 }
 
 // LoadTopWorkitem returns top most work item of the list. Top most workitem has the Highest order.
@@ -423,12 +425,12 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	log.Info(ctx, map[string]interface{}{
 		"wiID": wi.ID,
 	}, "Updated work item repository")
-	return convertWorkItemModelToApp(wiType, &res)
+	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
 	wiType, err := r.witr.LoadTypeFromDB(ctx, typeID)
 	if err != nil {
 		return nil, errors.NewBadParameterError("typeID", typeID)
@@ -444,7 +446,10 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 	wi := WorkItem{
 		Type:           typeID,
 		Fields:         Fields{},
+		Type:           typeID,
+		Fields:         Fields{},
 		ExecutionOrder: pos,
+		SpaceID:        spaceID,
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
@@ -469,7 +474,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 		return nil, errs.Wrapf(err, "Failed to create work item")
 	}
 
-	witem, err := convertWorkItemModelToApp(wiType, &wi)
+	witem, err := convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
 	if err != nil {
 		return nil, err
 	}
@@ -482,8 +487,8 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, typeID uuid.UUID, f
 	return witem, nil
 }
 
-func convertWorkItemModelToApp(wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
-	result, err := wiType.ConvertFromModel(*wi)
+func convertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
+	result, err := wiType.ConvertFromModel(request, *wi)
 	if err != nil {
 		return nil, errors.NewConversionError(err.Error())
 	}
@@ -588,7 +593,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		res[index], err = convertWorkItemModelToApp(wiType, &value)
+		res[index], err = convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
 	}
 	return res, count, nil
 }
