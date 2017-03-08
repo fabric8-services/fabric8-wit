@@ -29,6 +29,7 @@ const (
 	SystemAssignees           = "system.assignees"
 	SystemCreator             = "system.creator"
 	SystemCreatedAt           = "system.created_at"
+	SystemUpdatedAt           = "system.updated_at"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
 	SystemCodebase            = "system.codebase"
