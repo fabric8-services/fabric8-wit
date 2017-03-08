@@ -34,7 +34,7 @@ type GormCommentRevisionRepository struct {
 
 // Create stores a new revision for the given comment.
 func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, c Comment) error {
-	log.Info(nil, map[string]interface{}{
+	log.Debug(nil, map[string]interface{}{
 		"pkg":              "comment",
 		"ModifierIdentity": modifierID,
 	}, "Storing a revision after operation on comment.")
@@ -44,6 +44,7 @@ func (r *GormCommentRevisionRepository) Create(ctx context.Context, modifierID u
 		Time:             time.Now(),
 		Type:             revisionType,
 		CommentID:        c.ID,
+		CommentParentID:  c.ParentID,
 		CommentBody:      &c.Body,
 		CommentMarkup:    &c.Markup,
 	}

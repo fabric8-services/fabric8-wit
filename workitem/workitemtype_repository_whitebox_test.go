@@ -2,10 +2,15 @@ package workitem
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
+
+	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,6 +68,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 				Required: true,
 			},
 		},
+		SpaceID: space.SystemSpace,
 	}
 
 	//----------------------------
@@ -80,6 +86,10 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	// Create the type for "animal-type" field based on the enum above
 	stString := "string"
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	expected := app.WorkItemTypeSingle{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -101,10 +111,13 @@ func TestConvertTypeFromModels(t *testing.T) {
 					},
 				},
 			},
+			Relationships: &app.WorkItemTypeRelationships{
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			},
 		},
 	}
 
-	result := convertTypeFromModels(&a)
+	result := convertTypeFromModels(reqLong, &a)
 
 	require.NotNil(t, result.ID)
 	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))

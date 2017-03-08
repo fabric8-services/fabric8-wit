@@ -14,13 +14,15 @@ import (
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/search"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -36,11 +38,11 @@ import (
 
 func TestRunSearchTests(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &searchBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type searchBlackBoxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	db                             *gormapplication.GormDB
 	svc                            *goa.Service
 	clean                          func()
@@ -48,6 +50,7 @@ type searchBlackBoxTest struct {
 	wiRepo                         *workitem.GormWorkItemRepository
 	controller                     *SearchController
 	spaceBlackBoxTestConfiguration *config.ConfigurationData
+	ctx                            context.Context
 }
 
 func (s *searchBlackBoxTest) SetupSuite() {
@@ -63,7 +66,8 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -85,7 +89,8 @@ func (s *searchBlackBoxTest) TearDownTest() {
 func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	// given
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch",
@@ -107,7 +112,8 @@ func (s *searchBlackBoxTest) TestSearchWorkItems() {
 func (s *searchBlackBoxTest) TestSearchPagination() {
 	// given
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch2",
@@ -131,7 +137,8 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 
 func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch",
@@ -153,7 +160,8 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	description := "http://localhost:8080/detail/154687364529310 is related issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_new",
@@ -175,7 +183,8 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	description := "This issue is related to http://localhost/detail/876394"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_without_port",
@@ -198,7 +207,8 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	description := "Related to http://some-other-domain:8080/different-path/154687364529310/ok issue"
 	expectedDescription := rendering.NewMarkupContentFromLegacy(description)
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_new",
@@ -221,7 +231,8 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	expectedDescription := rendering.NewMarkupContentFromLegacy("Related to http://example-domain:8080/different-path/ok issue")
 
 	_, err := s.wiRepo.Create(
-		context.Background(),
+		s.ctx,
+		space.SystemSpace,
 		workitem.SystemBug,
 		map[string]interface{}{
 			workitem.SystemTitle:       "specialwordforsearch_new",
@@ -241,6 +252,9 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 }
 
 func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
 	c := app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
@@ -252,6 +266,7 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 						ID:   workitem.SystemUserStory,
 					},
 				},
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}

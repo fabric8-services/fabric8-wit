@@ -58,7 +58,7 @@ for software developers to create a vertical slice of their work.`)
 	// TODO: Maybe this needs to be abandoned at some point
 	a.Attribute("extendedTypeName", d.UUID, "If newly created type extends any existing type (This is never present in any response and is only optional when creating.)")
 
-	a.Attribute("icon", d.String, "A font-awesome icon class name (see http://fontawesome.io/icons/)", func() {
+	a.Attribute("icon", d.String, "CSS class string for an icon to use. See http://fontawesome.io/icons/ or http://www.patternfly.org/styles/icons/#_ for examples.", func() {
 		a.Example("fa-bug")
 		a.MinLength(1)
 		// TODO: Add a pattern that disallows whitespaces
@@ -71,6 +71,10 @@ for software developers to create a vertical slice of their work.`)
 	a.Required("icon")
 })
 
+var workItemTypeRelationships = a.Type("WorkItemTypeRelationships", func() {
+	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
+})
+
 var workItemTypeData = a.Type("WorkItemTypeData", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitemtypes")
@@ -78,7 +82,8 @@ var workItemTypeData = a.Type("WorkItemTypeData", func() {
 	a.Attribute("id", d.UUID, "ID of work item type (optional during creation)")
 	a.Attribute("attributes", workItemTypeAttributes)
 	a.Attribute("links", genericLinks)
-	a.Required("type", "attributes")
+	a.Attribute("relationships", workItemTypeRelationships)
+	a.Required("type", "attributes", "relationships")
 })
 
 // workItemTypeLinks has `self` as of now according to http://jsonapi.org/format/#fetching-resources

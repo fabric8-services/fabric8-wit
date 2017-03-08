@@ -1,6 +1,8 @@
 package workitem_test
 
 import (
+	"net/http"
+	"net/url"
 	"os"
 
 	"golang.org/x/net/context"
@@ -8,12 +10,15 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -22,13 +27,14 @@ import (
 )
 
 type workItemTypeRepoBlackBoxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	clean func()
 	repo  workitem.WorkItemTypeRepository
+	ctx   context.Context
 }
 
 func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &workItemTypeRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &workItemTypeRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -40,11 +46,15 @@ func (s *workItemTypeRepoBlackBoxTest) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
 	}
+	req := &http.Request{Host: "localhost"}
+	params := url.Values{}
+	s.ctx = goa.NewContext(context.Background(), nil, req, params)
 }
 
 func (s *workItemTypeRepoBlackBoxTest) SetupTest() {
@@ -59,7 +69,7 @@ func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 
-	wit, err := s.repo.Create(context.Background(), nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{
+	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{
 		"foo": {
 			Required: true,
 			Type:     &app.FieldType{Kind: string(workitem.KindFloat)},
@@ -71,13 +81,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	require.NotNil(s.T(), wit.Data.ID)
 
 	// Test that we can create a WIT with the same name as before.
-	wit3, err := s.repo.Create(context.Background(), nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.Data)
 	require.NotNil(s.T(), wit3.Data.ID)
 
-	wit2, err := s.repo.Load(context.Background(), *wit.Data.ID)
+	wit2, err := s.repo.Load(s.ctx, *wit.Data.ID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.Data)
@@ -93,7 +103,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	bt := "string"
-	wit, err := s.repo.Create(context.Background(), nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{
+	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{
 		"foo": {
 			Required: true,
 			Type: &app.FieldType{
@@ -107,13 +117,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 
-	wit3, err := s.repo.Create(context.Background(), nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.Data)
 	require.NotNil(s.T(), wit3.Data.ID)
 
-	wit2, err := s.repo.Load(context.Background(), *wit.Data.ID)
+	wit2, err := s.repo.Load(s.ctx, *wit.Data.ID)
 	assert.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.Data)
@@ -129,7 +139,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 	bt := "string"
 	basetype := "foo.bar"
-	baseWit, err := s.repo.Create(context.Background(), nil, nil, basetype, nil, "fa-bomb", map[string]app.FieldDefinition{
+	baseWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, basetype, nil, "fa-bomb", map[string]app.FieldDefinition{
 		"foo": {
 			Required: true,
 			Type: &app.FieldType{
@@ -138,11 +148,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 			},
 		},
 	})
+
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), baseWit)
 	require.NotNil(s.T(), baseWit.Data)
 	require.NotNil(s.T(), baseWit.Data.ID)
-	extendedWit, err := s.repo.Create(context.Background(), nil, baseWit.Data.ID, "foo.baz", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, baseWit.Data.ID, "foo.baz", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), extendedWit)
 	require.NotNil(s.T(), extendedWit.Data)
@@ -153,7 +164,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 	baseTypeID := uuid.Nil
-	extendedWit, err := s.repo.Create(context.Background(), nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]app.FieldDefinition{})
+	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]app.FieldDefinition{})
 	// expect an error as the given base type does not exist
 	require.NotNil(s.T(), err)
 	require.Nil(s.T(), extendedWit)

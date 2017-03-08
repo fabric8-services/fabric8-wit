@@ -11,8 +11,8 @@ import (
 	"github.com/almighty/almighty-core/area"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -27,7 +27,7 @@ import (
 )
 
 type TestAreaREST struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	db    *gormapplication.GormDB
 	clean func()
@@ -38,7 +38,7 @@ func TestRunAreaREST(t *testing.T) {
 	if err != nil {
 		require.Nil(t, err)
 	}
-	suite.Run(t, &TestAreaREST{DBTestSuite: gormsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 
 func (rest *TestAreaREST) SetupTest() {

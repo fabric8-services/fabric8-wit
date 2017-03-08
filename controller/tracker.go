@@ -77,7 +77,7 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 		return ctx.Created(&respTracker)
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(accessTokens)
+	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
 }
 
@@ -99,7 +99,7 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 		return ctx.OK([]byte{})
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(accessTokens)
+	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
 }
 
@@ -206,7 +206,7 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 		return ctx.OK(&jsonapiTrackerObject)
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(accessTokens)
+	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
 }
 

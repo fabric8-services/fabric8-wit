@@ -9,8 +9,8 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/comment"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
@@ -25,15 +25,16 @@ import (
 )
 
 type TestCommentRepository struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	clean        func()
 	testIdentity account.Identity
 	repo         comment.Repository
+	ctx          context.Context
 }
 
 func TestRunCommentRepository(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, &TestCommentRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestCommentRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -41,11 +42,11 @@ func TestRunCommentRepository(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *TestCommentRepository) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			s.ctx = migration.NewMigrationContext(s.ctx)
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -74,7 +75,7 @@ func newComment(parentID, body, markup string) *comment.Comment {
 }
 
 func (s *TestCommentRepository) createComment(c *comment.Comment, creator uuid.UUID) {
-	err := s.repo.Create(context.Background(), c, creator)
+	err := s.repo.Create(s.ctx, c, creator)
 	require.Nil(s.T(), err)
 }
 
@@ -88,7 +89,7 @@ func (s *TestCommentRepository) TestCreateCommentWithMarkup() {
 	// given
 	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
 	// when
-	s.repo.Create(context.Background(), comment, s.testIdentity.ID)
+	s.repo.Create(s.ctx, comment, s.testIdentity.ID)
 	// then
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
@@ -99,7 +100,7 @@ func (s *TestCommentRepository) TestCreateCommentWithoutMarkup() {
 	// given
 	comment := newComment("A", "Test A", "")
 	// when
-	s.repo.Create(context.Background(), comment, s.testIdentity.ID)
+	s.repo.Create(s.ctx, comment, s.testIdentity.ID)
 	// then
 	assert.NotNil(s.T(), comment.ID, "Comment was not created, ID nil")
 	require.NotNil(s.T(), comment.CreatedAt, "Comment was not created?")
@@ -115,10 +116,10 @@ func (s *TestCommentRepository) TestSaveCommentWithMarkup() {
 	// when
 	comment.Body = "Test AB"
 	comment.Markup = rendering.SystemMarkupMarkdown
-	s.repo.Save(context.Background(), comment, s.testIdentity.ID)
+	s.repo.Save(s.ctx, comment, s.testIdentity.ID)
 	offset := 0
 	limit := 1
-	comments, _, err := s.repo.List(context.Background(), comment.ParentID, &offset, &limit)
+	comments, _, err := s.repo.List(s.ctx, comment.ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), 1, len(comments), "List returned more then expected based on parentID")
@@ -134,10 +135,10 @@ func (s *TestCommentRepository) TestSaveCommentWithoutMarkup() {
 	// when
 	comment.Body = "Test AB"
 	comment.Markup = ""
-	s.repo.Save(context.Background(), comment, s.testIdentity.ID)
+	s.repo.Save(s.ctx, comment, s.testIdentity.ID)
 	offset := 0
 	limit := 1
-	comments, _, err := s.repo.List(context.Background(), comment.ParentID, &offset, &limit)
+	comments, _, err := s.repo.List(s.ctx, comment.ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), 1, len(comments), "List returned more then expected based on parentID")
@@ -154,10 +155,10 @@ func (s *TestCommentRepository) TestDeleteComment() {
 		CreatedBy: uuid.NewV4(),
 		ID:        uuid.NewV4(),
 	}
-	s.repo.Create(context.Background(), c, s.testIdentity.ID)
+	s.repo.Create(s.ctx, c, s.testIdentity.ID)
 	require.NotEqual(s.T(), uuid.Nil, c.ID)
 	// when
-	err := s.repo.Delete(context.Background(), c.ID, s.testIdentity.ID)
+	err := s.repo.Delete(s.ctx, c.ID, s.testIdentity.ID)
 	// then
 	assert.Nil(s.T(), err)
 }
@@ -170,7 +171,7 @@ func (s *TestCommentRepository) TestCountComments() {
 	comments := []*comment.Comment{comment1, comment2}
 	s.createComments(comments, s.testIdentity.ID)
 	// when
-	count, err := s.repo.Count(context.Background(), parentID)
+	count, err := s.repo.Count(s.ctx, parentID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), 1, count)
@@ -185,7 +186,7 @@ func (s *TestCommentRepository) TestListComments() {
 	// when
 	offset := 0
 	limit := 1
-	comments, _, err := s.repo.List(context.Background(), comment1.ParentID, &offset, &limit)
+	comments, _, err := s.repo.List(s.ctx, comment1.ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), 1, len(comments))
@@ -201,7 +202,7 @@ func (s *TestCommentRepository) TestListCommentsWrongOffset() {
 	// when
 	offset := -1
 	limit := 1
-	_, _, err := s.repo.List(context.Background(), comment1.ParentID, &offset, &limit)
+	_, _, err := s.repo.List(s.ctx, comment1.ParentID, &offset, &limit)
 	// then
 	assert.NotNil(s.T(), err)
 }
@@ -215,7 +216,7 @@ func (s *TestCommentRepository) TestListCommentsWrongLimit() {
 	// when
 	offset := 0
 	limit := -1
-	_, _, err := s.repo.List(context.Background(), comment1.ParentID, &offset, &limit)
+	_, _, err := s.repo.List(s.ctx, comment1.ParentID, &offset, &limit)
 	// then
 	assert.NotNil(s.T(), err)
 }
@@ -225,7 +226,7 @@ func (s *TestCommentRepository) TestLoadComment() {
 	comment := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
 	s.createComment(comment, s.testIdentity.ID)
 	// when
-	loadedComment, err := s.repo.Load(context.Background(), comment.ID)
+	loadedComment, err := s.repo.Load(s.ctx, comment.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), comment.ID, loadedComment.ID)

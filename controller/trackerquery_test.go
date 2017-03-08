@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
@@ -10,6 +11,10 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
+
+	"github.com/goadesign/goa"
 )
 
 var trQueryTestConfiguration *config.ConfigurationData
@@ -33,13 +38,7 @@ func TestCreateTrackerQuery(t *testing.T) {
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(*result.Data.ID)
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	tqpayload := app.CreateTrackerQueryAlternatePayload{
-
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: *result.Data.ID,
-	}
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	t.Log(tqresult)
 	if tqresult.ID == "" {
@@ -58,12 +57,7 @@ func TestGetTrackerQuery(t *testing.T) {
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	tqpayload := app.CreateTrackerQueryAlternatePayload{
-
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: *result.Data.ID,
-	}
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	fmt.Printf("tq payload %#v", tqpayload)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
@@ -88,13 +82,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	tqpayload := app.CreateTrackerQueryAlternatePayload{
-
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: *result.Data.ID,
-	}
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
@@ -106,11 +94,19 @@ func TestUpdateTrackerQuery(t *testing.T) {
 		t.Errorf("Id should be %s, but is %s", tqresult.ID, tqr.ID)
 	}
 
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	payload2 := app.UpdateTrackerQueryAlternatePayload{
 		Query:     tqr.Query,
 		Schedule:  tqr.Schedule,
 		TrackerID: *result.Data.ID,
+		Relationships: &app.TrackerQueryRelationships{
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+		},
 	}
+
 	_, updated := test.UpdateTrackerqueryOK(t, nil, nil, &tqController, tqr.ID, &payload2)
 
 	if updated.ID != tqresult.ID {
@@ -136,12 +132,7 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(*result.Data.ID)
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	tqpayload := app.CreateTrackerQueryAlternatePayload{
-
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: *result.Data.ID,
-	}
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 
@@ -166,15 +157,25 @@ func TestCreateTrackerQueryValidId(t *testing.T) {
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 	t.Log(*result.Data.ID)
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	tqpayload := app.CreateTrackerQueryAlternatePayload{
-
-		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
-		Schedule:  "15 * * * * *",
-		TrackerID: *result.Data.ID,
-	}
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	_, created := test.ShowTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
 	if created != nil && created.ID != trackerquery.ID {
 		t.Error("Failed because fetched Tracker query not same as requested. Found: ", trackerquery.ID, " Expected, ", created.ID)
+	}
+}
+
+func getCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAlternatePayload {
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	return app.CreateTrackerQueryAlternatePayload{
+		Query:     "is:open is:issue user:arquillian author:aslakknutsen",
+		Schedule:  "15 * * * * *",
+		TrackerID: trackerID,
+		Relationships: &app.TrackerQueryRelationships{
+			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+		},
 	}
 }
