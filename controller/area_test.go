@@ -176,7 +176,7 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) area.Area {
 		if err != nil {
 			t.Error(err)
 		}
-		name := "Area #2"
+		name := "Area #2" + uuid.NewV4().String()
 
 		i := area.Area{
 			Name:    name,
