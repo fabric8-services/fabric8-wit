@@ -35,8 +35,8 @@ type GormRevisionRepository struct {
 // Create stores a new revision for the given work item.
 func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItem) error {
 	log.Info(nil, map[string]interface{}{
-		"modifier_identity": modifierID,
-		"revision_type":     revisionType,
+		"modifier_id":   modifierID,
+		"revision_type": revisionType,
 	}, "Storing a revision after operation on work item.")
 	tx := r.db
 	workitemRevision := &Revision{
@@ -55,7 +55,7 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 	if err := tx.Create(&workitemRevision).Error; err != nil {
 		return errors.NewInternalError(fmt.Sprintf("failed to create new work item revision: %s", err.Error()))
 	}
-	log.Debug(ctx, map[string]interface{}{"wi.ID": workitem.ID}, "Work item revision occurrence created")
+	log.Debug(ctx, map[string]interface{}{"workitem.ID": workitem.ID}, "Work item revision occurrence created")
 	return nil
 }
 

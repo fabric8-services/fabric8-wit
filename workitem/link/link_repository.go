@@ -115,7 +115,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	}
 	// save a revision of the created work item link
 	if err := r.revisionRepo.Create(ctx, creatorID, RevisionTypeCreate, *link); err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "error while creating work item")
 	}
 	// Convert the created link type entry into a JSONAPI response
 	result := ConvertLinkFromModel(*link)
@@ -202,42 +202,54 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID satoriuuid.UUID, suppressorID satoriuuid.UUID) error {
-	var l = WorkItemLink{}
-	tx := r.db.Where("id = ?", linkID).Find(&l)
-	log.Info(ctx, map[string]interface{}{
-		"wilID": linkID,
-	}, "Deleting the work item link repository")
-
-	tx.Delete(&l)
-	if tx.RowsAffected == 0 {
-		return errors.NewNotFoundError("work item link", linkID.String())
-	}
-	if tx.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"wilID": linkID,
-			"err":   tx.Error,
-		}, "unable to delete work item link")
-		return errors.NewInternalError(tx.Error.Error())
-	}
-	// save a revision of the deleted work item link
-	if err := r.revisionRepo.Create(ctx, suppressorID, RevisionTypeDelete, l); err != nil {
-		return errs.WithStack(err)
-	}
-
+	var lnk = WorkItemLink{}
+	r.db.Where("id = ?", linkID).Find(&lnk)
+	r.deleteLink(ctx, lnk, suppressorID)
 	return nil
 }
 
 // DeleteRelatedLinks deletes all links in which the source or target equals the
 // given work item ID.
-func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, modifierID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID satoriuuid.UUID) error {
+	log.Info(ctx, map[string]interface{}{
+		"workitem_id": wiIDStr,
+	}, "Deleting the links related to work item")
+
 	wiId, err := strconv.ParseUint(wiIDStr, 10, 64)
 	if err != nil {
 		// treat as not found: clients don't know it must be a uint64
 		return errors.NewNotFoundError("work item link", wiIDStr)
 	}
-	db := r.db.Where("? in (source_id, target_id)", wiId).Delete(&WorkItemLink{})
-	if db.Error != nil {
-		return errors.NewInternalError(db.Error.Error())
+	var workitemLinks = []WorkItemLink{}
+	r.db.Where("? in (source_id, target_id)", wiId).Find(&workitemLinks)
+	// delete one by one to trigger the creation of a new work item link revision
+	for _, workitemLink := range workitemLinks {
+		r.deleteLink(ctx, workitemLink, suppressorID)
+	}
+	return nil
+}
+
+// Delete deletes the work item link with the given id
+// returns NotFoundError or InternalError
+func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkItemLink, suppressorID satoriuuid.UUID) error {
+	log.Info(ctx, map[string]interface{}{
+		"wilID": lnk.ID,
+	}, "Deleting the work item link")
+
+	tx := r.db.Delete(&lnk)
+	if tx.RowsAffected == 0 {
+		return errors.NewNotFoundError("work item link", lnk.ID.String())
+	}
+	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wilID": lnk.ID,
+			"err":   tx.Error,
+		}, "unable to delete work item link")
+		return errors.NewInternalError(tx.Error.Error())
+	}
+	// save a revision of the deleted work item link
+	if err := r.revisionRepo.Create(ctx, suppressorID, RevisionTypeDelete, lnk); err != nil {
+		return errs.Wrapf(err, "error while deleting work item")
 	}
 	return nil
 }
@@ -284,7 +296,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}
 	// save a revision of the modified work item link
 	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, res); err != nil {
-		return nil, errs.WithStack(err)
+		return nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wilID": res.ID,

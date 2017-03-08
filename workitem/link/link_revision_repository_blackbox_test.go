@@ -118,7 +118,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	linkType2, err := linkTypeRepository.Create(s.ctx, "test link type 2", nil, workitem.SystemBug, workitem.SystemBug, "bar", "bar", "dependency", *linkCategory.Data.ID, testSpace.ID)
 	require.Nil(s.T(), err)
 	s.testLinkType2ID = *linkType2.Data.ID
-
 }
 
 func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
@@ -167,4 +166,37 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisions() {
 	assert.Equal(s.T(), s.sourceWorkItemID, revision3.WorkItemLinkSourceID)
 	assert.Equal(s.T(), s.targetWorkItemID, revision3.WorkItemLinkTargetID)
 	assert.Equal(s.T(), s.testLinkType2ID, revision3.WorkItemLinkTypeID)
+}
+
+func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisionsWhenDeletingWorkItem() {
+	// given
+	linkRepository := link.NewWorkItemLinkRepository(s.DB)
+	// create a work item link
+	workitemLink, err := linkRepository.Create(s.ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
+	require.Nil(s.T(), err)
+	// delete the source work item
+	sourceWorkItemID := strconv.FormatUint(s.sourceWorkItemID, 10)
+	err = linkRepository.DeleteRelatedLinks(s.ctx, sourceWorkItemID, s.testIdentity3.ID)
+	require.Nil(s.T(), err)
+	// when
+	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, *workitemLink.Data.ID)
+	// then
+	require.Nil(s.T(), err)
+	require.Len(s.T(), workitemLinkRevisions, 2)
+	// revision 1
+	revision1 := workitemLinkRevisions[0]
+	assert.Equal(s.T(), *workitemLink.Data.ID, revision1.WorkItemLinkID)
+	assert.Equal(s.T(), link.RevisionTypeCreate, revision1.Type)
+	assert.Equal(s.T(), s.testIdentity1.ID, revision1.ModifierIdentity)
+	assert.Equal(s.T(), s.sourceWorkItemID, revision1.WorkItemLinkSourceID)
+	assert.Equal(s.T(), s.targetWorkItemID, revision1.WorkItemLinkTargetID)
+	assert.Equal(s.T(), s.testLinkType1ID, revision1.WorkItemLinkTypeID)
+	// revision 2
+	revision2 := workitemLinkRevisions[1]
+	assert.Equal(s.T(), *workitemLink.Data.ID, revision2.WorkItemLinkID)
+	assert.Equal(s.T(), link.RevisionTypeDelete, revision2.Type)
+	assert.Equal(s.T(), s.testIdentity3.ID, revision2.ModifierIdentity)
+	assert.Equal(s.T(), s.sourceWorkItemID, revision2.WorkItemLinkSourceID)
+	assert.Equal(s.T(), s.targetWorkItemID, revision2.WorkItemLinkTargetID)
+	assert.Equal(s.T(), s.testLinkType1ID, revision2.WorkItemLinkTypeID)
 }

@@ -58,7 +58,7 @@ func (m *GormCommentRepository) Create(ctx context.Context, comment *Comment, cr
 	}
 	// save a revision of the created comment
 	if err := m.revisionRepository.Create(ctx, creatorID, RevisionTypeCreate, *comment); err != nil {
-		return errs.WithStack(err)
+		return errs.Wrapf(err, "error while creating comment")
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"commentID": comment.ID,
@@ -101,7 +101,7 @@ func (m *GormCommentRepository) Save(ctx context.Context, comment *Comment, modi
 	}
 	// save a revision of the updated comment
 	if err := m.revisionRepository.Create(ctx, modifierID, RevisionTypeUpdate, *comment); err != nil {
-		return errs.WithStack(err)
+		return errs.Wrapf(err, "error while saving work item")
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"commentID": comment.ID,
@@ -127,7 +127,7 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 	}
 	// save a revision of the deleted comment
 	if err := m.revisionRepository.Create(ctx, suppressorID, RevisionTypeDelete, c); err != nil {
-		return errs.WithStack(err)
+		return errs.Wrapf(err, "error while deleting work item")
 	}
 	return nil
 }
