@@ -226,7 +226,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.deleteWorkItems = append(s.deleteWorkItems, *feature1.Data.ID)
 	s.feature1ID, err = strconv.ParseUint(*feature1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	s.T().Logf("Created feature with ID: %s\n", *feature1.Data.ID)
+	s.T().Logf("Created workitem with ID: %s\n", *feature1.Data.ID)
 
 	// Create a work item link category
 	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
@@ -243,6 +243,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+
 }
 
 // The TearDownTest method will be run after every test in the suite.

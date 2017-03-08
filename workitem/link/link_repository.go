@@ -203,7 +203,10 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID satoriuuid.UUID, suppressorID satoriuuid.UUID) error {
 	var lnk = WorkItemLink{}
-	r.db.Where("id = ?", linkID).Find(&lnk)
+	tx := r.db.Where("id = ?", linkID).Find(&lnk)
+	if tx.RecordNotFound() {
+		return errors.NewNotFoundError("work item link", linkID.String())
+	}
 	r.deleteLink(ctx, lnk, suppressorID)
 	return nil
 }
@@ -215,13 +218,13 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 		"workitem_id": wiIDStr,
 	}, "Deleting the links related to work item")
 
-	wiId, err := strconv.ParseUint(wiIDStr, 10, 64)
+	wiID, err := strconv.ParseUint(wiIDStr, 10, 64)
 	if err != nil {
 		// treat as not found: clients don't know it must be a uint64
 		return errors.NewNotFoundError("work item link", wiIDStr)
 	}
 	var workitemLinks = []WorkItemLink{}
-	r.db.Where("? in (source_id, target_id)", wiId).Find(&workitemLinks)
+	r.db.Where("? in (source_id, target_id)", wiID).Find(&workitemLinks)
 	// delete one by one to trigger the creation of a new work item link revision
 	for _, workitemLink := range workitemLinks {
 		r.deleteLink(ctx, workitemLink, suppressorID)
