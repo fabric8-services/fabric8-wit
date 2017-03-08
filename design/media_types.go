@@ -69,9 +69,8 @@ var position = a.Type("workItemReorderPosition", func() {
 	a.Attribute("id", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed", func() {
 		a.MinLength(1)
 	})
-	a.Attribute("direction", d.String, "Direction of the place of the reorder workitem. Above should be used to place the reorder workitem(s) above workitem with id equal to position.id. Below should be used to place the reorder workitem(s) below workitem with id equal to position.id", func() {
+	a.Attribute("direction", d.String, "Direction of the place of the reorder workitem. Above should be used to place the reorder workitem(s) above workitem with id equal to position.id. Below should be used to place the reorder workitem(s) below workitem with id equal to position.id. Top places the reorder workitem(s) at the Topmost position of the list. Bottom places the reorder item(s) at the bottom of the list.", func() {
 		a.Enum("above", "below", "top", "bottom")
-		a.Description("Above places the reorder item(s) above the reference workitem. Below places the reorder item(s) below the reference workitem. Top places the reorder workitem(s) at the Topmost position of the list. Bottom places the reorder item(s) at the bottom of the list.")
 	})
 
 	a.Required("direction")
