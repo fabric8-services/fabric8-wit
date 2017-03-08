@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
 )
 
@@ -71,7 +72,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", space.Name))
 		}
 
 		res := &app.SpaceSingle{
