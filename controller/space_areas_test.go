@@ -2,22 +2,16 @@ package controller_test
 
 import (
 	"os"
-	"strconv"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
+
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -53,96 +47,21 @@ func (rest *TestSpaceAreaREST) TearDownTest() {
 
 func (rest *TestSpaceAreaREST) SecuredController() (*goa.Service, *SpaceAreasController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	//priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Space-Area-Service", almtoken.NewManager(pub), testsupport.TestIdentity)
+	return svc, NewSpaceAreasController(svc, rest.db)
+}
+
+func (rest *TestSpaceAreaREST) SecuredAreasController() (*goa.Service, *AreaController) {
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 
 	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), testsupport.TestIdentity)
-	return svc, NewSpaceAreasController(svc, rest.db)
+	return svc, NewAreaController(svc, rest.db)
 }
 
 func (rest *TestSpaceAreaREST) UnSecuredController() (*goa.Service, *SpaceAreasController) {
 	svc := goa.New("Area-Service")
 	return svc, NewSpaceAreasController(svc, rest.db)
-}
-
-func (rest *TestSpaceAreaREST) TestSuccessCreateArea() {
-	t := rest.T()
-
-	resource.Require(t, resource.Database)
-
-	var p *space.Space
-	ci := createSpaceArea("Area #21", nil)
-
-	application.Transactional(rest.db, func(app application.Application) error {
-		repo := app.Spaces()
-		newSpace := &space.Space{
-			Name: "Test 1" + uuid.NewV4().String(),
-		}
-		p, _ = repo.Create(context.Background(), newSpace)
-		return nil
-	})
-	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
-	require.NotNil(t, c.Data.ID)
-	require.NotNil(t, c.Data.Relationships.Space)
-	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-}
-
-func (rest *TestSpaceAreaREST) TestListAreas() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	// Create a new space where we'll create 3 areas
-	var s *space.Space
-
-	// Create another space where we'll create 1 area.
-	var anotherSpace *space.Space
-
-	application.Transactional(rest.db, func(app application.Application) error {
-		var err error
-		repo := app.Spaces()
-		newSpace := &space.Space{
-			Name: "Test Space 1" + uuid.NewV4().String(),
-		}
-		s, err = repo.Create(context.Background(), newSpace)
-		require.Nil(t, err)
-
-		newSpace = &space.Space{
-			Name: "Another space" + uuid.NewV4().String(),
-		}
-		anotherSpace, err = repo.Create(context.Background(), newSpace)
-		require.Nil(t, err)
-		return nil
-	})
-
-	svc, ctrl := rest.SecuredController()
-	spaceId := s.ID
-	anotherSpaceId := anotherSpace.ID
-	var createdAreaUuids1 []uuid.UUID
-
-	for i := 0; i < 3; i++ {
-		name := "Test Area #20" + strconv.Itoa(i)
-		spaceAreaContext := createSpaceArea(name, &name)
-		_, c := test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, spaceId.String(), spaceAreaContext)
-		require.NotNil(t, c.Data.ID)
-		require.NotNil(t, c.Data.Relationships.Space)
-		createdAreaUuids1 = append(createdAreaUuids1, *c.Data.ID)
-	}
-
-	name := "area in a different space"
-	anotherSpaceAreaContext := createSpaceArea(name, &name)
-	_, createdArea := test.CreateSpaceAreasCreated(t, svc.Context, svc, ctrl, anotherSpaceId.String(), anotherSpaceAreaContext)
-	require.NotNil(t, createdArea)
-
-	_, areaList := test.ListSpaceAreasOK(t, svc.Context, svc, ctrl, spaceId.String())
-	assert.Len(t, areaList.Data, 3)
-	for i := 0; i < len(createdAreaUuids1); i++ {
-		assert.NotNil(t, searchInAreaSlice(createdAreaUuids1[i], areaList))
-	}
-
-	_, anotherAreaList := test.ListSpaceAreasOK(t, svc.Context, svc, ctrl, anotherSpaceId.String())
-	assert.Len(t, anotherAreaList.Data, 1)
-	assert.Equal(t, anotherAreaList.Data[0].ID, createdArea.Data.ID)
-
 }
 
 func searchInAreaSlice(searchKey uuid.UUID, areaList *app.AreaList) *app.Area {
@@ -154,14 +73,46 @@ func searchInAreaSlice(searchKey uuid.UUID, areaList *app.AreaList) *app.Area {
 	return nil
 }
 
-func createSpaceArea(name string, desc *string) *app.CreateSpaceAreasPayload {
+func (rest *TestSpaceAreaREST) TestListAreas() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
 
-	return &app.CreateSpaceAreasPayload{
-		Data: &app.Area{
-			Type: area.APIStringTypeAreas,
-			Attributes: &app.AreaAttributes{
-				Name: &name,
-			},
-		},
+	/*
+		Space X --> Area 2000A---> Area 21-00000A
+	*/
+	var createdAreaUuids []uuid.UUID
+
+	parentArea := createSpaceAndArea(t, rest.db)
+	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
+
+	parentID := parentArea.ID
+	name := "Area 2000A"
+	ci := createChildArea(&name)
+
+	svc, ctrl := rest.SecuredAreasController()
+	_, created := test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
+	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.Equal(t, parentID.String(), *created.Data.Relationships.Parent.Data.ID)
+	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
+
+	// Create a child of the child created above.
+	name = "Area 21-00000A"
+	ci = createChildArea(&name)
+	newParentID := *created.Data.Relationships.Parent.Data.ID
+	_, created = test.CreateChildAreaCreated(t, svc.Context, svc, ctrl, newParentID, ci)
+	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	assert.NotNil(t, *created.Data.Attributes.CreatedAt)
+	assert.NotNil(t, *created.Data.Attributes.Version)
+	assert.Equal(t, newParentID, *created.Data.Relationships.Parent.Data.ID)
+	assert.Contains(t, *created.Data.Relationships.Children.Links.Self, "children")
+	createdAreaUuids = append(createdAreaUuids, *created.Data.ID)
+
+	// Now use Space-Areas list action to see all areas under this space.
+	svcSpaceAreas, ctrlSpaceAreas := rest.SecuredController()
+	_, areaList := test.ListSpaceAreasOK(t, svcSpaceAreas.Context, svcSpaceAreas, ctrlSpaceAreas, parentArea.SpaceID.String())
+	assert.Len(t, areaList.Data, 3)
+	for i := 0; i < len(createdAreaUuids); i++ {
+		assert.NotNil(t, searchInAreaSlice(createdAreaUuids[i], areaList))
 	}
+
 }
