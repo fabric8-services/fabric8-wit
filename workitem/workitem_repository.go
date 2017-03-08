@@ -101,7 +101,6 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.WorkItem, error) {
 	res := WorkItem{}
-	r.db = r.db.Debug()
 	tx := r.db.Order("execution_order desc").Last(&res)
 	if tx.RecordNotFound() {
 		return nil, nil
@@ -308,7 +307,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		// if direction == "top", place the reorder item at the topmost position. Now, the reorder item has the highest order in the whole list
 		res, err := r.LoadTopWorkitem(ctx)
 		if err != nil {
-			return nil, errs.WithStack(err)
+			return nil, errs.Wrapf(err, "Failed to reorder")
 		}
 		if wi.ID == res.ID {
 			// When same reorder request is made again
@@ -321,7 +320,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		// if direction == "bottom", place the reorder item at the bottom most position. Now, the reorder item has the lowest order in the whole list
 		res, err := r.LoadBottomWorkitem(ctx)
 		if err != nil {
-			return nil, errs.WithStack(err)
+			return nil, errs.Wrapf(err, "Failed to reorder")
 		}
 		if wi.ID == res.ID {
 			// When same reorder request is made again

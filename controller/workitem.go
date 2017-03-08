@@ -134,8 +134,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var dataArray []*app.WorkItem2
