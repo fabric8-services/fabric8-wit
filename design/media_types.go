@@ -67,10 +67,10 @@ var position = a.Type("workItemReorderPosition", func() {
 		a.MinLength(1)
 	})
 	a.Attribute("direction", d.String, "Direction of the place of the reorder workitem. Above should be used to place the reorder workitem(s) above workitem with id equal to position.id. Below should be used to place the reorder workitem(s) below workitem with id equal to position.id", func() {
-		a.Enum("above", "below")
+		a.Enum("above", "below", "top", "bottom")
 	})
 
-	a.Required("id", "direction")
+	a.Required("direction")
 })
 
 // Tracker configuration

@@ -42,13 +42,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type DirectionType string
-
-const (
-	DirectionAbove DirectionType = "above"
-	DirectionBelow DirectionType = "below"
-)
-
 var wibConfiguration *config.ConfigurationData
 
 func init() {
@@ -172,8 +165,8 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result3.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = string(DirectionAbove)
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionAbove)
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
@@ -199,8 +192,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = string(DirectionBelow)
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionBelow)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
@@ -215,24 +208,21 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result2 to the top of the list i.e. above result1
 	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
-	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
 	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
-	dataArray = append(dataArray, result2.Data)
+	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result1.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = string(DirectionAbove)
-
+	payload2.Position.Direction = string(workitem.DirectionTop)
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
-	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
-	assert.Equal(s.T(), *result2.Data.ID, *reordered1.Data[0].ID)
+	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *result1.Data.ID, *reordered1.Data[0].ID)
 }
 
 // TestReorderBottom is positive test which tests successful reorder by providing valid input
@@ -244,28 +234,20 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 
 	// There are two workitems in the list -> result1 and result2
 	// In this case, we reorder result1 to the bottom of the list i.e. below result2
-	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
 	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
 	payload2 := minimumRequiredReorderPayload()
 
-	resource.Require(s.T(), resource.Database)
-	defer cleaner.DeleteCreatedEntities(DB)()
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	require.NotNil(s.T(), svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	require.NotNil(s.T(), controller)
 	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
-	dataArray = append(dataArray, result1.Data)
+	dataArray = append(dataArray, result2.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = string(DirectionBelow)
+	payload2.Position.Direction = string(workitem.DirectionBottom)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
 	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
-	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
-	assert.Equal(s.T(), *result1.Data.ID, *reordered1.Data[0].ID)
+	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *result2.Data.ID, *reordered1.Data[0].ID)
 }
 
 // TestReorderMultipleWorkitem is positive test which tests successful reorder by providing valid input
@@ -284,8 +266,8 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result3.Data, result4.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = *result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
-	payload2.Position.Direction = string(DirectionAbove)
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionAbove)
 
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, &payload2) // Returns the workitems which are reordered
 
@@ -312,8 +294,8 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 
 	var dataArray []*app.WorkItem2
 	payload2.Data = dataArray
-	payload2.Position.ID = *result1.Data.ID
-	payload2.Position.Direction = string(DirectionAbove)
+	payload2.Position.ID = result1.Data.ID
+	payload2.Position.Direction = string(workitem.DirectionAbove)
 	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.controller, &payload2)
 }
 
@@ -332,8 +314,9 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	var dataArray []*app.WorkItem2
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
-	payload2.Position.ID = "78"
-	payload2.Position.Direction = string(DirectionAbove)
+	randomID := "78"
+	payload2.Position.ID = &randomID
+	payload2.Position.Direction = string(workitem.DirectionAbove)
 	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, &payload2)
 }
 
@@ -583,7 +566,7 @@ func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 	return app.ReorderWorkitemPayload{
 		Data: []*app.WorkItem2{},
 		Position: &app.WorkItemReorderPosition{
-			ID: "",
+			ID: nil,
 		},
 	}
 }

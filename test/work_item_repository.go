@@ -33,12 +33,12 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	reorderMutex       sync.RWMutex
 	reorderArgsForCall []struct {
 		ctx        context.Context
 		direction  workitem.DirectionType
-		targetID   string
+		targetID   *string
 		wi         app.WorkItem
 		modifierID uuid.UUID
 	}
@@ -186,16 +186,16 @@ func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error
 
 // Reorder is a fake function for reordering of workitems
 // Used for testing purpose
-func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	fake.reorderMutex.Lock()
 	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
 		ctx        context.Context
 		direction  workitem.DirectionType
-		targetID   string
+		targetID   *string
 		wi         app.WorkItem
 		modifierID uuid.UUID
 	}{ctx, direction, targetID, wi, modifierID})
-	fake.recordInvocation("Reorder", []interface{}{ctx, direction, targetID, wi, modifierID})
+	fake.recordInvocation("Reorder", []interface{}{ctx, direction, *targetID, wi, modifierID})
 	fake.reorderMutex.Unlock()
 	if fake.ReorderStub != nil {
 		return fake.ReorderStub(ctx, direction, targetID, wi, modifierID)
@@ -215,7 +215,7 @@ func (fake *WorkItemRepository) ReorderCallCount() int {
 func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, workitem.DirectionType, string, app.WorkItem, uuid.UUID) {
 	fake.reorderMutex.RLock()
 	defer fake.reorderMutex.RUnlock()
-	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].direction, fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
+	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].direction, *fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
 }
 
 // ReorderReturns returns fake values for Reorder function

@@ -22,15 +22,17 @@ const orderValue = 1000
 type DirectionType string
 
 const (
-	DirectionAbove DirectionType = "above"
-	DirectionBelow DirectionType = "below"
+	DirectionAbove  DirectionType = "above"
+	DirectionBelow  DirectionType = "below"
+	DirectionTop    DirectionType = "top"
+	DirectionBottom DirectionType = "bottom"
 )
 
 // WorkItemRepository encapsulates storage & retrieval of work items
 type WorkItemRepository interface {
 	Load(ctx context.Context, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
-	Reorder(ctx context.Context, direction DirectionType, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
@@ -93,6 +95,43 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 		return nil, errors.NewInternalError(err.Error())
 	}
 	return convertWorkItemModelToApp(wiType, res)
+}
+
+// LoadTopWorkitem returns top most work item of the list. Top most workitem has the Highest order.
+// returns NotFoundError, ConversionError or InternalError
+func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.WorkItem, error) {
+	res := WorkItem{}
+	r.db = r.db.Debug()
+	tx := r.db.Order("execution_order desc").Last(&res)
+	if tx.RecordNotFound() {
+		return nil, nil
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
+	if err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	return convertWorkItemModelToApp(wiType, &res)
+}
+
+// LoadBottomWorkitem returns bottom work item of the list. Bottom most workitem has the lowest order.
+// returns NotFoundError, ConversionError or InternalError
+func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*app.WorkItem, error) {
+	res := WorkItem{}
+	tx := r.db.Order("execution_order").Last(&res)
+	if tx.RecordNotFound() {
+		return nil, tx.Error
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
+	if err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	return convertWorkItemModelToApp(wiType, &res)
 }
 
 // LoadHighestOrder returns the highest order
@@ -200,7 +239,7 @@ func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 // The order of workitems are spaced by a factor of 1000.
 // The new order of workitem := (order of previousitem + order of nextitem)/2
 // Version must be the same as the one int the stored version
-func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction DirectionType, targetID string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	var order float64
 	res := WorkItem{}
 
@@ -228,13 +267,13 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	switch direction {
 	case DirectionAbove:
 		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
-		aboveItemOrder, err := r.FindFirstItem(targetID)
+		aboveItemOrder, err := r.FindFirstItem(*targetID)
 		if aboveItemOrder == nil || err != nil {
-			return nil, errors.NewNotFoundError("work item", targetID)
+			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
 		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionBelow, wi.ID)
 		if err != nil {
-			return nil, errors.NewNotFoundError("work item", targetID)
+			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
 		if *belowItemId == "0" {
 			// Item is placed at first position
@@ -248,23 +287,48 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		}
 	case DirectionBelow:
 		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
-
-		belowItemOrder, _ := r.FindFirstItem(targetID)
+		belowItemOrder, _ := r.FindFirstItem(*targetID)
 		if belowItemOrder == nil || err != nil {
-			return nil, errors.NewNotFoundError("work item", targetID)
+			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
 		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionAbove, wi.ID)
 		if err != nil {
-			return nil, errors.NewNotFoundError("work item", targetID)
+			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
 		if *aboveItemId == "0" {
 			// Item is placed at last position
 			order = *belowItemOrder + float64(orderValue)
-		} else if *aboveItemId == string(res.ID) {
+		} else if *aboveItemId == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
 			return &wi, nil
 		} else {
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
+		}
+	case DirectionTop:
+		// if direction == "top", place the reorder item at the topmost position. Now, the reorder item has the highest order in the whole list
+		res, err := r.LoadTopWorkitem(ctx)
+		if err != nil {
+			return nil, errs.WithStack(err)
+		}
+		if wi.ID == res.ID {
+			// When same reorder request is made again
+			return &wi, nil
+		} else {
+			topItemOrder := res.Fields[SystemOrder]
+			order = topItemOrder.(float64) + orderValue
+		}
+	case DirectionBottom:
+		// if direction == "bottom", place the reorder item at the bottom most position. Now, the reorder item has the lowest order in the whole list
+		res, err := r.LoadBottomWorkitem(ctx)
+		if err != nil {
+			return nil, errs.WithStack(err)
+		}
+		if wi.ID == res.ID {
+			// When same reorder request is made again
+			return &wi, nil
+		} else {
+			bottomItemOrder := res.Fields[SystemOrder]
+			order = bottomItemOrder.(float64) / 2
 		}
 	default:
 		return &wi, nil
