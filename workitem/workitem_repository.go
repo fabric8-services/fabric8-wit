@@ -292,7 +292,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionAbove, wi.ID)
+		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionAbove)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
