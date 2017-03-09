@@ -50,7 +50,6 @@ func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
 			panic(err.Error())
 		}
 	}
-	// s.DB.LogMode(true)
 }
 
 func (s *revisionRepositoryBlackBoxTest) SetupTest() {
