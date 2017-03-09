@@ -101,7 +101,7 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	}
 	repo.Create(context.Background(), &i)
 
-	parentPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
 		Name:    name2,
@@ -115,9 +115,10 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	i2L, err := repo.Load(context.Background(), i2.ID)
 	require.Nil(t, err)
 	assert.NotEmpty(t, i2.Path)
-	expectedPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	i2.Path.Convert()
+	expectedPath := i2.Path.Convert()
 	require.NotNil(t, i2L)
-	assert.Equal(t, expectedPath, i2L.Path)
+	assert.Equal(t, expectedPath, i2L.Path.Convert())
 }
 
 func (test *TestIterationRepository) TestListIterationBySpace() {
@@ -130,7 +131,7 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 		Name: "Space 1",
 	}
 	repoSpace := space.NewRepository(test.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
+	spaceInstance, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
 	for i := 0; i < 3; i++ {
@@ -140,18 +141,26 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 
 		i := iteration.Iteration{
 			Name:    name,
-			SpaceID: space.ID,
+			SpaceID: spaceInstance.ID,
 			StartAt: &start,
 			EndAt:   &end,
 		}
-		repo.Create(context.Background(), &i)
+		e := repo.Create(context.Background(), &i)
+		require.Nil(t, e)
 	}
-	repo.Create(context.Background(), &iteration.Iteration{
+	// create another space and add iteration to another space
+	anotherSpace := space.Space{
+		Name: "Space 2",
+	}
+	anotherSpaceCreated, err := repoSpace.Create(context.Background(), &anotherSpace)
+	assert.Nil(t, err)
+	e := repo.Create(context.Background(), &iteration.Iteration{
 		Name:    "Other Spring #2",
-		SpaceID: uuid.NewV4(),
+		SpaceID: anotherSpaceCreated.ID,
 	})
+	require.Nil(t, e)
 
-	its, err := repo.List(context.Background(), space.ID)
+	its, err := repo.List(context.Background(), spaceInstance.ID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 }
