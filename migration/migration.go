@@ -239,6 +239,9 @@ func getMigrations() migrations {
 	// Version 40
 	m = append(m, steps{executeSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
+	// version 41
+	m = append(m, steps{executeSQLFile("041-unique-area-name-create-new-area.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -396,6 +399,8 @@ func NewMigrationContext(ctx context.Context) context.Context {
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
 func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+	populateLocker.Lock()
+	defer populateLocker.Unlock()
 	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
@@ -565,6 +570,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
 		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
+		workitem.SystemUpdatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
@@ -617,7 +623,7 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 	case nil:
 		log.Info(ctx, map[string]interface{}{
 			"typeID": typeID,
-		}, "Work item type %s exists, will update/overwrite the fields only and parentPath", typeID.String())
+		}, "Work item type %s exists, will update/overwrite the fields, name, icon, description and parentPath", typeID.String())
 
 		path := workitem.LtreeSafeID(typeID)
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
@@ -643,6 +649,9 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		if err != nil {
 			return errs.WithStack(err)
 		}
+		wit.Name = name
+		wit.Description = &description
+		wit.Icon = icon
 		wit.Fields = convertedFields
 		wit.Path = path
 		db = db.Save(wit)

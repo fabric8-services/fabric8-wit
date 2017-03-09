@@ -95,6 +95,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItemSingle)
 		})
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -118,6 +119,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItemList)
 		})
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

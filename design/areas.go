@@ -6,7 +6,7 @@ import (
 )
 
 var area = a.Type("Area", func() {
-	a.Description(`JSONAPI store for the data of a Area.  See also http://jsonapi.org/format/#document-resource-object`)
+	a.Description(`JSONAPI store for the data of a Area. See also http://jsonapi.org/format/#document-resource-object`)
 	a.Attribute("type", d.String, func() {
 		a.Enum("areas")
 	})
@@ -20,7 +20,7 @@ var area = a.Type("Area", func() {
 })
 
 var areaAttributes = a.Type("AreaAttributes", func() {
-	a.Description(`JSONAPI store for all the "attributes" of a Area. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
+	a.Description(`JSONAPI store for all the "attributes" of a Area. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("name", d.String, "The Area name", func() {
 		a.Example("Area for Build related stuff")
 	})
@@ -52,7 +52,7 @@ var areaList = JSONList(
 	meta)
 
 var areaSingle = JSONSingle(
-	"area", "Holds the list of Areas",
+	"area", "Holds a single Area",
 	area,
 	nil)
 
@@ -124,20 +124,5 @@ var _ = a.Resource("space_areas", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST("areas"),
-		)
-		a.Description("Create Area.")
-		a.Payload(areaSingle)
-		a.Response(d.Created, "/areas/.*", func() {
-			a.Media(areaSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

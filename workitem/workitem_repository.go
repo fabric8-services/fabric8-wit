@@ -152,7 +152,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	res.Fields = Fields{}
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -199,7 +199,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
 			continue
 		}
 		fieldValue := fields[fieldName]
@@ -241,6 +241,9 @@ func ConvertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, w
 	}
 	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
 		result.Fields[SystemCreatedAt] = wi.CreatedAt
+	}
+	if _, ok := wiType.Fields[SystemUpdatedAt]; ok {
+		result.Fields[SystemUpdatedAt] = wi.UpdatedAt
 	}
 	return result, nil
 
