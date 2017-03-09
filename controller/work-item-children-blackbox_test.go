@@ -17,12 +17,15 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -65,6 +68,13 @@ func (s *workItemChildSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.db = gormapplication.NewGormDB(DB)
 	s.clean = cleaner.DeleteCreatedEntities(DB)
+
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if err := models.Transactional(DB, func(tx *gorm.DB) error {
+		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+	}); err != nil {
+		panic(err.Error())
+	}
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
