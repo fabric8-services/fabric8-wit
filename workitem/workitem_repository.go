@@ -103,13 +103,11 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, ID string) (*app.Work
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.WorkItem, error) {
 	res := WorkItem{}
-	tx := r.db.Order("execution_order desc").Last(&res)
-	if tx.RecordNotFound() {
-		return nil, tx.Error
-	}
-	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
-	}
+	db := r.db.Model(WorkItem{})
+	query := fmt.Sprintf("execution_order = (SELECT max(execution_order) FROM %[1]s)",
+		WorkItem{}.TableName(),
+	)
+	db = db.Where(query).First(&res)
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
@@ -121,13 +119,11 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.Work
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*app.WorkItem, error) {
 	res := WorkItem{}
-	tx := r.db.Order("execution_order").Last(&res)
-	if tx.RecordNotFound() {
-		return nil, tx.Error
-	}
-	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
-	}
+	db := r.db.Model(WorkItem{})
+	query := fmt.Sprintf("execution_order = (SELECT min(execution_order) FROM %[1]s)",
+		WorkItem{}.TableName(),
+	)
+	db = db.Where(query).First(&res)
 	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
@@ -201,6 +197,7 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 	case DirectionBelow:
 		// Finds the item below which reorder item has to be placed
 		tx = r.db.Where("execution_order < ?", order).Order("execution_order desc", true).Last(&Item)
+
 	case DirectionAbove:
 		// Finds the item above which reorder item has to be placed
 		tx = r.db.Where("execution_order > ?", order).Order("execution_order", true).Last(&Item)
