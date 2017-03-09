@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
@@ -40,23 +41,25 @@ type hrefLinkFunc func(obj interface{}) string
 // workItemLinkContext bundles objects that are needed by most of the functions.
 // It can easily be extended.
 type workItemLinkContext struct {
-	RequestData  *goa.RequestData
-	ResponseData *goa.ResponseData
-	Application  application.Application
-	Context      context.Context
-	DB           application.DB
-	LinkFunc     hrefLinkFunc
+	RequestData           *goa.RequestData
+	ResponseData          *goa.ResponseData
+	Application           application.Application
+	Context               context.Context
+	CurrentUserIdentityID *satoriuuid.UUID
+	DB                    application.DB
+	LinkFunc              hrefLinkFunc
 }
 
 // newWorkItemLinkContext returns a new workItemLinkContext
-func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, requestData *goa.RequestData, responseData *goa.ResponseData, linkFunc hrefLinkFunc) *workItemLinkContext {
+func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, requestData *goa.RequestData, responseData *goa.ResponseData, linkFunc hrefLinkFunc, currentUserIdentityID *satoriuuid.UUID) *workItemLinkContext {
 	return &workItemLinkContext{
-		RequestData:  requestData,
-		ResponseData: responseData,
-		Application:  appl,
-		Context:      ctx,
-		DB:           db,
-		LinkFunc:     linkFunc,
+		RequestData:           requestData,
+		ResponseData:          responseData,
+		Application:           appl,
+		Context:               ctx,
+		CurrentUserIdentityID: currentUserIdentityID,
+		DB:       db,
+		LinkFunc: linkFunc,
 	}
 }
 
@@ -223,7 +226,6 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 			Self: &selfURL,
 		}
 	}
-
 	return nil
 }
 
@@ -243,7 +245,7 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
 		return funcs.BadRequest(jerrors)
 	}
-	link, err := ctx.Application.WorkItemLinks().Create(ctx.Context, model.SourceID, model.TargetID, model.LinkTypeID)
+	link, err := ctx.Application.WorkItemLinks().Create(ctx.Context, model.SourceID, model.TargetID, model.LinkTypeID, *ctx.CurrentUserIdentityID)
 	if err != nil {
 		cause := errs.Cause(err)
 		switch cause.(type) {
@@ -269,7 +271,12 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 
 // Create runs the create action.
 func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) error {
-	return createWorkItemLink(newWorkItemLinkContext(ctx.Context, c.db, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	linkCtx := newWorkItemLinkContext(ctx.Context, c.db, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+	return createWorkItemLink(linkCtx, ctx, ctx.Payload)
 }
 
 type deleteWorkItemLinkFuncs interface {
@@ -277,7 +284,7 @@ type deleteWorkItemLinkFuncs interface {
 }
 
 func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs, linkID satoriuuid.UUID) error {
-	err := ctx.Application.WorkItemLinks().Delete(ctx.Context, linkID)
+	err := ctx.Application.WorkItemLinks().Delete(ctx.Context, linkID, *ctx.CurrentUserIdentityID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -287,8 +294,13 @@ func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs,
 
 // Delete runs the delete action
 func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return deleteWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.LinkID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+		return deleteWorkItemLink(linkCtx, ctx, ctx.LinkID)
 	})
 }
 
@@ -319,7 +331,8 @@ func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiI
 // List runs the list action.
 func (c *WorkItemLinkController) List(ctx *app.ListWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return listWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, nil)
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
+		return listWorkItemLink(linkCtx, ctx, nil)
 	})
 }
 
@@ -343,7 +356,8 @@ func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, lin
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return showWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.LinkID)
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
+		return showWorkItemLink(linkCtx, ctx, ctx.LinkID)
 	})
 }
 
@@ -355,7 +369,7 @@ func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs,
 	toSave := app.WorkItemLinkSingle{
 		Data: payload.Data,
 	}
-	link, err := ctx.Application.WorkItemLinks().Save(ctx.Context, toSave)
+	link, err := ctx.Application.WorkItemLinks().Save(ctx.Context, toSave, *ctx.CurrentUserIdentityID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -369,7 +383,13 @@ func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs,
 
 // Update runs the update action.
 func (c *WorkItemLinkController) Update(ctx *app.UpdateWorkItemLinkContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+
 	return application.Transactional(c.db, func(appl application.Application) error {
-		return updateWorkItemLink(newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref), ctx, ctx.Payload)
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
+		return updateWorkItemLink(linkCtx, ctx, ctx.Payload)
 	})
 }

@@ -125,19 +125,4 @@ var _ = a.Resource("space_areas", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST("areas"),
-		)
-		a.Description("Create Area.")
-		a.Payload(areaSingle)
-		a.Response(d.Created, "/areas/.*", func() {
-			a.Media(areaSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
 })

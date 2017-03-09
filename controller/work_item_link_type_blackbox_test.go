@@ -44,9 +44,12 @@ type workItemLinkTypeSuite struct {
 	spaceCtrl    *SpaceController
 	linkCatCtrl  *WorkItemLinkCategoryController
 	typeCtrl     *WorkitemtypeController
-
-	svcSpace *goa.Service
-	spaceID  *uuid.UUID
+	svc          *goa.Service
+	spaceName    string
+	spaceID      *uuid.UUID
+	categoryName string
+	linkTypeName string
+	linkName     string
 }
 
 var wiltConfiguration *config.ConfigurationData
@@ -64,23 +67,14 @@ func init() {
 func (s *workItemLinkTypeSuite) SetupSuite() {
 	var err error
 	wiltConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
+	require.Nil(s.T(), err)
 	s.db, err = gorm.Open("postgres", wiltConfiguration.GetPostgresConfigString())
-
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
-
+	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(DB, func(tx *gorm.DB) error {
+	err = models.Transactional(DB, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
-
+	})
+	require.Nil(s.T(), err)
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
@@ -89,13 +83,14 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	require.NotNil(s.T(), s.linkCatCtrl)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.typeCtrl)
-
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svcSpace = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.spaceCtrl)
-	//	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB))
-	//	require.NotNil(s.T(), s.typeCtrl)
+	s.spaceName = "test-space" + uuid.NewV4().String()
+	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
+	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
+	s.linkName = "test-workitem-link" + uuid.NewV4().String()
 }
 
 // The TearDownSuite method will run after all the tests in the suite have been run
@@ -110,13 +105,13 @@ func (s *workItemLinkTypeSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkTypeSuite) cleanup() {
-	db := s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-bug-blocker"})
+	db := s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkTypeName})
 	require.Nil(s.T(), db.Error)
-	db = s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: "test-related"})
+	db = s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkName})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
+	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{Name: "test-space"})
+	db = db.Unscoped().Delete(&space.Space{Name: s.spaceName})
 	require.Nil(s.T(), db.Error)
 	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
 
@@ -140,18 +135,18 @@ func (s *workItemLinkTypeSuite) TearDownTest() {
 // createDemoType creates a demo work item link type of type "name"
 func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkItemLinkTypePayload {
 	//   1. Create a space
-	createSpacePayload := CreateSpacePayload("test-space", "description")
-	_, space := test.CreateSpaceCreated(s.T(), s.svcSpace.Context, s.svcSpace, s.spaceCtrl, createSpacePayload)
+	createSpacePayload := CreateSpacePayload(s.spaceName, "description")
+	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.spaceID = space.Data.ID
 
 	//	 2. Create at least one work item type
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &workItemTypePayload)
+	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
-	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
-	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, createLinkCategoryPayload)
+	createLinkCategoryPayload := CreateWorkItemLinkCategory(s.categoryName)
+	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
 
 	// 4. Create work item link type payload
@@ -170,24 +165,24 @@ func TestSuiteWorkItemLinkType(t *testing.T) {
 	suite.Run(t, new(workItemLinkTypeSuite))
 }
 
-// TestCreateWorkItemLinkType tests if we can create the "test-bug-blocker" work item link type
+// TestCreateWorkItemLinkType tests if we can create the s.linkTypeName work item link type
 func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
-	createPayload := s.createDemoLinkType("test-bug-blocker")
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
+	createPayload := s.createDemoLinkType(s.linkTypeName)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 
 	// Check that the link category is included in the response in the "included" array
 	require.Len(s.T(), workItemLinkType.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := workItemLinkType.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link category is included in the response in the "included" array
 	spaceData, ok := workItemLinkType.Included[1].(*app.Space)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
+	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
 
-	_ = test.DeleteWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
+	_ = test.DeleteWorkItemLinkTypeOK(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 }
 
 //func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequest() {
@@ -196,36 +191,36 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 //}
 
 //func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToEmptyTopology() {
-//	createPayload := s.createDemoLinkType("test-bug-blocker")
+//	createPayload := s.createDemoLinkType(s.linkTypeName)
 //	emptyTopology := ""
 //	createPayload.Data.Attributes.Topology = &emptyTopology
 //	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 //}
 
 //func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToWrongTopology() {
-//	createPayload := s.createDemoLinkType("test-bug-blocker")
+//	createPayload := s.createDemoLinkType(s.linkTypeName)
 //	wrongTopology := "wrongtopology"
 //	createPayload.Data.Attributes.Topology = &wrongTopology
 //	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
 //}
 
 func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
-	test.DeleteWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
+	test.DeleteWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
 }
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
-	createPayload := s.createDemoLinkType("test-bug-blocker")
+	createPayload := s.createDemoLinkType(s.linkTypeName)
 	notExistingId := uuid.FromStringOrNil("46bbce9c-8219-4364-a450-dfd1b501654e") // This ID does not exist
 	createPayload.Data.ID = &notExistingId
 	// Wrap data portion in an update payload instead of a create payload
 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
 		Data: createPayload.Data,
 	}
-	test.UpdateWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
+	test.UpdateWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 }
 
 // func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequestDueToBadID() {
-// 	createPayload := s.createDemoLinkType("test-bug-blocker")
+// 	createPayload := s.createDemoLinkType(s.linkTypeName)
 // 	notExistingId := "something that is not a UUID" // This ID does not exist
 // 	createPayload.Data.ID = &notExistingId
 // 	// Wrap data portion in an update payload instead of a create payload
@@ -236,8 +231,8 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 // }
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
-	createPayload := s.createDemoLinkType("test-bug-blocker")
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
+	createPayload := s.createDemoLinkType(s.linkTypeName)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 	// Specify new description for link type that we just created
 	// Wrap data portion in an update payload instead of a create payload
@@ -246,7 +241,7 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	}
 	newDescription := "Lalala this is a new description for the work item type"
 	updateLinkTypePayload.Data.Attributes.Description = &newDescription
-	_, lt := test.UpdateWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
+	_, lt := test.UpdateWorkItemLinkTypeOK(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 	require.NotNil(s.T(), lt.Data)
 	require.NotNil(s.T(), lt.Data.Attributes)
 	require.NotNil(s.T(), lt.Data.Attributes.Description)
@@ -255,16 +250,16 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	require.Len(s.T(), lt.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := lt.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link spaces are included in the response in the "included" array
 	spaceData, ok := lt.Included[1].(*app.Space)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
+	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
 }
 
 // func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {
-// 	createPayload := s.createDemoLinkType("test-bug-blocker")
+// 	createPayload := s.createDemoLinkType(s.linkTypeName)
 // 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
 // 		Data: createPayload.Data,
 // 	}
@@ -275,8 +270,8 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 // TestShowWorkItemLinkTypeOK tests if we can fetch the "system" work item link type
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	// Create the work item link type first and try to read it back in
-	createPayload := s.createDemoLinkType("test-bug-blocker")
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
+	createPayload := s.createDemoLinkType(s.linkTypeName)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 	require.NotNil(s.T(), readIn)
@@ -290,12 +285,12 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.Len(s.T(), readIn.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := readIn.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link space is included in the response in the "included" array
 	spaceData, ok := readIn.Included[1].(*app.Space)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
+	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
 
 	require.NotNil(s.T(), readIn.Data.Links, "The link type MUST include a self link")
 	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link type MUST include a self link that's not empty")
@@ -307,18 +302,18 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
 }
 
 // TestListWorkItemLinkTypeOK tests if we can find the work item link types
-// "test-bug-blocker" and "test-related" in the list of work item link types
+// s.linkTypeName and s.linkName in the list of work item link types
 func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
-	bugBlockerPayload := s.createDemoLinkType("test-bug-blocker")
-	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, bugBlockerPayload)
+	bugBlockerPayload := s.createDemoLinkType(s.linkTypeName)
+	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
 
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &workItemTypePayload)
+	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
-	relatedPayload := CreateWorkItemLinkType("test-related", *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
-	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, relatedPayload)
+	relatedPayload := CreateWorkItemLinkType(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
+	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, relatedPayload)
 	require.NotNil(s.T(), relatedType)
 
 	// Fetch a single work item link type
@@ -333,7 +328,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	// Search for the work item types that must exist at minimum
 	toBeFound := 2
 	for i := 0; i < len(linkTypeCollection.Data) && toBeFound > 0; i++ {
-		if *linkTypeCollection.Data[i].Attributes.Name == "test-bug-blocker" || *linkTypeCollection.Data[i].Attributes.Name == "test-related" {
+		if *linkTypeCollection.Data[i].Attributes.Name == s.linkTypeName || *linkTypeCollection.Data[i].Attributes.Name == s.linkName {
 			s.T().Log("Found work item link type in collection: ", *linkTypeCollection.Data[i].Attributes.Name)
 			toBeFound--
 		}
@@ -344,12 +339,12 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	require.Len(s.T(), linkTypeCollection.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := linkTypeCollection.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-user", *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link spaces are included in the response in the "included" array
 	spaceData, ok := linkTypeCollection.Included[1].(*app.Space)
 	require.True(s.T(), ok)
-	require.Equal(s.T(), "test-space", *spaceData.Attributes.Name, "The work item link type's category should have the name 'test-space'.")
+	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's category should have the name 'test-space'.")
 
 }
 

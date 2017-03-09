@@ -240,7 +240,13 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
 	// version 41
-	m = append(m, steps{executeSQLFile("041-adds-order-to-existing-wi.sql")})
+	m = append(m, steps{executeSQLFile("041-unique-area-name-create-new-area.sql")})
+
+	// Version 42
+	m = append(m, steps{executeSQLFile("042-work-item-link-revisions.sql")})
+
+	// Version 43
+	m = append(m, steps{executeSQLFile("043-adds-order-to-existing-wi.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -566,6 +572,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
 		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
+		workitem.SystemUpdatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
