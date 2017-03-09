@@ -105,7 +105,7 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.Work
 	res := WorkItem{}
 	tx := r.db.Order("execution_order desc").Last(&res)
 	if tx.RecordNotFound() {
-		return nil, nil
+		return nil, tx.Error
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(tx.Error.Error())
