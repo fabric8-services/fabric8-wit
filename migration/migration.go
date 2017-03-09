@@ -242,6 +242,9 @@ func getMigrations() migrations {
 	// version 41
 	m = append(m, steps{executeSQLFile("041-unique-area-name-create-new-area.sql")})
 
+	// Version 42
+	m = append(m, steps{executeSQLFile("042-work-item-link-revisions.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
