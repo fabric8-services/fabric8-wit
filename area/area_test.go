@@ -11,7 +11,9 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/path"
+	"github.com/pkg/errors"
 
+	localerror "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
@@ -37,6 +39,47 @@ func (test *TestAreaRepository) SetupTest() {
 
 func (test *TestAreaRepository) TearDownTest() {
 	test.clean()
+}
+
+func (test *TestAreaRepository) TestCreateAreaWithSameNameFail() {
+	t := test.T()
+
+	resource.Require(t, resource.Database)
+
+	repo := area.NewAreaRepository(test.DB)
+
+	name := "Area 21"
+	newSpace := space.Space{
+		Name: "Space 1 " + uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
+	i := area.Area{
+		Name:    name,
+		SpaceID: space.ID,
+	}
+
+	repo.Create(context.Background(), &i)
+	if i.ID == uuid.Nil {
+		t.Errorf("Area was not created, ID nil")
+	}
+
+	require.False(t, i.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()")
+
+	assert.Equal(t, name, i.Name)
+
+	anotherAreaWithSameName := area.Area{
+		Name:    i.Name,
+		SpaceID: space.ID,
+	}
+	err = repo.Create(context.Background(), &anotherAreaWithSameName)
+	assert.NotNil(t, err)
+
+	// In case of unique constrain error, a BadParameterError is returned.
+	_, ok := errors.Cause(err).(localerror.BadParameterError)
+	assert.True(t, ok)
 }
 
 func (test *TestAreaRepository) TestCreateArea() {

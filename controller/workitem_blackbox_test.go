@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"testing"
 
@@ -369,9 +370,11 @@ func makeWorkItems(count int) []*app.WorkItem {
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	for index := range res {
 		res[index] = &app.WorkItem{
-			ID:     fmt.Sprintf("id%d", index),
-			Type:   uuid.NewV4(), // used to be "foobar"
-			Fields: map[string]interface{}{},
+			ID:   fmt.Sprintf("id%d", index),
+			Type: uuid.NewV4(), // used to be "foobar"
+			Fields: map[string]interface{}{
+				workitem.SystemUpdatedAt: time.Now(),
+			},
 			Relationships: &app.WorkItemRelationships{
 				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
@@ -1757,7 +1760,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithDefaultSpace() {
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	t := s.T()
-	spaceName := "My own Space"
+	spaceName := "My own Space " + uuid.NewV4().String()
 	sp := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
@@ -1792,4 +1795,33 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	fakeSpaceID := uuid.NewV4()
 	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
 	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+}
+
+//Ignore, middlewares not respected by the generated test framework. No way to modify Request?
+// Require full HTTP request access.
+func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
+	t := s.T()
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships = &app.WorkItemRelationships{
+		BaseType: &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: "workitemtypes",
+				ID:   workitem.SystemBug,
+			},
+		},
+	}
+
+	resp, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+
+	lastMod := resp.Header().Get("Last-Modified")
+	s.svc.Use(func(handler goa.Handler) goa.Handler {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) (err error) {
+			req.Header.Set("If-Modified-Since", lastMod)
+			return nil
+		}
+	})
+	test.ShowWorkitemNotModified(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID)
 }
