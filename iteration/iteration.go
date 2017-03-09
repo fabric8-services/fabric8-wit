@@ -1,7 +1,6 @@
 package iteration
 
 import (
-	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -63,20 +62,6 @@ func NewIterationRepository(db *gorm.DB) Repository {
 // GormIterationRepository is the implementation of the storage interface for Iterations.
 type GormIterationRepository struct {
 	db *gorm.DB
-}
-
-// ConvertToLtreeFormat returns LTREE valid string
-func ConvertToLtreeFormat(uuid string) string {
-	//Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "-", "_", -1)
-}
-
-// ConvertFromLtreeFormat returns UUID in form of string
-func ConvertFromLtreeFormat(uuid string) string {
-	// Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "_", "-", -1)
-	converted = strings.Replace(converted, PathSepInDatabase, PathSepInService, -1)
-	return converted
 }
 
 // LoadMultiple returns multiple instances of iteration.Iteration
