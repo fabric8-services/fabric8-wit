@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -26,7 +27,7 @@ type Area struct {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *Area) TableName() string {
+func (m *GormAreaRepository) TableName() string {
 	return "areas"
 }
 
@@ -123,5 +124,22 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
+	return objs, nil
+}
+
+// Query expose an open ended Query model
+func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "area", "query"}, time.Now())
+	var objs []*Area
+
+	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errors.WithStack(err)
+	}
+
+	log.Debug(nil, map[string]interface{}{
+		"areaList": objs,
+	}, "Area query executed successfully!")
+
 	return objs, nil
 }
