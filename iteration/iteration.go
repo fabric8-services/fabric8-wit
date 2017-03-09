@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/path"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -30,7 +31,7 @@ type Iteration struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
-	Path        string
+	Path        path.Path
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string
