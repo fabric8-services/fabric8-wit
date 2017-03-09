@@ -6,8 +6,8 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -84,7 +84,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		*/
 
 		newArea := area.Area{
-			ID:      satoriuuid.NewV4(),
+			ID:      uuid.NewV4(),
 			SpaceID: space.ID,
 			Name:    space.Name,
 		}

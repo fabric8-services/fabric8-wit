@@ -123,11 +123,11 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 
-	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	svc, ctrl := rest.SecuredController(initTestIdenity(rest.DB))
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
 	require.NotNil(t, created.Data)
 
-	spaceAreaSvc, spaceAreaCtrl := rest.SecuredSpaceAreaController(testsupport.TestIdentity)
+	spaceAreaSvc, spaceAreaCtrl := rest.SecuredSpaceAreaController(initTestIdenity(rest.DB))
 	createdID := created.Data.ID.String()
 	_, areaList := test.ListSpaceAreasOK(t, spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID)
 

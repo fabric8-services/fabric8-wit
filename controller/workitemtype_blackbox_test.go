@@ -99,7 +99,7 @@ func (s *workItemTypeSuite) SetupTest() {
 
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), initTestIdenity(DB))
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), witbConfiguration)
 	require.NotNil(s.T(), s.spaceCtrl)
 }
 
@@ -340,7 +340,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	s.T().Log("Created work item link category")
 
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space", "description")
+	spacePayload := CreateSpacePayload("some-test-link-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 
