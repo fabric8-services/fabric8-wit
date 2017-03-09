@@ -101,7 +101,6 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	}
 	repo.Create(context.Background(), &i)
 
-	// parentPath := iteration.ConvertToLtreeFormat(i.ID.String())
 	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
@@ -117,7 +116,6 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	require.Nil(t, err)
 	assert.NotEmpty(t, i2.Path)
 	i2.Path.Convert()
-	// expectedPath := iteration.ConvertToLtreeFormat(i.ID.String())
 	expectedPath := i2.Path.Convert()
 	require.NotNil(t, i2L)
 	assert.Equal(t, expectedPath, i2L.Path.Convert())

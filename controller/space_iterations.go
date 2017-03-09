@@ -68,12 +68,6 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		var responseData *app.Iteration
 		if newItr.Path.IsEmpty() == false {
-			// allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
-			// allParentsUUIDs := []uuid.UUID{}
-			// for _, x := range allParents {
-			// 	id, _ := uuid.FromString(x) // we can safely ignore this error.
-			// 	allParentsUUIDs = append(allParentsUUIDs, id)
-			// }
 			allParentsUUIDs := newItr.Path
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 			if error != nil {

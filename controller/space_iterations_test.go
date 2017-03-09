@@ -171,16 +171,14 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		childIteration = &iteration.Iteration{
 			Name:    "Child Iteration",
 			SpaceID: spaceID,
-			// Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String()),
-			Path: append(fatherIteration.Path, fatherIteration.ID),
+			Path:    append(fatherIteration.Path, fatherIteration.ID),
 		}
 		repo.Create(rest.ctx, childIteration)
 
 		grandChildIteration = &iteration.Iteration{
 			Name:    "Grand Child Iteration",
 			SpaceID: spaceID,
-			// Path:    iteration.ConvertToLtreeFormat(fatherIteration.ID.String() + iteration.PathSepInDatabase + childIteration.ID.String()),
-			Path: append(childIteration.Path, childIteration.ID),
+			Path:    append(childIteration.Path, childIteration.ID),
 		}
 		repo.Create(rest.ctx, grandChildIteration)
 

@@ -51,10 +51,6 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		// parentPath := iteration.ConvertToLtreeFormat(parentID.String())
-		// if parent.Path != "" {
-		// 	parentPath = parent.Path + iteration.PathSepInDatabase + parentPath
-		// }
 		childPath := append(parent.Path, parent.ID)
 
 		newItr := iteration.Iteration{
@@ -74,12 +70,7 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		var responseData *app.Iteration
 		if newItr.Path.IsEmpty() == false {
-			// allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
 			allParentsUUIDs := newItr.Path
-			// for _, x := range allParents {
-			// 	id, _ := uuid.FromString(x) // we can safely ignore this error.
-			// 	allParentsUUIDs = append(allParentsUUIDs, id)
-			// }
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 			if error != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
@@ -199,7 +190,6 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
 	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
-	// pathToTopMostParent := iteration.PathSepInService + iteration.ConvertFromLtreeFormat(itr.Path) // /uuid1/uuid2/uuid3s
 	pathToTopMostParent := itr.Path.String()
 	i := &app.Iteration{
 		Type: iterationType,
@@ -233,8 +223,6 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		},
 	}
 	if itr.Path.IsEmpty() == false {
-		// allParents := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
-		// parentID := allParents[len(allParents)-1]
 		parentID := itr.Path.This().String()
 		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
@@ -276,8 +264,6 @@ type iterationIDMap map[uuid.UUID]*iteration.Iteration
 
 func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
-		// parentUUIDStrings := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
-		// parentUUIDs := convertToUUID(parentUUIDStrings)
 		parentUUIDs := itr.Path
 		pathResolved := ""
 		for _, id := range parentUUIDs {
