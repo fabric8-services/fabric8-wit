@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -259,6 +258,16 @@ func (s *workItemChildSuite) TestListChildren() {
 
 	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
 	_, workItemList := test.ListWorkItemChildrenOK(s.T(), nil, nil, s.workItemChildrenCtrl, workItemID1)
-	fmt.Printf("\n%#v", workItemList.Data)
 	assert.Equal(s.T(), 2, len(workItemList.Data))
+	var count int
+	for _, v := range workItemList.Data {
+		switch v.Attributes[workitem.SystemTitle] {
+		case "bug2":
+			count = count + 1
+		case "bug3":
+			count = count + 1
+		}
+
+	}
+	assert.Equal(s.T(), 2, count)
 }
