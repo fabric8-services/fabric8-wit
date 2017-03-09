@@ -92,14 +92,14 @@ func (s *workItemTypeSuite) SetupTest() {
 	assert.NotNil(s.T(), svc)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB))
 	assert.NotNil(s.T(), s.typeCtrl)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
 
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.spaceCtrl)
 }
 
