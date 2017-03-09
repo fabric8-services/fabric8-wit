@@ -194,7 +194,7 @@ func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 // If direction == "below", then
 //	FindFirstItem returns the value below which reorder item has to be placed
 //      FindSecondItem returns the value above which reorder item has to be placed
-func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirection DirectionType, WorkItemId string) (*string, *float64, error) {
+func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirection DirectionType) (*string, *float64, error) {
 	Item := WorkItem{}
 	var tx *gorm.DB
 	switch secondItemDirection {
@@ -272,7 +272,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		if aboveItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionBelow, wi.ID)
+		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionBelow)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
