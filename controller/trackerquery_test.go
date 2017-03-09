@@ -31,16 +31,14 @@ func TestCreateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	t.Log(result.ID)
+	t.Log(*result.Data.ID)
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	t.Log(tqresult)
 	if tqresult.ID == "" {
@@ -52,16 +50,14 @@ func TestGetTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	fmt.Printf("tq payload %#v", tqpayload)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
@@ -79,16 +75,14 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
 
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	_, tqresult := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
 	_, tqr := test.ShowTrackerqueryOK(t, nil, nil, &tqController, tqresult.ID)
@@ -107,7 +101,7 @@ func TestUpdateTrackerQuery(t *testing.T) {
 	payload2 := app.UpdateTrackerQueryAlternatePayload{
 		Query:     tqr.Query,
 		Schedule:  tqr.Schedule,
-		TrackerID: result.ID,
+		TrackerID: *result.Data.ID,
 		Relationships: &app.TrackerQueryRelationships{
 			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
@@ -131,16 +125,14 @@ func TestTrackerQueryListItemsNotNil(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	t.Log(result.ID)
+	t.Log(*result.Data.ID)
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 
@@ -158,16 +150,14 @@ func TestCreateTrackerQueryValidId(t *testing.T) {
 	resource.Require(t, resource.Database)
 	defer cleaner.DeleteCreatedEntities(DB)()
 	controller := TrackerController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, result := test.CreateTrackerCreated(t, nil, nil, &controller, &payload)
-	t.Log(result.ID)
+	t.Log(*result.Data.ID)
 	tqController := TrackerqueryController{Controller: nil, db: gormapplication.NewGormDB(DB), scheduler: RwiScheduler, configuration: configuration}
-
-	tqpayload := getCreateTrackerQueryPayload(result.ID)
-
+	tqpayload := getCreateTrackerQueryPayload(*result.Data.ID)
 	_, trackerquery := test.CreateTrackerqueryCreated(t, nil, nil, &tqController, &tqpayload)
 	_, created := test.ShowTrackerqueryOK(t, nil, nil, &tqController, trackerquery.ID)
 	if created != nil && created.ID != trackerquery.ID {

@@ -71,28 +71,28 @@ func getTrackerTestData(t *testing.T) []testSecureAPI {
 		},
 		// Update tracker API with different parameters
 		{
-			method:             http.MethodPut,
+			method:             http.MethodPatch,
 			url:                "/api/trackers/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
-			method:             http.MethodPut,
+			method:             http.MethodPatch,
 			url:                "/api/trackers/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
-			method:             http.MethodPut,
+			method:             http.MethodPatch,
 			url:                "/api/trackers/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createTrackerPayload,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
-			method:             http.MethodPut,
+			method:             http.MethodPatch,
 			url:                "/api/trackers/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,

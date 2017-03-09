@@ -24,6 +24,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type trackerAttr struct {
+	Type string
+	URL  string
+}
+
+func getTrackerPayload(attr trackerAttr) app.CreateTrackerPayload {
+	return app.CreateTrackerPayload{
+		Data: &app.TrackerData{
+			Type: APIStringTypeTracker,
+			Attributes: &app.TrackerAttributes{
+				Type: attr.Type,
+				URL:  attr.URL,
+			},
+		},
+	}
+}
+
 var trackerQueryBlackBoxTestConfiguration *config.ConfigurationData
 
 func init() {
@@ -170,10 +187,10 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 	service := goa.New("API")
 
 	controller := NewTrackerController(service, gormapplication.NewGormDB(DB), RwiScheduler, trackerQueryBlackBoxTestConfiguration)
-	payload := app.CreateTrackerAlternatePayload{
+	payload := getTrackerPayload(trackerAttr{
 		URL:  "http://api.github.com",
 		Type: "github",
-	}
+	})
 	_, tracker := test.CreateTrackerCreated(t, nil, nil, controller, &payload)
 
 	jwtMiddleware := goajwt.New(&privatekey.PublicKey, nil, app.NewJWTSecurity())
@@ -193,7 +210,7 @@ func TestCreateTrackerQueryREST(t *testing.T) {
 				"links": {"self": "http://localhost:8080/api/spaces/%[2]s"}
 			}
 		}
-	}`, tracker.ID, space.SystemSpace.String())
+	}`, *tracker.Data.ID, space.SystemSpace.String())
 	trackerQueryCreateURL := "/api/trackerqueries"
 	req, _ := http.NewRequest("POST", server.URL+trackerQueryCreateURL, strings.NewReader(tqPayload))
 

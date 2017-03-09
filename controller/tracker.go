@@ -5,12 +5,18 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+)
+
+const (
+	// APIStringTypeTracker to be used as a TYPE for jsonapi based tracker APIs
+	APIStringTypeTracker = "trackers"
 )
 
 type trackerConfiguration interface {
@@ -41,7 +47,7 @@ func NewTrackerController(service *goa.Service, db application.DB, scheduler *re
 // Create runs the create action.
 func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
-		t, err := appl.Trackers().Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
+		newTracker, err := appl.Trackers().Create(ctx.Context, ctx.Payload.Data.Attributes.URL, ctx.Payload.Data.Attributes.Type)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
@@ -53,8 +59,22 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 				return ctx.InternalServerError(jerrors)
 			}
 		}
-		ctx.ResponseData.Header().Set("Location", app.TrackerHref(t.ID))
-		return ctx.Created(t)
+		trackerData := app.TrackerData{
+			ID:   &newTracker.ID,
+			Type: APIStringTypeTracker,
+			Attributes: &app.TrackerAttributes{
+				Type: newTracker.Type,
+				URL:  newTracker.URL,
+			},
+		}
+		respTracker := app.TrackerObjectSingle{
+			Data: &trackerData,
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		ctx.ResponseData.Header().Set("Location", app.TrackerHref(respTracker.Data.ID))
+		return ctx.Created(&respTracker)
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
@@ -101,7 +121,13 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 				return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 			}
 		}
-		return ctx.OK(t)
+		jsonapiTrackerObject := app.TrackerObjectSingle{
+			Data: convertTracker(t),
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		return ctx.OK(&jsonapiTrackerObject)
 	})
 }
 
@@ -123,7 +149,17 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(fmt.Sprintf("Error listing trackers: %s", err.Error())))
 			return ctx.InternalServerError(jerrors)
 		}
-		return ctx.OK(result)
+		jsonapiData := make([]*app.TrackerData, len(result))
+		for i, tracker := range result {
+			jsonapiData[i] = convertTracker(tracker)
+		}
+		response := app.TrackerObjectList{
+			Data: jsonapiData,
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		return ctx.OK(&response)
 	})
 
 }
@@ -132,13 +168,24 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
 
-		toSave := app.Tracker{
-			ID:   ctx.ID,
-			URL:  ctx.Payload.URL,
-			Type: ctx.Payload.Type,
+		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == "" {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("data.id", nil))
+			return ctx.NotFound(jerrors)
 		}
-		t, err := appl.Trackers().Save(ctx.Context, toSave)
 
+		tr, err := appl.Trackers().Load(ctx, ctx.Payload.Data.ID)
+		if err != nil {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(fmt.Sprintf("Error updating tracker item: %s", err.Error())))
+			return ctx.NotFound(jerrors)
+		}
+
+		if ctx.Payload.Data.Attributes != nil && ctx.Payload.Data.Attributes.Type != nil && *ctx.Payload.Data.Attributes.Type != "" {
+			tr.Type = *ctx.Payload.Data.Attributes.Type
+		}
+		if ctx.Payload.Data.Attributes != nil && ctx.Payload.Data.Attributes.URL != nil && *ctx.Payload.Data.Attributes.URL != "" {
+			tr.URL = *ctx.Payload.Data.Attributes.URL
+		}
+		t, err := appl.Trackers().Save(ctx.Context, *tr)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
@@ -150,9 +197,27 @@ func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
 				return ctx.InternalServerError(jerrors)
 			}
 		}
-		return ctx.OK(t)
+		jsonapiTrackerObject := app.TrackerObjectSingle{
+			Data: convertTracker(t),
+			Links: &app.TrackerLinks{
+				Self: buildAbsoluteURL(ctx.RequestData),
+			},
+		}
+		return ctx.OK(&jsonapiTrackerObject)
 	})
 	accessTokens := GetAccessTokens(c.configuration) //configuration.GetGithubAuthToken()
 	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
+}
+
+// convertTracker converts app.Tracker object into jsonapi based app.TrackerData
+func convertTracker(t *app.Tracker) *app.TrackerData {
+	return &app.TrackerData{
+		ID:   &t.ID,
+		Type: APIStringTypeTracker,
+		Attributes: &app.TrackerAttributes{
+			Type: t.Type,
+			URL:  t.URL,
+		},
+	}
 }
