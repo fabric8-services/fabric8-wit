@@ -214,15 +214,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("034-space-owner.sql")})
 
 	// Version 35
-	m = append(m, steps{executeSQLFile("035-wit-to-use-uuid.sql",
-		workitem.SystemPlannerItem.String(),
-		workitem.SystemUserStory.String(),
-		workitem.SystemValueProposition.String(),
-		workitem.SystemFundamental.String(),
-		workitem.SystemExperience.String(),
-		workitem.SystemFeature.String(),
-		workitem.SystemScenario.String(),
-		workitem.SystemBug.String())})
+	m = append(m, steps{executeSQLFile("035-wit-to-use-uuid.sql")})
 
 	// Version 36
 	m = append(m, steps{executeSQLFile("036-add-icon-to-wit.sql")})
