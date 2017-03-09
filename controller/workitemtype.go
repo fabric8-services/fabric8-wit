@@ -84,7 +84,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Enrich link types
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref)
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
 		err = enrichLinkTypeList(linkCtx, res)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -108,7 +108,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Enrich link types
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref)
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
 		err = enrichLinkTypeList(linkCtx, res)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)

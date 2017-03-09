@@ -1350,7 +1350,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 
 	// Create link category
 	linkCatPayload := CreateWorkItemLinkCategory("test-user")
-	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
 	// Create link space
@@ -1359,7 +1359,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 
 	// Create work item link type payload
 	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2
@@ -1368,7 +1368,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.linkCtrl, linkPayload)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 
 	// Delete work item wi1
