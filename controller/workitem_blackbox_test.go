@@ -79,10 +79,6 @@ func (s *WorkItemSuite) SetupSuite() {
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
-	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
@@ -94,6 +90,11 @@ func (s *WorkItemSuite) SetupSuite() {
 		}
 	}
 	s.clean = cleaner.DeleteCreatedEntities(s.db)
+
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = testIdentity
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
@@ -543,17 +544,6 @@ func (s *WorkItem2Suite) SetupSuite() {
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
-	// create identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
-	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(DB))
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(DB))
-	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(DB))
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(DB))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
@@ -564,6 +554,12 @@ func (s *WorkItem2Suite) SetupSuite() {
 		}
 	}
 	s.clean = cleaner.DeleteCreatedEntities(s.db)
+
+	// create identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
 }
 
 func (s *WorkItem2Suite) TearDownSuite() {
@@ -574,6 +570,13 @@ func (s *WorkItem2Suite) TearDownSuite() {
 }
 
 func (s *WorkItem2Suite) SetupTest() {
+	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
+	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.db))
+	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.db))
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db))
+
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
