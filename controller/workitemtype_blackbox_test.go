@@ -276,10 +276,10 @@ func (s *workItemTypeSuite) TestShowWorkItemTypeOK200() {
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()["Last-Modified"])
-	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()["Last-Modified"][0])
-	require.NotNil(s.T(), res.Header()["Cache-Control"])
-	assert.Equal(s.T(), "max-age=86400", res.Header()["Cache-Control"][0])
+	require.NotNil(s.T(), res.Header()[LastModified])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
+	require.NotNil(s.T(), res.Header()[CacheControl])
+	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
@@ -322,10 +322,10 @@ func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredUsingLastModifiedHea
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()["Last-Modified"])
-	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()["Last-Modified"][0])
-	require.NotNil(s.T(), res.Header()["Cache-Control"])
-	assert.Equal(s.T(), "max-age=86400", res.Header()["Cache-Control"][0])
+	require.NotNil(s.T(), res.Header()[LastModified])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
+	require.NotNil(s.T(), res.Header()[CacheControl])
+	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
@@ -342,10 +342,10 @@ func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredUsingETagHeader() {
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()["Last-Modified"])
-	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()["Last-Modified"][0])
-	require.NotNil(s.T(), res.Header()["Cache-Control"])
-	assert.Equal(s.T(), "max-age=86400", res.Header()["Cache-Control"][0])
+	require.NotNil(s.T(), res.Header()[LastModified])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
+	require.NotNil(s.T(), res.Header()[CacheControl])
+	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
 }
 
 // TestListWorkItemType tests if we can find the work item types

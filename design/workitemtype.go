@@ -37,7 +37,6 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("createdAt", d.DateTime, "timestamp of entity creation")
 	a.Attribute("updatedAt", d.DateTime, "timestamp of last entity update")
-	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("name", d.String, "The human readable name of the work item type", func() {
 		a.Example("User story")
 		a.MinLength(1)
@@ -166,11 +165,16 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 			// TODO: Support same params as in work item list-action?
 		})
+		a.Headers(func() {
+			a.Header("If-Modified-Since", d.DateTime)
+			a.Header("If-None-Match")
+		})
 		a.Response(d.OK, func() {
 			a.Media(workItemTypeList)
 			a.Headers(func() {
 				a.Header("Last-Modified")
 				a.Header("ETag")
+				a.Header("Cache-Control")
 			})
 		})
 		a.Response(d.NotModified)
@@ -188,12 +192,7 @@ var _ = a.Resource("workitemtype", func() {
 		a.Description(`Retrieve work item link types where the given work item type can be used in the source of the link.`)
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkTypeList)
-			a.Headers(func() {
-				a.Header("Last-Modified")
-				a.Header("ETag")
-			})
 		})
-		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
@@ -209,7 +208,6 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkTypeList)
 		})
-		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

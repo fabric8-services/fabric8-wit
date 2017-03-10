@@ -50,8 +50,8 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		updatedAt := res.Data.Attributes.UpdatedAt.Truncate(time.Second)
 		if ctx.IfModifiedSince != nil {
 			logrus.Debug(nil, map[string]interface{}{
-				"If-Modified-Since": ctx.IfModifiedSince.UTC(),
-				"Last-Modified":     updatedAt,
+				IfModifiedSince: ctx.IfModifiedSince.UTC(),
+				LastModified:    updatedAt,
 			}, "work item type conditional query")
 
 			if ctx.IfModifiedSince != nil && ctx.IfModifiedSince.UTC().After(updatedAt) {
@@ -62,19 +62,16 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		etag := strconv.Itoa(res.Data.Attributes.Version)
 		if ctx.IfNoneMatch != nil {
 			logrus.Debug(nil, map[string]interface{}{
-				"If-None-Match": ctx.IfNoneMatch,
-				"ETag":          etag,
-			}, "work item type version")
+				IfNoneMatch: ctx.IfNoneMatch,
+				ETag:        etag,
+			}, "work item type conditional query")
 			if ctx.IfNoneMatch != nil && *ctx.IfNoneMatch == etag {
 				return ctx.NotModified()
 			}
 		}
-		// add the "Last-Modified" header
-		ctx.ResponseData.Header().Set("Last-Modified", updatedAt.String())
-		// add the "ETag" header
-		ctx.ResponseData.Header().Set("ETag", etag)
-		// add the "Cache-Control: max-age" header
-		ctx.ResponseData.Header().Set("Cache-Control", "max-age="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		ctx.ResponseData.Header().Set(LastModified, updatedAt.String())
+		ctx.ResponseData.Header().Set(ETag, etag)
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
 		// return the work item type along with conditional query and caching headers
 		return ctx.OK(res)
 	})
