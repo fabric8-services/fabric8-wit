@@ -21,6 +21,8 @@ import (
 type trackerRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
 	repo application.TrackerRepository
+
+	clean func()
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -43,6 +45,11 @@ func TestRunTrackerRepoBlackBoxTest(t *testing.T) {
 
 func (s *trackerRepoBlackBoxTest) SetupTest() {
 	s.repo = remoteworkitem.NewTrackerRepository(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (test *trackerRepoBlackBoxTest) TearDownTest() {
+	test.clean()
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {

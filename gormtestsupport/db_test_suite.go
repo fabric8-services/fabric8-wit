@@ -23,7 +23,9 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 type DBTestSuite struct {
 	suite.Suite
 	configFile string
-	DB         *gorm.DB
+
+	Configuration *config.ConfigurationData
+	DB            *gorm.DB
 }
 
 // SetupSuite implements suite.SetupAllSuite
@@ -35,6 +37,7 @@ func (s *DBTestSuite) SetupSuite() {
 			"err": err,
 		}, "failed to setup the configuration")
 	}
+	s.Configuration = configuration
 
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		s.DB, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
