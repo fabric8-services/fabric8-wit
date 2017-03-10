@@ -17,6 +17,7 @@ import (
 	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/auth"
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -235,7 +236,7 @@ func main() {
 	app.MountTrackerqueryController(service, c6)
 
 	// Mount "space" controller
-	spaceCtrl := controller.NewSpaceController(service, appDB, configuration)
+	spaceCtrl := controller.NewSpaceController(service, appDB, configuration, auth.NewKeycloakResourceManager(configuration))
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller

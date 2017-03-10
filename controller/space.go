@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
@@ -37,13 +36,14 @@ type spaceConfiguration interface {
 // SpaceController implements the space resource.
 type SpaceController struct {
 	*goa.Controller
-	db            application.DB
-	configuration spaceConfiguration
+	db              application.DB
+	configuration   spaceConfiguration
+	resourceManager auth.AuthzResourceManager
 }
 
 // NewSpaceController creates a space controller.
-func NewSpaceController(service *goa.Service, db application.DB, configuration spaceConfiguration) *SpaceController {
-	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, configuration: configuration}
+func NewSpaceController(service *goa.Service, db application.DB, configuration spaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
+	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, configuration: configuration, resourceManager: resourceManager}
 }
 
 // Create runs the create action.
@@ -69,7 +69,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			newSpace.Description = *reqSpace.Attributes.Description
 		}
 
-		space, err := appl.Spaces().Create(ctx, &newSpace)
+		rSpace, err := appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -85,26 +85,33 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 		newArea := area.Area{
 			ID:      uuid.NewV4(),
-			SpaceID: space.ID,
-			Name:    space.Name,
+			SpaceID: rSpace.ID,
+			Name:    rSpace.Name,
 		}
 		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", space.Name))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", rSpace.Name))
 		}
 
 		res := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, space),
+			Data: ConvertSpace(ctx.RequestData, rSpace),
 		}
 
 		// Create keycloak resource for this space
-		resource, err := c.createKeycloakResource(ctx, space)
+		resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, rSpace.ID.String(), spaceResourceType, &rSpace.Name, &scopes, rSpace.OwnerId.String(), rSpace.Name+"-"+uuid.NewV4().String())
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		spaceResource := &space.Resource{
+			ResourceID:   resource.ResourceID,
+			PolicyID:     resource.PolicyID,
+			PermissionID: resource.PermissionID,
+			SpaceID:      rSpace.ID,
+		}
+
 		// Create space resource which will represent the keyclok resource associated with this space
-		_, err = appl.SpaceResources().Create(ctx, resource)
+		_, err = appl.SpaceResources().Create(ctx, spaceResource)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -112,107 +119,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
-}
-
-func (c *SpaceController) createKeycloakResource(ctx *app.CreateSpaceContext, newSpace *space.Space) (*space.Resource, error) {
-	authzEndpoint, err := c.configuration.GetKeycloakEndpointAuthzResourceset(ctx.RequestData)
-	if err != nil {
-		return nil, err
-	}
-	clientsEndpoint, err := c.configuration.GetKeycloakEndpointClients(ctx.RequestData)
-	if err != nil {
-		return nil, err
-	}
-	adminEndpoint, err := c.configuration.GetKeycloakEndpointAdmin(ctx.RequestData)
-	if err != nil {
-		return nil, err
-	}
-
-	pat, err := c.getPat(ctx.RequestData)
-	if err != nil {
-		return nil, err
-	}
-	publicClientID := c.configuration.GetKeycloakClientID()
-	clientID, err := auth.GetClientID(context.Background(), clientsEndpoint, publicClientID, pat)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create resource
-	kcResource := auth.KeycloakResource{
-		Name:   newSpace.ID.String(),
-		Type:   spaceResourceType,
-		URI:    &newSpace.Name,
-		Scopes: &scopes,
-	}
-	resourceID, err := auth.CreateResource(ctx, kcResource, authzEndpoint, pat)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create policy
-	userID := newSpace.OwnerId.String()
-	found, err := auth.ValidateKeycloakUser(ctx, adminEndpoint, userID, pat)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		log.Error(ctx, map[string]interface{}{
-			"userID": userID,
-		}, "User not found in Keycloak")
-		return nil, errors.NewNotFoundError("keycloak user", userID) // The space owner is not found in the Keycloak user base
-	}
-	userIDs := "[\"" + userID + "\"]"
-	policy := auth.KeycloakPolicy{
-		Name:             newSpace.Name + "-" + uuid.NewV4().String(),
-		Type:             auth.PolicyTypeUser,
-		Logic:            auth.PolicyLogicPossitive,
-		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-		Config: auth.PolicyConfigData{
-			UserIDs: userIDs,
-		},
-	}
-	policyID, err := auth.CreatePolicy(ctx, clientsEndpoint, clientID, policy, pat)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create permission
-	permission := auth.KeycloakPermission{
-		Name:             uuid.NewV4().String(),
-		Type:             auth.PermissionTypeResource,
-		Logic:            auth.PolicyLogicPossitive,
-		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-		Config: auth.PermissionConfigData{
-			Resources:     "[\"" + resourceID + "\"]",
-			ApplyPolicies: "[\"" + policyID + "\"]",
-		},
-	}
-	permissionID, err := auth.CreatePermission(ctx, clientsEndpoint, clientID, permission, pat)
-	if err != nil {
-		return nil, err
-	}
-
-	newResource := &space.Resource{
-		ResourceID:   resourceID,
-		PolicyID:     policyID,
-		PermissionID: permissionID,
-		SpaceID:      newSpace.ID,
-	}
-
-	return newResource, nil
-}
-
-func (c *SpaceController) getPat(requestData *goa.RequestData) (string, error) {
-	endpoint, err := c.configuration.GetKeycloakEndpointToken(requestData)
-	if err != nil {
-		return "", err
-	}
-	token, err := auth.GetProtectedAPIToken(endpoint, c.configuration.GetKeycloakClientID(), c.configuration.GetKeycloakSecret())
-	if err != nil {
-		return "", err
-	}
-	return token, nil
 }
 
 // Delete runs the delete action.
@@ -231,7 +137,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		c.deleteKeycloakResource(ctx, resource)
+		c.resourceManager.DeleteResource(ctx, ctx.RequestData, auth.Resource{ResourceID: resource.PermissionID, PermissionID: resource.PermissionID, PolicyID: resource.PolicyID})
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -247,44 +153,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 		return ctx.OK([]byte{})
 	})
-}
-
-func (c *SpaceController) deleteKeycloakResource(ctx *app.DeleteSpaceContext, resource *space.Resource) error {
-	authzEndpoint, err := c.configuration.GetKeycloakEndpointAuthzResourceset(ctx.RequestData)
-	if err != nil {
-		return err
-	}
-	clientsEndpoint, err := c.configuration.GetKeycloakEndpointClients(ctx.RequestData)
-	if err != nil {
-		return err
-	}
-	pat, err := c.getPat(ctx.RequestData)
-	if err != nil {
-		return err
-	}
-	publicClientID := c.configuration.GetKeycloakClientID()
-	clientID, err := auth.GetClientID(context.Background(), clientsEndpoint, publicClientID, pat)
-	if err != nil {
-		return err
-	}
-
-	// Delete resource
-	err = auth.DeleteResource(ctx, resource.ResourceID, authzEndpoint, pat)
-	if err != nil {
-		return err
-	}
-	// Delete permission
-	err = auth.DeletePermission(ctx, clientsEndpoint, clientID, resource.PermissionID, pat)
-	if err != nil {
-		return err
-	}
-	// Delete policy
-	err = auth.DeletePolicy(ctx, clientsEndpoint, clientID, resource.PolicyID, pat)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // List runs the list action.

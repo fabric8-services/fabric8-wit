@@ -103,7 +103,11 @@ func (s *workItemLinkSuite) SetupSuite() {
 
 	svc = goa.New("TestWorkItemLinkSpace-Service")
 	require.NotNil(s.T(), svc)
+<<<<<<< 61a9fe95b7d1739beec452505e4f7a70e60404cc
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db))
+=======
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB), wiConfiguration, &DummyResourceManager{})
+>>>>>>> add resource manager interface
 	require.NotNil(s.T(), s.spaceCtrl)
 
 	svc = goa.New("TestWorkItemType-Service")

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"testing"
 
@@ -78,8 +79,6 @@ func (s *WorkItemSuite) SetupSuite() {
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
-	// create a test identity
-	s.testIdentity = initTestIdenity(DB)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
@@ -91,6 +90,11 @@ func (s *WorkItemSuite) SetupSuite() {
 		}
 	}
 	s.clean = cleaner.DeleteCreatedEntities(s.db)
+
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = testIdentity
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
@@ -367,9 +371,11 @@ func makeWorkItems(count int) []*app.WorkItem {
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	for index := range res {
 		res[index] = &app.WorkItem{
-			ID:     fmt.Sprintf("id%d", index),
-			Type:   uuid.NewV4(), // used to be "foobar"
-			Fields: map[string]interface{}{},
+			ID:   fmt.Sprintf("id%d", index),
+			Type: uuid.NewV4(), // used to be "foobar"
+			Fields: map[string]interface{}{
+				workitem.SystemUpdatedAt: time.Now(),
+			},
 			Relationships: &app.WorkItemRelationships{
 				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
@@ -550,8 +556,10 @@ func (s *WorkItem2Suite) SetupSuite() {
 	s.clean = cleaner.DeleteCreatedEntities(s.db)
 
 	// create identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	require.Nil(s.T(), err)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), initTestIdenity(DB))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
 }
 
 func (s *WorkItem2Suite) TearDownSuite() {
@@ -567,7 +575,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.db))
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.db))
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db), wibConfiguration)
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db), wibConfiguration, &DummyResourceManager{})
 
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -1755,7 +1763,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithDefaultSpace() {
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	t := s.T()
-	spaceName := "My own test Space " + uuid.NewV4().String()
+	spaceName := "My own Space " + uuid.NewV4().String()
 	sp := &app.CreateSpacePayload{
 		Data: &app.Space{
 			Type: "spaces",
