@@ -4,12 +4,14 @@
 #
 # We have to types of tests available:
 #
-#  1. unit tests and
-#  2. integration tests.
+#  1. unit tests
+#  2. integration tests and
+#  3. remote tests.
 #
 # While the unit tests can be executed fairly simply be running `go test`, the
-# integration tests have a little bit more setup going on. That's why they are
-# split up in to tests.
+# integration tests have a little bit more setup going on. The remote tests reqire
+# availability of some remote servers such as Keycloak.
+# That's why they are split up in to tests.
 #
 # Usage
 # -----
@@ -21,7 +23,11 @@
 #
 #     $ make test-integration
 #
-# To run both tests, type
+# To run the remote tests, type
+#
+#     $ make test-remote
+#
+# To run all tests, type
 #
 #     $ make test-all
 #
@@ -33,8 +39,8 @@
 #
 #     $ make coverage-unit-html
 #
-# If you replace the "unit" with "integration" you get the same for integration
-# tests.
+# If you replace the "unit" with "integration" or "remote" you get the same for integration
+# or remote tests.
 #
 # To output all coverage profile information for each function, type
 #
@@ -56,6 +62,10 @@
 # For integration-tests all results are combined into this file:
 #
 #   tmp/coverage.integration.mode-$(COVERAGE_MODE)
+#
+# For remote-tests all results are combined into this file:
+#
+#   tmp/coverage.remote.mode-$(COVERAGE_MODE)
 #
 # The overall coverage gets combined into this file:
 #
@@ -89,8 +99,9 @@ COV_DIR = $(TMP_PATH)/coverage
 # Files that combine package coverages for unit- and integration-tests separately
 COV_PATH_UNIT = $(TMP_PATH)/coverage.unit.mode-$(COVERAGE_MODE)
 COV_PATH_INTEGRATION = $(TMP_PATH)/coverage.integration.mode-$(COVERAGE_MODE)
+COV_PATH_REMOTE = $(TMP_PATH)/coverage.remote.mode-$(COVERAGE_MODE)
 
-# File that stores overall coverge for all packages and unit- and integration-tests
+# File that stores overall coverge for all packages and unit- integration- and remote-tests
 COV_PATH_OVERALL = $(TMP_PATH)/coverage.mode-$(COVERAGE_MODE)
 
 # Alternative path to docker-compose (if downloaded)
@@ -117,7 +128,7 @@ GOANALYSIS_DIRS=$(shell go list -f {{.Dir}} ./... | grep -v -E $(GOANALYSIS_PKGS
 
 .PHONY: test-all
 ## Runs test-unit and test-integration targets.
-test-all: prebuild-check test-unit test-integration
+test-all: prebuild-check test-unit test-integration test-remote
 
 .PHONY: test-unit
 ## Runs the unit tests and produces coverage files for each package.
@@ -142,6 +153,17 @@ test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
 	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+
+.PHONY: test-remote
+## Runs the remote tests and produces coverage files for each package.
+test-remote: prebuild-check clean-coverage-remote $(COV_PATH_REMOTE)
+
+.PHONY: test-remote-no-coverage
+## Runs the tests which reqire availability of some remote servers WITHOUT producing coverage files for each package.
+test-remote-no-coverage: prebuild-check $(SOURCES)
+	$(call log-info,"Running test: $@")
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_REMOTE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
@@ -191,7 +213,7 @@ endif
 endif
 
 #-------------------------------------------------------------------------------
-# Inspect coverage of unit tests or integration tests in either pure
+# Inspect coverage of unit tests, integration or remot tests in either pure
 # console mode or in a browser (*-html).
 #
 # If the test coverage files to be evaluated already exist, then no new
@@ -201,7 +223,7 @@ endif
 # Prints the total coverage of a given package.
 # The total coverage is printed as the last argument in the
 # output of "go tool cover". If the requested test name (first argument)
-# Is *, then unit and integration tests will be combined
+# Is *, then unit, integration and remtoe tests will be combined
 define print-package-coverage
 $(eval TEST_NAME:=$(1))
 $(eval PACKAGE_NAME:=$(2))
@@ -209,16 +231,19 @@ $(eval COV_FILE:="$(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERA
  @if [ "$(TEST_NAME)" == "*" ]; then \
   UNIT_FILE=`echo $(COV_FILE) | sed 's/*/unit/'`; \
   INTEGRATON_FILE=`echo $(COV_FILE) | sed 's/*/integration/'`; \
+  REMOTE_FILE=`echo $(COV_FILE) | sed 's/*/remote/'`; \
  	COV_FILE=`echo $(COV_FILE) | sed 's/*/combined/'`; \
 	if [ ! -e $${UNIT_FILE} ]; then \
-		COV_FILE=$${INTEGRATON_FILE}; \
-  fi; \
-	if [ ! -e $${INTEGRATON_FILE} ]; then \
-		COV_FILE=$${UNIT_FILE}; \
-  fi; \
-  if [ -e $${INTEGRATON_FILE} ]; then \
-  	if [ -e $${UNIT_FILE} ]; then \
-			$(GOCOVMERGE_BIN) $${UNIT_FILE} $${INTEGRATION_FILE} > $${COV_FILE}; \
+		if [ ! -e $${INTEGRATION_FILE} ]; then \
+			COV_FILE=$${REMOTE_FILE}; \
+		else \
+			COV_FILE=$${INTEGRATION_FILE}; \
+		fi; \
+	else \
+		if [ ! -e $${INTEGRATION_FILE} ]; then \
+			COV_FILE=$${UNIT_FILE}; \
+		else \
+			$(GOCOVMERGE_BIN) $${UNIT_FILE} $${INTEGRATION_FILE} $${REMOTE_FILE} > $${COV_FILE}; \
 		fi; \
 	fi; \
 else \
@@ -236,7 +261,7 @@ fi
 endef
 
 # Iterates over every package and prints its test coverage
-# for a given test name ("unit" or "integration").
+# for a given test name ("unit", "integration" or "remote").
 define package-coverage
 $(eval TEST_NAME:=$(1))
 @printf "\n\nPackage coverage:\n"
@@ -244,9 +269,9 @@ $(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN
 $(foreach package, $(TEST_PACKAGES), $(call print-package-coverage,$(TEST_NAME),$(package)))
 endef
 
-#$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(GOCOVMERGE_BIN)
+#$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(COV_PATH_REMOTE) $(GOCOVMERGE_BIN)
 $(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
-	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) > $(COV_PATH_OVERALL)
+	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(COV_PATH_REMOTW) > $(COV_PATH_OVERALL)
 
 # Console coverage output:
 
@@ -273,9 +298,17 @@ coverage-integration: prebuild-check $(COV_PATH_INTEGRATION)
 	@go tool cover -func=$(COV_PATH_INTEGRATION)
 	$(call package-coverage,integration)
 
+.PHONY: coverage-remote
+## Output coverage profile information for each function (only based on remote-tests).
+## Re-runs remote-tests if coverage information is outdated.
+coverage-remote: prebuild-check $(COV_PATH_REMOTE)
+	$(call cleanup-coverage-file,$(COV_PATH_REMOTE))
+	@go tool cover -func=$(COV_PATH_REMOTE)
+	$(call package-coverage,remote)
+
 .PHONY: coverage-all
 ## Output coverage profile information for each function.
-## Re-runs unit- and integration-tests if coverage information is outdated.
+## Re-runs unit-, integration- and remote-tests if coverage information is outdated.
 coverage-all: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
 	$(call cleanup-coverage-file,$(COV_PATH_OVERALL))
 	@go tool cover -func=$(COV_PATH_OVERALL)
@@ -297,9 +330,16 @@ coverage-integration-html: prebuild-check $(COV_PATH_INTEGRATION)
 	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@go tool cover -html=$(COV_PATH_INTEGRATION)
 
+.PHONY: coverage-remote-html
+## Generate HTML representation (and show in browser) of coverage profile (based on remote tests).
+## Re-runs remote tests if coverage information is outdated.
+coverage-remote-html: prebuild-check $(COV_PATH_REMOTE)
+	$(call cleanup-coverage-file,$(COV_PATH_REMOTE))
+	@go tool cover -html=$(COV_PATH_REMOTE)
+
 .PHONY: coverage-all-html
 ## Output coverage profile information for each function.
-## Re-runs unit- and integration-tests if coverage information is outdated.
+## Re-runs unit-, integration- and remote-tests if coverage information is outdated.
 coverage-all-html: prebuild-check clean-coverage-overall $(COV_PATH_OVERALL)
 	$(call cleanup-coverage-file,$(COV_PATH_OVERALL))
 	@go tool cover -html=$(COV_PATH_OVERALL)
@@ -330,8 +370,20 @@ gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
 	$(call cleanup-coverage-file,$(COV_PATH_INTEGRATION))
 	@$(GOCOV_BIN) convert $(COV_PATH_INTEGRATION) | $(GOCOV_BIN) report
 
+.PHONY: gocov-remote-annotate
+## (EXPERIMENTAL) Show actual code and how it is covered with remote tests.
+##                This target only runs the tests if the coverage file does exist.
+gocov-remote-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_REMOTE)
+	$(call cleanup-coverage-file,$(COV_PATH_REMOTE))
+	@$(GOCOV_BIN) convert $(COV_PATH_REMOTE) | $(GOCOV_BIN) annotate -
+
+.PHONY: .gocov-remote-report
+.gocov-remote-report: prebuild-check $(GOCOV_BIN) $(COV_PATH_REMOTE)
+	$(call cleanup-coverage-file,$(COV_PATH_REMOTE))
+	@$(GOCOV_BIN) convert $(COV_PATH_REMOTE) | $(GOCOV_BIN) report
+
 #-------------------------------------------------------------------------------
-# Test artifacts are coverage files for unit and integration tests.
+# Test artifacts are coverage files for unit, integration and remote tests.
 #-------------------------------------------------------------------------------
 
 # The test-package function executes tests for a package and saves the collected
@@ -339,7 +391,7 @@ gocov-integration-annotate: prebuild-check $(GOCOV_BIN) $(COV_PATH_INTEGRATION)
 # also appended to a file of choice (without the "mode"-line)
 #
 # Parameters:
-#  1. Test name (e.g. "unit" or "integration")
+#  1. Test name (e.g. "unit", "integration" or "remote")
 #  2. package name "github.com/almighty/almighty-core/model"
 #  3. File in which to combine the output
 #  4. Path to file in which to store names of packages that failed testing
@@ -417,6 +469,20 @@ $(COV_PATH_INTEGRATION): $(SOURCES) $(GOCOVMERGE_BIN)
 	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_INTEGRATION),$(ERRORS_FILE),ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0,$(ALL_PKGS_COMMA_SEPARATED)))
 	$(call check-test-results,$(ERRORS_FILE))
 
+# NOTE: We don't have prebuild-check as a dependency here because it would cause
+#       the recipe to be always executed.
+$(COV_PATH_REMOTE): $(SOURCES) $(GOCOVMERGE_BIN)
+	$(eval TEST_NAME := remote)
+	$(eval ERRORS_FILE := $(TMP_PATH)/errors.$(TEST_NAME))
+	$(call log-info,"Running test: $(TEST_NAME)")
+	@mkdir -p $(COV_DIR)
+	@echo "mode: $(COVERAGE_MODE)" > $(COV_PATH_REMOTE)
+	@-rm -f $(ERRORS_FILE)
+	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
+	$(eval ALL_PKGS_COMMA_SEPARATED:=$(shell echo $(TEST_PACKAGES)  | tr ' ' ,))
+	$(foreach package, $(TEST_PACKAGES), $(call test-package,$(TEST_NAME),$(package),$(COV_PATH_REMOTE),$(ERRORS_FILE),,$(ALL_PKGS_COMMA_SEPARATED)))
+	$(call check-test-results,$(ERRORS_FILE))
+
 #-------------------------------------------------------------------------------
 # Additional tools to build
 #-------------------------------------------------------------------------------
@@ -434,7 +500,7 @@ $(GOCOVMERGE_BIN): prebuild-check
 CLEAN_TARGETS += clean-coverage
 .PHONY: clean-coverage
 ## Removes all coverage files
-clean-coverage: clean-coverage-unit clean-coverage-integration clean-coverage-overall
+clean-coverage: clean-coverage-unit clean-coverage-integration clean-coverage-remote clean-coverage-overall
 	-@rm -rf $(COV_DIR)
 
 CLEAN_TARGETS += clean-coverage-overall
@@ -454,3 +520,9 @@ CLEAN_TARGETS += clean-coverage-integration
 ## Removes integration test coverage file
 clean-coverage-integration:
 	-@rm -f $(COV_PATH_INTEGRATION)
+
+CLEAN_TARGETS += clean-coverage-remote
+.PHONY: clean-coverage-remote
+## Removes remote test coverage file
+clean-coverage-remote:
+	-@rm -f $(COV_PATH_REMOTE)

@@ -40,7 +40,7 @@ func init() {
 }
 
 func TestAuth(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
+	resource.Require(t, resource.Remote)
 	suite.Run(t, new(TestAuthSuite))
 }
 
