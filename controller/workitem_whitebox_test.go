@@ -1,18 +1,12 @@
 package controller
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
 	"net/http"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	config "github.com/almighty/almighty-core/configuration"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
@@ -20,54 +14,10 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/net/context"
 )
-
-var DB *gorm.DB
-var RwiScheduler *remoteworkitem.Scheduler
-var configuration *config.ConfigurationData
-
-func TestMain(m *testing.M) {
-	var err error
-
-	configuration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	if _, c := os.LookupEnv(resource.Database); c != false {
-
-		DB, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
-
-		if err != nil {
-			panic("Failed to connect database: " + err.Error())
-		}
-		defer DB.Close()
-
-		// Make sure the database is populated with the correct types (e.g. bug etc.)
-		if configuration.GetPopulateCommonTypes() {
-			ctx := migration.NewMigrationContext(context.Background())
-			if err := models.Transactional(DB, func(tx *gorm.DB) error {
-				return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-			}); err != nil {
-				panic(err.Error())
-			}
-
-		}
-
-		// RemoteWorkItemScheduler now available for all other test cases
-		RwiScheduler = remoteworkitem.NewScheduler(DB)
-	}
-	os.Exit(func() int {
-		c := m.Run()
-		RwiScheduler.Stop()
-		return c
-	}())
-}
 
 func TestNewWorkitemController(t *testing.T) {
 	t.Parallel()

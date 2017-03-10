@@ -78,7 +78,7 @@ func (s *workItemTypeSuite) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -471,11 +471,12 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
-func TestUnauthorizeWorkItemTypeCreate(t *testing.T) {
+func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
+	t := s.T()
 	UnauthorizeCreateUpdateDeleteTest(t, getWorkItemTypeTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWIT-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(DB))
+		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(s.DB))
 		app.MountWorkitemtypeController(service, controller)
 		return nil
 	})
