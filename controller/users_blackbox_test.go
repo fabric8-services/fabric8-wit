@@ -28,15 +28,6 @@ func TestUsers(t *testing.T) {
 	suite.Run(t, &TestUsersSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func createSecureController(t *testing.T, identity account.Identity) (*UsersController, *goa.Service) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("Users-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	app := gormapplication.NewGormDB(DB)
-	controller := NewUsersController(svc, app)
-	assert.NotNil(t, controller)
-	return controller, svc
-}
-
 type TestUsersSuite struct {
 	gormtestsupport.DBTestSuite
 	db           *gormapplication.GormDB
@@ -53,14 +44,21 @@ func (s *TestUsersSuite) SetupSuite() {
 	require.Nil(s.T(), err)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.svc = goa.New("test")
-	app := gormapplication.NewGormDB(s.DB)
-	s.controller = NewUsersController(s.svc, app)
-	s.userRepo = app.Users()
-	s.identityRepo = app.Identities()
+	s.db = gormapplication.NewGormDB(s.DB)
+	s.controller = NewUsersController(s.svc, s.db)
+	s.userRepo = s.db.Users()
+	s.identityRepo = s.db.Identities()
 }
 
 func (s *TestUsersSuite) TearDownTest() {
 	s.clean()
+}
+
+func (rest *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Status-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
+	return svc, NewUsersController(svc, rest.db)
 }
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
@@ -79,7 +77,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
-	secureController, secureService := createSecureController(s.T(), identity)
+	secureService, secureController := s.SecuredController(identity)
 	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
