@@ -38,6 +38,7 @@ type Repository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Area, error)
 	ListChildren(ctx context.Context, parentArea *Area) ([]*Area, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, error)
 }
 
 // NewAreaRepository creates a new storage type.
@@ -127,14 +128,14 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 	return objs, nil
 }
 
-// Query expose an open ended Query model
+// Query exposes an open ended Query model for Area
 func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "query"}, time.Now())
 	var objs []*Area
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, err //errors.WithStack(err)
 	}
 
 	log.Debug(nil, map[string]interface{}{
@@ -142,4 +143,25 @@ func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, e
 	}, "Area query executed successfully!")
 
 	return objs, nil
+}
+
+// AreaFilterBySpaceID is a gorm filter for a Belongs To relationship.
+func AreaFilterBySpaceID(spaceID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("space_id = ?", spaceID)
+	}
+}
+
+// AreaFilterByName is a gorm filter by 'username'
+func AreaFilterByName(name string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("name = ?", name).Limit(1)
+	}
+}
+
+// AreaFilterByPath is a gorm filter by 'path' of the parent area for any given area.
+func AreaFilterByPath(pathOfParent path.Path) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("path = ?", pathOfParent.Convert()).Limit(1)
+	}
 }
