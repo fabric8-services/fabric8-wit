@@ -333,15 +333,26 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	}
 	res.Version = res.Version + 1
 	res.Type = wi.Type
-	res.Fields = wi.Fields
+	res.Fields = Fields{}
 
 	res.ExecutionOrder = order
-	fieldDef := wiType.Fields[SystemOrder]
+	/*fieldDef := wiType.Fields[SystemOrder]
 	res.Fields[SystemOrder], err = fieldDef.ConvertToModel(SystemOrder, order)
 	if err != nil {
 		return nil, errors.NewBadParameterError(SystemOrder, wi.Fields[SystemOrder])
-	}
+	}*/
 
+	for fieldName, fieldDef := range wiType.Fields {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+			continue
+		}
+		fieldValue := wi.Fields[fieldName]
+		var err error
+		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		if err != nil {
+			return nil, errors.NewBadParameterError(fieldName, fieldValue)
+		}
+	}
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
