@@ -65,8 +65,8 @@ type workItemChildSuite struct {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemChildSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.db = gormapplication.NewGormDB(DB)
-	s.clean = cleaner.DeleteCreatedEntities(DB)
+	s.db = gormapplication.NewGormDB(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if err := models.Transactional(DB, func(tx *gorm.DB) error {
