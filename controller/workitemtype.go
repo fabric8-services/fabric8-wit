@@ -1,6 +1,11 @@
 package controller
 
 import (
+	"strconv"
+
+	"time"
+
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -16,14 +21,20 @@ const (
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
-	db application.DB
+	db            application.DB
+	configuration cacheControlConfiguration
+}
+
+type cacheControlConfiguration interface {
+	GetWorkItemTypeCacheControlMaxAge() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB, configuration cacheControlConfiguration) *WorkitemtypeController {
 	return &WorkitemtypeController{
-		Controller: service.NewController("WorkitemtypeController"),
-		db:         db,
+		Controller:    service.NewController("WorkitemtypeController"),
+		db:            db,
+		configuration: configuration,
 	}
 }
 
@@ -34,6 +45,37 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		// check the "If-Modified-Since header against the last update timestamp"
+		// HTTP header does not include microseconds, so we need to ignore them in the "updated_at" record field.
+		updatedAt := res.Data.Attributes.UpdatedAt.Truncate(time.Second)
+		if ctx.IfModifiedSince != nil {
+			logrus.Debug(nil, map[string]interface{}{
+				"If-Modified-Since": ctx.IfModifiedSince.UTC(),
+				"Last-Modified":     updatedAt,
+			}, "work item type conditional query")
+
+			if ctx.IfModifiedSince != nil && ctx.IfModifiedSince.UTC().After(updatedAt) {
+				return ctx.NotModified()
+			}
+		}
+		// check the ETag
+		etag := strconv.Itoa(res.Data.Attributes.Version)
+		if ctx.IfNoneMatch != nil {
+			logrus.Debug(nil, map[string]interface{}{
+				"If-None-Match": ctx.IfNoneMatch,
+				"ETag":          etag,
+			}, "work item type version")
+			if ctx.IfNoneMatch != nil && *ctx.IfNoneMatch == etag {
+				return ctx.NotModified()
+			}
+		}
+		// add the "Last-Modified" header
+		ctx.ResponseData.Header().Set("Last-Modified", updatedAt.String())
+		// add the "ETag" header
+		ctx.ResponseData.Header().Set("ETag", etag)
+		// add the "Cache-Control: max-age" header
+		ctx.ResponseData.Header().Set("Cache-Control", "max-age="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		// return the work item type along with conditional query and caching headers
 		return ctx.OK(res)
 	})
 }

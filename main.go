@@ -199,7 +199,7 @@ func main() {
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
-	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB)
+	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	// Mount "work item link category" controller

@@ -32,32 +32,33 @@ const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
 
-	varPostgresHost                 = "postgres.host"
-	varPostgresPort                 = "postgres.port"
-	varPostgresUser                 = "postgres.user"
-	varPostgresDatabase             = "postgres.database"
-	varPostgresPassword             = "postgres.password"
-	varPostgresSSLMode              = "postgres.sslmode"
-	varPostgresConnectionTimeout    = "postgres.connection.timeout"
-	varPostgresConnectionRetrySleep = "postgres.connection.retrysleep"
-	varPostgresConnectionMaxIdle    = "postgres.connection.maxidle"
-	varPostgresConnectionMaxOpen    = "postgres.connection.maxopen"
-	varPopulateCommonTypes          = "populate.commontypes"
-	varHTTPAddress                  = "http.address"
-	varDeveloperModeEnabled         = "developer.mode.enabled"
-	varGithubAuthToken              = "github.auth.token"
-	varKeycloakSecret               = "keycloak.secret"
-	varKeycloakClientID             = "keycloak.client.id"
-	varKeycloakEndpointAuth         = "keycloak.endpoint.auth"
-	varKeycloakEndpointToken        = "keycloak.endpoint.token"
-	varKeycloakDomainPrefix         = "keycloak.domain.prefix"
-	varKeycloakRealm                = "keycloak.realm"
-	varKeycloakEndpointUserinfo     = "keycloak.endpoint.userinfo"
-	varKeycloakTesUserName          = "keycloak.testuser.name"
-	varKeycloakTesUserSecret        = "keycloak.testuser.secret"
-	varTokenPublicKey               = "token.publickey"
-	varTokenPrivateKey              = "token.privatekey"
-	defaultConfigFile               = "config.yaml"
+	varPostgresHost                   = "postgres.host"
+	varPostgresPort                   = "postgres.port"
+	varPostgresUser                   = "postgres.user"
+	varPostgresDatabase               = "postgres.database"
+	varPostgresPassword               = "postgres.password"
+	varPostgresSSLMode                = "postgres.sslmode"
+	varPostgresConnectionTimeout      = "postgres.connection.timeout"
+	varPostgresConnectionRetrySleep   = "postgres.connection.retrysleep"
+	varPostgresConnectionMaxIdle      = "postgres.connection.maxidle"
+	varPostgresConnectionMaxOpen      = "postgres.connection.maxopen"
+	varPopulateCommonTypes            = "populate.commontypes"
+	varHTTPAddress                    = "http.address"
+	varDeveloperModeEnabled           = "developer.mode.enabled"
+	varGithubAuthToken                = "github.auth.token"
+	varKeycloakSecret                 = "keycloak.secret"
+	varKeycloakClientID               = "keycloak.client.id"
+	varKeycloakEndpointAuth           = "keycloak.endpoint.auth"
+	varKeycloakEndpointToken          = "keycloak.endpoint.token"
+	varKeycloakDomainPrefix           = "keycloak.domain.prefix"
+	varKeycloakRealm                  = "keycloak.realm"
+	varKeycloakEndpointUserinfo       = "keycloak.endpoint.userinfo"
+	varKeycloakTesUserName            = "keycloak.testuser.name"
+	varKeycloakTesUserSecret          = "keycloak.testuser.secret"
+	varTokenPublicKey                 = "token.publickey"
+	varTokenPrivateKey                = "token.privatekey"
+	varWorkItemTypeCacheControlMaxAge = "cachecontrol.maxage.workitemtype"
+	defaultConfigFile                 = "config.yaml"
 
 	// The host name exception of the api service to be taken into account
 	// when converting it to sso.demo.almighty.io
@@ -159,6 +160,10 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakRealm, defaultKeycloakRealm)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
+
+	// HTTP Cache-Control/max-age default
+	c.v.SetDefault(varWorkItemTypeCacheControlMaxAge, 24*3600) // 1 day
+
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -243,6 +248,12 @@ func (c *ConfigurationData) GetHTTPAddress() string {
 // e.g. token generation endpoint are enabled
 func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
+}
+
+// GetWorkItemTypeCacheControlMaxAge returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning work item types.
+func (c *ConfigurationData) GetWorkItemTypeCacheControlMaxAge() string {
+	return c.v.GetString(varWorkItemTypeCacheControlMaxAge)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)

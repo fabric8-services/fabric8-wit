@@ -6,9 +6,12 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
+
+	"time"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -43,6 +46,7 @@ func TestCompatibleFields(t *testing.T) {
 func TestConvertTypeFromModels(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
+	// given
 
 	//------------------------------
 	// Work item type in model space
@@ -50,8 +54,14 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	descFoo := "Description of 'foo'"
 	id := uuid.NewV4()
+	createdAt := time.Now().Add(-1 * time.Hour)
+	updatedAt := time.Now()
 	a := WorkItemType{
-		ID:          id,
+		ID: id,
+		Lifecycle: gormsupport.Lifecycle{
+			CreatedAt: createdAt,
+			UpdatedAt: updatedAt,
+		},
 		Name:        "foo",
 		Description: &descFoo,
 		Version:     42,
@@ -70,7 +80,6 @@ func TestConvertTypeFromModels(t *testing.T) {
 		},
 		SpaceID: space.SystemSpace,
 	}
-
 	//----------------------------
 	// Work item type in app space
 	//----------------------------
@@ -98,6 +107,8 @@ func TestConvertTypeFromModels(t *testing.T) {
 				Name:        "foo",
 				Description: &descFoo,
 				Version:     42,
+				CreatedAt:   createdAt,
+				UpdatedAt:   updatedAt,
 				Fields: map[string]*app.FieldDefinition{
 					"aListType": {
 						Required:    true,
@@ -116,12 +127,14 @@ func TestConvertTypeFromModels(t *testing.T) {
 			},
 		},
 	}
-
+	// when
 	result := convertTypeFromModels(reqLong, &a)
-
+	// then
 	require.NotNil(t, result.ID)
 	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))
 	assert.Equal(t, expected.Data.Attributes.Version, result.Attributes.Version)
+	assert.Equal(t, expected.Data.Attributes.CreatedAt, result.Attributes.CreatedAt)
+	assert.Equal(t, expected.Data.Attributes.UpdatedAt, result.Attributes.UpdatedAt)
 	assert.Equal(t, expected.Data.Attributes.Name, result.Attributes.Name)
 	require.NotNil(t, result.Attributes.Description)
 	assert.Equal(t, *expected.Data.Attributes.Description, *result.Attributes.Description)

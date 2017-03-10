@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -24,6 +24,8 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 
+	"time"
+
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -33,16 +35,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
-
-var witbConfiguration *config.ConfigurationData
-
-func init() {
-	var err error
-	witbConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-}
 
 //-----------------------------------------------------------------------------
 // Test Suite setup
@@ -74,7 +66,6 @@ func TestSuiteWorkItemType(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemTypeSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
@@ -90,7 +81,7 @@ func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	svc := goa.New("workItemTypeSuite-Service")
 	assert.NotNil(s.T(), svc)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB))
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), &s.Configuration)
 	assert.NotNil(s.T(), s.typeCtrl)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkTypeCtrl)
@@ -273,17 +264,88 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 }
 
 // TestShowWorkItemType tests if we can fetch the work item type "animal".
-func (s *workItemTypeSuite) TestShowWorkItemType() {
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK200() {
+	// given
 	// Create the work item type first and try to read it back in
 	_, wit := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
-
-	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID)
-
+	// when
+	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, nil)
+	// then
 	require.NotNil(s.T(), wit2)
-	require.EqualValues(s.T(), wit, wit2)
+	assert.EqualValues(s.T(), wit, wit2)
+	require.NotNil(s.T(), res.Header()["Last-Modified"])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()["Last-Modified"][0])
+	require.NotNil(s.T(), res.Header()["Cache-Control"])
+	assert.Equal(s.T(), "max-age=86400", res.Header()["Cache-Control"][0])
+}
+
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK304NotModifiedUsingLastModifiedHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	// when/then
+	lastModified := wit.Data.Attributes.UpdatedAt.Add(1 * time.Second)
+	test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, &lastModified, nil)
+}
+
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK304NotModifiedUsingEtagHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	// when/then
+	etag := strconv.Itoa(wit.Data.Attributes.Version)
+	test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, &etag)
+}
+
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredUsingLastModifiedHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	// when
+	lastModified := time.Now().Add(-1 * time.Hour)
+	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, &lastModified, nil)
+	// then
+	require.NotNil(s.T(), wit2)
+	assert.EqualValues(s.T(), wit, wit2)
+	require.NotNil(s.T(), res.Header()["Last-Modified"])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()["Last-Modified"][0])
+	require.NotNil(s.T(), res.Header()["Cache-Control"])
+	assert.Equal(s.T(), "max-age=86400", res.Header()["Cache-Control"][0])
+}
+
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredUsingETagHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	// when
+	etag := strconv.Itoa(wit.Data.Attributes.Version - 1)
+	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, &etag)
+	// then
+	require.NotNil(s.T(), wit2)
+	assert.EqualValues(s.T(), wit, wit2)
+	require.NotNil(s.T(), res.Header()["Last-Modified"])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()["Last-Modified"][0])
+	require.NotNil(s.T(), res.Header()["Cache-Control"])
+	assert.Equal(s.T(), "max-age=86400", res.Header()["Cache-Control"][0])
 }
 
 // TestListWorkItemType tests if we can find the work item types
@@ -334,13 +396,13 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	s.T().Log("Created work items")
 
 	// Create work item link category
-	linkCatPayload := CreateWorkItemLinkCategory("some-link-category")
+	linkCatPayload := CreateWorkItemLinkCategory("some-link-category-" + uuid.NewV4().String())
 	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 	s.T().Log("Created work item link category")
 
 	// Create work item link space
-	spacePayload := CreateSpacePayload("some-link-space", "description")
+	spacePayload := CreateSpacePayload("some-link-space-"+uuid.NewV4().String(), "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 
@@ -402,81 +464,83 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
 	require.NotNil(s.T(), jerrors)
 }
 
-func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((witbConfiguration.GetTokenPrivateKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	require.Nil(t, err)
-
-	createWITPayloadString := bytes.NewBuffer([]byte(`{"fields": {"system.administrator": {"Required": true,"Type": {"Kind": "string"}}},"name": "Epic"}`))
-
-	return []testSecureAPI{
-		// Create Work Item API with different parameters
-		{
-			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWITPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWITPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWITPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWITPayloadString,
-			jwtToken:           "",
-		},
-		// Try fetching a random work Item Type
-		// We do not have security on GET hence this should return 404 not found
-		{
-			method:             http.MethodGet,
-			url:                endpointWorkItemTypes + "/2e889d4e-49a9-463b-8cd4-6a3a95155103",
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		}, {
-			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		}, {
-			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		},
-	}
-}
-
 // This test case will check authorized access to Create/Update/Delete APIs
-func TestUnauthorizeWorkItemTypeCreate(t *testing.T) {
-	UnauthorizeCreateUpdateDeleteTest(t, getWorkItemTypeTestData, func() *goa.Service {
+func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemTypeTestDataFunc(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWIT-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(DB))
+		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(DB), &s.Configuration)
 		app.MountWorkitemtypeController(service, controller)
 		return nil
 	})
+}
+
+func (s *workItemTypeSuite) getWorkItemTypeTestDataFunc() func(*testing.T) []testSecureAPI {
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((s.Configuration.GetTokenPrivateKey()))
+	return func(t *testing.T) []testSecureAPI {
+		if err != nil {
+			t.Fatal("Could not parse Key ", err)
+		}
+		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+		require.Nil(t, err)
+
+		createWITPayloadString := bytes.NewBuffer([]byte(`{"fields": {"system.administrator": {"Required": true,"Type": {"Kind": "string"}}},"name": "Epic"}`))
+
+		return []testSecureAPI{
+			// Create Work Item API with different parameters
+			{
+				method:             http.MethodPost,
+				url:                endpointWorkItemTypes,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWITPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                endpointWorkItemTypes,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWITPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                endpointWorkItemTypes,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWITPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                endpointWorkItemTypes,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWITPayloadString,
+				jwtToken:           "",
+			},
+			// Try fetching a random work Item Type
+			// We do not have security on GET hence this should return 404 not found
+			{
+				method:             http.MethodGet,
+				url:                endpointWorkItemTypes + "/2e889d4e-49a9-463b-8cd4-6a3a95155103",
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			}, {
+				method:             http.MethodGet,
+				url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			}, {
+				method:             http.MethodGet,
+				url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			},
+		}
+	}
 }

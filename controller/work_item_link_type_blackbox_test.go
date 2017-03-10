@@ -13,6 +13,7 @@ import (
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -38,8 +39,7 @@ import (
 // The workItemLinkTypeSuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemLinkTypeSuite struct {
-	suite.Suite
-	db           *gorm.DB
+	gormtestsupport.DBTestSuite
 	linkTypeCtrl *WorkItemLinkTypeController
 	spaceCtrl    *SpaceController
 	linkCatCtrl  *WorkItemLinkCategoryController
@@ -65,13 +65,9 @@ func init() {
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkTypeSuite) SetupSuite() {
-	var err error
-	wiltConfiguration, err = config.GetConfigurationData()
-	require.Nil(s.T(), err)
-	s.db, err = gorm.Open("postgres", wiltConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
+	s.DBTestSuite.SetupSuite()
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(DB, func(tx *gorm.DB) error {
+	err := models.Transactional(DB, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	})
 	require.Nil(s.T(), err)
@@ -81,7 +77,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB))
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB), &s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
@@ -96,8 +92,8 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
 func (s *workItemLinkTypeSuite) TearDownSuite() {
-	if s.db != nil {
-		s.db.Close()
+	if s.DB != nil {
+		s.DB.Close()
 	}
 }
 
@@ -105,9 +101,9 @@ func (s *workItemLinkTypeSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkTypeSuite) cleanup() {
-	db := s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkTypeName})
+	db := s.DB.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkTypeName})
 	require.Nil(s.T(), db.Error)
-	db = s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkName})
+	db = s.DB.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkName})
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
 	require.Nil(s.T(), db.Error)

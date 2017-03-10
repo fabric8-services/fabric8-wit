@@ -44,7 +44,6 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*a
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	result := convertTypeFromModels(goa.ContextRequest(ctx), res)
 	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
@@ -199,6 +198,8 @@ func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkIt
 		Type: "workitemtypes",
 		ID:   &id,
 		Attributes: &app.WorkItemTypeAttributes{
+			CreatedAt:   t.CreatedAt.UTC(),
+			UpdatedAt:   t.UpdatedAt.UTC(),
 			Version:     t.Version,
 			Description: t.Description,
 			Icon:        t.Icon,

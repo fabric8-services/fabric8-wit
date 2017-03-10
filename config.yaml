@@ -22,6 +22,12 @@ postgres.connection.maxopen: -1
 http.address: 0.0.0.0:8080
 
 #------------------------
+# HTTP Cache-Control
+#------------------------
+
+cachecontrol.maxage.workitemtype: 86400
+
+#------------------------
 # Misc.
 #------------------------
 

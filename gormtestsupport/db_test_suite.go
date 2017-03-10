@@ -15,6 +15,7 @@ import (
 var _ suite.SetupAllSuite = &DBTestSuite{}
 var _ suite.TearDownAllSuite = &DBTestSuite{}
 
+// NewDBTestSuite instanciate a new DBTestSuite
 func NewDBTestSuite(configFilePath string) DBTestSuite {
 	return DBTestSuite{configFile: configFilePath}
 }
@@ -22,26 +23,29 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 // DBTestSuite is a base for tests using a gorm db
 type DBTestSuite struct {
 	suite.Suite
-	configFile string
-	DB         *gorm.DB
+	configFile    string
+	Configuration config.ConfigurationData
+	DB            *gorm.DB
 }
 
 // SetupSuite implements suite.SetupAllSuite
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
 	configuration, err := config.NewConfigurationData(s.configFile)
+	s.Configuration = *configuration
 	if err != nil {
 		logrus.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
 	}
-
 	if _, c := os.LookupEnv(resource.Database); c != false {
-		s.DB, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
+		s.DB, err = gorm.Open("postgres", s.Configuration.GetPostgresConfigString())
 		if err != nil {
-			panic("Failed to connect database: " + err.Error())
+			logrus.Panic(nil, map[string]interface{}{
+				"err":             err,
+				"postgres_config": configuration.GetPostgresConfigString(),
+			}, "failed to connect to the database")
 		}
-
 	}
 
 }

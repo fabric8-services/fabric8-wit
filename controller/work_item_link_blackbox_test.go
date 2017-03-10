@@ -106,7 +106,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 	require.NotNil(s.T(), s.spaceCtrl)
 
 	svc = goa.New("TestWorkItemType-Service")
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB))
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB), wiConfiguration)
 	require.NotNil(s.T(), s.typeCtrl)
 
 	svc = goa.New("TestWorkItemLink-Service")
