@@ -327,7 +327,7 @@ func createChildIteration(name *string) *app.CreateChildIterationPayload {
 	}
 }
 
-func createSpaceAndIteration(t *testing.T, db *gormapplication.GormDB) iteration.Iteration {
+func createSpaceAndIteration(t *testing.T, db application.DB) iteration.Iteration {
 	var itr iteration.Iteration
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Iterations()
