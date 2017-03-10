@@ -17,12 +17,12 @@ import (
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
 type TestSpaceREST struct {
 	gormtestsupport.DBTestSuite
-
 	db    *gormapplication.GormDB
 	clean func()
 }
@@ -91,6 +91,35 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	assert.Equal(t, name, *created.Data.Attributes.Name)
 	assert.NotNil(t, created.Data.Links)
 	assert.NotNil(t, created.Data.Links.Self)
+}
+
+func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), identity)
+	return svc, NewSpaceAreasController(svc, rest.db)
+}
+
+func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	name := "Test24ForSpaceAndArea2"
+
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
+	require.NotNil(t, created.Data)
+
+	spaceAreaSvc, spaceAreaCtrl := rest.SecuredSpaceAreaController(testsupport.TestIdentity)
+	createdID := created.Data.ID.String()
+	_, areaList := test.ListSpaceAreasOK(t, spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID)
+
+	// only 1 default gets created.
+	assert.Len(t, areaList.Data, 1)
+	assert.Equal(t, name, *areaList.Data[0].Attributes.Name)
+
 }
 
 func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {

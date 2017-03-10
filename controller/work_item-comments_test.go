@@ -51,7 +51,6 @@ func (rest *TestCommentREST) SetupTest() {
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
-
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	rest.ctx = goa.NewContext(context.Background(), nil, req, params)

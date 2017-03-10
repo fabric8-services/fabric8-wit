@@ -110,7 +110,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, 
 	// store a revision of the deleted work item
 	err = r.wirr.Create(context.Background(), suppressorID, RevisionTypeDelete, workItem)
 	if err != nil {
-		return err
+		return errs.Wrapf(err, "error while deleting work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"wiID": workitemID}, "Work item deleted successfully!")
 	return nil
@@ -152,7 +152,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	res.Fields = Fields{}
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -177,7 +177,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	// store a revision of the modified work item
 	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
 		"wiID": wi.ID,
@@ -199,7 +199,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
 			continue
 		}
 		fieldValue := fields[fieldName]
@@ -217,7 +217,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	tx := r.db
 	if err = tx.Create(&wi).Error; err != nil {
-		return nil, errs.Wrapf(err, "Failed to create work item")
+		return nil, errs.Wrapf(err, "failed to create work item")
 	}
 
 	witem, err := convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
@@ -227,7 +227,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	// store a revision of the created work item
 	err = r.wirr.Create(context.Background(), creatorID, RevisionTypeCreate, wi)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrapf(err, "error while creating work item")
 	}
 	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wiID": wi.ID}, "Work item created successfully!")
 	return witem, nil
@@ -240,6 +240,9 @@ func convertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, w
 	}
 	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
 		result.Fields[SystemCreatedAt] = wi.CreatedAt
+	}
+	if _, ok := wiType.Fields[SystemUpdatedAt]; ok {
+		result.Fields[SystemUpdatedAt] = wi.UpdatedAt
 	}
 	return result, nil
 

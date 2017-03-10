@@ -17,6 +17,8 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
@@ -29,6 +31,13 @@ import (
 	satoriuuid "github.com/satori/go.uuid"
 )
 
+// In order for 'go test' to run this suite, we need to create
+// a normal test function and pass our suite to suite.Run
+func TestSuiteWorkItemLinkCategory(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, new(workItemLinkCategorySuite))
+}
+
 //-----------------------------------------------------------------------------
 // Test Suite setup
 //-----------------------------------------------------------------------------
@@ -39,7 +48,7 @@ type workItemLinkCategorySuite struct {
 	suite.Suite
 	db          *gorm.DB
 	linkCatCtrl *WorkItemLinkCategoryController
-	ctx         context.Context
+	svc         *goa.Service
 }
 
 var wilCatConfiguration *config.ConfigurationData
@@ -56,24 +65,18 @@ func init() {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
-
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
-
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
-
+	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(DB, func(tx *gorm.DB) error {
-		s.ctx = migration.NewMigrationContext(context.Background())
-		return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
-
-	svc := goa.New("workItemLinkCategorySuite-Service")
-	require.NotNil(s.T(), svc)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
+	err = models.Transactional(DB, func(tx *gorm.DB) error {
+		ctx := migration.NewMigrationContext(context.Background())
+		return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+	})
+	require.Nil(s.T(), err)
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	require.NotNil(s.T(), s.svc)
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
 }
 
@@ -126,7 +129,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategorySystem() (http.Res
 		},
 	}
 
-	return test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, &payload)
+	return test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, &payload)
 }
 
 // createWorkItemLinkCategoryUser defines a work item link category "test-user"
@@ -147,7 +150,7 @@ func (s *workItemLinkCategorySuite) createWorkItemLinkCategoryUser() (http.Respo
 		},
 	}
 
-	return test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, &payload)
+	return test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, &payload)
 }
 
 //-----------------------------------------------------------------------------
@@ -162,7 +165,7 @@ func (s *workItemLinkCategorySuite) TestCreateAndDeleteWorkItemLinkCategory() {
 	_, linkCatUser := s.createWorkItemLinkCategoryUser()
 	require.NotNil(s.T(), linkCatUser)
 
-	test.DeleteWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID)
+	test.DeleteWorkItemLinkCategoryOK(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID)
 }
 
 func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
@@ -179,11 +182,11 @@ func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 			},
 		},
 	}
-	test.CreateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, payload)
+	test.CreateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, payload)
 }
 
 func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
-	test.DeleteWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, satoriuuid.FromStringOrNil("01f6c751-53f3-401f-be9b-6a9a230db8AA"))
+	test.DeleteWorkItemLinkCategoryNotFound(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, satoriuuid.FromStringOrNil("01f6c751-53f3-401f-be9b-6a9a230db8AA"))
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
@@ -198,7 +201,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 			},
 		},
 	}
-	test.UpdateWorkItemLinkCategoryNotFound(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
+	test.UpdateWorkItemLinkCategoryNotFound(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
 // func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToBadID() {
@@ -228,7 +231,7 @@ func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToBad
 			},
 		},
 	}
-	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
+	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
 func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmptyName() {
@@ -243,19 +246,18 @@ func (s *workItemLinkCategorySuite) UpdateWorkItemLinkCategoryBadRequestDueToEmp
 			},
 		},
 	}
-	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *payload.Data.ID, payload)
+	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *payload.Data.ID, payload)
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueToVersionConflictError() {
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
-
 	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{
 		Data: linkCatSystem.Data,
 	}
 	newVersion := *linkCatSystem.Data.Attributes.Version + 42 // This will cause a version conflict error
 	updatePayload.Data.Attributes.Version = &newVersion
-	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
+	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
@@ -267,7 +269,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
 	updatePayload.Data = linkCatSystem.Data
 	updatePayload.Data.Attributes.Description = &description
 
-	_, newLinkCat := test.UpdateWorkItemLinkCategoryOK(s.T(), nil, nil, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
+	_, newLinkCat := test.UpdateWorkItemLinkCategoryOK(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 
 	// Test that description was updated and version got incremented
 	require.NotNil(s.T(), newLinkCat.Data.Attributes.Description)
@@ -339,13 +341,6 @@ func (s *workItemLinkCategorySuite) TestListWorkItemLinkCategoryOK() {
 		}
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required work item link categories (system and user) where found.")
-}
-
-// In order for 'go test' to run this suite, we need to create
-// a normal test function and pass our suite to suite.Run
-func TestSuiteWorkItemLinkCategory(t *testing.T) {
-	resource.Require(t, resource.Database)
-	suite.Run(t, new(workItemLinkCategorySuite))
 }
 
 func getWorkItemLinkCategoryTestData(t *testing.T) []testSecureAPI {

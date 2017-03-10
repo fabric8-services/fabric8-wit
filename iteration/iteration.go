@@ -1,12 +1,12 @@
 package iteration
 
 import (
-	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/path"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -30,7 +30,7 @@ type Iteration struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
-	Path        string
+	Path        path.Path
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string
@@ -62,20 +62,6 @@ func NewIterationRepository(db *gorm.DB) Repository {
 // GormIterationRepository is the implementation of the storage interface for Iterations.
 type GormIterationRepository struct {
 	db *gorm.DB
-}
-
-// ConvertToLtreeFormat returns LTREE valid string
-func ConvertToLtreeFormat(uuid string) string {
-	//Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "-", "_", -1)
-}
-
-// ConvertFromLtreeFormat returns UUID in form of string
-func ConvertFromLtreeFormat(uuid string) string {
-	// Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "_", "-", -1)
-	converted = strings.Replace(converted, PathSepInDatabase, PathSepInService, -1)
-	return converted
 }
 
 // LoadMultiple returns multiple instances of iteration.Iteration

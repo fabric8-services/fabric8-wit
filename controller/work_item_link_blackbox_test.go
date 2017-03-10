@@ -43,13 +43,13 @@ import (
 type workItemLinkSuite struct {
 	suite.Suite
 	db                       *gorm.DB
+	svc                      *goa.Service
 	workItemLinkTypeCtrl     *WorkItemLinkTypeController
 	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
 	workItemLinkCtrl         *WorkItemLinkController
 	workItemCtrl             *WorkitemController
 	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
 	spaceCtrl                *SpaceController
-	workItemSvc              *goa.Service
 	typeCtrl                 *WorkitemtypeController
 
 	// These IDs can safely be used by all tests
@@ -82,22 +82,14 @@ func (s *workItemLinkSuite) SetupSuite() {
 	var err error
 
 	s.db, err = gorm.Open("postgres", wiConfiguration.GetPostgresConfigString())
-
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
-
+	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(DB, func(tx *gorm.DB) error {
+	err = models.Transactional(DB, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
-
+	})
 	require.Nil(s.T(), err)
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
-
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)
 	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
@@ -130,8 +122,8 @@ func (s *workItemLinkSuite) SetupSuite() {
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
 	require.Nil(s.T(), err)
-	s.workItemSvc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
-	require.NotNil(s.T(), s.workItemSvc)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	require.NotNil(s.T(), s.svc)
 	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(DB))
 	require.NotNil(s.T(), s.workItemCtrl)
 }
@@ -193,19 +185,19 @@ func (s *workItemLinkSuite) SetupTest() {
 
 	// Create a work item link space
 	createSpacePayload := CreateSpacePayload("test-space", "description")
-	_, space := test.CreateSpaceCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.spaceCtrl, createSpacePayload)
+	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
 	s.userSpaceID = *space.Data.ID
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
 
 	payload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, wit := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	_, wit := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &payload)
 
 	payload2 := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload2)
+	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &payload2)
 
 	// Create 3 work items (bug1, bug2, and feature1)
 	bug1Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug1")
-	_, bug1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug1Payload)
+	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug1Payload)
 	require.NotNil(s.T(), bug1)
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug1.Data.ID)
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
@@ -213,7 +205,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
 	bug2Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug2")
-	_, bug2 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug2Payload)
+	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug2Payload)
 	require.NotNil(s.T(), bug2)
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug2.Data.ID)
 	s.bug2ID, err = strconv.ParseUint(*bug2.Data.ID, 10, 64)
@@ -221,7 +213,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
 	bug3Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug3")
-	_, bug3 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, bug3Payload)
+	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug3Payload)
 	require.NotNil(s.T(), bug3)
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug3.Data.ID)
 	s.bug3ID, err = strconv.ParseUint(*bug3.Data.ID, 10, 64)
@@ -229,16 +221,16 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
 	feature1Payload := CreateWorkItem(s.userSpaceID, *wit2.Data.ID, "feature1")
-	_, feature1 := test.CreateWorkitemCreated(s.T(), s.workItemSvc.Context, s.workItemSvc, s.workItemCtrl, feature1Payload)
+	_, feature1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, feature1Payload)
 	require.NotNil(s.T(), feature1)
 	s.deleteWorkItems = append(s.deleteWorkItems, *feature1.Data.ID)
 	s.feature1ID, err = strconv.ParseUint(*feature1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
-	s.T().Logf("Created feature with ID: %s\n", *feature1.Data.ID)
+	s.T().Logf("Created workitem with ID: %s\n", *feature1.Data.ID)
 
 	// Create a work item link category
 	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
-	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
+	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
 	//s.deleteWorkItemLinkCategories = append(s.deleteWorkItemLinkCategories, *workItemLinkCategory.Data.ID)
 	s.userLinkCategoryID = *workItemLinkCategory.Data.ID
@@ -246,11 +238,12 @@ func (s *workItemLinkSuite) SetupTest() {
 
 	// Create work item link type payload
 	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", *wit.Data.ID, *wit.Data.ID, s.userLinkCategoryID, s.userSpaceID)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.workItemLinkTypeCtrl, createLinkTypePayload)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+
 }
 
 // The TearDownTest method will be run after every test in the suite.
@@ -354,7 +347,7 @@ func TestSuiteWorkItemLink(t *testing.T) {
 
 func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 
 	// Test if related resources are included in the response
@@ -387,76 +380,76 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLink() {
 	}
 	require.Exactly(s.T(), 0, toBeFound, "Not all required included elements where found.")
 
-	_ = test.DeleteWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *workItemLink.Data.ID)
+	_ = test.DeleteWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
 }
 
 // Check if #586 is fixed.
 func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkBadRequestDueToUniqueViolation() {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload1)
+	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
 	createPayload2 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload2)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemRelationshipsLink() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 	require.NotNil(s.T(), workItemLink)
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToInvalidLinkTypeID() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, uuid.Nil)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToInvalidLinkTypeID() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, uuid.Nil)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundLinkType() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, uuid.FromStringOrNil("11122233-871b-43a6-9166-0c4bd573e333"))
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipLinksBadRequestDueToNotFoundLinkType() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, uuid.FromStringOrNil("11122233-871b-43a6-9166-0c4bd573e333"))
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundSource() {
 	createPayload := CreateWorkItemLink(666666, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundSource() {
 	createPayload := CreateWorkItemLink(666666, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug2ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug2ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToNotFoundTarget() {
 	createPayload := CreateWorkItemLink(s.bug1ID, 666666, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToNotFoundTarget() {
 	createPayload := CreateWorkItemLink(s.bug1ID, 666666, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadSourceType() {
 	// Linking a bug and a feature isn't allowed for the bug blocker link type,
 	// thererfore this will cause a bad parameter error (which results in a bad request error).
 	createPayload := CreateWorkItemLink(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
@@ -464,14 +457,14 @@ func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToB
 	// Linking a bug and a feature isn't allowed for the bug blocker link type,
 	// thererfore this will cause a bad parameter error (which results in a bad request error).
 	createPayload := CreateWorkItemLink(s.feature1ID, s.bug1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.feature1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.feature1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToBadTargetType() {
 	// Linking a bug and a feature isn't allowed for the bug blocker link type,
 	// thererfore this will cause a bad parameter error (which results in a bad request error).
 	createPayload := CreateWorkItemLink(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 }
 
 // Same for /api/workitems/:id/relationships/links
@@ -479,11 +472,11 @@ func (s *workItemLinkSuite) TestCreateWorkItemRelationshipsLinksBadRequestDueToB
 	// Linking a bug and a feature isn't allowed for the bug blocker link type,
 	// thererfore this will cause a bad parameter error (which results in a bad request error).
 	createPayload := CreateWorkItemLink(s.bug1ID, s.feature1ID, s.bugBlockerLinkTypeID)
-	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), nil, nil, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
+	_, _ = test.CreateWorkItemRelationshipsLinksBadRequest(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, strconv.FormatUint(s.bug1ID, 10), createPayload)
 }
 
 func (s *workItemLinkSuite) TestDeleteWorkItemLinkNotFound() {
-	test.DeleteWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
+	test.DeleteWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
 }
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkNotFound() {
@@ -494,12 +487,12 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkNotFound() {
 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
 		Data: createPayload.Data,
 	}
-	test.UpdateWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
+	test.UpdateWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
 }
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
@@ -509,7 +502,7 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 		Data: workItemLink.Data,
 	}
 	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
-	_, l := test.UpdateWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
+	_, l := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
 	require.NotNil(s.T(), l.Data)
 	require.NotNil(s.T(), l.Data.Relationships)
 	require.NotNil(s.T(), l.Data.Relationships.Target.Data)
@@ -519,14 +512,14 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 // TestShowWorkItemLinkOK tests if we can fetch the "system" work item link
 func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
 	expected := link.WorkItemLink{}
 	require.Nil(s.T(), link.ConvertLinkToModel(*workItemLink, &expected))
 
-	_, readIn := test.ShowWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl, *workItemLink.Data.ID)
+	_, readIn := test.ShowWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
 	require.NotNil(s.T(), readIn)
 	// Convert to model space and use equal function
 	actual := link.WorkItemLink{}
@@ -539,12 +532,12 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 
 // TestShowWorkItemLinkNotFound tests if we can fetch a non existing work item link
 func (s *workItemLinkSuite) TestShowWorkItemLinkNotFound() {
-	test.ShowWorkItemLinkNotFound(s.T(), nil, nil, s.workItemLinkCtrl, uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
+	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
 }
 
 func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.WorkItemLinkSingle) {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
-	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload1)
+	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
@@ -552,7 +545,7 @@ func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.Wor
 	require.Nil(s.T(), link.ConvertLinkToModel(*workItemLink1, &expected1))
 
 	createPayload2 := CreateWorkItemLink(s.bug2ID, s.bug3ID, s.bugBlockerLinkTypeID)
-	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.workItemLinkCtrl, createPayload2)
+	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 	require.NotNil(s.T(), workItemLink2)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink2.Data.ID)
@@ -645,7 +638,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 // "test-bug-blocker" and "related" in the list of work item links
 func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 	link1, link2 := s.createSomeLinks()
-	_, linkCollection := test.ListWorkItemLinkOK(s.T(), nil, nil, s.workItemLinkCtrl)
+	_, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl)
 	s.validateSomeLinks(linkCollection, link1, link2)
 }
 
@@ -653,18 +646,18 @@ func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksOK() {
 	link1, link2 := s.createSomeLinks()
 	filterByWorkItemID := strconv.FormatUint(s.bug2ID, 10)
-	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, filterByWorkItemID)
 	s.validateSomeLinks(linkCollection, link1, link2)
 }
 
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
 	filterByWorkItemID := strconv.FormatUint(math.MaxUint32, 10) // not existing bug ID
-	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, filterByWorkItemID)
 }
 
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInvalidID() {
 	filterByWorkItemID := "invalid uint64"
-	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), nil, nil, s.workItemRelsLinksCtrl, filterByWorkItemID)
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, filterByWorkItemID)
 }
 
 func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {

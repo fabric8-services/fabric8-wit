@@ -58,7 +58,7 @@ type workItemTypeSuite struct {
 	linkCatCtrl  *WorkItemLinkCategoryController
 	spaceCtrl    *SpaceController
 
-	svcSpace *goa.Service
+	svc *goa.Service
 }
 
 // In order for 'go test' to run this suite, we need to create
@@ -92,14 +92,14 @@ func (s *workItemTypeSuite) SetupTest() {
 	assert.NotNil(s.T(), svc)
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB))
 	assert.NotNil(s.T(), s.typeCtrl)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
 
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svcSpace = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.spaceCtrl)
 }
 
@@ -331,27 +331,32 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	require.NotNil(s.T(), witAnimal)
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
+	s.T().Log("Created work items")
 
 	// Create work item link category
 	linkCatPayload := CreateWorkItemLinkCategory("some-link-category")
-	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
+	s.T().Log("Created work item link category")
 
 	// Create work item link space
 	spacePayload := CreateSpacePayload("some-link-space", "description")
-	_, space := test.CreateSpaceCreated(s.T(), s.svcSpace.Context, s.svcSpace, s.spaceCtrl, spacePayload)
+	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
+	s.T().Log("Created space")
 
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
 	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
+	s.T().Log("Created work item link 1")
 
 	// Create another work item link type
 	bugLinksToAnimalStr := "bug-links-to-animal"
 	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
+	s.T().Log("Created work item link 2")
 
 	// Fetch source link types
 	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
