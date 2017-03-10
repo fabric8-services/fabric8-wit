@@ -317,7 +317,7 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWI-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(s.db))
 		app.MountWorkitemController(service, controller)
 		return nil
 	})

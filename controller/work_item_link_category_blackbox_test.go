@@ -68,7 +68,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(DB, func(tx *gorm.DB) error {
+	err = models.Transactional(s.db, func(tx *gorm.DB) error {
 		ctx := migration.NewMigrationContext(context.Background())
 		return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 	})
@@ -76,7 +76,7 @@ func (s *workItemLinkCategorySuite) SetupSuite() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	require.NotNil(s.T(), s.svc)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(DB))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.linkCatCtrl)
 }
 
@@ -476,7 +476,7 @@ func (s *workItemLinkCategorySuite) TestUnauthorizeWorkItemLinkCategoryCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkCategoryTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLinkCategory-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkCategoryController(service, gormapplication.NewGormDB(DB))
+		controller := NewWorkItemLinkCategoryController(service, gormapplication.NewGormDB(s.db))
 		app.MountWorkItemLinkCategoryController(service, controller)
 		return nil
 	})

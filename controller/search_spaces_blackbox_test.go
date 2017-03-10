@@ -10,12 +10,15 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
-	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/goadesign/goa"
 	"golang.org/x/net/context"
@@ -36,23 +39,46 @@ type okScenario struct {
 	expects expects
 }
 
-type TestSearchSpaces struct {
+type TestSearchSpacesREST struct {
+	gormtestsupport.DBTestSuite
+
 	db    *gormapplication.GormDB
 	clean func()
 }
 
-func TestSpacesSearchOK(t *testing.T) {
+func TestRunSearchSpacesREST(t *testing.T) {
+	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+}
+
+func (rest *TestSearchSpacesREST) SetupTest() {
+	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+}
+
+func (rest *TestSearchSpacesREST) TearDownTest() {
+	rest.clean()
+}
+
+func (rest *TestSearchSpacesREST) SecuredController() (*goa.Service, *SearchController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Search-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+}
+
+func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchController) {
+	svc := goa.New("Search-Service")
+	return svc, NewSearchController(svc, rest.db, rest.Configuration)
+}
+
+func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
+	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	tester := TestSearchSpaces{}
-	tester.db = gormapplication.NewGormDB(DB)
-	tester.clean = cleaner.DeleteCreatedEntities(DB)
-
-	idents, err := tester.createTestData()
+	idents, err := createTestData(rest.db)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer tester.cleanTestData()
 
 	tests := []okScenario{
 		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
@@ -66,23 +92,17 @@ func TestSpacesSearchOK(t *testing.T) {
 		{"with different values", args{offset("0"), limit(10), "TEST"}, expects{differentValues()}},
 	}
 
-	service := goa.New("TestSpacesSearch-Service")
-	configuration, err := config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-
-	controller := NewSearchController(service, tester.db, configuration)
+	svc, ctrl := rest.UnSecuredController()
 
 	for _, tt := range tests {
-		_, result := test.SpacesSearchOK(t, context.Background(), service, controller, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
+		_, result := test.SpacesSearchOK(t, svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
 		for _, expect := range tt.expects {
 			expect(t, tt, result)
 		}
 	}
 }
 
-func (tester *TestSearchSpaces) createTestData() ([]space.Space, error) {
+func createTestData(db application.DB) ([]space.Space, error) {
 	names := []string{"TEST_A", "TEST_AB", "TEST_B", "TEST_C"}
 	for i := 0; i < 20; i++ {
 		names = append(names, "TEST_"+strconv.Itoa(i))
@@ -90,7 +110,7 @@ func (tester *TestSearchSpaces) createTestData() ([]space.Space, error) {
 
 	spaces := []space.Space{}
 
-	err := application.Transactional(tester.db, func(app application.Application) error {
+	err := application.Transactional(db, func(app application.Application) error {
 		for _, name := range names {
 			space := space.Space{
 				Name:        name,
@@ -105,13 +125,9 @@ func (tester *TestSearchSpaces) createTestData() ([]space.Space, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to insert testdata", err)
+		return nil, fmt.Errorf("Failed to insert testdata %v", err)
 	}
 	return spaces, nil
-}
-
-func (tester *TestSearchSpaces) cleanTestData() {
-	tester.clean()
 }
 
 func totalCount(count int) expect {
