@@ -11,11 +11,13 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
+	"github.com/almighty/almighty-core/path"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
@@ -184,31 +186,31 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 			}
 		}
+
+		if ctx.Payload.Data.Relationships.Area == nil || ctx.Payload.Data.Relationships.Area.Data == nil || ctx.Payload.Data.Relationships.Area.Data.ID == nil {
+			// The responsiblity of the code below is to check
+			// if the area information is absent or undefined ,
+			// the code should add the work item to the root area.
+
+			// The parent of path of root area is an empty string since it has no parent.
+			parentPathOfRootArea := path.Path{}
+			rootArea, areaLoadErr := appl.Areas().Query(area.AreaFilterBySpaceID(spaceID), area.AreaFilterByPath(parentPathOfRootArea))
+
+			if areaLoadErr != nil || len(rootArea) != 1 {
+				// During creation of space, this area should have been created, if not, there's a problem. Hence, len(rootArea) is going to be
+				// an important check. Moreover, there should be only 1 root area.
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space & path", "string & ltree").Expected("valid space ID and valid path"))
+			}
+
+			rArea := rootArea[0]
+			wi.Fields[workitem.SystemArea] = rArea.ID.String() // "7a9fdb76-2a8e-41ed-976a-c7525b180df9"
+
+		}
+
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		/*
-			if ctx.Payload.Data.Relationships == nil ||
-				ctx.Payload.Data.Relationships.Area == nil || ctx.Payload.Data.Relationships.Area.Data == nil {
-				// The responsiblity of the code below is to check
-				// if the area information is absent or undefined ,
-				// the code should add the work item to the root area.
-
-				// The parent of path of root area is an empty string since it has no parent.
-				parentPathOfRootArea := path.Path{}
-
-				// Instead of adding a filter to the List service endpoint, we are exposing the open-ended query
-				// model because we haven't yet decided to expose "Filter by Name" at a service level.
-				rootArea, areaLoadErr := appl.Areas().Query(area.AreaFilterBySpaceID(spaceID), area.AreaFilterByPath(parentPathOfRootArea))
-				if areaLoadErr != nil || len(rootArea) != 1 {
-					// During creation of space, this area should have been created, if not, there's a problem. Hence, len(rootArea) is going to be
-					// an important check. Moreover, there should be only 1 root area.
-					return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space & path", "string & ltree").Expected("valid space ID and valid path"))
-				}
-				wi.Fields[workitem.SystemArea] = rootArea[0].ID
-
-			}*/
 
 		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {

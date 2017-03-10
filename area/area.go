@@ -9,6 +9,8 @@ import (
 	"github.com/almighty/almighty-core/path"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
+
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -135,7 +137,7 @@ func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, e
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err //errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 
 	log.Debug(nil, map[string]interface{}{
