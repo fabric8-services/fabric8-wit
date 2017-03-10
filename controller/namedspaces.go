@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -52,7 +53,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 	return ctx.OK(res)
 }
 
-func loadKeyCloakIdentityByUserName(ctx *app.ShowNamedspacesContext, appl application.Application, username string) (*account.Identity, error) {
+func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Application, username string) (*account.Identity, error) {
 	identities, err := appl.Identities().Query(account.IdentityFilterByUsername(username))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

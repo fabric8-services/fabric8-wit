@@ -65,6 +65,7 @@ type Repository interface {
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	LoadByOwner(ctx context.Context, userId *satoriuuid.UUID, start *int, length *int) ([]*Space, uint64, error)
 	LoadByOwnerAndName(ctx context.Context, userId *satoriuuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
 	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
@@ -186,7 +187,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId *satoriuuid.UUID, start *int, limit *int) ([]*Space, uint64, error) {
 
 	db := r.db.Model(&Space{})
 	orgDB := db
@@ -206,6 +207,9 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, start *
 	if q != nil {
 		db = db.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(*q)+"%")
 		db = db.Or("LOWER(description) LIKE ?", "%"+strings.ToLower(*q)+"%")
+	}
+	if userId != nil {
+		db = db.Where("spaces.owner_id=?", userId)
 	}
 
 	rows, err := db.Rows()
@@ -264,7 +268,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, start *
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
 func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
-	result, count, err := r.listSpaceFromDB(ctx, nil, start, limit)
+	result, count, err := r.listSpaceFromDB(ctx, nil, nil, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -273,7 +277,16 @@ func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*S
 }
 
 func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
-	result, count, err := r.listSpaceFromDB(ctx, q, start, limit)
+	result, count, err := r.listSpaceFromDB(ctx, q, nil, start, limit)
+	if err != nil {
+		return nil, 0, errs.WithStack(err)
+	}
+
+	return result, count, nil
+}
+
+func (r *GormRepository) LoadByOwner(ctx context.Context, userId *satoriuuid.UUID, start *int, limit *int) ([]*Space, uint64, error) {
+	result, count, err := r.listSpaceFromDB(ctx, nil, userId, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
