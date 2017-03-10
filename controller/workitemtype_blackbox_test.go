@@ -253,6 +253,25 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 	return payload
 }
 
+func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...app.WorkItemTypeSingle) assert.Comparison {
+	return func() bool {
+		if len(witCollection.Data) < 2 {
+			return false
+		}
+		toBeFound := len(workItemTypes)
+		for i := 0; i < len(witCollection.Data) && toBeFound > 0; i++ {
+			id := *witCollection.Data[i].ID
+			for _, workItemType := range workItemTypes {
+				if uuid.Equal(id, *workItemType.Data.ID) {
+					toBeFound--
+					break
+				}
+			}
+		}
+		return toBeFound == 0
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Actual tests
 //-----------------------------------------------------------------------------
@@ -273,6 +292,46 @@ func (s *workItemTypeSuite) TestShowWorkItemTypeOK200() {
 	require.NotNil(s.T(), wit.Data.ID)
 	// when
 	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, nil)
+	// then
+	require.NotNil(s.T(), wit2)
+	assert.EqualValues(s.T(), wit, wit2)
+	require.NotNil(s.T(), res.Header()[LastModified])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
+	require.NotNil(s.T(), res.Header()[CacheControl])
+	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
+}
+
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredLastModifiedHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	// when
+	lastModified := time.Now().Add(-1 * time.Hour)
+	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, &lastModified, nil)
+	// then
+	require.NotNil(s.T(), wit2)
+	assert.EqualValues(s.T(), wit, wit2)
+	require.NotNil(s.T(), res.Header()[LastModified])
+	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
+	require.NotNil(s.T(), res.Header()[CacheControl])
+	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
+}
+
+// TestShowWorkItemType tests if we can fetch the work item type "animal".
+func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredETagHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, wit := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), wit)
+	require.NotNil(s.T(), wit.Data)
+	require.NotNil(s.T(), wit.Data.ID)
+	// when
+	etag := strconv.Itoa(wit.Data.Attributes.Version - 1)
+	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, &etag)
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
@@ -308,81 +367,69 @@ func (s *workItemTypeSuite) TestShowWorkItemTypeOK304NotModifiedUsingEtagHeader(
 	test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, &etag)
 }
 
-// TestShowWorkItemType tests if we can fetch the work item type "animal".
-func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredUsingLastModifiedHeader() {
-	// given
-	// Create the work item type first and try to read it back in
-	_, wit := s.createWorkItemTypeAnimal()
-	require.NotNil(s.T(), wit)
-	require.NotNil(s.T(), wit.Data)
-	require.NotNil(s.T(), wit.Data.ID)
-	// when
-	lastModified := time.Now().Add(-1 * time.Hour)
-	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, &lastModified, nil)
-	// then
-	require.NotNil(s.T(), wit2)
-	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-}
-
-// TestShowWorkItemType tests if we can fetch the work item type "animal".
-func (s *workItemTypeSuite) TestShowWorkItemTypeOK200ExpiredUsingETagHeader() {
-	// given
-	// Create the work item type first and try to read it back in
-	_, wit := s.createWorkItemTypeAnimal()
-	require.NotNil(s.T(), wit)
-	require.NotNil(s.T(), wit.Data)
-	require.NotNil(s.T(), wit.Data.ID)
-	// when
-	etag := strconv.Itoa(wit.Data.Attributes.Version - 1)
-	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, &etag)
-	// then
-	require.NotNil(s.T(), wit2)
-	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), wit.Data.Attributes.UpdatedAt.Truncate(time.Second).String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-}
-
 // TestListWorkItemType tests if we can find the work item types
 // "person" and "animal" in the list of work item types
-func (s *workItemTypeSuite) TestListWorkItemType() {
+func (s *workItemTypeSuite) TestListWorkItemTypeOK200() {
+	// given
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
-
+	// when
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
 	page := "0,-1"
-	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page)
-
+	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page, nil, nil)
+	// then
 	require.NotNil(s.T(), witCollection)
 	require.Nil(s.T(), witCollection.Validate())
+	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
+		"Not all required work item types (animal and person) where found.")
+}
 
-	// Check the number of found work item types
-	assert.Condition(s.T(), func() bool {
-		return (len(witCollection.Data) >= 2)
-	}, "At least two work item types must exist (animal and person), but only %d exist.", len(witCollection.Data))
+// TestListWorkItemType tests if we can find the work item types
+// "person" and "animal" in the list of work item types
+func (s *workItemTypeSuite) TestListWorkItemTypeOK200ExpiredLastModifiedHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, witAnimal := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), witAnimal)
+	_, witPerson := s.createWorkItemTypePerson()
+	require.NotNil(s.T(), witPerson)
+	// when
+	// Fetch a single work item type
+	// Paging in the format <start>,<limit>"
+	lastModified := time.Now().Add(-1 * time.Hour)
+	page := "0,-1"
+	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page, &lastModified, nil)
+	// then
+	require.NotNil(s.T(), witCollection)
+	require.Nil(s.T(), witCollection.Validate())
+	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
+		"Not all required work item types (animal and person) where found.")
+}
 
-	// Search for the work item types that must exist at minimum
-	toBeFound := 2
-	for i := 0; i < len(witCollection.Data) && toBeFound > 0; i++ {
-		require.NotNil(s.T(), witCollection.Data[i])
-		require.NotNil(s.T(), witCollection.Data[i].ID)
-		id := *witCollection.Data[i].ID
-		name := witCollection.Data[i].Attributes.Name
-		if uuid.Equal(id, personID) || uuid.Equal(id, animalID) {
-			s.T().Log("Found work item type in collection: ID=", id, " name=", name)
-			toBeFound--
-		}
-	}
-	require.Exactly(s.T(), 0, toBeFound, "Not all required work item types (animal and person) where found.")
+// TestListWorkItemType tests if we can find the work item types
+// "person" and "animal" in the list of work item types
+func (s *workItemTypeSuite) TestListWorkItemTypeOK200ExpiredETagHeader() {
+	// given
+	// Create the work item type first and try to read it back in
+	_, witAnimal := s.createWorkItemTypeAnimal()
+	require.NotNil(s.T(), witAnimal)
+	_, witPerson := s.createWorkItemTypePerson()
+	require.NotNil(s.T(), witPerson)
+	// when
+	// Fetch a single work item type
+	// Paging in the format <start>,<limit>"
+	etag := "00000000"
+	page := "0,-1"
+	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page, nil, &etag)
+	// then
+	require.NotNil(s.T(), witCollection)
+	require.Nil(s.T(), witCollection.Validate())
+	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
+		"Not all required work item types (animal and person) where found.")
 }
 
 // TestListSourceAndTargetLinkTypes tests if we can find the work item link
