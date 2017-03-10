@@ -156,6 +156,43 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 
 }
 
+func (test *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
+	t := test.T()
+
+	resource.Require(t, resource.Database)
+
+	repo := area.NewAreaRepository(test.DB)
+
+	name := "space name " + uuid.NewV4().String()
+	newSpace := space.Space{
+		Name: name,
+	}
+
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	require.Nil(t, err)
+
+	a := area.Area{
+		Name:    name,
+		SpaceID: space.ID,
+		Path:    path.Path{},
+	}
+	err = repo.Create(context.Background(), &a)
+	require.Nil(t, err)
+
+	// So now we have a space and area with the same name.
+
+	areaList, err := repo.Query(area.AreaFilterBySpaceID(space.ID), area.AreaFilterByPath(path.Path{}), area.AreaFilterByName(name))
+	require.Nil(t, err)
+
+	// there must be ONLY 1 result, because of the space,name,path unique constraint
+	require.Len(t, areaList, 1)
+
+	rootArea := areaList[0]
+	assert.Equal(t, name, rootArea.Name)
+	assert.Equal(t, space.ID, rootArea.SpaceID)
+}
+
 func (test *TestAreaRepository) TestListAreaBySpace() {
 	t := test.T()
 
