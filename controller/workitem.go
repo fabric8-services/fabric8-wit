@@ -184,6 +184,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 			}
 		}
+		// fetch root iteration for this space and assign it to WI if not present already
+		// iterations.LoadDefaultIteration()
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))

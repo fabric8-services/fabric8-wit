@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 
+	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -86,6 +87,10 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	u.ID = uuid.NewV4()
 	u.State = IterationStateNew
 	err := m.db.Create(u).Error
+	// Composite key (name,space,path) must be unique
+	if gormsupport.IsUniqueViolation(err, "iterations_name_space_id_path_unique") {
+		return errors.NewBadParameterError("name & space_id & path", u.Name+" & "+u.SpaceID.String()+" & "+u.Path.String()).Expected("unique")
+	}
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"iterationID": u.ID,
@@ -178,4 +183,26 @@ func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iter
 		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
 	}
 	return true, nil
+}
+
+// Load a single Iteration regardless of parent
+func (m *GormIterationRepository) LoadDefault(ctx context.Context, spaceInstance space.Space) (*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loaddefault"}, time.Now())
+	var obj Iteration
+
+	tx := m.db.Where("space_id = ? and name = ? and path = ''", spaceInstance.ID, spaceInstance.Name).First(&obj)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"SpaceID": spaceInstance.ID.String(),
+		}, "iteration cannot be found")
+		return nil, errors.NewNotFoundError("Default Iteration for space", spaceInstance.ID.String())
+	}
+	if tx.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"sapceID": spaceInstance.ID.String(),
+			"err":     tx.Error,
+		}, "unable to load the iteration")
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return &obj, nil
 }

@@ -99,6 +99,12 @@ func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity)
 	return svc, NewSpaceAreasController(svc, rest.db)
 }
 
+func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub), identity)
+	return svc, NewSpaceIterationsController(svc, rest.db)
+}
+
 func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
@@ -119,6 +125,12 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	// only 1 default gets created.
 	assert.Len(t, areaList.Data, 1)
 	assert.Equal(t, name, *areaList.Data[0].Attributes.Name)
+
+	// verify if default iteration is created or not
+	spaceIterationSvc, spaceIterationCtrl := rest.SecuredSpaceIterationController(testsupport.TestIdentity)
+	_, iterationList := test.ListSpaceIterationsOK(t, spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, createdID)
+	assert.Len(t, iterationList.Data, 1)
+	assert.Equal(t, name, *iterationList.Data[0].Attributes.Name)
 
 }
 

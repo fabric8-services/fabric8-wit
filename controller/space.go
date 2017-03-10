@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
@@ -73,6 +74,17 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", space.Name))
+		}
+
+		// Similar to above, we create a default iteration for this new space
+		newIteration := iteration.Iteration{
+			ID:      satoriuuid.NewV4(),
+			SpaceID: space.ID,
+			Name:    space.Name,
+		}
+		err = appl.Iterations().Create(ctx, &newIteration)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create iteration for space: %s", space.Name))
 		}
 
 		res := &app.SpaceSingle{
