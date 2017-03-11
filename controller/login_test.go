@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -10,31 +9,62 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	config "github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/resource"
+	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
+	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-var loginTestConfiguration *config.ConfigurationData
+type TestLoginREST struct {
+	gormtestsupport.DBTestSuite
 
-func init() {
-	var err error
-	loginTestConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+	db    *gormapplication.GormDB
+	clean func()
 }
 
-func newTestKeycloakOAuthProvider() *login.KeycloakOAuthProvider {
+func TestRunLoginREST(t *testing.T) {
+	suite.Run(t, &TestLoginREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+}
+
+func (rest *TestLoginREST) SetupTest() {
+	rest.db = gormapplication.NewGormDB(rest.DB)
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+}
+
+func (rest *TestLoginREST) TearDownTest() {
+	rest.clean()
+}
+
+func (rest *TestLoginREST) UnSecuredController() (*goa.Service, *LoginController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	return svc, &LoginController{Controller: svc.NewController("login"), auth: TestLoginService{}, configuration: rest.Configuration}
+}
+
+func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	loginService := newTestKeycloakOAuthProvider(rest.db, rest.Configuration)
+
+	svc := testsupport.ServiceAsUser("Login-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	return svc, NewLoginController(svc, loginService, loginService.TokenManager, rest.Configuration)
+}
+
+func newTestKeycloakOAuthProvider(db application.DB, configuration loginConfiguration) *login.KeycloakOAuthProvider {
 
 	oauth := &oauth2.Config{
-		ClientID:     loginTestConfiguration.GetKeycloakClientID(),
-		ClientSecret: loginTestConfiguration.GetKeycloakSecret(),
+		ClientID:     configuration.GetKeycloakClientID(),
+		ClientSecret: configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint:     oauth2.Endpoint{},
 	}
@@ -45,67 +75,61 @@ func newTestKeycloakOAuthProvider() *login.KeycloakOAuthProvider {
 	}
 
 	tokenManager := token.NewManager(publicKey)
-	userRepository := account.NewUserRepository(DB)
-	identityRepository := account.NewIdentityRepository(DB)
-	app := gormapplication.NewGormDB(DB)
-	return login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, app)
+	return login.NewKeycloakOAuthProvider(oauth, db.Identities(), db.Users(), tokenManager, db)
 }
 
-func TestAuthorizeLoginOK(t *testing.T) {
+func (rest *TestLoginREST) TestAuthorizeLoginOK() {
+	t := rest.T()
 	resource.Require(t, resource.UnitTest)
-	controller := LoginController{auth: TestLoginService{}, configuration: loginTestConfiguration}
-	test.AuthorizeLoginTemporaryRedirect(t, nil, nil, &controller)
+	svc, ctrl := rest.UnSecuredController()
+
+	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl)
 }
 
-func createControler(t *testing.T) (*goa.Service, *LoginController) {
-	svc := goa.New("test")
-	loginService := newTestKeycloakOAuthProvider()
-
-	controller := NewLoginController(svc, loginService, loginService.TokenManager, loginTestConfiguration)
-	// assert.NotNil(t, controller)
-	return svc, controller
-}
-
-func TestTestUserTokenObtainedFromKeycloakOK(t *testing.T) {
+func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
+	t := rest.T()
 	resource.Require(t, resource.Database)
-	service, controller := createControler(t)
-	_, result := test.GenerateLoginOK(t, nil, service, controller)
+	service, controller := rest.SecuredController()
+	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
 	assert.Len(t, result, 1, "The size of token array is not 1")
 	for _, data := range result {
 		validateToken(t, data, controller)
 	}
 }
 
-func TestRefreshTokenUsingValidRefreshTokenOK(t *testing.T) {
+func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
+	t := rest.T()
 	resource.Require(t, resource.Database)
-	service, controller := createControler(t)
-	_, result := test.GenerateLoginOK(t, nil, service, controller)
+	service, controller := rest.SecuredController()
+	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
 	if len(result) != 1 || result[0].Token.RefreshToken == nil {
 		t.Fatal("Can't get the test user token")
 	}
 	refreshToken := result[0].Token.RefreshToken
 
 	payload := &app.RefreshToken{RefreshToken: refreshToken}
-	_, newToken := test.RefreshLoginOK(t, nil, service, controller, payload)
+	_, newToken := test.RefreshLoginOK(t, service.Context, service, controller, payload)
 	validateToken(t, newToken, controller)
 }
 
-func TestRefreshTokenUsingNilTokenFails(t *testing.T) {
+func (rest *TestLoginREST) TestRefreshTokenUsingNilTokenFails() {
+	t := rest.T()
 	resource.Require(t, resource.Database)
-	service, controller := createControler(t)
+	service, controller := rest.SecuredController()
 
 	payload := &app.RefreshToken{}
-	_, err := test.RefreshLoginBadRequest(t, nil, service, controller, payload)
+	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
 	assert.NotNil(t, err)
 }
 
-func TestRefreshTokenUsingInvalidTokenFails(t *testing.T) {
+func (rest *TestLoginREST) TestRefreshTokenUsingInvalidTokenFails() {
+	t := rest.T()
 	resource.Require(t, resource.Database)
-	service, controller := createControler(t)
+	service, controller := rest.SecuredController()
 
 	refreshToken := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.S-vR8LZTQ92iqGCR3rNUG0MiGx2N5EBVq0frCHP_bJ8"
 	payload := &app.RefreshToken{RefreshToken: &refreshToken}
-	_, err := test.RefreshLoginBadRequest(t, nil, service, controller, payload)
+	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
 	assert.NotNil(t, err)
 }
 

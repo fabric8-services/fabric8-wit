@@ -79,7 +79,7 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
-	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {
