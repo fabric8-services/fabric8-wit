@@ -51,6 +51,7 @@ func (s *TestCommentRepository) SetupSuite() {
 			panic(err.Error())
 		}
 	}
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
@@ -58,10 +59,9 @@ func (s *TestCommentRepository) SetupSuite() {
 
 func (s *TestCommentRepository) SetupTest() {
 	s.repo = comment.NewRepository(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
-func (s *TestCommentRepository) TearDownTest() {
+func (s *TestCommentRepository) TearDownSuite() {
 	s.clean()
 }
 
