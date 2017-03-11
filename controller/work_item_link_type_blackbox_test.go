@@ -84,18 +84,8 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.typeCtrl)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-<<<<<<< 61a9fe95b7d1739beec452505e4f7a70e60404cc
-<<<<<<< cce85b7e0fb59593b5e8924f10195e5b7a089977
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db))
-=======
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), initTestIdenity(DB))
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB), wiltConfiguration)
->>>>>>> fixed conflicts
-=======
-	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB), wiltConfiguration, &DummyResourceManager{})
->>>>>>> add resource manager interface
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db), wiltConfiguration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
