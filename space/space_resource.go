@@ -19,10 +19,10 @@ const (
 type Resource struct {
 	gormsupport.Lifecycle
 	ID           uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	ResourceID   string    `gorm:"column:resource_id"`
-	PermissionID string    `gorm:"column:permission_id"`
-	PolicyID     string    `gorm:"column:policy_id"`
-	SpaceID      uuid.UUID `sql:"type:uuid" gorm:"column:space_id"` // Belongs to Space
+	ResourceID   string
+	PermissionID string
+	PolicyID     string
+	SpaceID      uuid.UUID `sql:"type:uuid"` // Belongs to Space
 }
 
 // TableName implements gorm.tabler

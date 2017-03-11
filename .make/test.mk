@@ -11,7 +11,7 @@
 # While the unit tests can be executed fairly simply be running `go test`, the
 # integration tests have a little bit more setup going on. The remote tests reqire
 # availability of some remote servers such as Keycloak.
-# That's why they are split up in to tests.
+# That's why they are split up in three tests.
 #
 # Usage
 # -----
@@ -213,7 +213,7 @@ endif
 endif
 
 #-------------------------------------------------------------------------------
-# Inspect coverage of unit tests, integration or remot tests in either pure
+# Inspect coverage of unit tests, integration or remote tests in either pure
 # console mode or in a browser (*-html).
 #
 # If the test coverage files to be evaluated already exist, then no new
@@ -223,7 +223,7 @@ endif
 # Prints the total coverage of a given package.
 # The total coverage is printed as the last argument in the
 # output of "go tool cover". If the requested test name (first argument)
-# Is *, then unit, integration and remtoe tests will be combined
+# Is *, then unit, integration and remote tests will be combined
 define print-package-coverage
 $(eval TEST_NAME:=$(1))
 $(eval PACKAGE_NAME:=$(2))
@@ -271,7 +271,7 @@ endef
 
 #$(COV_PATH_OVERALL): $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(COV_PATH_REMOTE) $(GOCOVMERGE_BIN)
 $(COV_PATH_OVERALL): $(GOCOVMERGE_BIN)
-	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(COV_PATH_REMOTW) > $(COV_PATH_OVERALL)
+	@$(GOCOVMERGE_BIN) $(COV_PATH_UNIT) $(COV_PATH_INTEGRATION) $(COV_PATH_REMOTE) > $(COV_PATH_OVERALL)
 
 # Console coverage output:
 

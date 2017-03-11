@@ -37,7 +37,7 @@ type KeycloakResource struct {
 	URI    *string   `json:"uri,omitempty"`
 }
 
-type creteResourceRequestResultPayload struct {
+type createResourceRequestResultPayload struct {
 	ID string `json:"_id"`
 }
 
@@ -138,7 +138,7 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 		}, "Unable to create a Keycloak resource")
 		return "", errors.NewInternalError("Unable to create a Keycloak resource " + err.Error())
 	}
-	if res.StatusCode != 201 {
+	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"resource":       resource,
 			"responceStatus": res.Status,
@@ -148,7 +148,7 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 	}
 	jsonString := rest.ReadBody(res.Body)
 
-	var r creteResourceRequestResultPayload
+	var r createResourceRequestResultPayload
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -185,7 +185,7 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 		}, "Unable to obtain keycloak client ID")
 		return "", errors.NewInternalError("Unable to obtain keycloak client ID " + err.Error())
 	}
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"publicClientID": publicClientID,
 			"responceStatus": res.Status,
@@ -245,7 +245,7 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "Unable to crete the Keycloak policy")
 		return "", errors.NewInternalError("Unable to create the Keycloak policy " + err.Error())
 	}
-	if res.StatusCode != 201 {
+	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"clientID":       clientID,
 			"policy":         policy,
@@ -299,7 +299,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 		}, "Unable to crete the Keycloak permission")
 		return "", errors.NewInternalError("Unable to create the Keycloak permission " + err.Error())
 	}
-	if res.StatusCode != 201 {
+	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"clientID":       clientID,
 			"permission":     permission,
@@ -346,7 +346,7 @@ func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint stri
 		}, "Unable to delete the Keycloak resource")
 		return errors.NewInternalError("Unable to delete the Keycloak resource " + err.Error())
 	}
-	if res.StatusCode != 204 {
+	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
 			"kcResourceID":   kcResourceID,
 			"responceStatus": res.Status,
@@ -380,7 +380,7 @@ func DeletePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "Unable to delete the Keycloak policy")
 		return errors.NewInternalError("Unable to delete the Keycloak policy " + err.Error())
 	}
-	if res.StatusCode != 204 {
+	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
 			"policyID":       policyID,
 			"responceStatus": res.Status,
@@ -414,7 +414,7 @@ func DeletePermission(ctx context.Context, clientsEndpoint string, clientID stri
 		}, "Unable to delete the Keycloak permission")
 		return errors.NewInternalError("Unable to delete the Keycloak permission " + err.Error())
 	}
-	if res.StatusCode != 204 {
+	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
 			"permissionID":   permissionID,
 			"responceStatus": res.Status,
@@ -450,9 +450,9 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 		return nil, errors.NewInternalError("Unable to obtain a Keycloak policy " + err.Error())
 	}
 	switch res.StatusCode {
-	case 200:
+	case http.StatusOK:
 		// OK
-	case 404:
+	case http.StatusNotFound:
 		log.Error(ctx, map[string]interface{}{
 			"clientID": clientID,
 			"policyID": policyID,
@@ -512,7 +512,7 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "Unable to update the Keycloak policy")
 		return errors.NewInternalError("unable to update the Keycloak policy " + err.Error())
 	}
-	if res.StatusCode != 201 {
+	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"clientID":       clientID,
 			"policy":         policy,
@@ -554,9 +554,9 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		return "", errors.NewInternalError("unable to obtain entitlement resource " + err.Error())
 	}
 	switch res.StatusCode {
-	case 200:
+	case http.StatusOK:
 		// OK
-	case 403:
+	case http.StatusForbidden:
 		return "", errors.NewUnauthorizedError("not authorized")
 	default:
 		log.Error(ctx, map[string]interface{}{
@@ -598,7 +598,7 @@ func GetUserInfo(ctx context.Context, userInfoEndpoint string, userAccessToken s
 		}, "Unable to get user info from Keycloak")
 		return nil, errors.NewInternalError("Unable to get user info from Keycloak " + err.Error())
 	}
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{}, "Unable to get user info from Keycloak")
 		return nil, errors.NewInternalError("Unable to get user info from Keycloak. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -632,9 +632,9 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 		return false, errors.NewInternalError("Unable to get user from Keycloak " + err.Error())
 	}
 	switch res.StatusCode {
-	case 200:
+	case http.StatusOK:
 		return true, nil
-	case 404:
+	case http.StatusNotFound:
 		return false, nil
 	default:
 		log.Error(ctx, map[string]interface{}{
@@ -656,11 +656,11 @@ func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientS
 		return "", errors.NewInternalError("Error when obtaining token " + err.Error())
 	}
 	switch res.StatusCode {
-	case 200:
+	case http.StatusOK:
 		// OK
-	case 401:
+	case http.StatusUnauthorized:
 		return "", errors.NewUnauthorizedError(res.Status + " " + rest.ReadBody(res.Body))
-	case 400:
+	case http.StatusBadRequest:
 		return "", errors.NewBadParameterError(rest.ReadBody(res.Body), nil)
 	default:
 		return "", errors.NewInternalError(res.Status + " " + rest.ReadBody(res.Body))
