@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
@@ -37,6 +38,7 @@ func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
 
 type searchRepositoryWhiteboxTest struct {
 	gormtestsupport.DBTestSuite
+	clean      func()
 	modifierID uuid.UUID
 }
 
@@ -56,9 +58,14 @@ func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
 	s.modifierID = testIdentity.ID
+}
+
+func (s *searchRepositoryWhiteboxTest) TearDownTest() {
+	s.clean()
 }
 
 type SearchTestDescriptor struct {

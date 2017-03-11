@@ -55,10 +55,10 @@ func (s *searchRepositoryBlackboxTest) SetupSuite() {
 }
 
 func (s *searchRepositoryBlackboxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
 	require.Nil(s.T(), err)
 	s.modifierID = testIdentity.ID
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.witRepo = workitem.NewWorkItemTypeRepository(s.DB)
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	s.searchRepo = search.NewGormSearchRepository(s.DB)
