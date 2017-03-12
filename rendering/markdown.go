@@ -62,7 +62,7 @@ func (h highlightHTMLRenderer) BlockCode(out *bytes.Buffer, text []byte, lang st
 				continue
 			}
 			if count == 0 {
-				out.WriteString("<pre><code class=\"language-")
+				out.WriteString("<pre><code class=\"prettyprint language-")
 			} else {
 				out.WriteByte(' ')
 			}
