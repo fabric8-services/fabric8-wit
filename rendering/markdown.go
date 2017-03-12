@@ -71,7 +71,7 @@ func (h highlightHTMLRenderer) BlockCode(out *bytes.Buffer, text []byte, lang st
 		}
 
 		if count == 0 {
-			out.WriteString("<pre><code>")
+			out.WriteString("<pre><code class=\"prettyprint\">")
 		} else {
 			out.WriteString("\">")
 		}
