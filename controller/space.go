@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
@@ -16,6 +17,12 @@ import (
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
+)
+
+// following constants define keys to be used in response
+const (
+	DefaultIterationKey = "defaultIteration"
+	BacklogURLKey       = "backlog"
 )
 
 // SpaceController implements the space resource.
@@ -86,9 +93,10 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create iteration for space: %s", space.Name))
 		}
-
+		itrRepo := appl.Iterations()
+		addBacklogLink := updateSpaceWithLinkToBacklogWI(ctx, itrRepo)
 		res := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, space),
+			Data: ConvertSpace(ctx.RequestData, space, addBacklogLink),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -125,11 +133,12 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		itrRepo := appl.Iterations()
+		addBacklogLink := updateSpaceWithLinkToBacklogWI(ctx, itrRepo)
 		response := app.SpaceList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpaces(ctx.RequestData, spaces),
+			Data:  ConvertSpaces(ctx.RequestData, spaces, addBacklogLink),
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
 
@@ -150,9 +159,10 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
+		itrRepo := appl.Iterations()
+		addBacklogLink := updateSpaceWithLinkToBacklogWI(ctx, itrRepo)
 		resp := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s),
+			Data: ConvertSpace(ctx.RequestData, s, addBacklogLink),
 		}
 
 		return ctx.OK(&resp)
@@ -250,19 +260,19 @@ func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional .
 }
 
 // ConvertSpace converts between internal and external REST representation
-func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
-	selfURL := rest.AbsoluteURL(request, app.SpaceHref(p.ID))
-	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", p.ID.String()))
-	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", p.ID.String()))
-	return &app.Space{
-		ID:   &p.ID,
+func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...SpaceConvertFunc) *app.Space {
+	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
+	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", sp.ID.String()))
+	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", sp.ID.String()))
+	s := &app.Space{
+		ID:   &sp.ID,
 		Type: "spaces",
 		Attributes: &app.SpaceAttributes{
-			Name:        &p.Name,
-			Description: &p.Description,
-			CreatedAt:   &p.CreatedAt,
-			UpdatedAt:   &p.UpdatedAt,
-			Version:     &p.Version,
+			Name:        &sp.Name,
+			Description: &sp.Description,
+			CreatedAt:   &sp.CreatedAt,
+			UpdatedAt:   &sp.UpdatedAt,
+			Version:     &sp.Version,
 		},
 		Links: &app.GenericLinks{
 			Self: &selfURL,
@@ -271,7 +281,7 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			OwnedBy: &app.SpaceOwnedBy{
 				Data: &app.IdentityRelationData{
 					Type: "identities",
-					ID:   &p.OwnerId,
+					ID:   &sp.OwnerId,
 				},
 			},
 			Iterations: &app.RelationGeneric{
@@ -285,5 +295,39 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 				},
 			},
 		},
+	}
+	for _, add := range additional {
+		add(request, sp, s)
+	}
+	return s
+}
+
+func updateSpaceWithLinkToBacklogWI(ctx context.Context, itrRepo iteration.Repository) SpaceConvertFunc {
+	return func(request *goa.RequestData, sp *space.Space, appSpace *app.Space) {
+		defaultItr, err := itrRepo.LoadDefault(ctx, *sp)
+		if err == nil {
+			// add default iteration ID to app.Space instace
+			if appSpace.Relationships == nil {
+				appSpace.Relationships = &app.SpaceRelationships{}
+			}
+			if appSpace.Relationships.Iterations == nil {
+				appSpace.Relationships.Iterations = &app.RelationGeneric{}
+			}
+			if appSpace.Relationships.Iterations.Meta == nil {
+				appSpace.Relationships.Iterations.Meta = map[string]interface{}{}
+			}
+			appSpace.Relationships.Iterations.Meta[DefaultIterationKey] = defaultItr.ID.String()
+
+			// add BacklogURL to app.Space instace
+			backlogWorkItemsLink := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+defaultItr.ID.String()))
+
+			if appSpace.Relationships.Workitems == nil {
+				appSpace.Relationships.Workitems = &app.RelationGeneric{}
+			}
+			if appSpace.Relationships.Workitems.Meta == nil {
+				appSpace.Relationships.Workitems.Meta = map[string]interface{}{}
+			}
+			appSpace.Relationships.Workitems.Meta[BacklogURLKey] = backlogWorkItemsLink
+		}
 	}
 }

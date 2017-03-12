@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -23,8 +24,9 @@ import (
 
 type TestSpaceREST struct {
 	gormtestsupport.DBTestSuite
-	db    *gormapplication.GormDB
-	clean func()
+	db            *gormapplication.GormDB
+	clean         func()
+	iterationRepo iteration.Repository
 }
 
 func TestRunProjectREST(t *testing.T) {
@@ -34,6 +36,7 @@ func TestRunProjectREST(t *testing.T) {
 func (rest *TestSpaceREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	rest.iterationRepo = iteration.NewIterationRepository(rest.DB)
 }
 
 func (rest *TestSpaceREST) TearDownTest() {
@@ -83,14 +86,28 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(t, svc.Context, svc, ctrl, p)
-	assert.NotNil(t, created.Data)
-	assert.NotNil(t, created.Data.Attributes)
+	require.NotNil(t, created.Data)
+	require.NotNil(t, created.Data.Attributes)
 	assert.NotNil(t, created.Data.Attributes.CreatedAt)
 	assert.NotNil(t, created.Data.Attributes.UpdatedAt)
 	assert.NotNil(t, created.Data.Attributes.Name)
 	assert.Equal(t, name, *created.Data.Attributes.Name)
-	assert.NotNil(t, created.Data.Links)
-	assert.NotNil(t, created.Data.Links.Self)
+
+	// verify default iteration ID is present
+	require.NotNil(t, created.Data.Relationships)
+	require.NotNil(t, created.Data.Relationships.Iterations)
+	require.NotNil(t, created.Data.Relationships.Iterations.Meta)
+	require.Contains(t, created.Data.Relationships.Iterations.Meta, DefaultIterationKey)
+	defaultIteration := created.Data.Relationships.Iterations.Meta[DefaultIterationKey]
+	require.NotNil(t, defaultIteration)
+
+	// verify backlog link is correct
+	require.NotNil(t, created.Data.Links)
+	require.NotNil(t, created.Data.Links.Self)
+	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
+	require.Contains(t, created.Data.Relationships.Workitems.Meta, BacklogURLKey)
+	backlogFilter := fmt.Sprintf("filter[iteration]=%s", defaultIteration)
+	assert.Contains(t, created.Data.Relationships.Workitems.Meta[BacklogURLKey], backlogFilter)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
@@ -105,7 +122,7 @@ func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Iden
 	return svc, NewSpaceIterationsController(svc, rest.db)
 }
 
-func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
+func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultAreaIteration() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 

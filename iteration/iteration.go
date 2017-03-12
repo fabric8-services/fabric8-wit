@@ -53,6 +53,7 @@ type Repository interface {
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
+	LoadDefault(ctx context.Context, spaceInstance space.Space) (*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -185,7 +186,7 @@ func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iter
 	return true, nil
 }
 
-// Load a single Iteration regardless of parent
+// LoadDefault returns single Iteration which is default to given space
 func (m *GormIterationRepository) LoadDefault(ctx context.Context, spaceInstance space.Space) (*Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loaddefault"}, time.Now())
 	var obj Iteration
