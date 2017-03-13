@@ -133,7 +133,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
-	existingWorkItem, err := wir.Fetch(ctx, sqlExpression)
+	existingWorkItem, err := wir.Fetch(ctx, *workItem.Relationships.Space.Data.ID, sqlExpression)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}

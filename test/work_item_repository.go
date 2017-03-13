@@ -56,10 +56,11 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	ListStub        func(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
 		start    *int
 		length   *int
@@ -69,10 +70,11 @@ type WorkItemRepository struct {
 		result2 uint64
 		result3 error
 	}
-	FetchStub        func(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
+	FetchStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
 	}
 	fetchReturns struct {
@@ -243,18 +245,19 @@ func (fake *WorkItemRepository) CreateReturns(result1 *app.WorkItem, result2 err
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) List(ctx context.Context, c criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
+func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
 	fake.listMutex.Lock()
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
 		start    *int
 		length   *int
-	}{ctx, c, start, length})
-	fake.recordInvocation("List", []interface{}{ctx, c, start, length})
+	}{ctx, spaceID, c, start, length})
+	fake.recordInvocation("List", []interface{}{ctx, spaceID, c, start, length})
 	fake.listMutex.Unlock()
 	if fake.ListStub != nil {
-		return fake.ListStub(ctx, c, start, length)
+		return fake.ListStub(ctx, spaceID, c, start, length)
 	}
 	return fake.listReturns.result1, fake.listReturns.result2, fake.listReturns.result3
 }
@@ -280,16 +283,17 @@ func (fake *WorkItemRepository) ListReturns(result1 []*app.WorkItem, result2 uin
 	}{result1, result2, result3}
 }
 
-func (fake *WorkItemRepository) Fetch(ctx context.Context, c criteria.Expression) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c criteria.Expression) (*app.WorkItem, error) {
 	fake.fetchMutex.Lock()
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
-	}{ctx, c})
-	fake.recordInvocation("Fetch", []interface{}{ctx, c})
+	}{ctx, spaceID, c})
+	fake.recordInvocation("Fetch", []interface{}{ctx, spaceID, c})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
-		return fake.FetchStub(ctx, c)
+		return fake.FetchStub(ctx, spaceID, c)
 	}
 	return fake.fetchReturns.result1, fake.fetchReturns.result2
 }

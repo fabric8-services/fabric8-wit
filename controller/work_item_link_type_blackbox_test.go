@@ -141,7 +141,7 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 
 	//	 2. Create at least one work item type
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &workItemTypePayload)
+	_, workItemType := test.CreateSpaceWorkitemtypesCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, *space.Data.ID, &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
@@ -168,7 +168,7 @@ func TestSuiteWorkItemLinkType(t *testing.T) {
 // TestCreateWorkItemLinkType tests if we can create the s.linkTypeName work item link type
 func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
+	_, workItemLinkType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID.String(), createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 
 	// Check that the link category is included in the response in the "included" array
@@ -232,7 +232,7 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
+	_, workItemLinkType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID.String(), createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 	// Specify new description for link type that we just created
 	// Wrap data portion in an update payload instead of a create payload
@@ -271,7 +271,7 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	// Create the work item link type first and try to read it back in
 	createPayload := s.createDemoLinkType(s.linkTypeName)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
+	_, workItemLinkType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID.String(), createPayload)
 	require.NotNil(s.T(), workItemLinkType)
 	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
 	require.NotNil(s.T(), readIn)
@@ -305,15 +305,15 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
 // s.linkTypeName and s.linkName in the list of work item link types
 func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	bugBlockerPayload := s.createDemoLinkType(s.linkTypeName)
-	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, bugBlockerPayload)
+	_, bugBlockerType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, s.spaceID.String(), bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
 
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &workItemTypePayload)
+	_, workItemType := test.CreateSpaceWorkitemtypesCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.spaceID.String(), &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	relatedPayload := CreateWorkItemLinkType(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
-	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, relatedPayload)
+	_, relatedType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *bugBlockerType.Data.Relationships.Space.Data.ID.String(), relatedPayload)
 	require.NotNil(s.T(), relatedType)
 
 	// Fetch a single work item link type

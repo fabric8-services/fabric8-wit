@@ -110,7 +110,7 @@ func (s *WorkItemSuite) SetupTest() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload)
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 }
@@ -144,7 +144,7 @@ func (s *WorkItemSuite) TestCreateWI() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
+	_, created := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload)
 	// then
 	require.NotNil(s.T(), created.Data.ID)
 	assert.NotEmpty(s.T(), *created.Data.ID)
@@ -168,7 +168,7 @@ func (s *WorkItemSuite) TestListByFields() {
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "run integration test"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, &payload)
+	test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload)
 	// when
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
@@ -413,7 +413,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateSpaceWorkitemsPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = &app.RelationBaseType{
 		Data: &app.BaseTypeData{
@@ -424,12 +424,12 @@ func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 	return c
 }
 
-func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
+func minimumRequiredCreatePayload() app.CreateSpaceWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 
-	return app.CreateWorkitemPayload{
+	return app.CreateSpaceWorkitemsPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -581,7 +581,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, &payload)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, space.SystemSpace.String(), &payload)
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 }
@@ -624,7 +624,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	c.Data.Attributes[workitem.SystemTitle] = "Test title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, created := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
 
 	u := minimumRequiredUpdatePayload()
@@ -767,7 +767,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -794,7 +794,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -818,7 +818,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), space.SystemSpace.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -843,7 +843,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -868,7 +868,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -919,7 +919,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -979,7 +979,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 			}},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1009,7 +1009,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1056,7 +1056,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1083,7 +1083,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 		},
 	}
 	// when
-	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, expected := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	// then
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
@@ -1119,8 +1119,8 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 		},
 	}
 	// when
-	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
-	_, notExpected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &l)
+	_, expected := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
+	_, notExpected := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &l)
 	// then
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
@@ -1164,7 +1164,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 			ID: &areaID,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
@@ -1196,7 +1196,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 			ID: &iterationID,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
@@ -1246,7 +1246,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 			ident(newUser.ID),
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 
 	update := minimumRequiredUpdatePayload()
 	update.Data.ID = wi.Data.ID
@@ -1280,7 +1280,7 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 			ident(newUser2.ID),
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
@@ -1298,7 +1298,7 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, createdWi := test.CreateSpaceWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	assert.NotNil(s.T(), fetchedWi.Data)
 	assert.NotNil(s.T(), fetchedWi.Data.ID)
@@ -1325,7 +1325,7 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, createdWi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
@@ -1345,10 +1345,10 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi1 := test.CreateSpaceWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	require.NotNil(s.T(), wi1)
 	c.Data.Attributes[workitem.SystemTitle] = "WI2"
-	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi2 := test.CreateSpaceWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	require.NotNil(s.T(), wi2)
 
 	// Create link category
@@ -1362,7 +1362,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 
 	// Create work item link type payload
 	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2
@@ -1417,7 +1417,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Area)
 	assert.Equal(t, areaID, *wi.Data.Relationships.Area.Data.ID)
 }
@@ -1437,7 +1437,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Area)
 	assert.Nil(t, wi.Data.Relationships.Area.Data)
 
@@ -1514,7 +1514,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	assert.Equal(t, iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 }
@@ -1535,7 +1535,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	assert.Nil(t, wi.Data.Relationships.Iteration.Data)
 
@@ -1581,7 +1581,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 			ID:   &iterationID,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateSpaceWorkitemsCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	assert.NotNil(t, wi.Data.Relationships.Iteration.Data)
 
@@ -1633,7 +1633,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLe
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, createdWi := test.CreateSpaceWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
@@ -1654,7 +1654,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, createdWi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
@@ -1675,7 +1675,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, createdWi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
@@ -1706,7 +1706,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, createdWi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	require.NotNil(t, createdWi)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
 	require.NotNil(t, fetchedWi.Data)
@@ -1753,7 +1753,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithDefaultSpace() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// remove Space relation and see if WI gets default space.
 	c.Data.Relationships.Space = nil
-	_, item := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, item := test.CreateSpaceWorkitemsCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
 	require.NotNil(t, item)
 	assert.Equal(t, title, item.Data.Attributes[workitem.SystemTitle])
 	require.NotNil(t, item.Data.Relationships)
@@ -1780,7 +1780,7 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// set custom space and see if WI gets custom space
 	c.Data.Relationships.Space.Data.ID = customSpace.Data.ID
-	_, item := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, item := test.CreateSpaceWorkitemsCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 	require.NotNil(t, item)
 	assert.Equal(t, title, item.Data.Attributes[workitem.SystemTitle])
 	require.NotNil(t, item.Data.Relationships)
@@ -1817,7 +1817,7 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 		},
 	}
 
-	resp, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	resp, wi := test.CreateSpaceWorkitemsCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), &c)
 
 	lastMod := resp.Header().Get("Last-Modified")
 	s.svc.Use(func(handler goa.Handler) goa.Handler {

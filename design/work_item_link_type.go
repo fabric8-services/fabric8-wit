@@ -165,33 +165,6 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work item link types.")
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create a work item link type")
-		a.Payload(createWorkItemLinkTypePayload)
-		a.Response(d.Created, "/workitemlinktypes/.*", func() {
-			a.Media(workItemLinkType)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
@@ -224,6 +197,38 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("space_workitemlinktypes", func() {
+	a.Parent("space")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET("workitemlinktypes"),
+		)
+		a.Description("List work item link types.")
+		a.Response(d.OK, func() {
+			a.Media(workItemLinkTypeList)
+		})
+
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST("workitemlinktypes"),
+		)
+		a.Description("Create a work item link type")
+		a.Payload(createWorkItemLinkTypePayload)
+		a.Response(d.Created, "/workitemlinktypes/.*", func() {
+			a.Media(workItemLinkType)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

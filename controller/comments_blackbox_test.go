@@ -84,7 +84,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
-	createWorkitemPayload := app.CreateWorkitemPayload{
+	createSpaceWorkitemsPayload := app.CreateSpaceWorkitemsPayload{
 		Data: &app.WorkItem2{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
@@ -102,7 +102,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 		},
 	}
 	userSvc, workitemCtrl, _, _ := s.securedControllers(identity)
-	_, wi := test.CreateWorkitemCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, &createWorkitemPayload)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, space.SystemSpace.String(), &createSpaceWorkitemsPayload)
 	workitemId := *wi.Data.ID
 	s.T().Log(fmt.Sprintf("Created workitem with id %v", workitemId))
 	return workitemId

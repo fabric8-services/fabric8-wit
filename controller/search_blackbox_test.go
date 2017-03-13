@@ -251,11 +251,11 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	assert.Empty(s.T(), sr.Data)
 }
 
-func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
+func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateSpaceWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
-	c := app.CreateWorkitemPayload{
+	c := app.CreateSpaceWorkitemsPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
@@ -333,7 +333,7 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI)
+	_, wi := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, wiCtrl, space.SystemSpace, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)

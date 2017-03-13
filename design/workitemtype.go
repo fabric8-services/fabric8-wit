@@ -129,35 +129,6 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("Create work item type.")
-		a.Payload(workItemTypeSingle)
-		a.Response(d.Created, "/workitemtypes/.*", func() {
-			a.Media(workItemTypeSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work item types.")
-		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
-			// TODO: Support same params as in work item list-action?
-		})
-		a.Response(d.OK, func() {
-			a.Media(workItemTypeList)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
 
 	a.Action("list-source-link-types", func() {
 		a.Routing(
@@ -189,5 +160,42 @@ given work item type can be used in the target of the link.`)
 		})
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("space_workitemtypes", func() {
+	a.Parent("space")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET("workitemtypes"),
+		)
+		a.Description("List work item types.")
+		a.Params(func() {
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+			// TODO: Support same params as in work item list-action?
+		})
+		a.Response(d.OK, func() {
+			a.Media(workItemTypeList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST("workitemtypes"),
+		)
+		a.Description("Create work item type.")
+		a.Payload(workItemTypeSingle)
+		a.Response(d.Created, "/workitemtypes/.*", func() {
+			a.Media(workItemTypeSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

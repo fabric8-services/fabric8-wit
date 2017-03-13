@@ -99,43 +99,6 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List work items.")
-		a.Params(func() {
-			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
-			a.Param("page[offset]", d.String, "Paging start position")
-			a.Param("page[limit]", d.Integer, "Paging size")
-			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
-			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
-			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
-			a.Param("filter[area]", d.String, "AreaID to filter work items")
-			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
-
-		})
-		a.Response(d.OK, func() {
-			a.Media(workItemList)
-		})
-		a.Response(d.NotModified)
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
-	a.Action("create", func() {
-		a.Security("jwt")
-		a.Routing(
-			a.POST(""),
-		)
-		a.Description("create work item with type and id.")
-		a.Payload(workItemSingle)
-		a.Response(d.Created, "/workitems/.*", func() {
-			a.Media(workItemSingle)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
@@ -167,6 +130,49 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("space_workitems", func() {
+	a.Parent("space")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET("workitems"),
+		)
+		a.Description("List work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
+		})
+		a.Response(d.OK, func() {
+			a.Media(workItemList)
+		})
+
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+	a.Action("create", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.POST("workitems"),
+		)
+		a.Description("create work item with type and id.")
+		a.Payload(workItemSingle)
+		a.Response(d.Created, "/workitems/.*", func() {
+			a.Media(workItemSingle)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })

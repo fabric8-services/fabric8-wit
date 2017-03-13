@@ -21,7 +21,7 @@ import (
 type WorkItemLinkTypeRepository interface {
 	Create(ctx context.Context, name string, description *string, sourceTypeID, targetTypeID satoriuuid.UUID, forwardName, reverseName, topology string, linkCategory, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
 	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
-	List(ctx context.Context) (*app.WorkItemLinkTypeList, error)
+	List(ctx context.Context, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error)
 	Delete(ctx context.Context, ID satoriuuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkTypeSingle) (*app.WorkItemLinkTypeSingle, error)
 	// ListSourceLinkTypes returns the possible link types for where the given
@@ -156,13 +156,18 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ctx context.Context,
 
 // List returns all work item link types
 // TODO: Handle pagination
-func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkItemLinkTypeList, error) {
-	// We don't have any where clause or paging at the moment.
+func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error) {
+	var parameters []interface{}
+
+	where := "space_id = ?"
+	parameters = append(parameters, spaceID.String)
 	var rows []WorkItemLinkType
-	db := r.db.Find(&rows)
-	if db.Error != nil {
-		return nil, db.Error
+	db := r.db.Where(where, parameters...)
+
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, errs.WithStack(err)
 	}
+
 	res := app.WorkItemLinkTypeList{}
 	res.Data = make([]*app.WorkItemLinkTypeData, len(rows))
 	for index, value := range rows {
