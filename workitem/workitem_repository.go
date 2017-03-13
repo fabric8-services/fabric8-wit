@@ -134,13 +134,11 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*app.W
 // LoadHighestOrder returns the highest order
 func (r *GormWorkItemRepository) LoadHighestOrder() (float64, error) {
 	res := WorkItem{}
-	tx := r.db.Order("execution_order desc").Last(&res)
-	if tx.RecordNotFound() {
-		return 0, nil
-	}
-	if tx.Error != nil {
-		return 0, errors.NewInternalError(tx.Error.Error())
-	}
+	db := r.db.Model(WorkItem{})
+	query := fmt.Sprintf("execution_order = (SELECT max(execution_order) FROM %[1]s)",
+		WorkItem{}.TableName(),
+	)
+	db = db.Where(query).First(&res)
 	order, err := strconv.ParseFloat(fmt.Sprintf("%v", res.ExecutionOrder), 64)
 	if err != nil {
 		return 0, errors.NewInternalError(err.Error())
@@ -336,11 +334,6 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	res.Fields = Fields{}
 
 	res.ExecutionOrder = order
-	/*fieldDef := wiType.Fields[SystemOrder]
-	res.Fields[SystemOrder], err = fieldDef.ConvertToModel(SystemOrder, order)
-	if err != nil {
-		return nil, errors.NewBadParameterError(SystemOrder, wi.Fields[SystemOrder])
-	}*/
 
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
@@ -538,7 +531,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 		}
 		db = db.Limit(*limit)
 	}
-	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order")
+	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
 	if err != nil {
