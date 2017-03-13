@@ -140,19 +140,4 @@ var _ = a.Resource("space_iterations", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	// a.Action("create", func() {
-	// 	a.Security("jwt")
-	// 	a.Routing(
-	// 		a.POST("iterations"),
-	// 	)
-	// 	a.Description("Create iteration.")
-	// 	a.Payload(iterationSingle)
-	// 	a.Response(d.Created, "/iterations/.*", func() {
-	// 		a.Media(iterationSingle)
-	// 	})
-	// 	a.Response(d.BadRequest, JSONAPIErrors)
-	// 	a.Response(d.NotFound, JSONAPIErrors)
-	// 	a.Response(d.InternalServerError, JSONAPIErrors)
-	// 	a.Response(d.Unauthorized, JSONAPIErrors)
-	// })
 })

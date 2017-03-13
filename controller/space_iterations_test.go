@@ -68,66 +68,6 @@ func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceI
 	return svc, NewSpaceIterationsController(svc, rest.db)
 }
 
-// func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
-// 	t := rest.T()
-// 	resource.Require(t, resource.Database)
-
-// 	var p *space.Space
-// 	ci := createSpaceIteration("Sprint #21", nil)
-
-// 	application.Transactional(rest.db, func(app application.Application) error {
-// 		repo := app.Spaces()
-// 		newSpace := space.Space{
-// 			Name: "Test 1",
-// 		}
-// 		p, _ = repo.Create(rest.ctx, &newSpace)
-// 		return nil
-// 	})
-// 	svc, ctrl := rest.SecuredController()
-// 	_, c := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
-// 	require.NotNil(t, c.Data.ID)
-// 	require.NotNil(t, c.Data.Relationships.Space)
-// 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-// 	assert.Equal(t, iteration.IterationStateNew, *c.Data.Attributes.State)
-// 	assert.Equal(t, "/", *c.Data.Attributes.ParentPath)
-// 	require.NotNil(t, c.Data.Relationships.Workitems.Meta)
-// 	assert.Equal(t, 0, c.Data.Relationships.Workitems.Meta["total"])
-// 	assert.Equal(t, 0, c.Data.Relationships.Workitems.Meta["closed"])
-// }
-
-// func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {
-// 	t := rest.T()
-// 	resource.Require(t, resource.Database)
-
-// 	var p *space.Space
-// 	iterationName := "Sprint #22"
-// 	iterationDesc := "testing description"
-// 	ci := createSpaceIteration(iterationName, &iterationDesc)
-
-// 	application.Transactional(rest.db, func(app application.Application) error {
-// 		repo := app.Spaces()
-// 		testSpace := space.Space{
-// 			Name: "Test 1",
-// 		}
-// 		p, _ = repo.Create(rest.ctx, &testSpace)
-// 		return nil
-// 	})
-// 	svc, ctrl := rest.SecuredController()
-// 	_, c := test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
-// 	assert.NotNil(t, c.Data.ID)
-// 	assert.NotNil(t, c.Data.Relationships.Space)
-// 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
-// 	assert.Equal(t, *c.Data.Attributes.Name, iterationName)
-// 	assert.Equal(t, *c.Data.Attributes.Description, iterationDesc)
-
-// 	// create another Iteration with nil description
-// 	iterationName2 := "Sprint #23"
-// 	ci = createSpaceIteration(iterationName2, nil)
-// 	_, c = test.CreateSpaceIterationsCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
-// 	assert.Equal(t, *c.Data.Attributes.Name, iterationName2)
-// 	assert.Nil(t, c.Data.Attributes.Description)
-// }
-
 func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
@@ -211,26 +151,6 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpace() {
 		}
 	}
 }
-
-// func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {
-// 	t := rest.T()
-// 	resource.Require(t, resource.Database)
-
-// 	ci := createSpaceIteration("Sprint #21", nil)
-
-// 	svc, ctrl := rest.SecuredController()
-// 	test.CreateSpaceIterationsNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
-// }
-
-// func (rest *TestSpaceIterationREST) TestFailCreateIterationNotAuthorized() {
-// 	t := rest.T()
-// 	resource.Require(t, resource.Database)
-
-// 	ci := createSpaceIteration("Sprint #21", nil)
-
-// 	svc, ctrl := rest.UnSecuredController()
-// 	test.CreateSpaceIterationsUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
-// }
 
 func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 	t := rest.T()
@@ -324,20 +244,3 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		}
 	}
 }
-
-// func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsPayload {
-// 	start := time.Now()
-// 	end := start.Add(time.Hour * (24 * 8 * 3))
-
-// 	return &app.CreateSpaceIterationsPayload{
-// 		Data: &app.Iteration{
-// 			Type: iteration.APIStringTypeIteration,
-// 			Attributes: &app.IterationAttributes{
-// 				Name:        &name,
-// 				StartAt:     &start,
-// 				EndAt:       &end,
-// 				Description: desc,
-// 			},
-// 		},
-// 	}
-// }
