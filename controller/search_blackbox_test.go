@@ -79,7 +79,7 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	s.spaceBlackBoxTestConfiguration = spaceBlackBoxTestConfiguration
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
-	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(DB), spaceBlackBoxTestConfiguration)
+	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {
@@ -301,7 +301,7 @@ func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.Se
 	prms := url.Values{}
 	prms["q"] = []string{queryString} // any value will do
 	goaCtx := goa.NewContext(goa.WithAction(s.svc.Context, "SearchTest"), rw, req, prms)
-	showCtx, err := app.NewShowSearchContext(goaCtx, req, s.svc)
+	showCtx, err := app.NewShowSearchContext(goaCtx, s.svc)
 	require.Nil(s.T(), err)
 	// Perform action
 	err = s.controller.Show(showCtx)

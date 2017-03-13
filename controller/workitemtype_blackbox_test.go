@@ -69,7 +69,7 @@ func (s *workItemTypeSuite) SetupSuite() {
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
@@ -81,7 +81,7 @@ func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	svc := goa.New("workItemTypeSuite-Service")
 	assert.NotNil(s.T(), svc)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), &s.Configuration)
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	assert.NotNil(s.T(), s.typeCtrl)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkTypeCtrl)
@@ -516,7 +516,7 @@ func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemTypeTestDataFunc(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWIT-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(DB), &s.Configuration)
+		controller := NewWorkitemtypeController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
 		app.MountWorkitemtypeController(service, controller)
 		return nil
 	})

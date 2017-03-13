@@ -24,7 +24,7 @@ func NewDBTestSuite(configFilePath string) DBTestSuite {
 type DBTestSuite struct {
 	suite.Suite
 	configFile    string
-	Configuration config.ConfigurationData
+	Configuration *config.ConfigurationData
 	DB            *gorm.DB
 }
 
@@ -32,12 +32,13 @@ type DBTestSuite struct {
 func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
 	configuration, err := config.NewConfigurationData(s.configFile)
-	s.Configuration = *configuration
+	s.Configuration = configuration
 	if err != nil {
 		logrus.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
 	}
+	s.Configuration = configuration
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		s.DB, err = gorm.Open("postgres", s.Configuration.GetPostgresConfigString())
 		if err != nil {
