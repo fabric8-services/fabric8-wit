@@ -50,15 +50,15 @@ func (s *TestUsersSuite) SetupSuite() {
 	s.identityRepo = s.db.Identities()
 }
 
-func (s *TestUsersSuite) TearDownTest() {
+func (s *TestUsersSuite) TearDownSuite() {
 	s.clean()
 }
 
-func (rest *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
+func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Status-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	return svc, NewUsersController(svc, rest.db)
+	return svc, NewUsersController(svc, s.db)
 }
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
