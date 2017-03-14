@@ -92,14 +92,6 @@ func (s *workItemLinkTypeSuite) TearDownTest() {
 	s.clean()
 }
 
-// The TearDownSuite method will run after all the tests in the suite have been run
-// It tears down the database connection for all the tests in this suite.
-func (s *workItemLinkTypeSuite) TearDownSuite() {
-	if s.DB != nil {
-		s.DB.Close()
-	}
-}
-
 //-----------------------------------------------------------------------------
 // helper method
 //-----------------------------------------------------------------------------
