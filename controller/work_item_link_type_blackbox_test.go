@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -10,14 +9,14 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -38,8 +37,11 @@ import (
 // The workItemLinkTypeSuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemLinkTypeSuite struct {
-	suite.Suite
-	db           *gorm.DB
+	gormtestsupport.DBTestSuite
+
+	clean func()
+	db    *gormapplication.GormDB
+
 	linkTypeCtrl *WorkItemLinkTypeController
 	spaceCtrl    *SpaceController
 	linkCatCtrl  *WorkItemLinkCategoryController
@@ -52,40 +54,33 @@ type workItemLinkTypeSuite struct {
 	linkName     string
 }
 
-var wiltConfiguration *config.ConfigurationData
-
-func init() {
-	var err error
-	wiltConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-}
-
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkTypeSuite) SetupSuite() {
-	var err error
-	wiltConfiguration, err = config.GetConfigurationData()
-	require.Nil(s.T(), err)
-	s.db, err = gorm.Open("postgres", wiltConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
+	s.DBTestSuite.SetupSuite()
+
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(s.db, func(tx *gorm.DB) error {
+	err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	})
 	require.Nil(s.T(), err)
+}
+
+func (s *workItemLinkTypeSuite) SetupTest() {
+	s.db = gormapplication.NewGormDB(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.db))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db)
 	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.db))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, s.db)
 	require.NotNil(s.T(), s.linkCatCtrl)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db))
+	s.typeCtrl = NewWorkitemtypeController(svc, s.db)
 	require.NotNil(s.T(), s.typeCtrl)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db))
+	s.spaceCtrl = NewSpaceController(svc, s.db)
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
@@ -93,39 +88,8 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	s.linkName = "test-workitem-link" + uuid.NewV4().String()
 }
 
-// The TearDownSuite method will run after all the tests in the suite have been run
-// It tears down the database connection for all the tests in this suite.
-func (s *workItemLinkTypeSuite) TearDownSuite() {
-	if s.db != nil {
-		s.db.Close()
-	}
-}
-
-// cleanup removes all DB entries that will be created or have been created
-// with this test suite. We need to remove them completely and not only set the
-// "deleted_at" field, which is why we need the Unscoped() function.
-func (s *workItemLinkTypeSuite) cleanup() {
-	db := s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkTypeName})
-	require.Nil(s.T(), db.Error)
-	db = s.db.Unscoped().Delete(&link.WorkItemLinkType{Name: s.linkName})
-	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
-	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{Name: s.spaceName})
-	require.Nil(s.T(), db.Error)
-	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
-
-}
-
-// The SetupTest method will be run before every test in the suite.
-// SetupTest ensures that none of the work item link types that we will create already exist.
-func (s *workItemLinkTypeSuite) SetupTest() {
-	s.cleanup()
-}
-
-// The TearDownTest method will be run after every test in the suite.
 func (s *workItemLinkTypeSuite) TearDownTest() {
-	s.cleanup()
+	s.clean()
 }
 
 //-----------------------------------------------------------------------------
@@ -349,7 +313,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 }
 
 func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiltConfiguration.GetTokenPrivateKey()))
+	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(almtoken.RSAPrivateKey))
 	if err != nil {
 		t.Fatal("Could not parse Key ", err)
 	}
@@ -488,7 +452,7 @@ func (s *workItemLinkTypeSuite) TestUnauthorizeWorkItemLinkTypeCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTypeTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLinkType-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkTypeController(service, gormapplication.NewGormDB(s.db))
+		controller := NewWorkItemLinkTypeController(service, s.db)
 		app.MountWorkItemLinkTypeController(service, controller)
 		return nil
 	})
