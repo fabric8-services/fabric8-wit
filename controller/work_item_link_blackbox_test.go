@@ -10,6 +10,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	config "github.com/almighty/almighty-core/configuration"
@@ -85,7 +86,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	err = models.Transactional(s.db, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
 	})
 	require.Nil(s.T(), err)
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
@@ -131,6 +132,8 @@ func (s *workItemLinkSuite) SetupSuite() {
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
 func (s *workItemLinkSuite) TearDownSuite() {
+	s.db.Unscoped().Delete(&account.Identity{Username: "test user"})
+
 	if s.db != nil {
 		s.db.Close()
 	}
@@ -172,7 +175,6 @@ func (s *workItemLinkSuite) cleanup() {
 		require.Nil(s.T(), db.Error)
 	}
 	s.deleteWorkItems = nil
-
 }
 
 // The SetupTest method will be run before every test in the suite.
