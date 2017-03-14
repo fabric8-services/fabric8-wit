@@ -209,7 +209,7 @@ func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkIt
 		Relationships: &app.WorkItemTypeRelationships{
 			Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
 		},
-	} 
+	}
 	for name, def := range t.Fields {
 		ct := convertFieldTypeFromModels(def.Type)
 		converted.Attributes.Fields[name] = &app.FieldDefinition{

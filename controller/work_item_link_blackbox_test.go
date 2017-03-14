@@ -65,7 +65,7 @@ type workItemLinkSuite struct {
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	deleteWorkItemLinks []uuid.UUID
 	deleteWorkItems     []string
-} 
+}
 
 var wiConfiguration *config.ConfigurationData
 
