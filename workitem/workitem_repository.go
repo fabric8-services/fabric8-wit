@@ -24,10 +24,11 @@ const orderValue = 1000
 type DirectionType string
 
 const (
-	DirectionAbove  DirectionType = "above"
-	DirectionBelow  DirectionType = "below"
-	DirectionTop    DirectionType = "top"
-	DirectionBottom DirectionType = "bottom"
+	//TODO(dhriti): This is a temporary fix. https://github.com/almighty/almighty-core/issues/993
+	DirectionAbove  DirectionType = "below"
+	DirectionBelow  DirectionType = "above"
+	DirectionTop    DirectionType = "bottom"
+	DirectionBottom DirectionType = "top"
 )
 
 // WorkItemRepository encapsulates storage & retrieval of work items
