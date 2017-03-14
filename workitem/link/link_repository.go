@@ -1,6 +1,7 @@
 package link
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 
@@ -318,7 +319,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	wilt := WorkItemLinkType{}
 	r.db.Where("forward_name = ?", "parent of").First(&wilt)
 
-	where := "id in (select target_id from work_item_links where source_id = ? and link_type_id = ?)"
+	where := fmt.Sprintf("id in (select target_id from %s where source_id = ? and link_type_id = ?)", WorkItemLink{}.TableName())
 	db := r.db.Model(&workitem.WorkItem{}).Where(where, parent, wilt.ID)
 	rows, err := db.Rows()
 	if err != nil {
