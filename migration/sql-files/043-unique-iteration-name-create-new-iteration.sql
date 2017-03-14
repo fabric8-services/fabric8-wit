@@ -22,15 +22,15 @@ WHERE  id NOT IN (SELECT s.id
                                  ON s.name = i.name
                                     AND s.id = i.space_id);
 
------ for all other existing iterations in production, move them under the default 'root' iteration.
-CREATE OR REPLACE FUNCTION GetRootIteration(s_id uuid,OUT root_id uuid) AS $$ BEGIN
+----- for all other existing iterations in production, move them under the default iteration of given space.
+CREATE OR REPLACE FUNCTION GetDefaultIteration(s_id uuid,OUT default_id uuid) AS $$ BEGIN
 -- Get Root iteration for a space
      select id from iterations 
           where name in ( SELECT name as space_name
           from spaces 
               where id=s_id )
                   and space_id =s_id 
-                           into root_id;
+                           into default_id;
 END; $$ LANGUAGE plpgsql ;
 
 -- Convert Text to Ltree , use standard library FUNCTION?
@@ -49,7 +49,7 @@ CREATE OR REPLACE FUNCTION GetUpdatedIterationPath(iteration_id uuid,space_id uu
           rootiteration uuid;
      BEGIN
      
-     select GetRootIteration(space_id) into rootiteration;
+     select GetDefaultIteration(space_id) into rootiteration;
      IF rootiteration != iteration_id 
          THEN                  
          IF path=''
@@ -74,5 +74,5 @@ update work_items set fields=jsonb_set(fields, '{system.iteration}', to_jsonb(su
 
 -- cleanup
 DROP FUNCTION GetUpdatedIterationPath(uuid,uuid,ltree);
-DROP FUNCTION GetRootIteration(uuid);
+DROP FUNCTION GetDefaultIteration(uuid);
 DROP FUNCTION TextToLtreeNode(text);

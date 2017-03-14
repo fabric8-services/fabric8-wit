@@ -92,22 +92,6 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	assert.NotNil(t, created.Data.Attributes.UpdatedAt)
 	assert.NotNil(t, created.Data.Attributes.Name)
 	assert.Equal(t, name, *created.Data.Attributes.Name)
-
-	// verify default iteration ID is present
-	require.NotNil(t, created.Data.Relationships)
-	require.NotNil(t, created.Data.Relationships.Iterations)
-	require.NotNil(t, created.Data.Relationships.Iterations.Meta)
-	require.Contains(t, created.Data.Relationships.Iterations.Meta, DefaultIterationKey)
-	defaultIteration := created.Data.Relationships.Iterations.Meta[DefaultIterationKey]
-	require.NotNil(t, defaultIteration)
-
-	// verify backlog link is correct
-	require.NotNil(t, created.Data.Links)
-	require.NotNil(t, created.Data.Links.Self)
-	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
-	require.Contains(t, created.Data.Relationships.Workitems.Meta, BacklogURLKey)
-	backlogFilter := fmt.Sprintf("filter[iteration]=%s", defaultIteration)
-	assert.Contains(t, created.Data.Relationships.Workitems.Meta[BacklogURLKey], backlogFilter)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {

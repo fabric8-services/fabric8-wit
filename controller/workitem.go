@@ -178,15 +178,24 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		if spaceID != space.SystemSpace {
-			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
-			if spaceLoadErr != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+		spaceInstance, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+		if spaceLoadErr != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+		}
+		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		// fetch default iteration for this space and assign it to WI if not present already
+		if wi.Relationships == nil {
+			wi.Relationships = &app.WorkItemRelationships{}
+		}
+		if wi.Relationships.Iteration == nil {
+			wi.Relationships.Iteration = &app.RelationGeneric{
+				Data: &app.GenericData{},
+			}
+			defaultItr, defaultItrErr := appl.Iterations().LoadDefault(ctx, *spaceInstance)
+			if defaultItrErr == nil {
+				wi.Fields[workitem.SystemIteration] = defaultItr.ID.String()
 			}
 		}
-		// fetch root iteration for this space and assign it to WI if not present already
-		// iterations.LoadDefaultIteration()
-		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}

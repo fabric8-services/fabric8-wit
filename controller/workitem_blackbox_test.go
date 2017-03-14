@@ -1800,6 +1800,27 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
 }
 
+// Following test fails because Iterations table is being cleaned up
+// and default iteration for root space is gone
+// func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
+// 	t := s.T()
+// 	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+// 	title := "Solution on global warming"
+// 	c.Data.Attributes[workitem.SystemTitle] = title
+// 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+// 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+// 	require.NotNil(t, wi)
+// 	require.NotNil(t, wi.Data.Relationships)
+// 	require.NotNil(t, wi.Data.Relationships.Iteration)
+
+// 	spaceRepo := space.NewRepository(s.db)
+// 	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
+// 	iterationRepo := iteration.NewIterationRepository(s.db)
+// 	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
+// 	require.Nil(t, err)
+// 	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
+// }
+
 //Ignore, middlewares not respected by the generated test framework. No way to modify Request?
 // Require full HTTP request access.
 func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {

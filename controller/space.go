@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
@@ -17,12 +16,6 @@ import (
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	satoriuuid "github.com/satori/go.uuid"
-)
-
-// following constants define keys to be used in response
-const (
-	DefaultIterationKey = "defaultIteration"
-	BacklogURLKey       = "backlog"
 )
 
 // SpaceController implements the space resource.
@@ -93,10 +86,8 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create iteration for space: %s", space.Name))
 		}
-		itrRepo := appl.Iterations()
-		addBacklogLink := updateSpaceWithLinkToBacklogWI(ctx, itrRepo)
 		res := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, space, addBacklogLink),
+			Data: ConvertSpace(ctx.RequestData, space),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -133,12 +124,10 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		itrRepo := appl.Iterations()
-		addBacklogLink := updateSpaceWithLinkToBacklogWI(ctx, itrRepo)
 		response := app.SpaceList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpaces(ctx.RequestData, spaces, addBacklogLink),
+			Data:  ConvertSpaces(ctx.RequestData, spaces),
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
 
@@ -159,10 +148,8 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		itrRepo := appl.Iterations()
-		addBacklogLink := updateSpaceWithLinkToBacklogWI(ctx, itrRepo)
 		resp := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s, addBacklogLink),
+			Data: ConvertSpace(ctx.RequestData, s),
 		}
 
 		return ctx.OK(&resp)
@@ -300,34 +287,4 @@ func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...Space
 		add(request, sp, s)
 	}
 	return s
-}
-
-func updateSpaceWithLinkToBacklogWI(ctx context.Context, itrRepo iteration.Repository) SpaceConvertFunc {
-	return func(request *goa.RequestData, sp *space.Space, appSpace *app.Space) {
-		defaultItr, err := itrRepo.LoadDefault(ctx, *sp)
-		if err == nil {
-			// add default iteration ID to app.Space instace
-			if appSpace.Relationships == nil {
-				appSpace.Relationships = &app.SpaceRelationships{}
-			}
-			if appSpace.Relationships.Iterations == nil {
-				appSpace.Relationships.Iterations = &app.RelationGeneric{}
-			}
-			if appSpace.Relationships.Iterations.Meta == nil {
-				appSpace.Relationships.Iterations.Meta = map[string]interface{}{}
-			}
-			appSpace.Relationships.Iterations.Meta[DefaultIterationKey] = defaultItr.ID.String()
-
-			// add BacklogURL to app.Space instace
-			backlogWorkItemsLink := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+defaultItr.ID.String()))
-
-			if appSpace.Relationships.Workitems == nil {
-				appSpace.Relationships.Workitems = &app.RelationGeneric{}
-			}
-			if appSpace.Relationships.Workitems.Meta == nil {
-				appSpace.Relationships.Workitems.Meta = map[string]interface{}{}
-			}
-			appSpace.Relationships.Workitems.Meta[BacklogURLKey] = backlogWorkItemsLink
-		}
-	}
 }
