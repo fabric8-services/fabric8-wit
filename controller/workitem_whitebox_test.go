@@ -56,7 +56,6 @@ func TestMain(m *testing.M) {
 			}); err != nil {
 				panic(err.Error())
 			}
-
 		}
 
 		// RemoteWorkItemScheduler now available for all other test cases

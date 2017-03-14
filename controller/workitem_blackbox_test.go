@@ -1358,7 +1358,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), linkCat)
 
 	// Create link space
-	spacePayload := CreateSpacePayload("test-space", "description")
+	spacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload

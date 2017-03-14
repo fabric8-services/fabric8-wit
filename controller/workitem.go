@@ -203,7 +203,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			}
 
 			rArea := rootArea[0]
-			wi.Fields[workitem.SystemArea] = rArea.ID.String() // "7a9fdb76-2a8e-41ed-976a-c7525b180df9"
+			wi.Fields[workitem.SystemArea] = rArea.ID.String()
 
 		}
 

@@ -82,6 +82,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 	var err error
 
 	s.db, err = gorm.Open("postgres", wiConfiguration.GetPostgresConfigString())
+	s.db.Debug()
 	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	err = models.Transactional(DB, func(tx *gorm.DB) error {
@@ -140,6 +141,7 @@ func (s *workItemLinkSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkSuite) cleanup() {
+
 	db := s.db
 
 	// First delete work item links and then the types;
@@ -161,7 +163,7 @@ func (s *workItemLinkSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{Name: "test-space"})
+	db = db.Unscoped().Delete(&space.Space{ID: s.userSpaceID})
 	require.Nil(s.T(), db.Error)
 
 	// Last but not least delete the work items
