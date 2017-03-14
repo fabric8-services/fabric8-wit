@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/almighty/almighty-core/client"
 	goaclient "github.com/goadesign/goa/client"
@@ -58,26 +57,16 @@ func (i *IdentityHelper) GenerateToken(a *API) error {
 	a.resp = resp
 	a.err = err
 
-	// Option 1 - Extract the 1st token from the html Data in the reponse
 	defer a.resp.Body.Close()
 	htmlData, err := ioutil.ReadAll(a.resp.Body)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	//fmt.Println("[[[", string(htmlData), "]]]")
-	lastBin := strings.LastIndex(string(htmlData), "\"},{\"token\":\"")
-	//fmt.Printf("The token to use is: %v\n", string(htmlData)[11:lastBin])
 
-	// Option 2 - Extract the 1st token from JSON in the response
-	lastBin = strings.LastIndex(string(htmlData), ",")
-	//fmt.Printf("The token to use is: %v\n", string(htmlData)[1:lastBin])
-
-	// TODO - Extract the token from the JSON map read from the html Data in the response
-	byt := []byte(string(htmlData)[1:lastBin])
-	var keys map[string]interface{}
-	json.Unmarshal(byt, &keys)
-	token := fmt.Sprint(keys["token"])
+	var keys []map[string] interface{}
+	json.Unmarshal(htmlData, &keys)
+	token := fmt.Sprint(keys[0]["token"].(map[string] interface{})["access_token"])
 	if token == "" {
 		return fmt.Errorf("Failed to obtain a login token")
 	}
@@ -142,6 +131,9 @@ func (s *SpaceContext) CleanupDatabase() {
 		s.api.Reset()
 		s.generateToken()
 		for _, aSpace := range allSpaces.Data {
+			if (*aSpace.Attributes.Name) == "system.space" {
+				continue
+			}
 			itrSpaceID := (*aSpace).ID.String()
 			deleteResp, deleteErr := a.c.DeleteSpace(context.Background(), client.DeleteSpacePath(itrSpaceID))
 			if deleteResp.StatusCode != http.StatusOK {
