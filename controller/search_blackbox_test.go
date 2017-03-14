@@ -301,7 +301,7 @@ func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.Se
 	prms := url.Values{}
 	prms["q"] = []string{queryString} // any value will do
 	goaCtx := goa.NewContext(goa.WithAction(s.svc.Context, "SearchTest"), rw, req, prms)
-	showCtx, err := app.NewShowSearchContext(goaCtx, s.svc)
+	showCtx, err := app.NewShowSearchContext(goaCtx, req, s.svc)
 	require.Nil(s.T(), err)
 	// Perform action
 	err = s.controller.Show(showCtx)

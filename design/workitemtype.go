@@ -67,8 +67,6 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	})
 
 	a.Required("version")
-	a.Required("createdAt")
-	a.Required("updatedAt")
 	a.Required("fields")
 	a.Required("name")
 	a.Required("icon")

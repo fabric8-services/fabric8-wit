@@ -39,7 +39,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: 8f0fdca409904318050f9e03579c3878f8928826
+  version: be1e8b9a2614909d8805079ebd1c947778170c0e
   vcs: git
   subpackages:
   - client
@@ -49,7 +49,8 @@ imports:
   - goagen
   - goagen/codegen
   - goagen/gen_app
-  - goagen/gen_controllers
+  - goagen/gen_controller
+  - goagen/
   - goagen/utils
   - goatest
   - middleware

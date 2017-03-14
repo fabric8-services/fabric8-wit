@@ -1,5 +1,11 @@
 package controller
 
+import (
+	"bytes"
+	"crypto/md5"
+	"encoding/base64"
+)
+
 const (
 	// IfModifiedSince the "If-Modified-Since" HTTP request header name
 	IfModifiedSince = "If-Modified-Since"
@@ -17,3 +23,11 @@ const (
 	// MaxAge the "max-age" HTTP response header value
 	MaxAge = "max-age"
 )
+
+// GenerateETag generates the value to return in the "ETag" HTTP response header, using the data in the given buffer.
+// The ETag is the base64-encoded value of the md5 hash of the buffer content
+func GenerateETag(buffer bytes.Buffer) string {
+	etagData := md5.Sum(buffer.Bytes())
+	etag := base64.StdEncoding.EncodeToString(etagData[:])
+	return etag
+}

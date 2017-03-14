@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"crypto/md5"
-	"encoding/base64"
 	"strconv"
 	"time"
 
@@ -53,9 +51,7 @@ func generateWorkItemTypeETagValue(buffer *bytes.Buffer, workitemtypeData app.Wo
 func GenerateWorkItemTypeETag(workitemtype app.WorkItemTypeSingle) string {
 	var buffer bytes.Buffer
 	generateWorkItemTypeETagValue(&buffer, *workitemtype.Data)
-	etagData := md5.Sum(buffer.Bytes())
-	etag := base64.StdEncoding.EncodeToString(etagData[:])
-	return etag
+	return GenerateETag(buffer)
 }
 
 // GenerateWorkItemTypesETag compute the value of the HTTP "ETag" response header for a given list of work item types.
@@ -65,14 +61,42 @@ func GenerateWorkItemTypesETag(workitemtypes app.WorkItemTypeList) string {
 	for _, workitemtypeData := range workitemtypes.Data {
 		generateWorkItemTypeETagValue(&buffer, *workitemtypeData)
 	}
-	etagData := md5.Sum(buffer.Bytes())
-	etag := base64.StdEncoding.EncodeToString(etagData[:])
-	return etag
+	return GenerateETag(buffer)
+}
+
+// generateWorkItemLinkTypeETagValue compute the unhashed value of the HTTP "ETag" response header for a given single work item link type.
+func generateWorkItemLinkTypeETagValue(buffer *bytes.Buffer, workitemlinktypeData app.WorkItemLinkTypeData) {
+	// build a block of text for the given type with one <id>-<version>
+	buffer.WriteString(workitemlinktypeData.ID.String())
+	buffer.WriteString("-")
+	buffer.WriteString(strconv.Itoa(*workitemlinktypeData.Attributes.Version))
+	buffer.WriteString("\n")
+}
+
+// GenerateWorkItemLinkTypeETag compute the value of the HTTP "ETag" response header for a given single work item link type.
+func GenerateWorkItemLinkTypeETag(workitemlinktype app.WorkItemLinkTypeSingle) string {
+	var buffer bytes.Buffer
+	generateWorkItemLinkTypeETagValue(&buffer, *workitemlinktype.Data)
+	return GenerateETag(buffer)
+}
+
+// GenerateWorkItemLinkTypesETag compute the value of the HTTP "ETag" response header for a given list of work item link types.
+func GenerateWorkItemLinkTypesETag(workitemlinktypes app.WorkItemLinkTypeList) string {
+	// build a block of text for all types in the given list, with one <id>-<version> per line
+	var buffer bytes.Buffer
+	for _, workitemlinktypeData := range workitemlinktypes.Data {
+		generateWorkItemLinkTypeETagValue(&buffer, *workitemlinktypeData)
+	}
+	return GenerateETag(buffer)
 }
 
 // GetWorkItemTypeLastModified gets the update time for a given single work item type.
 func GetWorkItemTypeLastModified(workitemtype app.WorkItemTypeSingle) time.Time {
-	return workitemtype.Data.Attributes.UpdatedAt.Truncate(time.Second)
+	var updatedAt time.Time
+	if workitemtype.Data.Attributes.UpdatedAt != nil {
+		updatedAt = *workitemtype.Data.Attributes.UpdatedAt
+	}
+	return updatedAt.Truncate(time.Second)
 }
 
 // GetWorkItemTypesLastModified gets the update time for a given list of work item types.
@@ -80,8 +104,29 @@ func GetWorkItemTypesLastModified(workitemtypes app.WorkItemTypeList) time.Time 
 	// finds the most recent update time in the list of work item types
 	var updatedAt time.Time //January 1, year 1, 00:00:00.000000000 UTC
 	for _, workitemtypeData := range workitemtypes.Data {
-		if workitemtypeData.Attributes.UpdatedAt.After(updatedAt) {
-			updatedAt = workitemtypeData.Attributes.UpdatedAt
+		if workitemtypeData.Attributes.UpdatedAt != nil && workitemtypeData.Attributes.UpdatedAt.After(updatedAt) {
+			updatedAt = *workitemtypeData.Attributes.UpdatedAt
+		}
+	}
+	return updatedAt.Truncate(time.Second)
+}
+
+// GetWorkItemLinkTypeLastModified gets the update time for a given single work item link type.
+func GetWorkItemLinkTypeLastModified(workitemlinktype app.WorkItemLinkTypeSingle) time.Time {
+	var updatedAt time.Time
+	if workitemlinktype.Data.Attributes.UpdatedAt != nil {
+		updatedAt = workitemlinktype.Data.Attributes.UpdatedAt.Truncate(time.Second)
+	}
+	return updatedAt
+}
+
+// GetWorkItemLinkTypesLastModified gets the update time for a given list of work item link types.
+func GetWorkItemLinkTypesLastModified(workitemlinktypes app.WorkItemLinkTypeList) time.Time {
+	// finds the most recent update time in the list of work item types
+	var updatedAt time.Time //January 1, year 1, 00:00:00.000000000 UTC
+	for _, workitemlinktypeData := range workitemlinktypes.Data {
+		if workitemlinktypeData.Attributes.UpdatedAt != nil && workitemlinktypeData.Attributes.UpdatedAt.After(updatedAt) {
+			updatedAt = *workitemlinktypeData.Attributes.UpdatedAt
 		}
 	}
 	return updatedAt.Truncate(time.Second)
@@ -169,17 +214,32 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
-		res, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
+		result, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// check the "If-Modified-Since header against the last update timestamp"
+		// HTTP header does not include microseconds, so we need to ignore them in the "updated_at" record field.
+		lastModified := GetWorkItemLinkTypesLastModified(*result)
+		if ctx.IfModifiedSince != nil && !ctx.IfModifiedSince.UTC().Before(lastModified) {
+			return ctx.NotModified()
+		}
+		// check the ETag
+		etag := GenerateWorkItemLinkTypesETag(*result)
+		if ctx.IfNoneMatch != nil && *ctx.IfNoneMatch == etag {
+			return ctx.NotModified()
 		}
 		// Enrich link types
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
-		err = enrichLinkTypeList(linkCtx, res)
+		err = enrichLinkTypeList(linkCtx, result)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(res)
+		// return the work item type along with conditional query and caching headers
+		ctx.ResponseData.Header().Set(LastModified, lastModified.String())
+		ctx.ResponseData.Header().Set(ETag, etag)
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		return ctx.OK(result)
 	})
 }
 
@@ -193,16 +253,31 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg
-		res, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
+		result, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// check the "If-Modified-Since header against the last update timestamp"
+		// HTTP header does not include microseconds, so we need to ignore them in the "updated_at" record field.
+		lastModified := GetWorkItemLinkTypesLastModified(*result)
+		if ctx.IfModifiedSince != nil && !ctx.IfModifiedSince.UTC().Before(lastModified) {
+			return ctx.NotModified()
+		}
+		// check the ETag
+		etag := GenerateWorkItemLinkTypesETag(*result)
+		if ctx.IfNoneMatch != nil && *ctx.IfNoneMatch == etag {
+			return ctx.NotModified()
 		}
 		// Enrich link types
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
-		err = enrichLinkTypeList(linkCtx, res)
+		err = enrichLinkTypeList(linkCtx, result)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(res)
+		// return the work item type along with conditional query and caching headers
+		ctx.ResponseData.Header().Set(LastModified, lastModified.String())
+		ctx.ResponseData.Header().Set(ETag, etag)
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		return ctx.OK(result)
 	})
 }

@@ -194,12 +194,14 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID
+	createdAt := t.CreatedAt.UTC()
+	updatedAt := t.UpdatedAt.UTC()
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
 		ID:   &id,
 		Attributes: &app.WorkItemTypeAttributes{
-			CreatedAt:   t.CreatedAt.UTC(),
-			UpdatedAt:   t.UpdatedAt.UTC(),
+			CreatedAt:   &createdAt,
+			UpdatedAt:   &updatedAt,
 			Version:     t.Version,
 			Description: t.Description,
 			Icon:        t.Icon,
