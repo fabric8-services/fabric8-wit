@@ -32,7 +32,6 @@ const (
 	SystemUpdatedAt           = "system.updated_at"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
-	SystemOrder               = "system.order"
 	SystemCodebase            = "system.codebase"
 
 	SystemStateOpen       = "open"

@@ -310,8 +310,8 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			// When same reorder request is made again
 			return &wi, nil
 		} else {
-			topItemOrder := res.Fields[SystemOrder]
-			order = topItemOrder.(float64) + orderValue
+			topItemOrder := res.ExecutionOrder
+			order = topItemOrder + orderValue
 		}
 	case DirectionBottom:
 		// if direction == "bottom", place the reorder item at the bottom most position. Now, the reorder item has the lowest order in the whole list
@@ -323,8 +323,8 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			// When same reorder request is made again
 			return &wi, nil
 		} else {
-			bottomItemOrder := res.Fields[SystemOrder]
-			order = bottomItemOrder.(float64) / 2
+			bottomItemOrder := res.ExecutionOrder
+			order = bottomItemOrder / 2
 		}
 	default:
 		return &wi, nil
@@ -336,7 +336,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	res.ExecutionOrder = order
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -396,7 +396,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	res.Type = wi.Type
 	res.Fields = Fields{}
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -443,7 +443,6 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errors.NewInternalError(err.Error())
 	}
 	pos = pos + orderValue
-	fields[SystemOrder] = pos
 	wi := WorkItem{
 		Type:           typeID,
 		Fields:         Fields{},
@@ -493,9 +492,6 @@ func convertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, w
 	}
 	if _, ok := wiType.Fields[SystemCreatedAt]; ok {
 		result.Fields[SystemCreatedAt] = wi.CreatedAt
-	}
-	if _, ok := wiType.Fields[SystemOrder]; ok {
-		result.Fields[SystemOrder] = wi.ExecutionOrder
 	}
 	if _, ok := wiType.Fields[SystemUpdatedAt]; ok {
 		result.Fields[SystemUpdatedAt] = wi.UpdatedAt

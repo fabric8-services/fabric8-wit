@@ -597,7 +597,6 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
-		workitem.SystemOrder:        {Type: &app.FieldType{Kind: "float"}, Required: false, Label: "Order", Description: "The execution order of the workitem"},
 		workitem.SystemAssignees: {
 			Type: &app.FieldType{
 				ComponentType: &stUser,
