@@ -178,6 +178,8 @@ func (s *workItemChildSuite) SetupTest() {
 	s.userLinkCategoryID = *workItemLinkCategory.Data.ID
 	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
+	s.DB.Unscoped().Delete(&link.WorkItemLinkType{})
+
 	// Create work item link type payload
 	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, createLinkTypePayload)
