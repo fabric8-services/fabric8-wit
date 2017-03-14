@@ -58,11 +58,27 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
-		reqSpace := ctx.Payload.Data
+	reqSpace := ctx.Payload.Data
+	spaceName := *reqSpace.Attributes.Name
+	spaceID := uuid.NewV4()
+	// Create keycloak resource for this space
+	// TODO if transaction below fails we need to remove this Keycloak Resource to avoid poluting Keycloak with unused resources
+	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String(), spaceName+"-"+uuid.NewV4().String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 
+	spaceResource := &space.Resource{
+		ResourceID:   resource.ResourceID,
+		PolicyID:     resource.PolicyID,
+		PermissionID: resource.PermissionID,
+		SpaceID:      spaceID,
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
 		newSpace := space.Space{
-			Name:    *reqSpace.Attributes.Name,
+			ID:      spaceID,
+			Name:    spaceName,
 			OwnerId: *currentUser,
 		}
 		if reqSpace.Attributes.Description != nil {
@@ -97,19 +113,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			Data: ConvertSpace(ctx.RequestData, rSpace),
 		}
 
-		// Create keycloak resource for this space
-		resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, rSpace.ID.String(), spaceResourceType, &rSpace.Name, &scopes, rSpace.OwnerId.String(), rSpace.Name+"-"+uuid.NewV4().String())
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-
-		spaceResource := &space.Resource{
-			ResourceID:   resource.ResourceID,
-			PolicyID:     resource.PolicyID,
-			PermissionID: resource.PermissionID,
-			SpaceID:      rSpace.ID,
-		}
-
 		// Create space resource which will represent the keyclok resource associated with this space
 		_, err = appl.SpaceResources().Create(ctx, spaceResource)
 		if err != nil {
@@ -131,13 +134,12 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var resourceID string
+	var permissionID string
+	var policyID string
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		// Delete associated space resource
 		resource, err := appl.SpaceResources().LoadBySpace(ctx, &id)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		c.resourceManager.DeleteResource(ctx, ctx.RequestData, auth.Resource{ResourceID: resource.PermissionID, PermissionID: resource.PermissionID, PolicyID: resource.PolicyID})
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -151,8 +153,21 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		resourceID = resource.ResourceID
+		permissionID = resource.PermissionID
+		policyID = resource.PolicyID
+
 		return ctx.OK([]byte{})
 	})
+
+	if err != nil {
+		return err
+	}
+	c.resourceManager.DeleteResource(ctx, ctx.RequestData, auth.Resource{ResourceID: resourceID, PermissionID: permissionID, PolicyID: policyID})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // List runs the list action.

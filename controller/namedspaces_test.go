@@ -1,12 +1,10 @@
 package controller_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -18,16 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
-
-var namedspaceConfiguration *configuration.ConfigurationData
-
-func init() {
-	var err error
-	namedspaceConfiguration, err = configuration.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-}
 
 type TestNamedSpaceREST struct {
 	gormtestsupport.DBTestSuite
@@ -65,12 +53,12 @@ func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceCo
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewSpaceController(svc, rest.db, namedspaceConfiguration, &DummyResourceManager{})
+	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) UnSecuredSpaceController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, rest.db, namedspaceConfiguration, &DummyResourceManager{})
+	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
