@@ -152,11 +152,11 @@
       - new: !!map
           label: "New"
           description: "foobar"
-          icon: "fa-asterisk"
+          icon: "fa fa-asterisk"
       - closed: !!map
           label: "Closed"
           description: "foobar"
-          icon: "fa-check"
+          icon: "fa fa-check"
   reason: !!map
     label: "Reason"
     description: "TBD"
@@ -198,19 +198,19 @@
       - 1: !!map
           label: "Must fix"
           description: "TBD"
-          icon: "pficon-warning-triangle-o"
+          icon: "pficon pficon-warning-triangle-o"
       - 2: !!map
           label: "Nice to have"
           description: "TBD"
-          icon: "fa-star"
+          icon: "fa fa-star"
       - 3: !!map
           label: "Not very important"
           description: "TBD"
-          icon: "pficon-history"
+          icon: "pficon pficon-history"
       - 4: !!map
           label: "Unimportant"
           description: "TBD"
-          icon: "fa-bomb"
+          icon: "fa fa-bomb"
 
 ~: &AcceptanceCriteria !!map
   acceptance_criteria: !!map
@@ -260,23 +260,23 @@
       - new: !!map
           label: "New"
           description: "TBD"
-          icon: "fa-asterisk"
+          icon: "fa fa-asterisk"
       - approved: !!map
           label: "Approved"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
       - committed: !!map
           label: "Committed"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
       - done: !!map
           label: "Done"
           description: "TBD"
-          icon: "pficon-resources-full"
+          icon: "pficon pficon-resources-full"
       - removed: !!map
           label: "Removed"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
   system_info: !!map
     label: "System info"
     description: "TBD"
@@ -299,19 +299,19 @@
       - 1: !!map
           label: "Critical"
           description: "TBD"
-          icon: "pficon-warning-triangle-o"
+          icon: "pficon pficon-warning-triangle-o"
       - 2: !!map
           label: "High"
           description: "TBD"
-          icon: "fa-star"
+          icon: "fa fa-star"
       - 3: !!map
           label: "Medium"
           description: "TBD"
-          icon: "pficon-history"
+          icon: "pficon pficon-history"
       - 4: !!map
           label: "Low"
           description: "TBD"
-          icon: "fa-bomb"
+          icon: "fa fa-bomb"
   found_in: !!map
     label: "Found in"
     description: "Good place for both users and automated tools to indicate where they found the bug (e.g. perhaps a build #)"
@@ -335,19 +335,19 @@
       - to_do: !!map
           label: "To Do"
           description: "TBD"
-          icon: "pficon-resources-almost-empty"
+          icon: "pficon pficon-resources-almost-empty"
       - in_progress: !!map
           label: "In Progress"
           description: "TBD"
-          icon: "pficon-resource-almost-full"
+          icon: "pficon pficon-resource-almost-full"
       - done: !!map
           label: "Done"
           description: "TBD"
-          icon: "pficon-resource-full"
+          icon: "pficon pficon-resource-full"
       - removed: !!map
           label: "Removed"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
   blocked: !!map
     label: "Acceptance criteria"
     description: "TBD"
@@ -371,19 +371,19 @@
       - new: !!map
           label: "New"
           description: "TBD"
-          icon: "fa-asterisk"
+          icon: "fa fa-asterisk"
       - in_progress: !!map
           label: "In Progress"
           description: "TBD"
-          icon: "pficon-resources-almost-full"
+          icon: "pficon pficon-resources-almost-full"
       - done: !!map
           label: "Done"
           description: "TBD"
-          icon: "pficon-resources-full"
+          icon: "pficon pficon-resources-full"
       - removed: !!map
           label: "Removed"
           description: "TBD"
-          icon: "fa-boquestionmb"
+          icon: "fa fa-boquestionmb"
 
 # Define the layout of the "Feature" work item type
 ~: &FeatureFields !!map
@@ -402,19 +402,19 @@
       - new: !!map
           label: "New"
           description: "TBD"
-          icon: "fa-asterisk"
+          icon: "fa fa-asterisk"
       - in_progress: !!map
           label: "In Progress"
           description: "TBD"
-          icon: "pficon-resources-almost-full"
+          icon: "pficon pficon-resources-almost-full"
       - done: !!map
           label: "Done"
           description: "TBD"
-          icon: "pficon-resources-full"
+          icon: "pficon pficon-resources-full"
       - removed: !!map
           label: "Removed"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
 
 # Define the layout of the "Impediment" work item type
 ~: &ImpedimentFields !!map
@@ -433,15 +433,15 @@
       - open: !!map
           label: "Open"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
       - closed: !!map
           label: "Closed"
           description: "TBD"
-          icon: "fa-check"
+          icon: "fa fa-check"
       - removed: !!map
           label: "Removed"
           description: "TBD"
-          icon: "fa-question"
+          icon: "fa fa-question"
   resolution: !!map
     label: "Resolution"
     description: "TBD"
@@ -465,23 +465,23 @@
       - new: !!map
           label: "New"
           description: "TBD"
-          icon: "fa-asterisk"
+          icon: "fa fa-asterisk"
       - approved: !!map
           label: "Approved"
           description: "TBD"
-          icon: "fa-bomb"
+          icon: "fa fa-bomb"
       - committed: !!map
           label: "Committed"
           description: "TBD"
-          icon: "fa-bomb"
+          icon: "fa fa-bomb"
       - done: !!map
           label: "Done"
           description: "TBD"
-          icon: "pficon-resources-full"
+          icon: "pficon pficon-resources-full"
       - removed: !!map
           label: "Removed"
           description: "TBD"
-          icon: "fa-bomb"
+          icon: "fa fa-bomb"
 
 # This map defines all the work item types that exist in a space. We re-use some
 # of the above states and lists in order share code between work item types.
@@ -489,31 +489,31 @@ work_item_types: !!seq
   - !!map
     title: "Bug"
     description: "TBD"
-    icon: "fa-bug"
+    icon: "fa fa-bug"
     fields:
       << : *BugFields
   - !!map
     title: "Task"
     description: "TBD"
-    icon: "fa-question"
+    icon: "fa fa-question"
     fields:
       << : *TaskFields
   - !!map
     title: "Epic"
     description: "TBD"
-    icon: "fa-bolt"
+    icon: "fa fa-bolt"
     fields:
       << : *EpicFields
   - !!map
     title: "Impediment"
     description: "TBD"
-    icon: "fa-question"
+    icon: "fa fa-question"
     fields:
       << : *ImpedimentFields
   - !!map
     title: "Product Backlog Item"
     description: "TBD"
-    icon: "fa-bookmark"
+    icon: "fa fa-bookmark"
     fields:
       << : *ProductBacklogItemFields
 ...
