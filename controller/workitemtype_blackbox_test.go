@@ -270,7 +270,7 @@ func lookupWorkItemTypes(witCollection app.WorkItemTypeList, workItemTypes ...ap
 }
 
 //-----------------------------------------------------------------------------
-// Actual tests
+// Test on work item types retrieval (single and list)
 //-----------------------------------------------------------------------------
 
 // TestCreateWorkItemType tests if we can create two work item types: "animal" and "person"
@@ -493,9 +493,16 @@ func (s *workItemTypeSuite) TestListWorkItemType304UsingIfNoneMatchHeader() {
 	test.ListWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, &page, nil, &ifNoneMatch)
 }
 
-// TestListSourceAndTargetLinkTypes tests if we can find the work item link
-// types for a given WIT.
-func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
+//-----------------------------------------------------------------------------
+// Test on work item type links retrieval
+//-----------------------------------------------------------------------------
+
+const (
+	animalLinksToBugStr = "animal-links-to-bug"
+	bugLinksToAnimalStr = "bug-links-to-animal"
+)
+
+func (s *workItemTypeSuite) createWorkitemtypeLinks() {
 	// Create the work item type first and try to read it back in
 	_, witAnimal := s.createWorkItemTypeAnimal()
 	require.NotNil(s.T(), witAnimal)
@@ -512,17 +519,43 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 	// Create work item link type
-	animalLinksToBugStr := "animal-links-to-bug"
 	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 1")
 	// Create another work item link type
-	bugLinksToAnimalStr := "bug-links-to-animal"
 	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *space.Data.ID)
 	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 2")
+}
+
+// TestListSourceAndTargetLinkTypes tests if we can find the work item link
+// types for a given WIT.
+func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes200OK() {
+	// given
+	s.createWorkitemtypeLinks()
+	// when fetch source link types
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
+	require.NotNil(s.T(), wiltCollection)
+	assert.Nil(s.T(), wiltCollection.Validate())
+	// then check the number of found work item link types
+	require.Len(s.T(), wiltCollection.Data, 1)
+	require.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
+	// When fetch target link types
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
+	require.NotNil(s.T(), wiltCollection)
+	require.Nil(s.T(), wiltCollection.Validate())
+	// Then check the number of found work item link types
+	require.Len(s.T(), wiltCollection.Data, 1)
+	require.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
+}
+
+// TestListSourceAndTargetLinkTypes tests if we can find the work item link
+// types for a given WIT.
+func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes200UsingExpiredIfModifiedSinceHeader() {
+	// given
+	s.createWorkitemtypeLinks()
 	// when fetch source link types
 	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
 	require.NotNil(s.T(), wiltCollection)
@@ -565,6 +598,10 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
 	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, uuid.Nil)
 	require.NotNil(s.T(), jerrors)
 }
+
+//-----------------------------------------------------------------------------
+// Test on work item type authorization
+//-----------------------------------------------------------------------------
 
 // This test case will check authorized access to Create/Update/Delete APIs
 func (s *workItemTypeSuite) TestUnauthorizeWorkItemTypeCreate() {

@@ -172,7 +172,7 @@ var _ = a.Resource("workitemtype", func() {
 		a.Response(d.OK, func() {
 			a.Media(workItemTypeList)
 			a.Headers(func() {
-				a.Header("Last-Modified")
+				a.Header("Last-Modified", d.DateTime)
 				a.Header("ETag")
 				a.Header("Cache-Control")
 			})
@@ -190,9 +190,19 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("witID", d.UUID, "ID of the work item type")
 		})
 		a.Description(`Retrieve work item link types where the given work item type can be used in the source of the link.`)
+		a.Headers(func() {
+			a.Header("If-Modified-Since", d.DateTime)
+			a.Header("If-None-Match")
+		})
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkTypeList)
+			a.Headers(func() {
+				a.Header("Last-Modified", d.DateTime)
+				a.Header("ETag")
+				a.Header("Cache-Control")
+			})
 		})
+		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
@@ -205,9 +215,19 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("witID", d.UUID, "ID of work item type")
 		})
 		a.Description(`Retrieve work item link types where the given work item type can be used in the target of the link.`)
+		a.Headers(func() {
+			a.Header("If-Modified-Since", d.DateTime)
+			a.Header("If-None-Match")
+		})
 		a.Response(d.OK, func() {
 			a.Media(workItemLinkTypeList)
+			a.Headers(func() {
+				a.Header("Last-Modified", d.DateTime)
+				a.Header("ETag")
+				a.Header("Cache-Control")
+			})
 		})
+		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
