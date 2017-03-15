@@ -44,7 +44,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 		}
 
 		resp := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s),
+			Data: ConvertSpaceFromModel(ctx.RequestData, *s),
 		}
 
 		return ctx.OK(&resp)
@@ -74,7 +74,7 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 		response := app.SpaceList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpaces(ctx.RequestData, spaces),
+			Data:  ConvertSpacesFromModel(ctx.RequestData, spaces),
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
 

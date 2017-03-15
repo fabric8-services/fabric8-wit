@@ -67,6 +67,7 @@ const (
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
 	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
+	varCacheControlSpace                = "cachecontrol.space"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
@@ -165,6 +166,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
+	c.v.SetDefault(varCacheControlSpace, "max-age=86400")            // 1 day
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -266,6 +268,12 @@ func (c *ConfigurationData) GetCacheControlWorkItemType() string {
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
 	return c.v.GetString(varCacheControlWorkItemLinkType)
+}
+
+// GetCacheControlSpace returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning spaces.
+func (c *ConfigurationData) GetCacheControlSpace() string {
+	return c.v.GetString(varCacheControlSpace)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)

@@ -2,8 +2,8 @@ package space
 
 import (
 	"strings"
+	"time"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -59,16 +59,26 @@ func (p Space) Equal(u convert.Equaler) bool {
 	return true
 }
 
+// GetETagData returns the field values to use to generate the ETag
+func (p Space) GetETagData() []interface{} {
+	return []interface{}{p.ID, p.Version}
+}
+
+// GetLastModified returns the last modification time
+func (p Space) GetLastModified() time.Time {
+	return p.UpdatedAt.Truncate(time.Second)
+}
+
 // Repository encapsulate storage & retrieval of spaces
 type Repository interface {
 	Create(ctx context.Context, space *Space) (*Space, error)
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	LoadByOwner(ctx context.Context, userId *uuid.UUID, start *int, length *int) ([]*Space, uint64, error)
+	LoadByOwner(ctx context.Context, userId *uuid.UUID, start *int, length *int) ([]Space, uint64, error)
 	LoadByOwnerAndName(ctx context.Context, userId *uuid.UUID, spaceName *string) (*Space, error)
-	List(ctx context.Context, start *int, length *int) ([]*Space, uint64, error)
-	Search(ctx context.Context, q *string, start *int, length *int) ([]*Space, uint64, error)
+	List(ctx context.Context, start *int, length *int) ([]Space, uint64, error)
+	Search(ctx context.Context, q *string, start *int, length *int) ([]Space, uint64, error)
 }
 
 // NewRepository creates a new space repo
@@ -187,8 +197,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId *uuid.UUID, start *int, limit *int) ([]*Space, uint64, error) {
-
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId *uuid.UUID, start *int, limit *int) ([]Space, uint64, error) {
 	db := r.db.Model(&Space{})
 	orgDB := db
 	if start != nil {
@@ -218,7 +227,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId 
 	}
 	defer rows.Close()
 
-	result := []*Space{}
+	result := []Space{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -244,7 +253,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId 
 				return nil, 0, errors.NewInternalError(err.Error())
 			}
 		}
-		result = append(result, &value)
+		result = append(result, value)
 	}
 	if first {
 		if q != nil {
@@ -267,30 +276,27 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId 
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]*Space, uint64, error) {
+func (r *GormRepository) List(ctx context.Context, start *int, limit *int) ([]Space, uint64, error) {
 	result, count, err := r.listSpaceFromDB(ctx, nil, nil, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-
 	return result, count, nil
 }
 
-func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]*Space, uint64, error) {
+func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limit *int) ([]Space, uint64, error) {
 	result, count, err := r.listSpaceFromDB(ctx, q, nil, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-
 	return result, count, nil
 }
 
-func (r *GormRepository) LoadByOwner(ctx context.Context, userId *uuid.UUID, start *int, limit *int) ([]*Space, uint64, error) {
+func (r *GormRepository) LoadByOwner(ctx context.Context, userId *uuid.UUID, start *int, limit *int) ([]Space, uint64, error) {
 	result, count, err := r.listSpaceFromDB(ctx, nil, userId, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-
 	return result, count, nil
 }
 
@@ -308,17 +314,4 @@ func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *uuid.UU
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return &res, nil
-}
-
-func NewSpaceRelation(id uuid.UUID, selfURL string) *app.RelationSpaces {
-	spaceType := "spaces"
-	return &app.RelationSpaces{
-		Data: &app.RelationSpacesData{
-			Type: &spaceType,
-			ID:   &id,
-		},
-		Links: &app.GenericLinks{
-			Self: &selfURL,
-		},
-	}
 }

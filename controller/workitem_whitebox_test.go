@@ -156,7 +156,7 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 					ID:   workitem.SystemBug,
 				},
 			},
-			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 		Attributes: attributes,
 	}

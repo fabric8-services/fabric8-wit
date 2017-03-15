@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -53,9 +54,9 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		witData := convertTypeFromModel(ctx.RequestData, witModel)
-		wit := &app.WorkItemTypeSingle{Data: &witData}
-		return ctx.Conditional(*wit, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntity(*witModel, c.config.GetCacheControlWorkItemType, func() error {
+			witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witModel)
+			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)
 		})
 	})
@@ -77,7 +78,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 			// We overwrite or use the space ID in the URL to set the space of this WI
 			spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(spaceID.String()))
-			ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
+			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(spaceID, spaceSelfURL)
 		}
 		modelFields, err := ConvertFieldDefinitionsToModel(fields)
 		if err != nil {
@@ -95,7 +96,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		witData := convertTypeFromModel(ctx.RequestData, witTypeModel)
+		witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 		return ctx.Created(wit)
@@ -108,34 +109,36 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-
+	logrus.Info("spaceID:", spaceID)
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		witModels, err := appl.WorkItemTypes().List(ctx.Context, spaceID, start, &limit)
+		logrus.Info("witModels: ", len(witModels))
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
-
-		// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
-		// for the space.
-		if len(witModels) == 0 {
-			witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemType, func() error {
+			logrus.Info("conditional witModels..")
+			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
+			// for the space.
+			if len(witModels) == 0 {
+				witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+				}
 			}
-		}
-		// convert from model to app
-		result := &app.WorkItemTypeList{}
-		result.Data = make([]*app.WorkItemTypeData, len(witModels))
-		for index, value := range witModels {
-			wit := convertTypeFromModel(ctx.RequestData, &value)
-			result.Data[index] = &wit
-		}
-
-		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
+			logrus.Info("witModels: ", len(witModels))
+			// convert from model to app
+			result := &app.WorkItemTypeList{}
+			result.Data = make([]*app.WorkItemTypeData, len(witModels))
+			for index, value := range witModels {
+				wit := ConvertWorkItemTypeFromModel(ctx.RequestData, &value)
+				result.Data[index] = &wit
+			}
+			logrus.Info("result: ", len(result.Data))
 			return ctx.OK(result)
 		})
 	})
@@ -160,21 +163,21 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		// convert to rest representation
-		appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		// Enrich link types
-		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
-		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, appLinkTypes)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		return ctx.Conditional(*appLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntities(modelLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+			// convert to rest representation
+			appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// Enrich link types
+			hrefFunc := func(obj interface{}) string {
+				return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+			}
+			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
+			err = enrichLinkTypeList(linkCtx, appLinkTypes)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
 			return ctx.OK(appLinkTypes)
 		})
 	})
@@ -199,27 +202,27 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		// Enrich link types
-		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
-		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, appLinkTypes)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		return ctx.Conditional(*appLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntities(modelLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+			appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			// Enrich link types
+			hrefFunc := func(obj interface{}) string {
+				return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+			}
+			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
+			err = enrichLinkTypeList(linkCtx, appLinkTypes)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
 			return ctx.OK(appLinkTypes)
 		})
 	})
 }
 
 // converts from models to app representation
-func convertTypeFromModel(request *goa.RequestData, t *workitem.WorkItemType) app.WorkItemTypeData {
+func ConvertWorkItemTypeFromModel(request *goa.RequestData, t *workitem.WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID
 	createdAt := t.CreatedAt.UTC()
@@ -237,7 +240,7 @@ func convertTypeFromModel(request *goa.RequestData, t *workitem.WorkItemType) ap
 			Fields:      map[string]*app.FieldDefinition{},
 		},
 		Relationships: &app.WorkItemTypeRelationships{
-			Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(t.SpaceID, spaceSelfURL),
 		},
 	}
 	for name, def := range t.Fields {
