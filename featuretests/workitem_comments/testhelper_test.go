@@ -13,7 +13,6 @@ import (
 	"github.com/almighty/almighty-core/client"
 	"github.com/almighty/almighty-core/workitem"
 	goaclient "github.com/goadesign/goa/client"
-	"github.com/mitchellh/mapstructure"
 	"github.com/satori/go.uuid"
 	goauuid "github.com/goadesign/goa/uuid"
 	"golang.org/x/net/context"
@@ -266,10 +265,11 @@ func (i *CommentContext) anExistingWorkItemExistsInTheProjectInAClosedState() er
 	resp, err := a.c.CreateWorkitem(context.Background(), client.CreateWorkitemPath(), createClosedWorkItemPayload())
 	a.resp = resp
 	a.err = err
-	json.NewDecoder(a.resp.Body).Decode(&a.body)
-	mapError := mapstructure.Decode(a.body, &i.workItem)
-	if mapError != nil {
-		panic(mapError)
+	dec := json.NewDecoder(a.resp.Body)
+	if err := dec.Decode(&i.workItem); err == io.EOF {
+		return nil
+	} else if err != nil {
+		panic(err)
 	}
 	return nil
 }
