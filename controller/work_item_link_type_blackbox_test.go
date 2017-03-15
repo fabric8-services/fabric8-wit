@@ -141,7 +141,7 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 
 	//	 2. Create at least one work item type
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &workItemTypePayload)
+	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.spaceID.String(), &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	//   3. Create a work item link category
@@ -309,7 +309,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	require.NotNil(s.T(), bugBlockerType)
 
 	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID)
-	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &workItemTypePayload)
+	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, bugBlockerPayload.Data.Relationships.Space.Data.ID.String(), &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
 	relatedPayload := CreateWorkItemLinkType(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)

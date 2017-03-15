@@ -174,7 +174,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 		},
 	}
 
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &payload)
 	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
@@ -218,7 +218,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		},
 	}
 
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &payload)
 	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
@@ -280,7 +280,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType() {
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 
-	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID)
+	_, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), *wit.Data.ID)
 
 	require.NotNil(s.T(), wit2)
 	require.EqualValues(s.T(), wit, wit2)
@@ -298,7 +298,7 @@ func (s *workItemTypeSuite) TestListWorkItemType() {
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
 	page := "0,-1"
-	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, &page)
+	_, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &page)
 
 	require.NotNil(s.T(), witCollection)
 	require.Nil(s.T(), witCollection.Validate())
@@ -359,7 +359,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	s.T().Log("Created work item link 2")
 
 	// Fetch source link types
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.Data.ID.String(), animalID)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
@@ -367,7 +367,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	require.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
 
 	// Fetch target link types
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, animalID)
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.Data.ID.String(), animalID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
@@ -381,12 +381,12 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 	_, witPerson := s.createWorkItemTypePerson()
 	require.NotNil(s.T(), witPerson)
 
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, personID)
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), personID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
 
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, personID)
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), personID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	require.Len(s.T(), wiltCollection.Data, 0)
@@ -395,10 +395,10 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesEmpty() {
 // TestListSourceAndTargetLinkTypesNotFound tests that a NotFound error is
 // returned when you query a non existing WIT.
 func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypesNotFound() {
-	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, uuid.Nil)
+	_, jerrors := test.ListSourceLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), uuid.Nil)
 	require.NotNil(s.T(), jerrors)
 
-	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, uuid.Nil)
+	_, jerrors = test.ListTargetLinkTypesWorkitemtypeNotFound(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), uuid.Nil)
 	require.NotNil(s.T(), jerrors)
 }
 
@@ -416,28 +416,28 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 		// Create Work Item API with different parameters
 		{
 			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
+			url:                fmt.Sprintf(endpointWorkItemTypes, space.SystemSpace.String()),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
+			url:                fmt.Sprintf(endpointWorkItemTypes, space.SystemSpace.String()),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
+			url:                fmt.Sprintf(endpointWorkItemTypes, space.SystemSpace.String()),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPost,
-			url:                endpointWorkItemTypes,
+			url:                fmt.Sprintf(endpointWorkItemTypes, space.SystemSpace.String()),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWITPayloadString,
@@ -447,7 +447,7 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                endpointWorkItemTypes + "/2e889d4e-49a9-463b-8cd4-6a3a95155103",
+			url:                fmt.Sprintf(endpointWorkItemTypes, space.SystemSpace.String()) + "/2e889d4e-49a9-463b-8cd4-6a3a95155103",
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,

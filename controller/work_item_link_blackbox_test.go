@@ -192,10 +192,10 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
 
 	payload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, wit := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &payload)
+	_, wit := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.userSpaceID.String(), &payload)
 
 	payload2 := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &payload2)
+	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.userSpaceID.String(), &payload2)
 
 	// Create 3 work items (bug1, bug2, and feature1)
 	bug1Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug1")
