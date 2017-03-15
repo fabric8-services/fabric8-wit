@@ -53,7 +53,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		if valueType.Kind() == reflect.String && govalidator.IsURL(value.(string)) {
 			return value, nil
 		}
-		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
+		return nil, errs.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
 	case KindFloat:
 		if valueType.Kind() != reflect.Float64 {
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
@@ -120,7 +120,7 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		return time.Unix(0, value.(int64)), nil
 	case KindWorkitemReference:
 		if valueType.Kind() != reflect.String {
-			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return strconv.FormatUint(value.(uint64), 10), nil
 	case KindMarkup:
