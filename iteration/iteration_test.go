@@ -212,3 +212,74 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	assert.Equal(t, changedStart, *updatedIteration.StartAt)
 	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
 }
+
+func (test *TestIterationRepository) TestLoadChildren() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+	newSpace := space.Space{
+		Name: "Space To Test Listing of Iteration Children",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
+	repo := iteration.NewIterationRepository(test.DB)
+	level0IterationName := "Top level iteration"
+	i1 := iteration.Iteration{
+		Name:    level0IterationName,
+		SpaceID: space.ID,
+	}
+	e := repo.Create(context.Background(), &i1)
+	require.Nil(t, e)
+
+	// create child iteration
+	level1IterationName := "Level 1 iteration"
+	parentPath := append(i1.Path, i1.ID)
+	require.NotNil(t, parentPath)
+	i2 := iteration.Iteration{
+		Name:    level1IterationName,
+		SpaceID: space.ID,
+		Path:    parentPath,
+	}
+	e = repo.Create(context.Background(), &i2)
+	require.Nil(t, e)
+
+	// create child iteration for above child
+	level2IterationName := "Level 2 iteration"
+	parentPath = append(i2.Path, i2.ID)
+	require.NotNil(t, parentPath)
+	i3 := iteration.Iteration{
+		Name:    level2IterationName,
+		SpaceID: space.ID,
+		Path:    parentPath,
+	}
+	e = repo.Create(context.Background(), &i3)
+	require.Nil(t, e)
+
+	// fetch all children of top level iteraiton
+	childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
+	require.Nil(t, err)
+	require.Equal(t, 2, len(childIterations1))
+	expectedChildIDs1 := []uuid.UUID{i2.ID, i3.ID}
+	var actualChildIDs1 []uuid.UUID
+	for _, child := range childIterations1 {
+		actualChildIDs1 = append(actualChildIDs1, child.ID)
+	}
+	assert.Equal(t, expectedChildIDs1, actualChildIDs1)
+
+	// fetch all children of level 1 iteraiton
+	childIterations2, err := repo.LoadChildren(context.Background(), i2.ID)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(childIterations2))
+	expectedChildIDs2 := []uuid.UUID{i3.ID}
+	var actualChildIDs2 []uuid.UUID
+	for _, child := range childIterations2 {
+		actualChildIDs2 = append(actualChildIDs2, child.ID)
+	}
+	assert.Equal(t, expectedChildIDs2, actualChildIDs2)
+
+	// fetch all children of level 2 iteraiton
+	childIterations3, err := repo.LoadChildren(context.Background(), i3.ID)
+	require.Nil(t, err)
+	require.Equal(t, 0, len(childIterations3))
+}

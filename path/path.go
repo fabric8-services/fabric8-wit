@@ -83,7 +83,8 @@ func (p Path) Parent() Path {
 	return Path{uuid.Nil}
 }
 
-func (p Path) convertToLtree(id uuid.UUID) string {
+// ConvertToLtree returns ltree form of given UUID
+func (p Path) ConvertToLtree(id uuid.UUID) string {
 	converted := strings.Replace(id.String(), "-", "_", -1)
 	return converted
 }
@@ -108,7 +109,7 @@ func (p Path) convertFromLtree(uuidStr string) ([]uuid.UUID, error) {
 func (p Path) Value() (driver.Value, error) {
 	op := []string{}
 	for _, x := range p {
-		op = append(op, p.convertToLtree(x))
+		op = append(op, p.ConvertToLtree(x))
 	}
 	s := strings.Join(op, SepInDatabase)
 	return s, nil
