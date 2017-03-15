@@ -26,7 +26,7 @@ type WorkitemtypeController struct {
 }
 
 type cacheControlConfiguration interface {
-	GetWorkItemTypeCacheControlMaxAge() string
+	GetCacheControlMaxAgeWorkItemTypes() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
@@ -153,7 +153,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		// return the work item type along with conditional query and caching headers
 		ctx.ResponseData.Header().Set(LastModified, lastModified.String())
 		ctx.ResponseData.Header().Set(ETag, etag)
-		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 		return ctx.OK(result)
 	})
 }
@@ -199,7 +199,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		// return the work item type along with conditional query and caching headers
 		ctx.ResponseData.Header().Set(LastModified, lastModified.String())
 		ctx.ResponseData.Header().Set(ETag, etag)
-		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 		return ctx.OK(result)
 	})
 }
@@ -238,7 +238,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		// return the work item type along with conditional query and caching headers
 		ctx.ResponseData.Header().Set(LastModified, lastModified.String())
 		ctx.ResponseData.Header().Set(ETag, etag)
-		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 		return ctx.OK(result)
 	})
 }
@@ -277,7 +277,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		// return the work item type along with conditional query and caching headers
 		ctx.ResponseData.Header().Set(LastModified, lastModified.String())
 		ctx.ResponseData.Header().Set(ETag, etag)
-		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetWorkItemTypeCacheControlMaxAge())
+		ctx.ResponseData.Header().Set(CacheControl, MaxAge+"="+c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 		return ctx.OK(result)
 	})
 }

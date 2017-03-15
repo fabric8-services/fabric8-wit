@@ -107,8 +107,8 @@ func TestConvertTypeFromModels(t *testing.T) {
 				Name:        "foo",
 				Description: &descFoo,
 				Version:     42,
-				CreatedAt:   createdAt,
-				UpdatedAt:   updatedAt,
+				CreatedAt:   &createdAt,
+				UpdatedAt:   &updatedAt,
 				Fields: map[string]*app.FieldDefinition{
 					"aListType": {
 						Required:    true,
