@@ -9,7 +9,7 @@ import (
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/asaskevich/govalidator"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 )
 
 // SimpleType is an unstructured FieldType
@@ -46,7 +46,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 	switch fieldType.GetKind() {
 	case KindString, KindUser, KindIteration, KindArea:
 		if valueType.Kind() != reflect.String {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
 	case KindURL:
@@ -56,29 +56,29 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
 	case KindFloat:
 		if valueType.Kind() != reflect.Float64 {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
 		}
 		return value, nil
 	case KindInteger, KindDuration:
 		if valueType.Kind() != reflect.Int {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
 		}
 		return value, nil
 	case KindInstant:
 		// instant == milliseconds
 		if !valueType.Implements(timeType) {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
 		return value.(time.Time).UnixNano(), nil
 	case KindWorkitemReference:
 		if valueType.Kind() != reflect.String {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		idValue, err := strconv.Atoi(value.(string))
-		return idValue, errors.WithStack(err)
+		return idValue, errs.WithStack(err)
 	case KindList:
 		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
-			return nil, errors.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
+			return nil, errs.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
 		}
 		return value, nil
 	case KindEnum:
@@ -92,7 +92,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 			markupContent := value.(rendering.MarkupContent)
 			return markupContent.ToMap(), nil
 		default:
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "MarkupContent", valueType)
 		}
 	case KindCodebase:
 		switch value.(type) {
@@ -100,10 +100,10 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 			cb := value.(codebase.CodebaseContent)
 			return cb.ToMap(), nil
 		default:
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)
 		}
 	default:
-		return nil, errors.Errorf("unexpected type constant: '%s'", fieldType.GetKind())
+		return nil, errs.Errorf("unexpected type constant: '%s'", fieldType.GetKind())
 	}
 }
 
@@ -125,13 +125,13 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		return strconv.FormatUint(value.(uint64), 10), nil
 	case KindMarkup:
 		if valueType.Kind() != reflect.Map {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
 		markupContent := rendering.NewMarkupContentFromMap(value.(map[string]interface{}))
 		return markupContent, nil
 	case KindCodebase:
 		if valueType.Kind() != reflect.Map {
-			return nil, errors.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
+			return nil, errs.Errorf("value %v should be %s, but is %s", value, reflect.Map, valueType.Name())
 		}
 		cb, err := codebase.NewCodebaseContent(value.(map[string]interface{}))
 		if err != nil {
@@ -139,6 +139,6 @@ func (fieldType SimpleType) ConvertFromModel(value interface{}) (interface{}, er
 		}
 		return cb, nil
 	default:
-		return nil, errors.Errorf("unexpected field type: %s", fieldType.GetKind())
+		return nil, errs.Errorf("unexpected field type: %s", fieldType.GetKind())
 	}
 }
