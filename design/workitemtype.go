@@ -35,8 +35,8 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Description("A work item type describes the values a work item type instance can hold.")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("createdAt", d.DateTime, "timestamp of entity creation")
-	a.Attribute("updatedAt", d.DateTime, "timestamp of last entity update")
+	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
+	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
 	a.Attribute("name", d.String, "The human readable name of the work item type", func() {
 		a.Example("User story")
 		a.MinLength(1)

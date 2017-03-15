@@ -52,8 +52,8 @@ See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(0)
 	})
-	a.Attribute("createdAt", d.DateTime, "Time of creation of the given work item type")
-	a.Attribute("updatedAt", d.DateTime, "Time of last update of the given work item type")
+	a.Attribute("created-at", d.DateTime, "Time of creation of the given work item type")
+	a.Attribute("updated-at", d.DateTime, "Time of last update of the given work item type")
 	a.Attribute("forward_name", d.String, `The forward oriented path from source to target is described with the forward name.
 For example, if a bug blocks a user story, the forward name is "blocks". See also reverse name.`, func() {
 		a.Example("test-workitemtype")
