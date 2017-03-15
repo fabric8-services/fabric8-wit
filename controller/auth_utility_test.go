@@ -25,7 +25,7 @@ const (
 	endpointWorkItems              = "/api/workitems"
 	endpointWorkItemTypes          = "/api/workitemtypes"
 	endpointWorkItemLinkCategories = "/api/workitemlinkcategories"
-	endpointWorkItemLinkTypes      = "/api/workitemlinktypes"
+	endpointWorkItemLinkTypes      = "/api/spaces/%s/workitemlinktypes"
 	endpointWorkItemLinks          = "/api/workitemlinks"
 
 	endpointWorkItemRelationshipsLinks   = endpointWorkItems + "/%s/relationships/links"

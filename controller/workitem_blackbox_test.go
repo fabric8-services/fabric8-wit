@@ -1362,7 +1362,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 
 	// Create work item link type payload
 	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2

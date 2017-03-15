@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -107,13 +109,18 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 
 // Create runs the create action.
 func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+
 	// WorkItemLinkTypeController_Create: start_implement
 	// Convert payload from app to model representation
 	model := link.WorkItemLinkType{}
 	in := app.WorkItemLinkTypeSingle{
 		Data: ctx.Payload.Data,
 	}
-	err := link.ConvertLinkTypeToModel(in, &model)
+	err = link.ConvertLinkTypeToModel(in, &model)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 		return ctx.BadRequest(jerrors)
@@ -129,13 +136,16 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, currentUserIdentityID)
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+		}
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkCtx, linkType)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(linkType.Data.ID))
+		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(spaceID, linkType.Data.ID))
 		return ctx.Created(linkType)
 	})
 	// WorkItemLinkTypeController_Create: end_implement
@@ -143,9 +153,13 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 
 // Delete runs the delete action.
 func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
 	// WorkItemLinkTypeController_Delete: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItemLinkTypes().Delete(ctx.Context, ctx.ID)
+		err := appl.WorkItemLinkTypes().Delete(ctx.Context, spaceID, ctx.WiltID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -157,15 +171,22 @@ func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeConte
 
 // List runs the list action.
 func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
 	// WorkItemLinkTypeController_List: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.WorkItemLinkTypes().List(ctx.Context)
+		result, err := appl.WorkItemLinkTypes().List(ctx.Context, spaceID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+		}
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 		err = enrichLinkTypeList(linkCtx, result)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
@@ -178,15 +199,27 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 
 // Show runs the show action.
 func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
 	// WorkItemLinkTypeController_Show: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		res, err := appl.WorkItemLinkTypes().Load(ctx.Context, ctx.ID)
+		wiltId, err := uuid.FromString(ctx.WiltID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+
+		res, err := appl.WorkItemLinkTypes().Load(ctx.Context, spaceID, wiltId)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+		}
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 		err = enrichLinkTypeSingle(linkCtx, res)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
@@ -199,6 +232,11 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 
 // Update runs the update action.
 func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+	}
+
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -214,7 +252,10 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Enrich
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, currentUserIdentityID)
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+		}
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkCtx, linkType)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))

@@ -20,9 +20,10 @@ import (
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
 	Create(ctx context.Context, name string, description *string, sourceTypeID, targetTypeID satoriuuid.UUID, forwardName, reverseName, topology string, linkCategory, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
-	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
-	List(ctx context.Context) (*app.WorkItemLinkTypeList, error)
-	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	Load(ctx context.Context, spaceID satoriuuid.UUID, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
+	LoadByID(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error)
+	List(ctx context.Context, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error)
+	Delete(ctx context.Context, spaceID satoriuuid.UUID, ID satoriuuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkTypeSingle) (*app.WorkItemLinkTypeSingle, error)
 	// ListSourceLinkTypes returns the possible link types for where the given
 	// WIT can be used in the source.
@@ -90,12 +91,36 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 
 // Load returns the work item link type for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
+func (r *GormWorkItemLinkTypeRepository) LoadByID(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
 	log.Info(ctx, map[string]interface{}{
 		"wiltID": ID,
 	}, "Loading work item link type")
 	res := WorkItemLinkType{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"wiltID": ID,
+		}, "work item link type not found")
+		return nil, errors.NewNotFoundError("work item link type", ID.String())
+	}
+	if db.Error != nil {
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
+	// Convert the created link type entry into a JSONAPI response
+	result := ConvertLinkTypeFromModel(goa.ContextRequest(ctx), res)
+
+	return &result, nil
+}
+
+// Load returns the work item link type for the given spaceID and ID.
+// Returns NotFoundError, ConversionError or InternalError
+func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, spaceID satoriuuid.UUID, ID satoriuuid.UUID) (*app.WorkItemLinkTypeSingle, error) {
+	log.Info(ctx, map[string]interface{}{
+		"wiltID":  ID,
+		"spaceID": spaceID,
+	}, "Loading work item link type")
+	res := WorkItemLinkType{}
+	db := r.db.Model(&res).Where("id=? AND space_id=?", ID, spaceID.String()).First(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"wiltID": ID,
@@ -156,13 +181,18 @@ func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ctx context.Context,
 
 // List returns all work item link types
 // TODO: Handle pagination
-func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkItemLinkTypeList, error) {
+func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context, spaceID satoriuuid.UUID) (*app.WorkItemLinkTypeList, error) {
+	log.Info(ctx, map[string]interface{}{
+		"spaceID": spaceID,
+	}, "Listing work item link types by space ID %s", spaceID.String())
+
 	// We don't have any where clause or paging at the moment.
 	var rows []WorkItemLinkType
-	db := r.db.Find(&rows)
-	if db.Error != nil {
-		return nil, db.Error
+	db := r.db.Where("space_id = ?", spaceID)
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, errs.WithStack(err)
 	}
+
 	res := app.WorkItemLinkTypeList{}
 	res.Data = make([]*app.WorkItemLinkTypeData, len(rows))
 	for index, value := range rows {
@@ -179,12 +209,14 @@ func (r *GormWorkItemLinkTypeRepository) List(ctx context.Context) (*app.WorkIte
 
 // Delete deletes the work item link type with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID satoriuuid.UUID, ID satoriuuid.UUID) error {
 	var cat = WorkItemLinkType{
-		ID: ID,
+		ID:      ID,
+		SpaceID: spaceID,
 	}
 	log.Info(ctx, map[string]interface{}{
-		"wiltID": ID,
+		"wiltID":  ID,
+		"spaceID": spaceID,
 	}, "Work item link type to delete %v", cat)
 
 	db := r.db.Delete(&cat)

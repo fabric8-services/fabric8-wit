@@ -347,14 +347,14 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
 	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 1")
 
 	// Create another work item link type
 	bugLinksToAnimalStr := "bug-links-to-animal"
 	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
+	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 2")
 

@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -84,7 +86,10 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Enrich link types
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkItemLinkTypeHref("spaceID", "%v"), obj)
+		}
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 		err = enrichLinkTypeList(linkCtx, res)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -108,7 +113,10 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		// Enrich link types
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkTypeHref, nil)
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkItemLinkTypeHref("spaceID", "%v"), obj)
+		}
+		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 		err = enrichLinkTypeList(linkCtx, res)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
