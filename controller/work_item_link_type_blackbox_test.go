@@ -111,7 +111,9 @@ func (s *workItemLinkTypeSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{Name: s.spaceName})
+	if s.spaceID != nil {
+		db = db.Unscoped().Delete(&space.Space{ID: *s.spaceID})
+	}
 	require.Nil(s.T(), db.Error)
 	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
 
