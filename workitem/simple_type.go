@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -47,7 +46,7 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 	switch fieldType.GetKind() {
 	case KindString, KindUser, KindIteration, KindArea:
 		if valueType.Kind() != reflect.String {
-			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		return value, nil
 	case KindURL:
@@ -57,29 +56,29 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		return nil, fmt.Errorf("value %v should be %s, but is %s", value, "URL", valueType.Name())
 	case KindFloat:
 		if valueType.Kind() != reflect.Float64 {
-			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "float64", valueType.Name())
 		}
 		return value, nil
 	case KindInteger, KindDuration:
 		if valueType.Kind() != reflect.Int {
-			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "int", valueType.Name())
 		}
 		return value, nil
 	case KindInstant:
 		// instant == milliseconds
 		if !valueType.Implements(timeType) {
-			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "time.Time", valueType.Name())
 		}
 		return value.(time.Time).UnixNano(), nil
 	case KindWorkitemReference:
 		if valueType.Kind() != reflect.String {
-			return nil, fmt.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
+			return nil, errors.Errorf("value %v should be %s, but is %s", value, "string", valueType.Name())
 		}
 		idValue, err := strconv.Atoi(value.(string))
 		return idValue, errors.WithStack(err)
 	case KindList:
 		if (valueType.Kind() != reflect.Array) && (valueType.Kind() != reflect.Slice) {
-			return nil, fmt.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
+			return nil, errors.Errorf("value %v should be %s, but is %s,", value, "array/slice", valueType.Kind())
 		}
 		return value, nil
 	case KindEnum:
