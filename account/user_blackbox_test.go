@@ -115,5 +115,7 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	createdUser, err := s.repo.Load(s.ctx, user.ID)
 	require.Nil(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.Email, createdUser.Email)
+	require.Equal(s.T(), user.ID, createdUser.ID)
+
 	return createdUser
 }
