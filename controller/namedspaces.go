@@ -56,13 +56,13 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	if ctx.UserName == "" {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("not found, userName=%v", ctx.UserName))
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound("not found, userName=%v", ctx.UserName))
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 		}
 		spaces, c, err := appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
 		count := int(c)

@@ -41,5 +41,6 @@ var _ = a.Resource("namedspaces", func() {
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
 	})
 })
