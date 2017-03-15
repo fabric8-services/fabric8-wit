@@ -81,6 +81,9 @@ func (s *userBlackBoxTest) TestOKToDelete() {
 }
 
 func (s *userBlackBoxTest) TestOKToLoad() {
+	t := s.T()
+	resource.Require(t, resource.Database)
+
 	createAndLoadUser(s) // this function does the needful already
 }
 
