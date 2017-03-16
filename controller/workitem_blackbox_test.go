@@ -575,7 +575,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.db))
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.db))
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db))
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db), wibConfiguration, &DummyResourceManager{})
 
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"

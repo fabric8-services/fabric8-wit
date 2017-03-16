@@ -53,12 +53,12 @@ func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceCo
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) UnSecuredSpaceController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
