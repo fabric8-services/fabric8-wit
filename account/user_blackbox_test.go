@@ -54,7 +54,7 @@ func (s *userBlackBoxTest) SetupTest() {
 }
 
 func (s *userBlackBoxTest) TearDownTest() {
-	s.clean()
+	//s.clean()
 }
 
 func (s *userBlackBoxTest) TestOKToDelete() {
@@ -100,6 +100,8 @@ func (s *userBlackBoxTest) TestOKToSave() {
 	updatedUser, err := s.repo.Load(s.ctx, user.ID)
 	require.Nil(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.FullName, updatedUser.FullName)
+	fields := user.ContextInformation
+	require.Equal(s.T(), fields["last_visited"], "http://www.google.com")
 }
 
 func createAndLoadUser(s *userBlackBoxTest) *account.User {
@@ -110,6 +112,10 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 		ImageURL: "someImageUrl" + uuid.NewV4().String(),
 		Bio:      "somebio" + uuid.NewV4().String(),
 		URL:      "someurl" + uuid.NewV4().String(),
+		ContextInformation: workitem.Fields{
+			"space":        uuid.NewV4(),
+			"last_visited": "http://www.google.com",
+		},
 	}
 
 	err := s.repo.Create(s.ctx, user)
@@ -119,6 +125,7 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	require.Nil(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.Email, createdUser.Email)
 	require.Equal(s.T(), user.ID, createdUser.ID)
+	require.Equal(s.T(), user.ContextInformation, createdUser.ContextInformation)
 
 	return createdUser
 }

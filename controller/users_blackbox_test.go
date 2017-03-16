@@ -51,7 +51,7 @@ func (s *TestUsersSuite) SetupSuite() {
 }
 
 func (s *TestUsersSuite) TearDownSuite() {
-	s.clean()
+	//s.clean()
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
@@ -78,7 +78,15 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
 	secureService, secureController := s.SecuredController(identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -90,6 +98,15 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
 	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	updatedContextInformation := result.Data.Attributes.ContextInformation
+	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
+
+	countValue, ok := updatedContextInformation["count"].(float64)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), contextInformation["count"], int(countValue))
+
+	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
+
 }
 
 func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
@@ -107,8 +124,12 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
 	// when/then
 	test.UpdateUsersUnauthorized(s.T(), context.Background(), nil, s.controller, updateUsersPayload)
 }
@@ -191,16 +212,17 @@ func assertUser(t *testing.T, actual *app.IdentityData, expectedUser account.Use
 	assert.Equal(t, expectedUser.Email, *actual.Attributes.Email)
 }
 
-func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL *string) *app.UpdateUsersPayload {
+func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL *string, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Email:    email,
-				FullName: fullName,
-				Bio:      bio,
-				ImageURL: imageURL,
-				URL:      profileURL,
+				Email:              email,
+				FullName:           fullName,
+				Bio:                bio,
+				ImageURL:           imageURL,
+				URL:                profileURL,
+				ContextInformation: contextInformation,
 			},
 		},
 	}
