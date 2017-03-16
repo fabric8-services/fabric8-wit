@@ -129,7 +129,7 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	require.NotNil(s.T(), svc)
-	s.spaceCtrl = NewSpaceController(svc, s.db)
+	s.spaceCtrl = NewSpaceController(svc, s.db, wiConfiguration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 
 }
