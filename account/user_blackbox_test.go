@@ -54,7 +54,7 @@ func (s *userBlackBoxTest) SetupTest() {
 }
 
 func (s *userBlackBoxTest) TearDownTest() {
-	//s.clean()
+	s.clean()
 }
 
 func (s *userBlackBoxTest) TestOKToDelete() {
