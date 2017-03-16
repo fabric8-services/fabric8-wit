@@ -123,6 +123,22 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
+	a.Action("list-work-item-children", func() {
+		a.Routing(
+			a.GET("/:id/children"),
+		)
+		a.Description("List children associated with the given work item")
+		a.Params(func() {
+			a.Param("id", d.String, "id")
+		})
+		a.Response(d.OK, func() {
+			a.Media(workItemList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+	})
+
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(

@@ -40,7 +40,6 @@ type workItemChildSuite struct {
 	workItemLinkTypeCtrl     *WorkItemLinkTypeController
 	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
 	workItemLinkCtrl         *WorkItemLinkController
-	workItemChildrenCtrl     *WorkItemChildrenController
 	workItemCtrl             *WorkitemController
 	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
 	spaceCtrl                *SpaceController
@@ -86,11 +85,6 @@ func (s *workItemChildSuite) SetupSuite() {
 	s.workItemLinkCtrl = NewWorkItemLinkController(svc, s.db)
 	require.NotNil(s.T(), s.workItemLinkCtrl)
 
-	svc = testsupport.ServiceAsUser("WorkItemChildren-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
-	require.NotNil(s.T(), svc)
-	s.workItemChildrenCtrl = NewWorkItemChildrenController(svc, s.db)
-	require.NotNil(s.T(), s.workItemChildrenCtrl)
-
 	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
 	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db)
@@ -115,11 +109,6 @@ func (s *workItemChildSuite) SetupSuite() {
 	require.NotNil(s.T(), svc)
 	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
-
-	svc = testsupport.ServiceAsUser("WorkItemChildren-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
-	require.NotNil(s.T(), svc)
-	s.workItemChildrenCtrl = NewWorkItemChildrenController(svc, s.db)
-	require.NotNil(s.T(), s.workItemChildrenCtrl)
 
 	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	require.NotNil(s.T(), svc)
@@ -244,7 +233,7 @@ func (s *workItemChildSuite) TestListChildren() {
 	require.NotNil(s.T(), workItemLink2)
 
 	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
-	_, workItemList := test.ListWorkItemChildrenOK(s.T(), s.svc.Context, s.svc, s.workItemChildrenCtrl, workItemID1)
+	_, workItemList := test.ListWorkItemChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, workItemID1)
 	fmt.Printf("\nworkItemList.Data: %#v\n", workItemList.Data)
 	assert.Equal(s.T(), 2, len(workItemList.Data))
 	var count int

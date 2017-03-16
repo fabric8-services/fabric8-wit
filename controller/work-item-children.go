@@ -8,19 +8,8 @@ import (
 	"github.com/goadesign/goa"
 )
 
-// WorkItemChildrenController implements the work-item-children resource.
-type WorkItemChildrenController struct {
-	*goa.Controller
-	db application.DB
-}
-
-// NewWorkItemChildrenController creates a work-item-children controller.
-func NewWorkItemChildrenController(service *goa.Service, db application.DB) *WorkItemChildrenController {
-	return &WorkItemChildrenController{Controller: service.NewController("WorkItemChildrenController"), db: db}
-}
-
-// List runs the list action.
-func (c *WorkItemChildrenController) List(ctx *app.ListWorkItemChildrenContext) error {
+// ListWorkItemChildren runs the list action.
+func (c *WorkitemController) ListWorkItemChildren(ctx *app.ListWorkItemChildrenWorkitemContext) error {
 	// WorkItemChildrenController_List: start_implement
 
 	// Put your logic here

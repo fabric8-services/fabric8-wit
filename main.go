@@ -278,10 +278,6 @@ func main() {
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	// Mount "work item children" controller
-	workItemChildrenCtrl := controller.NewWorkItemChildrenController(service, appDB)
-	app.MountWorkItemChildrenController(service, workItemChildrenCtrl)
-
 	filterCtrl := controller.NewFilterController(service)
 	app.MountFilterController(service, filterCtrl)
 
