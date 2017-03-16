@@ -298,6 +298,12 @@ func (keycloak *KeycloakOAuthProvider) CreateKeycloakUser(accessToken string, ct
 		}
 	} else {
 		user = &identities[0].User
+		if user.ID == uuid.Nil {
+			log.Error(ctx, map[string]interface{}{
+				"identityID": keycloakIdentityID,
+			}, "Found Keycloak identity is not linked to any User")
+			return nil, nil, errors.New("found Keycloak identity is not linked to any User")
+		}
 		// let's update the existing user with the fullname, email and avatar from Keycloak,
 		// in case the user changed them since the last time he/she logged in
 		fillUser(claims, user)

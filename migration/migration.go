@@ -245,6 +245,9 @@ func getMigrations() migrations {
 	// Version 42
 	m = append(m, steps{executeSQLFile("042-work-item-link-revisions.sql")})
 
+	// Version 43
+	m = append(m, steps{executeSQLFile("043-space-resources.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -475,6 +478,28 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 	return nil
 }
 
+func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
+	_, err := spaceRepo.Load(ctx, id)
+	cause := errs.Cause(err)
+	newSpace := &space.Space{
+		Description: description,
+		Name:        "system.space",
+		ID:          id,
+	}
+	switch cause.(type) {
+	case errors.NotFoundError:
+		log.Info(ctx, map[string]interface{}{
+			"pkg":     "migration",
+			"spaceID": id,
+		}, "space %s will be created", id)
+		_, err := spaceRepo.Create(ctx, newSpace)
+		if err != nil {
+			return errs.Wrapf(err, "failed to create space %s", id)
+		}
+	}
+	return nil
+}
+
 func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceId uuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
@@ -524,10 +549,9 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
 	populateLocker.Lock()
 	defer populateLocker.Unlock()
-	if err := createOrUpdateSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
+	if err := createSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
-
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}

@@ -1,18 +1,15 @@
 package controller
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"strings"
+	"context"
 	"time"
 
 	"net/http"
 	"net/url"
 
-	"fmt"
-
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/rest"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
@@ -22,7 +19,6 @@ import (
 	"github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
-	e "github.com/pkg/errors"
 )
 
 type loginConfiguration interface {
@@ -33,6 +29,8 @@ type loginConfiguration interface {
 	IsPostgresDeveloperModeEnabled() bool
 	GetKeycloakTestUserName() string
 	GetKeycloakTestUserSecret() string
+	GetKeycloakTestUser2Name() string
+	GetKeycloakTestUser2Secret() string
 }
 
 // LoginController implements the login resource.
@@ -96,50 +94,57 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	case 200:
 		// OK
 	case 401:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(res.Status+" "+readBody(res.Body)))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(res.Status+" "+rest.ReadBody(res.Body)))
 	case 400:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(readBody(res.Body), nil))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(rest.ReadBody(res.Body), nil))
 	default:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(res.Status+" "+readBody(res.Body)))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(res.Status+" "+rest.ReadBody(res.Body)))
 	}
 
-	token, err := readToken(res, ctx)
+	token, err := auth.ReadToken(res)
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	return ctx.OK(&app.AuthToken{Token: token})
 }
 
-func readBody(body io.ReadCloser) string {
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(body)
-	return buf.String()
-}
-
-func readToken(res *http.Response, ctx jsonapi.InternalServerError) (*app.TokenData, error) {
-	// Read the json out of the response body
-	buf := new(bytes.Buffer)
-	io.Copy(buf, res.Body)
-	res.Body.Close()
-	jsonString := strings.TrimSpace(buf.String())
-
-	var token app.TokenData
-	err := json.Unmarshal([]byte(jsonString), &token)
-	if err != nil {
-		return nil, jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with access token %s ", jsonString)+err.Error()))
-	}
-	return &token, nil
-}
-
 // Generate obtain the access token from Keycloak for the test user
 func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
-	if !c.configuration.IsPostgresDeveloperModeEnabled() {
+	var tokens app.AuthTokenCollection
+
+	tokenEndpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.RequestData)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+
+	testuser, err := GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUserName(), c.configuration.GetKeycloakTestUserSecret())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to generate test token "+err.Error()))
+	}
+	// Creates the testuser user and identity if they don't yet exist
+	c.auth.CreateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	tokens = append(tokens, testuser)
+
+	testuser, err = GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUser2Name(), c.configuration.GetKeycloakTestUser2Secret())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to generate test token "+err.Error()))
+	}
+	// Creates the testuser2 user and identity if they don't yet exist
+	c.auth.CreateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	tokens = append(tokens, testuser)
+
+	// jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	return ctx.OK(tokens)
+}
+
+// GenerateUserToken obtains the access token from Keycloak for the user
+func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration loginConfiguration, username string, userSecret string) (*app.AuthToken, error) {
+	if !configuration.IsPostgresDeveloperModeEnabled() {
 		log.Error(ctx, map[string]interface{}{
 			"method": "Generate",
 		}, "Postgres developer mode not enabled")
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Postgres developer mode not enabled"))
-		return ctx.Unauthorized(jerrors)
+		return nil, errors.NewInternalError("Postgres developer mode is not enabled")
 	}
 
 	var scopes []account.Identity
@@ -148,40 +153,25 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	username := c.configuration.GetKeycloakTestUserName()
-
-	endpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.RequestData)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "Unable to get Keycloak token endpoint URL")
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
-	}
-
-	res, err := client.PostForm(endpoint, url.Values{
-		"client_id":     {c.configuration.GetKeycloakClientID()},
-		"client_secret": {c.configuration.GetKeycloakSecret()},
+	res, err := client.PostForm(tokenEndpoint, url.Values{
+		"client_id":     {configuration.GetKeycloakClientID()},
+		"client_secret": {configuration.GetKeycloakSecret()},
 		"username":      {username},
-		"password":      {c.configuration.GetKeycloakTestUserSecret()},
+		"password":      {userSecret},
 		"grant_type":    {"password"},
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("error when obtaining token "+err.Error()))
+		return nil, errors.NewInternalError("error when obtaining token " + err.Error())
 	}
 
-	token, err := readToken(res, ctx)
+	token, err := auth.ReadToken(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"tokenEndpoint": res,
 			"err":           err,
 		}, "Error when unmarshal json with access token")
-		return jsonapi.JSONErrorResponse(ctx, e.Wrap(err, "Error when unmarshal json with access token"))
+		return nil, errors.NewInternalError("error when unmarshal json with access token " + err.Error())
 	}
 
-	var tokens app.AuthTokenCollection
-	tokens = append(tokens, &app.AuthToken{Token: token})
-	// Creates the testuser user and identity if they don't yet exist
-	c.auth.CreateKeycloakUser(*token.AccessToken, ctx)
-
-	return ctx.OK(tokens)
+	return &app.AuthToken{Token: token}, nil
 }

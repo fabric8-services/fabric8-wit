@@ -71,21 +71,21 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	s.db, err = gorm.Open("postgres", wiltConfiguration.GetPostgresConfigString())
 	require.Nil(s.T(), err)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(DB, func(tx *gorm.DB) error {
+	err = models.Transactional(s.db, func(tx *gorm.DB) error {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	})
 	require.Nil(s.T(), err)
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.linkTypeCtrl)
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(DB))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.linkCatCtrl)
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(DB))
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db))
 	require.NotNil(s.T(), s.typeCtrl)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(DB))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db), wiltConfiguration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
@@ -111,7 +111,6 @@ func (s *workItemLinkTypeSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
 	require.Nil(s.T(), db.Error)
-	//db = db.Unscoped().Delete(&space.Space{Name: s.spaceName})
 
 	if s.spaceID != nil {
 		db = db.Unscoped().Delete(&space.Space{ID: *s.spaceID})
@@ -492,7 +491,7 @@ func (s *workItemLinkTypeSuite) TestUnauthorizeWorkItemLinkTypeCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTypeTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLinkType-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkTypeController(service, gormapplication.NewGormDB(DB))
+		controller := NewWorkItemLinkTypeController(service, gormapplication.NewGormDB(s.db))
 		app.MountWorkItemLinkTypeController(service, controller)
 		return nil
 	})

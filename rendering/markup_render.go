@@ -4,7 +4,6 @@ import (
 	"regexp"
 
 	"github.com/microcosm-cc/bluemonday"
-	"github.com/russross/blackfriday"
 )
 
 // IsMarkupSupported indicates if the given markup is supported
@@ -22,9 +21,10 @@ func RenderMarkupToHTML(content, markup string) string {
 	case SystemMarkupPlainText:
 		return content
 	case SystemMarkupMarkdown:
-		unsafe := blackfriday.MarkdownCommon([]byte(content))
+		unsafe := MarkdownCommonHighlighter([]byte(content))
 		p := bluemonday.UGCPolicy()
-		p.AllowAttrs("class").Matching(regexp.MustCompile("^language-[a-zA-Z0-9]+$")).OnElements("code")
+		p.AllowAttrs("class").Matching(regexp.MustCompile("^language-[a-zA-Z0-9]+$|prettyprint")).OnElements("code")
+		p.AllowAttrs("class").OnElements("span")
 		html := string(p.SanitizeBytes(unsafe))
 		return html
 	default:

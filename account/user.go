@@ -120,9 +120,9 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "delete"}, time.Now())
 
-	var obj User
+	obj := User{ID: id}
 
-	err := m.db.Delete(&obj, id).Error
+	err := m.db.Delete(&obj).Error
 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
