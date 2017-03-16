@@ -91,7 +91,7 @@ func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 	resource.Require(t, resource.Database)
 	service, controller := rest.SecuredController()
 	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
-	assert.Len(t, result, 1, "The size of token array is not 1")
+	assert.Len(t, result, 2, "The size of token array is not 2")
 	for _, data := range result {
 		validateToken(t, data, controller)
 	}
@@ -102,7 +102,7 @@ func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
 	resource.Require(t, resource.Database)
 	service, controller := rest.SecuredController()
 	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
-	if len(result) != 1 || result[0].Token.RefreshToken == nil {
+	if len(result) != 2 || result[0].Token.RefreshToken == nil {
 		t.Fatal("Can't get the test user token")
 	}
 	refreshToken := result[0].Token.RefreshToken
