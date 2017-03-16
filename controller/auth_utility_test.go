@@ -22,7 +22,7 @@ import (
 
 const (
 	// the various HTTP endpoints
-	endpointWorkItems              = "/api/workitems"
+	endpointWorkItems              = "/api/spaces/%s/workitems"
 	endpointWorkItemTypes          = "/api/spaces/%s/workitemtypes"
 	endpointWorkItemLinkCategories = "/api/workitemlinkcategories"
 	endpointWorkItemLinkTypes      = "/api/spaces/%s/workitemlinktypes"

@@ -78,7 +78,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
-		s.wiRepo.Delete(ctx, wi.ID, s.modifierID)
+		s.wiRepo.Delete(ctx, *wi.Relationships.Space.Data.ID, wi.ID, s.modifierID)
 	}
 
 	extended := workitem.SystemBug

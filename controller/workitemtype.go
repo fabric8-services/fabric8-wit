@@ -6,6 +6,8 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
@@ -59,9 +61,12 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
 			fields[key] = *fd
 		}
-		// FIXME: hector. we need to decide how to behave under this issue.
-		if ctx.Payload.Data.Relationships.Space.Data.ID.String() != spaceID.String() {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "invalid space ID doesn't match with the space ID in the payload"))
+
+		// Set the space to the Payload
+		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
+			// We overwrite or use the space ID in the URL to set the space of this WI
+			spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
+			ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
 		}
 
 		wit, err := appl.WorkItemTypes().Create(ctx.Context, *ctx.Payload.Data.Relationships.Space.Data.ID, ctx.Payload.Data.ID, ctx.Payload.Data.Attributes.ExtendedTypeName, ctx.Payload.Data.Attributes.Name, ctx.Payload.Data.Attributes.Description, ctx.Payload.Data.Attributes.Icon, fields)

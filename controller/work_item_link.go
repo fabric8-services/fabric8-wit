@@ -95,7 +95,7 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 	// Now include the optional work item data in the work item link "included" array
 	workItemArr := []*app.WorkItem2{}
 	for workItemID := range workItemIDMap {
-		wi, err := ctx.Application.WorkItems().Load(ctx.Context, workItemID)
+		wi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, workItemID)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
@@ -156,14 +156,14 @@ func enrichLinkSingle(ctx *workItemLinkContext, link *app.WorkItemLinkSingle) er
 	// link.Included = append(link.Included, targetWit.Data)
 
 	// TODO(kwk): include source work item
-	sourceWi, err := ctx.Application.WorkItems().Load(ctx.Context, link.Data.Relationships.Source.Data.ID)
+	sourceWi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, link.Data.Relationships.Source.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	link.Included = append(link.Included, ConvertWorkItem(ctx.RequestData, sourceWi))
 
 	// TODO(kwk): include target work item
-	targetWi, err := ctx.Application.WorkItems().Load(ctx.Context, link.Data.Relationships.Target.Data.ID)
+	targetWi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, link.Data.Relationships.Target.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}

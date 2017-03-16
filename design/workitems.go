@@ -82,14 +82,15 @@ var workItemSingle = JSONSingle(
 
 // new version of "list" for migration
 var _ = a.Resource("workitem", func() {
+	a.Parent("space")
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:wiId"),
 		)
 		a.Description("Retrieve work item with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemSingle)
@@ -139,11 +140,11 @@ var _ = a.Resource("workitem", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:id"),
+			a.DELETE("/:wiId"),
 		)
 		a.Description("Delete work item with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -154,11 +155,11 @@ var _ = a.Resource("workitem", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:wiId"),
 		)
 		a.Description("update the work item with the given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Payload(workItemSingle)
 		a.Response(d.OK, func() {

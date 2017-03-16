@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"github.com/goadesign/goa"
@@ -120,6 +121,15 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 	in := app.WorkItemLinkTypeSingle{
 		Data: ctx.Payload.Data,
 	}
+
+	// Set the space to the Payload
+	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
+		// We overwrite or use the space ID in the URL to set the space of this WI
+		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
+		ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
+	}
+	model.SpaceID = spaceID
+
 	err = link.ConvertLinkTypeToModel(in, &model)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
@@ -137,7 +147,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		}
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+			return fmt.Sprintf(app.WorkItemLinkTypeHref(model.SpaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
 		err = enrichLinkTypeSingle(linkCtx, linkType)
@@ -145,7 +155,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(spaceID, linkType.Data.ID))
+		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(model.SpaceID, linkType.Data.ID))
 		return ctx.Created(linkType)
 	})
 	// WorkItemLinkTypeController_Create: end_implement

@@ -341,25 +341,25 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 
 	// Create work item link space
 	spacePayload := CreateSpacePayload("some-link-space", "description")
-	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
+	_, sp := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 	s.T().Log("Created space")
 
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
-	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.Data.ID.String(), linkTypePayload)
+	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *sp.Data.ID)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, sp.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 1")
 
 	// Create another work item link type
 	bugLinksToAnimalStr := "bug-links-to-animal"
-	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.Data.ID.String(), linkTypePayload)
+	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *sp.Data.ID)
+	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, sp.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 2")
 
 	// Fetch source link types
-	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.Data.ID.String(), animalID)
+	_, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
@@ -367,7 +367,7 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	require.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
 
 	// Fetch target link types
-	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.Data.ID.String(), animalID)
+	_, wiltCollection = test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID)
 	require.NotNil(s.T(), wiltCollection)
 	require.Nil(s.T(), wiltCollection.Validate())
 	// Check the number of found work item link types
@@ -454,14 +454,14 @@ func getWorkItemTypeTestData(t *testing.T) []testSecureAPI {
 			jwtToken:           "",
 		}, {
 			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
+			url:                fmt.Sprintf(endpointWorkItemTypesSourceLinkTypes, space.SystemSpace.String(), "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
 			jwtToken:           "",
 		}, {
 			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
+			url:                fmt.Sprintf(endpointWorkItemTypesTargetLinkTypes, space.SystemSpace.String(), "2e889d4e-49a9-463b-8cd4-6a3a95155103"),
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,

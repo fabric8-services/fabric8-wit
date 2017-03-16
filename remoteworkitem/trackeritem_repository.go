@@ -133,7 +133,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
-	existingWorkItem, err := wir.Fetch(ctx, sqlExpression)
+	existingWorkItem, err := wir.Fetch(ctx, *workItem.Relationships.Space.Data.ID, sqlExpression)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -146,7 +146,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 			existingWorkItem.Fields[key] = value
 		}
 		//TODO: we should probably assign the change author to a specific identity...
-		resultWorkItem, err = wir.Save(ctx, *existingWorkItem, uuid.Nil)
+		resultWorkItem, err = wir.Save(ctx, *existingWorkItem.Relationships.Space.Data.ID, *existingWorkItem, uuid.Nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
