@@ -125,7 +125,7 @@ func createAndLoadUser(s *userBlackBoxTest) *account.User {
 	require.Nil(s.T(), err, "Could not load user")
 	require.Equal(s.T(), user.Email, createdUser.Email)
 	require.Equal(s.T(), user.ID, createdUser.ID)
-	require.Equal(s.T(), user.ContextInformation, createdUser.ContextInformation)
+	require.Equal(s.T(), user.ContextInformation["last_visited"], createdUser.ContextInformation["last_visited"])
 
 	return createdUser
 }
