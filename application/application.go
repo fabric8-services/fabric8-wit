@@ -40,3 +40,4 @@ type DB interface {
 	Application
 	BeginTransaction() (Transaction, error)
 }
+
