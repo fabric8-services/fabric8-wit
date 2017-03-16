@@ -76,6 +76,10 @@ func (g *GormBase) Spaces() space.Repository {
 	return space.NewRepository(g.db)
 }
 
+func (g *GormBase) SpaceResources() space.ResourceRepository {
+	return space.NewResourceRepository(g.db)
+}
+
 func (g *GormBase) Trackers() application.TrackerRepository {
 	return remoteworkitem.NewTrackerRepository(g.db)
 }

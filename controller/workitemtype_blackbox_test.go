@@ -77,18 +77,16 @@ func (s *workItemTypeSuite) SetupSuite() {
 // The SetupTest method will be run before every test in the suite.
 func (s *workItemTypeSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	// svc := goa.New("workItemTypeSuite-Service")
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	assert.NotNil(s.T(), s.svc)
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	require.NotNil(s.T(), s.spaceCtrl)
 	s.typeCtrl = NewWorkitemtypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	assert.NotNil(s.T(), s.typeCtrl)
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB))
-	require.NotNil(s.T(), s.spaceCtrl)
 }
 
 func (s *workItemTypeSuite) TearDownTest() {

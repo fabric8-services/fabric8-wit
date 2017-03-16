@@ -81,7 +81,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	require.NotNil(s.T(), s.typeCtrl)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), wiltConfiguration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
@@ -107,7 +107,9 @@ func (s *workItemLinkTypeSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: s.categoryName})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{Name: s.spaceName})
+	if s.spaceID != nil {
+		db = db.Unscoped().Delete(&space.Space{ID: *s.spaceID})
+	}
 	require.Nil(s.T(), db.Error)
 	//db = db.Unscoped().Delete(&link.WorkItemType{Name: "foo.bug"})
 

@@ -30,6 +30,10 @@ func (db *MockDB) Spaces() space.Repository {
 	return nil
 }
 
+func (db *MockDB) SpaceResources() space.ResourceRepository {
+	return nil
+}
+
 func (db *MockDB) Trackers() application.TrackerRepository {
 	return nil
 }

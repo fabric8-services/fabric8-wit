@@ -32,33 +32,40 @@ const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
 
-	varPostgresHost                    = "postgres.host"
-	varPostgresPort                    = "postgres.port"
-	varPostgresUser                    = "postgres.user"
-	varPostgresDatabase                = "postgres.database"
-	varPostgresPassword                = "postgres.password"
-	varPostgresSSLMode                 = "postgres.sslmode"
-	varPostgresConnectionTimeout       = "postgres.connection.timeout"
-	varPostgresConnectionRetrySleep    = "postgres.connection.retrysleep"
-	varPostgresConnectionMaxIdle       = "postgres.connection.maxidle"
-	varPostgresConnectionMaxOpen       = "postgres.connection.maxopen"
-	varPopulateCommonTypes             = "populate.commontypes"
-	varHTTPAddress                     = "http.address"
-	varDeveloperModeEnabled            = "developer.mode.enabled"
-	varGithubAuthToken                 = "github.auth.token"
-	varKeycloakSecret                  = "keycloak.secret"
-	varKeycloakClientID                = "keycloak.client.id"
-	varKeycloakEndpointAuth            = "keycloak.endpoint.auth"
-	varKeycloakEndpointToken           = "keycloak.endpoint.token"
-	varKeycloakDomainPrefix            = "keycloak.domain.prefix"
-	varKeycloakRealm                   = "keycloak.realm"
-	varKeycloakEndpointUserinfo        = "keycloak.endpoint.userinfo"
-	varKeycloakTesUserName             = "keycloak.testuser.name"
-	varKeycloakTesUserSecret           = "keycloak.testuser.secret"
-	varTokenPublicKey                  = "token.publickey"
-	varTokenPrivateKey                 = "token.privatekey"
-	varCacheControlMaxAgeWorkItemTypes = "cachecontrol.maxage.workitemtypes"
-	defaultConfigFile                  = "config.yaml"
+	varPostgresHost                     = "postgres.host"
+	varPostgresPort                     = "postgres.port"
+	varPostgresUser                     = "postgres.user"
+	varPostgresDatabase                 = "postgres.database"
+	varPostgresPassword                 = "postgres.password"
+	varPostgresSSLMode                  = "postgres.sslmode"
+	varPostgresConnectionTimeout        = "postgres.connection.timeout"
+	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
+	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
+	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
+	varPopulateCommonTypes              = "populate.commontypes"
+	varHTTPAddress                      = "http.address"
+	varDeveloperModeEnabled             = "developer.mode.enabled"
+	varGithubAuthToken                  = "github.auth.token"
+	varKeycloakSecret                   = "keycloak.secret"
+	varKeycloakClientID                 = "keycloak.client.id"
+	varKeycloakDomainPrefix             = "keycloak.domain.prefix"
+	varKeycloakRealm                    = "keycloak.realm"
+	varKeycloakTesUserName              = "keycloak.testuser.name"
+	varKeycloakTesUserSecret            = "keycloak.testuser.secret"
+	varKeycloakTesUser2Name             = "keycloak.testuser2.name"
+	varKeycloakTesUser2Secret           = "keycloak.testuser2.secret"
+	varKeycloakURL                      = "keycloak.url"
+	varKeycloakEndpointAdmin            = "keycloak.endpoint.admin"
+	varKeycloakEndpointAuth             = "keycloak.endpoint.auth"
+	varKeycloakEndpointToken            = "keycloak.endpoint.token"
+	varKeycloakEndpointUserinfo         = "keycloak.endpoint.userinfo"
+	varKeycloakEndpointAuthzResourceset = "keycloak.endpoint.authz.resourceset"
+	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
+	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
+	varTokenPublicKey                   = "token.publickey"
+	varTokenPrivateKey                  = "token.privatekey"
+	varCacheControlMaxAgeWorkItemTypes  = "cachecontrol.maxage.workitemtypes"
+	defaultConfigFile                   = "config.yaml"
 
 	// The host name exception of the api service to be taken into account
 	// when converting it to sso.demo.almighty.io
@@ -106,7 +113,7 @@ func getConfigFilePath() string {
 	return envConfigPath
 }
 
-// GetDefaultConfigurationFiler eturns the default configuration file.
+// GetDefaultConfigurationFile returns the default configuration file.
 func (c *ConfigurationData) GetDefaultConfigurationFile() string {
 	return defaultConfigFile
 }
@@ -164,6 +171,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlMaxAgeWorkItemTypes, 24*3600) // 1 day
 
+	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
+	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -305,13 +314,23 @@ func (c *ConfigurationData) GetKeycloakTestUserSecret() string {
 	return c.v.GetString(varKeycloakTesUserSecret)
 }
 
+// GetKeycloakTestUser2Name returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
+func (c *ConfigurationData) GetKeycloakTestUser2Name() string {
+	return c.v.GetString(varKeycloakTesUser2Name)
+}
+
+// GetKeycloakTestUser2Secret returns the keycloak test user password used to obtain a test token (as set via config file or environment variable)
+func (c *ConfigurationData) GetKeycloakTestUser2Secret() string {
+	return c.v.GetString(varKeycloakTesUser2Secret)
+}
+
 // GetKeycloakEndpointAuth returns the keycloak auth endpoint set via config file or environment variable.
 // If nothing set then in Dev environment the defualt endopoint will be returned.
 // In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuth, devModeKeycloakEndpointAuth, "auth")
+	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointAuth, "auth")
 }
 
 // GetKeycloakEndpointToken returns the keycloak token endpoint set via config file or environment variable.
@@ -320,7 +339,7 @@ func (c *ConfigurationData) GetKeycloakEndpointAuth(req *goa.RequestData) (strin
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointToken, devModeKeycloakEndpointToken, "token")
+	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointToken, "token")
 }
 
 // GetKeycloakEndpointUserInfo returns the keycloak userinfo endpoint set via config file or environment variable.
@@ -329,21 +348,77 @@ func (c *ConfigurationData) GetKeycloakEndpointToken(req *goa.RequestData) (stri
 // Example: api.service.domain.org -> sso.service.domain.org
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointUserInfo(req *goa.RequestData) (string, error) {
-	return c.getKeycloakEndpoint(req, varKeycloakEndpointUserinfo, devModeKeycloakEndpointUserinfo, "userinfo")
+	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointUserinfo, "userinfo")
 }
 
-func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVarName string, devModeEndpoint string, pathSufix string) (string, error) {
+// GetKeycloakEndpointAdmin returns the <keyclaok>/realms/admin/<realm> endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointAdmin(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointAdmin, "auth/admin/realms/"+c.GetKeycloakRealm())
+}
+
+// GetKeycloakEndpointAuthzResourceset returns the <keyclaok>/realms/<realm>/authz/protection/resource_set endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointAuthzResourceset(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointAuthzResourceset, "auth/realms/"+c.GetKeycloakRealm()+"/authz/protection/resource_set")
+}
+
+// GetKeycloakEndpointClients returns the <keyclaok>/admin/realms/<realm>/clients endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointClients, "auth/admin/realms/"+c.GetKeycloakRealm()+"/clients")
+}
+
+// GetKeycloakEndpointEntitlement returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
+}
+
+func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
+	return c.getKeycloakEndpoint(req, endpointVarName, c.openIDConnectPath(pathSufix))
+}
+
+func (c *ConfigurationData) getKeycloakEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
 	if c.v.IsSet(endpointVarName) {
 		return c.v.GetString(endpointVarName), nil
 	}
-	if c.IsPostgresDeveloperModeEnabled() {
-		return devModeEndpoint, nil
+	var endpoint string
+	var err error
+	if c.v.IsSet(varKeycloakURL) {
+		// Keycloak URL is set. Calculate the URL endpoint
+		endpoint = fmt.Sprintf("%s/%s", c.v.GetString(varKeycloakURL), pathSufix)
+	} else {
+		if c.IsPostgresDeveloperModeEnabled() {
+			// Devmode is enabled. Calculate the URL endopoint using the devmode Keyclaok URL
+			endpoint = fmt.Sprintf("%s/%s", devModeKeycloakURL, pathSufix)
+		} else {
+			// Calculate relative URL based on request
+			endpoint, err = c.getKeycloakURL(req, pathSufix)
+			if err != nil {
+				return "", err
+			}
+		}
 	}
-	endpoint, err := c.getKeycloakURL(req, c.openIDConnectPath(pathSufix))
-	if err != nil {
-		return "", err
-	}
-	c.v.Set(endpointVarName, endpoint) // Set the variable, so, we don't have to recalculate it again the next time
+
+	// Can't set this variable because viper is not thread-safe. See https://github.com/spf13/viper/issues/268
+	// c.v.Set(endpointVarName, endpoint) // Set the variable, so, we don't have to recalculate it again the next time
 	return endpoint, nil
 }
 
@@ -433,8 +508,8 @@ var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[
 
 var defaultKeycloakTesUserName = "testuser"
 var defaultKeycloakTesUserSecret = "testuser"
+var defaultKeycloakTesUser2Name = "testuser2"
+var defaultKeycloakTesUser2Secret = "testuser2"
 
-// Keycloak URLs to be used in dev mode. Can be overridden by setting up keycloak.endpoint.*
-var devModeKeycloakEndpointAuth = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth"
-var devModeKeycloakEndpointToken = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token"
-var devModeKeycloakEndpointUserinfo = "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo"
+// Keycloak URL to be used in dev mode. Can be overridden by setting up keycloak.url
+var devModeKeycloakURL = "http://sso.demo.almighty.io"

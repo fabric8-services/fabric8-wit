@@ -91,8 +91,8 @@ keycloak.domain.prefix : sso
 keycloak.realm : fabric8
 keycloak.testuser.name : testuser
 keycloak.testuser.secret : testuser
+keycloak.testuser2.name : testuser2
+keycloak.testuser2.secret : testuser2
 
 # Uncomment if FQDN URL's should be used instead of relative URL's:
-# keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth
-# keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token
-# keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo
+# keycloak.url : http://sso.demo.almighty.io
