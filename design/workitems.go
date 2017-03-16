@@ -123,7 +123,7 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
-	a.Action("list-work-item-children", func() {
+	a.Action("list-children", func() {
 		a.Routing(
 			a.GET("/:id/children"),
 		)
