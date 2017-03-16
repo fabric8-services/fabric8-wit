@@ -51,7 +51,7 @@ func (s *TestUsersSuite) SetupSuite() {
 }
 
 func (s *TestUsersSuite) TearDownSuite() {
-	//s.clean()
+	s.clean()
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
