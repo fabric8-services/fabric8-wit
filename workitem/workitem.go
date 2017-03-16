@@ -58,6 +58,9 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 	if wi.Version != other.Version {
 		return false
 	}
+	if wi.ExecutionOrder != other.ExecutionOrder {
+		return false
+	}
 	if wi.SpaceID != other.SpaceID {
 		return false
 	}

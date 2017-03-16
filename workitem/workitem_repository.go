@@ -24,11 +24,10 @@ const orderValue = 1000
 type DirectionType string
 
 const (
-	//TODO(dhriti): This is a temporary fix. https://github.com/almighty/almighty-core/issues/993
-	DirectionAbove  DirectionType = "below"
-	DirectionBelow  DirectionType = "above"
-	DirectionTop    DirectionType = "bottom"
-	DirectionBottom DirectionType = "top"
+	DirectionAbove  DirectionType = "above"
+	DirectionBelow  DirectionType = "below"
+	DirectionTop    DirectionType = "top"
+	DirectionBottom DirectionType = "bottom"
 )
 
 // WorkItemRepository encapsulates storage & retrieval of work items
@@ -176,7 +175,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, workitemID string, 
 	return nil
 }
 
-// Calculates the order of the to-reorder workitem
+// Calculates the order of the reorder workitem
 func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 	return (*above + *below) / 2
 }
@@ -193,12 +192,12 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 	Item := WorkItem{}
 	var tx *gorm.DB
 	switch secondItemDirection {
-	case DirectionBelow:
-		// Finds the item below which reorder item has to be placed
-		tx = r.db.Where("execution_order < ?", order).Order("execution_order desc", true).Last(&Item)
-
 	case DirectionAbove:
 		// Finds the item above which reorder item has to be placed
+		tx = r.db.Where("execution_order < ?", order).Order("execution_order desc", true).Last(&Item)
+
+	case DirectionBelow:
+		// Finds the item below which reorder item has to be placed
 		tx = r.db.Where("execution_order > ?", order).Order("execution_order", true).Last(&Item)
 	default:
 		return nil, nil, nil
@@ -262,13 +261,13 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	}
 
 	switch direction {
-	case DirectionAbove:
-		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
+	case DirectionBelow:
+		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
 		aboveItemOrder, err := r.FindFirstItem(*targetID)
 		if aboveItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionBelow)
+		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionAbove)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
@@ -282,13 +281,13 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		} else {
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
-	case DirectionBelow:
-		// if direction == "below", place the reorder item **below** the workitem having id equal to targetID
+	case DirectionAbove:
+		// if direction == "above", place the reorder item **above** the workitem having id equal to targetID
 		belowItemOrder, _ := r.FindFirstItem(*targetID)
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionAbove)
+		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionBelow)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
@@ -302,7 +301,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
 	case DirectionTop:
-		// if direction == "top", place the reorder item at the topmost position. Now, the reorder item has the highest order in the whole list
+		// if direction == "top", place the reorder item at the topmost position. Now, the reorder item has the highest order in the whole list.
 		res, err := r.LoadTopWorkitem(ctx)
 		if err != nil {
 			return nil, errs.Wrapf(err, "Failed to reorder")
@@ -311,7 +310,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			// When same reorder request is made again
 			return &wi, nil
 		} else {
-			topItemOrder := res.ExecutionOrder
+			topItemOrder := res.Fields[SystemOrder].(float64)
 			order = topItemOrder + orderValue
 		}
 	case DirectionBottom:
@@ -324,7 +323,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			// When same reorder request is made again
 			return &wi, nil
 		} else {
-			bottomItemOrder := res.ExecutionOrder
+			bottomItemOrder := res.Fields[SystemOrder].(float64)
 			order = bottomItemOrder / 2
 		}
 	default:
@@ -337,7 +336,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	res.ExecutionOrder = order
 
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -396,8 +395,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
+	res.ExecutionOrder = wi.ExecutionOrder
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := wi.Fields[fieldName]
@@ -452,7 +452,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	fields[SystemCreator] = creatorID.String()
 	for fieldName, fieldDef := range wiType.Fields {
-		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt {
+		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
 		fieldValue := fields[fieldName]
@@ -496,6 +496,9 @@ func convertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, w
 	}
 	if _, ok := wiType.Fields[SystemUpdatedAt]; ok {
 		result.Fields[SystemUpdatedAt] = wi.UpdatedAt
+	}
+	if _, ok := wiType.Fields[SystemOrder]; ok {
+		result.Fields[SystemOrder] = wi.ExecutionOrder
 	}
 	return result, nil
 

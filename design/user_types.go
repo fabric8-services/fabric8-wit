@@ -27,9 +27,12 @@ var UpdateWorkItemPayload = a.Type("UpdateWorkItemPayload", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control", func() {
 		a.Example(0)
 	})
+	a.Attribute("executionorder", d.Number, "The order of execution of workitem", func() {
+		a.Example(1000)
+	})
 	a.Attribute("relationships", workItemRelationships)
 
-	a.Required("type", "fields", "version")
+	a.Required("type", "fields", "version", "executionorder")
 })
 
 // CreateTrackerAlternatePayload defines the structure of tracker payload for create
