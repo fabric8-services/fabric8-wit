@@ -57,6 +57,7 @@ function run_tests_without_coverage() {
   trap cleanup_env EXIT
   make docker-test-migration
   make docker-test-integration-no-coverage
+  make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
 }
 
@@ -70,6 +71,9 @@ function run_tests_with_coverage() {
   # Run the integration tests that generate coverage information
   make docker-test-migration
   make docker-test-integration
+
+  # Run the remote tests that generate coverage information
+  make docker-test-remote
 
   # Output coverage
   make docker-coverage-all

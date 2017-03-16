@@ -99,7 +99,7 @@ func (s *workItemTypeSuite) SetupTest() {
 
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), witbConfiguration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 }
 
