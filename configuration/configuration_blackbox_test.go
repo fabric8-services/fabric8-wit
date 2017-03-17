@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
+	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,109 +50,129 @@ func resetConfiguration(configPath string) {
 	}
 }
 
+func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	env := os.Getenv("ALMIGHTY_KEYCLOAK_URL")
+	defer func() {
+		os.Setenv("ALMIGHTY_KEYCLOAK_URL", env)
+		resetConfiguration(defaultValuesConfigFilePath)
+	}()
+
+	os.Setenv("ALMIGHTY_KEYCLOAK_URL", "http://xyz.io")
+	resetConfiguration(defaultValuesConfigFilePath)
+
+	url, err := config.GetKeycloakEndpointAuth(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/realms/fabric8/protocol/openid-connect/auth", url)
+
+	url, err = config.GetKeycloakEndpointToken(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/realms/fabric8/protocol/openid-connect/token", url)
+
+	url, err = config.GetKeycloakEndpointUserInfo(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/realms/fabric8/protocol/openid-connect/userinfo", url)
+
+	url, err = config.GetKeycloakEndpointAuthzResourceset(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/realms/fabric8/authz/protection/resource_set", url)
+
+	url, err = config.GetKeycloakEndpointClients(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/admin/realms/fabric8/clients", url)
+
+	url, err = config.GetKeycloakEndpointEntitlement(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/realms/fabric8/authz/entitlement/fabric8-online-platform", url)
+}
+
+func TestGetKeycloakEndpointAdminDevModeOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/admin/realms/fabric8", config.GetKeycloakEndpointAdmin)
+}
+
+func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_ADMIN", config.GetKeycloakEndpointAdmin)
+}
+
+func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
+}
+
+func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_AUTHZ_RESOURCESET", config.GetKeycloakEndpointAuthzResourceset)
+}
+
+func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/admin/realms/fabric8/clients", config.GetKeycloakEndpointClients)
+}
+
+func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_CLIENTS", config.GetKeycloakEndpointClients)
+}
+
 func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-
-	url, err := config.GetKeycloakEndpointAuth(reqLong)
-	assert.Nil(t, err)
-	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth", url)
-
-	url, err = config.GetKeycloakEndpointAuth(reqShort)
-	assert.Nil(t, err)
-	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth", url)
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	env := os.Getenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH")
-	defer func() {
-		os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", env)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", "authEndpoint")
-	resetConfiguration(defaultValuesConfigFilePath)
-
-	url, err := config.GetKeycloakEndpointAuth(reqLong)
-	assert.Nil(t, err)
-	assert.Equal(t, "authEndpoint", url)
-
-	url, err = config.GetKeycloakEndpointAuth(reqShort)
-	assert.Nil(t, err)
-	assert.Equal(t, "authEndpoint", url)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-
-	url, err := config.GetKeycloakEndpointToken(reqLong)
-	assert.Nil(t, err)
-	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token", url)
-
-	url, err = config.GetKeycloakEndpointToken(reqShort)
-	assert.Nil(t, err)
-	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token", url)
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	env := os.Getenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN")
-	defer func() {
-		os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", env)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
-
-	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", "tokenEndpoint")
-	resetConfiguration(defaultValuesConfigFilePath)
-
-	url, err := config.GetKeycloakEndpointToken(reqLong)
-	assert.Nil(t, err)
-	assert.Equal(t, "tokenEndpoint", url)
-
-	url, err = config.GetKeycloakEndpointToken(reqShort)
-	assert.Nil(t, err)
-	assert.Equal(t, "tokenEndpoint", url)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_TOKEN", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-
-	url, err := config.GetKeycloakEndpointUserInfo(reqLong)
-	assert.Nil(t, err)
-	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo", url)
-
-	url, err = config.GetKeycloakEndpointUserInfo(reqShort)
-	assert.Nil(t, err)
-	// In dev mode it's always the defualt value regardless of the request
-	assert.Equal(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo", url)
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
 }
 
 func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	env := os.Getenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO")
-	defer func() {
-		os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", env)
-		resetConfiguration(defaultValuesConfigFilePath)
-	}()
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", config.GetKeycloakEndpointUserInfo)
+}
 
-	os.Setenv("ALMIGHTY_KEYCLOAK_ENDPOINT_USERINFO", "userinfoEndpoint")
-	resetConfiguration(defaultValuesConfigFilePath)
+func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
+}
 
-	url, err := config.GetKeycloakEndpointUserInfo(reqLong)
+func TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_ENTITLEMENT", config.GetKeycloakEndpointEntitlement)
+}
+
+func checkGetKeycloakEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *goa.RequestData) (string, error)) {
+	url, err := getEndpoint(reqLong)
 	assert.Nil(t, err)
-	assert.Equal(t, "userinfoEndpoint", url)
+	// In dev mode it's always the defualt value regardless of the request
+	assert.Equal(t, expectedEndpoint, url)
 
-	url, err = config.GetKeycloakEndpointUserInfo(reqShort)
+	url, err = getEndpoint(reqShort)
 	assert.Nil(t, err)
-	assert.Equal(t, "userinfoEndpoint", url)
+	// In dev mode it's always the defualt value regardless of the request
+	assert.Equal(t, expectedEndpoint, url)
 }
 
 func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
@@ -201,4 +222,24 @@ func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
 
 func generateEnvKey(yamlKey string) string {
 	return "ALMIGHTY_" + strings.ToUpper(strings.Replace(yamlKey, ".", "_", -1))
+}
+
+func checkGetKeycloakEndpointSetByEnvVaribaleOK(t *testing.T, envName string, getEndpoint func(req *goa.RequestData) (string, error)) {
+	envValue := uuid.NewV4().String()
+	env := os.Getenv(envName)
+	defer func() {
+		os.Setenv(envName, env)
+		resetConfiguration(defaultValuesConfigFilePath)
+	}()
+
+	os.Setenv(envName, envValue)
+	resetConfiguration(defaultValuesConfigFilePath)
+
+	url, err := getEndpoint(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, envValue, url)
+
+	url, err = getEndpoint(reqShort)
+	require.Nil(t, err)
+	require.Equal(t, envValue, url)
 }

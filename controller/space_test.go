@@ -1,12 +1,15 @@
 package controller_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -21,6 +24,27 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
+
+var spaceConfiguration *configuration.ConfigurationData
+
+type DummyResourceManager struct {
+}
+
+func (m *DummyResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string, policyName string) (*auth.Resource, error) {
+	return &auth.Resource{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}, nil
+}
+
+func (m *DummyResourceManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource auth.Resource) error {
+	return nil
+}
+
+func init() {
+	var err error
+	spaceConfiguration, err = configuration.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
 
 type TestSpaceREST struct {
 	gormtestsupport.DBTestSuite
@@ -47,12 +71,12 @@ func (rest *TestSpaceREST) SecuredController(identity account.Identity) (*goa.Se
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
 }
 
 func (rest *TestSpaceREST) UnSecuredController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
 }
 
 func (rest *TestSpaceREST) TestFailCreateSpaceUnsecure() {

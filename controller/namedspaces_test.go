@@ -53,12 +53,12 @@ func (rest *TestNamedSpaceREST) SecuredSpaceController() (*goa.Service, *SpaceCo
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) UnSecuredSpaceController() (*goa.Service, *SpaceController) {
 	svc := goa.New("Space-Service")
-	return svc, NewSpaceController(svc, rest.db)
+	return svc, NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
@@ -96,4 +96,41 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 	assert.Equal(t, created.Data.Attributes.Name, namedspace.Data.Attributes.Name)
 	assert.Equal(t, created.Data.Attributes.Description, namedspace.Data.Attributes.Description)
 	assert.Equal(t, created.Data.Links.Self, namedspace.Data.Links.Self)
+}
+
+func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	spaceSvc, spaceCtrl := rest.SecuredSpaceController()
+
+	identityRepo := account.NewIdentityRepository(rest.DB)
+	identity := testsupport.TestIdentity
+	identity.ProviderType = account.KeycloakIDP
+	err := identityRepo.Create(spaceSvc.Context, &identity)
+	if err != nil {
+		assert.Fail(t, "Failed to create an identity")
+	}
+
+	name := "Test 24"
+
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+
+	_, created := test.CreateSpaceCreated(t, spaceSvc.Context, spaceSvc, spaceCtrl, p)
+	assert.NotNil(t, created.Data)
+	assert.NotNil(t, created.Data.Attributes)
+	assert.NotNil(t, created.Data.Attributes.CreatedAt)
+	assert.NotNil(t, created.Data.Attributes.UpdatedAt)
+	assert.NotNil(t, created.Data.Attributes.Name)
+	assert.Equal(t, name, *created.Data.Attributes.Name)
+	assert.NotNil(t, created.Data.Links)
+	assert.NotNil(t, created.Data.Links.Self)
+
+	collabSpaceSvc, collabSpacectrl := rest.SecuredNamedSpaceController(testsupport.TestIdentity)
+	_, collabspaces := test.ListNamedspacesOK(t, collabSpaceSvc.Context, collabSpaceSvc, collabSpacectrl, testsupport.TestIdentity.Username, nil, nil)
+	assert.True(t, len(collabspaces.Data) > 0)
+	assert.Equal(t, created.Data.Attributes.Name, collabspaces.Data[0].Attributes.Name)
+	assert.Equal(t, created.Data.Attributes.Description, collabspaces.Data[0].Attributes.Description)
+	assert.Equal(t, created.Data.Links.Self, collabspaces.Data[0].Links.Self)
 }

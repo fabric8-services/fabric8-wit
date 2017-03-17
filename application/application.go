@@ -23,6 +23,7 @@ type Application interface {
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository
 	Spaces() space.Repository
+	SpaceResources() space.ResourceRepository
 	Iterations() iteration.Repository
 	Users() account.UserRepository
 	Areas() area.Repository

@@ -246,8 +246,10 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("042-work-item-link-revisions.sql")})
 
 	// Version 43
-	m = append(m, steps{executeSQLFile("043-unique-iteration-name-create-new-iteration.sql")})
+	m = append(m, steps{executeSQLFile("043-space-resources.sql")})
 
+	// Version 44
+	m = append(m, steps{executeSQLFile("044-unique-iteration-name-create-new-iteration.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
