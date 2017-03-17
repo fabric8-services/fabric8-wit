@@ -28,7 +28,7 @@ type User struct {
 	Bio                string          // The bio of the User
 	URL                string          // The URL of the User
 	Identities         []Identity      // has many Identities from different IDPs
-	ContextInformation workitem.Fields `sql:"type:jsonb"`
+	ContextInformation workitem.Fields `sql:"type:jsonb"` // context information of the user activity
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

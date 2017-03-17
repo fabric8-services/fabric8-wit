@@ -189,11 +189,11 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	}
 
 	// The following will be used for ContextInformation.
-	// As a first step, all fields would be represented as strings.
-	// In future, we can have a more complex structure
-	// of defining field types.
+	// The simplest way to represent is to have all fields
+	// as a SimpleType. During conversion from 'model' to 'app',
+	// the value would be returned 'as is'.
 
-	stringFieldDefinition := workitem.FieldDefinition{
+	simpleFieldDefinition := workitem.FieldDefinition{
 		Type: workitem.SimpleType{Kind: workitem.KindString},
 	}
 
@@ -215,7 +215,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		},
 	}
 	for name, value := range contextInformation {
-		convertedValue, err := stringFieldDefinition.ConvertFromModel(name, value)
+		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
 		converted.Data.Attributes.ContextInformation[name] = convertedValue
 		if err != nil {
 			return nil
