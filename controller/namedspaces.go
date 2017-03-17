@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -52,7 +53,35 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 	return ctx.OK(res)
 }
 
-func loadKeyCloakIdentityByUserName(ctx *app.ShowNamedspacesContext, appl application.Application, username string) (*account.Identity, error) {
+func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
+	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	if ctx.UserName == "" {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
+		identity, err := loadKeyCloakIdentityByUserName(ctx, appl, ctx.UserName)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v. %v", ctx.UserName, err.Error())))
+		}
+		spaces, c, err := appl.Spaces().LoadByOwner(ctx.Context, &identity.ID, &offset, &limit)
+		count := int(c)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		response := app.SpaceList{
+			Links: &app.PagingLinks{},
+			Meta:  &app.SpaceListMeta{TotalCount: count},
+			Data:  ConvertSpaces(ctx.RequestData, spaces),
+		}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
+
+		return ctx.OK(&response)
+	})
+}
+
+func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Application, username string) (*account.Identity, error) {
 	identities, err := appl.Identities().Query(account.IdentityFilterByUsername(username))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

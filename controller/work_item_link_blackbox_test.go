@@ -103,7 +103,7 @@ func (s *workItemLinkSuite) SetupSuite() {
 
 	svc = goa.New("TestWorkItemLinkSpace-Service")
 	require.NotNil(s.T(), svc)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db))
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db), wiConfiguration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 
 	svc = goa.New("TestWorkItemType-Service")
@@ -164,7 +164,7 @@ func (s *workItemLinkSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{Name: "test-space"})
+	db = db.Unscoped().Delete(&space.Space{ID: s.userSpaceID})
 	require.Nil(s.T(), db.Error)
 
 	// Last but not least delete the work items

@@ -247,6 +247,10 @@ func getMigrations() migrations {
 
 	// Version 43
 	m = append(m, steps{executeSQLFile("043-adds-order-to-existing-wi.sql")})
+
+	// Version 44
+	m = append(m, steps{executeSQLFile("044-space-resources.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
