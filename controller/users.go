@@ -216,10 +216,13 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	}
 	for name, value := range contextInformation {
 		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
-		converted.Data.Attributes.ContextInformation[name] = convertedValue
 		if err != nil {
-			return nil
+			log.Error(nil, map[string]interface{}{
+				"err": err,
+			}, fmt.Sprintf("Unable to convert user context field %s ", name))
+			converted.Data.Attributes.ContextInformation[name] = nil
 		}
+		converted.Data.Attributes.ContextInformation[name] = convertedValue
 	}
 	return &converted
 }
