@@ -223,7 +223,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		if err != nil {
 			log.Error(nil, map[string]interface{}{
 				"err": err,
-			}, fmt.Sprintf("Unable to convert user context field %s ", name))
+			}, "Unable to convert user context field %s ", name)
 			converted.Data.Attributes.ContextInformation[name] = nil
 		}
 		converted.Data.Attributes.ContextInformation[name] = convertedValue
