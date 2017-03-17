@@ -46,13 +46,6 @@ type workItemChildSuite struct {
 	typeCtrl                 *WorkitemtypeController
 	// These IDs can safely be used by all tests
 	bug1ID uint64
-	/*
-		bug2ID               uint64
-		bug3ID               uint64
-		userLinkCategoryID   uuid.UUID
-		bugBlockerLinkTypeID uuid.UUID
-		userSpaceID          uuid.UUID
-	*/
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	testIdentity account.Identity
