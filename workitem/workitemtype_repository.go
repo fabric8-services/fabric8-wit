@@ -24,7 +24,7 @@ var cache = NewWorkItemTypeCache()
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
-	List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error)
+	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -153,12 +153,13 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 }
 
 // List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit *int) (*app.WorkItemTypeList, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) (*app.WorkItemTypeList, error) {
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
-	var where string
 	var parameters []interface{}
 
+	where := "space_id = ?"
+	parameters = append(parameters, spaceID.String)
 	var rows []WorkItemType
 	db := r.db.Where(where, parameters...)
 	if start != nil {

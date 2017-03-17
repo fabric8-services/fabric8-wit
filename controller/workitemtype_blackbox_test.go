@@ -174,7 +174,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 		},
 	}
 
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	responseWriter, wi := test.CreateSpaceWorkitemtypesCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &payload)
 	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
@@ -218,7 +218,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		},
 	}
 
-	responseWriter, wi := test.CreateWorkitemtypeCreated(s.T(), nil, nil, s.typeCtrl, &payload)
+	responseWriter, wi := test.CreateSpaceWorkitemtypesCreated(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &payload)
 	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
@@ -226,7 +226,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	return responseWriter, wi
 }
 
-func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
+func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateSpaceWorkitemtypesPayload {
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
 		Required: false,
@@ -241,7 +241,7 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
-	payload := app.CreateWorkitemtypePayload{
+	payload := app.CreateWorkitemtypesPayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
 			Type: "workitemtypes",
@@ -347,14 +347,14 @@ func (s *workItemTypeSuite) TestListSourceAndTargetLinkTypes() {
 	// Create work item link type
 	animalLinksToBugStr := "animal-links-to-bug"
 	linkTypePayload := CreateWorkItemLinkType(animalLinksToBugStr, animalID, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *space.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 1")
 
 	// Create another work item link type
 	bugLinksToAnimalStr := "bug-links-to-animal"
 	linkTypePayload = CreateWorkItemLinkType(bugLinksToAnimalStr, workitem.SystemBug, animalID, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType = test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
+	_, linkType = test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, linkTypePayload)
 	require.NotNil(s.T(), linkType)
 	s.T().Log("Created work item link 2")
 

@@ -192,14 +192,14 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
 
 	payload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, wit := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &payload)
+	_, wit := test.CreateSpaceWorkitemtypesCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.userSpaceID.String(), &payload)
 
 	payload2 := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
-	_, wit2 := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, &payload2)
+	_, wit2 := test.CreateSpaceWorkitemtypesCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.userSpaceID.String(), &payload2)
 
 	// Create 3 work items (bug1, bug2, and feature1)
 	bug1Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug1")
-	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug1Payload)
+	_, bug1 := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug1Payload)
 	require.NotNil(s.T(), bug1)
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug1.Data.ID)
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
@@ -207,7 +207,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
 	bug2Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug2")
-	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug2Payload)
+	_, bug2 := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug2Payload)
 	require.NotNil(s.T(), bug2)
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug2.Data.ID)
 	s.bug2ID, err = strconv.ParseUint(*bug2.Data.ID, 10, 64)
@@ -215,7 +215,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
 	bug3Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug3")
-	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug3Payload)
+	_, bug3 := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug3Payload)
 	require.NotNil(s.T(), bug3)
 	s.deleteWorkItems = append(s.deleteWorkItems, *bug3.Data.ID)
 	s.bug3ID, err = strconv.ParseUint(*bug3.Data.ID, 10, 64)
@@ -223,7 +223,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
 	feature1Payload := CreateWorkItem(s.userSpaceID, *wit2.Data.ID, "feature1")
-	_, feature1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, feature1Payload)
+	_, feature1 := test.CreateSpaceWorkitemsCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), feature1Payload)
 	require.NotNil(s.T(), feature1)
 	s.deleteWorkItems = append(s.deleteWorkItems, *feature1.Data.ID)
 	s.feature1ID, err = strconv.ParseUint(*feature1.Data.ID, 10, 64)
@@ -240,7 +240,7 @@ func (s *workItemLinkSuite) SetupTest() {
 
 	// Create work item link type payload
 	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", *wit.Data.ID, *wit.Data.ID, s.userLinkCategoryID, s.userSpaceID)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, createLinkTypePayload)
+	_, workItemLinkType := test.CreateSpaceWorkItemLinkTypesCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID.String(), createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
@@ -273,11 +273,11 @@ func CreateWorkItemLinkCategory(name string) *app.CreateWorkItemLinkCategoryPayl
 }
 
 // CreateWorkItem defines a work item link
-func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateWorkitemPayload {
+func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *app.CreateSpaceWorkitemsPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))
-	payload := app.CreateWorkitemPayload{
+	payload := app.CreateSpaceWorkitemsPayload{
 		Data: &app.WorkItem2{
 			Attributes: map[string]interface{}{
 				workitem.SystemTitle: title,

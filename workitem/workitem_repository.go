@@ -25,8 +25,8 @@ type WorkItemRepository interface {
 	Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
-	List(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
-	Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
+	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
 }
@@ -328,7 +328,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, criteria c
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
+func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
 	result, count, err := r.listItemsFromDB(ctx, criteria, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
@@ -345,9 +345,9 @@ func (r *GormWorkItemRepository) List(ctx context.Context, criteria criteria.Exp
 }
 
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
-func (r *GormWorkItemRepository) Fetch(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error) {
+func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error) {
 	limit := 1
-	results, count, err := r.List(ctx, criteria, nil, &limit)
+	results, count, err := r.List(ctx, spaceID, criteria, nil, &limit)
 	if err != nil {
 		return nil, err
 	}

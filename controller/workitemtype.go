@@ -5,7 +5,6 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/goadesign/goa"
-	errs "github.com/pkg/errors"
 )
 
 const (
@@ -35,37 +34,6 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.OK(res)
-	})
-}
-
-// Create runs the create action.
-func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
-	return application.Transactional(c.db, func(appl application.Application) error {
-		var fields = map[string]app.FieldDefinition{}
-		for key, fd := range ctx.Payload.Data.Attributes.Fields {
-			fields[key] = *fd
-		}
-		wit, err := appl.WorkItemTypes().Create(ctx.Context, *ctx.Payload.Data.Relationships.Space.Data.ID, ctx.Payload.Data.ID, ctx.Payload.Data.Attributes.ExtendedTypeName, ctx.Payload.Data.Attributes.Name, ctx.Payload.Data.Attributes.Description, ctx.Payload.Data.Attributes.Icon, fields)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(wit.Data.ID))
-		return ctx.Created(wit)
-	})
-}
-
-// List runs the list action
-func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
-	start, limit, err := parseLimit(ctx.Page)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
-	}
-	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.WorkItemTypes().List(ctx.Context, start, &limit)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
-		}
-		return ctx.OK(result)
 	})
 }
 
