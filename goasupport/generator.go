@@ -1,4 +1,4 @@
-package goaheadermethods
+package goasupport
 
 import (
 	"flag"
