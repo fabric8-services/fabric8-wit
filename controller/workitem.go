@@ -519,20 +519,11 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 
 // WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
 func WorkItemIncludeChildren(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
-	wi2.Relationships.Children = CreateChildrenRelation(request, wi)
-}
-
-// CreateChildrenRelation returns a RelationGeneric object representing the relation for a workitem to child relation
-func CreateChildrenRelation(request *goa.RequestData, wi *app.WorkItem) *app.RelationGeneric {
-	return &app.RelationGeneric{
-		Links: CreateChildrenRelationLinks(request, wi),
-	}
-}
-
-// CreateChildrenRelationLinks returns a RelationGeneric object representing the links for a workitem to child relation
-func CreateChildrenRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
 	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/children"
-	return &app.GenericLinks{
-		Related: &childrenRelated,
+	wi2.Relationships.Children = &app.RelationGeneric{
+		Links: &app.GenericLinks{
+			Related: &childrenRelated,
+		},
 	}
+
 }
