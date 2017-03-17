@@ -112,7 +112,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	// WorkItemLinkTypeController_Create: start_implement
@@ -165,7 +165,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 	// WorkItemLinkTypeController_Delete: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -183,7 +183,7 @@ func (c *WorkItemLinkTypeController) Delete(ctx *app.DeleteWorkItemLinkTypeConte
 func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 	// WorkItemLinkTypeController_List: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -211,13 +211,13 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 	// WorkItemLinkTypeController_Show: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
 		wiltId, err := uuid.FromString(ctx.WiltID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return errors.NewNotFoundError("work item link type ID", ctx.WiltID)
 		}
 
 		res, err := appl.WorkItemLinkTypes().Load(ctx.Context, spaceID, wiltId)
@@ -244,7 +244,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	currentUserIdentityID, err := login.ContextIdentity(ctx)

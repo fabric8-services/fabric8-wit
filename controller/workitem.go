@@ -54,7 +54,7 @@ func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemCon
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	var additionalQuery []string
@@ -119,7 +119,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
@@ -164,7 +164,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
@@ -225,7 +225,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -257,7 +257,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {

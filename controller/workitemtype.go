@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
@@ -37,7 +38,7 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB) *Workite
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -53,7 +54,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -82,7 +83,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	start, limit, err := parseLimit(ctx.Page)
@@ -102,7 +103,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkTypesWorkitemtypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -134,7 +135,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkTypesWorkitemtypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {

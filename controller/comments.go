@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rendering"
@@ -39,7 +40,7 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 		// This code should change if others type of parents than WI are allowed
 		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, c)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return errors.NewNotFoundError("comment parentID", c.ParentID)
 		}
 
 		res.Data = ConvertComment(
@@ -80,7 +81,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		// This code should change if others type of parents than WI are allowed
 		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cm)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+			return errors.NewNotFoundError("comment parentID", cm.ParentID)
 		}
 
 		res := &app.CommentSingle{
