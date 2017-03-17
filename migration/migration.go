@@ -246,10 +246,10 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("042-work-item-link-revisions.sql")})
 
 	// Version 43
-	m = append(m, steps{executeSQLFile("043-adds-order-to-existing-wi.sql")})
+	m = append(m, steps{executeSQLFile("043-space-resources.sql")})
 
 	// Version 44
-	m = append(m, steps{executeSQLFile("044-space-resources.sql")})
+	m = append(m, steps{executeSQLFile("044-adds-order-to-existing-wi.sql")})
 
 	// Version N
 	//
