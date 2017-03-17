@@ -2,7 +2,6 @@ package controller_test
 
 import (
 	"net/http"
-	"os"
 	"strconv"
 	"testing"
 
@@ -217,12 +216,8 @@ func createParentChildWorkItemLinkType(name string, sourceTypeID, targetTypeID, 
 // In order for 'go test' to run this suite, we need to create
 // a normal test function and pass our suite to suite.Run
 func TestSuiteWorkItemChildren(t *testing.T) {
-	pwd, err := os.Getwd()
-	if err != nil {
-		require.Nil(t, err)
-	}
 	resource.Require(t, resource.Database)
-	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (s *workItemChildSuite) TestListChildren() {
