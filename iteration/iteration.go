@@ -52,6 +52,7 @@ type Repository interface {
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
+	ListBacklogIterations(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -178,4 +179,33 @@ func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iter
 		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
 	}
 	return true, nil
+}
+
+// List returns backlog items where iteration is in root iteration and status != closed
+func (m *GormIterationRepository) ListBacklogIterations(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
+	var (
+		rows []*Iteration
+		err  error
+	)
+	// FIXME: hector. Ensure that this query is correct
+	db := m.db.Where("space_id = ? AND state != ? AND path = ?", spaceID, IterationStateClose, "/")
+	if start != nil {
+		db = db.Offset(*start)
+	}
+	if limit != nil {
+		db = db.Limit(*limit)
+	}
+	if err := db.Find(&rows).Error; err != nil {
+		return nil, errs.WithStack(err)
+	}
+
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": spaceID,
+			"err":     err,
+		}, "unable to list backlog iterations")
+		return nil, errs.WithStack(err)
+	}
+	return rows, nil
 }

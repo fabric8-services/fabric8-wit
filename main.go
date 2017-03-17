@@ -285,6 +285,10 @@ func main() {
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
+	// Mount "plannerBacklog" controller
+	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB)
+	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
