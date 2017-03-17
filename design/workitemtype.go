@@ -66,7 +66,7 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 		//a.Pattern(^[^\\s]+$)
 	})
 
-	a.Required("version")
+	//a.Required("version")
 	a.Required("fields")
 	a.Required("name")
 	a.Required("icon")
@@ -127,8 +127,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.Header("If-Modified-Since", d.DateTime)
 			a.Header("If-None-Match")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemTypeSingle)
+		a.Response(d.OK, workItemTypeSingle, func() {
 			a.Headers(func() {
 				a.Header("Last-Modified", d.DateTime)
 				a.Header("ETag")
@@ -167,8 +166,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.Header("If-Modified-Since", d.DateTime)
 			a.Header("If-None-Match")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemTypeList)
+		a.Response(d.OK, workItemTypeList, func() {
 			a.Headers(func() {
 				a.Header("Last-Modified", d.DateTime)
 				a.Header("ETag")
@@ -192,8 +190,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.Header("If-Modified-Since", d.DateTime)
 			a.Header("If-None-Match")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
+		a.Response(d.OK, workItemLinkTypeList, func() {
 			a.Headers(func() {
 				a.Header("Last-Modified", d.DateTime)
 				a.Header("ETag")
@@ -217,8 +214,7 @@ var _ = a.Resource("workitemtype", func() {
 			a.Header("If-Modified-Since", d.DateTime)
 			a.Header("If-None-Match")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
+		a.Response(d.OK, workItemLinkTypeList, func() {
 			a.Headers(func() {
 				a.Header("Last-Modified", d.DateTime)
 				a.Header("ETag")

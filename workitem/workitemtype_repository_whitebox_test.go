@@ -54,8 +54,8 @@ func TestConvertTypeFromModels(t *testing.T) {
 
 	descFoo := "Description of 'foo'"
 	id := uuid.NewV4()
-	createdAt := time.Now().Add(-1 * time.Hour)
-	updatedAt := time.Now()
+	createdAt := time.Now().Add(-1 * time.Hour).UTC()
+	updatedAt := time.Now().UTC()
 	a := WorkItemType{
 		ID: id,
 		Lifecycle: gormsupport.Lifecycle{
@@ -99,6 +99,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	version := 42
 	expected := app.WorkItemTypeSingle{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -106,7 +107,7 @@ func TestConvertTypeFromModels(t *testing.T) {
 			Attributes: &app.WorkItemTypeAttributes{
 				Name:        "foo",
 				Description: &descFoo,
-				Version:     42,
+				Version:     &version,
 				CreatedAt:   &createdAt,
 				UpdatedAt:   &updatedAt,
 				Fields: map[string]*app.FieldDefinition{

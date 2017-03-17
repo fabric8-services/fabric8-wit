@@ -271,7 +271,7 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
-	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID)
+	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, *workItemLinkType.Data.ID, nil, nil)
 	require.NotNil(s.T(), readIn)
 	// Convert to model space and use equal function
 	expected := link.WorkItemLinkType{}
@@ -296,7 +296,7 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 
 // TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
-	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
+	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"), nil, nil)
 }
 
 // TestListWorkItemLinkTypeOK tests if we can find the work item link types

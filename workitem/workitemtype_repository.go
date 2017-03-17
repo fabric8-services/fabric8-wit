@@ -202,7 +202,7 @@ func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkIt
 		Attributes: &app.WorkItemTypeAttributes{
 			CreatedAt:   &createdAt,
 			UpdatedAt:   &updatedAt,
-			Version:     t.Version,
+			Version:     &t.Version,
 			Description: t.Description,
 			Icon:        t.Icon,
 			Name:        t.Name,

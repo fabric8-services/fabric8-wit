@@ -40,7 +40,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return conditional(ShowWorkitemtypeContext{*ctx}, WorkItemTypeSingle(*result), c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 	})
 }
 
@@ -71,7 +71,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
-		return conditional(ListWorkitemtypeContext{*ctx}, WorkItemTypeList(*result), c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 	})
 }
 
@@ -95,7 +95,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return conditional(ListSourceLinkTypesWorkitemtypeContext{*ctx}, WorkItemLinkTypeList(*result), c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 	})
 }
 
@@ -119,6 +119,6 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return conditional(ListTargetLinkTypesWorkitemtypeContext{*ctx}, WorkItemLinkTypeList(*result), c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
 	})
 }

@@ -159,8 +159,16 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Params(func() {
 			a.Param("id", d.UUID, "ID of the work item link type")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkType)
+		a.Headers(func() {
+			a.Header("If-Modified-Since", d.DateTime)
+			a.Header("If-None-Match")
+		})
+		a.Response(d.OK, workItemLinkType, func() {
+			a.Headers(func() {
+				a.Header("Last-Modified", d.DateTime)
+				a.Header("ETag")
+				a.Header("Cache-Control")
+			})
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
