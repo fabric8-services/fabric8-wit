@@ -215,6 +215,10 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		},
 	}
 	for name, value := range contextInformation {
+		if value == nil {
+			// this can be used to unset a key in contextInformation
+			continue
+		}
 		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
 		if err != nil {
 			log.Error(nil, map[string]interface{}{

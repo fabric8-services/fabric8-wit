@@ -104,9 +104,105 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	countValue, ok := updatedContextInformation["count"].(float64)
 	assert.True(s.T(), ok)
 	assert.Equal(s.T(), contextInformation["count"], int(countValue))
-
 	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
+}
 
+/*
+	Test to unset variable in contextInformation
+*/
+
+func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
+
+	// given
+	user := s.createRandomUser()
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
+	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	// when
+	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "newFull Name"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	// then
+	require.NotNil(s.T(), result)
+	// let's fetch it and validate the usual stuff.
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	require.NotNil(s.T(), result)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), newFullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
+	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	updatedContextInformation := result.Data.Attributes.ContextInformation
+	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
+
+	/** Usual stuff done, now lets unset **/
+	contextInformation = map[string]interface{}{
+		"last_visited": nil,
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+
+	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	// then
+	require.NotNil(s.T(), result)
+	// let's fetch it and validate the usual stuff.
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	require.NotNil(s.T(), result)
+	updatedContextInformation = result.Data.Attributes.ContextInformation
+
+	// what was passed as non-nill should be intact.
+	assert.Equal(s.T(), contextInformation["space"], updatedContextInformation["space"])
+
+	// what was pass as nil should not be found!
+	_, ok := updatedContextInformation["last_visited"]
+	assert.Equal(s.T(), false, ok)
+}
+
+/*
+	Pass no contextInformation and no one complains.
+	This is as per general service behaviour.
+*/
+
+func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
+
+	// given
+	user := s.createRandomUser()
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
+	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	// when
+	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
+	newFullName := "newFull Name"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	secureService, secureController := s.SecuredController(identity)
+
+	updateUsersPayload := createUpdateUsersPayloadWithoutContextInformation(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
+	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
@@ -223,6 +319,21 @@ func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL *string
 				ImageURL:           imageURL,
 				URL:                profileURL,
 				ContextInformation: contextInformation,
+			},
+		},
+	}
+}
+
+func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, imageURL, profileURL *string) *app.UpdateUsersPayload {
+	return &app.UpdateUsersPayload{
+		Data: &app.UpdateIdentityData{
+			Type: "identities",
+			Attributes: &app.IdentityDataAttributes{
+				Email:    email,
+				FullName: fullName,
+				Bio:      bio,
+				ImageURL: imageURL,
+				URL:      profileURL,
 			},
 		},
 	}
