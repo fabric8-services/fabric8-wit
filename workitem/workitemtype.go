@@ -30,6 +30,7 @@ const (
 	SystemCreator             = "system.creator"
 	SystemCreatedAt           = "system.created_at"
 	SystemUpdatedAt           = "system.updated_at"
+	SystemOrder               = "system.order"
 	SystemIteration           = "system.iteration"
 	SystemArea                = "system.area"
 	SystemCodebase            = "system.codebase"
