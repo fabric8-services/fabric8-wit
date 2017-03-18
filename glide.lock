@@ -1,5 +1,5 @@
-hash: b2ee94927110cd627881b81d8cdddbf4380a411777e433fceb5498074f7fd1d0
-updated: 2017-03-18T04:45:07.837187893+05:30
+hash: c1ecd605dca411c92ed75ff5042e1ac489d51bc554bf18afd2fe36fdb69d931c
+updated: 2017-03-18T05:43:09.218248292+05:30
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -37,7 +37,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: 7fc6b55040a7f8a800500c44c547692a0d7aed77
+  version: be1e8b9a2614909d8805079ebd1c947778170c0e
   vcs: git
   subpackages:
   - client
