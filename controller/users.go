@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -98,6 +99,15 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			user.URL = *updateURL
 		}
 
+		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
+		if updatedContextInformation != nil {
+			user.ContextInformation = workitem.Fields{}
+			for fieldName, fieldValue := range updatedContextInformation {
+				// Save it as is, for short-term.
+				user.ContextInformation[fieldName] = fieldValue
+			}
+		}
+
 		err = appl.Users().Save(ctx, user)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -167,28 +177,56 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	var bio string
 	var userURL string
 	var email string
+	var contextInformation workitem.Fields
+
 	if user != nil {
 		fullName = user.FullName
 		imageURL = user.ImageURL
 		bio = user.Bio
 		userURL = user.URL
 		email = user.Email
+		contextInformation = user.ContextInformation
 	}
+
+	// The following will be used for ContextInformation.
+	// The simplest way to represent is to have all fields
+	// as a SimpleType. During conversion from 'model' to 'app',
+	// the value would be returned 'as is'.
+
+	simpleFieldDefinition := workitem.FieldDefinition{
+		Type: workitem.SimpleType{Kind: workitem.KindString},
+	}
+
 	converted := app.Identity{
 		Data: &app.IdentityData{
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Username:     &userName,
-				FullName:     &fullName,
-				ImageURL:     &imageURL,
-				Bio:          &bio,
-				URL:          &userURL,
-				ProviderType: &providerType,
-				Email:        &email,
+				Username:           &userName,
+				FullName:           &fullName,
+				ImageURL:           &imageURL,
+				Bio:                &bio,
+				URL:                &userURL,
+				ProviderType:       &providerType,
+				Email:              &email,
+				ContextInformation: workitem.Fields{},
 			},
 			Links: createUserLinks(request, uuid),
 		},
+	}
+	for name, value := range contextInformation {
+		if value == nil {
+			// this can be used to unset a key in contextInformation
+			continue
+		}
+		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
+		if err != nil {
+			log.Error(nil, map[string]interface{}{
+				"err": err,
+			}, "Unable to convert user context field %s ", name)
+			converted.Data.Attributes.ContextInformation[name] = nil
+		}
+		converted.Data.Attributes.ContextInformation[name] = convertedValue
 	}
 	return &converted
 }

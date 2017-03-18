@@ -30,6 +30,7 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.Description("A work item hold field values according to a given field type")
 	a.Attribute("id", d.String, "unique id per installation")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
+	a.Attribute("ExecutionOrder", d.Number, "Order of the workitem in the list")
 	a.Attribute("type", d.UUID, "ID of the type of this work item")
 	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, according to the field type")
 	a.Attribute("relationships", workItemRelationships)
@@ -38,11 +39,13 @@ var workItem = a.MediaType("application/vnd.workitem+json", func() {
 	a.Required("version")
 	a.Required("type")
 	a.Required("fields")
+	a.Required("ExecutionOrder")
 	a.Required("relationships")
 
 	a.View("default", func() {
 		a.Attribute("id")
 		a.Attribute("version")
+		a.Attribute("ExecutionOrder")
 		a.Attribute("type")
 		a.Attribute("fields")
 		a.Attribute("relationships")
@@ -61,6 +64,19 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Attribute("totalCount", d.Integer)
 
 	a.Required("totalCount")
+})
+
+// position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed
+var position = a.Type("workItemReorderPosition", func() {
+	a.Description("Position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+	a.Attribute("id", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed", func() {
+		a.MinLength(1)
+	})
+	a.Attribute("direction", d.String, "Direction of the place of the reorder workitem. Above should be used to place the reorder workitem(s) above workitem with id equal to position.id. Below should be used to place the reorder workitem(s) below workitem with id equal to position.id. Top places the reorder workitem(s) at the Topmost position of the list. Bottom places the reorder item(s) at the bottom of the list.", func() {
+		a.Enum("above", "below", "top", "bottom")
+	})
+
+	a.Required("direction")
 })
 
 // Tracker configuration
