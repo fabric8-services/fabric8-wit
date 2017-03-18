@@ -112,7 +112,7 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.Work
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // LoadBottomWorkitem returns bottom work item of the list. Bottom most workitem has the lowest order.
@@ -128,7 +128,7 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*app.W
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // LoadHighestOrder returns the highest order
@@ -360,7 +360,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	if err != nil {
 		return nil, err
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
