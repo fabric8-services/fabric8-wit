@@ -189,7 +189,7 @@ func (m *GormIterationRepository) ListBacklogIterations(ctx context.Context, spa
 		err  error
 	)
 	// FIXME: hector. Ensure that this query is correct
-	db := m.db.Where("space_id = ? AND state != ? AND path = ?", spaceID, IterationStateClose, "/")
+	db := m.db.Where("space_id = ? AND state != ? AND path = ?", spaceID, IterationStateClose, "")
 	if start != nil {
 		db = db.Offset(*start)
 	}

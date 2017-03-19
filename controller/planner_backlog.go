@@ -3,7 +3,6 @@ package controller
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 
 	"github.com/goadesign/goa"
@@ -25,7 +24,9 @@ func NewPlannerBacklogController(service *goa.Service, db application.DB) *Plann
 func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		// This instruction doesn't propagate a 404 error. I saw that in the tests
+		//return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	start, limit, err := parseLimit(ctx.Page)

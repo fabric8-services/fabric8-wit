@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,7 +58,7 @@ func (rest *TestPlannerBlacklogREST) UnSecuredController() (*goa.Service, *Plann
 	return svc, NewPlannerBacklogController(svc, rest.db)
 }
 
-func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
+func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogIterations() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
@@ -85,6 +86,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
 				SpaceID: spaceID,
 				StartAt: &start,
 				EndAt:   &end,
+				State:   iteration.IterationStateNew,
 			}
 			repo.Create(rest.ctx, &i)
 		}
@@ -93,6 +95,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
 		fatherIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
 			SpaceID: spaceID,
+			State:   iteration.IterationStateNew,
 		}
 		repo.Create(rest.ctx, fatherIteration)
 
@@ -100,6 +103,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
 			Name:    "Child Iteration",
 			SpaceID: spaceID,
 			Path:    append(fatherIteration.Path, fatherIteration.ID),
+			State:   iteration.IterationStateStart,
 		}
 		repo.Create(rest.ctx, childIteration)
 
@@ -107,6 +111,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
 			Name:    "Grand Child Iteration",
 			SpaceID: spaceID,
 			Path:    append(childIteration.Path, childIteration.ID),
+			State:   iteration.IterationStateClose,
 		}
 		repo.Create(rest.ctx, grandChildIteration)
 
@@ -116,19 +121,22 @@ func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
 	svc, ctrl := rest.UnSecuredController()
 	page := "0,-1"
 	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, spaceID.String(), &page)
-	assert.Len(t, cs.Data, 6)
+	// Four iteration are in the root path
+	assert.Len(t, cs.Data, 4)
 	for _, iterationItem := range cs.Data {
 		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
 		require.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
 		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["total"])
 		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
-		if *iterationItem.ID == childIteration.ID {
-			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String()
-			expectedResolvedParentPath := iteration.PathSepInService + fatherIteration.Name
-			require.NotNil(t, iterationItem.Relationships.Parent)
-			assert.Equal(t, fatherIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
+		if *iterationItem.ID == fatherIteration.ID {
+			expectedParentPath := "/"
+			expectedResolvedParentPath := ""
+			// It doesn't has a father
+			require.Nil(t, iterationItem.Relationships.Parent)
+
 			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
 			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
+			assert.Equal(t, iteration.IterationStateNew, *iterationItem.Attributes.State)
 		}
 		if *iterationItem.ID == grandChildIteration.ID {
 			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String() + iteration.PathSepInService + childIteration.ID.String()
@@ -137,7 +145,12 @@ func (rest *TestPlannerBlacklogREST) TestSuccessCreateIteration() {
 			assert.Equal(t, childIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
 			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
 			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
-
+			assert.Equal(t, iteration.IterationStateClose, *iterationItem.Attributes.State)
+		}
+		if strings.Contains(*iterationItem.Attributes.Name, "Sprint #2") {
+			assert.Equal(t, "/", *iterationItem.Attributes.ParentPath)
+			assert.Equal(t, "", *iterationItem.Attributes.ResolvedParentPath)
+			assert.Equal(t, iteration.IterationStateNew, *iterationItem.Attributes.State)
 		}
 	}
 }
@@ -148,5 +161,5 @@ func (rest *TestPlannerBlacklogREST) TestFailListPlannerBacklogByMissingSpace() 
 
 	svc, ctrl := rest.UnSecuredController()
 	page := "0,-1"
-	test.ListPlannerBacklogNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), &page)
+	test.ListPlannerBacklogNotFound(t, svc.Context, svc, ctrl, "xxxxx", &page)
 }
