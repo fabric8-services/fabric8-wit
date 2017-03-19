@@ -501,4 +501,4 @@ var defaultKeycloakTesUser2Name = "testuser2"
 var defaultKeycloakTesUser2Secret = "testuser2"
 
 // Keycloak URL to be used in dev mode. Can be overridden by setting up keycloak.url
-var devModeKeycloakURL = "http://sso.demo.almighty.io"
+var devModeKeycloakURL = "http://sso.prod-preview.openshift.io"

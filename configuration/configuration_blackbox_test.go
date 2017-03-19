@@ -89,7 +89,7 @@ func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointAdminDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/admin/realms/fabric8", config.GetKeycloakEndpointAdmin)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/admin/realms/fabric8", config.GetKeycloakEndpointAdmin)
 }
 
 func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
@@ -100,7 +100,7 @@ func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/realms/fabric8/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
 }
 
 func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
@@ -111,7 +111,7 @@ func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/admin/realms/fabric8/clients", config.GetKeycloakEndpointClients)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/admin/realms/fabric8/clients", config.GetKeycloakEndpointClients)
 }
 
 func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
@@ -122,7 +122,7 @@ func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/realms/fabric8/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
@@ -133,7 +133,7 @@ func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/realms/fabric8/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
@@ -144,7 +144,7 @@ func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/realms/fabric8/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
 }
 
 func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
@@ -155,7 +155,7 @@ func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, "http://sso.demo.almighty.io/auth/realms/fabric8/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
+	checkGetKeycloakEndpointOK(t, "http://sso.prod-preview.openshift.io/auth/realms/fabric8/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
 }
 
 func TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK(t *testing.T) {
