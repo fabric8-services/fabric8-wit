@@ -68,17 +68,17 @@ func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 
 func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
 	// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
-	// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
+	// The correct name would be something like API.demo.almighty.io which is to be converted to sso.prod-preview.openshift.io
 	// So, it should be treated as an exception
 
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
 
 	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
+		Request: &http.Request{Host: "sso.prod-preview.openshift.io"},
 	}
 
 	url, err := config.getKeycloakURL(r, "somepath3")
 	assert.Nil(t, err)
-	assert.Equal(t, "http://sso.demo.almighty.io/somepath3", url)
+	assert.Equal(t, "http://sso.prod-preview.openshift.io/somepath3", url)
 }
