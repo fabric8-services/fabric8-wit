@@ -37,7 +37,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: 7fc6b55040a7f8a800500c44c547692a0d7aed77
+  version: be1e8b9a2614909d8805079ebd1c947778170c0e
   vcs: git
   subpackages:
   - client
