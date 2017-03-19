@@ -1,5 +1,5 @@
-hash: c1ecd605dca411c92ed75ff5042e1ac489d51bc554bf18afd2fe36fdb69d931c
-updated: 2017-03-18T05:43:09.218248292+05:30
+hash: b2ee94927110cd627881b81d8cdddbf4380a411777e433fceb5498074f7fd1d0
+updated: 2017-03-19T21:25:30.763161563+05:30
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -37,7 +37,7 @@ imports:
 - name: github.com/fzipp/gocyclo
   version: 6acd4345c835499920e8426c7e4e8d7a34f1bb83
 - name: github.com/goadesign/goa
-  version: be1e8b9a2614909d8805079ebd1c947778170c0e
+  version: 7fc6b55040a7f8a800500c44c547692a0d7aed77
   vcs: git
   subpackages:
   - client
@@ -106,7 +106,7 @@ imports:
 - name: github.com/lsegal/gucumber
   version: 71608e2f6e76fd4da5b09a376aeec7a5c0b5edbc
 - name: github.com/magiconair/properties
-  version: c265cfa48dda6474e208715ca93e987829f572f8
+  version: f69f58659d94d062e6af29a4e3633cf4597358bc
 - name: github.com/manveru/faker
   version: 717f7cf83fb78669bfab612749c2e8ff63d5be11
 - name: github.com/mattn/go-colorable
