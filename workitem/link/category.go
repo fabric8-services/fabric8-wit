@@ -4,7 +4,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 type WorkItemLinkCategory struct {
 	gormsupport.Lifecycle
 	// ID
-	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Name is the unique name of this work item link category.
 	Name string
 	// Description is an optional description of the work item link category
