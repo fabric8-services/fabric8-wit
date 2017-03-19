@@ -20,6 +20,8 @@ type WorkItem struct {
 	Version int
 	// the field values
 	Fields Fields `sql:"type:jsonb"`
+	// the position of workitem
+	ExecutionOrder float64
 	// Reference to one Space
 	SpaceID uuid.UUID `sql:"type:uuid"`
 }
@@ -54,6 +56,9 @@ func (wi WorkItem) Equal(u convert.Equaler) bool {
 		return false
 	}
 	if wi.Version != other.Version {
+		return false
+	}
+	if wi.ExecutionOrder != other.ExecutionOrder {
 		return false
 	}
 	if wi.SpaceID != other.SpaceID {

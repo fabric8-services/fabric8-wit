@@ -45,7 +45,20 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	DeleteStub        func(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
+	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	reorderMutex       sync.RWMutex
+	reorderArgsForCall []struct {
+		ctx        context.Context
+		direction  workitem.DirectionType
+		targetID   *string
+		wi         app.WorkItem
+		modifierID uuid.UUID
+	}
+	reorderReturns struct {
+		wi  *app.WorkItem
+		err error
+	}
+	DeleteStub        func(ctx context.Context, ID string, suppressorID uuid.UUID) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
 		ctx          context.Context
@@ -209,6 +222,51 @@ func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error
 		result1 *app.WorkItem
 		result2 error
 	}{result1, result2}
+}
+
+// Reorder is a fake function for reordering of workitems
+// Used for testing purpose
+func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+	fake.reorderMutex.Lock()
+	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
+		ctx        context.Context
+		direction  workitem.DirectionType
+		targetID   *string
+		wi         app.WorkItem
+		modifierID uuid.UUID
+	}{ctx, direction, targetID, wi, modifierID})
+	fake.recordInvocation("Reorder", []interface{}{ctx, direction, *targetID, wi, modifierID})
+	fake.reorderMutex.Unlock()
+	if fake.ReorderStub != nil {
+		return fake.ReorderStub(ctx, direction, targetID, wi, modifierID)
+	} else {
+		return fake.reorderReturns.wi, fake.reorderReturns.err
+	}
+}
+
+// ReorderCallCount returns the length of fake arguments
+func (fake *WorkItemRepository) ReorderCallCount() int {
+	fake.reorderMutex.RLock()
+	defer fake.reorderMutex.RUnlock()
+	return len(fake.reorderArgsForCall)
+}
+
+// ReorderArgsForCall returns fake arguments for Reorder function
+func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, workitem.DirectionType, string, app.WorkItem, uuid.UUID) {
+	fake.reorderMutex.RLock()
+	defer fake.reorderMutex.RUnlock()
+	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].direction, *fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
+}
+
+// ReorderReturns returns fake values for Reorder function
+func (fake *WorkItemRepository) ReorderReturns(workItem *app.WorkItem, errr error) {
+	fake.ReorderStub = nil
+	type reorder struct {
+		wi  *app.WorkItem
+		err error
+	}
+	v := reorder{workItem, errr}
+	fake.reorderReturns = v
 }
 
 func (fake *WorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error {

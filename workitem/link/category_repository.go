@@ -7,15 +7,15 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/jinzhu/gorm"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
 	Create(ctx context.Context, name *string, description *string) (*app.WorkItemLinkCategorySingle, error)
-	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkCategorySingle, error)
+	Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkCategorySingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkCategoryList, error)
-	Delete(ctx context.Context, ID satoriuuid.UUID) error
+	Delete(ctx context.Context, ID uuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkCategorySingle) (*app.WorkItemLinkCategorySingle, error)
 }
 
@@ -51,7 +51,7 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *s
 
 // Load returns the work item link category for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkCategorySingle, error) {
+func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkCategorySingle, error) {
 	log.Info(ctx, map[string]interface{}{
 		"wilcID": ID,
 	}, "Loading work item link category")
@@ -117,7 +117,7 @@ func (r *GormWorkItemLinkCategoryRepository) List(ctx context.Context) (*app.Wor
 
 // Delete deletes the work item link category with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	var cat = WorkItemLinkCategory{
 		ID: ID,
 	}
