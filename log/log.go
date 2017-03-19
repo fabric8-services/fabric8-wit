@@ -2,10 +2,11 @@ package log
 
 import (
 	"errors"
-	log "github.com/Sirupsen/logrus"
 	"os"
 	"runtime"
 	"strings"
+
+	log "github.com/Sirupsen/logrus"
 
 	"golang.org/x/net/context"
 )
@@ -86,6 +87,13 @@ func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, err
 // Logger returns the current logger object.
 func Logger() *log.Logger {
 	return logger
+}
+
+// IsDebug returns true if logger is set at DebugLevel.
+// Useful if you need to do extra work that takes time to build the log statement
+// that is not required as part of normal execution flow
+func IsDebug() bool {
+	return logger.Level >= log.DebugLevel
 }
 
 // Error logs an error message that might contain the following attributes: pid,

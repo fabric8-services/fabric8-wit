@@ -285,6 +285,14 @@ func main() {
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
+	// Mount "codebase" controller
+	codebaseCtrl := controller.NewCodebaseController(service, appDB)
+	app.MountCodebaseController(service, codebaseCtrl)
+
+	// Mount "spacecodebases" controller
+	spaceCodebaseCtrl := controller.NewSpaceCodebasesController(service, appDB)
+	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)

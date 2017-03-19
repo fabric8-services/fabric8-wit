@@ -257,6 +257,9 @@ func getMigrations() migrations {
 	// Version 46
 	m = append(m, steps{executeSQLFile("046-oauth-states.sql")})
 
+	// Version 47
+	m = append(m, steps{executeSQLFile("047-codebases.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
