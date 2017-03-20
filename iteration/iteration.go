@@ -186,7 +186,7 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loadchildren"}, time.Now())
 	parentIteration, err := m.Load(ctx, parentIterationID)
 	if err != nil {
-		return nil, err
+		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
 	}
 	var objs []*Iteration
 	selfPath := parentIteration.Path.Convert()

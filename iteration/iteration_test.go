@@ -14,6 +14,9 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
+	"reflect"
+
+	"github.com/almighty/almighty-core/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -217,7 +220,7 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	t := test.T()
 	resource.Require(t, resource.Database)
 	newSpace := space.Space{
-		Name: "Space To Test Listing of Iteration Children",
+		Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
@@ -282,4 +285,10 @@ func (test *TestIterationRepository) TestLoadChildren() {
 	childIterations3, err := repo.LoadChildren(context.Background(), i3.ID)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(childIterations3))
+
+	// try to fetch children of non-exisitng parent
+	fakeParentId := uuid.NewV4()
+	_, err = repo.LoadChildren(context.Background(), fakeParentId)
+	require.NotNil(t, err)
+	assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 }
