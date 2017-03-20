@@ -167,6 +167,44 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	})
 }
 
+// Reorder does PATCH workitem
+func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	return application.Transactional(c.db, func(appl application.Application) error {
+		var dataArray []*app.WorkItem2
+		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
+		}
+
+		// Reorder workitems in the array one by one
+		for i := 0; i < len(ctx.Payload.Data); i++ {
+			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+
+			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+			wi, err = appl.WorkItems().Reorder(ctx, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			wi2 := ConvertWorkItem(ctx.RequestData, wi)
+			dataArray = append(dataArray, wi2)
+		}
+		resp := &app.WorkItem2Reorder{
+			Data: dataArray,
+		}
+
+		return ctx.OK(resp)
+	})
+}
+
 // Create does POST workitem
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
