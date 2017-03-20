@@ -252,7 +252,10 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("044-add-contextinfo-column-users.sql")})
 
 	// Version 45
-	m = append(m, steps{executeSQLFile("045-unique-iteration-name-create-new-iteration.sql")})
+	m = append(m, steps{executeSQLFile("045-adds-order-to-existing-wi.sql")})
+
+	// Version 46
+	m = append(m, steps{executeSQLFile("046-unique-iteration-name-create-new-iteration.sql")})
 
 	// Version N
 	//
@@ -601,6 +604,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
 		workitem.SystemUpdatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+		workitem.SystemOrder:        {Type: &app.FieldType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
