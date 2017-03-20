@@ -153,7 +153,9 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		codegen.SimpleImport("encoding/base64"),
 		codegen.SimpleImport("strconv"),
 		codegen.SimpleImport("time"),
+		codegen.SimpleImport("reflect"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/configuration"),
+		codegen.SimpleImport("github.com/Sirupsen/logrus"),
 	}
 
 	ctxWr.WriteHeader(title, "app", imports)
@@ -167,6 +169,10 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		return nil, err
 	}
 	if err := ctxWr.ExecuteTemplate("conditionalResponseEntity", conditionalResponseEntity, nil, requestContexts); err != nil {
+		return nil, err
+	}
+
+	if err := ctxWr.ExecuteTemplate("generateETag", generateETag, nil, requestContexts); err != nil {
 		return nil, err
 	}
 
@@ -194,7 +200,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		if err := ctxWr.ExecuteTemplate("getLastModified", getLastModified, nil, entity); err != nil {
 			return nil, err
 		}
-		if err := ctxWr.ExecuteTemplate("getETag", getETag, nil, entity); err != nil {
+		if err := ctxWr.ExecuteTemplate("getETagData", getETagData, nil, entity); err != nil {
 			return nil, err
 		}
 	}
@@ -227,8 +233,10 @@ const (
 	conditionalResponseEntity = `
 	// ConditionalResponseEntity interface with methods for the response entities
 type ConditionalResponseEntity interface {
+	// returns the time of last update 
 	GetLastModified() time.Time
-	GetETag() string
+	// returns the values to use to generate the ETag
+	GetETagData() []interface{}
 }`
 
 	cacheControlConfig = `
@@ -240,7 +248,7 @@ type ConditionalResponseEntity interface {
 // or calls the 'nonConditionalCallback' function to carry on.
 func (ctx *{{$resp.Name}}) Conditional(entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
 	lastModified := entity.GetLastModified()
-	eTag := entity.GetETag()
+	eTag := GenerateETag(entity)
 	cacheControl := cacheControlConfig()
 	ctx.setLastModified(lastModified)
 	ctx.setETag(eTag)
@@ -255,6 +263,40 @@ func (ctx *{{$resp.Name}}) Conditional(entity ConditionalResponseEntity, cacheCo
 	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
 	return nonConditionalCallback()
 }`
+	generateETag = `
+// GenerateETag generates the value to return in the "ETag" HTTP response header for the given entity
+// The ETag is the base64-encoded value of the md5 hash of the buffer content
+func GenerateETag(entity ConditionalResponseEntity) string {
+	var buffer bytes.Buffer
+	buffer.WriteString(generateETagValue(entity.GetETagData()))
+	etagData := md5.Sum(buffer.Bytes())
+	etag := base64.StdEncoding.EncodeToString(etagData[:])
+	return etag
+}
+
+func generateETagValue(data []interface{}) string {
+	var buffer bytes.Buffer
+	for i, d := range data {
+		switch d := d.(type) {
+		case []interface{}:
+			buffer.WriteString(generateETagValue(d))
+		case string:
+			buffer.WriteString(d)
+		case time.Time:
+			buffer.WriteString(d.UTC().String())
+		case int:
+			buffer.WriteString(strconv.Itoa(d))
+		default:
+			logrus.Error("Unexpected etag fragment format", reflect.TypeOf(d).String())
+		}
+		if i < len(data)-1 {
+			buffer.WriteString("|")
+		}
+	}
+	return buffer.String()
+}
+  
+  `
 
 	modifiedSince = `
 {{ $resp := . }}
@@ -323,37 +365,23 @@ func (entity {{$entity.AppTypeName}}) GetLastModified() time.Time {
 }
 {{ end }}`
 
-	getETag = `
+	getETagData = `
 {{ $entity := . }}
 {{ if $entity.IsSingle }}
-// GetETag generates the value to return in the "ETag" HTTP response header, using the data in the given buffer.
+// GetETagData generates the values to use to generate the ETag.
 // The ETag is the base64-encoded value of the md5 hash of the buffer content
-func (entity {{$entity.AppTypeName}}) GetETag() string {
-	var buffer bytes.Buffer
-	// build a block of text for the given type with one <id>-<version>
-	buffer.WriteString(entity.Data.ID.String())
-	buffer.WriteString("-")
-	buffer.WriteString(strconv.Itoa(*entity.Data.Attributes.Version))
-	buffer.WriteString("\n")
-	etagData := md5.Sum(buffer.Bytes())
-	etag := base64.StdEncoding.EncodeToString(etagData[:])
-	return etag
+func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
+	return []interface{}{entity.Data.ID, entity.Data.Attributes.Version}
 }
 {{ end }}
 {{ if $entity.IsList }}
-// GetETag generates the value to return in the "ETag" HTTP response header, using the data in the given buffer.
-// The ETag is the base64-encoded value of the md5 hash of the buffer content
-func (entity {{$entity.AppTypeName}}) GetETag() string {
-	var buffer bytes.Buffer
+// GetETagData generates the values to use to generate the ETag.
+func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
+	var result []interface{}
 	for _, data := range entity.Data {
-		buffer.WriteString(data.ID.String())
-		buffer.WriteString("-")
-		buffer.WriteString(strconv.Itoa(*data.Attributes.Version))
-		buffer.WriteString("\n")
+		result = append(result, []interface{}{data.ID, data.Attributes.Version})
 	}
-	etagData := md5.Sum(buffer.Bytes())
-	etag := base64.StdEncoding.EncodeToString(etagData[:])
-	return etag
+	return result
 }
 {{ end }}`
 )
