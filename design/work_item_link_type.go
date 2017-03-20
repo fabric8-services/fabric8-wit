@@ -159,17 +159,8 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Params(func() {
 			a.Param("id", d.UUID, "ID of the work item link type")
 		})
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.DateTime)
-			a.Header("If-None-Match")
-		})
-		a.Response(d.OK, workItemLinkType, func() {
-			a.Headers(func() {
-				a.Header("Last-Modified", d.DateTime)
-				a.Header("ETag")
-				a.Header("Cache-Control")
-			})
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkType)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -181,17 +172,8 @@ var _ = a.Resource("work_item_link_type", func() {
 			a.GET(""),
 		)
 		a.Description("List work item link types.")
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.DateTime)
-			a.Header("If-None-Match")
-		})
-		a.Response(d.OK, workItemLinkTypeList, func() {
-			a.Headers(func() {
-				a.Header("Last-Modified", d.DateTime)
-				a.Header("ETag")
-				a.Header("Cache-Control")
-			})
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -238,9 +220,7 @@ var _ = a.Resource("work_item_link_type", func() {
 			a.Param("id", d.UUID, "id")
 		})
 		a.Payload(updateWorkItemLinkTypePayload)
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkType)
-		})
+		a.Response(d.OK, workItemLinkType)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
