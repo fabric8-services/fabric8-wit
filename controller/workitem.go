@@ -162,6 +162,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 // Reorder does PATCH workitem
 func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -174,7 +179,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
-			wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data[i].ID)
+			wi, err := appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data[i].ID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}

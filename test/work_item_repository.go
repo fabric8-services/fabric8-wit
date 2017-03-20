@@ -58,7 +58,7 @@ type WorkItemRepository struct {
 		wi  *app.WorkItem
 		err error
 	}
-	DeleteStub        func(ctx context.Context, ID string, suppressorID uuid.UUID) error
+	DeleteStub        func(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
 		ctx          context.Context

@@ -25,8 +25,6 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-		// This instruction doesn't propagate a 404 error. I saw that in the tests
-		//return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
 
 	start, limit, err := parseLimit(ctx.Page)
