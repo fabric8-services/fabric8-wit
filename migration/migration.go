@@ -255,7 +255,10 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("045-adds-order-to-existing-wi.sql")})
 
 	// Version 46
-	m = append(m, steps{executeSQLFile("046-unique-iteration-name-create-new-iteration.sql")})
+	m = append(m, steps{executeSQLFile("046-oauth-states.sql")})
+
+	// Version 47
+	m = append(m, steps{executeSQLFile("047-unique-iteration-name-create-new-iteration.sql")})
 
 	// Version N
 	//
