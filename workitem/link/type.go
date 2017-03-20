@@ -10,7 +10,7 @@ import (
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -46,7 +46,7 @@ func strPtrIsNilOrContentIsEqual(l, r *string) bool {
 type WorkItemLinkType struct {
 	gormsupport.Lifecycle
 	// ID
-	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Name is the unique name of this work item link type.
 	Name string
 	// Description is an optional description of the work item link type
@@ -55,16 +55,16 @@ type WorkItemLinkType struct {
 	Version  int
 	Topology string // Valid values: network, directed_network, dependency, tree
 
-	SourceTypeID satoriuuid.UUID `sql:"type:uuid"`
-	TargetTypeID satoriuuid.UUID `sql:"type:uuid"`
+	SourceTypeID uuid.UUID `sql:"type:uuid"`
+	TargetTypeID uuid.UUID `sql:"type:uuid"`
 
 	ForwardName string
 	ReverseName string
 
-	LinkCategoryID satoriuuid.UUID `sql:"type:uuid"`
+	LinkCategoryID uuid.UUID `sql:"type:uuid"`
 
 	// Reference to one Space
-	SpaceID satoriuuid.UUID `sql:"type:uuid"`
+	SpaceID uuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -80,7 +80,7 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !t.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if !satoriuuid.Equal(t.ID, other.ID) {
+	if !uuid.Equal(t.ID, other.ID) {
 		return false
 	}
 	if t.Name != other.Name {
@@ -95,10 +95,10 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Topology != other.Topology {
 		return false
 	}
-	if !satoriuuid.Equal(t.SourceTypeID, other.SourceTypeID) {
+	if !uuid.Equal(t.SourceTypeID, other.SourceTypeID) {
 		return false
 	}
-	if !satoriuuid.Equal(t.TargetTypeID, other.TargetTypeID) {
+	if !uuid.Equal(t.TargetTypeID, other.TargetTypeID) {
 		return false
 	}
 	if t.ForwardName != other.ForwardName {
@@ -107,10 +107,10 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.ReverseName != other.ReverseName {
 		return false
 	}
-	if !satoriuuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
+	if !uuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
 		return false
 	}
-	if !satoriuuid.Equal(t.SpaceID, other.SpaceID) {
+	if !uuid.Equal(t.SpaceID, other.SpaceID) {
 		return false
 	}
 	return true
@@ -122,10 +122,10 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
 	}
-	if satoriuuid.Equal(t.SourceTypeID, satoriuuid.Nil) {
+	if uuid.Equal(t.SourceTypeID, uuid.Nil) {
 		return errors.NewBadParameterError("source_type_name", t.SourceTypeID)
 	}
-	if satoriuuid.Equal(t.TargetTypeID, satoriuuid.Nil) {
+	if uuid.Equal(t.TargetTypeID, uuid.Nil) {
 		return errors.NewBadParameterError("target_type_name", t.TargetTypeID)
 	}
 	if t.ForwardName == "" {
@@ -137,10 +137,10 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if err := CheckValidTopology(t.Topology); err != nil {
 		return errs.WithStack(err)
 	}
-	if t.LinkCategoryID == satoriuuid.Nil {
+	if t.LinkCategoryID == uuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
-	if t.SpaceID == satoriuuid.Nil {
+	if t.SpaceID == uuid.Nil {
 		return errors.NewBadParameterError("space_id", t.SpaceID)
 	}
 	return nil

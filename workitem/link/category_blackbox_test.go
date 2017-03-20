@@ -10,7 +10,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/workitem/link"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func TestWorkItemLinkCategory_Equal(t *testing.T) {
 
 	description := "An example description"
 	a := link.WorkItemLinkCategory{
-		ID:          satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
+		ID:          uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:        "Example work item link category",
 		Description: &description,
 		Version:     0,
@@ -58,7 +58,7 @@ func TestWorkItemLinkCategory_Equal(t *testing.T) {
 
 	// Test ID
 	c = a
-	c.ID = satoriuuid.FromStringOrNil("33371e36-871b-43a6-9166-0c4bd573e333")
+	c.ID = uuid.FromStringOrNil("33371e36-871b-43a6-9166-0c4bd573e333")
 	require.False(t, a.Equal(c))
 
 	// Test when one Description is nil
@@ -73,7 +73,7 @@ func TestWorkItemLinkCategory_ConvertLinkCategoryFromModel(t *testing.T) {
 
 	description := "An example description"
 	m := link.WorkItemLinkCategory{
-		ID:          satoriuuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
+		ID:          uuid.FromStringOrNil("0e671e36-871b-43a6-9166-0c4bd573e231"),
 		Name:        "Example work item link category",
 		Description: &description,
 		Version:     0,

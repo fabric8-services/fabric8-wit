@@ -12,7 +12,7 @@ import (
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkController implements the work-item-link resource.
@@ -45,13 +45,13 @@ type workItemLinkContext struct {
 	ResponseData          *goa.ResponseData
 	Application           application.Application
 	Context               context.Context
-	CurrentUserIdentityID *satoriuuid.UUID
+	CurrentUserIdentityID *uuid.UUID
 	DB                    application.DB
 	LinkFunc              hrefLinkFunc
 }
 
 // newWorkItemLinkContext returns a new workItemLinkContext
-func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, requestData *goa.RequestData, responseData *goa.ResponseData, linkFunc hrefLinkFunc, currentUserIdentityID *satoriuuid.UUID) *workItemLinkContext {
+func newWorkItemLinkContext(ctx context.Context, appl application.Application, db application.DB, requestData *goa.RequestData, responseData *goa.ResponseData, linkFunc hrefLinkFunc, currentUserIdentityID *uuid.UUID) *workItemLinkContext {
 	return &workItemLinkContext{
 		RequestData:           requestData,
 		ResponseData:          responseData,
@@ -67,7 +67,7 @@ func newWorkItemLinkContext(ctx context.Context, appl application.Application, d
 // given work item links
 func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItemLinkTypeData, error) {
 	// Build our "set" of distinct type IDs already converted as strings
-	typeIDMap := map[satoriuuid.UUID]bool{}
+	typeIDMap := map[uuid.UUID]bool{}
 	for _, linkData := range linksDataArr {
 		typeIDMap[linkData.Relationships.LinkType.Data.ID] = true
 	}
@@ -108,7 +108,7 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 // categories for the given work item link types
 func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.WorkItemLinkTypeData) ([]*app.WorkItemLinkCategoryData, error) {
 	// Build our "set" of distinct category IDs already converted as strings
-	catIDMap := map[satoriuuid.UUID]bool{}
+	catIDMap := map[uuid.UUID]bool{}
 	for _, linkTypeData := range linkTypeDataArr {
 		catIDMap[linkTypeData.Relationships.LinkCategory.Data.ID] = true
 	}
@@ -283,7 +283,7 @@ type deleteWorkItemLinkFuncs interface {
 	OK(resp []byte) error
 }
 
-func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs, linkID satoriuuid.UUID) error {
+func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs, linkID uuid.UUID) error {
 	err := ctx.Application.WorkItemLinks().Delete(ctx.Context, linkID, *ctx.CurrentUserIdentityID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
@@ -340,7 +340,7 @@ type showWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLinkSingle) error
 }
 
-func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, linkID satoriuuid.UUID) error {
+func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, linkID uuid.UUID) error {
 	link, err := ctx.Application.WorkItemLinks().Load(ctx.Context, linkID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
