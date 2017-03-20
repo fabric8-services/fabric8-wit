@@ -1,5 +1,5 @@
-hash: 9b5e18dd8dfb8e495ad1854a84e6187fc375b0b6df644ad7615839d403abbbd2
-updated: 2017-03-19T21:51:55.665390113+05:30
+hash: b2ee94927110cd627881b81d8cdddbf4380a411777e433fceb5498074f7fd1d0
+updated: 2017-03-19T21:25:30.763161563+05:30
 imports:
 - name: github.com/andygrunwald/go-jira
   version: 9d1f282f93af41553ddb53b0116a8cdb75b4837a
@@ -72,6 +72,17 @@ imports:
   version: 9235644dd9e52eeae6fa48efd539fdc351a0af53
   subpackages:
   - query
+- name: github.com/hashicorp/hcl
+  version: 37ab263305aaeb501a60eb16863e808d426e37f2
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/scanner
+  - hcl/strconv
+  - hcl/token
+  - json/parser
+  - json/scanner
+  - json/token
 - name: github.com/howeyc/fsnotify
   version: f0c08ee9c60704c1879025f2ae0ff3e000082c13
 - name: github.com/inconshreveable/mousetrap
