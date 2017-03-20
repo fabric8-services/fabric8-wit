@@ -15,7 +15,7 @@ import (
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // End points
@@ -29,13 +29,13 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
-	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID, creatorID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
-	Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
+	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*app.WorkItemLinkSingle, error)
+	Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkSingle, error)
 	List(ctx context.Context) (*app.WorkItemLinkList, error)
 	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
-	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID satoriuuid.UUID) error
-	Delete(ctx context.Context, ID satoriuuid.UUID, suppressorID satoriuuid.UUID) error
-	Save(ctx context.Context, linkCat app.WorkItemLinkSingle, modifierID satoriuuid.UUID) (*app.WorkItemLinkSingle, error)
+	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error
+	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
+	Save(ctx context.Context, linkCat app.WorkItemLinkSingle, modifierID uuid.UUID) (*app.WorkItemLinkSingle, error)
 	ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error)
 }
 
@@ -62,7 +62,7 @@ type GormWorkItemLinkRepository struct {
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
-func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
 	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
 	if err != nil {
 		return errs.WithStack(err)
@@ -98,7 +98,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID satoriuuid.UUID, creatorID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*app.WorkItemLinkSingle, error) {
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -129,7 +129,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkSingle, error) {
 	log.Info(ctx, map[string]interface{}{
 		"wilID": ID,
 	}, "Loading work item link")
@@ -206,7 +206,7 @@ func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLin
 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID satoriuuid.UUID, suppressorID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUID, suppressorID uuid.UUID) error {
 	var lnk = WorkItemLink{}
 	tx := r.db.Where("id = ?", linkID).Find(&lnk)
 	if tx.RecordNotFound() {
@@ -218,7 +218,7 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID satoriuu
 
 // DeleteRelatedLinks deletes all links in which the source or target equals the
 // given work item ID.
-func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error {
 	log.Info(ctx, map[string]interface{}{
 		"workitem_id": wiIDStr,
 	}, "Deleting the links related to work item")
@@ -239,7 +239,7 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 
 // Delete deletes the work item link with the given id
 // returns NotFoundError or InternalError
-func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkItemLink, suppressorID satoriuuid.UUID) error {
+func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkItemLink, suppressorID uuid.UUID) error {
 	log.Info(ctx, map[string]interface{}{
 		"wilID": lnk.ID,
 	}, "Deleting the work item link")
@@ -264,7 +264,7 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLinkSingle, modifierID satoriuuid.UUID) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLinkSingle, modifierID uuid.UUID) (*app.WorkItemLinkSingle, error) {
 	res := WorkItemLink{}
 	if lt.Data.ID == nil {
 		return nil, errors.NewBadParameterError("work item link", nil)

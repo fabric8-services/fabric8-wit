@@ -80,5 +80,5 @@ func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
 
 	url, err := config.getKeycloakURL(r, "somepath3")
 	assert.Nil(t, err)
-	assert.Equal(t, "http://sso.demo.almighty.io/somepath3", url)
+	assert.Equal(t, devModeKeycloakURL+"/somepath3", url)
 }
