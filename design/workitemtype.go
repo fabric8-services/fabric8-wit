@@ -123,17 +123,8 @@ var _ = a.Resource("workitemtype", func() {
 		a.Params(func() {
 			a.Param("witID", d.UUID, "ID of the work item type")
 		})
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.DateTime)
-			a.Header("If-None-Match")
-		})
-		a.Response(d.OK, workItemTypeSingle, func() {
-			a.Headers(func() {
-				a.Header("Last-Modified", d.DateTime)
-				a.Header("ETag")
-				a.Header("Cache-Control")
-			})
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeSingle)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -162,17 +153,8 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 			// TODO: Support same params as in work item list-action?
 		})
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.DateTime)
-			a.Header("If-None-Match")
-		})
-		a.Response(d.OK, workItemTypeList, func() {
-			a.Headers(func() {
-				a.Header("Last-Modified", d.DateTime)
-				a.Header("ETag")
-				a.Header("Cache-Control")
-			})
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -186,17 +168,8 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("witID", d.UUID, "ID of the work item type")
 		})
 		a.Description(`Retrieve work item link types where the given work item type can be used in the source of the link.`)
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.DateTime)
-			a.Header("If-None-Match")
-		})
-		a.Response(d.OK, workItemLinkTypeList, func() {
-			a.Headers(func() {
-				a.Header("Last-Modified", d.DateTime)
-				a.Header("ETag")
-				a.Header("Cache-Control")
-			})
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -210,17 +183,8 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("witID", d.UUID, "ID of work item type")
 		})
 		a.Description(`Retrieve work item link types where the given work item type can be used in the target of the link.`)
-		a.Headers(func() {
-			a.Header("If-Modified-Since", d.DateTime)
-			a.Header("If-None-Match")
-		})
-		a.Response(d.OK, workItemLinkTypeList, func() {
-			a.Headers(func() {
-				a.Header("Last-Modified", d.DateTime)
-				a.Header("ETag")
-				a.Header("Cache-Control")
-			})
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeList)
 		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
