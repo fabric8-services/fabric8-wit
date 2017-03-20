@@ -291,12 +291,12 @@ func (s *workItemTypeSuite) TestShowWorkItemType200OK() {
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), wit.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), wit.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), wit.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), wit.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestShowWorkItemType200UsingExpiredLastModifiedHeader tests if we can fetch the work item type "animal"
@@ -314,12 +314,12 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredLastModifiedHeade
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), wit.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), wit.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), wit.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), wit.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestShowWorkItemTypeOK200ExpiredETagHeader tests if we can fetch the work item type "animal"
@@ -337,12 +337,12 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredETagHeader() {
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), wit.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), wit.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), wit.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), wit.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestShowWorkItemType304UsingIfModifiedSinceHeader tests
@@ -369,7 +369,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType304UsingIfNoneMatchHeader() {
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 	// when/then
-	etag := wit.GenerateETag()
+	etag := wit.GetETag()
 	test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, *wit.Data.ID, nil, &etag)
 }
 
@@ -393,12 +393,12 @@ func (s *workItemTypeSuite) TestListWorkItemType200OK() {
 	s.T().Log("Response headers:", res.Header())
 	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 		"Not all required work item types (animal and person) where found.")
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), witPerson.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), witCollection.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), witPerson.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), witCollection.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListWorkItemType200UsingExpiredIfModifiedSinceHeader tests if we can find the work item types
@@ -421,12 +421,12 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfModifiedSinceHe
 	require.Nil(s.T(), witCollection.Validate())
 	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 		"Not all required work item types (animal and person) where found.")
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), witPerson.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), witCollection.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), witPerson.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), witCollection.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListWorkItemType200UsingExpiredIfNoneMatchHeader tests if we can find the work item types
@@ -449,12 +449,12 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfNoneMatchHeader
 	require.Nil(s.T(), witCollection.Validate())
 	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 		"Not all required work item types (animal and person) where found.")
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), witPerson.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), witCollection.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), witPerson.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), witCollection.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListWorkItemType304UsingIfModifiedSinceHeader tests if we can find the work item types
@@ -488,7 +488,7 @@ func (s *workItemTypeSuite) TestListWorkItemType304UsingIfNoneMatchHeader() {
 	// when/then
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
-	ifNoneMatch := witCollection.GenerateETag()
+	ifNoneMatch := witCollection.GetETag()
 	test.ListWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, &page, nil, &ifNoneMatch)
 }
 
@@ -542,12 +542,12 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeSources200OK() {
 	// then check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), sourceLinkType.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), sourceLinkType.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), sourceLinkType.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), sourceLinkType.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListWorkItemLinkTypeTargets200OK tests if we can find the work item link
@@ -562,12 +562,12 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeTargets200OK() {
 	// Then check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), targetLinkType.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), targetLinkType.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), targetLinkType.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), targetLinkType.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListSourceLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
@@ -583,12 +583,12 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinc
 	// then check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), sourceLinkType.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), sourceLinkType.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), sourceLinkType.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), sourceLinkType.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListTargetLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
@@ -604,12 +604,12 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinc
 	// Then check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), targetLinkType.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), targetLinkType.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), targetLinkType.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), targetLinkType.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListSourceLinkTypes200UsingExpiredIfNoneMatchHeader tests if we can find the work item link
@@ -625,12 +625,12 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfNoneMatchHea
 	// then check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), sourceLinkType.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), sourceLinkType.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), sourceLinkType.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), sourceLinkType.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListTargetLinkTypes200UsingExpiredIfNoneMatchHeader tests if we can find the work item link
@@ -646,12 +646,12 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfNoneMatchHea
 	// Then check the number of found work item link types
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
-	require.NotNil(s.T(), res.Header()[LastModified])
-	assert.Equal(s.T(), targetLinkType.GetLastModified().String(), res.Header()[LastModified][0])
-	require.NotNil(s.T(), res.Header()[CacheControl])
-	assert.Equal(s.T(), MaxAge+"=86400", res.Header()[CacheControl][0])
-	require.NotNil(s.T(), res.Header()[ETag])
-	assert.Equal(s.T(), targetLinkType.GenerateETag(), res.Header()[ETag][0])
+	require.NotNil(s.T(), res.Header()[app.LastModified])
+	assert.Equal(s.T(), targetLinkType.GetLastModified().String(), res.Header()[app.LastModified][0])
+	require.NotNil(s.T(), res.Header()[app.CacheControl])
+	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	require.NotNil(s.T(), res.Header()[app.ETag])
+	assert.Equal(s.T(), targetLinkType.GetETag(), res.Header()[app.ETag][0])
 }
 
 // TestListSourceLinkTypes200UsingExpiredIfModifiedSinceHeader tests if we can find the work item link
@@ -680,7 +680,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfNoneMatchHeader() {
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
 	// when fetch source link types
-	ifNoneMatch := sourceLinkType.GenerateETag()
+	ifNoneMatch := sourceLinkType.GetETag()
 	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, animalID, nil, &ifNoneMatch)
 }
 
@@ -690,7 +690,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfNoneMatchHeader() {
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
 	// When fetch target link types
-	ifNoneMatch := targetLinkType.GenerateETag()
+	ifNoneMatch := targetLinkType.GetETag()
 	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, animalID, nil, &ifNoneMatch)
 }
 

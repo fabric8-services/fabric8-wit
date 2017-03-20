@@ -315,7 +315,7 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	require.NotNil(s.T(), relatedType)
 
 	// Fetch a single work item link type
-	_, linkTypeCollection := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl)
+	_, linkTypeCollection := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, nil, nil)
 	require.NotNil(s.T(), linkTypeCollection)
 	require.Nil(s.T(), linkTypeCollection.Validate())
 	// Check the number of found work item link types

@@ -16,20 +16,26 @@ const (
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
-	db            application.DB
-	configuration cacheControlConfiguration
+	db     application.DB
+	config WorkItemControllerConfiguration
 }
 
-type cacheControlConfiguration interface {
-	GetCacheControlMaxAgeWorkItemTypes() string
+type WorkItemControllerConfiguration interface {
+	GetCacheControlWorkItemType() string
+}
+
+func getCacheControlWorkItemType(config WorkItemControllerConfiguration) app.CacheControlConfig {
+	return func() string {
+		return config.GetCacheControlWorkItemType()
+	}
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB, configuration cacheControlConfiguration) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypeController {
 	return &WorkitemtypeController{
-		Controller:    service.NewController("WorkitemtypeController"),
-		db:            db,
-		configuration: configuration,
+		Controller: service.NewController("WorkitemtypeController"),
+		db:         db,
+		config:     config,
 	}
 }
 
@@ -40,7 +46,9 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return ctx.Conditional(*result, getCacheControlWorkItemType(c.config), func() error {
+			return ctx.OK(result)
+		})
 	})
 }
 
@@ -71,7 +79,9 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
-		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return ctx.Conditional(*result, getCacheControlWorkItemType(c.config), func() error {
+			return ctx.OK(result)
+		})
 	})
 }
 
@@ -95,7 +105,9 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return ctx.Conditional(*result, getCacheControlWorkItemType(c.config), func() error {
+			return ctx.OK(result)
+		})
 	})
 }
 
@@ -119,6 +131,8 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return conditional(ctx, *result, c.configuration.GetCacheControlMaxAgeWorkItemTypes())
+		return ctx.Conditional(*result, getCacheControlWorkItemType(c.config), func() error {
+			return ctx.OK(result)
+		})
 	})
 }

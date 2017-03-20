@@ -170,6 +170,7 @@ var _ = a.Resource("work_item_link_type", func() {
 				a.Header("Cache-Control")
 			})
 		})
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -180,9 +181,18 @@ var _ = a.Resource("work_item_link_type", func() {
 			a.GET(""),
 		)
 		a.Description("List work item link types.")
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
+		a.Headers(func() {
+			a.Header("If-Modified-Since", d.DateTime)
+			a.Header("If-None-Match")
 		})
+		a.Response(d.OK, workItemLinkTypeList, func() {
+			a.Headers(func() {
+				a.Header("Last-Modified", d.DateTime)
+				a.Header("ETag")
+				a.Header("Cache-Control")
+			})
+		})
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

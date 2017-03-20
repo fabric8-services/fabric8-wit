@@ -64,7 +64,8 @@ const (
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
-	varCacheControlMaxAgeWorkItemTypes  = "cachecontrol.maxage.workitemtypes"
+	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
+	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	defaultConfigFile                   = "config.yaml"
 
 	// The host name exception of the api service to be taken into account
@@ -169,7 +170,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
 	// HTTP Cache-Control/max-age default
-	c.v.SetDefault(varCacheControlMaxAgeWorkItemTypes, 24*3600) // 1 day
+	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
+	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -259,10 +261,16 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
-// GetCacheControlMaxAgeWorkItemTypes returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
-// when returning work item types.
-func (c *ConfigurationData) GetCacheControlMaxAgeWorkItemTypes() string {
-	return c.v.GetString(varCacheControlMaxAgeWorkItemTypes)
+// GetCacheControlWorkItemType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning a work item type (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemType() string {
+	return c.v.GetString(varCacheControlWorkItemType)
+}
+
+// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning a work item type (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
+	return c.v.GetString(varCacheControlWorkItemLinkType)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
