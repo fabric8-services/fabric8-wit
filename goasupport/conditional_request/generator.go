@@ -268,21 +268,7 @@ func doConditional(ctx ConditionalRequestContext, entity ConditionalResponseEnti
 // Conditional checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
 // or calls the 'nonConditionalCallback' function to carry on.
 func (ctx *{{$resp.Name}}) Conditional(entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
-	lastModified := entity.GetLastModified()
-	eTag := GenerateETag(entity)
-	cacheControl := cacheControlConfig()
-	ctx.setLastModified(lastModified)
-	ctx.setETag(eTag)
-	ctx.setCacheControl(cacheControl)
-	if !modifiedSince(ctx, lastModified) {
-		return ctx.NotModified()
-	}
-	// check the ETag
-	if matchesETag(ctx, eTag) {
-		return ctx.NotModified()
-	}
-	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
-	return nonConditionalCallback()
+	return doConditional(ctx, entity, cacheControlConfig, nonConditionalCallback)
 }`
 	generateETag = `
 // GenerateETag generates the value to return in the "ETag" HTTP response header for the given entity
