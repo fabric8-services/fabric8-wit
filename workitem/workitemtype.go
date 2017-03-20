@@ -12,7 +12,7 @@ import (
 
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // String constants for the local work item types.
@@ -45,21 +45,21 @@ const (
 // Never ever change these UUIDs!!!
 var (
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
-	SystemPlannerItem      = satoriuuid.FromStringOrNil("86af5178-9b41-469b-9096-57e5155c3f31") // "planneritem"
-	SystemUserStory        = satoriuuid.FromStringOrNil("bbf35418-04b6-426c-a60b-7f80beb0b624") // "userstory"
-	SystemValueProposition = satoriuuid.FromStringOrNil("3194ab60-855b-4155-9005-9dce4a05f1eb") // "valueproposition"
-	SystemFundamental      = satoriuuid.FromStringOrNil("ee7ca005-f81d-4eea-9b9b-1965df0988d0") // "fundamental"
-	SystemExperience       = satoriuuid.FromStringOrNil("b9a71831-c803-4f66-8774-4193fffd1311") // "experience"
-	SystemFeature          = satoriuuid.FromStringOrNil("0a24d3c2-e0a6-4686-8051-ec0ea1915a28") // "feature"
-	SystemScenario         = satoriuuid.FromStringOrNil("71171e90-6d35-498f-a6a7-2083b5267c18") // "scenario"
-	SystemBug              = satoriuuid.FromStringOrNil("26787039-b68f-4e28-8814-c2f93be1ef4e") // "bug"
+	SystemPlannerItem      = uuid.FromStringOrNil("86af5178-9b41-469b-9096-57e5155c3f31") // "planneritem"
+	SystemUserStory        = uuid.FromStringOrNil("bbf35418-04b6-426c-a60b-7f80beb0b624") // "userstory"
+	SystemValueProposition = uuid.FromStringOrNil("3194ab60-855b-4155-9005-9dce4a05f1eb") // "valueproposition"
+	SystemFundamental      = uuid.FromStringOrNil("ee7ca005-f81d-4eea-9b9b-1965df0988d0") // "fundamental"
+	SystemExperience       = uuid.FromStringOrNil("b9a71831-c803-4f66-8774-4193fffd1311") // "experience"
+	SystemFeature          = uuid.FromStringOrNil("0a24d3c2-e0a6-4686-8051-ec0ea1915a28") // "feature"
+	SystemScenario         = uuid.FromStringOrNil("71171e90-6d35-498f-a6a7-2083b5267c18") // "scenario"
+	SystemBug              = uuid.FromStringOrNil("26787039-b68f-4e28-8814-c2f93be1ef4e") // "bug"
 )
 
 // WorkItemType represents a work item type as it is stored in the db
 type WorkItemType struct {
 	gormsupport.Lifecycle
 	// ID
-	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Name is a human readable name of this work item type
 	Name string
 	// Description is an optional description of the work item type
@@ -73,7 +73,7 @@ type WorkItemType struct {
 	// definitions of the fields this work item type supports
 	Fields FieldDefinitions `sql:"type:jsonb"`
 	// Reference to one Space
-	SpaceID satoriuuid.UUID `sql:"type:uuid"`
+	SpaceID uuid.UUID `sql:"type:uuid"`
 }
 
 // GetTypePathSeparator returns the work item type's path separator "."
@@ -89,7 +89,7 @@ func (wit WorkItemType) LtreeSafeID() string {
 
 // LtreeSafeID returns the ID of the work item type in an postgres ltree safe manner
 // The returned string can be used as an ltree node.
-func LtreeSafeID(witID satoriuuid.UUID) string {
+func LtreeSafeID(witID uuid.UUID) string {
 	return strings.Replace(witID.String(), "-", "_", -1)
 }
 
@@ -124,7 +124,7 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	if !ok {
 		return false
 	}
-	if !satoriuuid.Equal(wit.ID, other.ID) {
+	if !uuid.Equal(wit.ID, other.ID) {
 		return false
 	}
 	if !wit.Lifecycle.Equal(other.Lifecycle) {
@@ -193,8 +193,8 @@ func (wit WorkItemType) ConvertFromModel(request *goa.RequestData, workItem Work
 // IsTypeOrSubtypeOf returns true if the work item type with the given type ID,
 // is of the same type as the current WIT or of it is a subtype; otherwise false
 // is returned.
-func (wit WorkItemType) IsTypeOrSubtypeOf(typeID satoriuuid.UUID) bool {
+func (wit WorkItemType) IsTypeOrSubtypeOf(typeID uuid.UUID) bool {
 	// Check for complete inclusion (e.g. "bar" is contained in "foo.bar.cake")
 	// and for suffix (e.g. ".cake" is the suffix of "foo.bar.cake").
-	return satoriuuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, LtreeSafeID(typeID)+pathSep)
+	return uuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, LtreeSafeID(typeID)+pathSep)
 }
