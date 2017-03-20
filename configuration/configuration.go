@@ -62,6 +62,7 @@ const (
 	varKeycloakEndpointAuthzResourceset = "keycloak.endpoint.authz.resourceset"
 	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
+	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
 	defaultConfigFile                   = "config.yaml"
@@ -378,6 +379,21 @@ func (c *ConfigurationData) GetKeycloakEndpointClients(req *goa.RequestData) (st
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
+}
+
+// GetKeycloakEndpointBroker returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointBroker, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
+}
+
+// GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
+func (c *ConfigurationData) GetKeycloakDevModeURL() string {
+	return devModeKeycloakURL
 }
 
 func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
