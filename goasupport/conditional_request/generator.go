@@ -1,4 +1,4 @@
-package goasupport
+package conditionalrequest
 
 import (
 	"flag"
@@ -34,8 +34,8 @@ func Generate() ([]string, error) {
 
 // RequestContext holds a single goa Request Context object
 type RequestContext struct {
-	Name    string
-	Headers []RequestHeader
+	Name   string
+	Entity Entity
 }
 
 // RequestHeader holds a single HTTP Header as defined in the design for a Request Context
@@ -43,12 +43,6 @@ type RequestHeader struct {
 	Name   string
 	Header string
 	Type   string
-}
-
-// ResponseContext holds a single goa Response Context object
-type ResponseContext struct {
-	Name   string
-	Entity Entity
 }
 
 // Entity holds a single goa Response entity object that can be used in multiple responses.
@@ -72,8 +66,7 @@ func contains(entities []Entity, entity Entity) bool {
 // WriteNames creates the names.txt file.
 func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	// Now iterate through the resources to gather their names
-	var requestContexts []RequestContext
-	var responseContexts []ResponseContext
+	var contexts []RequestContext
 	var entities []Entity
 
 	api.IterateResources(func(res *design.ResourceDefinition) error {
@@ -81,21 +74,6 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 			name := fmt.Sprintf("%v%vContext", codegen.Goify(act.Name, true), codegen.Goify(res.Name, true))
 			// look-up headers for conditional request support
 			if act.Headers != nil {
-				rc := RequestContext{Name: name}
-				for header, value := range act.Headers.Type.ToObject() {
-					if header != "If-Modified-Since" && header != "If-None-Match" {
-						continue
-					}
-					rc.Headers = append(
-						rc.Headers,
-						RequestHeader{
-							Name:   codegen.Goify(header, true),
-							Header: header,
-							Type:   codegen.GoTypeRef(value.Type, nil, 0, false),
-						})
-				}
-				requestContexts = append(requestContexts, rc)
-
 				// look-up headers and entity types in responses
 				if act.Responses != nil {
 					for _, response := range act.Responses {
@@ -124,8 +102,8 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 									// for k, v := range m.ToObject() {
 									// 	fmt.Printf("%s -> %v\n", k, v)
 									// }
-									responseContext := ResponseContext{Name: name, Entity: *entity}
-									responseContexts = append(responseContexts, responseContext)
+									ctx := RequestContext{Name: name, Entity: *entity}
+									contexts = append(contexts, ctx)
 									if !contains(entities, *entity) {
 										entities = append(entities, *entity)
 									}
@@ -162,37 +140,47 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	// if err := ctxWr.ExecuteTemplate("headerMethods", headerMethods, nil, requestContexts); err != nil {
 	// 	return nil, err
 	// }
-	if err := ctxWr.ExecuteTemplate("constants", constants, nil, requestContexts); err != nil {
+	if err := ctxWr.ExecuteTemplate("constants", constants, nil, nil); err != nil {
 		return nil, err
 	}
-	if err := ctxWr.ExecuteTemplate("cacheControlConfig", cacheControlConfig, nil, requestContexts); err != nil {
+	if err := ctxWr.ExecuteTemplate("cacheControlConfig", cacheControlConfig, nil, nil); err != nil {
 		return nil, err
 	}
-	if err := ctxWr.ExecuteTemplate("conditionalResponseEntity", conditionalResponseEntity, nil, requestContexts); err != nil {
+	if err := ctxWr.ExecuteTemplate("conditionalRequestContext", conditionalRequestContext, nil, nil); err != nil {
 		return nil, err
 	}
-
-	if err := ctxWr.ExecuteTemplate("generateETag", generateETag, nil, requestContexts); err != nil {
+	if err := ctxWr.ExecuteTemplate("conditionalResponseEntity", conditionalResponseEntity, nil, nil); err != nil {
 		return nil, err
 	}
-
-	for _, responseCtx := range responseContexts {
-		if err := ctxWr.ExecuteTemplate("conditional", conditional, nil, responseCtx); err != nil {
+	if err := ctxWr.ExecuteTemplate("doConditional", doConditional, nil, nil); err != nil {
+		return nil, err
+	}
+	if err := ctxWr.ExecuteTemplate("generateETag", generateETag, nil, nil); err != nil {
+		return nil, err
+	}
+	if err := ctxWr.ExecuteTemplate("modifiedSince", modifiedSince, nil, nil); err != nil {
+		return nil, err
+	}
+	if err := ctxWr.ExecuteTemplate("matchesETag", matchesETag, nil, nil); err != nil {
+		return nil, err
+	}
+	for _, ctx := range contexts {
+		if err := ctxWr.ExecuteTemplate("conditional", conditional, nil, ctx); err != nil {
 			return nil, err
 		}
-		if err := ctxWr.ExecuteTemplate("modifiedSince", modifiedSince, nil, responseCtx); err != nil {
+		if err := ctxWr.ExecuteTemplate("getIfModifiedSince", getIfModifiedSince, nil, ctx); err != nil {
 			return nil, err
 		}
-		if err := ctxWr.ExecuteTemplate("matchesETag", matchesETag, nil, responseCtx); err != nil {
+		if err := ctxWr.ExecuteTemplate("setLastModified", setLastModified, nil, ctx); err != nil {
 			return nil, err
 		}
-		if err := ctxWr.ExecuteTemplate("setLastModified", setLastModified, nil, responseCtx); err != nil {
+		if err := ctxWr.ExecuteTemplate("getIfNoneMatch", getIfNoneMatch, nil, ctx); err != nil {
 			return nil, err
 		}
-		if err := ctxWr.ExecuteTemplate("setETag", setETag, nil, responseCtx); err != nil {
+		if err := ctxWr.ExecuteTemplate("setETag", setETag, nil, ctx); err != nil {
 			return nil, err
 		}
-		if err := ctxWr.ExecuteTemplate("setCacheControl", setCacheControl, nil, responseCtx); err != nil {
+		if err := ctxWr.ExecuteTemplate("setCacheControl", setCacheControl, nil, ctx); err != nil {
 			return nil, err
 		}
 	}
@@ -230,6 +218,18 @@ const (
 	// MaxAge the "max-age" HTTP response header value
 	MaxAge = "max-age"
 )`
+
+	conditionalRequestContext = `
+// ConditionalRequestContext interface with methods for the contexts
+type ConditionalRequestContext interface {
+	NotModified() error
+	getIfModifiedSince() *time.Time
+	setLastModified(time.Time)
+	getIfNoneMatch() *string
+	setETag(string)
+	setCacheControl(string)
+}`
+
 	conditionalResponseEntity = `
 	// ConditionalResponseEntity interface with methods for the response entities
 type ConditionalResponseEntity interface {
@@ -242,6 +242,27 @@ type ConditionalResponseEntity interface {
 	cacheControlConfig = `
    type CacheControlConfig func() string 
    `
+	doConditional = `
+func doConditional(ctx ConditionalRequestContext, entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+	lastModified := entity.GetLastModified()
+	eTag := GenerateETag(entity)
+	cacheControl := cacheControlConfig()
+	ctx.setLastModified(lastModified)
+	ctx.setETag(eTag)
+	ctx.setCacheControl(cacheControl)
+	if !modifiedSince(ctx, lastModified) {
+		return ctx.NotModified()
+	}
+	// check the ETag
+	if matchesETag(ctx, eTag) {
+		return ctx.NotModified()
+	}
+	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
+	return nonConditionalCallback()
+}
+
+
+	`
 	conditional = `
 {{ $resp := . }}
 // Conditional checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
@@ -253,11 +274,11 @@ func (ctx *{{$resp.Name}}) Conditional(entity ConditionalResponseEntity, cacheCo
 	ctx.setLastModified(lastModified)
 	ctx.setETag(eTag)
 	ctx.setCacheControl(cacheControl)
-	if !ctx.modifiedSince(lastModified) {
+	if !modifiedSince(ctx, lastModified) {
 		return ctx.NotModified()
 	}
 	// check the ETag
-	if ctx.matchesETag(eTag) {
+	if matchesETag(ctx, eTag) {
 		return ctx.NotModified()
 	}
 	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
@@ -294,50 +315,64 @@ func generateETagValue(data []interface{}) string {
 		}
 	}
 	return buffer.String()
+}`
+	getETagData = `
+{{ $entity := . }}
+{{ if $entity.IsSingle }}
+// GetETagData generates the values to use to generate the ETag.
+// The ETag is the base64-encoded value of the md5 hash of the buffer content
+func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
+	return []interface{}{entity.Data.ID, entity.Data.Attributes.Version}
 }
-  
-  `
-
-	modifiedSince = `
-{{ $resp := . }}
-// ModifiedSince returns 'true' if the given 'lastModified' argument is after the context's 'IfModifiedSince' value
-func (ctx *{{$resp.Name}}) modifiedSince(lastModified time.Time) bool {
-	if ctx.IfModifiedSince != nil {
-		ifModifiedSince := ctx.IfModifiedSince.UTC()
-		return ifModifiedSince.Before(lastModified.UTC())
+{{ end }}
+{{ if $entity.IsList }}
+// GetETagData generates the values to use to generate the ETag.
+func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
+	var result []interface{}
+	for _, data := range entity.Data {
+		result = append(result, []interface{}{data.ID, data.Attributes.Version})
 	}
-	return true
+	return result
+}
+{{ end }}`
+
+	setETag = `
+{{ $resp := . }}
+// setETag sets the 'ETag' header
+func (ctx *{{$resp.Name}}) setETag(value string) {
+	ctx.ResponseData.Header().Set(ETag, value)
+}`
+
+	getIfNoneMatch = `
+{{ $resp := . }}
+// getIfNoneMatch sets the 'If-None-Match' header
+func (ctx *{{$resp.Name}}) getIfNoneMatch() *string {
+	return ctx.IfNoneMatch
 }`
 
 	matchesETag = `
-{{ $resp := . }}
-// MatchesETag returns 'true' the given 'etag' argument matches with the context's 'IfNoneMatch' value.
-func (ctx *{{$resp.Name}}) matchesETag(etag string) bool {
-	if ctx.IfNoneMatch != nil && *ctx.IfNoneMatch == etag {
+// matchesETag returns 'true' the given 'etag' argument matches with the context's 'IfNoneMatch' value.
+func matchesETag(ctx ConditionalRequestContext, etag string) bool {
+	if ctx.getIfNoneMatch() != nil && *ctx.getIfNoneMatch() == etag {
 		return true
 	}
 	return false
 }`
 
-	setLastModified = `
-{{ $resp := . }}
-// SetLastModified sets the 'Last-Modified' header
-func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
-	ctx.ResponseData.Header().Set(LastModified, value.String())
+	modifiedSince = `
+// modifiedSince returns 'true' if the given context's 'IfModifiedSince' value is before the given 'lastModified' argument
+func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) bool {
+	if ctx.getIfModifiedSince() != nil {
+		ifModifiedSince := *ctx.getIfModifiedSince()
+		return ifModifiedSince.UTC().Before(lastModified.UTC())
+	}
+	return true
 }`
-
-	setETag = `
+	getIfModifiedSince = `
 {{ $resp := . }}
-// SetETag sets the 'ETag' header
-func (ctx *{{$resp.Name}}) setETag(value string) {
-	ctx.ResponseData.Header().Set(ETag, value)
-}`
-
-	setCacheControl = `
-{{ $resp := . }}
-// SetCacheControl sets the 'Cache-Control' header
-func (ctx *{{$resp.Name}}) setCacheControl(value string) {
-	ctx.ResponseData.Header().Set(CacheControl, value)
+// getIfModifiedSince sets the 'If-Modified-Since' header
+func (ctx *{{$resp.Name}}) getIfModifiedSince() *time.Time {
+	return ctx.IfModifiedSince
 }`
 
 	getLastModified = `
@@ -365,23 +400,17 @@ func (entity {{$entity.AppTypeName}}) GetLastModified() time.Time {
 }
 {{ end }}`
 
-	getETagData = `
-{{ $entity := . }}
-{{ if $entity.IsSingle }}
-// GetETagData generates the values to use to generate the ETag.
-// The ETag is the base64-encoded value of the md5 hash of the buffer content
-func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
-	return []interface{}{entity.Data.ID, entity.Data.Attributes.Version}
-}
-{{ end }}
-{{ if $entity.IsList }}
-// GetETagData generates the values to use to generate the ETag.
-func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
-	var result []interface{}
-	for _, data := range entity.Data {
-		result = append(result, []interface{}{data.ID, data.Attributes.Version})
-	}
-	return result
-}
-{{ end }}`
+	setLastModified = `
+{{ $resp := . }}
+// SetLastModified sets the 'Last-Modified' header
+func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
+	ctx.ResponseData.Header().Set(LastModified, value.String())
+}`
+
+	setCacheControl = `
+{{ $resp := . }}
+// SetCacheControl sets the 'Cache-Control' header
+func (ctx *{{$resp.Name}}) setCacheControl(value string) {
+	ctx.ResponseData.Header().Set(CacheControl, value)
+}`
 )
