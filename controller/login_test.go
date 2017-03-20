@@ -61,7 +61,6 @@ func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) 
 }
 
 func newTestKeycloakOAuthProvider(db application.DB, configuration loginConfiguration) *login.KeycloakOAuthProvider {
-
 	oauth := &oauth2.Config{
 		ClientID:     configuration.GetKeycloakClientID(),
 		ClientSecret: configuration.GetKeycloakSecret(),
@@ -83,12 +82,12 @@ func (rest *TestLoginREST) TestAuthorizeLoginOK() {
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
 
-	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl)
+	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil)
 }
 
 func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 	t := rest.T()
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
 	service, controller := rest.SecuredController()
 	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
 	assert.Len(t, result, 2, "The size of token array is not 2")
@@ -99,7 +98,7 @@ func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 
 func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
 	t := rest.T()
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
 	service, controller := rest.SecuredController()
 	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
 	if len(result) != 2 || result[0].Token.RefreshToken == nil {
@@ -114,7 +113,7 @@ func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
 
 func (rest *TestLoginREST) TestRefreshTokenUsingNilTokenFails() {
 	t := rest.T()
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
 	service, controller := rest.SecuredController()
 
 	payload := &app.RefreshToken{}
@@ -124,13 +123,30 @@ func (rest *TestLoginREST) TestRefreshTokenUsingNilTokenFails() {
 
 func (rest *TestLoginREST) TestRefreshTokenUsingInvalidTokenFails() {
 	t := rest.T()
-	resource.Require(t, resource.Database)
+	resource.Require(t, resource.UnitTest)
 	service, controller := rest.SecuredController()
 
 	refreshToken := "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.S-vR8LZTQ92iqGCR3rNUG0MiGx2N5EBVq0frCHP_bJ8"
 	payload := &app.RefreshToken{RefreshToken: &refreshToken}
 	_, err := test.RefreshLoginBadRequest(t, service.Context, service, controller, payload)
 	assert.NotNil(t, err)
+}
+
+func (rest *TestLoginREST) TestLinkIdPWithoutTokenFails() {
+	t := rest.T()
+	resource.Require(t, resource.UnitTest)
+	service, controller := rest.SecuredController()
+
+	_, err := test.LinkLoginUnauthorized(t, service.Context, service, controller, nil, nil)
+	assert.NotNil(t, err)
+}
+
+func (rest *TestLoginREST) TestLinkIdPWithTokenRedirects() {
+	t := rest.T()
+	resource.Require(t, resource.UnitTest)
+	svc, ctrl := rest.UnSecuredController()
+
+	test.LinkLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil)
 }
 
 func validateToken(t *testing.T, token *app.AuthToken, controler *LoginController) {
@@ -152,10 +168,22 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string) error {
+func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string) error {
 	return ctx.TemporaryRedirect()
 }
 
-func (t TestLoginService) CreateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
+func (t TestLoginService) CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error) {
 	return nil, nil, nil
+}
+
+func (t TestLoginService) Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string) error {
+	return ctx.TemporaryRedirect()
+}
+
+func (t TestLoginService) LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string) error {
+	return ctx.TemporaryRedirect()
+}
+
+func (t TestLoginService) LinkCallback(ctx *app.LinkcallbackLoginContext, brokerEndpoint string, clientID string) error {
+	return ctx.TemporaryRedirect()
 }
