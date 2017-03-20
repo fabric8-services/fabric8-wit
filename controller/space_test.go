@@ -348,6 +348,9 @@ func (rest *TestSpaceREST) TestSuccessListSpaces() {
 
 		subStringAreaUrl := fmt.Sprintf("/%s/areas", spc.ID.String())
 		assert.Contains(t, *spc.Relationships.Areas.Links.Related, subStringAreaUrl)
+
+		subStringBacklogUrl := fmt.Sprintf("/%s/backlog", spc.ID.String())
+		assert.Contains(t, *spc.Relationships.Backlog.Links.Related, subStringBacklogUrl)
 	}
 }
 
