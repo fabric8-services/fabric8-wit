@@ -87,7 +87,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 	require.NotNil(s.T(), wit3.Data)
 	require.NotNil(s.T(), wit3.Data.ID)
 
-	wit2, err := s.repo.Load(s.ctx, *wit.Data.ID)
+	wit2, err := s.repo.Load(s.ctx, space.SystemSpace, *wit.Data.ID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.Data)
@@ -123,7 +123,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 	require.NotNil(s.T(), wit3.Data)
 	require.NotNil(s.T(), wit3.Data.ID)
 
-	wit2, err := s.repo.Load(s.ctx, *wit.Data.ID)
+	wit2, err := s.repo.Load(s.ctx, space.SystemSpace, *wit.Data.ID)
 	assert.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.Data)
