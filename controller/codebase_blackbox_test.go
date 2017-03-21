@@ -49,14 +49,14 @@ func (s *TestCodebaseREST) TearDownTest() {
 
 func (s *TestCodebaseREST) UnsecuredController() (*goa.Service, *CodebaseController) {
 	svc := goa.New("Codebases-service")
-	return svc, NewCodebaseController(svc, s.db)
+	return svc, NewCodebaseController(svc, s.db, s.Configuration)
 }
 
 func (s *TestCodebaseREST) SecuredControllers(identity account.Identity) (*goa.Service, *CodebaseController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 
 	svc := testsupport.ServiceAsUser("Codebase-Service", almtoken.NewManager(pub), identity)
-	return svc, controller.NewCodebaseController(svc, s.db)
+	return svc, controller.NewCodebaseController(svc, s.db, s.Configuration)
 }
 
 func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
