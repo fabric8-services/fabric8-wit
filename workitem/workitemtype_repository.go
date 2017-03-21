@@ -44,7 +44,6 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	result := convertTypeFromModels(goa.ContextRequest(ctx), res)
 	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
@@ -222,11 +221,15 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID
+	createdAt := t.CreatedAt.UTC()
+	updatedAt := t.UpdatedAt.UTC()
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
 		ID:   &id,
 		Attributes: &app.WorkItemTypeAttributes{
-			Version:     t.Version,
+			CreatedAt:   &createdAt,
+			UpdatedAt:   &updatedAt,
+			Version:     &t.Version,
 			Description: t.Description,
 			Icon:        t.Icon,
 			Name:        t.Name,
