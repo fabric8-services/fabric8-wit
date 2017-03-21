@@ -65,6 +65,8 @@ const (
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
+	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	defaultConfigFile                   = "config.yaml"
 
 	// The host name exception of the api service to be taken into account
@@ -167,6 +169,11 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakRealm, defaultKeycloakRealm)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
+
+	// HTTP Cache-Control/max-age default
+	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
+	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
+
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
 }
@@ -253,6 +260,18 @@ func (c *ConfigurationData) GetHTTPAddress() string {
 // e.g. token generation endpoint are enabled
 func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
+}
+
+// GetCacheControlWorkItemType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning a work item type (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemType() string {
+	return c.v.GetString(varCacheControlWorkItemType)
+}
+
+// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning a work item type (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
+	return c.v.GetString(varCacheControlWorkItemLinkType)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
