@@ -1,7 +1,9 @@
 package link
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	"golang.org/x/net/context"
 
@@ -10,11 +12,13 @@ import (
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
+// End points
 const (
 	EndpointWorkItemTypes          = "workitemtypes"
 	EndpointWorkItems              = "workitems"
@@ -32,6 +36,7 @@ type WorkItemLinkRepository interface {
 	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkSingle, modifierID uuid.UUID) (*app.WorkItemLinkSingle, error)
+	ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -306,4 +311,41 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	}, "Work item link updated")
 	result := ConvertLinkFromModel(res)
 	return &result, nil
+}
+
+// ListWorkItemChildren get all child work items
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
+
+	where := fmt.Sprintf(`
+	id in (
+		SELECT target_id FROM %s
+		WHERE source_id = ? AND link_type_id IN (
+			SELECT id FROM %s WHERE forward_name = 'parent of'
+		)
+	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
+	db := r.db.Model(&workitem.WorkItem{}).Where(where, parent)
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	result := []*workitem.WorkItem{}
+
+	for rows.Next() {
+		value := &workitem.WorkItem{}
+		db.ScanRows(rows, value)
+
+		result = append(result, value)
+	}
+	res := make([]*app.WorkItem, len(result))
+	for index, value := range result {
+		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
+		if err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		res[index], err = workitem.ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, value)
+	}
+
+	return res, nil
 }
