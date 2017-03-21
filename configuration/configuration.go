@@ -538,7 +538,7 @@ ZwIDAQAB
 	devModeKeycloakRealm = "fabric8-test"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
-	defaultCheStarterURL = "che-server"
+	defaultCheStarterURL            = "che-server"
 )
 
 // ActualToken is actual OAuth access token of github
