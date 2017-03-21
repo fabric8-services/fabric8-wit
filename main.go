@@ -292,6 +292,9 @@ func main() {
 	redirectWorkItemCtrl := controller.NewRedirectWorkitemController(service)
 	app.MountRedirectWorkitemController(service, redirectWorkItemCtrl)
 
+	redirectWorkItemLinkTypesCtrl := controller.NewRedirectWorkItemLinkTypeController(service)
+	app.MountRedirectWorkItemLinkTypeController(service, redirectWorkItemLinkTypesCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)

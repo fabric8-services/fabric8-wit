@@ -217,7 +217,6 @@ var _ = a.Resource("redirect_workitem", func() {
 		a.Routing(
 			a.GET("/:wiId"),
 		)
-		a.Description("Retrieve work item with given id.")
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
 		})
@@ -242,30 +241,24 @@ var _ = a.Resource("redirect_workitem", func() {
 		a.Response(d.MovedPermanently)
 	})
 	a.Action("create", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.POST(""),
 		)
-		a.Description("create work item with type and id.")
 		a.Response(d.MovedPermanently)
 	})
 	a.Action("delete", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.DELETE("/:wiId"),
 		)
-		a.Description("Delete work item with given id.")
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
 		})
 		a.Response(d.MovedPermanently)
 	})
 	a.Action("update", func() {
-		a.Security("jwt")
 		a.Routing(
 			a.PATCH("/:wiId"),
 		)
-		a.Description("update the work item with the given id.")
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
 		})
@@ -276,7 +269,6 @@ var _ = a.Resource("redirect_workitem", func() {
 		a.Routing(
 			a.PATCH("/reorder"),
 		)
-		a.Description("reorder the work items")
 		a.Response(d.MovedPermanently)
 	})
 })
