@@ -237,7 +237,7 @@ var _ = a.Resource("redirect_work_item_link_type", func() {
 			a.GET("/:wiltId"),
 		)
 		a.Params(func() {
-			a.Param("id", d.UUID, "ID of the work item link type")
+			a.Param("wiltId", d.UUID, "ID of the work item link type")
 		})
 		a.Response(d.MovedPermanently)
 	})
