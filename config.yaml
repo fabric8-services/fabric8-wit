@@ -89,7 +89,7 @@ token.publickey : |
 keycloak.client.id : fabric8-online-platform
 keycloak.secret : 7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd
 keycloak.domain.prefix : sso
-keycloak.realm : fabric8-test
+keycloak.realm : fabric8
 keycloak.testuser.name : testuser
 keycloak.testuser.secret : testuser
 keycloak.testuser2.name : testuser2

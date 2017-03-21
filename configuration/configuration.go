@@ -314,7 +314,13 @@ func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
 
 // GetKeycloakRealm returns the keyclaok realm name
 func (c *ConfigurationData) GetKeycloakRealm() string {
-	return c.v.GetString(varKeycloakRealm)
+	if c.v.IsSet(varKeycloakRealm) {
+		return c.v.GetString(varKeycloakRealm)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return devModeKeycloakRealm
+	}
+	return defaultKeycloakRealm
 }
 
 // GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
@@ -526,7 +532,7 @@ var defaultKeycloakClientID = "fabric8-online-platform"
 var defaultKeycloakSecret = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
 
 var defaultKeycloakDomainPrefix = "sso"
-var defaultKeycloakRealm = "fabric8-test"
+var defaultKeycloakRealm = "fabric8"
 
 // Github does not allow committing actual OAuth tokens no matter how less privilege the token has
 var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
@@ -542,5 +548,6 @@ var defaultKeycloakTesUser2Secret = "testuser2"
 var defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 var defaultCheStarterURL = "che-server"
 
-// Keycloak URL to be used in dev mode. Can be overridden by setting up keycloak.url
+// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
 var devModeKeycloakURL = "http://sso.prod-preview.openshift.io"
+var devModeKeycloakRealm = "fabric8-test"
