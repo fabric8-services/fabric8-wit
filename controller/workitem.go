@@ -263,7 +263,9 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if wi.Relationships == nil {
 			wi.Relationships = &app.WorkItemRelationships{}
 		}
-		if wi.Relationships.Iteration == nil {
+
+		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
+			// no iteration set hence set to default of its space
 			wi.Relationships.Iteration = &app.RelationGeneric{
 				Data: &app.GenericData{},
 			}

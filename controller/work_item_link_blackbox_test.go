@@ -164,9 +164,10 @@ func (s *workItemLinkSuite) cleanup() {
 	require.Nil(s.T(), db.Error)
 	db = db.Unscoped().Delete(&link.WorkItemLinkCategory{Name: "test-user"})
 	require.Nil(s.T(), db.Error)
-	db = db.Unscoped().Delete(&space.Space{ID: s.userSpaceID})
-	require.Nil(s.T(), db.Error)
-
+	if s.userSpaceID != uuid.Nil {
+		db = db.Unscoped().Delete(&space.Space{ID: s.userSpaceID})
+		require.Nil(s.T(), db.Error)
+	}
 	// Last but not least delete the work items
 	for _, idStr := range s.deleteWorkItems {
 		id, err := strconv.ParseUint(idStr, 10, 64)

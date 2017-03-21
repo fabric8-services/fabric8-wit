@@ -339,6 +339,13 @@ func createSpaceAndIteration(t *testing.T, db application.DB) iteration.Iteratio
 		if err != nil {
 			t.Error(err)
 		}
+		// above space should have a default iteration for itself
+		di := iteration.Iteration{
+			Name:    newSpace.Name,
+			SpaceID: newSpace.ID,
+		}
+		repo.Create(context.Background(), &di)
+
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #2"

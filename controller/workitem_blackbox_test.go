@@ -1738,7 +1738,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	}
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
-	assert.Nil(t, wi.Data.Relationships.Iteration.Data)
+	// should get default iteration's id for that space
+	spaceRepo := space.NewRepository(s.db)
+	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
+	iterationRepo := iteration.NewIterationRepository(s.db)
+	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
+	require.Nil(t, err)
+	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
@@ -2004,24 +2010,24 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 
 // Following test fails because Iterations table is being cleaned up
 // and default iteration for root space is gone
-// func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
-// 	t := s.T()
-// 	c := minimumRequiredCreateWithType(workitem.SystemFeature)
-// 	title := "Solution on global warming"
-// 	c.Data.Attributes[workitem.SystemTitle] = title
-// 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-// 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
-// 	require.NotNil(t, wi)
-// 	require.NotNil(t, wi.Data.Relationships)
-// 	require.NotNil(t, wi.Data.Relationships.Iteration)
+func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
+	t := s.T()
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(t, wi)
+	require.NotNil(t, wi.Data.Relationships)
+	require.NotNil(t, wi.Data.Relationships.Iteration)
 
-// 	spaceRepo := space.NewRepository(s.db)
-// 	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
-// 	iterationRepo := iteration.NewIterationRepository(s.db)
-// 	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
-// 	require.Nil(t, err)
-// 	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
-// }
+	spaceRepo := space.NewRepository(s.db)
+	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
+	iterationRepo := iteration.NewIterationRepository(s.db)
+	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
+	require.Nil(t, err)
+	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
+}
 
 //Ignore, middlewares not respected by the generated test framework. No way to modify Request?
 // Require full HTTP request access.
