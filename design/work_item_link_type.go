@@ -150,10 +150,11 @@ var workItemLinkTypeList = JSONList(
 
 var _ = a.Resource("work_item_link_type", func() {
 	a.BasePath("/workitemlinktypes")
+	a.Parent("space")
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:wiltId"),
 		)
 		a.Description("Retrieve work item link type (as JSONAPI) for the given link ID.")
 		a.Params(func() {
@@ -197,11 +198,11 @@ var _ = a.Resource("work_item_link_type", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:id"),
+			a.DELETE("/:wiltId"),
 		)
 		a.Description("Delete work item link type with given id.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "id")
+			a.Param("wiltId", d.UUID, "wiltId")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -213,11 +214,11 @@ var _ = a.Resource("work_item_link_type", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:wiltId"),
 		)
 		a.Description("Update the given work item link type with given id.")
 		a.Params(func() {
-			a.Param("id", d.UUID, "id")
+			a.Param("wiltId", d.UUID, "wiltId")
 		})
 		a.Payload(updateWorkItemLinkTypePayload)
 		a.Response(d.OK, workItemLinkType)
@@ -225,5 +226,53 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+})
+
+var _ = a.Resource("redirect_work_item_link_type", func() {
+	a.BasePath("/workitemlinktypes")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:wiltId"),
+		)
+		a.Params(func() {
+			a.Param("wiltId", d.UUID, "ID of the work item link type")
+		})
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("create", func() {
+		a.Routing(
+			a.POST(""),
+		)
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("delete", func() {
+		a.Routing(
+			a.DELETE("/:wiltId"),
+		)
+		a.Params(func() {
+			a.Param("wiltId", d.UUID, "wiltId")
+		})
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("update", func() {
+		a.Routing(
+			a.PATCH("/:wiltId"),
+		)
+		a.Params(func() {
+			a.Param("wiltId", d.UUID, "wiltId")
+		})
+		a.Response(d.MovedPermanently)
 	})
 })
