@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/suite"
 )
@@ -110,7 +111,7 @@ func (test *TestCodebaseRepository) createCodebase(c *codebase.Codebase) {
 
 func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
-	spaceID := uuid.NewV4()
+	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
 	codebase1 := newCodebase(spaceID, "git", "git@github.com:almighty/almighty-core.git")
 	codebase2 := newCodebase(spaceID, "git", "git@github.com:aslakknutsen/almighty-core.git")
@@ -129,7 +130,7 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 
 func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
-	spaceID := uuid.NewV4()
+	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
 	codebase := newCodebase(spaceID, "git", "git@github.com:aslakknutsen/almighty-core.git")
 	test.createCodebase(codebase)
