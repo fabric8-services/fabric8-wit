@@ -185,7 +185,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 				s.T().Fatal("Couldnt create test data")
 			}
 
-			defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
+			defer wir.Delete(ctx, *createdWorkItem.Relationships.Space.Data.ID, createdWorkItem.ID, s.modifierID)
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
@@ -289,7 +289,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
+		defer wir.Delete(ctx, *createdWorkItem.Relationships.Space.Data.ID, createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results

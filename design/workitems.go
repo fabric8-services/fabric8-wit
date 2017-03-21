@@ -106,14 +106,15 @@ var workItemReorder = Reorder(
 
 // new version of "list" for migration
 var _ = a.Resource("workitem", func() {
+	a.Parent("space")
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:wiId"),
 		)
 		a.Description("Retrieve work item with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemSingle)
@@ -148,11 +149,11 @@ var _ = a.Resource("workitem", func() {
 	})
 	a.Action("list-children", func() {
 		a.Routing(
-			a.GET("/:id/children"),
+			a.GET("/:wiId/children"),
 		)
 		a.Description("List children associated with the given work item")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemList)
@@ -179,11 +180,11 @@ var _ = a.Resource("workitem", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:id"),
+			a.DELETE("/:wiId"),
 		)
 		a.Description("Delete work item with given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -194,11 +195,11 @@ var _ = a.Resource("workitem", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:wiId"),
 		)
 		a.Description("update the work item with the given id.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("wiId", d.String, "wiId")
 		})
 		a.Payload(workItemSingle)
 		a.Response(d.OK, func() {
@@ -223,5 +224,68 @@ var _ = a.Resource("workitem", func() {
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+	})
+})
+
+// new version of "list" for migration
+var _ = a.Resource("redirect_workitem", func() {
+	a.BasePath("/workitems")
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:wiId"),
+		)
+		a.Params(func() {
+			a.Param("wiId", d.String, "wiId")
+		})
+		a.Response(d.MovedPermanently)
+	})
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[iteration]", d.String, "IterationID to filter work items")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
+
+		})
+		a.Response(d.MovedPermanently)
+	})
+	a.Action("create", func() {
+		a.Routing(
+			a.POST(""),
+		)
+		a.Response(d.MovedPermanently)
+	})
+	a.Action("delete", func() {
+		a.Routing(
+			a.DELETE("/:wiId"),
+		)
+		a.Params(func() {
+			a.Param("wiId", d.String, "wiId")
+		})
+		a.Response(d.MovedPermanently)
+	})
+	a.Action("update", func() {
+		a.Routing(
+			a.PATCH("/:wiId"),
+		)
+		a.Params(func() {
+			a.Param("wiId", d.String, "wiId")
+		})
+		a.Response(d.MovedPermanently)
+	})
+	a.Action("reorder", func() {
+		a.Security("jwt")
+		a.Routing(
+			a.PATCH("/reorder"),
+		)
+		a.Response(d.MovedPermanently)
 	})
 })

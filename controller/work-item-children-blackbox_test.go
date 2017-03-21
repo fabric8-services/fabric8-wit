@@ -44,7 +44,8 @@ type workItemChildSuite struct {
 	svc                      *goa.Service
 	typeCtrl                 *WorkitemtypeController
 	// These IDs can safely be used by all tests
-	bug1ID uint64
+	bug1ID      uint64
+	userSpaceID uuid.UUID
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
 	testIdentity account.Identity
@@ -125,28 +126,28 @@ func (s *workItemChildSuite) SetupTest() {
 	// Create a work item link space
 	createSpacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
-	userSpaceID := *space.Data.ID
+	s.userSpaceID = *space.Data.ID
 	s.T().Logf("Created link space with ID: %s\n", *space.Data.ID)
 
 	// Create 3 work items (bug1, bug2, and bug3)
-	bug1Payload := CreateWorkItem(userSpaceID, workitem.SystemBug, "bug1")
-	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug1Payload)
+	bug1Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug1")
+	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug1Payload)
 	require.NotNil(s.T(), bug1)
 
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
-	bug2Payload := CreateWorkItem(userSpaceID, workitem.SystemBug, "bug2")
-	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug2Payload)
+	bug2Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug2")
+	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug2Payload)
 	require.NotNil(s.T(), bug2)
 
 	bug2ID, err := strconv.ParseUint(*bug2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
-	bug3Payload := CreateWorkItem(userSpaceID, workitem.SystemBug, "bug3")
-	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug3Payload)
+	bug3Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug3")
+	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug3Payload)
 	require.NotNil(s.T(), bug3)
 
 	bug3ID, err := strconv.ParseUint(*bug3.Data.ID, 10, 64)
@@ -161,8 +162,8 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, userLinkCategoryID, userSpaceID)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, createLinkTypePayload)
+	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, userLinkCategoryID, s.userSpaceID)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID.String(), createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	bugBlockerLinkTypeID := *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
@@ -222,7 +223,7 @@ func TestSuiteWorkItemChildren(t *testing.T) {
 
 func (s *workItemChildSuite) TestListChildren() {
 	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
-	_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, workItemID1)
+	_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1)
 	assert.Equal(s.T(), 2, len(workItemList.Data))
 	var count int
 	for _, v := range workItemList.Data {

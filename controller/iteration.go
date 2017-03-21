@@ -189,7 +189,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 	spaceID := itr.SpaceID.String()
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
+	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref(spaceID, "?filter[iteration]="+itr.ID.String()))
 	pathToTopMostParent := itr.Path.String()
 	i := &app.Iteration{
 		Type: iterationType,
