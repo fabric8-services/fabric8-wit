@@ -227,7 +227,7 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 
 func (s *TestAuthSuite) TestGetClientIDOK() {
 	id, _ := getClientIDAndEndpoint(s.T())
-	assert.Equal(s.T(), "cd7bfaad-b81f-4952-87a0-72ca1ed2e321", id)
+	assert.Equal(s.T(), "65d23f35-c532-4493-a860-39e851abe397", id)
 }
 
 func (s *TestAuthSuite) TestGetProtectedAPITokenOK() {
