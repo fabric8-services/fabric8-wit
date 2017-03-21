@@ -640,8 +640,10 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	iterationRepo := iteration.NewIterationRepository(db)
 	spaceRepo := space.NewRepository(db)
 
+	// added timestmap to the space in order to make this function usable for more than one test
+	// else it fails with - (pq: duplicate key value violates unique constraint "spaces_name_idx")
 	newSpace := space.Space{
-		Name: "Space iteration",
+		Name: "Space iteration " + time.Now().String(),
 	}
 	space, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
@@ -683,6 +685,23 @@ func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
 		return nil
 	}
 	return &ar
+}
+
+func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iteration.Iteration) *iteration.Iteration {
+	iterationRepo := iteration.NewIterationRepository(db)
+
+	parentPath := append(parentIteration.Path, parentIteration.ID)
+	itr := iteration.Iteration{
+		Name:    "Sprint 101",
+		SpaceID: parentIteration.SpaceID,
+		Path:    parentPath,
+	}
+	err := iterationRepo.Create(ctx, &itr)
+	if err != nil {
+		fmt.Println("Failed to create iteration.")
+		return nil
+	}
+	return &itr
 }
 
 // ========== WorkItem2Suite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
@@ -2030,4 +2049,99 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 		}
 	})
 	test.ShowWorkitemNotModified(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
+	grandParentIteration := createOneRandomIteration(s.svc.Context, s.db)
+	require.NotNil(s.T(), grandParentIteration)
+
+	parentIteration := newChildIteration(s.svc.Context, s.db, grandParentIteration)
+	require.NotNil(s.T(), parentIteration)
+
+	childIteraiton := newChildIteration(s.svc.Context, s.db, parentIteration)
+	require.NotNil(s.T(), childIteraiton)
+
+	// create 3 work items for grandParentIteration
+	grandParentIterationID := grandParentIteration.ID.String()
+	for i := 0; i < 3; i++ {
+		c := minimumRequiredCreatePayload()
+		c.Data.Attributes[workitem.SystemTitle] = "Title"
+		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		c.Data.Relationships.BaseType = &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		}
+		c.Data.Relationships.Iteration = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &grandParentIterationID,
+			},
+		}
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+		assert.Equal(s.T(), grandParentIterationID, *wi.Data.Relationships.Iteration.Data.ID)
+	}
+
+	// create 2 work items for parentIteration
+	parentIterationID := parentIteration.ID.String()
+	for i := 0; i < 2; i++ {
+		c := minimumRequiredCreatePayload()
+		c.Data.Attributes[workitem.SystemTitle] = "Title"
+		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		c.Data.Relationships.BaseType = &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		}
+		c.Data.Relationships.Iteration = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &parentIterationID,
+			},
+		}
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+		assert.Equal(s.T(), parentIterationID, *wi.Data.Relationships.Iteration.Data.ID)
+	}
+
+	// create 2 work items for childIteraiton
+	childIteraitonID := childIteraiton.ID.String()
+	for i := 0; i < 2; i++ {
+		c := minimumRequiredCreatePayload()
+		c.Data.Attributes[workitem.SystemTitle] = "Title"
+		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		c.Data.Relationships.BaseType = &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		}
+		c.Data.Relationships.Iteration = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &childIteraitonID,
+			},
+		}
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+		assert.Equal(s.T(), childIteraitonID, *wi.Data.Relationships.Iteration.Data.ID)
+	}
+
+	// list workitems for grandParentIteration
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 7)
+
+	// list workitems for parentIteration
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &parentIterationID, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 4)
+
+	// list workitems for childIteraiton
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 2)
 }
