@@ -397,7 +397,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modi
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
-	res.ExecutionOrder = wi.ExecutionOrder
+	res.ExecutionOrder = wi.Fields[SystemOrder].(float64)
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
