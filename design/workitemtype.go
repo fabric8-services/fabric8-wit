@@ -35,13 +35,14 @@ var fieldDefinition = a.Type("fieldDefinition", func() {
 var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Description("A work item type describes the values a work item type instance can hold.")
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
+	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
+	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
 	a.Attribute("name", d.String, "The human readable name of the work item type", func() {
 		a.Example("User story")
 		a.MinLength(1)
 	})
 	a.Attribute("description", d.String, "A human readable description for the work item type", func() {
-		a.Example(`A user story encapsulates the action of one function making it possible
-for software developers to create a vertical slice of their work.`)
+		a.Example(`A user story encapsulates the action of one function making it possible for software developers to create a vertical slice of their work.`)
 	})
 	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type", func() {
 		a.Example(map[string]interface{}{
@@ -65,7 +66,7 @@ for software developers to create a vertical slice of their work.`)
 		//a.Pattern(^[^\\s]+$)
 	})
 
-	a.Required("version")
+	//a.Required("version")
 	a.Required("fields")
 	a.Required("name")
 	a.Required("icon")
@@ -116,15 +117,15 @@ var _ = a.Resource("workitemtype", func() {
 	a.BasePath("/workitemtypes")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:witId"),
+			a.GET("/:witID"),
 		)
 		a.Description("Retrieve work item type with given ID.")
 		a.Params(func() {
-			a.Param("witId", d.UUID, "ID of the work item type")
+			a.Param("witID", d.UUID, "ID of the work item type")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemTypeSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -152,41 +153,39 @@ var _ = a.Resource("workitemtype", func() {
 			a.Param("page", d.String, "Paging in the format <start>,<limit>")
 			// TODO: Support same params as in work item list-action?
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemTypeList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemTypeList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("list-source-link-types", func() {
 		a.Routing(
-			a.GET("/:witId/source-link-types"),
+			a.GET("/:witID/source-link-types"),
 		)
 		a.Params(func() {
-			a.Param("witId", d.UUID, "ID of the work item type")
+			a.Param("witID", d.UUID, "ID of the work item type")
 		})
-		a.Description(`Retrieve work item link types where the
-given work item type can be used in the source of the link.`)
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
-		})
+		a.Description(`Retrieve work item link types where the given work item type can be used in the source of the link.`)
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeList)
+		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 
 	a.Action("list-target-link-types", func() {
 		a.Routing(
-			a.GET("/:witId/target-link-types"),
+			a.GET("/:witID/target-link-types"),
 		)
 		a.Params(func() {
-			a.Param("witId", d.UUID, "ID of work item type")
+			a.Param("witID", d.UUID, "ID of work item type")
 		})
-		a.Description(`Retrieve work item link types where the
-given work item type can be used in the target of the link.`)
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
-		})
+		a.Description(`Retrieve work item link types where the given work item type can be used in the target of the link.`)
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeList)
+		a.Response(d.NotModified)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

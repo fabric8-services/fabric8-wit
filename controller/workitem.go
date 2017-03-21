@@ -531,8 +531,37 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)
+	WorkItemIncludeChildren(request, wi, op)
 	for _, add := range additional {
 		add(request, wi, op)
 	}
 	return op
+}
+
+// ListChildren runs the list action.
+func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
+	// WorkItemChildrenController_List: start_implement
+
+	// Put your logic here
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.ID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		response := app.WorkItem2List{
+			Data: ConvertWorkItems(ctx.RequestData, result),
+		}
+		return ctx.OK(&response)
+	})
+}
+
+// WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
+func WorkItemIncludeChildren(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/children"
+	wi2.Relationships.Children = &app.RelationGeneric{
+		Links: &app.GenericLinks{
+			Related: &childrenRelated,
+		},
+	}
+
 }
