@@ -285,6 +285,13 @@ func main() {
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
+	// TEMP MOUNT "redirect" controller
+	redirectWorkItemTypesCtrl := controller.NewRedirectWorkitemtypeController(service)
+	app.MountRedirectWorkitemtypeController(service, redirectWorkItemTypesCtrl)
+
+	redirectWorkItemCtrl := controller.NewRedirectWorkitemController(service)
+	app.MountRedirectWorkitemController(service, redirectWorkItemCtrl)
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
