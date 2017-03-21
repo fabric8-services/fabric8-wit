@@ -2008,8 +2008,6 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
-// Following test fails because Iterations table is being cleaned up
-// and default iteration for root space is gone
 func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	t := s.T()
 	c := minimumRequiredCreateWithType(workitem.SystemFeature)
