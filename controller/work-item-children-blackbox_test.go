@@ -90,7 +90,7 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	svc = testsupport.ServiceAsUser("WorkItemType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
-	s.typeCtrl = NewWorkitemtypeController(svc, s.db)
+	s.typeCtrl = NewWorkitemtypeController(svc, s.db, wiConfiguration)
 	require.NotNil(s.T(), s.typeCtrl)
 
 	svc = testsupport.ServiceAsUser("WorkItemLink-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
