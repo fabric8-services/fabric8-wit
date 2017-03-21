@@ -35,8 +35,8 @@ type WorkItemRepository interface {
 	LoadByID(ctx context.Context, ID string) (*app.WorkItem, error)
 	Load(ctx context.Context, spaceID uuid.UUID, ID string) (*app.WorkItem, error)
 	Save(ctx context.Context, spaceID uuid.UUID, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
-	Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
@@ -97,7 +97,7 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*app.
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, res)
 }
 
 // Load returns the work item for the given spaceID and item id
@@ -136,7 +136,7 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wo
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // LoadTopWorkitem returns top most work item of the list. Top most workitem has the Highest order.
@@ -152,7 +152,7 @@ func (r *GormWorkItemRepository) LoadTopWorkitem(ctx context.Context) (*app.Work
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // LoadBottomWorkitem returns bottom work item of the list. Bottom most workitem has the lowest order.
@@ -168,7 +168,7 @@ func (r *GormWorkItemRepository) LoadBottomWorkitem(ctx context.Context) (*app.W
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // LoadHighestOrder returns the highest order
@@ -401,7 +401,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 	if err != nil {
 		return nil, err
 	}
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
@@ -474,7 +474,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi
 		"wiID":    wi.ID,
 		"spaceID": spaceID,
 	}, "Updated work item repository")
-	return convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
+	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
 
 // Create creates a new work item in the repository
@@ -520,7 +520,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 		return nil, errs.Wrapf(err, "failed to create work item")
 	}
 
-	witem, err := convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
+	witem, err := ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &wi)
 	if err != nil {
 		return nil, err
 	}
@@ -533,7 +533,8 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	return witem, nil
 }
 
-func convertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
+// ConvertWorkItemModelToApp convert work item model to app WI
+func ConvertWorkItemModelToApp(request *goa.RequestData, wiType *WorkItemType, wi *WorkItem) (*app.WorkItem, error) {
 	result, err := wiType.ConvertFromModel(request, *wi)
 	if err != nil {
 		return nil, errors.NewConversionError(err.Error())
@@ -644,7 +645,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		res[index], err = convertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
+		res[index], err = ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
 	}
 	return res, count, nil
 }

@@ -69,6 +69,23 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if ctx.FilterIteration != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
 		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
+		// Update filter by adding child iterations if any
+		application.Transactional(c.db, func(tx application.Application) error {
+			iterationUUID, errConversion := uuid.FromString(*ctx.FilterIteration)
+			if errConversion != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(errConversion, "Invalid iteration ID"))
+			}
+			childrens, err := tx.Iterations().LoadChildren(ctx.Context, iterationUUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch children"))
+			}
+			for _, child := range childrens {
+				childIDStr := child.ID.String()
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(childIDStr)))
+				additionalQuery = append(additionalQuery, "filter[iteration]="+childIDStr)
+			}
+			return nil
+		})
 	}
 	if ctx.FilterWorkitemtype != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
@@ -561,8 +578,37 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)
+	WorkItemIncludeChildren(request, wi, op)
 	for _, add := range additional {
 		add(request, wi, op)
 	}
 	return op
+}
+
+// ListChildren runs the list action.
+func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
+	// WorkItemChildrenController_List: start_implement
+
+	// Put your logic here
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		response := app.WorkItem2List{
+			Data: ConvertWorkItems(ctx.RequestData, result),
+		}
+		return ctx.OK(&response)
+	})
+}
+
+// WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
+func WorkItemIncludeChildren(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/children"
+	wi2.Relationships.Children = &app.RelationGeneric{
+		Links: &app.GenericLinks{
+			Related: &childrenRelated,
+		},
+	}
+
 }

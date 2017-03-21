@@ -200,7 +200,7 @@ func main() {
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
-	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB)
+	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	// Mount "work item link category" controller
@@ -288,6 +288,18 @@ func main() {
 	// Mount "plannerBacklog" controller
 	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB)
 	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
+
+	if !configuration.IsPostgresDeveloperModeEnabled() {
+		// TEMP MOUNT "redirect" controller
+		redirectWorkItemTypesCtrl := controller.NewRedirectWorkitemtypeController(service)
+		app.MountRedirectWorkitemtypeController(service, redirectWorkItemTypesCtrl)
+
+		redirectWorkItemCtrl := controller.NewRedirectWorkitemController(service)
+		app.MountRedirectWorkitemController(service, redirectWorkItemCtrl)
+
+		redirectWorkItemLinkTypesCtrl := controller.NewRedirectWorkItemLinkTypeController(service)
+		app.MountRedirectWorkItemLinkTypeController(service, redirectWorkItemLinkTypesCtrl)
+	}
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)

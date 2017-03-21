@@ -63,33 +63,33 @@ func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 
 	url, err := config.GetKeycloakEndpointAuth(reqLong)
 	require.Nil(t, err)
-	require.Equal(t, "http://xyz.io/auth/realms/fabric8/protocol/openid-connect/auth", url)
+	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/auth", url)
 
 	url, err = config.GetKeycloakEndpointToken(reqLong)
 	require.Nil(t, err)
-	require.Equal(t, "http://xyz.io/auth/realms/fabric8/protocol/openid-connect/token", url)
+	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/token", url)
 
 	url, err = config.GetKeycloakEndpointUserInfo(reqLong)
 	require.Nil(t, err)
-	require.Equal(t, "http://xyz.io/auth/realms/fabric8/protocol/openid-connect/userinfo", url)
+	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/userinfo", url)
 
 	url, err = config.GetKeycloakEndpointAuthzResourceset(reqLong)
 	require.Nil(t, err)
-	require.Equal(t, "http://xyz.io/auth/realms/fabric8/authz/protection/resource_set", url)
+	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/protection/resource_set", url)
 
 	url, err = config.GetKeycloakEndpointClients(reqLong)
 	require.Nil(t, err)
-	require.Equal(t, "http://xyz.io/auth/admin/realms/fabric8/clients", url)
+	require.Equal(t, "http://xyz.io/auth/admin/realms/"+config.GetKeycloakRealm()+"/clients", url)
 
 	url, err = config.GetKeycloakEndpointEntitlement(reqLong)
 	require.Nil(t, err)
-	require.Equal(t, "http://xyz.io/auth/realms/fabric8/authz/entitlement/fabric8-online-platform", url)
+	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/authz/entitlement/fabric8-online-platform", url)
 }
 
 func TestGetKeycloakEndpointAdminDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/admin/realms/fabric8", config.GetKeycloakEndpointAdmin)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/admin/realms/"+config.GetKeycloakRealm(), config.GetKeycloakEndpointAdmin)
 }
 
 func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
@@ -100,7 +100,7 @@ func TestGetKeycloakEndpointAdminSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointAuthzResourcesetDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/fabric8/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/authz/protection/resource_set", config.GetKeycloakEndpointAuthzResourceset)
 }
 
 func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
@@ -111,7 +111,7 @@ func TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointClientsDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/admin/realms/fabric8/clients", config.GetKeycloakEndpointClients)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/admin/realms/"+config.GetKeycloakRealm()+"/clients", config.GetKeycloakEndpointClients)
 }
 
 func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
@@ -122,7 +122,7 @@ func TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/fabric8/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/auth", config.GetKeycloakEndpointAuth)
 }
 
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
@@ -133,7 +133,7 @@ func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/fabric8/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/token", config.GetKeycloakEndpointToken)
 }
 
 func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
@@ -144,7 +144,7 @@ func TestGetKeycloakEndpointTokenSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointUserInfoOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/fabric8/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/userinfo", config.GetKeycloakEndpointUserInfo)
 }
 
 func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
@@ -155,7 +155,7 @@ func TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointEntitlementOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/fabric8/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/authz/entitlement/fabric8-online-platform", config.GetKeycloakEndpointEntitlement)
 }
 
 func TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK(t *testing.T) {
@@ -166,7 +166,7 @@ func TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK(t *testing.T) {
 func TestGetKeycloakEndpointBrokerOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
-	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/fabric8/broker", config.GetKeycloakEndpointBroker)
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/broker", config.GetKeycloakEndpointBroker)
 }
 
 func TestGetKeycloakEndpointBrokerSetByEnvVaribaleOK(t *testing.T) {

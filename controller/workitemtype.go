@@ -23,14 +23,20 @@ const (
 // WorkitemtypeController implements the workitemtype resource.
 type WorkitemtypeController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config WorkItemControllerConfiguration
+}
+
+type WorkItemControllerConfiguration interface {
+	GetCacheControlWorkItemType() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
-func NewWorkitemtypeController(service *goa.Service, db application.DB) *WorkitemtypeController {
+func NewWorkitemtypeController(service *goa.Service, db application.DB, config WorkItemControllerConfiguration) *WorkitemtypeController {
 	return &WorkitemtypeController{
 		Controller: service.NewController("WorkitemtypeController"),
 		db:         db,
+		config:     config,
 	}
 }
 
@@ -42,11 +48,13 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		res, err := appl.WorkItemTypes().Load(ctx.Context, spaceID, ctx.WitID)
+		result, err := appl.WorkItemTypes().Load(ctx.Context, spaceID, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(res)
+		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
+			return ctx.OK(result)
+		})
 	})
 }
 
@@ -95,7 +103,9 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
-		return ctx.OK(result)
+		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
+			return ctx.OK(result)
+		})
 	})
 }
 
@@ -114,7 +124,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
-		res, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
+		result, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -123,11 +133,13 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, res)
+		err = enrichLinkTypeList(linkCtx, result)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(res)
+		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
+			return ctx.OK(result)
+		})
 	})
 }
 
@@ -146,7 +158,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg
-		res, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
+		result, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -155,10 +167,12 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, res)
+		err = enrichLinkTypeList(linkCtx, result)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.OK(res)
+		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
+			return ctx.OK(result)
+		})
 	})
 }

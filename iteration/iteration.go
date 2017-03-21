@@ -53,6 +53,7 @@ type Repository interface {
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
 	ListBacklogIterations(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Iteration, error)
+	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -208,4 +209,26 @@ func (m *GormIterationRepository) ListBacklogIterations(ctx context.Context, spa
 		return nil, errs.WithStack(err)
 	}
 	return rows, nil
+}
+
+// LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
+func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loadchildren"}, time.Now())
+	parentIteration, err := m.Load(ctx, parentIterationID)
+	if err != nil {
+		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
+	}
+	var objs []*Iteration
+	selfPath := parentIteration.Path.Convert()
+	var query string
+	if selfPath != "" {
+		query = parentIteration.Path.Convert() + path.SepInDatabase + parentIteration.Path.ConvertToLtree(parentIteration.ID)
+	} else {
+		query = parentIteration.Path.ConvertToLtree(parentIteration.ID)
+	}
+	err = m.db.Where("path <@ ?", query).Find(&objs).Error
+	if err != nil {
+		return nil, err
+	}
+	return objs, nil
 }
