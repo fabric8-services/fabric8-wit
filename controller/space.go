@@ -320,8 +320,9 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			UpdatedAt:   &p.UpdatedAt,
 			Version:     &p.Version,
 		},
-		Links: &app.GenericLinks{
-			Self: &selfURL,
+		Links: &app.GenericLinksForSpace{
+			Self:    &selfURL,
+			Backlog: &relatedBacklogList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
@@ -338,11 +339,6 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Areas: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedAreaList,
-				},
-			},
-			Backlog: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedBacklogList,
 				},
 			},
 		},
