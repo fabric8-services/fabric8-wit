@@ -66,6 +66,8 @@ const (
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
 	defaultConfigFile                   = "config.yaml"
+	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
+	varCheStarterURL                    = "chestarterurl"
 
 	// The host name exception of the api service to be taken into account
 	// when converting it to sso.demo.almighty.io
@@ -169,6 +171,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
+	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
+	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -455,6 +459,16 @@ func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (s
 	return newURL, nil
 }
 
+// GetCheStarterURL returns the URL for the Che Starter service used by codespaces to initiate code editing
+func (c *ConfigurationData) GetCheStarterURL() string {
+	return c.v.GetString(varCheStarterURL)
+}
+
+// GetOpenshiftTenantMasterURL returns the URL for the openshift cluster where the tenant services are running
+func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
+	return c.v.GetString(varOpenshiftTenantMasterURL)
+}
+
 // Auth-related defaults
 
 // RSAPrivateKey for signing JWT Tokens
@@ -515,6 +529,9 @@ var defaultKeycloakTesUserName = "testuser"
 var defaultKeycloakTesUserSecret = "testuser"
 var defaultKeycloakTesUser2Name = "testuser2"
 var defaultKeycloakTesUser2Secret = "testuser2"
+
+var defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
+var defaultCheStarterURL = "che-server"
 
 // Keycloak URL to be used in dev mode. Can be overridden by setting up keycloak.url
 var devModeKeycloakURL = "http://sso.demo.almighty.io"

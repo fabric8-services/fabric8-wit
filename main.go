@@ -286,7 +286,7 @@ func main() {
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
 	// Mount "codebase" controller
-	codebaseCtrl := controller.NewCodebaseController(service, appDB)
+	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
 	app.MountCodebaseController(service, codebaseCtrl)
 
 	// Mount "spacecodebases" controller

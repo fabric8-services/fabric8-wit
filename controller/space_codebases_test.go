@@ -94,10 +94,10 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	// Create a new space where we'll create 3 areas
+	// Create a new space where we'll create 3 codebase
 	var s *space.Space
 
-	// Create another space where we'll create 1 area.
+	// Create another space where we'll create 1 codebase.
 	var anotherSpace *space.Space
 
 	application.Transactional(rest.db, func(app application.Application) error {
@@ -149,7 +149,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	}
 
 	_, anotherCodebaseList := test.ListSpaceCodebasesOK(t, svc.Context, svc, ctrl, anotherSpaceId.String(), &limit, &offset)
-	assert.Len(t, anotherCodebaseList.Data, 1)
+	require.Len(t, anotherCodebaseList.Data, 1)
 	assert.Equal(t, anotherCodebaseList.Data[0].ID, createdCodebase.Data.ID)
 
 }

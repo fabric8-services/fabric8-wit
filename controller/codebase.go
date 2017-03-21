@@ -1,25 +1,20 @@
 package controller
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strings"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/codebase"
+	"github.com/almighty/almighty-core/codebase/che"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/goadesign/goa/middleware"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
@@ -30,15 +25,22 @@ const (
 	APIStringTypeWorkspace = "workspaces"
 )
 
+// CodebaseConfiguration contains the configuraiton required by this Controller
+type codebaseConfiguration interface {
+	GetOpenshiftTenantMasterURL() string
+	GetCheStarterURL() string
+}
+
 // CodebaseController implements the codebase resource.
 type CodebaseController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config codebaseConfiguration
 }
 
 // NewCodebaseController creates a codebase controller.
-func NewCodebaseController(service *goa.Service, db application.DB) *CodebaseController {
-	return &CodebaseController{Controller: service.NewController("CodebaseController"), db: db}
+func NewCodebaseController(service *goa.Service, db application.DB, config codebaseConfiguration) *CodebaseController {
+	return &CodebaseController{Controller: service.NewController("CodebaseController"), db: db, config: config}
 }
 
 // Show runs the show action.
@@ -56,7 +58,7 @@ func (c *CodebaseController) Show(ctx *app.ShowCodebaseContext) error {
 	})
 }
 
-// Edit runs the show action.
+// Edit runs the edit action.
 func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
@@ -75,8 +77,8 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	che := NewCheStarterClient(getClusterURL(), getNamespace(ctx))
-	workspaces, err := che.ListWorkspaces(ctx, cb.URL)
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	workspaces, err := cheClient.ListWorkspaces(ctx, cb.URL)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebaseID": cb.ID,
@@ -130,20 +132,20 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	che := NewCheStarterClient(getClusterURL(), getNamespace(ctx))
-	workspace := WorkspaceRequest{
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	workspace := che.WorkspaceRequest{
 		Branch:     "master",
 		Name:       "test2",
 		StackID:    "java-default",
 		Repository: cb.URL,
 	}
-	workspaceResp, err := che.CreateWorkspace(ctx, workspace)
+	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebaseID": cb.ID,
 			"err":        err,
 		}, "unable to create workspaces")
-		if werr, ok := err.(*workspaceError); ok {
+		if werr, ok := err.(*che.WorkspaceError); ok {
 			fmt.Println(werr.String())
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -177,17 +179,17 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	che := NewCheStarterClient(getClusterURL(), getNamespace(ctx))
-	workspace := WorkspaceRequest{
+	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	workspace := che.WorkspaceRequest{
 		ID: ctx.WorkspaceID,
 	}
-	workspaceResp, err := che.CreateWorkspace(ctx, workspace)
+	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebaseID": cb.ID,
 			"err":        err,
 		}, "unable to open workspaces")
-		if werr, ok := err.(*workspaceError); ok {
+		if werr, ok := err.(*che.WorkspaceError); ok {
 			fmt.Println(werr.String())
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -264,190 +266,4 @@ func getNamespace(ctx context.Context) string {
 		return strings.Split(email, "@")[0] + "-dsaas-che"
 	}
 	return ""
-}
-
-func getClusterURL() *url.URL {
-	clusterURL, _ := url.Parse("https://tsrv.devshift.net:8443")
-	return clusterURL
-}
-
-// NewCheStarterClient is a helper function to create a new CheStarter client
-// Uses http.DefaultClient
-func NewCheStarterClient(masterURL *url.URL, namespace string) *CheStarterClient {
-	return &CheStarterClient{masterURL: masterURL, namespace: namespace, client: http.DefaultClient}
-}
-
-// CheStarterClient describes the REST interface between Platform and Che Starter
-type CheStarterClient struct {
-	masterURL *url.URL
-	namespace string
-	client    *http.Client
-}
-
-func (cs *CheStarterClient) targetURL(resource string) string {
-	return fmt.Sprintf("http://che-starter.prod-preview.openshift.io/%v?masterUrl=%v&namespace=%v", resource, cs.masterURL.String(), cs.namespace)
-}
-
-func (cs *CheStarterClient) setHeaders(ctx context.Context, req *http.Request) {
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+goajwt.ContextJWT(ctx).Raw)
-	req.Header.Set(middleware.RequestIDHeader, middleware.ContextRequestID(ctx))
-}
-
-// ListWorkspaces lists the available workspaces for a given user
-func (cs *CheStarterClient) ListWorkspaces(ctx context.Context, repository string) ([]WorkspaceResponse, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf(cs.targetURL("workspace")+"&repository=%v", repository), nil)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"repository": repository,
-			"err":        err,
-		}, "failed to create request object")
-		return nil, err
-	}
-	cs.setHeaders(ctx, req)
-
-	if log.IsDebug() {
-		b, _ := httputil.DumpRequest(req, true)
-		log.Debug(ctx, map[string]interface{}{
-			"request": string(b),
-		}, "request object")
-	}
-
-	resp, err := cs.client.Do(req)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"repository": repository,
-			"err":        err,
-		}, "failed to list workspace for repository")
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := workspaceError{}
-		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"repository": repository,
-				"err":        err,
-			}, "failed to decode error response from list workspace for repository")
-			return nil, err
-		}
-		log.Error(ctx, map[string]interface{}{
-			"repository": repository,
-			"err":        workspaceErr.String(),
-		}, "failed to execute list workspace for repository")
-		return nil, &workspaceErr
-	}
-
-	workspaceResp := []WorkspaceResponse{}
-	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"repository": repository,
-			"err":        err,
-		}, "failed to decode response from list workspace for repository")
-		return nil, err
-	}
-	return workspaceResp, nil
-}
-
-// CreateWorkspace creates a new Che Workspace based on a repository
-func (cs *CheStarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceResponse, error) {
-	body, err := json.Marshal(&workspace)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"workspaceID": workspace.ID,
-			"err":         err,
-		}, "failed to create request object")
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", cs.targetURL("workspace"), bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	cs.setHeaders(ctx, req)
-
-	if log.IsDebug() {
-		b, _ := httputil.DumpRequest(req, true)
-		log.Debug(ctx, map[string]interface{}{
-			"request": string(b),
-		}, "request object")
-	}
-
-	resp, err := cs.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
-		workspaceErr := workspaceError{}
-		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"workspaceID": workspace.ID,
-				"err":         err,
-			}, "failed to decode error response from create workspace for repository")
-			return nil, err
-		}
-		log.Error(ctx, map[string]interface{}{
-			"workspaceID": workspace.ID,
-			"err":         workspaceErr.String(),
-		}, "failed to execute create workspace for repository")
-		return nil, &workspaceErr
-	}
-
-	workspaceResp := WorkspaceResponse{}
-	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"workspaceID": workspace.ID,
-			"err":         err,
-		}, "failed to decode response from create workspace for repository")
-		return nil, err
-	}
-	return &workspaceResp, nil
-}
-
-// WorkspaceRequest represents a create workspace request body
-type WorkspaceRequest struct {
-	ID         string `json:"id,omitempty"`
-	Branch     string `json:"branch,omitempty"`
-	Name       string `json:"name,omitempty"`
-	Repository string `json:"repo,omitempty"`
-	StackID    string `json:"stack,omitempty"`
-}
-
-// WorkspaceResponse represents a create workspace response body
-type WorkspaceResponse struct {
-	ID              string `json:"id"`
-	Branch          string `json:"branch"`
-	Description     string `json:"description"`
-	Location        string `json:"location"`
-	Login           string `json:"login"`
-	Name            string `json:"name"`
-	Repository      string `json:"repository"`
-	Status          string `json:"status"`
-	WorkspaceIDEURL string `json:"workspaceIdeUrl"`
-}
-
-type workspaceError struct {
-	Status    int    `json:"status"`
-	ErrorMsg  string `json:"error"`
-	Message   string `json:"message"`
-	Timestamp string `json:"timeStamp"`
-	Trace     string `json:"trace"`
-}
-
-func (err *workspaceError) Error() string {
-	return err.ErrorMsg
-}
-
-func (err *workspaceError) String() string {
-	return fmt.Sprintf("Status %v Error %v Message %v Trace\n%v", err.Status, err.ErrorMsg, err.ErrorMsg, err.Trace)
 }

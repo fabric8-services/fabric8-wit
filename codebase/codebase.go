@@ -136,7 +136,9 @@ func (m *GormCodebaseRepository) TableName() string {
 // Create creates a new record.
 func (m *GormCodebaseRepository) Create(ctx context.Context, codebase *Codebase) error {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "create"}, time.Now())
-	codebase.ID = uuid.NewV4()
+	if codebase.ID == uuid.Nil {
+		codebase.ID = uuid.NewV4()
+	}
 
 	if err := m.db.Create(codebase).Error; err != nil {
 		goa.LogError(ctx, "error adding Codebase", "error", err.Error())
