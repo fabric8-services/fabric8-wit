@@ -260,6 +260,9 @@ func getMigrations() migrations {
 	// Version 47
 	m = append(m, steps{executeSQLFile("047-unique-iteration-name-create-new-iteration.sql")})
 
+	// Version 48
+	m = append(m, steps{executeSQLFile("048-add-index-on-iteration-name.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
