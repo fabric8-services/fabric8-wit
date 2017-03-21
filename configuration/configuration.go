@@ -70,15 +70,6 @@ const (
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
-
-	// The host name exception of the api service to be taken into account
-	// when converting it to sso.demo.almighty.io
-	// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
-	// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
-	// So, we need to treat it as an exception
-
-	apiHostNameException = "demo.api.almighty.io"
-	ssoHostNameException = "sso.demo.almighty.io"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -168,7 +159,6 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
 	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
-	c.v.SetDefault(varKeycloakRealm, defaultKeycloakRealm)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
@@ -484,11 +474,12 @@ func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
 }
 
-// Auth-related defaults
+const (
+	// Auth-related defaults
 
-// RSAPrivateKey for signing JWT Tokens
-// ssh-keygen -f alm_rsa
-var defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+	// RSAPrivateKey for signing JWT Tokens
+	// ssh-keygen -f alm_rsa
+	defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
 DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
 HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
@@ -516,9 +507,9 @@ BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
 OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 -----END RSA PRIVATE KEY-----`
 
-// RSAPublicKey for verifying JWT Tokens
-// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
-var defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
+	// RSAPublicKey for verifying JWT Tokens
+	// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
+	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlscGA2NfO4ZkGzJgZE8
 e/WGHCFANE28DzU1aftOssKi4jCn++umFWPDWxTwLfQdiwc8Bbhn9/8udPMXrZ84
 L8OgVNbDXOle37QE0+GEAX/DnzkvOg2sm7F0IzKck9YNvo3ZUYj7dyW9s2zatCwu
@@ -528,26 +519,27 @@ gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
 ZwIDAQAB
 -----END PUBLIC KEY-----`
 
-var defaultKeycloakClientID = "fabric8-online-platform"
-var defaultKeycloakSecret = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
+	defaultKeycloakClientID = "fabric8-online-platform"
+	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
 
-var defaultKeycloakDomainPrefix = "sso"
-var defaultKeycloakRealm = "fabric8"
+	defaultKeycloakDomainPrefix = "sso"
+	defaultKeycloakRealm        = "fabric8"
 
-// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
-var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+	// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
+	camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+
+	defaultKeycloakTesUserName    = "testuser"
+	defaultKeycloakTesUserSecret  = "testuser"
+	defaultKeycloakTesUser2Name   = "testuser2"
+	defaultKeycloakTesUser2Secret = "testuser2"
+
+	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
+	devModeKeycloakURL   = "http://sso.prod-preview.openshift.io"
+	devModeKeycloakRealm = "fabric8-test"
+
+	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
+	defaultCheStarterURL = "che-server"
+)
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
-
-var defaultKeycloakTesUserName = "testuser"
-var defaultKeycloakTesUserSecret = "testuser"
-var defaultKeycloakTesUser2Name = "testuser2"
-var defaultKeycloakTesUser2Secret = "testuser2"
-
-var defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
-var defaultCheStarterURL = "che-server"
-
-// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
-var devModeKeycloakURL = "http://sso.prod-preview.openshift.io"
-var devModeKeycloakRealm = "fabric8-test"
