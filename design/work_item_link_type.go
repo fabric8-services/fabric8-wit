@@ -228,3 +228,51 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 })
+
+var _ = a.Resource("redirect_work_item_link_type", func() {
+	a.BasePath("/workitemlinktypes")
+
+	a.Action("show", func() {
+		a.Routing(
+			a.GET("/:wiltId"),
+		)
+		a.Params(func() {
+			a.Param("id", d.UUID, "ID of the work item link type")
+		})
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("create", func() {
+		a.Routing(
+			a.POST(""),
+		)
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("delete", func() {
+		a.Routing(
+			a.DELETE("/:wiltId"),
+		)
+		a.Params(func() {
+			a.Param("wiltId", d.UUID, "wiltId")
+		})
+		a.Response(d.MovedPermanently)
+	})
+
+	a.Action("update", func() {
+		a.Routing(
+			a.PATCH("/:wiltId"),
+		)
+		a.Params(func() {
+			a.Param("wiltId", d.UUID, "wiltId")
+		})
+		a.Response(d.MovedPermanently)
+	})
+})
