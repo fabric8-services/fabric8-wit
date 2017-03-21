@@ -52,6 +52,8 @@ See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(0)
 	})
+	a.Attribute("created-at", d.DateTime, "Time of creation of the given work item type")
+	a.Attribute("updated-at", d.DateTime, "Time of last update of the given work item type")
 	a.Attribute("forward_name", d.String, `The forward oriented path from source to target is described with the forward name.
 For example, if a bug blocks a user story, the forward name is "blocks". See also reverse name.`, func() {
 		a.Example("test-workitemtype")
@@ -61,7 +63,7 @@ For example, if a bug blocks a user story, the reverse name name is "blocked by"
 		a.Example("tested by")
 	})
 	a.Attribute("topology", d.String, `The topology determines the restrictions placed on the usage of each work item link type.`, func() {
-		a.Enum("network")
+		a.Enum("network", "tree")
 	})
 
 	// IMPORTANT: We cannot require any field here because these "attributes" will be used
@@ -157,9 +159,9 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Params(func() {
 			a.Param("id", d.UUID, "ID of the work item link type")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkType)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkType)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -170,9 +172,9 @@ var _ = a.Resource("work_item_link_type", func() {
 			a.GET(""),
 		)
 		a.Description("List work item link types.")
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkTypeList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemLinkTypeList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
@@ -218,9 +220,7 @@ var _ = a.Resource("work_item_link_type", func() {
 			a.Param("id", d.UUID, "id")
 		})
 		a.Payload(updateWorkItemLinkTypePayload)
-		a.Response(d.OK, func() {
-			a.Media(workItemLinkType)
-		})
+		a.Response(d.OK, workItemLinkType)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
