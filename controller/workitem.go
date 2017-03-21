@@ -64,6 +64,23 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if ctx.FilterIteration != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
 		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
+		// Update filter by adding child iterations if any
+		application.Transactional(c.db, func(tx application.Application) error {
+			iterationUUID, errConversion := uuid.FromString(*ctx.FilterIteration)
+			if errConversion != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(errConversion, "Invalid iteration ID"))
+			}
+			childrens, err := tx.Iterations().LoadChildren(ctx.Context, iterationUUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch children"))
+			}
+			for _, child := range childrens {
+				childIDStr := child.ID.String()
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(childIDStr)))
+				additionalQuery = append(additionalQuery, "filter[iteration]="+childIDStr)
+			}
+			return nil
+		})
 	}
 	if ctx.FilterWorkitemtype != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
