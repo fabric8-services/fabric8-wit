@@ -120,7 +120,7 @@ func (m *GormIterationRepository) RootIterations(ctx context.Context, spaceID uu
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var objs []*Iteration
 
-	err := m.db.Where("space_id = ? and path = ?", spaceID, "").Find(&objs).Error
+	err := m.db.Select("id").Where("space_id = ? and path = ?", spaceID, "").Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Error(ctx, map[string]interface{}{
 			"spaceID": spaceID,

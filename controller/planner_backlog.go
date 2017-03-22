@@ -6,7 +6,9 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -33,12 +35,25 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
-	exp := criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateNew))
+	exp, err := query.Parse(ctx.Filter)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
+	}
+	if ctx.FilterAssignee != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+	}
+	if ctx.FilterWorkitemtype != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+	}
+	if ctx.FilterArea != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+	}
+
+	exp = criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateNew))
 	exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateOpen)))
 	exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateInProgress)))
 	exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateResolved)))
 
-	exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(workitem.SystemPlannerItem.String())))
 	// Update filter by adding child iterations if any
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		iterations, err := appl.Iterations().RootIterations(ctx.Context, spaceID)
@@ -58,6 +73,23 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 			expItrs = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(""))
 		}
 		exp = criteria.And(exp, expItrs)
+
+		wits, err := appl.WorkItemTypes().ListPlannerItems(ctx.Context, spaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch work item types that derives of planner item"))
+		}
+
+		var expWits criteria.Expression
+		if len(wits) >= 1 {
+			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(wits[0].ID.String()))
+			for _, wit := range wits[1:] {
+				witIDStr := wit.ID.String()
+				expWits = criteria.Or(expWits, criteria.Equals(criteria.Field("Type"), criteria.Literal(witIDStr)))
+			}
+		} else {
+			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(""))
+		}
+		exp = criteria.And(exp, expWits)
 		return nil
 	})
 	if err != nil {

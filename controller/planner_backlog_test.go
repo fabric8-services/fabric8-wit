@@ -31,11 +31,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var wibConfiguration *config.ConfigurationData
+var wibConfig *config.ConfigurationData
 
 func init() {
 	var err error
-	wibConfiguration, err = config.GetConfigurationData()
+	wibConfig, err = config.GetConfigurationData()
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -57,13 +57,13 @@ func TestRunPlannerBlacklogREST(t *testing.T) {
 
 func (rest *TestPlannerBlacklogREST) SetupTest() {
 	var err error
-	rest.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
+	rest.db, err = gorm.Open("postgres", wibConfig.GetPostgresConfigString())
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
 	rest.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if wibConfiguration.GetPopulateCommonTypes() {
+	if wibConfig.GetPopulateCommonTypes() {
 		if err := models.Transactional(rest.db, func(tx *gorm.DB) error {
 			rest.ctx = migration.NewMigrationContext(context.Background())
 			return migration.PopulateCommonTypes(rest.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -126,7 +126,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 			workitem.SystemState:     "new",
 			workitem.SystemIteration: fatherIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields, rest.testIdentity.ID)
 
 		fields2 := map[string]interface{}{
 			workitem.SystemTitle:     "childIteration Test",
@@ -140,7 +140,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 			workitem.SystemState:     "in progress",
 			workitem.SystemIteration: anotherFatherIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemPlannerItem, fields3, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields3, rest.testIdentity.ID)
 
 		return nil
 	})
@@ -148,8 +148,9 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 	svc, ctrl := rest.UnSecuredController()
 
 	offset := "0"
+	filter := ""
 	limit := -1
-	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, space.SystemSpace.String(), &limit, &offset)
+	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, space.SystemSpace.String(), &filter, nil, nil, nil, &limit, &offset)
 
 	// Two iteration have to be found
 	assert.Len(t, cs.Data, 2)
@@ -175,6 +176,7 @@ func (rest *TestPlannerBlacklogREST) TestFailListPlannerBacklogByMissingSpace() 
 
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
+	filter := ""
 	limit := 2
-	test.ListPlannerBacklogNotFound(t, svc.Context, svc, ctrl, "xxxxx", &limit, &offset)
+	test.ListPlannerBacklogNotFound(t, svc.Context, svc, ctrl, "xxxxx", &filter, nil, nil, nil, &limit, &offset)
 }
