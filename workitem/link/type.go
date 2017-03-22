@@ -6,10 +6,11 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -23,6 +24,7 @@ const (
 	// hare are more human-readable.
 	SystemWorkItemLinkTypeBugBlocker     = "Bug blocker"
 	SystemWorkItemLinkPlannerItemRelated = "Related planner item"
+	SystemWorkItemLinkTypeParentChild    = "Parent child item"
 )
 
 // returns true if the left hand and right hand side string
@@ -45,24 +47,25 @@ func strPtrIsNilOrContentIsEqual(l, r *string) bool {
 type WorkItemLinkType struct {
 	gormsupport.Lifecycle
 	// ID
-	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
-	// Name is the unique name of this work item link category.
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// Name is the unique name of this work item link type.
 	Name string
-	// Description is an optional description of the work item link category
+	// Description is an optional description of the work item link type
 	Description *string
 	// Version for optimistic concurrency control
 	Version  int
 	Topology string // Valid values: network, directed_network, dependency, tree
 
-	SourceTypeName string
-	TargetTypeName string
+	SourceTypeID uuid.UUID `sql:"type:uuid"`
+	TargetTypeID uuid.UUID `sql:"type:uuid"`
 
 	ForwardName string
 	ReverseName string
 
-	LinkCategoryID satoriuuid.UUID
+	LinkCategoryID uuid.UUID `sql:"type:uuid"`
+
 	// Reference to one Space
-	SpaceID satoriuuid.UUID `sql:"type:uuid"`
+	SpaceID uuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -78,7 +81,7 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if !t.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if !satoriuuid.Equal(t.ID, other.ID) {
+	if !uuid.Equal(t.ID, other.ID) {
 		return false
 	}
 	if t.Name != other.Name {
@@ -93,10 +96,10 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.Topology != other.Topology {
 		return false
 	}
-	if t.SourceTypeName != other.SourceTypeName {
+	if !uuid.Equal(t.SourceTypeID, other.SourceTypeID) {
 		return false
 	}
-	if t.TargetTypeName != other.TargetTypeName {
+	if !uuid.Equal(t.TargetTypeID, other.TargetTypeID) {
 		return false
 	}
 	if t.ForwardName != other.ForwardName {
@@ -105,10 +108,10 @@ func (t WorkItemLinkType) Equal(u convert.Equaler) bool {
 	if t.ReverseName != other.ReverseName {
 		return false
 	}
-	if !satoriuuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
+	if !uuid.Equal(t.LinkCategoryID, other.LinkCategoryID) {
 		return false
 	}
-	if !satoriuuid.Equal(t.SpaceID, other.SpaceID) {
+	if !uuid.Equal(t.SpaceID, other.SpaceID) {
 		return false
 	}
 	return true
@@ -120,11 +123,11 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if t.Name == "" {
 		return errors.NewBadParameterError("name", t.Name)
 	}
-	if t.SourceTypeName == "" {
-		return errors.NewBadParameterError("source_type_name", t.SourceTypeName)
+	if uuid.Equal(t.SourceTypeID, uuid.Nil) {
+		return errors.NewBadParameterError("source_type_name", t.SourceTypeID)
 	}
-	if t.TargetTypeName == "" {
-		return errors.NewBadParameterError("target_type_name", t.TargetTypeName)
+	if uuid.Equal(t.TargetTypeID, uuid.Nil) {
+		return errors.NewBadParameterError("target_type_name", t.TargetTypeID)
 	}
 	if t.ForwardName == "" {
 		return errors.NewBadParameterError("forward_name", t.ForwardName)
@@ -135,10 +138,10 @@ func (t *WorkItemLinkType) CheckValidForCreation() error {
 	if err := CheckValidTopology(t.Topology); err != nil {
 		return errs.WithStack(err)
 	}
-	if t.LinkCategoryID == satoriuuid.Nil {
+	if t.LinkCategoryID == uuid.Nil {
 		return errors.NewBadParameterError("link_category_id", t.LinkCategoryID)
 	}
-	if t.SpaceID == satoriuuid.Nil {
+	if t.SpaceID == uuid.Nil {
 		return errors.NewBadParameterError("space_id", t.SpaceID)
 	}
 	return nil
@@ -160,7 +163,6 @@ func CheckValidTopology(t string) error {
 
 // ConvertLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.WorkItemLinkTypeSingle {
-	spaceType := "spaces"
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 
 	var converted = app.WorkItemLinkTypeSingle{
@@ -185,24 +187,16 @@ func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.
 				SourceType: &app.RelationWorkItemType{
 					Data: &app.RelationWorkItemTypeData{
 						Type: EndpointWorkItemTypes,
-						ID:   t.SourceTypeName,
+						ID:   t.SourceTypeID,
 					},
 				},
 				TargetType: &app.RelationWorkItemType{
 					Data: &app.RelationWorkItemTypeData{
 						Type: EndpointWorkItemTypes,
-						ID:   t.TargetTypeName,
+						ID:   t.TargetTypeID,
 					},
 				},
-				Space: &app.RelationSpaces{
-					Data: &app.RelationSpacesData{
-						Type: &spaceType,
-						ID:   &t.SpaceID,
-					},
-					Links: &app.GenericLinks{
-						Self: &spaceSelfURL,
-					},
-				},
+				Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
 			},
 		},
 	}
@@ -273,25 +267,12 @@ func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
 		out.LinkCategoryID = rel.LinkCategory.Data.ID
 	}
-
 	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		d := rel.SourceType.Data
-		// The the link type MUST NOT be empty
-		if d.ID == "" {
-			return errors.NewBadParameterError("data.relationships.source_type.data.id", d.ID)
-		}
-		out.SourceTypeName = d.ID
+		out.SourceTypeID = rel.SourceType.Data.ID
 	}
-
 	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		d := rel.TargetType.Data
-		// The the link type MUST NOT be empty
-		if d.ID == "" {
-			return errors.NewBadParameterError("data.relationships.target_type.data.id", d.ID)
-		}
-		out.TargetTypeName = d.ID
+		out.TargetTypeID = rel.TargetType.Data.ID
 	}
-
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		out.SpaceID = *rel.Space.Data.ID
 	}

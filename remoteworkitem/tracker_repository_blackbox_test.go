@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -19,8 +19,10 @@ import (
 )
 
 type trackerRepoBlackBoxTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	repo application.TrackerRepository
+
+	clean func()
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -38,11 +40,16 @@ func (s *trackerRepoBlackBoxTest) SetupSuite() {
 }
 
 func TestRunTrackerRepoBlackBoxTest(t *testing.T) {
-	suite.Run(t, &trackerRepoBlackBoxTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &trackerRepoBlackBoxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (s *trackerRepoBlackBoxTest) SetupTest() {
 	s.repo = remoteworkitem.NewTrackerRepository(s.DB)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (test *trackerRepoBlackBoxTest) TearDownTest() {
+	test.clean()
 }
 
 func (s *trackerRepoBlackBoxTest) TestFailDeleteZeroID() {

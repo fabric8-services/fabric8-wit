@@ -7,6 +7,8 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -76,6 +78,10 @@ func (g *GormBase) Spaces() space.Repository {
 	return space.NewRepository(g.db)
 }
 
+func (g *GormBase) SpaceResources() space.ResourceRepository {
+	return space.NewResourceRepository(g.db)
+}
+
 func (g *GormBase) Trackers() application.TrackerRepository {
 	return remoteworkitem.NewTrackerRepository(g.db)
 }
@@ -114,7 +120,7 @@ func (g *GormBase) WorkItemLinks() link.WorkItemLinkRepository {
 
 // Comments returns a work item comments repository
 func (g *GormBase) Comments() comment.Repository {
-	return comment.NewCommentRepository(g.db)
+	return comment.NewRepository(g.db)
 }
 
 // Iterations returns a iteration repository
@@ -125,6 +131,16 @@ func (g *GormBase) Iterations() iteration.Repository {
 // Areas returns a area repository
 func (g *GormBase) Areas() area.Repository {
 	return area.NewAreaRepository(g.db)
+}
+
+// OauthStates returns an oauth state reference repository
+func (g *GormBase) OauthStates() auth.OauthStateReferenceRepository {
+	return auth.NewOauthStateReferenceRepository(g.db)
+}
+
+// Codebases returns a codebase repository
+func (g *GormBase) Codebases() codebase.Repository {
+	return codebase.NewCodebaseRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {

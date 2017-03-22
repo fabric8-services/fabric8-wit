@@ -22,6 +22,13 @@ postgres.connection.maxopen: -1
 http.address: 0.0.0.0:8080
 
 #------------------------
+# HTTP Cache-Control
+#------------------------
+
+cachecontrol.maxage.workitemtype: max-age=86400
+cachecontrol.maxage.workitemlinktype: max-age=86400
+
+#------------------------
 # Misc.
 #------------------------
 
@@ -66,13 +73,13 @@ token.privatekey : |
 
 token.publickey : |
                     -----BEGIN PUBLIC KEY-----
-                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
-                    TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R
-                    SkAzBjPxVW5+hi5AJjUbAxtFX/aYJpZePVhK0Dv8StCPSv9GC3T6bUSF3q3E9R9n
-                    G1SZFkN9m2DhL+45us4THzX2eau6s0bISjAUqEGNifPyYYUzKVmXmHS9fiZJR61h
-                    6TulPwxv68DUSk+7iIJvJfQ3lH/XNWlxWNMMehetcmdy8EDR2IkJCCAbjx9yxgKV
-                    JXdQ7zylRlpaLopock0FGiZrJhEaAh6BGuaoUWLiMEvqrLuyZnJYEg9f/vyxUJSD
-                    JwIDAQAB
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlscGA2NfO4ZkGzJgZE8
+                    e/WGHCFANE28DzU1aftOssKi4jCn++umFWPDWxTwLfQdiwc8Bbhn9/8udPMXrZ84
+                    L8OgVNbDXOle37QE0+GEAX/DnzkvOg2sm7F0IzKck9YNvo3ZUYj7dyW9s2zatCwu
+                    QyUsHJmbMdwtDOueHBHwXiAiU0kprtUjNsvK4SBvascBdCmLLIWkhj2lu5S6BGrH
+                    gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
+                    51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
+                    ZwIDAQAB
                     -----END PUBLIC KEY-----
 
 # ----------------------------
@@ -80,13 +87,13 @@ token.publickey : |
 # ----------------------------
 
 keycloak.client.id : fabric8-online-platform
-keycloak.secret : 08a8bcd1-f362-446a-9d2b-d34b8d464185
+keycloak.secret : 7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd
 keycloak.domain.prefix : sso
 keycloak.realm : fabric8
 keycloak.testuser.name : testuser
 keycloak.testuser.secret : testuser
+keycloak.testuser2.name : testuser2
+keycloak.testuser2.secret : testuser2
 
 # Uncomment if FQDN URL's should be used instead of relative URL's:
-# keycloak.endpoint.auth : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/auth
-# keycloak.endpoint.token : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/token
-# keycloak.endpoint.userinfo : http://sso.demo.almighty.io/auth/realms/fabric8/protocol/openid-connect/userinfo
+# keycloak.url : http://sso.prod-preview.openshift.io

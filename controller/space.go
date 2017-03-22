@@ -5,54 +5,122 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
-	satoriuuid "github.com/satori/go.uuid"
+	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
+
+const (
+	// APIStringTypeCodebase contains the JSON API type for codebases
+	APIStringTypeSpace = "spaces"
+	spaceResourceType  = "space"
+)
+
+var scopes = []string{"read:space", "admin:space"}
+
+type spaceConfiguration interface {
+	GetKeycloakEndpointAuthzResourceset(*goa.RequestData) (string, error)
+	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
+	GetKeycloakEndpointClients(*goa.RequestData) (string, error)
+	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
+	GetKeycloakClientID() string
+	GetKeycloakSecret() string
+}
 
 // SpaceController implements the space resource.
 type SpaceController struct {
 	*goa.Controller
-	db application.DB
+	db              application.DB
+	configuration   spaceConfiguration
+	resourceManager auth.AuthzResourceManager
 }
 
 // NewSpaceController creates a space controller.
-func NewSpaceController(service *goa.Service, db application.DB) *SpaceController {
-	return &SpaceController{Controller: service.NewController("SpaceController"), db: db}
+func NewSpaceController(service *goa.Service, db application.DB, configuration spaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
+	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, configuration: configuration, resourceManager: resourceManager}
 }
 
 // Create runs the create action.
 func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
+
 	err = validateCreateSpace(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
-		reqSpace := ctx.Payload.Data
+	reqSpace := ctx.Payload.Data
+	spaceName := *reqSpace.Attributes.Name
+	spaceID := uuid.NewV4()
+	// Create keycloak resource for this space
+	// TODO if transaction below fails we need to remove this Keycloak Resource to avoid poluting Keycloak with unused resources
+	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String(), spaceName+"-"+uuid.NewV4().String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
 
+	spaceResource := &space.Resource{
+		ResourceID:   resource.ResourceID,
+		PolicyID:     resource.PolicyID,
+		PermissionID: resource.PermissionID,
+		SpaceID:      spaceID,
+	}
+
+	return application.Transactional(c.db, func(appl application.Application) error {
 		newSpace := space.Space{
-			Name: *reqSpace.Attributes.Name,
+			ID:      spaceID,
+			Name:    spaceName,
+			OwnerId: *currentUser,
 		}
 		if reqSpace.Attributes.Description != nil {
 			newSpace.Description = *reqSpace.Attributes.Description
 		}
 
-		space, err := appl.Spaces().Create(ctx, &newSpace)
+		rSpace, err := appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		res := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, space),
+		/*
+			Should we create the new area
+			- over the wire(service) something like app.NewCreateSpaceAreasContext(..), OR
+			- as part of a db transaction ?
+
+			The argument 'for' creating it at a transaction level is :
+			You absolutely need both space creation + area creation
+			to happen in a single transaction as per requirements.
+		*/
+
+		newArea := area.Area{
+			ID:      uuid.NewV4(),
+			SpaceID: rSpace.ID,
+			Name:    rSpace.Name,
 		}
+		err = appl.Areas().Create(ctx, &newArea)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", rSpace.Name))
+		}
+
+		res := &app.SpaceSingle{
+			Data: ConvertSpace(ctx.RequestData, rSpace),
+		}
+
+		// Create space resource which will represent the keyclok resource associated with this space
+		_, err = appl.SpaceResources().Create(ctx, spaceResource)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 		return ctx.Created(res)
 	})
@@ -64,18 +132,44 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	id, err := satoriuuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var resourceID string
+	var permissionID string
+	var policyID string
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// Delete associated space resource
+		resource, err := appl.SpaceResources().LoadBySpace(ctx, &id)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		appl.SpaceResources().Delete(ctx, resource.ID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
 		err = appl.Spaces().Delete(ctx.Context, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		resourceID = resource.ResourceID
+		permissionID = resource.PermissionID
+		policyID = resource.PolicyID
+
 		return ctx.OK([]byte{})
 	})
+
+	if err != nil {
+		return err
+	}
+	c.resourceManager.DeleteResource(ctx, ctx.RequestData, auth.Resource{ResourceID: resourceID, PermissionID: permissionID, PolicyID: policyID})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return nil
 }
 
 // List runs the list action.
@@ -103,7 +197,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 
 // Show runs the show action.
 func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
-	id, err := satoriuuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -124,11 +218,11 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 
 // Update runs the update action.
 func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	id, err := satoriuuid.FromString(ctx.ID)
+	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
@@ -143,6 +237,12 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerId}, "Current user is not owner")
+			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the space owner"))
+		}
+
 		s.Version = *ctx.Payload.Data.Attributes.Version
 		if ctx.Payload.Data.Attributes.Name != nil {
 			s.Name = *ctx.Payload.Data.Attributes.Name
@@ -211,9 +311,11 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(p.ID))
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", p.ID.String()))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", p.ID.String()))
+	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", p.ID.String()))
+
 	return &app.Space{
 		ID:   &p.ID,
-		Type: "spaces",
+		Type: APIStringTypeSpace,
 		Attributes: &app.SpaceAttributes{
 			Name:        &p.Name,
 			Description: &p.Description,
@@ -225,6 +327,12 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Self: &selfURL,
 		},
 		Relationships: &app.SpaceRelationships{
+			OwnedBy: &app.SpaceOwnedBy{
+				Data: &app.IdentityRelationData{
+					Type: "identities",
+					ID:   &p.OwnerId,
+				},
+			},
 			Iterations: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedIterationList,
@@ -233,6 +341,11 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Areas: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedAreaList,
+				},
+			},
+			Codebases: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedCodebasesList,
 				},
 			},
 		},

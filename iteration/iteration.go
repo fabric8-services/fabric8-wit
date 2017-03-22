@@ -1,12 +1,12 @@
 package iteration
 
 import (
-	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/path"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -30,7 +30,7 @@ type Iteration struct {
 	gormsupport.Lifecycle
 	ID          uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	SpaceID     uuid.UUID `sql:"type:uuid"`
-	Path        string
+	Path        path.Path
 	StartAt     *time.Time
 	EndAt       *time.Time
 	Name        string
@@ -52,6 +52,7 @@ type Repository interface {
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
+	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]*Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -62,20 +63,6 @@ func NewIterationRepository(db *gorm.DB) Repository {
 // GormIterationRepository is the implementation of the storage interface for Iterations.
 type GormIterationRepository struct {
 	db *gorm.DB
-}
-
-// ConvertToLtreeFormat returns LTREE valid string
-func ConvertToLtreeFormat(uuid string) string {
-	//Ltree allows only "_" as a special character.
-	return strings.Replace(uuid, "-", "_", -1)
-}
-
-// ConvertFromLtreeFormat returns UUID in form of string
-func ConvertFromLtreeFormat(uuid string) string {
-	// Ltree allows only "_" as a special character.
-	converted := strings.Replace(uuid, "_", "-", -1)
-	converted = strings.Replace(converted, PathSepInDatabase, PathSepInService, -1)
-	return converted
 }
 
 // LoadMultiple returns multiple instances of iteration.Iteration
@@ -102,8 +89,8 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 	err := m.db.Create(u).Error
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": u.ID,
-			"err":         err,
+			"iteration_id": u.ID,
+			"err":          err,
 		}, "unable to create the iteration")
 		return errs.WithStack(err)
 	}
@@ -119,8 +106,8 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceID,
-			"err":     err,
+			"space_id": spaceID,
+			"err":      err,
 		}, "unable to list the iterations")
 		return nil, errs.WithStack(err)
 	}
@@ -135,14 +122,14 @@ func (m *GormIterationRepository) Load(ctx context.Context, id uuid.UUID) (*Iter
 	tx := m.db.Where("id = ?", id).First(&obj)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": id.String(),
+			"iteration_id": id.String(),
 		}, "iteration cannot be found")
 		return nil, errors.NewNotFoundError("Iteration", id.String())
 	}
 	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": id.String(),
-			"err":         tx.Error,
+			"iteration_id": id.String(),
+			"err":          tx.Error,
 		}, "unable to load the iteration")
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
@@ -156,23 +143,23 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 	tx := m.db.Where("id=?", i.ID).First(&itr)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": i.ID,
+			"iteration_id": i.ID,
 		}, "iteration cannot be found")
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
 		return nil, errors.NewNotFoundError("iteration", i.ID.String())
 	}
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": i.ID,
-			"err":         err,
+			"iteration_id": i.ID,
+			"err":          err,
 		}, "unknown error happened when searching the iteration")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	tx = tx.Save(&i)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": i.ID,
-			"err":         err,
+			"iteration_id": i.ID,
+			"err":          err,
 		}, "unable to save the iterations")
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -186,10 +173,32 @@ func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iter
 	m.db.Model(&Iteration{}).Where("space_id=? and state=?", i.SpaceID, IterationStateStart).Count(&count)
 	if count != 0 {
 		log.Error(ctx, map[string]interface{}{
-			"iterationID": i.ID,
-			"spaceID":     i.SpaceID,
+			"iteration_id": i.ID,
+			"space_id":     i.SpaceID,
 		}, "one iteration from given space is already running!")
 		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
 	}
 	return true, nil
+}
+
+// LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
+func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loadchildren"}, time.Now())
+	parentIteration, err := m.Load(ctx, parentIterationID)
+	if err != nil {
+		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
+	}
+	var objs []*Iteration
+	selfPath := parentIteration.Path.Convert()
+	var query string
+	if selfPath != "" {
+		query = parentIteration.Path.Convert() + path.SepInDatabase + parentIteration.Path.ConvertToLtree(parentIteration.ID)
+	} else {
+		query = parentIteration.Path.ConvertToLtree(parentIteration.ID)
+	}
+	err = m.db.Where("path <@ ?", query).Find(&objs).Error
+	if err != nil {
+		return nil, err
+	}
+	return objs, nil
 }

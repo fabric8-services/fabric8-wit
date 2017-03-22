@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -11,7 +10,9 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -50,14 +51,11 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil"))
 		}
 
-		parentPath := iteration.ConvertToLtreeFormat(parentID.String())
-		if parent.Path != "" {
-			parentPath = parent.Path + iteration.PathSepInDatabase + parentPath
-		}
+		childPath := append(parent.Path, parent.ID)
 
 		newItr := iteration.Iteration{
 			SpaceID: parent.SpaceID,
-			Path:    parentPath,
+			Path:    childPath,
 			Name:    *reqIter.Attributes.Name,
 			StartAt: reqIter.Attributes.StartAt,
 			EndAt:   reqIter.Attributes.EndAt,
@@ -71,13 +69,8 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		var responseData *app.Iteration
-		if newItr.Path != "" {
-			allParents := strings.Split(iteration.ConvertFromLtreeFormat(newItr.Path), iteration.PathSepInDatabase)
-			allParentsUUIDs := []uuid.UUID{}
-			for _, x := range allParents {
-				id, _ := uuid.FromString(x) // we can safely ignore this error.
-				allParentsUUIDs = append(allParentsUUIDs, id)
-			}
+		if newItr.Path.IsEmpty() == false {
+			allParentsUUIDs := newItr.Path
 			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
 			if error != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
@@ -192,15 +185,12 @@ func ConvertIterations(request *goa.RequestData, Iterations []*iteration.Iterati
 // ConvertIteration converts between internal and external REST representation
 func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := iteration.APIStringTypeIteration
-	spaceType := "spaces"
 
 	spaceID := itr.SpaceID.String()
-
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
-	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref("?filter[iteration]="+itr.ID.String()))
-	pathToTopMostParent := iteration.PathSepInService + iteration.ConvertFromLtreeFormat(itr.Path) // /uuid1/uuid2/uuid3s
-
+	workitemsRelatedURL := rest.AbsoluteURL(request, app.WorkitemHref(spaceID, "?filter[iteration]="+itr.ID.String()))
+	pathToTopMostParent := itr.Path.String()
 	i := &app.Iteration{
 		Type: iterationType,
 		ID:   &itr.ID,
@@ -215,7 +205,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		Relationships: &app.IterationRelations{
 			Space: &app.RelationGeneric{
 				Data: &app.GenericData{
-					Type: &spaceType,
+					Type: &space.SpaceType,
 					ID:   &spaceID,
 				},
 				Links: &app.GenericLinks{
@@ -232,9 +222,8 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 			Self: &selfURL,
 		},
 	}
-	if itr.Path != "" {
-		allParents := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
-		parentID := allParents[len(allParents)-1]
+	if itr.Path.IsEmpty() == false {
+		parentID := itr.Path.This().String()
 		parentSelfURL := rest.AbsoluteURL(request, app.IterationHref(parentID))
 		i.Relationships.Parent = &app.RelationGeneric{
 			Data: &app.GenericData{
@@ -275,8 +264,7 @@ type iterationIDMap map[uuid.UUID]*iteration.Iteration
 
 func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {
-		parentUUIDStrings := strings.Split(iteration.ConvertFromLtreeFormat(itr.Path), iteration.PathSepInService)
-		parentUUIDs := convertToUUID(parentUUIDStrings)
+		parentUUIDs := itr.Path
 		pathResolved := ""
 		for _, id := range parentUUIDs {
 			if i, ok := itrMap[id]; ok {

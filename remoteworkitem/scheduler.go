@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/net/context"
 )
 
 // TrackerSchedule capture all configuration
@@ -17,6 +18,7 @@ type trackerSchedule struct {
 	TrackerType string
 	Query       string
 	Schedule    string
+	SpaceID     uuid.UUID
 }
 
 // Scheduler represents scheduler
@@ -44,7 +46,7 @@ func batchID() string {
 }
 
 // ScheduleAllQueries fetch and import of remote tracker items
-func (s *Scheduler) ScheduleAllQueries(accessTokens map[string]string) {
+func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[string]string) {
 	cr.Stop()
 
 	trackerQueries := fetchTrackerQueries(s.db)
@@ -64,7 +66,7 @@ func (s *Scheduler) ScheduleAllQueries(accessTokens map[string]string) {
 						return errors.WithStack(err)
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
+					_, err = convert(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
 					return errors.WithStack(err)
 				})
 			}
@@ -75,7 +77,7 @@ func (s *Scheduler) ScheduleAllQueries(accessTokens map[string]string) {
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
-	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
+	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule, tracker_queries.space_id").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
 		log.Error(nil, map[string]interface{}{
 			"err": err,

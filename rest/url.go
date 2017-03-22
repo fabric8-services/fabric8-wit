@@ -1,10 +1,13 @@
 package rest
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/almighty/almighty-core/errors"
+
 	"github.com/goadesign/goa"
 )
 
@@ -24,4 +27,11 @@ func ReplaceDomainPrefix(host string, replaceBy string) (string, error) {
 		return host, errors.NewBadParameterError("host", host).Expected("must contain more than one domain")
 	}
 	return replaceBy + "." + split[1], nil
+}
+
+// ReadBody reads body from a ReadCloser and returns it as a string
+func ReadBody(body io.ReadCloser) string {
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(body)
+	return buf.String()
 }

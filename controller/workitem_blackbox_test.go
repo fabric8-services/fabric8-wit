@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"testing"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/codebase"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -27,6 +29,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -51,130 +54,331 @@ func init() {
 	}
 }
 
-func TestGetWorkItemWithLegacyDescription(t *testing.T) {
+func TestSuiteWorkItem1(t *testing.T) {
 	resource.Require(t, resource.Database)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestGetWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
+	suite.Run(t, new(WorkItemSuite))
+}
 
+type WorkItemSuite struct {
+	suite.Suite
+	db             *gorm.DB
+	clean          func()
+	controller     app.WorkitemController
+	pubKey         *rsa.PublicKey
+	priKey         *rsa.PrivateKey
+	svc            *goa.Service
+	wi             *app.WorkItem2
+	minimumPayload *app.UpdateWorkitemPayload
+	testIdentity   account.Identity
+	ctx            context.Context
+}
+
+func (s *WorkItemSuite) SetupSuite() {
+	var err error
+	s.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
+	if err != nil {
+		panic("Failed to connect database: " + err.Error())
+	}
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if wibConfiguration.GetPopulateCommonTypes() {
+		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
+	s.clean = cleaner.DeleteCreatedEntities(s.db)
+
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = testIdentity
+}
+
+func (s *WorkItemSuite) TearDownSuite() {
+	s.clean()
+	if s.db != nil {
+		s.db.Close()
+	}
+}
+
+func (s *WorkItemSuite) SetupTest() {
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
+	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
-	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-	payload.Data.Attributes[workitem.SystemDescription] = "Test WI description"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	s.wi = wi.Data
+	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
+}
 
-	_, result := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
-	assert.NotNil(t, result.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, result.Data.Attributes[workitem.SystemDescription])
-	_, wi := test.ShowWorkitemOK(t, nil, nil, controller, *result.Data.ID)
-
-	if wi == nil {
-		t.Fatalf("Work Item '%s' not present", *result.Data.ID)
-	}
-
-	if *wi.Data.ID != *result.Data.ID {
-		t.Errorf("Id should be %s, but is %s", *result.Data.ID, *wi.Data.ID)
-	}
-	assert.NotNil(t, wi.Data.Attributes[workitem.SystemCreatedAt])
-
-	if *wi.Data.Relationships.Creator.Data.ID != testsupport.TestIdentity.ID.String() {
-		t.Errorf("Creator should be %s, but it is %s", testsupport.TestIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
-	}
+func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
+	// given
+	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.controller, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID)
+	require.NotNil(s.T(), wi)
+	assert.Equal(s.T(), s.wi.ID, wi.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemCreatedAt])
+	assert.Equal(s.T(), s.testIdentity.ID.String(), *wi.Data.Relationships.Creator.Data.ID)
+	// when
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 	updatedDescription := "= Updated Test WI description"
 	wi.Data.Attributes[workitem.SystemDescription] = updatedDescription
-
 	payload2 := minimumRequiredUpdatePayload()
 	payload2.Data.ID = wi.Data.ID
 	payload2.Data.Attributes = wi.Data.Attributes
-
-	_, updated := test.UpdateWorkitemOK(t, nil, nil, controller, *wi.Data.ID, &payload2)
-	assert.NotNil(t, updated.Data.Attributes[workitem.SystemCreatedAt])
-
-	assert.Equal(t, (result.Data.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
-	assert.Equal(t, *result.Data.ID, *updated.Data.ID)
-	assert.Equal(t, wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
-	assert.Equal(t, updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
-
-	test.DeleteWorkitemOK(t, nil, nil, controller, *result.Data.ID)
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, payload2.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &payload2)
+	// then
+	assert.NotNil(s.T(), updated.Data.Attributes[workitem.SystemCreatedAt])
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), *s.wi.ID, *updated.Data.ID)
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), updatedDescription, updated.Data.Attributes[workitem.SystemDescription])
 }
 
-func TestCreateWI(t *testing.T) {
-	resource.Require(t, resource.Database)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestCreateWI-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
-
+func (s *WorkItemSuite) TestCreateWI() {
+	// given
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-
-	_, created := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-	if created.Data.ID == nil || *created.Data.ID == "" {
-		t.Error("no id")
-	}
-	assert.NotNil(t, created.Data.Attributes[workitem.SystemCreatedAt])
-	assert.NotNil(t, created.Data.Relationships.Creator.Data)
-	assert.Equal(t, *created.Data.Relationships.Creator.Data.ID, testsupport.TestIdentity.ID.String())
+	// when
+	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	// then
+	require.NotNil(s.T(), created.Data.ID)
+	assert.NotEmpty(s.T(), *created.Data.ID)
+	assert.NotNil(s.T(), created.Data.Attributes[workitem.SystemCreatedAt])
+	assert.NotNil(s.T(), created.Data.Relationships.Creator.Data)
+	assert.Equal(s.T(), *created.Data.Relationships.Creator.Data.ID, s.testIdentity.ID.String())
 }
 
-func TestCreateWorkItemWithoutContext(t *testing.T) {
-	resource.Require(t, resource.Database)
-	svc := goa.New("TestCreateWorkItemWithoutContext-Service")
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
+// TestReorderAbove is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result3 and places it **above** result2
+func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
 
+	// This workitem is created but not used to clearly test that the reorder workitem is moved between **two** workitems i.e. result1 and result2 and not to the **top** of the list
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result3.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionAbove)
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2) // Returns the workitems which are reordered
+
+	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *result3.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderBelow is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result1 and places it **below** result1
+func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+
+	// This workitem is created but not used to clearly demonstrate that the reorder workitem is moved between **two** workitems i.e. result2 and result3 and not to the **bottom** of the list
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result1.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionBelow)
+
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2) // Returns the workitems which are reordered
+
+	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *result1.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderTop is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result2 and places it to the top of the list
+func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	// There are two workitems in the list -> result1 and result2
+	// In this case, we reorder result2 to the top of the list i.e. above result1
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result1.Data)
+	payload2.Data = dataArray
+	payload2.Position.Direction = string(workitem.DirectionTop)
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2) // Returns the workitems which are reordered
+
+	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(s.T(), result1.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *result1.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderBottom is positive test which tests successful reorder by providing valid input
+// This case reorders one workitem -> result1 and places it to the bottom of the list
+func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	// There are two workitems in the list -> result1 and result2
+	// In this case, we reorder result1 to the bottom of the list i.e. below result2
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	dataArray = append(dataArray, result2.Data)
+	payload2.Data = dataArray
+	payload2.Position.Direction = string(workitem.DirectionBottom)
+
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2) // Returns the workitems which are reordered
+
+	require.Len(s.T(), reordered1.Data, 1) // checks the correct number of workitems reordered
+	assert.Equal(s.T(), result2.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), *result2.Data.ID, *reordered1.Data[0].ID)
+}
+
+// TestReorderMultipleWorkitem is positive test which tests successful reorder by providing valid input
+// This case reorders two workitems -> result3 and result4 and places them above result2
+func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
+	dataArray = append(dataArray, result3.Data, result4.Data)
+	payload2.Data = dataArray
+	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
+	payload2.Position.Direction = string(workitem.DirectionAbove)
+
+	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2) // Returns the workitems which are reordered
+
+	require.Len(s.T(), reordered1.Data, 2) // checks the correct number of workitems reordered
+
+	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
+	assert.Equal(s.T(), result4.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
+
+	assert.Equal(s.T(), *result3.Data.ID, *reordered1.Data[0].ID)
+	assert.Equal(s.T(), *result4.Data.ID, *reordered1.Data[1].ID)
+}
+
+// TestReorderWorkitemBadRequest is negative test which tests unsuccessful reorder by providing invalid input
+func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	// This case gives empty dataArray as input
+	// Response is Bad Parameter
+	// Reorder is unsuccessful
+
+	var dataArray []*app.WorkItem2
+	payload2.Data = dataArray
+	payload2.Position.ID = result1.Data.ID
+	payload2.Position.Direction = string(workitem.DirectionAbove)
+	test.ReorderWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2)
+}
+
+// TestReorderWorkitemNotFound is negative test which tests unsuccessful reorder by providing invalid input
+func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
+	_, result1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	payload2 := minimumRequiredReorderPayload()
+
+	// This case gives id of workitem in position.ID which is not present in db as input
+	// Response is Not Found
+	// Reorder is unsuccessful
+
+	var dataArray []*app.WorkItem2
+	dataArray = append(dataArray, result1.Data)
+	payload2.Data = dataArray
+	randomID := "78"
+	payload2.Position.ID = &randomID
+	payload2.Position.Direction = string(workitem.DirectionAbove)
+	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2)
+}
+
+// TestUpdateWorkitemWithoutReorder tests that when workitem is updated, execution order of workitem doesnot change.
+func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
+
+	// Create new workitem
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 
-	test.CreateWorkitemUnauthorized(t, svc.Context, svc, controller, &payload)
+	// Update the workitem
+	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	payload2 := minimumRequiredUpdatePayload()
+	payload2.Data.ID = wi.Data.ID
+	payload2.Data.Attributes = wi.Data.Attributes
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &payload2)
+
+	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+
+	// Check the execution order
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
 }
 
-func TestListByFields(t *testing.T) {
-	resource.Require(t, resource.Database)
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("TestListByFields-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	assert.NotNil(t, svc)
-	controller := NewWorkitemController(svc, gormapplication.NewGormDB(DB))
-	assert.NotNil(t, controller)
+func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
+	// given
+	s.svc = goa.New("TestCreateWorkItemWithoutContext-Service")
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// when/then
+	test.CreateWorkitemUnauthorized(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+}
 
+func (s *WorkItemSuite) TestListByFields() {
+	// given
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "run integration test"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-
-	_, wi := test.CreateWorkitemCreated(t, svc.Context, svc, controller, &payload)
-
+	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	// when
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, nil, nil, &limit, &offset)
-
-	if result == nil {
-		t.Errorf("nil result")
-	}
-
-	if len(result.Data) != 1 {
-		t.Errorf("unexpected length, should be %d but is %d", 1, len(result.Data))
-	}
-
-	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", testsupport.TestIdentity.ID.String())
-	_, result = test.ListWorkitemOK(t, nil, nil, controller, &filter, nil, nil, nil, nil, &limit, &offset)
-
-	if result == nil {
-		t.Errorf("nil result")
-	}
-
-	if len(result.Data) != 1 {
-		t.Errorf("unexpected length, should be %d but is %d ", 1, len(result.Data))
-	}
-
-	test.DeleteWorkitemOK(t, nil, nil, controller, *wi.Data.ID)
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset)
+	// then
+	require.NotNil(s.T(), result)
+	require.Equal(s.T(), 1, len(result.Data))
+	// when
+	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
+	// then
+	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset)
+	require.NotNil(s.T(), result)
+	require.Equal(s.T(), 1, len(result.Data))
 }
 
 func getWorkItemTestData(t *testing.T) []testSecureAPI {
@@ -204,28 +408,28 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 		// Create Work Item API with different parameters
 		{
 			method:             http.MethodPost,
-			url:                endpointWorkItems,
+			url:                fmt.Sprintf(endpointWorkItems, "1234"),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPost,
-			url:                endpointWorkItems,
+			url:                fmt.Sprintf(endpointWorkItems, "1234"),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPost,
-			url:                endpointWorkItems,
+			url:                fmt.Sprintf(endpointWorkItems, "1234"),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPost,
-			url:                endpointWorkItems,
+			url:                fmt.Sprintf(endpointWorkItems, "1234"),
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
@@ -234,28 +438,28 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 		// Update Work Item API with different parameters
 		{
 			method:             http.MethodPatch,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPatch,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodPatch,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodPatch,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            createWIPayloadString,
@@ -264,28 +468,28 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 		// Delete Work Item API with different parameters
 		{
 			method:             http.MethodDelete,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            nil,
 			jwtToken:           getExpiredAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            nil,
 			jwtToken:           getMalformedAuthHeader(t, privatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            nil,
 			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 		}, {
 			method:             http.MethodDelete,
-			url:                endpointWorkItems + "/12345",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
 			expectedStatusCode: http.StatusUnauthorized,
 			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 			payload:            nil,
@@ -295,7 +499,7 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 		// We do not have security on GET hence this should return 404 not found
 		{
 			method:             http.MethodGet,
-			url:                endpointWorkItems + "/088481764871",
+			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/088481764871",
 			expectedStatusCode: http.StatusNotFound,
 			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 			payload:            nil,
@@ -305,22 +509,23 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
-func TestUnauthorizeWorkItemCUD(t *testing.T) {
-	UnauthorizeCreateUpdateDeleteTest(t, getWorkItemTestData, func() *goa.Service {
+func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWI-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemController(service, gormapplication.NewGormDB(DB))
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(s.db))
 		app.MountWorkitemController(service, controller)
 		return nil
 	})
 }
 
-func createPagingTest(t *testing.T, controller *WorkitemController, repo *testsupport.WorkItemRepository, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
+func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemController, repo *testsupport.WorkItemRepository, spaceID string, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
 	return func(start int, limit int, first string, last string, prev string, next string) {
 		count := computeCount(totalCount, int(start), int(limit))
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
-		_, response := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
+
+		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, &limit, &offset)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -355,143 +560,24 @@ func computeCount(totalCount int, start int, limit int) int {
 
 func makeWorkItems(count int) []*app.WorkItem {
 	res := make([]*app.WorkItem, count)
+
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
 	for index := range res {
 		res[index] = &app.WorkItem{
-			ID:     fmt.Sprintf("id%d", index),
-			Type:   "foobar",
-			Fields: map[string]interface{}{},
+			ID:   fmt.Sprintf("id%d", index),
+			Type: uuid.NewV4(), // used to be "foobar"
+			Fields: map[string]interface{}{
+				workitem.SystemUpdatedAt: time.Now(),
+			},
+			Relationships: &app.WorkItemRelationships{
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			},
 		}
 	}
 	return res
-}
-
-func TestPagingLinks(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	svc := goa.New("TestPaginLinks-Service")
-	assert.NotNil(t, svc)
-	db := testsupport.NewMockDB()
-	controller := NewWorkitemController(svc, db)
-
-	repo := db.WorkItems().(*testsupport.WorkItemRepository)
-	pagingTest := createPagingTest(t, controller, repo, 13)
-	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=12&page[limit]=5", "page[offset]=0&page[limit]=2", "page[offset]=7&page[limit]=5")
-	pagingTest(10, 3, "page[offset]=0&page[limit]=1", "page[offset]=10&page[limit]=3", "page[offset]=7&page[limit]=3", "")
-	pagingTest(0, 4, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=4", "", "page[offset]=4&page[limit]=4")
-	pagingTest(4, 8, "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=8", "page[offset]=0&page[limit]=4", "page[offset]=12&page[limit]=8")
-
-	pagingTest(16, 14, "page[offset]=0&page[limit]=2", "page[offset]=2&page[limit]=14", "page[offset]=2&page[limit]=14", "")
-	pagingTest(16, 18, "page[offset]=0&page[limit]=16", "page[offset]=0&page[limit]=16", "page[offset]=0&page[limit]=16", "")
-
-	pagingTest(3, 50, "page[offset]=0&page[limit]=3", "page[offset]=3&page[limit]=50", "page[offset]=0&page[limit]=3", "")
-	pagingTest(0, 50, "page[offset]=0&page[limit]=50", "page[offset]=0&page[limit]=50", "", "")
-
-	pagingTest = createPagingTest(t, controller, repo, 0)
-	pagingTest(2, 5, "page[offset]=0&page[limit]=2", "page[offset]=0&page[limit]=2", "", "")
-}
-
-func TestPagingErrors(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	svc := goa.New("TestPaginErrors-Service")
-	db := testsupport.NewMockDB()
-	controller := NewWorkitemController(svc, db)
-	repo := db.WorkItems().(*testsupport.WorkItemRepository)
-	repo.ListReturns(makeWorkItems(100), uint64(100), nil)
-
-	var offset string = "-1"
-	var limit int = 2
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[offset]=0") {
-		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
-	}
-
-	offset = "0"
-	limit = 0
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=20") {
-		assert.Fail(t, "Limit is 0", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
-	}
-
-	offset = "0"
-	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=20") {
-		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
-	}
-
-	offset = "-3"
-	limit = -1
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=20") {
-		assert.Fail(t, "Limit is negative", "Expected limit to be default size %d, but was %s", 20, *result.Links.First)
-	}
-	if !strings.Contains(*result.Links.First, "page[offset]=0") {
-		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
-	}
-
-	offset = "ALPHA"
-	limit = 40
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=40") {
-		assert.Fail(t, "Limit is within range", "Expected limit to be size %d, but was %s", 40, *result.Links.First)
-	}
-	if !strings.Contains(*result.Links.First, "page[offset]=0") {
-		assert.Fail(t, "Offset is negative", "Expected offset to be %d, but was %s", 0, *result.Links.First)
-	}
-}
-
-func TestPagingLinksHasAbsoluteURL(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	svc := goa.New("TestPaginAbsoluteURL-Service")
-	db := testsupport.NewMockDB()
-	controller := NewWorkitemController(svc, db)
-
-	offset := "10"
-	limit := 10
-
-	repo := db.WorkItems().(*testsupport.WorkItemRepository)
-	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
-
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.HasPrefix(*result.Links.First, "http://") {
-		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "First", *result.Links.First)
-	}
-	if !strings.HasPrefix(*result.Links.Last, "http://") {
-		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Last", *result.Links.Last)
-	}
-	if !strings.HasPrefix(*result.Links.Prev, "http://") {
-		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Prev", *result.Links.Prev)
-	}
-	if !strings.HasPrefix(*result.Links.Next, "http://") {
-		assert.Fail(t, "Not Absolute URL", "Expected link %s to contain absolute URL but was %s", "Next", *result.Links.Next)
-	}
-}
-
-func TestPagingDefaultAndMaxSize(t *testing.T) {
-	resource.Require(t, resource.UnitTest)
-	svc := goa.New("TestPaginSize-Service")
-	db := testsupport.NewMockDB()
-	controller := NewWorkitemController(svc, db)
-
-	offset := "0"
-	var limit int
-	repo := db.WorkItems().(*testsupport.WorkItemRepository)
-	repo.ListReturns(makeWorkItems(10), uint64(100), nil)
-
-	_, result := test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, nil, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=20") {
-		assert.Fail(t, "Limit is nil", "Expected limit to be default size %d, got %v", 20, *result.Links.First)
-	}
-	limit = 1000
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=100") {
-		assert.Fail(t, "Limit is more than max", "Expected limit to be %d, got %v", 100, *result.Links.First)
-	}
-
-	limit = 50
-	_, result = test.ListWorkitemOK(t, context.Background(), nil, controller, nil, nil, nil, nil, nil, &limit, &offset)
-	if !strings.Contains(*result.Links.First, "page[limit]=50") {
-		assert.Fail(t, "Limit is within range", "Expected limit to be %d, got %v", 50, *result.Links.First)
-	}
 }
 
 // ========== helper functions for tests inside WorkItem2Suite ==========
@@ -503,20 +589,36 @@ func getMinimumRequiredUpdatePayload(wi *app.WorkItem2) *app.UpdateWorkitemPaylo
 			Attributes: map[string]interface{}{
 				"version": wi.Attributes["version"],
 			},
+			Relationships: wi.Relationships,
 		},
 	}
 }
 
 func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
 	return app.UpdateWorkitemPayload{
 		Data: &app.WorkItem2{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
+			Relationships: &app.WorkItemRelationships{
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			},
 		},
 	}
 }
 
-func minimumRequiredCreateWithType(wit string) app.CreateWorkitemPayload {
+func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
+	return app.ReorderWorkitemPayload{
+		Data: []*app.WorkItem2{},
+		Position: &app.WorkItemReorderPosition{
+			ID: nil,
+		},
+	}
+}
+
+func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
 	c.Data.Relationships.BaseType = &app.RelationBaseType{
 		Data: &app.BaseTypeData{
@@ -528,11 +630,17 @@ func minimumRequiredCreateWithType(wit string) app.CreateWorkitemPayload {
 }
 
 func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
+
 	return app.CreateWorkitemPayload{
 		Data: &app.WorkItem2{
-			Type:          APIStringTypeWorkItem,
-			Attributes:    map[string]interface{}{},
-			Relationships: &app.WorkItemRelationships{},
+			Type:       APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{},
+			Relationships: &app.WorkItemRelationships{
+				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			},
 		},
 	}
 }
@@ -556,8 +664,10 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	iterationRepo := iteration.NewIterationRepository(db)
 	spaceRepo := space.NewRepository(db)
 
+	// added timestmap to the space in order to make this function usable for more than one test
+	// else it fails with - (pq: duplicate key value violates unique constraint "spaces_name_idx")
 	newSpace := space.Space{
-		Name: "Space iteration",
+		Name: "Space iteration " + time.Now().String(),
 	}
 	space, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
@@ -601,7 +711,39 @@ func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
 	return &ar
 }
 
+func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iteration.Iteration) *iteration.Iteration {
+	iterationRepo := iteration.NewIterationRepository(db)
+
+	parentPath := append(parentIteration.Path, parentIteration.ID)
+	itr := iteration.Iteration{
+		Name:    "Sprint 101",
+		SpaceID: parentIteration.SpaceID,
+		Path:    parentPath,
+	}
+	err := iterationRepo.Create(ctx, &itr)
+	if err != nil {
+		fmt.Println("Failed to create iteration.")
+		return nil
+	}
+	return &itr
+}
+
 // ========== WorkItem2Suite struct that implements SetupSuite, TearDownSuite, SetupTest, TearDownTest ==========
+// a normal test function that will kick off WorkItem2Suite
+func TestSuiteWorkItem2(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, new(WorkItem2Suite))
+}
+
+func ident(id uuid.UUID) *app.GenericData {
+	ut := APIStringTypeUser
+	i := id.String()
+	return &app.GenericData{
+		Type: &ut,
+		ID:   &i,
+	}
+}
+
 type WorkItem2Suite struct {
 	suite.Suite
 	db             *gorm.DB
@@ -617,47 +759,31 @@ type WorkItem2Suite struct {
 	svc            *goa.Service
 	wi             *app.WorkItem2
 	minimumPayload *app.UpdateWorkitemPayload
+	ctx            context.Context
 }
 
 func (s *WorkItem2Suite) SetupSuite() {
 	var err error
-
 	s.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
-	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testsupport.TestIdentity)
-	require.NotNil(s.T(), s.svc)
-
-	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.wiCtrl)
-
-	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.wi2Ctrl)
-
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(DB))
-	require.NotNil(s.T(), s.linkCatCtrl)
-
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(DB))
-	require.NotNil(s.T(), s.linkTypeCtrl)
-
-	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(DB))
-	require.NotNil(s.T(), s.linkCtrl)
-
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(DB))
-	require.NotNil(s.T(), s.spaceCtrl)
-
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+			s.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
 	}
 	s.clean = cleaner.DeleteCreatedEntities(s.db)
+
+	// create identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
 }
 
 func (s *WorkItem2Suite) TearDownSuite() {
@@ -668,38 +794,46 @@ func (s *WorkItem2Suite) TearDownSuite() {
 }
 
 func (s *WorkItem2Suite) SetupTest() {
+	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
+	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.db))
+	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.db))
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db), wibConfiguration, &DummyResourceManager{})
+
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, &payload)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wiCtrl, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
+	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
 }
 
 // ========== Actual Test functions ==========
 func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	s.minimumPayload.Data.Attributes["system.state"] = "invalid_value"
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	newStateValue := "closed"
 	s.minimumPayload.Data.Attributes[workitem.SystemState] = newStateValue
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemState], newStateValue)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
-	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = 2398475203
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
 	id := "2398475203"
 	s.minimumPayload.Data.ID = &id
-	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, id, s.minimumPayload)
+	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.minimumPayload.Data.Relationships.Space.Data.ID.String(), id, s.minimumPayload)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWithInvalidID() {
@@ -707,7 +841,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithInvalidID() {
 	s.minimumPayload.Data.ID = &id
 	// pass*s.wi.ID below, because that creates a route to the controller
 	// if do not pass*s.wi.ID then we will be testing goa's code and not ours
-	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.minimumPayload.Data.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
@@ -715,7 +849,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	c.Data.Attributes[workitem.SystemTitle] = "Test title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 
-	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, created := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.Equal(s.T(), created.Data.Relationships.BaseType.Data.ID, workitem.SystemBug)
 
 	u := minimumRequiredUpdatePayload()
@@ -731,7 +865,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 		},
 	}
 
-	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, &u)
+	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, &u)
 
 	// Ensure the type wasn't updated
 	require.Equal(s.T(), workitem.SystemBug, newWi.Data.Relationships.BaseType.Data.ID)
@@ -744,7 +878,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	expectedRenderedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
 
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
@@ -757,7 +891,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	expectedDescription := "Only Description is modified"
 	expectedRenderedDescription := "Only Description is modified"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
@@ -771,7 +905,7 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithMarkup() {
 	expectedRenderedDescription := "<p>Only Description is modified</p>\n"
 	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription.ToMap()
 
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
 	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
@@ -784,7 +918,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	modifiedTitle := "Is the model updated?"
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = modifiedTitle
 
-	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), updatedWI.Data.Attributes[workitem.SystemTitle], modifiedTitle)
 
@@ -817,7 +951,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 				Type: &userType,
 			}},
 	}
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 
 	s.minimumPayload.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
@@ -827,19 +961,19 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 			}},
 	}
 
-	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	assert.Equal(s.T(), *updatedWI.Data.Relationships.Assignees.Data[0].ID, newUser.ID.String())
 
 	// update to wrong version
 	correctVersion := updatedWI.Data.Attributes["version"]
 	s.minimumPayload.Data.Attributes["version"] = 12453972348
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = correctVersion
 
 	// Add test to remove assignee for WI
 	s.minimumPayload.Data.Relationships.Assignees.Data = nil
-	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.wi.ID, s.minimumPayload)
+	_, updatedWI = test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	require.NotNil(s.T(), updatedWI)
 	require.Len(s.T(), updatedWI.Data.Relationships.Assignees.Data, 0)
 	// need to do in order to keep object future usage
@@ -851,16 +985,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -880,16 +1012,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -906,16 +1036,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = "Description"
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -933,16 +1061,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -960,16 +1086,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("Description")
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.Attributes)
@@ -987,16 +1111,14 @@ func (s *WorkItem2Suite) TestWI2FailCreateWorkItemWithDescriptionAndUnsupportedM
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", "foo")
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
@@ -1005,7 +1127,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateMissingBaseType() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
@@ -1015,16 +1137,14 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemAssignees] = []string{"34343"}
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1037,16 +1157,14 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithMissingTitle() {
 	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
@@ -1054,16 +1172,14 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = ""
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
@@ -1074,23 +1190,21 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Assignees: &app.RelationGenericList{
-			Data: []*app.GenericData{
-				{
-					Type: &userType,
-					ID:   &newUserId,
-				}},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			{
+				Type: &userType,
+				ID:   &newUserId,
+			}},
+	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1108,21 +1222,19 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
-		Assignees: &app.RelationGenericList{
-			Data: []*app.GenericData{
-				ident(newUser.ID),
-			},
+	}
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			ident(newUser.ID),
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1135,6 +1247,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	update.Data.Type = wi.Data.Type
 	update.Data.Attributes[workitem.SystemTitle] = "Title"
 	update.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	spaceRelation := update.Data.Relationships.Space
 	update.Data.Relationships = &app.WorkItemRelationships{
 		Assignees: &app.RelationGenericList{
 			Data: []*app.GenericData{
@@ -1142,8 +1255,9 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 				ident(newUser3.ID),
 			},
 		},
+		Space: spaceRelation,
 	}
-	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &update)
+	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &update)
 	assert.Len(s.T(), wiu.Data.Relationships.Assignees.Data, 2)
 	assert.Equal(s.T(), newUser2.ID.String(), *wiu.Data.Relationships.Assignees.Data[0].ID)
 	assert.Equal(s.T(), newUser3.ID.String(), *wiu.Data.Relationships.Assignees.Data[1].ID)
@@ -1155,21 +1269,19 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
-		Assignees: &app.RelationGenericList{
-			Data: []*app.GenericData{
-				ident(newUser.ID),
-			},
+	}
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			ident(newUser.ID),
 		},
 	}
 	// when
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
@@ -1178,7 +1290,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, &newUserID, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
@@ -1189,22 +1301,19 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
 	// when
-	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	witBug := workitem.SystemBug
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, nil, &witBug, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
@@ -1214,6 +1323,54 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	}
 }
 
+func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
+		},
+	}
+	l := minimumRequiredCreatePayload()
+	l.Data.Attributes[workitem.SystemTitle] = "Title"
+	l.Data.Attributes[workitem.SystemState] = workitem.SystemStateInProgress
+	l.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
+		},
+	}
+	// when
+	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, notExpected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, l.Data.Relationships.Space.Data.ID.String(), &l)
+	// then
+	assert.NotNil(s.T(), expected.Data)
+	require.NotNil(s.T(), expected.Data.ID)
+	require.NotNil(s.T(), expected.Data.Type)
+	require.NotNil(s.T(), expected.Data.Attributes)
+	var dataArray []*app.WorkItem2Single
+	dataArray = append(dataArray, notExpected)
+	dataArray = append(dataArray, expected)
+	wiNew := workitem.SystemStateNew
+	// var foundExpected bool
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &wiNew, nil, nil, nil)
+
+	require.NotNil(s.T(), actual)
+	require.True(s.T(), len(actual.Data) > 1)
+	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	for _, actualWI := range actual.Data {
+		assert.Equal(s.T(), expected.Data.Attributes[workitem.SystemState], actualWI.Attributes[workitem.SystemState])
+		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
+		// if *expected.Data.ID == *actualWI.ID {
+		// 	foundExpected = true
+		// }
+	}
+	// assert.True(s.T(), foundExpected, "did not find expected work item in filtered list response")
+}
+
 func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 	tempArea := createOneRandomArea(s.svc.Context, s.db)
 	require.NotNil(s.T(), tempArea)
@@ -1221,20 +1378,18 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: APIStringTypeWorkItemType,
-				ID:   workitem.SystemBug,
-			},
-		},
-		Area: &app.RelationGeneric{
-			Data: &app.GenericData{
-				ID: &areaID,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: APIStringTypeWorkItemType,
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Area = &app.RelationGeneric{
+		Data: &app.GenericData{
+			ID: &areaID,
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
@@ -1242,7 +1397,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
 	assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, &areaID, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, &areaID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), areaID, *list.Data[0].Relationships.Area.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[area]"))
@@ -1255,20 +1410,18 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: APIStringTypeWorkItemType,
-				ID:   workitem.SystemBug,
-			},
-		},
-		Iteration: &app.RelationGeneric{
-			Data: &app.GenericData{
-				ID: &iterationID,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: APIStringTypeWorkItemType,
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Iteration = &app.RelationGeneric{
+		Data: &app.GenericData{
+			ID: &iterationID,
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
@@ -1276,7 +1429,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, nil, nil, nil, &iterationID, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, &iterationID, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -1287,21 +1440,19 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
-		Assignees: &app.RelationGenericList{
-			Data: []*app.GenericData{
-				ident(uuid.NewV4()),
-			},
+	}
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			ident(uuid.NewV4()),
 		},
 	}
 	// when/then
-	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
@@ -1309,20 +1460,18 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Assignees: &app.RelationGenericList{
-			Data: []*app.GenericData{
-				ident(newUser.ID),
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			ident(newUser.ID),
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 
 	update := minimumRequiredUpdatePayload()
 	update.Data.ID = wi.Data.ID
@@ -1335,7 +1484,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 			},
 		},
 	}
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &update)
+	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &update)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
@@ -1344,21 +1493,19 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Assignees: &app.RelationGenericList{
-			Data: []*app.GenericData{
-				ident(newUser.ID),
-				ident(newUser2.ID),
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			ident(newUser.ID),
+			ident(newUser2.ID),
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(s.T(), wi.Data)
 	assert.NotNil(s.T(), wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Type)
@@ -1370,16 +1517,14 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	assert.NotNil(s.T(), fetchedWi.Data)
 	assert.NotNil(s.T(), fetchedWi.Data.ID)
 	assert.Equal(s.T(), *createdWi.Data.ID, *fetchedWi.Data.ID)
@@ -1392,25 +1537,23 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 }
 
 func (s *WorkItem2Suite) TestWI2FailShowMissing() {
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, "00000000")
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), "00000000")
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 }
 
 // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
@@ -1421,33 +1564,30 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "WI1"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	require.NotNil(s.T(), wi1)
 	c.Data.Attributes[workitem.SystemTitle] = "WI2"
-	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	require.NotNil(s.T(), wi2)
 
 	// Create link category
 	linkCatPayload := CreateWorkItemLinkCategory("test-user")
-	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), nil, nil, s.linkCatCtrl, linkCatPayload)
+	_, linkCat := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, linkCatPayload)
 	require.NotNil(s.T(), linkCat)
 
 	// Create link space
 	spacePayload := CreateSpacePayload("test-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
-	require.NotNil(s.T(), space)
 
 	// Create work item link type payload
 	linkTypePayload := CreateWorkItemLinkType("MyLinkType", workitem.SystemBug, workitem.SystemBug, *linkCat.Data.ID, *space.Data.ID)
-	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), nil, nil, s.linkTypeCtrl, linkTypePayload)
+	_, linkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.Data.ID.String(), linkTypePayload)
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2
@@ -1456,21 +1596,21 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
-	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), nil, nil, s.linkCtrl, linkPayload)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 
 	// Delete work item wi1
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi1.Data.ID)
+	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi1.Data.Relationships.Space.Data.ID.String(), *wi1.Data.ID)
 
 	// Check that the link was deleted by deleting wi1
 	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID)
 
 	// Check that we can query for wi2 without problems
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi2.Data.ID)
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi2.Data.Relationships.Space.Data.ID.String(), *wi2.Data.ID)
 }
 
 func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
-	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, "00000000")
+	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), "00000000")
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
@@ -1483,6 +1623,10 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -1490,6 +1634,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 				ID:   workitem.SystemBug,
 			},
 		},
+		Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Area: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &arType,
@@ -1497,7 +1642,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Area)
 	assert.Equal(t, areaID, *wi.Data.Relationships.Area.Data.ID)
 }
@@ -1511,15 +1656,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Area)
 	assert.Nil(t, wi.Data.Relationships.Area.Data)
 
@@ -1536,7 +1679,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 		},
 	}
 
-	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
+	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &u)
 	require.NotNil(t, wiu.Data.Relationships.Area)
 	require.NotNil(t, wiu.Data.Relationships.Area.Data)
 	assert.Equal(t, areaID, *wiu.Data.Relationships.Area.Data.ID)
@@ -1551,21 +1694,19 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Area: &app.RelationGeneric{
-			Data: &app.GenericData{
-				Type: &arType,
-				ID:   &areaID,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Area = &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: &arType,
+			ID:   &areaID,
+		},
+	}
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
@@ -1578,6 +1719,11 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+
+	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.SpaceHref(space.SystemSpace.String()))
+
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -1585,6 +1731,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 				ID:   workitem.SystemBug,
 			},
 		},
+		Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Iteration: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &itType,
@@ -1592,7 +1739,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 			},
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	assert.Equal(t, iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 }
@@ -1607,15 +1754,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	assert.Nil(t, wi.Data.Relationships.Iteration.Data)
 
@@ -1623,16 +1768,14 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	u.Data.ID = wi.Data.ID
 	u.Data.Attributes[workitem.SystemTitle] = "Title"
 	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
-	u.Data.Relationships = &app.WorkItemRelationships{
-		Iteration: &app.RelationGeneric{
-			Data: &app.GenericData{
-				Type: &itType,
-				ID:   &iterationID,
-			},
+	u.Data.Relationships.Iteration = &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: &itType,
+			ID:   &iterationID,
 		},
 	}
 
-	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
+	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &u)
 	require.NotNil(t, wiu.Data.Relationships.Iteration)
 	require.NotNil(t, wiu.Data.Relationships.Iteration.Data)
 	assert.Equal(t, iterationID, *wiu.Data.Relationships.Iteration.Data.ID)
@@ -1651,34 +1794,30 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Iteration: &app.RelationGeneric{
-			Data: &app.GenericData{
-				Type: &itType,
-				ID:   &iterationID,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Iteration = &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: &itType,
+			ID:   &iterationID,
+		},
+	}
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	assert.NotNil(t, wi.Data.Relationships.Iteration.Data)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
 	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
-	u.Data.Relationships = &app.WorkItemRelationships{
-		Iteration: &app.RelationGeneric{
-			Data: nil,
-		},
+	u.Data.Relationships.Iteration = &app.RelationGeneric{
+		Data: nil,
 	}
 
-	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, *wi.Data.ID, &u)
+	_, wiu := test.UpdateWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &u)
 	assert.NotNil(t, wiu.Data.Relationships.Iteration)
 	assert.Nil(t, wiu.Data.Relationships.Iteration.Data)
 }
@@ -1691,21 +1830,19 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Iteration: &app.RelationGeneric{
-			Data: &app.GenericData{
-				Type: &itType,
-				ID:   &iterationID,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, &c)
+	c.Data.Relationships.Iteration = &app.RelationGeneric{
+		Data: &app.GenericData{
+			Type: &itType,
+			ID:   &iterationID,
+		},
+	}
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLegacyDescription() {
@@ -1715,16 +1852,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLe
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
 	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
@@ -1738,16 +1873,14 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
 	require.NotNil(s.T(), fetchedWi.Data.Attributes)
 	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
@@ -1761,6 +1894,146 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemBug,
+		},
+	}
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	require.NotNil(s.T(), fetchedWi.Data)
+	require.NotNil(s.T(), fetchedWi.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+}
+
+func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
+	t := s.T()
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemPlannerItem,
+		},
+	}
+	branch := "earth-recycle-101"
+	repo := "golang-project"
+	file := "main.go"
+	line := 200
+	cbase := codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(t, createdWi)
+	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	require.NotNil(t, fetchedWi.Data)
+	require.NotNil(t, fetchedWi.Data.Attributes)
+	assert.Equal(t, title, fetchedWi.Data.Attributes[workitem.SystemTitle])
+	cb := fetchedWi.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	assert.Equal(t, repo, cb.Repository)
+	assert.Equal(t, branch, cb.Branch)
+	assert.Equal(t, file, cb.FileName)
+	assert.Equal(t, line, cb.LineNumber)
+
+	// TODO: Uncomment following block that tests DO-IT URL
+	// require.NotNil(t, fetchedWi.Data.Links)
+	// expectedURL := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+	// expectedURL = url.QueryEscape(expectedURL)
+	// assert.Contains(t, *fetchedWi.Data.Links.Doit, expectedURL)
+}
+
+func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
+	t := s.T()
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = &app.RelationBaseType{
+		Data: &app.BaseTypeData{
+			Type: "workitemtypes",
+			ID:   workitem.SystemPlannerItem,
+		},
+	}
+	branch := "earth-recycle-101"
+	cbase := codebase.CodebaseContent{
+		Branch: branch,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+}
+
+func (s *WorkItem2Suite) TestCreateWorkItemWithInferredSpace() {
+	t := s.T()
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// remove Space relation and see if WI gets the space out of the space URL.
+	spaceID := c.Data.Relationships.Space.Data.ID.String()
+	c.Data.Relationships.Space = nil
+	_, item := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, spaceID, &c)
+	require.NotNil(t, item)
+	assert.Equal(t, title, item.Data.Attributes[workitem.SystemTitle])
+	require.NotNil(t, item.Data.Relationships)
+	require.NotNil(t, item.Data.Relationships.Space)
+	assert.Equal(t, space.SystemSpace, *item.Data.Relationships.Space.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
+	t := s.T()
+	spaceName := "My own Space " + uuid.NewV4().String()
+	sp := &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name: &spaceName,
+			},
+		},
+	}
+	_, customSpace := test.CreateSpaceCreated(t, s.svc.Context, s.svc, s.spaceCtrl, sp)
+	require.NotNil(t, customSpace)
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// set custom space and see if WI gets custom space
+	c.Data.Relationships.Space.Data.ID = customSpace.Data.ID
+	_, item := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(t, item)
+	assert.Equal(t, title, item.Data.Attributes[workitem.SystemTitle])
+	require.NotNil(t, item.Data.Relationships)
+	require.NotNil(t, item.Data.Relationships.Space)
+	assert.Equal(t, *customSpace.Data.ID, *item.Data.Relationships.Space.Data.ID)
+}
+
+func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
+	t := s.T()
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	// set custom space and see if WI gets custom space
+	fakeSpaceID := uuid.NewV4()
+	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
+	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+}
+
+//Ignore, middlewares not respected by the generated test framework. No way to modify Request?
+// Require full HTTP request access.
+func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
+	t := s.T()
+
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships = &app.WorkItemRelationships{
 		BaseType: &app.RelationBaseType{
 			Data: &app.BaseTypeData{
@@ -1769,25 +2042,110 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 			},
 		},
 	}
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *createdWi.Data.ID)
-	require.NotNil(s.T(), fetchedWi.Data)
-	require.NotNil(s.T(), fetchedWi.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
-	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+
+	resp, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+
+	lastMod := resp.Header().Get("Last-Modified")
+	s.svc.Use(func(handler goa.Handler) goa.Handler {
+		return func(ctx context.Context, rw http.ResponseWriter, req *http.Request) (err error) {
+			req.Header.Set("If-Modified-Since", lastMod)
+			return nil
+		}
+	})
+	test.ShowWorkitemNotModified(t, s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID)
 }
 
-// a normal test function that will kick off WorkItem2Suite
-func TestSuiteWorkItem2(t *testing.T) {
-	resource.Require(t, resource.Database)
-	suite.Run(t, new(WorkItem2Suite))
-}
+func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
+	grandParentIteration := createOneRandomIteration(s.svc.Context, s.db)
+	require.NotNil(s.T(), grandParentIteration)
 
-func ident(id uuid.UUID) *app.GenericData {
-	ut := APIStringTypeUser
-	i := id.String()
-	return &app.GenericData{
-		Type: &ut,
-		ID:   &i,
+	parentIteration := newChildIteration(s.svc.Context, s.db, grandParentIteration)
+	require.NotNil(s.T(), parentIteration)
+
+	childIteraiton := newChildIteration(s.svc.Context, s.db, parentIteration)
+	require.NotNil(s.T(), childIteraiton)
+
+	// create 3 work items for grandParentIteration
+	grandParentIterationID := grandParentIteration.ID.String()
+	for i := 0; i < 3; i++ {
+		c := minimumRequiredCreatePayload()
+		c.Data.Attributes[workitem.SystemTitle] = "Title"
+		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		c.Data.Relationships.BaseType = &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		}
+		c.Data.Relationships.Iteration = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &grandParentIterationID,
+			},
+		}
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+		assert.Equal(s.T(), grandParentIterationID, *wi.Data.Relationships.Iteration.Data.ID)
 	}
+
+	// create 2 work items for parentIteration
+	parentIterationID := parentIteration.ID.String()
+	for i := 0; i < 2; i++ {
+		c := minimumRequiredCreatePayload()
+		c.Data.Attributes[workitem.SystemTitle] = "Title"
+		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		c.Data.Relationships.BaseType = &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		}
+		c.Data.Relationships.Iteration = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &parentIterationID,
+			},
+		}
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+		assert.Equal(s.T(), parentIterationID, *wi.Data.Relationships.Iteration.Data.ID)
+	}
+
+	// create 2 work items for childIteraiton
+	childIteraitonID := childIteraiton.ID.String()
+	for i := 0; i < 2; i++ {
+		c := minimumRequiredCreatePayload()
+		c.Data.Attributes[workitem.SystemTitle] = "Title"
+		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+		c.Data.Relationships.BaseType = &app.RelationBaseType{
+			Data: &app.BaseTypeData{
+				Type: APIStringTypeWorkItemType,
+				ID:   workitem.SystemBug,
+			},
+		}
+		c.Data.Relationships.Iteration = &app.RelationGeneric{
+			Data: &app.GenericData{
+				ID: &childIteraitonID,
+			},
+		}
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+		assert.Equal(s.T(), childIteraitonID, *wi.Data.Relationships.Iteration.Data.ID)
+	}
+
+	// list workitems for grandParentIteration
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 7)
+
+	// list workitems for parentIteration
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &parentIterationID, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 4)
+
+	// list workitems for childIteraiton
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &childIteraitonID, nil, nil, nil, nil)
+	require.Len(s.T(), list.Data, 2)
 }

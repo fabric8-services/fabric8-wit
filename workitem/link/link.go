@@ -7,19 +7,19 @@ import (
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLink represents the connection of two work items as it is stored in the db
 type WorkItemLink struct {
 	gormsupport.Lifecycle
 	// ID
-	ID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Version for optimistic concurrency control
 	Version    int
 	SourceID   uint64
 	TargetID   uint64
-	LinkTypeID satoriuuid.UUID `sql:"type:uuid default uuid_generate_v4()"`
+	LinkTypeID uuid.UUID `sql:"type:uuid"`
 }
 
 // Ensure Fields implements the Equaler interface
@@ -35,7 +35,7 @@ func (l WorkItemLink) Equal(u convert.Equaler) bool {
 	if !l.Lifecycle.Equal(other.Lifecycle) {
 		return false
 	}
-	if !satoriuuid.Equal(l.ID, other.ID) {
+	if !uuid.Equal(l.ID, other.ID) {
 		return false
 	}
 	if l.Version != other.Version {
@@ -56,7 +56,7 @@ func (l WorkItemLink) Equal(u convert.Equaler) bool {
 // CheckValidForCreation returns an error if the work item link
 // cannot be used for the creation of a new work item link.
 func (l *WorkItemLink) CheckValidForCreation() error {
-	if satoriuuid.Equal(l.LinkTypeID, satoriuuid.Nil) {
+	if uuid.Equal(l.LinkTypeID, uuid.Nil) {
 		return errors.NewBadParameterError("link_type_id", l.LinkTypeID)
 	}
 	return nil

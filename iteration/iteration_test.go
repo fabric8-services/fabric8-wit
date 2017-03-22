@@ -8,12 +8,15 @@ import (
 
 	"strconv"
 
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 
+	"reflect"
+
+	"github.com/almighty/almighty-core/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,13 +24,13 @@ import (
 )
 
 type TestIterationRepository struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 
 	clean func()
 }
 
 func TestRunIterationRepository(t *testing.T) {
-	suite.Run(t, &TestIterationRepository{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestIterationRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (test *TestIterationRepository) SetupTest() {
@@ -101,7 +104,7 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	}
 	repo.Create(context.Background(), &i)
 
-	parentPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	parentPath := append(i.Path, i.ID)
 	require.NotNil(t, parentPath)
 	i2 := iteration.Iteration{
 		Name:    name2,
@@ -115,9 +118,10 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	i2L, err := repo.Load(context.Background(), i2.ID)
 	require.Nil(t, err)
 	assert.NotEmpty(t, i2.Path)
-	expectedPath := iteration.ConvertToLtreeFormat(i.ID.String())
+	i2.Path.Convert()
+	expectedPath := i2.Path.Convert()
 	require.NotNil(t, i2L)
-	assert.Equal(t, expectedPath, i2L.Path)
+	assert.Equal(t, expectedPath, i2L.Path.Convert())
 }
 
 func (test *TestIterationRepository) TestListIterationBySpace() {
@@ -130,7 +134,7 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 		Name: "Space 1",
 	}
 	repoSpace := space.NewRepository(test.DB)
-	space, err := repoSpace.Create(context.Background(), &newSpace)
+	spaceInstance, err := repoSpace.Create(context.Background(), &newSpace)
 	assert.Nil(t, err)
 
 	for i := 0; i < 3; i++ {
@@ -140,18 +144,26 @@ func (test *TestIterationRepository) TestListIterationBySpace() {
 
 		i := iteration.Iteration{
 			Name:    name,
-			SpaceID: space.ID,
+			SpaceID: spaceInstance.ID,
 			StartAt: &start,
 			EndAt:   &end,
 		}
-		repo.Create(context.Background(), &i)
+		e := repo.Create(context.Background(), &i)
+		require.Nil(t, e)
 	}
-	repo.Create(context.Background(), &iteration.Iteration{
+	// create another space and add iteration to another space
+	anotherSpace := space.Space{
+		Name: "Space 2",
+	}
+	anotherSpaceCreated, err := repoSpace.Create(context.Background(), &anotherSpace)
+	assert.Nil(t, err)
+	e := repo.Create(context.Background(), &iteration.Iteration{
 		Name:    "Other Spring #2",
-		SpaceID: uuid.NewV4(),
+		SpaceID: anotherSpaceCreated.ID,
 	})
+	require.Nil(t, e)
 
-	its, err := repo.List(context.Background(), space.ID)
+	its, err := repo.List(context.Background(), spaceInstance.ID)
 	assert.Nil(t, err)
 	assert.Len(t, its, 3)
 }
@@ -202,4 +214,81 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	require.Nil(t, err)
 	assert.Equal(t, changedStart, *updatedIteration.StartAt)
 	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
+}
+
+func (test *TestIterationRepository) TestLoadChildren() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+	newSpace := space.Space{
+		Name: "Space To Test Listing of Iteration Children" + uuid.NewV4().String(),
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
+	repo := iteration.NewIterationRepository(test.DB)
+	level0IterationName := "Top level iteration"
+	i1 := iteration.Iteration{
+		Name:    level0IterationName,
+		SpaceID: space.ID,
+	}
+	e := repo.Create(context.Background(), &i1)
+	require.Nil(t, e)
+
+	// create child iteration
+	level1IterationName := "Level 1 iteration"
+	parentPath := append(i1.Path, i1.ID)
+	require.NotNil(t, parentPath)
+	i2 := iteration.Iteration{
+		Name:    level1IterationName,
+		SpaceID: space.ID,
+		Path:    parentPath,
+	}
+	e = repo.Create(context.Background(), &i2)
+	require.Nil(t, e)
+
+	// create child iteration for above child
+	level2IterationName := "Level 2 iteration"
+	parentPath = append(i2.Path, i2.ID)
+	require.NotNil(t, parentPath)
+	i3 := iteration.Iteration{
+		Name:    level2IterationName,
+		SpaceID: space.ID,
+		Path:    parentPath,
+	}
+	e = repo.Create(context.Background(), &i3)
+	require.Nil(t, e)
+
+	// fetch all children of top level iteraiton
+	childIterations1, err := repo.LoadChildren(context.Background(), i1.ID)
+	require.Nil(t, err)
+	require.Equal(t, 2, len(childIterations1))
+	expectedChildIDs1 := []uuid.UUID{i2.ID, i3.ID}
+	var actualChildIDs1 []uuid.UUID
+	for _, child := range childIterations1 {
+		actualChildIDs1 = append(actualChildIDs1, child.ID)
+	}
+	assert.Equal(t, expectedChildIDs1, actualChildIDs1)
+
+	// fetch all children of level 1 iteraiton
+	childIterations2, err := repo.LoadChildren(context.Background(), i2.ID)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(childIterations2))
+	expectedChildIDs2 := []uuid.UUID{i3.ID}
+	var actualChildIDs2 []uuid.UUID
+	for _, child := range childIterations2 {
+		actualChildIDs2 = append(actualChildIDs2, child.ID)
+	}
+	assert.Equal(t, expectedChildIDs2, actualChildIDs2)
+
+	// fetch all children of level 2 iteraiton
+	childIterations3, err := repo.LoadChildren(context.Background(), i3.ID)
+	require.Nil(t, err)
+	require.Equal(t, 0, len(childIterations3))
+
+	// try to fetch children of non-exisitng parent
+	fakeParentId := uuid.NewV4()
+	_, err = repo.LoadChildren(context.Background(), fakeParentId)
+	require.NotNil(t, err)
+	assert.Equal(t, reflect.TypeOf(errors.NotFoundError{}), reflect.TypeOf(err))
 }

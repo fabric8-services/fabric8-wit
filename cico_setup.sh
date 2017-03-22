@@ -57,6 +57,7 @@ function run_tests_without_coverage() {
   trap cleanup_env EXIT
   make docker-test-migration
   make docker-test-integration-no-coverage
+  make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
 }
 
@@ -71,6 +72,9 @@ function run_tests_with_coverage() {
   make docker-test-migration
   make docker-test-integration
 
+  # Run the remote tests that generate coverage information
+  make docker-test-remote
+
   # Output coverage
   make docker-coverage-all
 
@@ -84,8 +88,8 @@ function run_tests_with_coverage() {
 function deploy() {
   # Let's deploy
   make docker-image-deploy
-  docker tag almighty-core-deploy 8.43.84.245.xip.io/almighty/almighty-core:latest
-  docker push 8.43.84.245.xip.io/almighty/almighty-core:latest
+  docker tag almighty-core-deploy registry.devshift.net/almighty/almighty-core:latest
+  docker push registry.devshift.net/almighty/almighty-core:latest
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 

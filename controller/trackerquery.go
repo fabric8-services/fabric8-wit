@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/remoteworkitem"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -40,7 +41,7 @@ func NewTrackerqueryController(service *goa.Service, db application.DB, schedule
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
 	result := application.Transactional(c.db, func(appl application.Application) error {
-		tq, err := appl.TrackerQueries().Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID)
+		tq, err := appl.TrackerQueries().Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID, *ctx.Payload.Relationships.Space.Data.ID)
 		if err != nil {
 			cause := errs.Cause(err)
 			switch cause.(type) {
@@ -56,7 +57,7 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 		return ctx.Created(tq)
 	})
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(accessTokens)
+	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
 }
 
@@ -69,7 +70,7 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 			switch cause.(type) {
 			case remoteworkitem.NotFoundError:
 				log.Error(ctx, map[string]interface{}{
-					"trackerID": ctx.ID,
+					"tracker_id": ctx.ID,
 				}, "tracker query controller not found")
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrNotFound(err.Error()))
 				return ctx.NotFound(jerrors)
@@ -86,10 +87,11 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 	result := application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.TrackerQuery{
-			ID:        ctx.ID,
-			Query:     ctx.Payload.Query,
-			Schedule:  ctx.Payload.Schedule,
-			TrackerID: ctx.Payload.TrackerID,
+			ID:            ctx.ID,
+			Query:         ctx.Payload.Query,
+			Schedule:      ctx.Payload.Schedule,
+			TrackerID:     ctx.Payload.TrackerID,
+			Relationships: ctx.Payload.Relationships,
 		}
 		tq, err := appl.TrackerQueries().Save(ctx.Context, toSave)
 
@@ -107,7 +109,7 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 		return ctx.OK(tq)
 	})
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(accessTokens)
+	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
 }
 
@@ -129,7 +131,7 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 		return ctx.OK([]byte{})
 	})
 	accessTokens := getAccessTokensForTrackerQuery(c.configuration) //configuration.GetGithubAuthToken()
-	c.scheduler.ScheduleAllQueries(accessTokens)
+	c.scheduler.ScheduleAllQueries(ctx, accessTokens)
 	return result
 }
 

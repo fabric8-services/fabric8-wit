@@ -4,26 +4,26 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/space"
 	errs "github.com/pkg/errors"
-	satoriuuid "github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
-var testSpace string = satoriuuid.NewV4().String()
-var testSpace2 string = satoriuuid.NewV4().String()
+var testSpace string = uuid.NewV4().String()
+var testSpace2 string = uuid.NewV4().String()
 
 func TestRunRepoBBTest(t *testing.T) {
-	suite.Run(t, &repoBBTest{DBTestSuite: gormsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &repoBBTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 type repoBBTest struct {
-	gormsupport.DBTestSuite
+	gormtestsupport.DBTestSuite
 	repo  space.Repository
 	clean func()
 }
@@ -47,7 +47,7 @@ func (test *repoBBTest) TestCreate() {
 }
 
 func (test *repoBBTest) TestLoad() {
-	expectSpace(test.load(satoriuuid.NewV4()), test.assertNotFound())
+	expectSpace(test.load(uuid.NewV4()), test.assertNotFound())
 	res, _ := expectSpace(test.create(testSpace), test.requireOk)
 
 	res2, _ := expectSpace(test.load(res.ID), test.requireOk)
@@ -57,7 +57,7 @@ func (test *repoBBTest) TestLoad() {
 func (test *repoBBTest) TestSaveOk() {
 	res, _ := expectSpace(test.create(testSpace), test.requireOk)
 
-	newName := satoriuuid.NewV4().String()
+	newName := uuid.NewV4().String()
 	res.Name = newName
 	res2, _ := expectSpace(test.save(*res), test.requireOk)
 	assert.Equal(test.T(), newName, res2.Name)
@@ -76,7 +76,7 @@ func (test *repoBBTest) TestSaveFail() {
 
 func (test *repoBBTest) TestSaveNew() {
 	p := space.Space{
-		ID:      satoriuuid.NewV4(),
+		ID:      uuid.NewV4(),
 		Version: 0,
 		Name:    testSpace,
 	}
@@ -89,8 +89,8 @@ func (test *repoBBTest) TestDelete() {
 	expectSpace(test.load(res.ID), test.requireOk)
 	expectSpace(test.delete(res.ID), func(p *space.Space, err error) { require.Nil(test.T(), err) })
 	expectSpace(test.load(res.ID), test.assertNotFound())
-	expectSpace(test.delete(satoriuuid.NewV4()), test.assertNotFound())
-	expectSpace(test.delete(satoriuuid.Nil), test.assertNotFound())
+	expectSpace(test.delete(uuid.NewV4()), test.assertNotFound())
+	expectSpace(test.delete(uuid.Nil), test.assertNotFound())
 }
 
 func (test *repoBBTest) TestList() {
@@ -106,6 +106,30 @@ func (test *repoBBTest) TestListDoNotReturnPointerToSameObject() {
 	spaces, newCount, _ := test.list(nil, nil)
 	assert.True(test.T(), newCount >= 2)
 	assert.True(test.T(), spaces[0].Name != spaces[1].Name)
+}
+
+func (test *repoBBTest) TestLoadSpaceByName() {
+	expectSpace(test.load(uuid.NewV4()), test.assertNotFound())
+	res, _ := expectSpace(test.create(testSpace), test.requireOk)
+
+	res2, _ := expectSpace(test.loadByUserIdAndName(uuid.Nil, res.Name), test.requireOk)
+	assert.True(test.T(), (*res).Equal(*res2))
+}
+
+func (test *repoBBTest) TestLoadSpaceByNameDifferentOwner() {
+	expectSpace(test.load(uuid.NewV4()), test.assertNotFound())
+	res, _ := expectSpace(test.create(testSpace), test.requireOk)
+
+	_, err := expectSpace(test.loadByUserIdAndName(uuid.NewV4(), res.Name), test.requireErrorType(errors.NotFoundError{}))
+	assert.NotNil(test.T(), err)
+}
+
+func (test *repoBBTest) TestLoadSpaceByNameNonExistentSpaceName() {
+	expectSpace(test.load(uuid.NewV4()), test.assertNotFound())
+	expectSpace(test.create(testSpace), test.requireOk)
+
+	_, err := expectSpace(test.loadByUserIdAndName(uuid.Nil, uuid.NewV4().String()), test.requireErrorType(errors.NotFoundError{}))
+	assert.NotNil(test.T(), err)
 }
 
 type spaceExpectation func(p *space.Space, err error)
@@ -144,7 +168,8 @@ func (test *repoBBTest) requireErrorType(e error) func(p *space.Space, err error
 
 func (test *repoBBTest) create(name string) func() (*space.Space, error) {
 	newSpace := space.Space{
-		Name: name,
+		Name:    name,
+		OwnerId: uuid.Nil,
 	}
 	return func() (*space.Space, error) { return test.repo.Create(context.Background(), &newSpace) }
 }
@@ -153,11 +178,17 @@ func (test *repoBBTest) save(p space.Space) func() (*space.Space, error) {
 	return func() (*space.Space, error) { return test.repo.Save(context.Background(), &p) }
 }
 
-func (test *repoBBTest) load(id satoriuuid.UUID) func() (*space.Space, error) {
+func (test *repoBBTest) load(id uuid.UUID) func() (*space.Space, error) {
 	return func() (*space.Space, error) { return test.repo.Load(context.Background(), id) }
 }
 
-func (test *repoBBTest) delete(id satoriuuid.UUID) func() (*space.Space, error) {
+func (test *repoBBTest) loadByUserIdAndName(userId uuid.UUID, spaceName string) func() (*space.Space, error) {
+	return func() (*space.Space, error) {
+		return test.repo.LoadByOwnerAndName(context.Background(), &userId, &spaceName)
+	}
+}
+
+func (test *repoBBTest) delete(id uuid.UUID) func() (*space.Space, error) {
 	return func() (*space.Space, error) { return nil, test.repo.Delete(context.Background(), id) }
 }
 

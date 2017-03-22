@@ -22,7 +22,16 @@ func TestRenderMarkdownContentWithFence(t *testing.T) {
 	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
 	t.Log(result)
 	require.NotNil(t, result)
-	assert.True(t, strings.Contains(result, "<code class=\"language-go\">"))
+	assert.True(t, strings.Contains(result, "<code class=\"prettyprint language-go\">"))
+}
+
+func TestRenderMarkdownContentWithFenceHighlighter(t *testing.T) {
+	content := "``` go\nfunc getTrue() bool {return true}\n```"
+	result := rendering.RenderMarkupToHTML(content, rendering.SystemMarkupMarkdown)
+	t.Log(result)
+	require.NotNil(t, result)
+	assert.True(t, strings.Contains(result, "<code class=\"prettyprint language-go\">"))
+	assert.True(t, strings.Contains(result, "<span class=\"kwd\">func</span>"))
 }
 
 func TestIsMarkupSupported(t *testing.T) {

@@ -3,12 +3,15 @@ package controller
 import (
 	"fmt"
 	"html"
+	"net/http"
 	"strconv"
+	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -16,7 +19,9 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -47,39 +52,73 @@ func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemCon
 // Prev and Next links will be present only when there actually IS a next or previous page.
 // Last will always be present. Total Item count needs to be computed from the "Last" link.
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+
 	var additionalQuery []string
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
 	if ctx.FilterAssignee != nil {
-		assignee := ctx.FilterAssignee
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*assignee})))
-		additionalQuery = append(additionalQuery, "filter[assignee]="+*assignee)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+		additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
 	}
 	if ctx.FilterIteration != nil {
-		iteration := ctx.FilterIteration
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*iteration))))
-		additionalQuery = append(additionalQuery, "filter[iteration]="+*iteration)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
+		additionalQuery = append(additionalQuery, "filter[iteration]="+*ctx.FilterIteration)
+		// Update filter by adding child iterations if any
+		application.Transactional(c.db, func(tx application.Application) error {
+			iterationUUID, errConversion := uuid.FromString(*ctx.FilterIteration)
+			if errConversion != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(errConversion, "Invalid iteration ID"))
+			}
+			childrens, err := tx.Iterations().LoadChildren(ctx.Context, iterationUUID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch children"))
+			}
+			for _, child := range childrens {
+				childIDStr := child.ID.String()
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(childIDStr)))
+				additionalQuery = append(additionalQuery, "filter[iteration]="+childIDStr)
+			}
+			return nil
+		})
 	}
 	if ctx.FilterWorkitemtype != nil {
-		wit := ctx.FilterWorkitemtype
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]string{*wit})))
-		additionalQuery = append(additionalQuery, "filter[workitemtype]="+*wit)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal([]uuid.UUID{*ctx.FilterWorkitemtype})))
+		additionalQuery = append(additionalQuery, "filter[workitemtype]="+ctx.FilterWorkitemtype.String())
 	}
 	if ctx.FilterArea != nil {
-		area := ctx.FilterArea
-		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*area))))
-		additionalQuery = append(additionalQuery, "filter[area]="+*area)
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
+		additionalQuery = append(additionalQuery, "filter[area]="+*ctx.FilterArea)
+	}
+	if ctx.FilterWorkitemstate != nil {
+		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
+		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
-		result, tc, err := tx.WorkItems().List(ctx.Context, exp, &offset, &limit)
+		result, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
+
+		lastMod := findLastModified(result)
+
+		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
+			ifModSince, err := http.ParseTime(ifMod[0])
+			if err == nil {
+				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
+					return ctx.NotModified()
+				}
+			}
+		}
+
 		response := app.WorkItem2List{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
@@ -87,17 +126,29 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
 		addFilterLinks(response.Links, ctx.RequestData)
+
+		ctx.ResponseData.Header().Set("Last-Modified", lastModifiedTime(lastMod))
 		return ctx.OK(&response)
 	})
 }
 
 // Update does PATCH workitem
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
 		}
-		wi, err := appl.WorkItems().Load(ctx, *ctx.Payload.Data.ID)
+		wi, err := appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data.ID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID)))
 		}
@@ -109,7 +160,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		wi.Type = oldType
-		wi, err = appl.WorkItems().Save(ctx, *wi)
+		wi, err = appl.WorkItems().Save(ctx, spaceID, *wi, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
@@ -120,18 +171,68 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 				Self: buildAbsoluteURL(ctx.RequestData),
 			},
 		}
+
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
+		return ctx.OK(resp)
+	})
+}
+
+// Reorder does PATCH workitem
+func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	return application.Transactional(c.db, func(appl application.Application) error {
+		var dataArray []*app.WorkItem2
+		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
+		}
+
+		// Reorder workitems in the array one by one
+		for i := 0; i < len(ctx.Payload.Data); i++ {
+			wi, err := appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data[i].ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+
+			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
+			}
+			wi, err = appl.WorkItems().Reorder(ctx, workitem.DirectionType(ctx.Payload.Position.Direction), ctx.Payload.Position.ID, *wi, *currentUserIdentityID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			wi2 := ConvertWorkItem(ctx.RequestData, wi)
+			dataArray = append(dataArray, wi2)
+		}
+		resp := &app.WorkItem2Reorder{
+			Data: dataArray,
+		}
+
 		return ctx.OK(resp)
 	})
 }
 
 // Create does POST workitem
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 		return ctx.Unauthorized(jerrors)
 	}
-	var wit *string
+	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
 		ctx.Payload.Data.Relationships.BaseType != nil && ctx.Payload.Data.Relationships.BaseType.Data != nil {
 		wit = &ctx.Payload.Data.Relationships.BaseType.Data.ID
@@ -139,16 +240,31 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if wit == nil { // TODO Figure out path source etc. Should be a required relation
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("Data.Relationships.BaseType.Data.ID", err))
 	}
+
+	// Set the space to the Payload
+	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
+		// We overwrite or use the space ID in the URL to set the space of this WI
+		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
+		ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
+	}
+
 	wi := app.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
+		//verify spaceID:
+		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
+		if spaceID != space.SystemSpace {
+			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+			if spaceLoadErr != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+			}
+		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-
-		wi, err := appl.WorkItems().Create(ctx, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -159,39 +275,93 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 				Self: buildAbsoluteURL(ctx.RequestData),
 			},
 		}
-		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.ID))
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
+		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.Relationships.Space.Data.ID.String(), wi2.ID))
 		return ctx.Created(resp)
 	})
 }
 
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+
 	return application.Transactional(c.db, func(appl application.Application) error {
-		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.ID)
-		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
+		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+		wi, err := appl.WorkItems().Load(ctx, spaceID, ctx.WiID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.ID)))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
+		}
+
+		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
+			ifModSince, err := http.ParseTime(ifMod[0])
+			if err == nil {
+				lastMod := updatedAt(wi)
+				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
+					return ctx.NotModified()
+				}
+			}
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
 		resp := &app.WorkItem2Single{
 			Data: wi2,
 		}
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
 		return ctx.OK(resp)
 	})
 }
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
+	spaceID, err := uuid.FromString(ctx.ID)
+	if err != nil {
+		return errors.NewNotFoundError("spaceID", ctx.ID)
+	}
+	currentUserIdentityID, err := login.ContextIdentity(ctx)
+	if err != nil {
+		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
+		return ctx.Unauthorized(jerrors)
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItems().Delete(ctx, ctx.ID)
+		err := appl.WorkItems().Delete(ctx, spaceID, ctx.WiID, *currentUserIdentityID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.ID))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.WiID))
 		}
-		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.ID); err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.ID))
+		if err := appl.WorkItemLinks().DeleteRelatedLinks(ctx, ctx.WiID, *currentUserIdentityID); err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to delete work item links related to work item %s", ctx.WiID))
 		}
 		return ctx.OK([]byte{})
 	})
+}
+
+// Time is default value if no UpdatedAt field is found
+func updatedAt(wi *app.WorkItem) time.Time {
+	var t time.Time
+	if ua, ok := wi.Fields[workitem.SystemUpdatedAt]; ok {
+		t = ua.(time.Time)
+	}
+	return t.Truncate(time.Second)
+}
+
+func lastModified(wi *app.WorkItem) string {
+	return lastModifiedTime(updatedAt(wi))
+}
+
+func lastModifiedTime(t time.Time) string {
+	return t.Format(time.RFC850)
+}
+
+func findLastModified(wis []*app.WorkItem) time.Time {
+	var t time.Time
+	for _, wi := range wis {
+		lm := updatedAt(wi)
+		if lm.After(t) {
+			t = lm
+		}
+	}
+	return t
 }
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
@@ -264,6 +434,12 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
 				target.Fields[key] = *m
 			}
+		} else if key == workitem.SystemCodebase {
+			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
+				target.Fields[key] = *m
+			} else {
+				return err
+			}
 		} else {
 			target.Fields[key] = val
 		}
@@ -306,9 +482,11 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID))
-	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+sourceLinkTypesRouteEnd)
-	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Type)+targetLinkTypesRouteEnd)
+	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID.String(), wi.ID))
+	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Relationships.Space.Data.ID.String(), wi.Type)+sourceLinkTypesRouteEnd)
+	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Relationships.Space.Data.ID.String(), wi.Type)+targetLinkTypesRouteEnd)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.Space.Data.ID.String()))
+
 	op := &app.WorkItem2{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
@@ -322,6 +500,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					Type: APIStringTypeWorkItemType,
 				},
 			},
+			Space: space.NewSpaceRelation(*wi.Relationships.Space.Data.ID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,
@@ -331,7 +510,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 
 	// Move fields into Relationships or Attributes as needed
-	// TODO: Loop based on WorKItemType and match against Field.Type instead of directly to field value
+	// TODO: Loop based on WorkItemType and match against Field.Type instead of directly to field value
 	for name, val := range wi.Fields {
 		switch name {
 		case workitem.SystemAssignees:
@@ -375,7 +554,15 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 				op.Attributes[workitem.SystemDescriptionRendered] =
 					rendering.RenderMarkupToHTML(html.EscapeString((*description).Content), (*description).Markup)
 			}
-
+		case workitem.SystemCodebase:
+			if val != nil {
+				op.Attributes[name] = val
+				// TODO: Following format is TBD and hence commented out
+				// cb := val.(codebase.CodebaseContent)
+				// urlparams := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
+				// doitURL := rest.AbsoluteURL(request, url.QueryEscape(urlparams))
+				// op.Links.Doit = &doitURL
+			}
 		default:
 			op.Attributes[name] = val
 		}
@@ -391,8 +578,37 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
 	WorkItemIncludeComments(request, wi, op)
+	WorkItemIncludeChildren(request, wi, op)
 	for _, add := range additional {
 		add(request, wi, op)
 	}
 	return op
+}
+
+// ListChildren runs the list action.
+func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
+	// WorkItemChildrenController_List: start_implement
+
+	// Put your logic here
+	return application.Transactional(c.db, func(appl application.Application) error {
+		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		response := app.WorkItem2List{
+			Data: ConvertWorkItems(ctx.RequestData, result),
+		}
+		return ctx.OK(&response)
+	})
+}
+
+// WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
+func WorkItemIncludeChildren(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/children"
+	wi2.Relationships.Children = &app.RelationGeneric{
+		Links: &app.GenericLinks{
+			Related: &childrenRelated,
+		},
+	}
+
 }
