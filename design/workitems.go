@@ -299,7 +299,8 @@ var _ = a.Resource("planner_backlog", func() {
 		)
 		a.Description("List backlog work items.")
 		a.Params(func() {
-			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemList)

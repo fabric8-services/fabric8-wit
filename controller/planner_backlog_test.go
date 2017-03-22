@@ -15,7 +15,6 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -96,7 +95,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	var fatherIteration, childIteration *iteration.Iteration
+	var fatherIteration, childIteration, anotherFatherIteration *iteration.Iteration
 	application.Transactional(gormapplication.NewGormDB(rest.db), func(app application.Application) error {
 		repo := app.Iterations()
 
@@ -115,6 +114,13 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 		}
 		repo.Create(rest.ctx, childIteration)
 
+		anotherFatherIteration = &iteration.Iteration{
+			Name:    "Parent of another Iteration",
+			SpaceID: space.SystemSpace,
+			State:   iteration.IterationStateStart,
+		}
+		repo.Create(rest.ctx, anotherFatherIteration)
+
 		fields := map[string]interface{}{
 			workitem.SystemTitle:     "fatherIteration Test",
 			workitem.SystemState:     "new",
@@ -129,22 +135,37 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 		}
 		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields2, rest.testIdentity.ID)
 
+		fields3 := map[string]interface{}{
+			workitem.SystemTitle:     "anotherFatherIteration Test",
+			workitem.SystemState:     "in progress",
+			workitem.SystemIteration: anotherFatherIteration.ID.String(),
+		}
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields3, rest.testIdentity.ID)
+
 		return nil
 	})
 
 	svc, ctrl := rest.UnSecuredController()
 
-	page := "0,-1"
-	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, space.SystemSpace.String(), &page)
-	// Four iteration are in the root path
-	assert.Len(t, cs.Data, 1)
+	offset := "0"
+	limit := -1
+	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, space.SystemSpace.String(), &limit, &offset)
+
+	// Two iteration have to be found
+	assert.Len(t, cs.Data, 2)
 
 	for _, workItem := range cs.Data {
-		log.Error(nil, nil, "ASDAD %v", workItem.Attributes)
-		assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
-		assert.Equal(t, "fatherIteration Test", workItem.Attributes[workitem.SystemTitle])
-		assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
-		assert.Equal(t, fatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
+		if workItem.Attributes[workitem.SystemTitle] == "fatherIteration Test" {
+			assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
+			assert.Equal(t, "fatherIteration Test", workItem.Attributes[workitem.SystemTitle])
+			assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
+			assert.Equal(t, fatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
+		}
+		if workItem.Attributes[workitem.SystemTitle] == "anotherFatherIteration Test" {
+			assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
+			assert.Equal(t, "in progress", workItem.Attributes[workitem.SystemState])
+			assert.Equal(t, anotherFatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
+		}
 	}
 }
 
@@ -153,6 +174,7 @@ func (rest *TestPlannerBlacklogREST) TestFailListPlannerBacklogByMissingSpace() 
 	resource.Require(t, resource.Database)
 
 	svc, ctrl := rest.UnSecuredController()
-	page := "0,-1"
-	test.ListPlannerBacklogNotFound(t, svc.Context, svc, ctrl, "xxxxx", &page)
+	offset := "0"
+	limit := 2
+	test.ListPlannerBacklogNotFound(t, svc.Context, svc, ctrl, "xxxxx", &limit, &offset)
 }

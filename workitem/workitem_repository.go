@@ -42,7 +42,6 @@ type WorkItemRepository interface {
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
-	Backlog(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*app.WorkItem, error)
 }
 
 // NewWorkItemRepository creates a GormWorkItemRepository
@@ -689,51 +688,6 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 		countsMap[iterationWithCount.IterationId] = iterationWithCount
 	}
 	return countsMap, nil
-}
-
-// List returns backlog items where iteration is in root iteration and status != closed
-func (r *GormWorkItemRepository) Backlog(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*app.WorkItem, error) {
-	var (
-		rows []WorkItem
-		err  error
-	)
-	query := fmt.Sprintf(`SELECT distinct wi.*
-						FROM work_items as wi, iterations as itr
-						WHERE itr.space_id = '%s'
-							AND itr.path = ''
-							AND NOT wi.fields @> '{"system.state": "closed"}'
-							AND wi.fields @> concat('{"system.iteration": "', itr.id, '"}')::jsonb;`,
-		spaceID.String())
-	db := r.db.Raw(query)
-	if start != nil {
-		db = db.Offset(*start)
-	}
-	if limit != nil {
-		db = db.Limit(*limit)
-	}
-
-	if err := db.Scan(&rows).Error; err != nil {
-		return nil, errs.WithStack(err)
-	}
-
-	if err != nil && err != gorm.ErrRecordNotFound {
-		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceID,
-			"err":     err,
-		}, "unable to list backlog iterations")
-		return nil, errs.WithStack(err)
-	}
-
-	res := make([]*app.WorkItem, len(rows))
-	for index, value := range rows {
-		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
-		if err != nil {
-			return nil, errors.NewInternalError(err.Error())
-		}
-		res[index], err = ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
-	}
-
-	return res, nil
 }
 
 // GetCountsForIteration returns Closed and Total counts of WI for given iteration

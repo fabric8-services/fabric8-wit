@@ -48,6 +48,7 @@ func (m *Iteration) TableName() string {
 type Repository interface {
 	Create(ctx context.Context, u *Iteration) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error)
+	RootIterations(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
@@ -104,6 +105,22 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 	var objs []*Iteration
 
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": spaceID,
+			"err":     err,
+		}, "unable to list the iterations")
+		return nil, errs.WithStack(err)
+	}
+	return objs, nil
+}
+
+// List all Root Iterations related to a single item
+func (m *GormIterationRepository) RootIterations(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
+	var objs []*Iteration
+
+	err := m.db.Where("space_id = ? and path = ?", spaceID, "").Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		log.Error(ctx, map[string]interface{}{
 			"spaceID": spaceID,
