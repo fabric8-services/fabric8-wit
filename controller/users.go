@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -12,7 +13,9 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -78,25 +81,52 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 
+		// prepare for updating keycloak user profile
+		keycloakUserProfile := &login.KeycloakUserProfile{}
+		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+
+		token := goajwt.ContextJWT(ctx)
+		tokenString := token.Raw
+		//keycloakUserProfileAttributes := &login.KeycloakUserProfileAttributes{}
+
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil {
 			user.Email = *updatedEmail
+			keycloakUserProfile.Email = updatedEmail
 		}
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {
 			user.Bio = *updatedBio
+			keycloakUserProfile.Attributes.Bio = updatedBio
 		}
 		updatedFullName := ctx.Payload.Data.Attributes.FullName
 		if updatedFullName != nil {
 			user.FullName = *updatedFullName
+
+			// In KC, we store as first name and last name.
+			nameComponents := strings.Split(*updatedFullName, " ")
+			firstName := nameComponents[0]
+			lastName := strings.Join(nameComponents[1:], " ")
+
+			keycloakUserProfile.FirstName = &firstName
+			keycloakUserProfile.LastName = &lastName
 		}
 		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
 		if updatedImageURL != nil {
 			user.ImageURL = *updatedImageURL
+			keycloakUserProfile.Attributes.ImageURL = updatedImageURL
 		}
 		updateURL := ctx.Payload.Data.Attributes.URL
 		if updateURL != nil {
 			user.URL = *updateURL
+			keycloakUserProfile.Attributes.URL = updateURL
+		}
+
+		// If none of the 'extra' attributes were present, we better make that section nil
+		// so that the Attributes section is omitted in the payload sent to KC
+
+		if updatedBio == nil && updatedImageURL == nil && updateURL == nil {
+			keycloakUserProfile.Attributes = nil
 		}
 
 		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
@@ -117,6 +147,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+		keycloakUserProfile.Update(tokenString, "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account")
 
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
