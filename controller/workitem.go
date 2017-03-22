@@ -595,6 +595,9 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 			response := app.WorkItemList{
 				Data: ConvertWorkItems(ctx.RequestData, result),
+				Meta: &app.WorkItemListResponseMeta{
+					TotalCount: 45,
+				},
 			}
 			return ctx.OK(&response)
 		})
@@ -607,6 +610,9 @@ func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi
 	wi2.Relationships.Children = &app.RelationGeneric{
 		Links: &app.GenericLinks{
 			Related: &childrenRelated,
+		},
+		Meta: map[string]interface{}{
+			"totalCount": "45",
 		},
 	}
 
