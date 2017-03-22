@@ -26,6 +26,7 @@ var spaceRelationships = a.Type("SpaceRelationships", func() {
 	a.Attribute("workitemtypes", relationGeneric, "Space can have one or many work item types")
 	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
 	a.Attribute("categories", relationGeneric, "Space can have one or many categories")
+	a.Attribute("codebases", relationGeneric, "Space can have one or many codebases")
 })
 
 var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {

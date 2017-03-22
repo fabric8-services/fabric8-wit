@@ -46,15 +46,15 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Check that current work item does indeed exist
-		if _, err := appl.WorkItems().Load(ctx.Context, ctx.ID); err != nil {
+		if _, err := appl.WorkItems().LoadByID(ctx.Context, ctx.WiID); err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
 		// Check that the source ID of the link is the same as the current work
 		// item ID.
 		src, _ := getSrcTgt(ctx.Payload.Data)
-		if src != nil && *src != ctx.ID {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("data.relationships.source.data.id is \"%s\" but must be \"%s\"", ctx.Payload.Data.Relationships.Source.Data.ID, ctx.ID)))
+		if src != nil && *src != ctx.WiID {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("data.relationships.source.data.id is \"%s\" but must be \"%s\"", ctx.Payload.Data.Relationships.Source.Data.ID, ctx.WiID)))
 			return ctx.BadRequest(jerrors)
 		}
 		// If no source is specified we pre-fill the source field of the payload
@@ -69,7 +69,7 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 			if ctx.Payload.Data.Relationships.Source.Data == nil {
 				ctx.Payload.Data.Relationships.Source.Data = &app.RelationWorkItemData{}
 			}
-			ctx.Payload.Data.Relationships.Source.Data.ID = ctx.ID
+			ctx.Payload.Data.Relationships.Source.Data.ID = ctx.WiID
 			ctx.Payload.Data.Relationships.Source.Data.Type = link.EndpointWorkItems
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, currentUserIdentityID)
@@ -81,7 +81,7 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
-		return listWorkItemLink(linkCtx, ctx, &ctx.ID)
+		return listWorkItemLink(linkCtx, ctx, &ctx.WiID)
 	})
 }
 

@@ -53,14 +53,14 @@ func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *s
 // Returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkCategorySingle, error) {
 	log.Info(ctx, map[string]interface{}{
-		"wilcID": ID,
+		"wilc_id": ID,
 	}, "Loading work item link category")
 
 	res := WorkItemLinkCategory{}
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wilcID": ID,
+			"wilc_id": ID,
 		}, "work item link category not found by id ", ID)
 		return nil, errors.NewNotFoundError("work item link category", ID.String())
 	}
@@ -123,7 +123,7 @@ func (r *GormWorkItemLinkCategoryRepository) Delete(ctx context.Context, ID uuid
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"wilcID": ID,
+		"wilc_id": ID,
 	}, "Work item link category to delete")
 
 	db := r.db.Delete(&cat)
@@ -153,14 +153,14 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wilcID": ID,
+			"wilc_id": ID,
 		}, "work item link category not found")
 		return nil, errors.NewNotFoundError("work item link category", ID.String())
 	}
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilcID": ID,
-			"err":    db.Error,
+			"wilc_id": ID,
+			"err":     db.Error,
 		}, "unable to find work item link category")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
@@ -183,13 +183,13 @@ func (r *GormWorkItemLinkCategoryRepository) Save(ctx context.Context, linkCat a
 	db = db.Save(&newLinkCat)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilcID": newLinkCat.ID,
-			"err":    db.Error,
+			"wilc_id": newLinkCat.ID,
+			"err":     db.Error,
 		}, "unable to save work item link category repository")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
-		"wilcID":          newLinkCat.ID,
+		"wilc_id":         newLinkCat.ID,
 		"newLinkCategory": newLinkCat,
 	}, "Work item link category updated")
 	result := ConvertLinkCategoryFromModel(newLinkCat)

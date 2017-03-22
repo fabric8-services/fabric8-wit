@@ -64,7 +64,7 @@ type GormOauthStateReferenceRepository struct {
 func (r *GormOauthStateReferenceRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
-			"oauthStateReferenceID": ID.String(),
+			"oauth_state_reference_id": ID.String(),
 		}, "unable to find the oauth state reference by ID")
 		return errors.NewNotFoundError("oauth state reference", ID.String())
 	}
@@ -73,7 +73,7 @@ func (r *GormOauthStateReferenceRepository) Delete(ctx context.Context, ID uuid.
 
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"oauthStateReferenceID": ID.String(),
+			"oauth_state_reference_id": ID.String(),
 		}, "unable to delete the oauth state reference")
 		return errors.NewInternalError(err.Error())
 	}
@@ -100,7 +100,7 @@ func (r *GormOauthStateReferenceRepository) Create(ctx context.Context, referenc
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"oauthStateReferenceID": reference.ID,
+		"oauth_state_reference_id": reference.ID,
 	}, "Oauth state reference created successfully")
 	return reference, nil
 }

@@ -37,7 +37,7 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 		identity, err := appl.Identities().Load(ctx, id)
 		if err != nil || identity == nil {
 			log.Error(ctx, map[string]interface{}{
-				"identityID": id,
+				"identity_id": id,
 			}, "auth token containers id %s of unknown Identity", id)
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", id)))
 			return ctx.Unauthorized(jerrors)

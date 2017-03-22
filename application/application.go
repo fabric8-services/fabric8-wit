@@ -5,6 +5,8 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/category"
+	"github.com/almighty/almighty-core/codebase"
+
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/space"
@@ -31,6 +33,7 @@ type Application interface {
 	Users() account.UserRepository
 	Areas() area.Repository
 	OauthStates() auth.OauthStateReferenceRepository
+	Codebases() codebase.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction
