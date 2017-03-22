@@ -483,8 +483,8 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 	identities, err := keycloak.Identities.Query(account.IdentityFilterByID(keycloakIdentityID), account.IdentityWithUser())
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"keycloakIdentityID": keycloakIdentityID,
-			"err":                err,
+			"keycloak_identity_id": keycloakIdentityID,
+			"err": err,
 		}, "unable to  query for an identity by ID")
 		return nil, nil, errors.New("Error during querying for an identity by ID " + err.Error())
 	}
@@ -509,9 +509,9 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			idn := identities[0]
 			if idn.ProviderType == account.KeycloakIDP {
 				log.Warn(ctx, map[string]interface{}{
-					"keycloakIdentityID":       keycloakIdentityID,
-					"coreIdentityID":           idn.ID,
-					"keycloakIdentityUsername": claims.Username,
+					"keycloak_identity_id":       keycloakIdentityID,
+					"core_identity_id":           idn.ID,
+					"keycloak_identity_username": claims.Username,
 				}, "the identity ID fetched from Keycloak and the identity ID from the core DB for the same username don't match. The identity will be re-created.")
 
 				err = application.Transactional(keycloak.db, func(appl application.Application) error {
@@ -531,9 +531,9 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 				})
 				if err != nil {
 					log.Error(ctx, map[string]interface{}{
-						"keycloakIdentityID":       keycloakIdentityID,
-						"coreIdentityID":           idn.ID,
-						"keycloakIdentityUsername": claims.Username,
+						"keycloak_identity_id":       keycloakIdentityID,
+						"core_identity_id":           idn.ID,
+						"keycloak_identity_username": claims.Username,
 						"err": err,
 					}, "unable to update identity")
 					return nil, nil, errors.New("Cant' create user/identity " + err.Error())
@@ -569,9 +569,9 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		})
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"keyCloakIdentityID": keycloakIdentityID,
-				"username":           claims.Username,
-				"err":                err,
+				"keycloak_identity_id": keycloakIdentityID,
+				"username":             claims.Username,
+				"err":                  err,
 			}, "unable to create user/identity")
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
@@ -579,7 +579,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		user = &identities[0].User
 		if user.ID == uuid.Nil {
 			log.Error(ctx, map[string]interface{}{
-				"identityID": keycloakIdentityID,
+				"identity_id": keycloakIdentityID,
 			}, "Found Keycloak identity is not linked to any User")
 			return nil, nil, errors.New("found Keycloak identity is not linked to any User")
 		}
@@ -589,8 +589,8 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 		err = keycloak.Users.Save(ctx, user)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"userID": user.ID,
-				"err":    err,
+				"user_id": user.ID,
+				"err":     err,
 			}, "unable to update user")
 			return nil, nil, errors.New("Cant' update user " + err.Error())
 		}
@@ -662,8 +662,8 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
 		log.Warn(nil, map[string]interface{}{
-			"userFullName": user.FullName,
-			"err":          err,
+			"user_full_name": user.FullName,
+			"err":            err,
 		}, "error when generating gravatar")
 		return errors.New("Error when generating gravatar " + err.Error())
 	}
@@ -688,9 +688,9 @@ func ContextIdentity(ctx context.Context) (*uuid.UUID, error) {
 	if err != nil {
 		// TODO : need a way to define user as Guest
 		log.Error(ctx, map[string]interface{}{
-			"uuid":         uuid,
-			"tokenManager": manager,
-			"err":          err,
+			"uuid":          uuid,
+			"token_manager": manager,
+			"err":           err,
 		}, "identity belongs to a Guest User")
 
 		return nil, errs.WithStack(err)
