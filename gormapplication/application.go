@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/remoteworkitem"
@@ -135,6 +136,11 @@ func (g *GormBase) Areas() area.Repository {
 // OauthStates returns an oauth state reference repository
 func (g *GormBase) OauthStates() auth.OauthStateReferenceRepository {
 	return auth.NewOauthStateReferenceRepository(g.db)
+}
+
+// Codebases returns a codebase repository
+func (g *GormBase) Codebases() codebase.Repository {
+	return codebase.NewCodebaseRepository(g.db)
 }
 
 func (g *GormBase) DB() *gorm.DB {

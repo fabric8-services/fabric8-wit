@@ -289,6 +289,14 @@ func main() {
 	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB)
 	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
 
+	// Mount "codebase" controller
+	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
+	app.MountCodebaseController(service, codebaseCtrl)
+
+	// Mount "spacecodebases" controller
+	spaceCodebaseCtrl := controller.NewSpaceCodebasesController(service, appDB)
+	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
+
 	if !configuration.IsPostgresDeveloperModeEnabled() {
 		// TEMP MOUNT "redirect" controller
 		redirectWorkItemTypesCtrl := controller.NewRedirectWorkitemtypeController(service)
