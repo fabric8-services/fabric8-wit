@@ -1,157 +1,150 @@
 package controller_test
 
 import (
+	"crypto/rsa"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strconv"
-	"strings"
 	"testing"
-	"time"
 
 	"golang.org/x/net/context"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
+	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
+	testsupport "github.com/almighty/almighty-core/test"
+	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
+	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
 	"github.com/stretchr/testify/suite"
 )
 
-type TestPlannerBlacklogREST struct {
-	gormtestsupport.DBTestSuite
+var wibConfiguration *config.ConfigurationData
 
-	db    *gormapplication.GormDB
-	clean func()
-	ctx   context.Context
+func init() {
+	var err error
+	wibConfiguration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+}
+
+type TestPlannerBlacklogREST struct {
+	suite.Suite
+	db           *gorm.DB
+	clean        func()
+	priKey       *rsa.PrivateKey
+	testIdentity account.Identity
+	ctx          context.Context
 }
 
 func TestRunPlannerBlacklogREST(t *testing.T) {
-	suite.Run(t, &TestPlannerBlacklogREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	resource.Require(t, resource.Database)
+	suite.Run(t, new(TestPlannerBlacklogREST))
 }
 
 func (rest *TestPlannerBlacklogREST) SetupTest() {
-	rest.db = gormapplication.NewGormDB(rest.DB)
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
+	var err error
+	rest.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
+	if err != nil {
+		panic("Failed to connect database: " + err.Error())
+	}
+	rest.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	if wibConfiguration.GetPopulateCommonTypes() {
+		if err := models.Transactional(rest.db, func(tx *gorm.DB) error {
+			rest.ctx = migration.NewMigrationContext(context.Background())
+			return migration.PopulateCommonTypes(rest.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+		}); err != nil {
+			panic(err.Error())
+		}
+	}
+	rest.clean = cleaner.DeleteCreatedEntities(rest.db)
 
-	req := &http.Request{Host: "localhost"}
-	params := url.Values{}
-	rest.ctx = goa.NewContext(context.Background(), nil, req, params)
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(rest.db, "test user", "test provider")
+	require.Nil(rest.T(), err)
+	rest.testIdentity = testIdentity
 }
 
 func (rest *TestPlannerBlacklogREST) TearDownTest() {
 	rest.clean()
+	if rest.db != nil {
+		rest.db.Close()
+	}
 }
 
 func (rest *TestPlannerBlacklogREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
 	svc := goa.New("PlannerBlacklog-Service")
-	return svc, NewPlannerBacklogController(svc, rest.db)
+	return svc, NewPlannerBacklogController(svc, gormapplication.NewGormDB(rest.db))
 }
 
-func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogIterations() {
+func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	var spaceID uuid.UUID
-	var fatherIteration, childIteration, grandChildIteration *iteration.Iteration
-	application.Transactional(rest.db, func(app application.Application) error {
+	var fatherIteration, childIteration *iteration.Iteration
+	application.Transactional(gormapplication.NewGormDB(rest.db), func(app application.Application) error {
 		repo := app.Iterations()
 
-		newSpace := space.Space{
-			Name: "Test 1",
-		}
-		p, err := app.Spaces().Create(rest.ctx, &newSpace)
-		if err != nil {
-			t.Error(err)
-		}
-		spaceID = p.ID
-
-		for i := 0; i < 3; i++ {
-			start := time.Now()
-			end := start.Add(time.Hour * (24 * 8 * 3))
-			name := "Sprint #2" + strconv.Itoa(i)
-
-			i := iteration.Iteration{
-				Name:    name,
-				SpaceID: spaceID,
-				StartAt: &start,
-				EndAt:   &end,
-				State:   iteration.IterationStateNew,
-			}
-			repo.Create(rest.ctx, &i)
-		}
-
-		// create one child iteration and test for relationships.Parent
 		fatherIteration = &iteration.Iteration{
 			Name:    "Parent Iteration",
-			SpaceID: spaceID,
+			SpaceID: space.SystemSpace,
 			State:   iteration.IterationStateNew,
 		}
 		repo.Create(rest.ctx, fatherIteration)
 
 		childIteration = &iteration.Iteration{
 			Name:    "Child Iteration",
-			SpaceID: spaceID,
+			SpaceID: space.SystemSpace,
 			Path:    append(fatherIteration.Path, fatherIteration.ID),
 			State:   iteration.IterationStateStart,
 		}
 		repo.Create(rest.ctx, childIteration)
 
-		grandChildIteration = &iteration.Iteration{
-			Name:    "Grand Child Iteration",
-			SpaceID: spaceID,
-			Path:    append(childIteration.Path, childIteration.ID),
-			State:   iteration.IterationStateClose,
+		fields := map[string]interface{}{
+			workitem.SystemTitle:     "fatherIteration Test",
+			workitem.SystemState:     "new",
+			workitem.SystemIteration: fatherIteration.ID.String(),
 		}
-		repo.Create(rest.ctx, grandChildIteration)
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields, rest.testIdentity.ID)
+
+		fields2 := map[string]interface{}{
+			workitem.SystemTitle:     "childIteration Test",
+			workitem.SystemState:     "closed",
+			workitem.SystemIteration: childIteration.ID.String(),
+		}
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields2, rest.testIdentity.ID)
 
 		return nil
 	})
 
 	svc, ctrl := rest.UnSecuredController()
-	page := "0,-1"
-	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, spaceID.String(), &page)
-	// Four iteration are in the root path
-	assert.Len(t, cs.Data, 4)
-	for _, iterationItem := range cs.Data {
-		subString := fmt.Sprintf("?filter[iteration]=%s", iterationItem.ID.String())
-		require.Contains(t, *iterationItem.Relationships.Workitems.Links.Related, subString)
-		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["total"])
-		assert.Equal(t, 0, iterationItem.Relationships.Workitems.Meta["closed"])
-		if *iterationItem.ID == fatherIteration.ID {
-			expectedParentPath := "/"
-			expectedResolvedParentPath := ""
-			// It doesn't has a father
-			require.Nil(t, iterationItem.Relationships.Parent)
 
-			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
-			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
-			assert.Equal(t, iteration.IterationStateNew, *iterationItem.Attributes.State)
-		}
-		if *iterationItem.ID == grandChildIteration.ID {
-			expectedParentPath := iteration.PathSepInService + fatherIteration.ID.String() + iteration.PathSepInService + childIteration.ID.String()
-			expectedResolvedParentPath := iteration.PathSepInService + fatherIteration.Name + iteration.PathSepInService + childIteration.Name
-			require.NotNil(t, iterationItem.Relationships.Parent)
-			assert.Equal(t, childIteration.ID.String(), *iterationItem.Relationships.Parent.Data.ID)
-			assert.Equal(t, expectedParentPath, *iterationItem.Attributes.ParentPath)
-			assert.Equal(t, expectedResolvedParentPath, *iterationItem.Attributes.ResolvedParentPath)
-			assert.Equal(t, iteration.IterationStateClose, *iterationItem.Attributes.State)
-		}
-		if strings.Contains(*iterationItem.Attributes.Name, "Sprint #2") {
-			assert.Equal(t, "/", *iterationItem.Attributes.ParentPath)
-			assert.Equal(t, "", *iterationItem.Attributes.ResolvedParentPath)
-			assert.Equal(t, iteration.IterationStateNew, *iterationItem.Attributes.State)
-		}
+	page := "0,-1"
+	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, space.SystemSpace.String(), &page)
+	// Four iteration are in the root path
+	assert.Len(t, cs.Data, 1)
+
+	for _, workItem := range cs.Data {
+		log.Error(nil, nil, "ASDAD %v", workItem.Attributes)
+		assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
+		assert.Equal(t, "fatherIteration Test", workItem.Attributes[workitem.SystemTitle])
+		assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
+		assert.Equal(t, fatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
 	}
 }
 

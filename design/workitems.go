@@ -289,3 +289,25 @@ var _ = a.Resource("redirect_workitem", func() {
 		a.Response(d.MovedPermanently)
 	})
 })
+
+var _ = a.Resource("planner_backlog", func() {
+	a.Parent("space")
+	a.BasePath("/backlog")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List backlog work items.")
+		a.Params(func() {
+			a.Param("page", d.String, "Paging in the format <start>,<limit>")
+		})
+		a.Response(d.OK, func() {
+			a.Media(workItemList)
+		})
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})

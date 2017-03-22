@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/jsonapi"
@@ -32,21 +34,26 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "could not parse paging"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		iterations, err := appl.Iterations().ListBacklogIterations(ctx.Context, spaceID, start, &limit)
+		result, err := appl.WorkItems().Backlog(ctx.Context, spaceID, start, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error listing backlog iterations"))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error listing backlog items"))
 		}
-		itrMap := make(iterationIDMap)
-		for _, itr := range iterations {
-			itrMap[itr.ID] = itr
+
+		lastMod := findLastModified(result)
+
+		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
+			ifModSince, err := http.ParseTime(ifMod[0])
+			if err == nil {
+				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
+					return ctx.NotModified()
+				}
+			}
 		}
-		// fetch extra information(counts of WI in each iteration of the space) to be added in response
-		wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+		response := app.WorkItem2List{
+			Data: ConvertWorkItems(ctx.RequestData, result),
 		}
-		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
-		return ctx.OK(res)
+
+		ctx.ResponseData.Header().Set("Last-Modified", lastModifiedTime(lastMod))
+		return ctx.OK(&response)
 	})
 }

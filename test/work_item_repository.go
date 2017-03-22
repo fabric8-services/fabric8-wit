@@ -96,6 +96,18 @@ type WorkItemRepository struct {
 		result2 uint64
 		result3 error
 	}
+	BacklogStub        func(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*app.WorkItem, error)
+	backlogMutex       sync.RWMutex
+	backlogArgsForCall []struct {
+		ctx     context.Context
+		spaceID uuid.UUID
+		start   *int
+		length  *int
+	}
+	backlogReturns struct {
+		result1 []*app.WorkItem
+		result2 error
+	}
 	FetchStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
@@ -356,6 +368,22 @@ func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c c
 		return fake.ListStub(ctx, spaceID, c, start, length)
 	}
 	return fake.listReturns.result1, fake.listReturns.result2, fake.listReturns.result3
+}
+
+func (fake *WorkItemRepository) Backlog(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]*app.WorkItem, error) {
+	fake.backlogMutex.Lock()
+	fake.backlogArgsForCall = append(fake.backlogArgsForCall, struct {
+		ctx     context.Context
+		spaceID uuid.UUID
+		start   *int
+		length  *int
+	}{ctx, spaceID, start, length})
+	fake.recordInvocation("Backlog", []interface{}{ctx, spaceID, start, length})
+	fake.backlogMutex.Unlock()
+	if fake.BacklogStub != nil {
+		return fake.BacklogStub(ctx, spaceID, start, length)
+	}
+	return fake.backlogReturns.result1, fake.backlogReturns.result2
 }
 
 func (fake *WorkItemRepository) ListCallCount() int {
