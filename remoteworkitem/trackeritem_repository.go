@@ -129,7 +129,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
 	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
 	log.Info(nil, map[string]interface{}{
-		"wiID": workItemRemoteID,
+		"wi_id": workItemRemoteID,
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
@@ -140,7 +140,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 	var resultWorkItem *app.WorkItem
 	if existingWorkItem != nil {
 		log.Info(nil, map[string]interface{}{
-			"wiID": existingWorkItem.ID,
+			"wi_id": existingWorkItem.ID,
 		}, "Workitem exists, will be updated")
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
@@ -165,7 +165,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 		}
 	}
 	log.Info(nil, map[string]interface{}{
-		"wiID": workItem.ID,
+		"wi_id": workItem.ID,
 	}, "Result workitem: %v", resultWorkItem)
 
 	return resultWorkItem, nil
