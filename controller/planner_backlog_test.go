@@ -126,21 +126,21 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 			workitem.SystemState:     "new",
 			workitem.SystemIteration: fatherIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
 
 		fields2 := map[string]interface{}{
 			workitem.SystemTitle:     "childIteration Test",
 			workitem.SystemState:     "closed",
 			workitem.SystemIteration: childIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields2, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemPlannerItem, fields2, rest.testIdentity.ID)
 
 		fields3 := map[string]interface{}{
 			workitem.SystemTitle:     "anotherFatherIteration Test",
 			workitem.SystemState:     "in progress",
 			workitem.SystemIteration: anotherFatherIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields3, rest.testIdentity.ID)
+		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemPlannerItem, fields3, rest.testIdentity.ID)
 
 		return nil
 	})
