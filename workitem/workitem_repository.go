@@ -704,10 +704,6 @@ func (r *GormWorkItemRepository) Backlog(ctx context.Context, spaceID uuid.UUID,
 							AND NOT wi.fields @> '{"system.state": "closed"}'
 							AND wi.fields @> concat('{"system.iteration": "', itr.id, '"}')::jsonb;`,
 		spaceID.String())
-	log.Error(ctx, map[string]interface{}{
-		"query": query,
-		"err":   err,
-	}, "qqqq unable to list backlog iterations")
 	db := r.db.Raw(query)
 	if start != nil {
 		db = db.Offset(*start)
@@ -717,10 +713,6 @@ func (r *GormWorkItemRepository) Backlog(ctx context.Context, spaceID uuid.UUID,
 	}
 
 	if err := db.Scan(&rows).Error; err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceID,
-			"err":     err,
-		}, "xxxx unable to list backlog iterations")
 		return nil, errs.WithStack(err)
 	}
 
@@ -736,10 +728,6 @@ func (r *GormWorkItemRepository) Backlog(ctx context.Context, spaceID uuid.UUID,
 	for index, value := range rows {
 		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"spaceID": spaceID,
-				"err":     err,
-			}, "yyyyyy unable to list backlog iterations")
 			return nil, errors.NewInternalError(err.Error())
 		}
 		res[index], err = ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &value)
