@@ -36,7 +36,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"trackerID": tid,
+		"tracker_id": tid,
 	}, "Tracker ID to be created")
 
 	tq := TrackerQuery{
@@ -48,7 +48,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	tx := r.db
 	if err := tx.Create(&tq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID":    tid,
+			"tracker_id":   tid,
 			"trackerQuery": query,
 		}, "unable to create the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}
@@ -66,7 +66,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"trackerID":    tid,
+		"tracker_id":   tid,
 		"trackerQuery": tq,
 	}, "Created tracker query")
 
@@ -89,7 +89,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 	res := TrackerQuery{}
 	if r.db.First(&res, id).RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID": id,
+			"tracker_id": id,
 		}, "tracker resource not found")
 		return nil, NotFoundError{"tracker query", ID}
 	}
@@ -124,13 +124,13 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"trackerID": id,
+		"tracker_id": id,
 	}, "looking tracker query")
 
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID": id,
+			"tracker_id": id,
 		}, "tracker query not found")
 
 		return nil, NotFoundError{entity: "TrackerQuery", ID: tq.ID}
@@ -142,7 +142,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	tx = r.db.First(&Tracker{}, tid)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID": id,
+			"tracker_id": id,
 		}, "tracker ID not found")
 		return nil, NotFoundError{entity: "tracker", ID: tq.TrackerID}
 	}
@@ -161,7 +161,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 	if err := tx.Save(&newTq).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"trackerQuery": tq.Query,
-			"trackerID":    tid,
+			"tracker_id":   tid,
 			"err":          err,
 		}, "unable to save the tracker query")
 		return nil, InternalError{simpleError{err.Error()}}

@@ -140,9 +140,9 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 	}
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
-			"resource":       resource,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"resource":        resource,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to create a Keycloak resource")
 		return "", errors.NewInternalError("Unable to create a Keycloak resource. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -161,7 +161,7 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 
 	log.Debug(ctx, map[string]interface{}{
 		"resourceName": resource.Name,
-		"resourceID":   r.ID,
+		"resource_id":  r.ID,
 	}, "Keycloak resource created")
 
 	return r.ID, nil
@@ -180,16 +180,16 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"publicClientID": publicClientID,
-			"err":            err.Error(),
+			"public_client_id": publicClientID,
+			"err":              err.Error(),
 		}, "Unable to obtain keycloak client ID")
 		return "", errors.NewInternalError("Unable to obtain keycloak client ID " + err.Error())
 	}
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
-			"publicClientID": publicClientID,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"public_client_id": publicClientID,
+			"response_status":  res.Status,
+			"response_body":    rest.ReadBody(res.Body),
 		}, "Unable to obtain keycloak client ID")
 		return "", errors.NewInternalError("Unable to obtain keycloak client ID. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -199,8 +199,8 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"publicClientID": publicClientID,
-			"err":            err.Error(),
+			"public_client_id": publicClientID,
+			"err":              err.Error(),
 		}, "Unable to unmarshal json with client ID")
 		return "", errors.NewInternalError(fmt.Sprintf("error when unmarshal json with client ID result %s ", jsonString) + err.Error())
 	}
@@ -210,8 +210,8 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 		}
 	}
 	log.Error(ctx, map[string]interface{}{
-		"publicClientID": publicClientID,
-		"json":           jsonString,
+		"public_client_id": publicClientID,
+		"json":             jsonString,
 	}, "Unable to find client ID '"+publicClientID+"' among available IDs: "+jsonString)
 	return "", errors.NewInternalError("Unable to find keycloak client ID")
 }
@@ -239,18 +239,18 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID": clientID,
-			"policy":   policy,
-			"err":      err.Error(),
+			"client_id": clientID,
+			"policy":    policy,
+			"err":       err.Error(),
 		}, "Unable to crete the Keycloak policy")
 		return "", errors.NewInternalError("Unable to create the Keycloak policy " + err.Error())
 	}
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":       clientID,
-			"policy":         policy,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"client_id":       clientID,
+			"policy":          policy,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to update the Keycloak policy")
 		return "", errors.NewInternalError("Unable to create the Keycloak policy. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -260,7 +260,7 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":   clientID,
+			"client_id":  clientID,
 			"policy":     policy,
 			"jsonString": jsonString,
 		}, "Unable to unmarshal json with the create keycloak policy request result")
@@ -293,7 +293,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":   clientID,
+			"client_id":  clientID,
 			"permission": permission,
 			"err":        err.Error(),
 		}, "Unable to crete the Keycloak permission")
@@ -301,10 +301,10 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	}
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":       clientID,
-			"permission":     permission,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"client_id":       clientID,
+			"permission":      permission,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to update the Keycloak permission")
 		return "", errors.NewInternalError("Unable to create the Keycloak permission. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -314,7 +314,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":   clientID,
+			"client_id":  clientID,
 			"permission": permission,
 			"jsonString": jsonString,
 		}, "Unable to unmarshal json with the create keycloak permission request result")
@@ -327,7 +327,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 // DeleteResource deletes the Keycloak resource assosiated with the space
 func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint string, protectionAPIToken string) error {
 	log.Debug(ctx, map[string]interface{}{
-		"kcResourceID": kcResourceID,
+		"kc_resource_id": kcResourceID,
 	}, "Deleting the Keycloak resource")
 
 	req, err := http.NewRequest("DELETE", authzEndpoint+"/"+kcResourceID, nil)
@@ -341,22 +341,22 @@ func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint stri
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"kcResourceID": kcResourceID,
-			"err":          err.Error(),
+			"kc_resource_id": kcResourceID,
+			"err":            err.Error(),
 		}, "Unable to delete the Keycloak resource")
 		return errors.NewInternalError("Unable to delete the Keycloak resource " + err.Error())
 	}
 	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
-			"kcResourceID":   kcResourceID,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"kc_resource_id":  kcResourceID,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to delete the Keycloak resource")
 		return errors.NewInternalError("Unable to delete the Keycloak resource. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"kcResourceID": kcResourceID,
+		"kc_resource_id": kcResourceID,
 	}, "Keycloak resource deleted")
 
 	return nil
@@ -375,22 +375,22 @@ func DeletePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"policyID": policyID,
-			"err":      err.Error(),
+			"policy_id": policyID,
+			"err":       err.Error(),
 		}, "Unable to delete the Keycloak policy")
 		return errors.NewInternalError("Unable to delete the Keycloak policy " + err.Error())
 	}
 	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
-			"policyID":       policyID,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"policy_id":       policyID,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to delete the Keycloak policy")
 		return errors.NewInternalError("Unable to delete the Keycloak policy. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"policyID": policyID,
+		"policy_id": policyID,
 	}, "Keycloak policy deleted")
 
 	return nil
@@ -409,22 +409,22 @@ func DeletePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"permissionID": permissionID,
-			"err":          err.Error(),
+			"permission_id": permissionID,
+			"err":           err.Error(),
 		}, "Unable to delete the Keycloak permission")
 		return errors.NewInternalError("Unable to delete the Keycloak permission " + err.Error())
 	}
 	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
-			"permissionID":   permissionID,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"permission_id":   permissionID,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to delete the Keycloak permission")
 		return errors.NewInternalError("Unable to delete the Keycloak permission. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"permissionID": permissionID,
+		"permission_id": permissionID,
 	}, "Keycloak permission deleted")
 
 	return nil
@@ -443,9 +443,9 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID": clientID,
-			"policyID": policyID,
-			"err":      err.Error(),
+			"client_id": clientID,
+			"policy_id": policyID,
+			"err":       err.Error(),
 		}, "Unable to obtain a Keycloak policy")
 		return nil, errors.NewInternalError("Unable to obtain a Keycloak policy " + err.Error())
 	}
@@ -454,16 +454,16 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 		// OK
 	case http.StatusNotFound:
 		log.Error(ctx, map[string]interface{}{
-			"clientID": clientID,
-			"policyID": policyID,
+			"client_id": clientID,
+			"policy_id": policyID,
 		}, "Keycloak policy is not found")
 		return nil, errors.NewNotFoundError("policy", policyID)
 	default:
 		log.Error(ctx, map[string]interface{}{
-			"clientID":       clientID,
-			"policyID":       policyID,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"client_id":       clientID,
+			"policy_id":       policyID,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to obtain a Keycloak policy")
 		return nil, errors.NewInternalError("Unable to obtain a Keycloak policy. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -473,8 +473,8 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":   clientID,
-			"policyID":   policyID,
+			"client_id":  clientID,
+			"policy_id":  policyID,
 			"jsonString": jsonString,
 		}, "Unable to unmarshal json with the get keycloak policy request result")
 		return nil, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with get the keycloak policy request result %s ", jsonString) + err.Error())
@@ -506,18 +506,18 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"clientID": clientID,
-			"policy":   policy,
-			"err":      err.Error(),
+			"client_id": clientID,
+			"policy":    policy,
+			"err":       err.Error(),
 		}, "Unable to update the Keycloak policy")
 		return errors.NewInternalError("unable to update the Keycloak policy " + err.Error())
 	}
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
-			"clientID":       clientID,
-			"policy":         policy,
-			"responceStatus": res.Status,
-			"responceBody":   rest.ReadBody(res.Body),
+			"client_id":       clientID,
+			"policy":          policy,
+			"response_status": res.Status,
+			"response_body":   rest.ReadBody(res.Body),
 		}, "Unable to update the Keycloak policy")
 		return errors.NewInternalError("unable to update the Keycloak policy. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -561,8 +561,8 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	default:
 		log.Error(ctx, map[string]interface{}{
 			"entitlementResource": entitlementResource,
-			"responceStatus":      res.Status,
-			"responceBody":        rest.ReadBody(res.Body),
+			"response_status":     res.Status,
+			"response_body":       rest.ReadBody(res.Body),
 		}, "Unable to update the Keycloak permission")
 		return "", errors.NewInternalError("unable to obtain entitlement resource. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -626,8 +626,8 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": userID,
-			"err":    err.Error(),
+			"user_id": userID,
+			"err":     err.Error(),
 		}, "Unable to get user from Keycloak")
 		return false, errors.NewInternalError("Unable to get user from Keycloak " + err.Error())
 	}
@@ -638,7 +638,7 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 		return false, nil
 	default:
 		log.Error(ctx, map[string]interface{}{
-			"userID": userID,
+			"user_id": userID,
 		}, "Unable to get user from Keycloak")
 		return false, errors.NewInternalError("Unable to get user from Keycloak. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}

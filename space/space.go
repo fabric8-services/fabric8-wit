@@ -88,7 +88,7 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": ID.String(),
+			"space_id": ID.String(),
 		}, "state or known referer was empty")
 		return nil, errors.NewNotFoundError("space", ID.String())
 	}
@@ -103,7 +103,7 @@ func (r *GormRepository) Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 func (r *GormRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": ID.String(),
+			"space_id": ID.String(),
 		}, "unable to find the space by ID")
 		return errors.NewNotFoundError("space", ID.String())
 	}
@@ -112,13 +112,13 @@ func (r *GormRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": ID.String(),
+			"space_id": ID.String(),
 		}, "unable to delete the space")
 		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": ID.String(),
+			"space_id": ID.String(),
 		}, "none row was affected by the deletion operation")
 		return errors.NewNotFoundError("space", ID.String())
 	}
@@ -155,7 +155,7 @@ func (r *GormRepository) Save(ctx context.Context, p *Space) (*Space, error) {
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"spaceID": p.ID,
+		"space_id": p.ID,
 	}, "space updated successfully")
 	return p, nil
 }
@@ -180,7 +180,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"spaceID": space.ID,
+		"space_id": space.ID,
 	}, "Space created successfully")
 	return space, nil
 }
