@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -85,7 +86,7 @@ func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Applic
 	identities, err := appl.Identities().Query(account.IdentityFilterByUsername(username))
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userName": username,
+			"username": username,
 		}, "Fail to locate identity for user")
 		return nil, err
 	}
@@ -95,7 +96,7 @@ func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Applic
 		}
 	}
 	log.Error(ctx, map[string]interface{}{
-		"userName": username,
+		"username": username,
 	}, "Fail to locate Keycloak identity for user")
 	return nil, fmt.Errorf("Can't find Keycloak Identity for user %s", username)
 }

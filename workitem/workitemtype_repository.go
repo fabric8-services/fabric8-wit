@@ -55,16 +55,16 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
-			"witID":   id,
-			"spaceID": spaceID,
+			"wit_id":   id,
+			"space_id": spaceID,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
 		db := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
 		if db.RecordNotFound() {
 			log.Error(ctx, map[string]interface{}{
-				"witID":   id,
-				"spaceID": spaceID,
+				"wit_id":   id,
+				"space_id": spaceID,
 			}, "work item type not found")
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
@@ -84,14 +84,14 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
-			"witID": id,
+			"wit_id": id,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
 		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
 			log.Error(ctx, map[string]interface{}{
-				"witID": id,
+				"wit_id": id,
 			}, "work item type not found")
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
@@ -119,7 +119,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	existing, _ := r.LoadTypeFromDB(ctx, *id)
 	if existing != nil {
-		log.Error(ctx, map[string]interface{}{"witID": *id}, "unable to create new work item type")
+		log.Error(ctx, map[string]interface{}{"wit_id": *id}, "unable to create new work item type")
 		return nil, errors.NewBadParameterError("name", *id)
 	}
 	allFields := map[string]FieldDefinition{}
@@ -176,7 +176,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	result := convertTypeFromModels(goa.ContextRequest(ctx), &created)
 
-	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
+	log.Debug(ctx, map[string]interface{}{"wit_id": created.ID}, "Work item type created successfully!")
 
 	return &app.WorkItemTypeSingle{Data: &result}, nil
 }

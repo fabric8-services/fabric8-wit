@@ -68,14 +68,14 @@ func (r *GormTrackerRepository) Load(ctx context.Context, ID string) (*app.Track
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"trackerID": id,
+		"tracker_id": id,
 	}, "Loading tracker repository...")
 
 	res := Tracker{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID": ID,
+			"tracker_id": ID,
 		}, "tracker repository not found")
 
 		return nil, NotFoundError{"tracker", ID}
@@ -135,13 +135,13 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"trackerID": id,
+		"tracker_id": id,
 	}, "Looking for a tracker repository with id ", id)
 
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID": id,
+			"tracker_id": id,
 		}, "tracker repository not found")
 
 		return nil, NotFoundError{entity: "tracker", ID: t.ID}
@@ -159,8 +159,8 @@ func (r *GormTrackerRepository) Save(ctx context.Context, t app.Tracker) (*app.T
 
 	if err := tx.Save(&newT).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"trackerID": newT.ID,
-			"err":       err,
+			"tracker_id": newT.ID,
+			"err":        err,
 		}, "unable to save tracker repository")
 		return nil, InternalError{simpleError{err.Error()}}
 	}

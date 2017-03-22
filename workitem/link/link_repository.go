@@ -131,13 +131,13 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 // Returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkSingle, error) {
 	log.Info(ctx, map[string]interface{}{
-		"wilID": ID,
+		"wil_id": ID,
 	}, "Loading work item link")
 	res := WorkItemLink{}
 	db := r.db.Where("id=?", ID).Find(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": ID,
+			"wil_id": ID,
 		}, "work item link not found")
 		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
@@ -241,7 +241,7 @@ func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiI
 // returns NotFoundError or InternalError
 func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkItemLink, suppressorID uuid.UUID) error {
 	log.Info(ctx, map[string]interface{}{
-		"wilID": lnk.ID,
+		"wil_id": lnk.ID,
 	}, "Deleting the work item link")
 
 	tx := r.db.Delete(&lnk)
@@ -250,8 +250,8 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 	}
 	if tx.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": lnk.ID,
-			"err":   tx.Error,
+			"wil_id": lnk.ID,
+			"err":    tx.Error,
 		}, "unable to delete work item link")
 		return errors.NewInternalError(tx.Error.Error())
 	}
@@ -273,14 +273,14 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	db := r.db.Model(&res).Where("id=?", ID).First(&res)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": ID,
+			"wil_id": ID,
 		}, "work item link not found")
 		return nil, errors.NewNotFoundError("work item link", ID.String())
 	}
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": ID,
-			"err":   db.Error,
+			"wil_id": ID,
+			"err":    db.Error,
 		}, "unable to find work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
@@ -297,8 +297,8 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 	db = r.db.Save(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wilID": res.ID,
-			"err":   db.Error,
+			"wil_id": res.ID,
+			"err":    db.Error,
 		}, "unable to save work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
@@ -307,7 +307,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 		return nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
-		"wilID": res.ID,
+		"wil_id": res.ID,
 	}, "Work item link updated")
 	result := ConvertLinkFromModel(res)
 	return &result, nil

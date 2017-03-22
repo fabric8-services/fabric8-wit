@@ -218,8 +218,8 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 	token, err := auth.ReadToken(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"tokenEndpoint": res,
-			"err":           err,
+			"token_endpoint": res,
+			"err":            err,
 		}, "Error when unmarshal json with access token")
 		return nil, errors.NewInternalError("error when unmarshal json with access token " + err.Error())
 	}

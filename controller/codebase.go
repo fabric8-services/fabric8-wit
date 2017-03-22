@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -81,8 +82,8 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 	workspaces, err := cheClient.ListWorkspaces(ctx, cb.URL)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"codebaseID": cb.ID,
-			"err":        err,
+			"codebase_id": cb.ID,
+			"err":         err,
 		}, "unable fetch list of workspaces")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
@@ -142,8 +143,8 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"codebaseID": cb.ID,
-			"err":        err,
+			"codebase_id": cb.ID,
+			"err":         err,
 		}, "unable to create workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
 			fmt.Println(werr.String())
@@ -186,8 +187,8 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"codebaseID": cb.ID,
-			"err":        err,
+			"codebase_id": cb.ID,
+			"err":         err,
 		}, "unable to open workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
 			fmt.Println(werr.String())
