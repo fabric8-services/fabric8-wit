@@ -285,6 +285,26 @@ func main() {
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
+	// Mount "codebase" controller
+	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
+	app.MountCodebaseController(service, codebaseCtrl)
+
+	// Mount "spacecodebases" controller
+	spaceCodebaseCtrl := controller.NewSpaceCodebasesController(service, appDB)
+	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
+
+	if !configuration.IsPostgresDeveloperModeEnabled() {
+		// TEMP MOUNT "redirect" controller
+		redirectWorkItemTypesCtrl := controller.NewRedirectWorkitemtypeController(service)
+		app.MountRedirectWorkitemtypeController(service, redirectWorkItemTypesCtrl)
+
+		redirectWorkItemCtrl := controller.NewRedirectWorkitemController(service)
+		app.MountRedirectWorkitemController(service, redirectWorkItemCtrl)
+
+		redirectWorkItemLinkTypesCtrl := controller.NewRedirectWorkItemLinkTypeController(service)
+		app.MountRedirectWorkItemLinkTypeController(service, redirectWorkItemLinkTypesCtrl)
+	}
+
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)

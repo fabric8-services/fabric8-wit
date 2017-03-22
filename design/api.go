@@ -26,6 +26,12 @@ var _ = a.API("alm", func() {
 		a.Credentials()
 	})
 
+	a.Trait("GenericLinksTrait", func() {
+		a.Attribute("self", d.String)
+		a.Attribute("related", d.String)
+		a.Attribute("meta", a.HashOf(d.String, d.Any))
+	})
+
 	a.Trait("jsonapi-media-type", func() {
 		a.ContentType("application/vnd.api+json")
 	})

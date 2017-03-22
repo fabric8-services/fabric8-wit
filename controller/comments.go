@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"context"
+	"fmt"
 	"html"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rendering"
@@ -34,10 +37,16 @@ func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 		}
 
 		res := &app.CommentSingle{}
+		// This code should change if others type of parents than WI are allowed
+		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, c)
+		if err != nil {
+			return errors.NewNotFoundError("comment parentID", c.ParentID)
+		}
+
 		res.Data = ConvertComment(
 			ctx.RequestData,
 			c,
-			CommentIncludeParentWorkItem())
+			includeParentWorkItem)
 
 		return ctx.OK(res)
 	})
@@ -69,8 +78,14 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		// This code should change if others type of parents than WI are allowed
+		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cm)
+		if err != nil {
+			return errors.NewNotFoundError("comment parentID", cm.ParentID)
+		}
+
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, cm, CommentIncludeParentWorkItem()),
+			Data: ConvertComment(ctx.RequestData, cm, includeParentWorkItem),
 		}
 		return ctx.OK(res)
 	})
@@ -172,10 +187,20 @@ func ConvertComment(request *goa.RequestData, comment *comment.Comment, addition
 type HrefFunc func(id interface{}) string
 
 // CommentIncludeParentWorkItem includes a "parent" relation to a WorkItem
-func CommentIncludeParentWorkItem() CommentConvertFunc {
-	return func(request *goa.RequestData, comment *comment.Comment, data *app.Comment) {
-		CommentIncludeParent(request, comment, data, app.WorkitemHref, APIStringTypeWorkItem)
+func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
+	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
+	// we can extract the space out of this WI.
+	wi, err := appl.WorkItems().LoadByID(ctx, c.ParentID)
+	if err != nil {
+		return nil, err
 	}
+
+	return func(request *goa.RequestData, comment *comment.Comment, data *app.Comment) {
+		hrefFunc := func(obj interface{}) string {
+			return fmt.Sprintf(app.WorkitemHref(wi.Relationships.Space.Data.ID, "%v"), obj)
+		}
+		CommentIncludeParent(request, comment, data, hrefFunc, APIStringTypeWorkItem)
+	}, nil
 }
 
 // CommentIncludeParent adds the "parent" relationship to this Comment

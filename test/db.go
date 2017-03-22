@@ -5,6 +5,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/space"
@@ -72,6 +73,10 @@ func (db *MockDB) Areas() area.Repository {
 }
 
 func (g *MockDB) OauthStates() auth.OauthStateReferenceRepository {
+	return nil
+}
+
+func (db *MockDB) Codebases() codebase.Repository {
 	return nil
 }
 
