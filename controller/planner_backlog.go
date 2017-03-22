@@ -49,10 +49,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemArea), criteria.Literal(string(*ctx.FilterArea))))
 	}
 
-	exp = criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateNew))
-	exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateOpen)))
-	exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateInProgress)))
-	exp = criteria.Or(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateResolved)))
+	exp = criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed))
 
 	// Update filter by adding child iterations if any
 	err = application.Transactional(c.db, func(appl application.Application) error {
