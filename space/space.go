@@ -299,8 +299,8 @@ func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *uuid.UU
 	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userId, *spaceName).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"spaceName": *spaceName,
-			"userId":    *userId,
+			"space_name": *spaceName,
+			"user_id":    *userId,
 		}, "Could not find space under owner")
 		return nil, errors.NewNotFoundError("space", *spaceName)
 	}

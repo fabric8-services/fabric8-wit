@@ -65,16 +65,16 @@ func Migrate(db *sql.DB) error {
 		if err != nil {
 			oldErr := err
 			log.Info(nil, map[string]interface{}{
-				"nextVersion": nextVersion,
-				"migrations":  m,
-				"err":         err,
+				"next_version": nextVersion,
+				"migrations":   m,
+				"err":          err,
 			}, "Rolling back transaction due to: %v", err)
 
 			if err = tx.Rollback(); err != nil {
 				log.Error(nil, map[string]interface{}{
-					"nextVersion": nextVersion,
-					"migrations":  m,
-					"err":         err,
+					"next_version": nextVersion,
+					"migrations":   m,
+					"err":          err,
 				}, "error while rolling back transaction: ", err)
 				return errs.Errorf("Error while rolling back transaction: %s\n", err)
 			}
@@ -340,15 +340,15 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
 		log.Info(nil, map[string]interface{}{
-			"nextVersion":    *nextVersion,
-			"currentVersion": currentVersion,
+			"next_version":    *nextVersion,
+			"current_version": currentVersion,
 		}, "Current version %d. Nothing to update.", currentVersion)
 		return nil
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"nextVersion":    *nextVersion,
-		"currentVersion": currentVersion,
+		"next_version":    *nextVersion,
+		"current_version": currentVersion,
 	}, "Attempt to update DB to version %v", *nextVersion)
 
 	// Apply all the updates of the next version
@@ -363,8 +363,8 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"nextVersion":    *nextVersion,
-		"currentVersion": currentVersion,
+		"next_version":    *nextVersion,
+		"current_version": currentVersion,
 	}, "Successfully updated DB to version %v", *nextVersion)
 
 	return nil

@@ -168,7 +168,7 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"userList": objs,
+		"user_list": objs,
 	}, "User query done successfully!")
 
 	return objs, nil

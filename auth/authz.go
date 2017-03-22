@@ -152,16 +152,16 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"resource":   resource,
-			"jsonString": jsonString,
+			"resource":    resource,
+			"json_string": jsonString,
 		}, "Unable to unmarshal json with the create keycloak resource request result")
 
 		return "", errors.NewInternalError(fmt.Sprintf("Unable to unmarshal json with the create keycloak resource request result %s ", jsonString) + err.Error())
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"resourceName": resource.Name,
-		"resource_id":  r.ID,
+		"resource_name": resource.Name,
+		"resource_id":   r.ID,
 	}, "Keycloak resource created")
 
 	return r.ID, nil
@@ -260,9 +260,9 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"client_id":  clientID,
-			"policy":     policy,
-			"jsonString": jsonString,
+			"client_id":   clientID,
+			"policy":      policy,
+			"json_string": jsonString,
 		}, "Unable to unmarshal json with the create keycloak policy request result")
 		return "", errors.NewInternalError(fmt.Sprintf("error when unmarshal json with the create keycloak policy request result %s ", jsonString) + err.Error())
 	}
@@ -314,9 +314,9 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"client_id":  clientID,
-			"permission": permission,
-			"jsonString": jsonString,
+			"client_id":   clientID,
+			"permission":  permission,
+			"json_string": jsonString,
 		}, "Unable to unmarshal json with the create keycloak permission request result")
 		return "", errors.NewInternalError(fmt.Sprintf("error when unmarshal json with the create keycloak permission request result %s ", jsonString) + err.Error())
 	}
@@ -473,9 +473,9 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"client_id":  clientID,
-			"policy_id":  policyID,
-			"jsonString": jsonString,
+			"client_id":   clientID,
+			"policy_id":   policyID,
+			"json_string": jsonString,
 		}, "Unable to unmarshal json with the get keycloak policy request result")
 		return nil, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with get the keycloak policy request result %s ", jsonString) + err.Error())
 	}
@@ -573,7 +573,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"entitlement_resource": entitlementResource,
-			"jsonString":           jsonString,
+			"json_string":          jsonString,
 		}, "Unable to unmarshal json with the obtain entitlement request result")
 		return "", errors.NewInternalError(fmt.Sprintf("error when unmarshal json with the obtain entitlement request result %s ", jsonString) + err.Error())
 	}

@@ -662,8 +662,8 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
 		log.Warn(nil, map[string]interface{}{
-			"userFullName": user.FullName,
-			"err":          err,
+			"user_full_name": user.FullName,
+			"err":            err,
 		}, "error when generating gravatar")
 		return errors.New("Error when generating gravatar " + err.Error())
 	}
@@ -688,9 +688,9 @@ func ContextIdentity(ctx context.Context) (*uuid.UUID, error) {
 	if err != nil {
 		// TODO : need a way to define user as Guest
 		log.Error(ctx, map[string]interface{}{
-			"uuid":         uuid,
-			"tokenManager": manager,
-			"err":          err,
+			"uuid":          uuid,
+			"token_manager": manager,
+			"err":           err,
 		}, "identity belongs to a Guest User")
 
 		return nil, errs.WithStack(err)

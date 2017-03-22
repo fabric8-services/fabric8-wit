@@ -253,7 +253,7 @@ func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Ide
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"identityList": objs,
+		"identity_list": objs,
 	}, "Identity query executed successfully!")
 
 	return objs, nil
@@ -271,12 +271,12 @@ func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Ident
 	}
 	if len(objs) != 0 && objs[0] != nil {
 		log.Debug(nil, map[string]interface{}{
-			"identityList": objs,
+			"identity_list": objs,
 		}, "Found matching identity: %v", *objs[0])
 		return objs[0], nil
 	}
 	log.Debug(nil, map[string]interface{}{
-		"identityList": objs,
+		"identity_list": objs,
 	}, "No matching identity found")
 	return nil, nil
 }
@@ -333,7 +333,7 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"identityList": &res,
+		"identity_list": &res,
 	}, "Identity List executed successfully!")
 
 	return &res, nil
