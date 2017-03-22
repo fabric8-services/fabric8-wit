@@ -67,7 +67,7 @@ type WorkItemSuite struct {
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
-	wi             *app.WorkItem2
+	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	testIdentity   account.Identity
 	ctx            context.Context
@@ -167,7 +167,7 @@ func (s *WorkItemSuite) TestReorderWorkitemAboveOK() {
 	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 	payload2 := minimumRequiredReorderPayload()
 
-	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result3.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
@@ -194,7 +194,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBelowOK() {
 
 	payload2 := minimumRequiredReorderPayload()
 
-	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
@@ -219,7 +219,7 @@ func (s *WorkItemSuite) TestReorderWorkitemTopOK() {
 	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 	payload2 := minimumRequiredReorderPayload()
 
-	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionTop)
@@ -243,7 +243,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 	payload2 := minimumRequiredReorderPayload()
 
-	var dataArray []*app.WorkItem2 // dataArray contains the workitem(s) that have to be reordered
+	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, result2.Data)
 	payload2.Data = dataArray
 	payload2.Position.Direction = string(workitem.DirectionBottom)
@@ -268,7 +268,7 @@ func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
 	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 	payload2 := minimumRequiredReorderPayload()
 
-	var dataArray []*app.WorkItem2 // dataArray contains the workitems that have to be reordered
+	var dataArray []*app.WorkItem // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result3.Data, result4.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
@@ -297,7 +297,7 @@ func (s *WorkItemSuite) TestReorderWorkitemBadRequestOK() {
 	// Response is Bad Parameter
 	// Reorder is unsuccessful
 
-	var dataArray []*app.WorkItem2
+	var dataArray []*app.WorkItem
 	payload2.Data = dataArray
 	payload2.Position.ID = result1.Data.ID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
@@ -316,7 +316,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	// Response is Not Found
 	// Reorder is unsuccessful
 
-	var dataArray []*app.WorkItem2
+	var dataArray []*app.WorkItem
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
 	randomID := "78"
@@ -558,32 +558,25 @@ func computeCount(totalCount int, start int, limit int) int {
 	return limit
 }
 
-func makeWorkItems(count int) []*app.WorkItem {
-	res := make([]*app.WorkItem, count)
-
-	reqLong := &goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}
-	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+func makeWorkItems(count int) []*workitem.WorkItem {
+	res := make([]*workitem.WorkItem, count)
 	for index := range res {
-		res[index] = &app.WorkItem{
+		res[index] = &workitem.WorkItem{
 			ID:   fmt.Sprintf("id%d", index),
 			Type: uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{
 				workitem.SystemUpdatedAt: time.Now(),
 			},
-			Relationships: &app.WorkItemRelationships{
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
-			},
+			Relationships: &workitem.WorkItemRelationships{SpaceID: space.SystemSpace},
 		}
 	}
 	return res
 }
 
 // ========== helper functions for tests inside WorkItem2Suite ==========
-func getMinimumRequiredUpdatePayload(wi *app.WorkItem2) *app.UpdateWorkitemPayload {
+func getMinimumRequiredUpdatePayload(wi *app.WorkItem) *app.UpdateWorkitemPayload {
 	return &app.UpdateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			ID:   wi.ID,
 			Attributes: map[string]interface{}{
@@ -599,7 +592,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 	return app.UpdateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
@@ -611,7 +604,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 
 func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 	return app.ReorderWorkitemPayload{
-		Data: []*app.WorkItem2{},
+		Data: []*app.WorkItem{},
 		Position: &app.WorkItemReorderPosition{
 			ID: nil,
 		},
@@ -635,7 +628,7 @@ func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
 	}, app.SpaceHref(space.SystemSpace.String()))
 
 	return app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
@@ -757,7 +750,7 @@ type WorkItem2Suite struct {
 	pubKey         *rsa.PublicKey
 	priKey         *rsa.PrivateKey
 	svc            *goa.Service
-	wi             *app.WorkItem2
+	wi             *app.WorkItem
 	minimumPayload *app.UpdateWorkitemPayload
 	ctx            context.Context
 }
@@ -1351,7 +1344,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
 	require.NotNil(s.T(), expected.Data.Attributes)
-	var dataArray []*app.WorkItem2Single
+	var dataArray []*app.WorkItemSingle
 	dataArray = append(dataArray, notExpected)
 	dataArray = append(dataArray, expected)
 	wiNew := workitem.SystemStateNew

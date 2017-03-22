@@ -6,14 +6,10 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
-	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -37,11 +33,10 @@ func upload(db *gorm.DB, tID int, item TrackerItemContent) error {
 }
 
 // Map a remote work item into an ALM work item and persist it into the database.
-func convert(ctx context.Context, db *gorm.DB, tID int, item TrackerItemContent, providerType string, spaceID uuid.UUID) (*app.WorkItem, error) {
+func convertToWorkItemModel(ctx context.Context, db *gorm.DB, tID int, item TrackerItemContent, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
 	remoteID := item.ID
 	content := string(item.Content)
 	trackerItem := TrackerItem{Item: content, RemoteItemID: remoteID, TrackerID: uint64(tID)}
-
 	// Converting the remote item to a local work item
 	remoteTrackerItemConvertFunc, ok := RemoteWorkItemImplRegistry[providerType]
 	if !ok {
@@ -59,21 +54,18 @@ func convert(ctx context.Context, db *gorm.DB, tID int, item TrackerItemContent,
 	if err != nil {
 		return nil, InternalError{simpleError{message: fmt.Sprintf("Error bind assignees: %s", err.Error())}}
 	}
-
 	return upsert(ctx, db, *workItem)
 }
 
 // lookupIdentities looks up creator and assignee remote identities to local identities (already existing or to be created)
-func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType string, spaceID uuid.UUID) (*app.WorkItem, error) {
+func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWorkItem, providerType string, spaceID uuid.UUID) (*workitem.WorkItem, error) {
 	identityRepository := account.NewIdentityRepository(db)
-	spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
-	workItem := app.WorkItem{
-		ID:     remoteWorkItem.ID,
-		Type:   remoteWorkItem.Type,
-		Fields: make(map[string]interface{}),
-		Relationships: &app.WorkItemRelationships{
-			Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
-		},
+	//spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
+	workItem := workitem.WorkItem{
+		ID:            remoteWorkItem.ID,
+		Type:          remoteWorkItem.Type,
+		Fields:        make(map[string]interface{}),
+		Relationships: &workitem.WorkItemRelationships{SpaceID: spaceID},
 	}
 	// copy all fields from remoteworkitem into result workitem
 	for fieldName, fieldValue := range remoteWorkItem.Fields {
@@ -124,7 +116,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 	return &workItem, nil
 }
 
-func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkItem, error) {
+func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*workitem.WorkItem, error) {
 	wir := workitem.NewWorkItemRepository(db)
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
 	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
@@ -133,11 +125,11 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
-	existingWorkItem, err := wir.Fetch(ctx, *workItem.Relationships.Space.Data.ID, sqlExpression)
+	existingWorkItem, err := wir.Fetch(ctx, workItem.Relationships.SpaceID, sqlExpression)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	var resultWorkItem *app.WorkItem
+	var resultWorkItem *workitem.WorkItem
 	if existingWorkItem != nil {
 		log.Info(nil, map[string]interface{}{
 			"wi_id": existingWorkItem.ID,
@@ -146,7 +138,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 			existingWorkItem.Fields[key] = value
 		}
 		//TODO: we should probably assign the change author to a specific identity...
-		resultWorkItem, err = wir.Save(ctx, *existingWorkItem.Relationships.Space.Data.ID, *existingWorkItem, uuid.Nil)
+		resultWorkItem, err = wir.Save(ctx, existingWorkItem.Relationships.SpaceID, *existingWorkItem, uuid.Nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -159,7 +151,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 				return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
 			}
 		}
-		resultWorkItem, err = wir.Create(ctx, *workItem.Relationships.Space.Data.ID, workitem.SystemBug, workItem.Fields, creator)
+		resultWorkItem, err = wir.Create(ctx, workItem.Relationships.SpaceID, workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

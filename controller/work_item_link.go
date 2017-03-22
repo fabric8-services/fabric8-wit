@@ -85,7 +85,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 
 // getWorkItemsOfLinks returns an array of distinct work items as they appear as
 // source or target in the given work item links.
-func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItem2, error) {
+func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItem, error) {
 	// Build our "set" of distinct work item IDs already converted as strings
 	workItemIDMap := map[string]bool{}
 	for _, linkData := range linksDataArr {
@@ -93,7 +93,7 @@ func getWorkItemsOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemL
 		workItemIDMap[linkData.Relationships.Target.Data.ID] = true
 	}
 	// Now include the optional work item data in the work item link "included" array
-	workItemArr := []*app.WorkItem2{}
+	workItemArr := []*app.WorkItem{}
 	for workItemID := range workItemIDMap {
 		wi, err := ctx.Application.WorkItems().LoadByID(ctx.Context, workItemID)
 		if err != nil {

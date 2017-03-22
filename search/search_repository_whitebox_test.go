@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
@@ -69,7 +68,7 @@ func (s *searchRepositoryWhiteboxTest) TearDownTest() {
 }
 
 type SearchTestDescriptor struct {
-	wi             app.WorkItem
+	wi             workitem.WorkItem
 	searchString   string
 	minimumResults int
 }
@@ -79,7 +78,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 
 	testDataSet := []SearchTestDescriptor{
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
@@ -92,7 +91,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "add new error types in models/errors.go'",
 					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
@@ -105,7 +104,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
 					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
@@ -118,7 +117,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
@@ -131,7 +130,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:     "test should return 0 results'",
@@ -143,7 +142,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			searchString:   `negative case `,
 			minimumResults: 0,
 		}, {
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				// search stirng with braces should be acceptable case
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
@@ -155,7 +154,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			searchString:   `(value) `,
 			minimumResults: 1,
 		}, {
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				// search stirng with surrounding braces should be acceptable case
 				Fields: map[string]interface{}{
 					workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
@@ -185,7 +184,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 				s.T().Fatal("Couldnt create test data")
 			}
 
-			defer wir.Delete(ctx, *createdWorkItem.Relationships.Space.Data.ID, createdWorkItem.ID, s.modifierID)
+			defer wir.Delete(ctx, createdWorkItem.Relationships.SpaceID, createdWorkItem.ID, s.modifierID)
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
@@ -275,7 +274,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		wir := workitem.NewWorkItemRepository(tx)
 
-		workItem := app.WorkItem{Fields: make(map[string]interface{})}
+		workItem := workitem.WorkItem{Fields: make(map[string]interface{})}
 
 		workItem.Fields = map[string]interface{}{
 			workitem.SystemTitle:       "Search Test Sbose",
@@ -289,7 +288,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(ctx, *createdWorkItem.Relationships.Space.Data.ID, createdWorkItem.ID, s.modifierID)
+		defer wir.Delete(ctx, createdWorkItem.Relationships.SpaceID, createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results

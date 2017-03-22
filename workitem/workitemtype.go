@@ -4,13 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 
-	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -163,17 +159,14 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
-func (wit WorkItemType) ConvertFromModel(request *goa.RequestData, workItem WorkItem) (*app.WorkItem, error) {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
-	result := app.WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{},
-		Relationships: &app.WorkItemRelationships{
-			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
-		},
+// ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
+func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) (*WorkItem, error) {
+	result := WorkItem{
+		ID:            strconv.FormatUint(workItem.ID, 10),
+		Type:          workItem.Type,
+		Version:       workItem.Version,
+		Fields:        map[string]interface{}{},
+		Relationships: &WorkItemRelationships{SpaceID: workItem.SpaceID},
 	}
 
 	for name, field := range wit.Fields {

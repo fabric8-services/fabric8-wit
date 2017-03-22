@@ -8,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
@@ -126,7 +127,7 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 			return nil
 		})
 	}()
-	return func(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
 		wi2.Relationships.Comments.Meta = map[string]interface{}{
 			"totalCount": <-count,
@@ -135,21 +136,21 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 }
 
 // WorkItemIncludeComments adds relationship about comments to workitem (include totalCount)
-func WorkItemIncludeComments(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
+func WorkItemIncludeComments(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
 }
 
 // CreateCommentsRelation returns a RelationGeneric object representing the relation for a workitem to comment relation
-func CreateCommentsRelation(request *goa.RequestData, wi *app.WorkItem) *app.RelationGeneric {
+func CreateCommentsRelation(request *goa.RequestData, wi *workitem.WorkItem) *app.RelationGeneric {
 	return &app.RelationGeneric{
 		Links: CreateCommentsRelationLinks(request, wi),
 	}
 }
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
-func CreateCommentsRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
-	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/relationships/comments"
-	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/comments"
+func CreateCommentsRelationLinks(request *goa.RequestData, wi *workitem.WorkItem) *app.GenericLinks {
+	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.SpaceID, wi.ID)) + "/relationships/comments"
+	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.SpaceID, wi.ID)) + "/comments"
 	return &app.GenericLinks{
 		Self:    &commentsSelf,
 		Related: &commentsRelated,
