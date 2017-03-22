@@ -259,6 +259,10 @@ func main() {
 	iterationCtrl := controller.NewIterationController(service, appDB)
 	app.MountIterationController(service, iterationCtrl)
 
+	// Mount "categories" controller
+	categoryCtrl := controller.NewCategoryController(service, appDB)
+	app.MountCategoryController(service, categoryCtrl)
+
 	// Mount "spaceiterations" controller
 	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)

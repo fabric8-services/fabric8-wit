@@ -4,6 +4,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/space"
@@ -26,6 +27,7 @@ type Application interface {
 	Spaces() space.Repository
 	SpaceResources() space.ResourceRepository
 	Iterations() iteration.Repository
+	Categories() category.Repository
 	Users() account.UserRepository
 	Areas() area.Repository
 	OauthStates() auth.OauthStateReferenceRepository

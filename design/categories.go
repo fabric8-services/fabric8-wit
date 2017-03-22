@@ -14,8 +14,6 @@ var category = a.Type("categories", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", categoryAttributes)
-	a.Attribute("relationships", categoryRelationships)
-	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })
 
@@ -27,7 +25,23 @@ var categoryAttributes = a.Type("categoryAttributes", func() {
 	a.Required("name")
 })
 
-var categoryRelationships = a.Type("CategoryRelations", func() {
-	a.Attribute("space", relationGeneric, "This defines the owning space")
-	a.Attribute("workitemtypes", relationGeneric, "This defines the workitemtypes associated with the category")
+var categoryList = JSONList(
+	"category", "Holds the list of categories",
+	category,
+	pagingLinks,
+	meta)
+
+var _ = a.Resource("category", func() {
+	a.BasePath("/categories")
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List categories")
+		a.Response(d.OK, func() {
+			a.Media(categoryList)
+		})
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
 })
