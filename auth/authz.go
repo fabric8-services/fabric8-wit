@@ -530,7 +530,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	b, err := json.Marshal(entitlementResource)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"entitlementResource": entitlementResource,
+			"entitlement_resource": entitlementResource,
 			"err": err.Error(),
 		}, "Unable to marshal keyclaok entitlement resource struct")
 		return "", errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
@@ -548,7 +548,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"entitlementResource": entitlementResource,
+			"entitlement_resource": entitlementResource,
 			"err": err.Error(),
 		}, "Unable to obtain entitlement resource")
 		return "", errors.NewInternalError("unable to obtain entitlement resource " + err.Error())
@@ -560,9 +560,9 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		return "", errors.NewUnauthorizedError("not authorized")
 	default:
 		log.Error(ctx, map[string]interface{}{
-			"entitlementResource": entitlementResource,
-			"response_status":     res.Status,
-			"response_body":       rest.ReadBody(res.Body),
+			"entitlement_resource": entitlementResource,
+			"response_status":      res.Status,
+			"response_body":        rest.ReadBody(res.Body),
 		}, "Unable to update the Keycloak permission")
 		return "", errors.NewInternalError("unable to obtain entitlement resource. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
@@ -572,8 +572,8 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 	err = json.Unmarshal([]byte(jsonString), &r)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"entitlementResource": entitlementResource,
-			"jsonString":          jsonString,
+			"entitlement_resource": entitlementResource,
+			"jsonString":           jsonString,
 		}, "Unable to unmarshal json with the obtain entitlement request result")
 		return "", errors.NewInternalError(fmt.Sprintf("error when unmarshal json with the obtain entitlement request result %s ", jsonString) + err.Error())
 	}
