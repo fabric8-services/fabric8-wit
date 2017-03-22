@@ -3,6 +3,7 @@ package configuration
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/resource"
@@ -64,4 +65,24 @@ func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	}
 	_, err := config.getKeycloakURL(r, "somepath")
 	assert.NotNil(t, err)
+}
+
+func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	key := "ALMIGHTY_KEYCLOAK_REALM"
+	realEnvValue := os.Getenv(key)
+
+	os.Unsetenv(key)
+	defer func() {
+		os.Setenv(key, realEnvValue)
+		resetConfiguration()
+	}()
+
+	assert.Equal(t, devModeKeycloakRealm, config.GetKeycloakRealm())
+
+	os.Setenv(key, "somecustomrealm")
+	resetConfiguration()
+
+	assert.Equal(t, "somecustomrealm", config.GetKeycloakRealm())
 }

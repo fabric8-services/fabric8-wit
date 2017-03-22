@@ -20,7 +20,9 @@ import (
 )
 
 const (
-	spaceResourceType = "space"
+	// APIStringTypeCodebase contains the JSON API type for codebases
+	APIStringTypeSpace = "spaces"
+	spaceResourceType  = "space"
 )
 
 var scopes = []string{"read:space", "admin:space"}
@@ -318,9 +320,10 @@ func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...Space
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", sp.ID.String()))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", sp.ID.String()))
+	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", sp.ID.String()))
 	s := &app.Space{
 		ID:   &sp.ID,
-		Type: "spaces",
+		Type: APIStringTypeSpace,
 		Attributes: &app.SpaceAttributes{
 			Name:        &sp.Name,
 			Description: &sp.Description,
@@ -346,6 +349,11 @@ func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...Space
 			Areas: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedAreaList,
+				},
+			},
+			Codebases: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedCodebasesList,
 				},
 			},
 		},

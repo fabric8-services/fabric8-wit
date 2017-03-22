@@ -70,13 +70,24 @@ func (s *serviceBlackBoxTest) SetupSuite() {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
+	req := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(req)
+	if err != nil {
+		panic(err)
+	}
+	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(req)
+	if err != nil {
+		panic(err)
+	}
 	s.oauth = &oauth2.Config{
 		ClientID:     s.configuration.GetKeycloakClientID(),
 		ClientSecret: s.configuration.GetKeycloakSecret(),
 		Scopes:       []string{"user:email"},
 		Endpoint: oauth2.Endpoint{
-			AuthURL:  s.configuration.GetKeycloakDevModeURL() + "/auth/realms/fabric8/protocol/openid-connect/auth",
-			TokenURL: s.configuration.GetKeycloakDevModeURL() + "/auth/realms/fabric8/protocol/openid-connect/token",
+			AuthURL:  authEndpoint,
+			TokenURL: tokenEndpoint,
 		},
 	}
 	privateKey, err := token.ParsePrivateKey([]byte(token.RSAPrivateKey))

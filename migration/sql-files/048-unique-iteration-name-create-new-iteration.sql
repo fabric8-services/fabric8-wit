@@ -76,3 +76,5 @@ update work_items set fields=jsonb_set(fields, '{system.iteration}', to_jsonb(su
 DROP FUNCTION GetUpdatedIterationPath(uuid,uuid,ltree);
 DROP FUNCTION GetDefaultIteration(uuid);
 DROP FUNCTION TextToLtreeNode(text);
+
+CREATE INDEX ix_name ON iterations USING btree (name);

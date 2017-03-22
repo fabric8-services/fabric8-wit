@@ -258,11 +258,10 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("046-oauth-states.sql")})
 
 	// Version 47
-	m = append(m, steps{executeSQLFile("047-unique-iteration-name-create-new-iteration.sql")})
+	m = append(m, steps{executeSQLFile("047-codebases.sql")})
 
 	// Version 48
-	m = append(m, steps{executeSQLFile("048-add-index-on-iteration-name.sql")})
-
+	m = append(m, steps{executeSQLFile("048-unique-iteration-name-create-new-iteration.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
