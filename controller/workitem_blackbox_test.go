@@ -325,6 +325,30 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace.String(), &payload2)
 }
 
+// TestUpdateWorkitemWithoutReorder tests that when workitem is updated, execution order of workitem doesnot change.
+func (s *WorkItemSuite) TestUpdateWorkitemWithoutReorder() {
+
+	// Create new workitem
+	payload := minimumRequiredCreateWithType(workitem.SystemBug)
+	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
+	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+
+	// Update the workitem
+	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	payload2 := minimumRequiredUpdatePayload()
+	payload2.Data.ID = wi.Data.ID
+	payload2.Data.Attributes = wi.Data.Attributes
+	_, updated := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, payload.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &payload2)
+
+	assert.Equal(s.T(), *wi.Data.ID, *updated.Data.ID)
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+
+	// Check the execution order
+	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
+}
+
 func (s *WorkItemSuite) TestCreateWorkItemWithoutContext() {
 	// given
 	s.svc = goa.New("TestCreateWorkItemWithoutContext-Service")

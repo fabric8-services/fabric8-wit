@@ -69,8 +69,8 @@ func main() {
 	configuration, err := config.NewConfigurationData(configFilePath)
 	if err != nil {
 		logrus.Panic(nil, map[string]interface{}{
-			"configFilePath": configFilePath,
-			"err":            err,
+			"config_file_path": configFilePath,
+			"err":              err,
 		}, "failed to setup the configuration")
 	}
 

@@ -69,14 +69,14 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID stri
 		return nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	log.Info(nil, map[string]interface{}{
-		"wiID": workitemID,
+		"wi_id": workitemID,
 	}, "Loading work item")
 
 	res := WorkItem{}
 	tx := r.db.First(&res, id)
 	if tx.RecordNotFound() {
 		log.Error(nil, map[string]interface{}{
-			"wiID": workitemID,
+			"wi_id": workitemID,
 		}, "work item not found")
 		return nil, errors.NewNotFoundError("work item", workitemID)
 	}
@@ -109,22 +109,22 @@ func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, wo
 		return nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	log.Info(nil, map[string]interface{}{
-		"wiID":    workitemID,
-		"spaceID": spaceID,
+		"wi_id":    workitemID,
+		"space_id": spaceID,
 	}, "Loading work item")
 
 	res := WorkItem{}
 	tx := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(nil, map[string]interface{}{
-			"wiID":    workitemID,
-			"spaceID": spaceID,
+			"wi_id":    workitemID,
+			"space_id": spaceID,
 		}, "work item not found")
 		tx = r.db.Model(&res).Where("id=?", id).First(&res)
 		if tx.RecordNotFound() {
 			log.Error(nil, map[string]interface{}{
-				"wiID":    workitemID,
-				"spaceID": res.SpaceID,
+				"wi_id":    workitemID,
+				"space_id": res.SpaceID,
 			}, "work item not found but found by id")
 		}
 		return nil, errors.NewNotFoundError("work item", workitemID)
@@ -212,7 +212,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, 
 	if err != nil {
 		return errs.Wrapf(err, "error while deleting work item")
 	}
-	log.Debug(ctx, map[string]interface{}{"wiID": workitemID, "spaceID": spaceID}, "Work item deleted successfully!")
+	log.Debug(ctx, map[string]interface{}{"wi_id": workitemID, "space_id": spaceID}, "Work item deleted successfully!")
 	return nil
 }
 
@@ -414,14 +414,14 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"wiID":    wi.ID,
-		"spaceID": spaceID,
+		"wi_id":    wi.ID,
+		"space_id": spaceID,
 	}, "Looking for id for the work item repository")
 	tx := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wiID":    wi.ID,
-			"spaceID": spaceID,
+			"wi_id":    wi.ID,
+			"space_id": spaceID,
 		}, "work item repository not found")
 		return nil, errors.NewNotFoundError("work item", wi.ID)
 	}
@@ -440,7 +440,7 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi
 	res.Version = res.Version + 1
 	res.Type = wi.Type
 	res.Fields = Fields{}
-	res.ExecutionOrder = wi.ExecutionOrder
+	res.ExecutionOrder = wi.Fields[SystemOrder].(float64)
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
@@ -456,9 +456,9 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi
 	tx = tx.Where("Version = ?", wi.Version).Save(&res)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wiID":    wi.ID,
-			"spaceID": spaceID,
-			"err":     err,
+			"wi_id":    wi.ID,
+			"space_id": spaceID,
+			"err":      err,
 		}, "unable to save the work item repository")
 		return nil, errors.NewInternalError(err.Error())
 	}
@@ -471,8 +471,8 @@ func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi
 		return nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
-		"wiID":    wi.ID,
-		"spaceID": spaceID,
+		"wi_id":    wi.ID,
+		"space_id": spaceID,
 	}, "Updated work item repository")
 	return ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, &res)
 }
@@ -529,7 +529,7 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	if err != nil {
 		return nil, errs.Wrapf(err, "error while creating work item")
 	}
-	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wiID": wi.ID}, "Work item created successfully!")
+	log.Debug(ctx, map[string]interface{}{"pkg": "workitem", "wi_id": wi.ID}, "Work item created successfully!")
 	return witem, nil
 }
 

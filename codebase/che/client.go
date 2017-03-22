@@ -102,8 +102,8 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 	body, err := json.Marshal(&workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"workspaceID": workspace.ID,
-			"err":         err,
+			"workspace_id": workspace.ID,
+			"err":          err,
 		}, "failed to create request object")
 		return nil, err
 	}
@@ -133,14 +133,14 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"workspaceID": workspace.ID,
-				"err":         err,
+				"workspace_id": workspace.ID,
+				"err":          err,
 			}, "failed to decode error response from create workspace for repository")
 			return nil, err
 		}
 		log.Error(ctx, map[string]interface{}{
-			"workspaceID": workspace.ID,
-			"err":         workspaceErr.String(),
+			"workspace_id": workspace.ID,
+			"err":          workspaceErr.String(),
 		}, "failed to execute create workspace for repository")
 		return nil, &workspaceErr
 	}
@@ -149,8 +149,8 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"workspaceID": workspace.ID,
-			"err":         err,
+			"workspace_id": workspace.ID,
+			"err":          err,
 		}, "failed to decode response from create workspace for repository")
 		return nil, err
 	}
