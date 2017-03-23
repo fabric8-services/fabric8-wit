@@ -25,9 +25,9 @@ import (
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/stretchr/testify/suite"
 )
 
@@ -148,6 +148,52 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 		assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
 		assert.Equal(t, fatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
 	}
+}
+
+func (rest *TestPlannerBlacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
+	t := rest.T()
+	resource.Require(t, resource.Database)
+
+	var spaceID uuid.UUID
+	var fatherIteration *iteration.Iteration
+	application.Transactional(gormapplication.NewGormDB(rest.db), func(app application.Application) error {
+		repo := app.Iterations()
+
+		newSpace := space.Space{
+			Name: "Test 1",
+		}
+		p, err := app.Spaces().Create(rest.ctx, &newSpace)
+		if err != nil {
+			t.Error(err)
+		}
+		spaceID = p.ID
+
+		fatherIteration = &iteration.Iteration{
+			Name:    "Parent Iteration",
+			SpaceID: spaceID,
+			State:   iteration.IterationStateNew,
+		}
+		repo.Create(rest.ctx, fatherIteration)
+
+		fields := map[string]interface{}{
+			workitem.SystemTitle:     "fatherIteration Test",
+			workitem.SystemState:     "new",
+			workitem.SystemIteration: fatherIteration.ID.String(),
+		}
+		app.WorkItems().Create(rest.ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
+
+		return nil
+	})
+
+	svc, ctrl := rest.UnSecuredController()
+
+	offset := "0"
+	filter := ""
+	limit := -1
+	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, spaceID.String(), &filter, nil, nil, nil, &limit, &offset)
+
+	// The list has to be empty
+	assert.Len(t, cs.Data, 0)
 }
 
 func (rest *TestPlannerBlacklogREST) TestFailListPlannerBacklogByMissingSpace() {

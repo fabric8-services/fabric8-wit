@@ -51,37 +51,38 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 
 	exp = criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed))
 
-	// Update filter by adding child iterations if any
-	err = application.Transactional(c.db, func(appl application.Application) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		var result []*app.WorkItem
+		// Get the root iteration
 		iteration, err := appl.Iterations().RootIteration(ctx.Context, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to fetch root iteration"))
 		}
 		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(iteration.ID.String()))
 
+		// Get the list of work item types that derive of PlannerItem in the space
+		var expWits criteria.Expression
 		wits, err := appl.WorkItemTypes().ListPlannerItems(ctx.Context, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to fetch work item types that derives of planner item"))
 		}
-
-		var expWits criteria.Expression
 		if len(wits) >= 1 {
 			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(wits[0].ID.String()))
 			for _, wit := range wits[1:] {
 				witIDStr := wit.ID.String()
 				expWits = criteria.Or(expWits, criteria.Equals(criteria.Field("Type"), criteria.Literal(witIDStr)))
 			}
+			exp = criteria.And(exp, expWits)
 		} else {
-			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(""))
+			// If there isn't work item types, return an empty array.
+			return ctx.OK(&app.WorkItem2List{
+				Data:  []*app.WorkItem2{},
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: 0},
+			})
 		}
-		exp = criteria.And(exp, expWits)
-		return nil
-	})
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+		// Get the list of work items for the following criteria
 		result, tc, err := appl.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
@@ -89,7 +90,6 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		}
 
 		lastMod := findLastModified(result)
-
 		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
 			ifModSince, err := http.ParseTime(ifMod[0])
 			if err == nil {
