@@ -62,10 +62,10 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 	identityRepository := account.NewIdentityRepository(db)
 	//spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
 	workItem := workitem.WorkItem{
-		ID:            remoteWorkItem.ID,
-		Type:          remoteWorkItem.Type,
-		Fields:        make(map[string]interface{}),
-		Relationships: &workitem.WorkItemRelationships{SpaceID: spaceID},
+		ID:      remoteWorkItem.ID,
+		Type:    remoteWorkItem.Type,
+		Fields:  make(map[string]interface{}),
+		SpaceID: spaceID,
 	}
 	// copy all fields from remoteworkitem into result workitem
 	for fieldName, fieldValue := range remoteWorkItem.Fields {
@@ -125,7 +125,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
-	existingWorkItem, err := wir.Fetch(ctx, workItem.Relationships.SpaceID, sqlExpression)
+	existingWorkItem, err := wir.Fetch(ctx, workItem.SpaceID, sqlExpression)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -138,7 +138,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 			existingWorkItem.Fields[key] = value
 		}
 		//TODO: we should probably assign the change author to a specific identity...
-		resultWorkItem, err = wir.Save(ctx, existingWorkItem.Relationships.SpaceID, *existingWorkItem, uuid.Nil)
+		resultWorkItem, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, uuid.Nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -151,7 +151,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 				return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
 			}
 		}
-		resultWorkItem, err = wir.Create(ctx, workItem.Relationships.SpaceID, workitem.SystemBug, workItem.Fields, creator)
+		resultWorkItem, err = wir.Create(ctx, workItem.SpaceID, workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}

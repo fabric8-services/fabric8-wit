@@ -602,42 +602,6 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
 	description := "Description for Planner Item"
-	// stString := "string"
-	// stUser := "user"
-	// icon := "fa-bookmark"
-	// workItemTypeFields := map[string]app.FieldDefinition{
-	// 	workitem.SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
-	// 	workitem.SystemDescription:  {Type: &app.FieldType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
-	// 	workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
-	// 	workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-	// 	workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
-	// 	workitem.SystemUpdatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-	// 	workitem.SystemOrder:        {Type: &app.FieldType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
-	// 	workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
-	// 	workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
-	// 	workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
-	// 	workitem.SystemAssignees: {
-	// 		Type: &app.FieldType{
-	// 			ComponentType: &stUser,
-	// 			Kind:          "list",
-	// 		},
-	// 		Required:    false,
-	// 		Label:       "Assignees",
-	// 		Description: "The users that are assigned to the work item",
-	// 	},
-	// 	workitem.SystemState: {
-	// 		Type: &app.FieldType{
-	// 			BaseType: &stString,
-	// 			Kind:     "enum",
-	// 			Values: []interface{}{
-	// 				workitem.SystemStateNew,
-	// 				workitem.SystemStateOpen,
-	// 				workitem.SystemStateInProgress,
-	// 				workitem.SystemStateResolved,
-	// 				workitem.SystemStateClosed,
-	// 			},
-	// 		},
-	// 	}}
 	icon := "fa-bookmark"
 	workItemTypeFields := map[string]workitem.FieldDefinition{
 		workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},

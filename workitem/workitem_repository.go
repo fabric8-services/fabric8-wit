@@ -318,7 +318,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			order = r.CalculateOrder(aboveItemOrder, &belowItemOrder)
 		} else if *belowItemId == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
-			order = wi.ExecutionOrder
+			order = wi.Fields[SystemOrder].(float64)
 		} else {
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
@@ -337,7 +337,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 			order = *belowItemOrder + float64(orderValue)
 		} else if *aboveItemId == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
-			order = wi.ExecutionOrder
+			order = wi.Fields[SystemOrder].(float64)
 		} else {
 			order = r.CalculateOrder(aboveItemOrder, belowItemOrder)
 		}
@@ -349,7 +349,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		}
 		if wi.ID == res.ID {
 			// When same reorder request is made again
-			order = wi.ExecutionOrder
+			order = wi.Fields[SystemOrder].(float64)
 		} else {
 			topItemOrder := res.Fields[SystemOrder].(float64)
 			order = topItemOrder + orderValue
@@ -362,7 +362,7 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		}
 		if wi.ID == res.ID {
 			// When same reorder request is made again
-			order = wi.ExecutionOrder
+			order = wi.Fields[SystemOrder].(float64)
 		} else {
 			bottomItemOrder := res.Fields[SystemOrder].(float64)
 			order = bottomItemOrder / 2

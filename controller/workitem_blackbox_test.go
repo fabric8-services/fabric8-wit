@@ -567,7 +567,7 @@ func makeWorkItems(count int) []*workitem.WorkItem {
 			Fields: map[string]interface{}{
 				workitem.SystemUpdatedAt: time.Now(),
 			},
-			Relationships: &workitem.WorkItemRelationships{SpaceID: space.SystemSpace},
+			SpaceID: space.SystemSpace,
 		}
 	}
 	return res

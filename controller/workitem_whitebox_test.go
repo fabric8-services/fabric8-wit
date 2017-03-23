@@ -121,8 +121,8 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 	}
 
 	wi := workitem.WorkItem{
-		Fields:        fields,
-		Relationships: &workitem.WorkItemRelationships{SpaceID: space.SystemSpace},
+		Fields:  fields,
+		SpaceID: space.SystemSpace,
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
@@ -132,14 +132,11 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 func TestConvertWorkItemWithoutDescription(t *testing.T) {
 	request := http.Request{Host: "localhost"}
 	requestData := &goa.RequestData{Request: &request}
-	// map[string]interface{}
-	fields := map[string]interface{}{
-		workitem.SystemTitle: "title",
-	}
-
 	wi := workitem.WorkItem{
-		Fields:        fields,
-		Relationships: &workitem.WorkItemRelationships{SpaceID: space.SystemSpace},
+		Fields: map[string]interface{}{
+			workitem.SystemTitle: "title",
+		},
+		SpaceID: space.SystemSpace,
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])

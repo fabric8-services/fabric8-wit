@@ -481,10 +481,10 @@ func ConvertWorkItems(request *goa.RequestData, wis []*workitem.WorkItem, additi
 // response resource object by jsonapi.org specifications
 func ConvertWorkItem(request *goa.RequestData, wi *workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.SpaceID.String(), wi.ID))
-	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Relationships.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
-	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Relationships.SpaceID.String(), wi.Type)+targetLinkTypesRouteEnd)
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.SpaceID.String()))
+	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
+	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
+	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+targetLinkTypesRouteEnd)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
@@ -499,7 +499,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *workitem.WorkItem, additional
 					Type: APIStringTypeWorkItemType,
 				},
 			},
-			Space: space.NewSpaceRelation(wi.Relationships.SpaceID, spaceSelfURL),
+			Space: space.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,
@@ -603,7 +603,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 
 // WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
 func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
-	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.SpaceID, wi.ID)) + "/children"
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/children"
 	wi2.Relationships.Children = &app.RelationGeneric{
 		Links: &app.GenericLinks{
 			Related: &childrenRelated,

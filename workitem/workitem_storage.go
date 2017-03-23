@@ -75,9 +75,3 @@ func ParseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
 	}
 	return wiID, nil
 }
-
-type WICountsPerIteration struct {
-	IterationId string `gorm:"column:iterationid"`
-	Total       int
-	Closed      int
-}
