@@ -53,23 +53,11 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 
 	// Update filter by adding child iterations if any
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		iterations, err := appl.Iterations().RootIterations(ctx.Context, spaceID)
+		iteration, err := appl.Iterations().RootIteration(ctx.Context, spaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch children"))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch root iteration"))
 		}
-
-		var expItrs criteria.Expression
-		if len(iterations) >= 1 {
-			it := iterations[0]
-			expItrs = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(it.ID.String()))
-			for _, itr := range iterations[1:] {
-				itrIDStr := itr.ID.String()
-				expItrs = criteria.Or(expItrs, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(itrIDStr)))
-			}
-		} else {
-			expItrs = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(""))
-		}
-		exp = criteria.And(exp, expItrs)
+		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(iteration.ID.String()))
 
 		wits, err := appl.WorkItemTypes().ListPlannerItems(ctx.Context, spaceID)
 		if err != nil {

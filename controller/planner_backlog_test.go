@@ -95,7 +95,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 	t := rest.T()
 	resource.Require(t, resource.Database)
 
-	var fatherIteration, childIteration, anotherFatherIteration *iteration.Iteration
+	var fatherIteration, childIteration *iteration.Iteration
 	application.Transactional(gormapplication.NewGormDB(rest.db), func(app application.Application) error {
 		repo := app.Iterations()
 
@@ -114,13 +114,6 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 		}
 		repo.Create(rest.ctx, childIteration)
 
-		anotherFatherIteration = &iteration.Iteration{
-			Name:    "Parent of another Iteration",
-			SpaceID: space.SystemSpace,
-			State:   iteration.IterationStateStart,
-		}
-		repo.Create(rest.ctx, anotherFatherIteration)
-
 		fields := map[string]interface{}{
 			workitem.SystemTitle:     "fatherIteration Test",
 			workitem.SystemState:     "new",
@@ -135,13 +128,6 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 		}
 		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemPlannerItem, fields2, rest.testIdentity.ID)
 
-		fields3 := map[string]interface{}{
-			workitem.SystemTitle:     "anotherFatherIteration Test",
-			workitem.SystemState:     "in progress",
-			workitem.SystemIteration: anotherFatherIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.ctx, space.SystemSpace, workitem.SystemBug, fields3, rest.testIdentity.ID)
-
 		return nil
 	})
 
@@ -153,20 +139,14 @@ func (rest *TestPlannerBlacklogREST) TestSuccessListPlannerBacklogWorkItems() {
 	_, cs := test.ListPlannerBacklogOK(t, svc.Context, svc, ctrl, space.SystemSpace.String(), &filter, nil, nil, nil, &limit, &offset)
 
 	// Two iteration have to be found
-	assert.Len(t, cs.Data, 2)
+	assert.Len(t, cs.Data, 1)
 
 	for _, workItem := range cs.Data {
-		if workItem.Attributes[workitem.SystemTitle] == "fatherIteration Test" {
-			assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
-			assert.Equal(t, "fatherIteration Test", workItem.Attributes[workitem.SystemTitle])
-			assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
-			assert.Equal(t, fatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
-		}
-		if workItem.Attributes[workitem.SystemTitle] == "anotherFatherIteration Test" {
-			assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
-			assert.Equal(t, "in progress", workItem.Attributes[workitem.SystemState])
-			assert.Equal(t, anotherFatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
-		}
+		assert.Equal(t, "fatherIteration Test", workItem.Attributes[workitem.SystemTitle])
+		assert.Equal(t, space.SystemSpace.String(), workItem.Relationships.Space.Data.ID.String())
+		assert.Equal(t, "fatherIteration Test", workItem.Attributes[workitem.SystemTitle])
+		assert.Equal(t, "new", workItem.Attributes[workitem.SystemState])
+		assert.Equal(t, fatherIteration.ID.String(), *workItem.Relationships.Iteration.Data.ID)
 	}
 }
 
