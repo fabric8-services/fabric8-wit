@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
 
@@ -185,7 +186,8 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 // List returns work item types that derives from PlannerItem type
 func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
 	var rows []WorkItemType
-	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+LtreeSafeID(SystemPlannerItem)+".%'", spaceID.String())
+	path := path.Path{}
+	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String())
 
 	if err := db.Find(&rows).Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
