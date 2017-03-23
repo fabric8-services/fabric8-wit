@@ -129,24 +129,24 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
 	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
 	log.Info(nil, map[string]interface{}{
-		"wiID": workItemRemoteID,
+		"wi_id": workItemRemoteID,
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
-	existingWorkItem, err := wir.Fetch(ctx, sqlExpression)
+	existingWorkItem, err := wir.Fetch(ctx, *workItem.Relationships.Space.Data.ID, sqlExpression)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	var resultWorkItem *app.WorkItem
 	if existingWorkItem != nil {
 		log.Info(nil, map[string]interface{}{
-			"wiID": existingWorkItem.ID,
+			"wi_id": existingWorkItem.ID,
 		}, "Workitem exists, will be updated")
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
 		//TODO: we should probably assign the change author to a specific identity...
-		resultWorkItem, err = wir.Save(ctx, *existingWorkItem, uuid.Nil)
+		resultWorkItem, err = wir.Save(ctx, *existingWorkItem.Relationships.Space.Data.ID, *existingWorkItem, uuid.Nil)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
@@ -165,7 +165,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem app.WorkItem) (*app.WorkI
 		}
 	}
 	log.Info(nil, map[string]interface{}{
-		"wiID": workItem.ID,
+		"wi_id": workItem.ID,
 	}, "Result workitem: %v", resultWorkItem)
 
 	return resultWorkItem, nil

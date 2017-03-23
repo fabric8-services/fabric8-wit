@@ -82,7 +82,7 @@ func (s *workItemRepoBlackBoxTest) TestFailDeleteZeroID() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create work item")
 	// when
-	err = s.repo.Delete(s.ctx, "0", s.creatorID)
+	err = s.repo.Delete(s.ctx, s.spaceID, "0", s.creatorID)
 	// then
 	require.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -99,7 +99,7 @@ func (s *workItemRepoBlackBoxTest) TestFailSaveZeroID() {
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
 	wi.ID = "0"
-	_, err = s.repo.Save(s.ctx, *wi, s.creatorID)
+	_, err = s.repo.Save(s.ctx, s.spaceID, *wi, s.creatorID)
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -115,7 +115,7 @@ func (s *workItemRepoBlackBoxTest) TestFaiLoadZeroID() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	_, err = s.repo.Load(s.ctx, "0")
+	_, err = s.repo.Load(s.ctx, s.spaceID, "0")
 	// then
 	assert.IsType(s.T(), errors.NotFoundError{}, errs.Cause(err))
 }
@@ -131,7 +131,7 @@ func (s *workItemRepoBlackBoxTest) TestSaveAssignees() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, wi.ID)
+	wi, err = s.repo.LoadByID(s.ctx, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "A", wi.Fields[workitem.SystemAssignees].([]interface{})[0])
@@ -147,9 +147,9 @@ func (s *workItemRepoBlackBoxTest) TestSaveForUnchangedCreatedDate() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, wi.ID)
+	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	require.Nil(s.T(), err)
-	wiNew, err := s.repo.Save(s.ctx, *wi, s.creatorID)
+	wiNew, err := s.repo.Save(s.ctx, s.spaceID, *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), wi.Fields[workitem.SystemCreatedAt], wiNew.Fields[workitem.SystemCreatedAt])
@@ -166,7 +166,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, wi.ID)
+	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
@@ -187,7 +187,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 		s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, wi.ID)
+	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	// app.WorkItem does not contain the markup associated with the description (yet)
@@ -209,7 +209,7 @@ func (s *workItemRepoBlackBoxTest) TestTypeChangeIsNotProhibitedOnDBLayer() {
 	require.Nil(s.T(), err)
 	// when
 	wi.Type = workitem.SystemFeature
-	newWi, err := s.repo.Save(s.ctx, *wi, s.creatorID)
+	newWi, err := s.repo.Save(s.ctx, s.spaceID, *wi, s.creatorID)
 	// then
 	require.Nil(s.T(), err)
 	assert.True(s.T(), uuid.Equal(workitem.SystemFeature, newWi.Type))
@@ -301,7 +301,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 		}, s.creatorID)
 	require.Nil(s.T(), err, "Could not create workitem")
 	// when
-	wi, err = s.repo.Load(s.ctx, wi.ID)
+	wi, err = s.repo.Load(s.ctx, space.SystemSpace, wi.ID)
 	// then
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))

@@ -22,9 +22,9 @@ var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
-	Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error)
+	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
-	List(ctx context.Context, start *int, length *int) (*app.WorkItemTypeList, error)
+	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -39,13 +39,42 @@ type GormWorkItemTypeRepository struct {
 
 // Load returns the work item for the given id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) Load(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
 	res, err := r.LoadTypeFromDB(ctx, id)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	result := convertTypeFromModels(goa.ContextRequest(ctx), res)
+	return &app.WorkItemTypeSingle{Data: &result}, nil
+}
+
+// Load returns the work item for the given spaceID and id
+// returns NotFoundError, InternalError
+func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+	log.Logger().Infoln("Loading work item type", id)
+	res, ok := cache.Get(id)
+	if !ok {
+		log.Info(ctx, map[string]interface{}{
+			"wit_id":   id,
+			"space_id": spaceID,
+		}, "Work item type doesn't exist in the cache. Loading from DB...")
+		res = WorkItemType{}
+
+		db := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
+		if db.RecordNotFound() {
+			log.Error(ctx, map[string]interface{}{
+				"wit_id":   id,
+				"space_id": spaceID,
+			}, "work item type not found")
+			return nil, errors.NewNotFoundError("work item type", id.String())
+		}
+		if err := db.Error; err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		cache.Put(res)
+	}
+
+	result := convertTypeFromModels(goa.ContextRequest(ctx), &res)
 	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
 
@@ -55,14 +84,14 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
-			"witID": id,
+			"wit_id": id,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
 
 		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
 			log.Error(ctx, map[string]interface{}{
-				"witID": id,
+				"wit_id": id,
 			}, "work item type not found")
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
@@ -90,7 +119,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	existing, _ := r.LoadTypeFromDB(ctx, *id)
 	if existing != nil {
-		log.Error(ctx, map[string]interface{}{"witID": *id}, "unable to create new work item type")
+		log.Error(ctx, map[string]interface{}{"wit_id": *id}, "unable to create new work item type")
 		return nil, errors.NewBadParameterError("name", *id)
 	}
 	allFields := map[string]FieldDefinition{}
@@ -147,20 +176,17 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	result := convertTypeFromModels(goa.ContextRequest(ctx), &created)
 
-	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
+	log.Debug(ctx, map[string]interface{}{"wit_id": created.ID}, "Work item type created successfully!")
 
 	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
 
 // List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, start *int, limit *int) (*app.WorkItemTypeList, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) (*app.WorkItemTypeList, error) {
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
-	var where string
-	var parameters []interface{}
-
 	var rows []WorkItemType
-	db := r.db.Where(where, parameters...)
+	db := r.db.Where("space_id = ?", spaceID)
 	if start != nil {
 		db = db.Offset(*start)
 	}
@@ -195,11 +221,15 @@ func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
 func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkItemTypeData {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
 	id := t.ID
+	createdAt := t.CreatedAt.UTC()
+	updatedAt := t.UpdatedAt.UTC()
 	var converted = app.WorkItemTypeData{
 		Type: "workitemtypes",
 		ID:   &id,
 		Attributes: &app.WorkItemTypeAttributes{
-			Version:     t.Version,
+			CreatedAt:   &createdAt,
+			UpdatedAt:   &updatedAt,
+			Version:     &t.Version,
 			Description: t.Description,
 			Icon:        t.Icon,
 			Name:        t.Name,

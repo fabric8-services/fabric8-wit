@@ -10,6 +10,8 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/iteration"
@@ -247,6 +249,15 @@ func (g *GormTestBase) Iterations() iteration.Repository {
 
 // Iterations returns a iteration repository
 func (g *GormTestBase) Areas() area.Repository {
+	return nil
+}
+
+func (g *GormTestBase) OauthStates() auth.OauthStateReferenceRepository {
+	return nil
+}
+
+// Codebases returns a codebase repository
+func (g *GormTestBase) Codebases() codebase.Repository {
 	return nil
 }
 

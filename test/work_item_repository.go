@@ -12,20 +12,32 @@ import (
 )
 
 type WorkItemRepository struct {
-	LoadStub        func(ctx context.Context, ID string) (*app.WorkItem, error)
+	LoadStub        func(ctx context.Context, spaceID uuid.UUID, ID string) (*app.WorkItem, error)
 	loadMutex       sync.RWMutex
 	loadArgsForCall []struct {
-		ctx context.Context
-		ID  string
+		ctx     context.Context
+		spaceID uuid.UUID
+		ID      string
 	}
 	loadReturns struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	SaveStub        func(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	LoadByIDStub        func(ctx context.Context, ID string) (*app.WorkItem, error)
+	loadByIDMutex       sync.RWMutex
+	loadByIDArgsForCall []struct {
+		ctx context.Context
+		ID  string
+	}
+	loadByIDReturns struct {
+		result1 *app.WorkItem
+		result2 error
+	}
+	SaveStub        func(ctx context.Context, spaceID uuid.UUID, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
 	saveMutex       sync.RWMutex
 	saveArgsForCall []struct {
 		ctx        context.Context
+		spaceID    uuid.UUID
 		wi         app.WorkItem
 		modifierID uuid.UUID
 	}
@@ -33,10 +45,24 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	DeleteStub        func(ctx context.Context, ID string, suppressorID uuid.UUID) error
+	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	reorderMutex       sync.RWMutex
+	reorderArgsForCall []struct {
+		ctx        context.Context
+		direction  workitem.DirectionType
+		targetID   *string
+		wi         app.WorkItem
+		modifierID uuid.UUID
+	}
+	reorderReturns struct {
+		wi  *app.WorkItem
+		err error
+	}
+	DeleteStub        func(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	deleteMutex       sync.RWMutex
 	deleteArgsForCall []struct {
 		ctx          context.Context
+		spaceID      uuid.UUID
 		ID           string
 		suppressorID uuid.UUID
 	}
@@ -56,10 +82,11 @@ type WorkItemRepository struct {
 		result1 *app.WorkItem
 		result2 error
 	}
-	ListStub        func(ctx context.Context, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
 		start    *int
 		length   *int
@@ -69,10 +96,11 @@ type WorkItemRepository struct {
 		result2 uint64
 		result3 error
 	}
-	FetchStub        func(ctx context.Context, criteria criteria.Expression) (*app.WorkItem, error)
+	FetchStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
 	}
 	fetchReturns struct {
@@ -103,18 +131,33 @@ type WorkItemRepository struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *WorkItemRepository) Load(ctx context.Context, ID string) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, ID string) (*app.WorkItem, error) {
 	fake.loadMutex.Lock()
 	fake.loadArgsForCall = append(fake.loadArgsForCall, struct {
+		ctx     context.Context
+		spaceID uuid.UUID
+		ID      string
+	}{ctx, spaceID, ID})
+	fake.recordInvocation("Load", []interface{}{ctx, spaceID, ID})
+	fake.loadMutex.Unlock()
+	if fake.LoadStub != nil {
+		return fake.LoadStub(ctx, spaceID, ID)
+	}
+	return fake.loadReturns.result1, fake.loadReturns.result2
+}
+
+func (fake *WorkItemRepository) LoadByID(ctx context.Context, ID string) (*app.WorkItem, error) {
+	fake.loadByIDMutex.Lock()
+	fake.loadByIDArgsForCall = append(fake.loadByIDArgsForCall, struct {
 		ctx context.Context
 		ID  string
 	}{ctx, ID})
 	fake.recordInvocation("Load", []interface{}{ctx, ID})
-	fake.loadMutex.Unlock()
-	if fake.LoadStub != nil {
-		return fake.LoadStub(ctx, ID)
+	fake.loadByIDMutex.Unlock()
+	if fake.LoadByIDStub != nil {
+		return fake.LoadByIDStub(ctx, ID)
 	}
-	return fake.loadReturns.result1, fake.loadReturns.result2
+	return fake.loadByIDReturns.result1, fake.loadByIDReturns.result2
 }
 
 func (fake *WorkItemRepository) LoadCallCount() int {
@@ -137,17 +180,26 @@ func (fake *WorkItemRepository) LoadReturns(result1 *app.WorkItem, result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Save(ctx context.Context, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) LoadByIDReturns(result1 *app.WorkItem, result2 error) {
+	fake.LoadByIDStub = nil
+	fake.loadByIDReturns = struct {
+		result1 *app.WorkItem
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *WorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
 	fake.saveMutex.Lock()
 	fake.saveArgsForCall = append(fake.saveArgsForCall, struct {
 		ctx        context.Context
+		spaceID    uuid.UUID
 		wi         app.WorkItem
 		modifierID uuid.UUID
-	}{ctx, wi, modifierID})
-	fake.recordInvocation("Save", []interface{}{ctx, wi, modifierID})
+	}{ctx, spaceID, wi, modifierID})
+	fake.recordInvocation("Save", []interface{}{ctx, spaceID, wi, modifierID})
 	fake.saveMutex.Unlock()
 	if fake.SaveStub != nil {
-		return fake.SaveStub(ctx, wi, modifierID)
+		return fake.SaveStub(ctx, spaceID, wi, modifierID)
 	}
 	return fake.saveReturns.result1, fake.saveReturns.result2
 }
@@ -158,10 +210,10 @@ func (fake *WorkItemRepository) SaveCallCount() int {
 	return len(fake.saveArgsForCall)
 }
 
-func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, app.WorkItem, uuid.UUID) {
+func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, uuid.UUID, app.WorkItem, uuid.UUID) {
 	fake.saveMutex.RLock()
 	defer fake.saveMutex.RUnlock()
-	return fake.saveArgsForCall[i].ctx, fake.saveArgsForCall[i].wi, fake.saveArgsForCall[i].modifierID
+	return fake.saveArgsForCall[i].ctx, fake.saveArgsForCall[i].spaceID, fake.saveArgsForCall[i].wi, fake.saveArgsForCall[i].modifierID
 }
 
 func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error) {
@@ -172,17 +224,63 @@ func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Delete(ctx context.Context, ID string, suppressorID uuid.UUID) error {
+// Reorder is a fake function for reordering of workitems
+// Used for testing purpose
+func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+	fake.reorderMutex.Lock()
+	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
+		ctx        context.Context
+		direction  workitem.DirectionType
+		targetID   *string
+		wi         app.WorkItem
+		modifierID uuid.UUID
+	}{ctx, direction, targetID, wi, modifierID})
+	fake.recordInvocation("Reorder", []interface{}{ctx, direction, *targetID, wi, modifierID})
+	fake.reorderMutex.Unlock()
+	if fake.ReorderStub != nil {
+		return fake.ReorderStub(ctx, direction, targetID, wi, modifierID)
+	} else {
+		return fake.reorderReturns.wi, fake.reorderReturns.err
+	}
+}
+
+// ReorderCallCount returns the length of fake arguments
+func (fake *WorkItemRepository) ReorderCallCount() int {
+	fake.reorderMutex.RLock()
+	defer fake.reorderMutex.RUnlock()
+	return len(fake.reorderArgsForCall)
+}
+
+// ReorderArgsForCall returns fake arguments for Reorder function
+func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, workitem.DirectionType, string, app.WorkItem, uuid.UUID) {
+	fake.reorderMutex.RLock()
+	defer fake.reorderMutex.RUnlock()
+	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].direction, *fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
+}
+
+// ReorderReturns returns fake values for Reorder function
+func (fake *WorkItemRepository) ReorderReturns(workItem *app.WorkItem, errr error) {
+	fake.ReorderStub = nil
+	type reorder struct {
+		wi  *app.WorkItem
+		err error
+	}
+	v := reorder{workItem, errr}
+	fake.reorderReturns = v
+}
+
+func (fake *WorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error {
 	fake.deleteMutex.Lock()
 	fake.deleteArgsForCall = append(fake.deleteArgsForCall, struct {
 		ctx          context.Context
+		spaceID      uuid.UUID
 		ID           string
 		suppressorID uuid.UUID
-	}{ctx, ID, suppressorID})
-	fake.recordInvocation("Delete", []interface{}{ctx, ID, suppressorID})
+	}{ctx, spaceID, ID, suppressorID})
+	fake.recordInvocation("Delete", []interface{}{ctx, spaceID, ID, suppressorID})
 	fake.deleteMutex.Unlock()
 	if fake.DeleteStub != nil {
-		return fake.DeleteStub(ctx, ID, suppressorID)
+		return fake.DeleteStub(ctx, spaceID, ID, suppressorID)
 	}
 	return fake.deleteReturns.result1
 }
@@ -193,10 +291,10 @@ func (fake *WorkItemRepository) DeleteCallCount() int {
 	return len(fake.deleteArgsForCall)
 }
 
-func (fake *WorkItemRepository) DeleteArgsForCall(i int) (context.Context, string, uuid.UUID) {
+func (fake *WorkItemRepository) DeleteArgsForCall(i int) (context.Context, uuid.UUID, string, uuid.UUID) {
 	fake.deleteMutex.RLock()
 	defer fake.deleteMutex.RUnlock()
-	return fake.deleteArgsForCall[i].ctx, fake.deleteArgsForCall[i].ID, fake.deleteArgsForCall[i].suppressorID
+	return fake.deleteArgsForCall[i].ctx, fake.deleteArgsForCall[i].spaceID, fake.deleteArgsForCall[i].ID, fake.deleteArgsForCall[i].suppressorID
 }
 
 func (fake *WorkItemRepository) DeleteReturns(result1 error) {
@@ -243,18 +341,19 @@ func (fake *WorkItemRepository) CreateReturns(result1 *app.WorkItem, result2 err
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) List(ctx context.Context, c criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
+func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
 	fake.listMutex.Lock()
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
 		start    *int
 		length   *int
-	}{ctx, c, start, length})
-	fake.recordInvocation("List", []interface{}{ctx, c, start, length})
+	}{ctx, spaceID, c, start, length})
+	fake.recordInvocation("List", []interface{}{ctx, spaceID, c, start, length})
 	fake.listMutex.Unlock()
 	if fake.ListStub != nil {
-		return fake.ListStub(ctx, c, start, length)
+		return fake.ListStub(ctx, spaceID, c, start, length)
 	}
 	return fake.listReturns.result1, fake.listReturns.result2, fake.listReturns.result3
 }
@@ -265,10 +364,10 @@ func (fake *WorkItemRepository) ListCallCount() int {
 	return len(fake.listArgsForCall)
 }
 
-func (fake *WorkItemRepository) ListArgsForCall(i int) (context.Context, criteria.Expression, *int, *int) {
+func (fake *WorkItemRepository) ListArgsForCall(i int) (context.Context, uuid.UUID, criteria.Expression, *int, *int) {
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
-	return fake.listArgsForCall[i].ctx, fake.listArgsForCall[i].criteria, fake.listArgsForCall[i].start, fake.listArgsForCall[i].length
+	return fake.listArgsForCall[i].ctx, fake.listArgsForCall[i].spaceID, fake.listArgsForCall[i].criteria, fake.listArgsForCall[i].start, fake.listArgsForCall[i].length
 }
 
 func (fake *WorkItemRepository) ListReturns(result1 []*app.WorkItem, result2 uint64, result3 error) {
@@ -280,16 +379,17 @@ func (fake *WorkItemRepository) ListReturns(result1 []*app.WorkItem, result2 uin
 	}{result1, result2, result3}
 }
 
-func (fake *WorkItemRepository) Fetch(ctx context.Context, c criteria.Expression) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c criteria.Expression) (*app.WorkItem, error) {
 	fake.fetchMutex.Lock()
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		ctx      context.Context
+		spaceID  uuid.UUID
 		criteria criteria.Expression
-	}{ctx, c})
-	fake.recordInvocation("Fetch", []interface{}{ctx, c})
+	}{ctx, spaceID, c})
+	fake.recordInvocation("Fetch", []interface{}{ctx, spaceID, c})
 	fake.fetchMutex.Unlock()
 	if fake.FetchStub != nil {
-		return fake.FetchStub(ctx, c)
+		return fake.FetchStub(ctx, spaceID, c)
 	}
 	return fake.fetchReturns.result1, fake.fetchReturns.result2
 }
@@ -300,10 +400,10 @@ func (fake *WorkItemRepository) FetchCallCount() int {
 	return len(fake.fetchArgsForCall)
 }
 
-func (fake *WorkItemRepository) FetchArgsForCall(i int) (context.Context, criteria.Expression) {
+func (fake *WorkItemRepository) FetchArgsForCall(i int) (context.Context, uuid.UUID, criteria.Expression) {
 	fake.fetchMutex.RLock()
 	defer fake.fetchMutex.RUnlock()
-	return fake.fetchArgsForCall[i].ctx, fake.fetchArgsForCall[i].criteria
+	return fake.fetchArgsForCall[i].ctx, fake.fetchArgsForCall[i].spaceID, fake.fetchArgsForCall[i].criteria
 }
 
 func (fake *WorkItemRepository) FetchReturns(result1 *app.WorkItem, result2 error) {
@@ -385,6 +485,8 @@ func (fake *WorkItemRepository) GetCountsForIterationReturns(result1 map[string]
 func (fake *WorkItemRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
+	fake.loadMutex.RLock()
+	defer fake.loadMutex.RUnlock()
 	fake.loadMutex.RLock()
 	defer fake.loadMutex.RUnlock()
 	fake.saveMutex.RLock()

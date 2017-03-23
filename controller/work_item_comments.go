@@ -27,7 +27,7 @@ func NewWorkItemCommentsController(service *goa.Service, db application.DB) *Wor
 // Create runs the create action.
 func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.WorkItems().Load(ctx, ctx.ID)
+		_, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
@@ -40,7 +40,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		reqComment := ctx.Payload.Data
 		markup := rendering.NilSafeGetMarkup(reqComment.Attributes.Markup)
 		newComment := comment.Comment{
-			ParentID:  ctx.ID,
+			ParentID:  ctx.WiID,
 			Body:      reqComment.Attributes.Body,
 			Markup:    markup,
 			CreatedBy: *currentUserIdentityID,
@@ -62,7 +62,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err := appl.WorkItems().Load(ctx, ctx.ID)
+		_, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
@@ -70,7 +70,7 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		res := &app.CommentList{}
 		res.Data = []*app.Comment{}
 
-		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, ctx.WiID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -89,12 +89,12 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemCommentsContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(appl application.Application) error {
-		wi, err := appl.WorkItems().Load(ctx, ctx.ID)
+		wi, err := appl.WorkItems().LoadByID(ctx, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
-		comments, tc, err := appl.Comments().List(ctx, ctx.ID, &offset, &limit)
+		comments, tc, err := appl.Comments().List(ctx, ctx.WiID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -148,8 +148,8 @@ func CreateCommentsRelation(request *goa.RequestData, wi *app.WorkItem) *app.Rel
 
 // CreateCommentsRelationLinks returns a RelationGeneric object representing the links for a workitem to comment relation
 func CreateCommentsRelationLinks(request *goa.RequestData, wi *app.WorkItem) *app.GenericLinks {
-	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/relationships/comments"
-	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.ID)) + "/comments"
+	commentsSelf := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/relationships/comments"
+	commentsRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/comments"
 	return &app.GenericLinks{
 		Self:    &commentsSelf,
 		Related: &commentsRelated,

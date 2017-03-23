@@ -52,7 +52,7 @@ func (r *GormWorkItemLinkRevisionRepository) Create(ctx context.Context, modifie
 	if err := tx.Create(&revision).Error; err != nil {
 		return errors.NewInternalError(fmt.Sprintf("failed to create new work item link revision: %s", err.Error()))
 	}
-	log.Debug(ctx, map[string]interface{}{"workItemLink.ID": l.ID}, "work item link revision occurrence created")
+	log.Debug(ctx, map[string]interface{}{"wil_id": l.ID}, "work item link revision occurrence created")
 	return nil
 }
 

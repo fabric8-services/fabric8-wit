@@ -69,8 +69,8 @@ func main() {
 	configuration, err := config.NewConfigurationData(configFilePath)
 	if err != nil {
 		logrus.Panic(nil, map[string]interface{}{
-			"configFilePath": configFilePath,
-			"err":            err,
+			"config_file_path": configFilePath,
+			"err":              err,
 		}, "failed to setup the configuration")
 	}
 
@@ -200,7 +200,7 @@ func main() {
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
-	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB)
+	workitemtypeCtrl := controller.NewWorkitemtypeController(service, appDB, configuration)
 	app.MountWorkitemtypeController(service, workitemtypeCtrl)
 
 	// Mount "work item link category" controller
@@ -284,6 +284,26 @@ func main() {
 	// Mount "namedspaces" controller
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
+
+	// Mount "codebase" controller
+	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
+	app.MountCodebaseController(service, codebaseCtrl)
+
+	// Mount "spacecodebases" controller
+	spaceCodebaseCtrl := controller.NewSpaceCodebasesController(service, appDB)
+	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
+
+	if !configuration.IsPostgresDeveloperModeEnabled() {
+		// TEMP MOUNT "redirect" controller
+		redirectWorkItemTypesCtrl := controller.NewRedirectWorkitemtypeController(service)
+		app.MountRedirectWorkitemtypeController(service, redirectWorkItemTypesCtrl)
+
+		redirectWorkItemCtrl := controller.NewRedirectWorkitemController(service)
+		app.MountRedirectWorkitemController(service, redirectWorkItemCtrl)
+
+		redirectWorkItemLinkTypesCtrl := controller.NewRedirectWorkItemLinkTypeController(service)
+		app.MountRedirectWorkItemLinkTypeController(service, redirectWorkItemLinkTypesCtrl)
+	}
 
 	log.Logger().Infoln("Git Commit SHA: ", controller.Commit)
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)

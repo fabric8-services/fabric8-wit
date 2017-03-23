@@ -3,6 +3,7 @@ package configuration
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/resource"
@@ -39,7 +40,7 @@ func TestOpenIDConnectPathOK(t *testing.T) {
 	t.Parallel()
 
 	path := config.openIDConnectPath("somesufix")
-	assert.Equal(t, "auth/realms/fabric8/protocol/openid-connect/somesufix", path)
+	assert.Equal(t, "auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/somesufix", path)
 }
 
 func TestGetKeycloakURLOK(t *testing.T) {
@@ -66,19 +67,22 @@ func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestDemoApiAlmightyIoExceptionOK(t *testing.T) {
-	// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
-	// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
-	// So, it should be treated as an exception
-
+func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
-	t.Parallel()
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "demo.api.almighty.io"},
-	}
+	key := "ALMIGHTY_KEYCLOAK_REALM"
+	realEnvValue := os.Getenv(key)
 
-	url, err := config.getKeycloakURL(r, "somepath3")
-	assert.Nil(t, err)
-	assert.Equal(t, "http://sso.demo.almighty.io/somepath3", url)
+	os.Unsetenv(key)
+	defer func() {
+		os.Setenv(key, realEnvValue)
+		resetConfiguration()
+	}()
+
+	assert.Equal(t, devModeKeycloakRealm, config.GetKeycloakRealm())
+
+	os.Setenv(key, "somecustomrealm")
+	resetConfiguration()
+
+	assert.Equal(t, "somecustomrealm", config.GetKeycloakRealm())
 }

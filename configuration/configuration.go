@@ -62,18 +62,14 @@ const (
 	varKeycloakEndpointAuthzResourceset = "keycloak.endpoint.authz.resourceset"
 	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
+	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
+	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	defaultConfigFile                   = "config.yaml"
-
-	// The host name exception of the api service to be taken into account
-	// when converting it to sso.demo.almighty.io
-	// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
-	// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
-	// So, we need to treat it as an exception
-
-	apiHostNameException = "demo.api.almighty.io"
-	ssoHostNameException = "sso.demo.almighty.io"
+	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
+	varCheStarterURL                    = "chestarterurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -163,11 +159,17 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakSecret, defaultKeycloakSecret)
 	c.v.SetDefault(varGithubAuthToken, defaultActualToken)
 	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
-	c.v.SetDefault(varKeycloakRealm, defaultKeycloakRealm)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
+
+	// HTTP Cache-Control/max-age default
+	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
+	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
+
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
+	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
+	c.v.SetDefault(varCheStarterURL, defaultCheStarterURL)
 }
 
 // GetPostgresHost returns the postgres host as set via default, config file, or environment variable
@@ -254,6 +256,18 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
+// GetCacheControlWorkItemType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning a work item type (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemType() string {
+	return c.v.GetString(varCacheControlWorkItemType)
+}
+
+// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// when returning a work item type (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
+	return c.v.GetString(varCacheControlWorkItemLinkType)
+}
+
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
 func (c *ConfigurationData) GetTokenPrivateKey() []byte {
@@ -290,7 +304,13 @@ func (c *ConfigurationData) GetKeycloakDomainPrefix() string {
 
 // GetKeycloakRealm returns the keyclaok realm name
 func (c *ConfigurationData) GetKeycloakRealm() string {
-	return c.v.GetString(varKeycloakRealm)
+	if c.v.IsSet(varKeycloakRealm) {
+		return c.v.GetString(varKeycloakRealm)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return devModeKeycloakRealm
+	}
+	return defaultKeycloakRealm
 }
 
 // GetKeycloakTestUserName returns the keycloak test user name used to obtain a test token (as set via config file or environment variable)
@@ -380,6 +400,21 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointEntitlement, "auth/realms/"+c.GetKeycloakRealm()+"/authz/entitlement/"+c.GetKeycloakClientID())
 }
 
+// GetKeycloakEndpointBroker returns the <keyclaok>/realms/<realm>/authz/entitlement/<clientID> endpoint
+// set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointBroker, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
+}
+
+// GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
+func (c *ConfigurationData) GetKeycloakDevModeURL() string {
+	return devModeKeycloakURL
+}
+
 func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
 	return c.getKeycloakEndpoint(req, endpointVarName, c.openIDConnectPath(pathSufix))
 }
@@ -420,30 +455,31 @@ func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (s
 	if req.TLS != nil { // isHTTPS
 		scheme = "https"
 	}
-	currentHost := req.Host
-	var newHost string
-	var err error
-	if currentHost == apiHostNameException {
-		// demo.api.almighty.io doesn't follow the service name convention <serviceName>.<domain>
-		// The correct name would be something like API.demo.almighty.io which is to be converted to SSO.demo.almighty.io
-		// So, we need to treat it as an exception
-		newHost = ssoHostNameException
-	} else {
-		newHost, err = rest.ReplaceDomainPrefix(currentHost, c.GetKeycloakDomainPrefix())
-		if err != nil {
-			return "", err
-		}
+	newHost, err := rest.ReplaceDomainPrefix(req.Host, c.GetKeycloakDomainPrefix())
+	if err != nil {
+		return "", err
 	}
 	newURL := fmt.Sprintf("%s://%s/%s", scheme, newHost, path)
 
 	return newURL, nil
 }
 
-// Auth-related defaults
+// GetCheStarterURL returns the URL for the Che Starter service used by codespaces to initiate code editing
+func (c *ConfigurationData) GetCheStarterURL() string {
+	return c.v.GetString(varCheStarterURL)
+}
 
-// RSAPrivateKey for signing JWT Tokens
-// ssh-keygen -f alm_rsa
-var defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
+// GetOpenshiftTenantMasterURL returns the URL for the openshift cluster where the tenant services are running
+func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
+	return c.v.GetString(varOpenshiftTenantMasterURL)
+}
+
+const (
+	// Auth-related defaults
+
+	// RSAPrivateKey for signing JWT Tokens
+	// ssh-keygen -f alm_rsa
+	defaultTokenPrivateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
 DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
 HlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3bwTIFlLlVMiZf7XVE7P3yuOCpqkk
@@ -471,34 +507,39 @@ BA/cKaLPqUF+08Tz/9MPBw51UH4GYfppA/x0ktc8998984FeIpfIFX6I2U9yUnoQ
 OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 -----END RSA PRIVATE KEY-----`
 
-// RSAPublicKey for verifying JWT Tokens
-// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
-var defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAiRd6pdNjiwQFH2xmNugn
-TkVhkF+TdJw19Kpj3nRtsoUe4/6gIureVi7FWqcb+2t/E0dv8rAAs6vl+d7roz3R
-SkAzBjPxVW5+hi5AJjUbAxtFX/aYJpZePVhK0Dv8StCPSv9GC3T6bUSF3q3E9R9n
-G1SZFkN9m2DhL+45us4THzX2eau6s0bISjAUqEGNifPyYYUzKVmXmHS9fiZJR61h
-6TulPwxv68DUSk+7iIJvJfQ3lH/XNWlxWNMMehetcmdy8EDR2IkJCCAbjx9yxgKV
-JXdQ7zylRlpaLopock0FGiZrJhEaAh6BGuaoUWLiMEvqrLuyZnJYEg9f/vyxUJSD
-JwIDAQAB
+	// RSAPublicKey for verifying JWT Tokens
+	// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
+	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlscGA2NfO4ZkGzJgZE8
+e/WGHCFANE28DzU1aftOssKi4jCn++umFWPDWxTwLfQdiwc8Bbhn9/8udPMXrZ84
+L8OgVNbDXOle37QE0+GEAX/DnzkvOg2sm7F0IzKck9YNvo3ZUYj7dyW9s2zatCwu
+QyUsHJmbMdwtDOueHBHwXiAiU0kprtUjNsvK4SBvascBdCmLLIWkhj2lu5S6BGrH
+gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
+51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
+ZwIDAQAB
 -----END PUBLIC KEY-----`
 
-var defaultKeycloakClientID = "fabric8-online-platform"
-var defaultKeycloakSecret = "08a8bcd1-f362-446a-9d2b-d34b8d464185"
+	defaultKeycloakClientID = "fabric8-online-platform"
+	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
 
-var defaultKeycloakDomainPrefix = "sso"
-var defaultKeycloakRealm = "fabric8"
+	defaultKeycloakDomainPrefix = "sso"
+	defaultKeycloakRealm        = "fabric8"
 
-// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
-var camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+	// Github does not allow committing actual OAuth tokens no matter how less privilege the token has
+	camouflagedAccessToken = "751e16a8b39c0985066-AccessToken-4871777f2c13b32be8550"
+
+	defaultKeycloakTesUserName    = "testuser"
+	defaultKeycloakTesUserSecret  = "testuser"
+	defaultKeycloakTesUser2Name   = "testuser2"
+	defaultKeycloakTesUser2Secret = "testuser2"
+
+	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
+	devModeKeycloakURL   = "http://sso.prod-preview.openshift.io"
+	devModeKeycloakRealm = "fabric8-test"
+
+	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
+	defaultCheStarterURL            = "che-server"
+)
 
 // ActualToken is actual OAuth access token of github
 var defaultActualToken = strings.Split(camouflagedAccessToken, "-AccessToken-")[0] + strings.Split(camouflagedAccessToken, "-AccessToken-")[1]
-
-var defaultKeycloakTesUserName = "testuser"
-var defaultKeycloakTesUserSecret = "testuser"
-var defaultKeycloakTesUser2Name = "testuser2"
-var defaultKeycloakTesUser2Secret = "testuser2"
-
-// Keycloak URL to be used in dev mode. Can be overridden by setting up keycloak.url
-var devModeKeycloakURL = "http://sso.demo.almighty.io"

@@ -8,7 +8,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
-	//satoriuuid "github.com/satori/go.uuid"
+	//uuid "github.com/satori/go.uuid"
 )
 
 // WorkItemLinkCategoryController implements the work-item-link-category resource.

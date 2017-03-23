@@ -5,6 +5,7 @@ import (
 
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -13,16 +14,21 @@ import (
 	"golang.org/x/net/context"
 )
 
+// In future, we could add support for FieldDefinitions the way we have for workitems.
+// Hence. keeping the map as a string->interface and not string->string.
+// At the moment, FieldDefinitions could be an overkill, so keeping it out.
+
 // User describes a User account. A few identities can be assosiated with one user account
 type User struct {
 	gormsupport.Lifecycle
-	ID         uuid.UUID  `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	Email      string     `sql:"unique_index"`                                            // This is the unique email field
-	FullName   string     // The fullname of the User
-	ImageURL   string     // The image URL for the User
-	Bio        string     // The bio of the User
-	URL        string     // The URL of the User
-	Identities []Identity // has many Identities from different IDPs
+	ID                 uuid.UUID       `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	Email              string          `sql:"unique_index"`                                            // This is the unique email field
+	FullName           string          // The fullname of the User
+	ImageURL           string          // The image URL for the User
+	Bio                string          // The bio of the User
+	URL                string          // The URL of the User
+	Identities         []Identity      // has many Identities from different IDPs
+	ContextInformation workitem.Fields `sql:"type:jsonb"` // context information of the user activity
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -82,13 +88,13 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 	err := m.db.Create(u).Error
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": u.ID,
-			"err":    err,
+			"user_id": u.ID,
+			"err":     err,
 		}, "unable to create the user")
 		return errors.WithStack(err)
 	}
 	log.Debug(ctx, map[string]interface{}{
-		"userID": u.ID,
+		"user_id": u.ID,
 	}, "User created!")
 	return nil
 }
@@ -100,8 +106,8 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": model.ID,
-			"err":    err,
+			"user_id": model.ID,
+			"err":     err,
 		}, "unable to update user")
 		return errors.WithStack(err)
 	}
@@ -111,7 +117,7 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"userID": model.ID,
+		"user_id": model.ID,
 	}, "User saved!")
 	return nil
 }
@@ -126,14 +132,14 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": id,
-			"err":    err,
+			"user_id": id,
+			"err":     err,
 		}, "unable to delete the user")
 		return errors.WithStack(err)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"userID": id,
+		"user_id": id,
 	}, "User deleted!")
 
 	return nil
@@ -162,7 +168,7 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"userList": objs,
+		"user_list": objs,
 	}, "User query done successfully!")
 
 	return objs, nil

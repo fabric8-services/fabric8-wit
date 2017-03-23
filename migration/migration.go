@@ -65,16 +65,16 @@ func Migrate(db *sql.DB) error {
 		if err != nil {
 			oldErr := err
 			log.Info(nil, map[string]interface{}{
-				"nextVersion": nextVersion,
-				"migrations":  m,
-				"err":         err,
+				"next_version": nextVersion,
+				"migrations":   m,
+				"err":          err,
 			}, "Rolling back transaction due to: %v", err)
 
 			if err = tx.Rollback(); err != nil {
 				log.Error(nil, map[string]interface{}{
-					"nextVersion": nextVersion,
-					"migrations":  m,
-					"err":         err,
+					"next_version": nextVersion,
+					"migrations":   m,
+					"err":          err,
 				}, "error while rolling back transaction: ", err)
 				return errs.Errorf("Error while rolling back transaction: %s\n", err)
 			}
@@ -248,6 +248,18 @@ func getMigrations() migrations {
 	// Version 43
 	m = append(m, steps{executeSQLFile("043-space-resources.sql")})
 
+	// Version 44
+	m = append(m, steps{executeSQLFile("044-add-contextinfo-column-users.sql")})
+
+	// Version 45
+	m = append(m, steps{executeSQLFile("045-adds-order-to-existing-wi.sql")})
+
+	// Version 46
+	m = append(m, steps{executeSQLFile("046-oauth-states.sql")})
+
+	// Version 47
+	m = append(m, steps{executeSQLFile("047-codebases.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -328,15 +340,15 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	if *nextVersion >= int64(len(m)) {
 		// No further updates to apply (this is NOT an error)
 		log.Info(nil, map[string]interface{}{
-			"nextVersion":    *nextVersion,
-			"currentVersion": currentVersion,
+			"next_version":    *nextVersion,
+			"current_version": currentVersion,
 		}, "Current version %d. Nothing to update.", currentVersion)
 		return nil
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"nextVersion":    *nextVersion,
-		"currentVersion": currentVersion,
+		"next_version":    *nextVersion,
+		"current_version": currentVersion,
 	}, "Attempt to update DB to version %v", *nextVersion)
 
 	// Apply all the updates of the next version
@@ -351,8 +363,8 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 	}
 
 	log.Info(nil, map[string]interface{}{
-		"nextVersion":    *nextVersion,
-		"currentVersion": currentVersion,
+		"next_version":    *nextVersion,
+		"current_version": currentVersion,
 	}, "Successfully updated DB to version %v", *nextVersion)
 
 	return nil
@@ -422,6 +434,9 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeParentChild, "One planner item or a subtype of it which is a parent of another one.", link.TopologyTree, "parent of", "child of", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
+		return errs.WithStack(err)
+	}
 	return nil
 }
 
@@ -458,8 +473,8 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 	switch cause.(type) {
 	case errors.NotFoundError:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":     "migration",
-			"spaceID": id,
+			"pkg":      "migration",
+			"space_id": id,
 		}, "space %s will be created", id)
 		_, err := spaceRepo.Create(ctx, newSpace)
 		if err != nil {
@@ -467,8 +482,8 @@ func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, i
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":     "migration",
-			"spaceID": id,
+			"pkg":      "migration",
+			"space_id": id,
 		}, "space %s exists, will update/overwrite the description", id)
 
 		s.Description = description
@@ -489,8 +504,8 @@ func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.U
 	switch cause.(type) {
 	case errors.NotFoundError:
 		log.Info(ctx, map[string]interface{}{
-			"pkg":     "migration",
-			"spaceID": id,
+			"pkg":      "migration",
+			"space_id": id,
 		}, "space %s will be created", id)
 		_, err := spaceRepo.Create(ctx, newSpace)
 		if err != nil {
@@ -595,6 +610,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
 		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
 		workitem.SystemUpdatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+		workitem.SystemOrder:        {Type: &app.FieldType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
 		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
 		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
 		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
@@ -646,15 +662,15 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"typeID": typeID,
+			"type_id": typeID,
 		}, "Work item type %s exists, will update/overwrite the fields, name, icon, description and parentPath", typeID.String())
 
 		path := workitem.LtreeSafeID(typeID)
 		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeID != nil {
 			log.Info(ctx, map[string]interface{}{
-				"typeID":         typeID,
-				"extendedTypeID": *extendedTypeID,
+				"type_id":          typeID,
+				"extended_type_id": *extendedTypeID,
 			}, "Work item type %v extends another type %v will copy fields from the extended type", typeID, *extendedTypeID)
 
 			extendedWit, err := witr.LoadTypeFromDB(ctx, *extendedTypeID)
