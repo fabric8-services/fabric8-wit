@@ -3,6 +3,7 @@ package application
 import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/workitem"
 
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
@@ -28,5 +29,5 @@ type TrackerQueryRepository interface {
 
 // SearchRepository encapsulates searching of woritems,users,etc
 type SearchRepository interface {
-	SearchFullText(ctx context.Context, searchStr string, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	SearchFullText(ctx context.Context, searchStr string, start *int, length *int) ([]*workitem.WorkItem, uint64, error)
 }

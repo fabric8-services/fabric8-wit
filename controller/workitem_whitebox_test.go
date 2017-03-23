@@ -120,12 +120,9 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		workitem.SystemDescription: "description",
 	}
 
-	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
-	wi := app.WorkItem{
-		Fields: fields,
-		Relationships: &app.WorkItemRelationships{
-			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
-		},
+	wi := workitem.WorkItem{
+		Fields:  fields,
+		SpaceID: space.SystemSpace,
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
@@ -135,28 +132,22 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 func TestConvertWorkItemWithoutDescription(t *testing.T) {
 	request := http.Request{Host: "localhost"}
 	requestData := &goa.RequestData{Request: &request}
-	// map[string]interface{}
-	fields := map[string]interface{}{
-		workitem.SystemTitle: "title",
-	}
-
-	spaceSelfURL := rest.AbsoluteURL(requestData, app.SpaceHref(space.SystemSpace.String()))
-	wi := app.WorkItem{
-		Fields: fields,
-		Relationships: &app.WorkItemRelationships{
-			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+	wi := workitem.WorkItem{
+		Fields: map[string]interface{}{
+			workitem.SystemTitle: "title",
 		},
+		SpaceID: space.SystemSpace,
 	}
 	wi2 := ConvertWorkItem(requestData, &wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
 
-func prepareWI2(attributes map[string]interface{}) app.WorkItem2 {
+func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
-	return app.WorkItem2{
+	return app.WorkItem{
 		Type: "workitems",
 		Relationships: &app.WorkItemRelationships{
 			BaseType: &app.RelationBaseType{
@@ -178,7 +169,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 		workitem.SystemDescription: "description",
 	}
 	source := prepareWI2(attributes)
-	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -195,7 +186,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 		workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("description"),
 	}
 	source := prepareWI2(attributes)
-	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -212,7 +203,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 		workitem.SystemDescription: rendering.NewMarkupContent("description", rendering.SystemMarkupMarkdown),
 	}
 	source := prepareWI2(attributes)
-	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -229,7 +220,7 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 		workitem.SystemTitle: title,
 	}
 	source := prepareWI2(attributes)
-	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	require.Nil(t, err)
 	require.NotNil(t, target)
@@ -243,7 +234,7 @@ func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
 	appl := new(application.Application)
 	attributes := map[string]interface{}{}
 	source := prepareWI2(attributes)
-	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	// then: no error expected at this level, even though the title is missing
@@ -257,7 +248,7 @@ func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
 		workitem.SystemTitle: "",
 	}
 	source := prepareWI2(attributes)
-	target := &app.WorkItem{Fields: map[string]interface{}{}}
+	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
 	err := ConvertJSONAPIToWorkItem(*appl, source, target)
 	// then: no error expected at this level, even though the title is missing

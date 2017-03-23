@@ -23,35 +23,6 @@ var ALMStatus = a.MediaType("application/vnd.status+json", func() {
 	})
 })
 
-// workItem is the media type for work items
-// Deprecated, but kept around as internal model for now.
-var workItem = a.MediaType("application/vnd.workitem+json", func() {
-	a.TypeName("WorkItem")
-	a.Description("A work item hold field values according to a given field type")
-	a.Attribute("id", d.String, "unique id per installation")
-	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("ExecutionOrder", d.Number, "Order of the workitem in the list")
-	a.Attribute("type", d.UUID, "ID of the type of this work item")
-	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, according to the field type")
-	a.Attribute("relationships", workItemRelationships)
-
-	a.Required("id")
-	a.Required("version")
-	a.Required("type")
-	a.Required("fields")
-	a.Required("ExecutionOrder")
-	a.Required("relationships")
-
-	a.View("default", func() {
-		a.Attribute("id")
-		a.Attribute("version")
-		a.Attribute("ExecutionOrder")
-		a.Attribute("type")
-		a.Attribute("fields")
-		a.Attribute("relationships")
-	})
-})
-
 var pagingLinks = a.Type("pagingLinks", func() {
 	a.Attribute("prev", d.String)
 	a.Attribute("next", d.String)

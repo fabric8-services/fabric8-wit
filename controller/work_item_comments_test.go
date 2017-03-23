@@ -83,9 +83,9 @@ func (rest *TestCommentREST) newCreateWorkItemCommentsPayload(body string, marku
 	}
 }
 
-func (rest *TestCommentREST) createDefaultWorkItem() *app.WorkItem {
+func (rest *TestCommentREST) createDefaultWorkItem() *workitem.WorkItem {
 	rest.T().Log("Creating work item with modifier ID:", rest.testIdentity.ID)
-	var workItem *app.WorkItem
+	var workItem *workitem.WorkItem
 	err := application.Transactional(rest.db, func(appl application.Application) error {
 		repo := appl.WorkItems()
 		wi, err := repo.Create(
@@ -132,7 +132,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	markup := rendering.SystemMarkupMarkdown
 	p := rest.newCreateWorkItemCommentsPayload("Test", &markup)
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.Relationships.Space.Data.ID.String(), wi.ID, p)
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
 	// then
 	rest.assertComment(c.Data, "Test", markup)
 }
@@ -143,7 +143,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	// when
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.Relationships.Space.Data.ID.String(), wi.ID, p)
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
 	// then
 	rest.assertComment(c.Data, "Test", rendering.SystemMarkupDefault)
 }
@@ -163,14 +163,14 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.Relationships.Space.Data.ID.String(), wi.ID, &limit, &offset)
+	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset)
 	// then
 	require.Equal(rest.T(), 3, len(cs.Data))
 	rest.assertComment(cs.Data[0], "Test 3", rendering.SystemMarkupDefault) // items are returned in reverse order or creation
 	// given
 	wi2 := rest.createDefaultWorkItem()
 	// when
-	_, cs2 := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi2.Relationships.Space.Data.ID.String(), wi2.ID, &limit, &offset)
+	_, cs2 := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi2.SpaceID.String(), wi2.ID, &limit, &offset)
 	// then
 	assert.Equal(rest.T(), 0, len(cs2.Data))
 }
@@ -182,7 +182,7 @@ func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 1
-	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.Relationships.Space.Data.ID.String(), wi.ID, &limit, &offset)
+	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset)
 	// then
 	assert.Equal(rest.T(), 0, len(cs.Data))
 }
@@ -201,7 +201,7 @@ func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
 	// when/then
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateWorkItemCommentsUnauthorized(rest.T(), svc.Context, svc, ctrl, wi.Relationships.Space.Data.ID.String(), wi.ID, p)
+	test.CreateWorkItemCommentsUnauthorized(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
 }
 
 // Can not be tested via normal Goa testing framework as setting empty body on CreateCommentAttributes is

@@ -32,7 +32,7 @@ func (self ListType) Equal(u convert.Equaler) bool {
 // ConvertToModel implements the FieldType interface
 func (fieldType ListType) ConvertToModel(value interface{}) (interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
-	return convertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
+	return ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertToModel(value)
 	}, fieldType.ComponentType, value)
 
@@ -41,19 +41,19 @@ func (fieldType ListType) ConvertToModel(value interface{}) (interface{}, error)
 // ConvertFromModel implements the FieldType interface
 func (fieldType ListType) ConvertFromModel(value interface{}) (interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
-	return convertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
+	return ConvertList(func(fieldType FieldType, value interface{}) (interface{}, error) {
 		return fieldType.ConvertFromModel(value)
 	}, fieldType.ComponentType, value)
 }
 
-type converter func(FieldType, interface{}) (interface{}, error)
+type Converter func(FieldType, interface{}) (interface{}, error)
 
 const (
 	stErrorNotArrayOrSlice = "value %v should be array/slice, but is %s"
 	stErrorConvertingList  = "error converting list value: %s"
 )
 
-func convertList(converter converter, componentType SimpleType, value interface{}) ([]interface{}, error) {
+func ConvertList(converter Converter, componentType SimpleType, value interface{}) ([]interface{}, error) {
 	// the assumption is that work item types do not change over time...only new ones can be created
 	valueType := reflect.TypeOf(value)
 
