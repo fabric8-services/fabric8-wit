@@ -55,13 +55,13 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		iteration, err := appl.Iterations().RootIteration(ctx.Context, spaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch root iteration"))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to fetch root iteration"))
 		}
 		exp = criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(iteration.ID.String()))
 
 		wits, err := appl.WorkItemTypes().ListPlannerItems(ctx.Context, spaceID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Unable to fetch work item types that derives of planner item"))
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "unable to fetch work item types that derives of planner item"))
 		}
 
 		var expWits criteria.Expression
