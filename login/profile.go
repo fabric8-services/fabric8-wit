@@ -3,6 +3,7 @@ package login
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/almighty/almighty-core/errors"
@@ -10,6 +11,9 @@ import (
 
 // KeycloakUserProfile represents standard Keycloak User profile payload
 type KeycloakUserProfile struct {
+	ID         *string                        `json:"id,omitempty"`
+	CreatedAt  int64                          `json:"createdTimestamp,omitempty"`
+	Username   *string                        `json:"id,omitempty"`
 	FirstName  *string                        `json:"firstName,omitempty"`
 	LastName   *string                        `json:"lastName,omitempty"`
 	Email      *string                        `json:"email,omitempty"`
@@ -21,6 +25,28 @@ type KeycloakUserProfileAttributes struct {
 	Bio      *string `json:"bio,omitempty"`
 	URL      *string `json:"url,omitempty"`
 	ImageURL *string `json:"image_url,omitempty"`
+}
+
+//KeycloakUserProfileResponse represents the user profile api response from keycloak
+type KeycloakUserProfileResponse struct {
+	ID                         *string                      `json:"id"`
+	CreatedTimestamp           *int64                       `json:"createdTimestamp"`
+	Username                   *string                      `json:"username"`
+	Enabled                    *bool                        `json:"enabled"`
+	Totp                       *bool                        `json:"totp"`
+	EmailVerified              *bool                        `json:"emailVerified"`
+	FirstName                  *string                      `json:"firstName"`
+	LastName                   *string                      `json:"lastName"`
+	Email                      *string                      `json:"email"`
+	Attributes                 *KeycloakUserProfileResponse `json:"attributes"`
+	DisableableCredentialTypes []*string                    `json:"disableableCredentialTypes"`
+	RequiredActions            []interface{}                `json:"requiredActions"`
+}
+
+type KeycloakUserProfileResponseAttributes struct {
+	Bio      []*string `json:"bio"`
+	ImageURL []*string `json:"image_url"`
+	URL      []*string `json:"url"`
 }
 
 // NewKeycloakUserProfile creates a new keycloakUserProfile instance.
@@ -40,6 +66,7 @@ func NewKeycloakUserProfile(firstName, lastName, email, bio, url, imageURL *stri
 // UserProfileService describes what the services need to be capable of doing.
 type UserProfileService interface {
 	Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error
+	Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error)
 }
 
 // KeycloakUserProfileClient describes the interface between platform and Keycloak User profile service.
@@ -74,4 +101,29 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	}
 	defer resp.Body.Close()
 	return nil
+}
+
+//Update updates the user profile information in Keycloak
+func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
+
+	KeycloakUserProfileResponse := KeycloakUserProfileResponse{}
+
+	req, err := http.NewRequest("GET", keycloakProfileURL, nil)
+	if err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := userProfileClient.client.Do(req)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.NewInternalError(fmt.Sprintf("The request to %s returned a bad response %s", keycloakProfileURL, resp.Status))
+	}
+	if err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	err = json.NewDecoder(resp.Body).Decode(&KeycloakUserProfileResponse)
+	return &KeycloakUserProfileResponse, err
 }
