@@ -26,14 +26,14 @@ type usersConfiguration interface {
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
-	db                         application.DB
-	configuration              usersConfiguration
-	keycloakUserProfileService login.KeycloakUserProfileService
+	db                 application.DB
+	configuration      usersConfiguration
+	userProfileService login.UserProfileService
 }
 
 // NewUsersController creates a users controller.
-func NewUsersController(service *goa.Service, db application.DB, configuration usersConfiguration, keycloakUserProfileService login.KeycloakUserProfileService) *UsersController {
-	return &UsersController{Controller: service.NewController("UsersController"), db: db, configuration: configuration, keycloakUserProfileService: keycloakUserProfileService}
+func NewUsersController(service *goa.Service, db application.DB, configuration usersConfiguration, userProfileService login.UserProfileService) *UsersController {
+	return &UsersController{Controller: service.NewController("UsersController"), db: db, configuration: configuration, userProfileService: userProfileService}
 }
 
 // Show runs the show action.
@@ -153,7 +153,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		c.keycloakUserProfileService.Update(keycloakUserProfile, tokenString, "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account")
+		c.userProfileService.Update(keycloakUserProfile, tokenString, "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account")
 
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})

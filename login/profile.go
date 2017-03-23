@@ -37,15 +37,17 @@ func NewKeycloakUserProfile(firstName, lastName, email, bio, url, imageURL *stri
 	}
 }
 
-// KeycloakUserProfileService describes what the services need to be capable of doing.
-type KeycloakUserProfileService interface {
+// UserProfileService describes what the services need to be capable of doing.
+type UserProfileService interface {
 	Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error
 }
 
+// KeycloakUserProfileClient describes the interface between platform and Keycloak User profile service.
 type KeycloakUserProfileClient struct {
 	client *http.Client
 }
 
+// NewKeycloakUserProfileClient creates a new KeycloakUserProfileClient
 func NewKeycloakUserProfileClient() *KeycloakUserProfileClient {
 	return &KeycloakUserProfileClient{
 		client: http.DefaultClient,
@@ -63,8 +65,8 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	if err != nil {
 		return errors.NewInternalError(err.Error())
 	}
-	userProfileClient.setHeader(req, "Authorization", "Bearer "+accessToken)
-	userProfileClient.setHeader(req, "Content-Type", "application/json")
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := userProfileClient.client.Do(req)
 	if err != nil {
@@ -72,8 +74,4 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	}
 	defer resp.Body.Close()
 	return nil
-}
-
-func (userProfileClient *KeycloakUserProfileClient) setHeader(req *http.Request, key, value string) {
-	req.Header.Add(key, value)
 }
