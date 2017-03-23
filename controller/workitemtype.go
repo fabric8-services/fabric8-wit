@@ -53,7 +53,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		witData := convertTypeFromModel(goa.ContextRequest(ctx), witModel)
+		witData := convertTypeFromModel(ctx.RequestData, witModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		return ctx.Conditional(*wit, c.config.GetCacheControlWorkItemType, func() error {
 			return ctx.OK(wit)
@@ -76,7 +76,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		// Set the space to the Payload
 		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 			// We overwrite or use the space ID in the URL to set the space of this WI
-			spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
+			spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(spaceID.String()))
 			ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
 		}
 		modelFields, err := ConvertFieldDefinitionsToModel(fields)
@@ -95,7 +95,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		witData := convertTypeFromModel(goa.ContextRequest(ctx), witTypeModel)
+		witData := convertTypeFromModel(ctx.RequestData, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 		return ctx.Created(wit)
@@ -122,7 +122,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		result := &app.WorkItemTypeList{}
 		result.Data = make([]*app.WorkItemTypeData, len(witModels))
 		for index, value := range witModels {
-			wit := convertTypeFromModel(goa.ContextRequest(ctx), &value)
+			wit := convertTypeFromModel(ctx.RequestData, &value)
 			result.Data[index] = &wit
 		}
 
@@ -147,7 +147,12 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
-		result, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.WitID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		// convert to rest representation
+		appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -156,12 +161,12 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, result)
+		err = enrichLinkTypeList(linkCtx, appLinkTypes)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
-			return ctx.OK(result)
+		return ctx.Conditional(*appLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+			return ctx.OK(appLinkTypes)
 		})
 	})
 }
@@ -181,7 +186,11 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg
-		result, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.WitID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -190,12 +199,12 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, result)
+		err = enrichLinkTypeList(linkCtx, appLinkTypes)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.Conditional(*result, c.config.GetCacheControlWorkItemType, func() error {
-			return ctx.OK(result)
+		return ctx.Conditional(*appLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+			return ctx.OK(appLinkTypes)
 		})
 	})
 }

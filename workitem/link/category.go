@@ -1,7 +1,6 @@
 package link
 
 import (
-	"github.com/almighty/almighty-core/app"
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	uuid "github.com/satori/go.uuid"
@@ -56,20 +55,4 @@ func (c WorkItemLinkCategory) Equal(u convert.Equaler) bool {
 // TableName implements gorm.tabler
 func (c WorkItemLinkCategory) TableName() string {
 	return "work_item_link_categories"
-}
-
-// ConvertLinkCategoryFromModel converts work item link category from model to app representation
-func ConvertLinkCategoryFromModel(t WorkItemLinkCategory) app.WorkItemLinkCategorySingle {
-	var converted = app.WorkItemLinkCategorySingle{
-		Data: &app.WorkItemLinkCategoryData{
-			Type: EndpointWorkItemLinkCategories,
-			ID:   &t.ID,
-			Attributes: &app.WorkItemLinkCategoryAttributes{
-				Name:        &t.Name,
-				Description: t.Description,
-				Version:     &t.Version,
-			},
-		},
-	}
-	return converted
 }

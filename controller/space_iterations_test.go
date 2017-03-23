@@ -247,7 +247,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// create seed data
 	spaceRepo := space.NewRepository(rest.DB)
 	spaceInstance := space.Space{
-		Name: "Testing space",
+		Name: "Testing space" + uuid.NewV4().String(),
 	}
 	_, e := spaceRepo.Create(rest.ctx, &spaceInstance)
 	require.Nil(rest.T(), e)
