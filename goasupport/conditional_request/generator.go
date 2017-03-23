@@ -134,6 +134,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		codegen.SimpleImport("reflect"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/configuration"),
 		codegen.SimpleImport("github.com/Sirupsen/logrus"),
+		codegen.NewImport("uuid", "github.com/satori/go.uuid"),
 	}
 
 	ctxWr.WriteHeader(title, "app", imports)
@@ -289,10 +290,20 @@ func generateETagValue(data []interface{}) string {
 			buffer.WriteString(generateETagValue(d))
 		case string:
 			buffer.WriteString(d)
+		case *string:
+			buffer.WriteString(*d)
 		case time.Time:
+			buffer.WriteString(d.UTC().String())
+		case *time.Time:
 			buffer.WriteString(d.UTC().String())
 		case int:
 			buffer.WriteString(strconv.Itoa(d))
+		case *int:
+			buffer.WriteString(strconv.Itoa(*d))
+		case uuid.UUID:
+			buffer.WriteString(d.String())
+		case *uuid.UUID:
+			buffer.WriteString(d.String())
 		default:
 			logrus.Error("Unexpected etag fragment format", reflect.TypeOf(d).String())
 		}
