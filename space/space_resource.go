@@ -74,7 +74,7 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 	tx := r.db.Where("id=?", ID).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"spaceResourceID": ID.String(),
+			"space_resource_id": ID.String(),
 		}, "state or known referer was empty")
 		return nil, errors.NewNotFoundError("space resource", ID.String())
 	}
@@ -89,7 +89,7 @@ func (r *GormResourceRepository) Load(ctx context.Context, ID uuid.UUID) (*Resou
 func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error {
 	if ID == uuid.Nil {
 		log.Error(ctx, map[string]interface{}{
-			"spaceResourceID": ID.String(),
+			"space_resource_id": ID.String(),
 		}, "unable to find the space resource by ID")
 		return errors.NewNotFoundError("space resource", ID.String())
 	}
@@ -98,13 +98,13 @@ func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error
 
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"spaceResourceID": ID.String(),
+			"space_resource_id": ID.String(),
 		}, "unable to delete the space resource")
 		return errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
 		log.Error(ctx, map[string]interface{}{
-			"spaceResourceID": ID.String(),
+			"space_resource_id": ID.String(),
 		}, "none row was affected by the deletion operation")
 		return errors.NewNotFoundError("space resource", ID.String())
 	}
@@ -125,7 +125,7 @@ func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resour
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"spaceResourceID": p.ID,
+		"space_resource_id": p.ID,
 	}, "Space resource updated successfully")
 	return p, nil
 }
@@ -143,7 +143,7 @@ func (r *GormResourceRepository) Create(ctx context.Context, resource *Resource)
 	}
 
 	log.Info(ctx, map[string]interface{}{
-		"spaceResourceID": resource.ID,
+		"space_resource_id": resource.ID,
 	}, "Space resource created successfully")
 	return resource, nil
 }
@@ -154,7 +154,7 @@ func (r *GormResourceRepository) LoadBySpace(ctx context.Context, spaceID *uuid.
 	tx := r.db.Where("space_resources.space_id=?", *spaceID).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceID.String(),
+			"space_id": spaceID.String(),
 		}, "Could not find space resource by space ID")
 		return nil, errors.NewNotFoundError("space resource", spaceID.String())
 	}

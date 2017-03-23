@@ -81,7 +81,7 @@ func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *g
 	}
 	if !found {
 		log.Error(ctx, map[string]interface{}{
-			"userID": userID,
+			"user_id": userID,
 		}, "User not found in Keycloak")
 		return nil, errors.NewNotFoundError("keycloak user", userID) // The user is not found in the Keycloak user base
 	}

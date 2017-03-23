@@ -88,13 +88,13 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 	err := m.db.Create(u).Error
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": u.ID,
-			"err":    err,
+			"user_id": u.ID,
+			"err":     err,
 		}, "unable to create the user")
 		return errors.WithStack(err)
 	}
 	log.Debug(ctx, map[string]interface{}{
-		"userID": u.ID,
+		"user_id": u.ID,
 	}, "User created!")
 	return nil
 }
@@ -106,8 +106,8 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	obj, err := m.Load(ctx, model.ID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": model.ID,
-			"err":    err,
+			"user_id": model.ID,
+			"err":     err,
 		}, "unable to update user")
 		return errors.WithStack(err)
 	}
@@ -117,7 +117,7 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"userID": model.ID,
+		"user_id": model.ID,
 	}, "User saved!")
 	return nil
 }
@@ -132,14 +132,14 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"userID": id,
-			"err":    err,
+			"user_id": id,
+			"err":     err,
 		}, "unable to delete the user")
 		return errors.WithStack(err)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"userID": id,
+		"user_id": id,
 	}, "User deleted!")
 
 	return nil
@@ -168,7 +168,7 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"userList": objs,
+		"user_list": objs,
 	}, "User query done successfully!")
 
 	return objs, nil
