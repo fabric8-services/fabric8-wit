@@ -196,7 +196,7 @@ func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterat
 	} else {
 		query = parentIteration.Path.ConvertToLtree(parentIteration.ID)
 	}
-	err = m.db.Where("path <@ ?", query).Find(&objs).Error
+	err = m.db.Where("path <@ ?", query).Order("updated_at").Find(&objs).Error
 	if err != nil {
 		return nil, err
 	}
