@@ -52,7 +52,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	exp = criteria.Not(criteria.Field(workitem.SystemState), criteria.Literal(workitem.SystemStateClosed))
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		var result []*app.WorkItem
+		var result []*workitem.WorkItem
 		// Get the root iteration
 		iteration, err := appl.Iterations().RootIteration(ctx.Context, spaceID)
 		if err != nil {
@@ -75,8 +75,8 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 			exp = criteria.And(exp, expWits)
 		} else {
 			// If there isn't work item types, return an empty array.
-			return ctx.OK(&app.WorkItem2List{
-				Data:  []*app.WorkItem2{},
+			return ctx.OK(&app.WorkItemList{
+				Data:  []*app.WorkItem{},
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: 0},
 			})
@@ -98,7 +98,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 				}
 			}
 		}
-		response := app.WorkItem2List{
+		response := app.WorkItemList{
 			Data:  ConvertWorkItems(ctx.RequestData, result),
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
