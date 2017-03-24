@@ -285,6 +285,10 @@ func main() {
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
+	// Mount "plannerBacklog" controller
+	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB)
+	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
+
 	// Mount "codebase" controller
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)
 	app.MountCodebaseController(service, codebaseCtrl)

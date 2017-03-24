@@ -13,9 +13,16 @@ var space = a.Type("Space", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", spaceAttributes)
-	a.Attribute("links", genericLinks)
+	a.Attribute("links", genericLinksForSpace)
 	a.Required("type", "attributes")
 	a.Attribute("relationships", spaceRelationships)
+})
+
+var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("related", d.String)
+	a.Attribute("backlog", d.String, `URL to the backlog work items`)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
 })
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {

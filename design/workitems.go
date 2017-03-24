@@ -288,3 +288,30 @@ var _ = a.Resource("redirect_workitem", func() {
 		a.Response(d.MovedPermanently)
 	})
 })
+
+var _ = a.Resource("planner_backlog", func() {
+	a.Parent("space")
+	a.BasePath("/backlog")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List backlog work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+		})
+		a.Response(d.OK, func() {
+			a.Media(workItemList)
+		})
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
