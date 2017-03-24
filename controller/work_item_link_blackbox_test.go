@@ -316,7 +316,7 @@ func CreateWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID,
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
-	payload := link.ConvertLinkTypeFromModel(reqLong, lt)
+	payload := ConvertLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
@@ -330,7 +330,7 @@ func CreateWorkItemLink(sourceID uint64, targetID uint64, linkTypeID uuid.UUID) 
 		TargetID:   targetID,
 		LinkTypeID: linkTypeID,
 	}
-	payload := link.ConvertLinkFromModel(lt)
+	payload := ConvertLinkFromModel(lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkPayload{
 		Data: payload.Data,
@@ -519,15 +519,15 @@ func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
 	require.NotNil(s.T(), workItemLink)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
-	expected := link.WorkItemLink{}
-	require.Nil(s.T(), link.ConvertLinkToModel(*workItemLink, &expected))
+	expected, err := ConvertLinkToModel(*workItemLink)
+	require.Nil(s.T(), err)
 
 	_, readIn := test.ShowWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
 	require.NotNil(s.T(), readIn)
 	// Convert to model space and use equal function
-	actual := link.WorkItemLink{}
-	require.Nil(s.T(), link.ConvertLinkToModel(*readIn, &actual))
-	require.True(s.T(), expected.Equal(actual))
+	actual, err := ConvertLinkToModel(*readIn)
+	require.Nil(s.T(), err)
+	require.True(s.T(), expected.Equal(*actual))
 
 	require.NotNil(s.T(), readIn.Data.Links, "The link MUST include a self link")
 	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link MUST include a self link that's not empty")
@@ -544,16 +544,16 @@ func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.Wor
 	require.NotNil(s.T(), workItemLink1)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
-	expected1 := link.WorkItemLink{}
-	require.Nil(s.T(), link.ConvertLinkToModel(*workItemLink1, &expected1))
+	_, err := ConvertLinkToModel(*workItemLink1)
+	require.Nil(s.T(), err)
 
 	createPayload2 := CreateWorkItemLink(s.bug2ID, s.bug3ID, s.bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 	require.NotNil(s.T(), workItemLink2)
 	// Delete this work item link during cleanup
 	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink2.Data.ID)
-	expected2 := link.WorkItemLink{}
-	require.Nil(s.T(), link.ConvertLinkToModel(*workItemLink2, &expected2))
+	_, err = ConvertLinkToModel(*workItemLink2)
+	require.Nil(s.T(), err)
 
 	return workItemLink1, workItemLink2
 }

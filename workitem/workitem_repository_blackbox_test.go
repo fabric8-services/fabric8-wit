@@ -221,7 +221,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// given
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
-		Name: "Testing space",
+		Name: "Testing space" + uuid.NewV4().String(),
 	}
 	spaceRepo.Create(s.ctx, &spaceInstance)
 	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)

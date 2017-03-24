@@ -190,6 +190,7 @@ func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
+	name := "Some name"
 	description := "New description for work item link category."
 	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19")
 	payload := &app.UpdateWorkItemLinkCategoryPayload{
@@ -197,6 +198,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryNotFound() {
 			ID:   &id,
 			Type: link.EndpointWorkItemLinkCategories,
 			Attributes: &app.WorkItemLinkCategoryAttributes{
+				Name:        &name,
 				Description: &description,
 			},
 		},
