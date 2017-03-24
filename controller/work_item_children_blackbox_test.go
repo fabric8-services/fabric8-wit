@@ -154,15 +154,19 @@ func (s *workItemChildSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
-	// Create a work item link category
-	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user" + uuid.NewV4().String())
-	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
-	require.NotNil(s.T(), workItemLinkCategory)
-	userLinkCategoryID := *workItemLinkCategory.Data.ID
-	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
+	var catID uuid.UUID
+	err = models.Transactional(s.DB, func(tx *gorm.DB) error {
+		linkCatRepo := link.NewWorkItemLinkCategoryRepository(tx)
+		cat, err := linkCatRepo.LoadCategoryFromDB(context.Background(), "parent-child")
+		catID = cat.ID
+		return err
+	})
+	if err != nil {
+		s.T().Fatalf("Fetching category faild: %s", err)
+	}
 
 	// Create work item link type payload
-	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, catID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID.String(), createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	bugBlockerLinkTypeID := *workItemLinkType.Data.ID

@@ -321,9 +321,11 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	id in (
 		SELECT target_id FROM %s
 		WHERE source_id = ? AND link_type_id IN (
-			SELECT id FROM %s WHERE forward_name = 'parent of'
+			SELECT id FROM %s WHERE link_category_id IN (
+				SELECT id FROM %s WHERE name = 'parent-child'
+			)
 		)
-	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
+	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName(), WorkItemLinkCategory{}.TableName())
 	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
 	rows, err := db.Rows()
 	if err != nil {
