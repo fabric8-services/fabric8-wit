@@ -459,8 +459,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 		}, "Work item link category %s exists, will update/overwrite the description", name)
 
 		cat.Description = &description
-		linkCat := link.ConvertLinkCategoryFromModel(*cat)
-		_, err = linkCatRepo.Save(ctx, linkCat)
+		_, err = linkCatRepo.Save(ctx, *cat)
 		return errs.WithStack(err)
 	}
 	return nil
@@ -530,8 +529,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		return errs.WithStack(err)
 	}
 
-	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
-	lt := link.WorkItemLinkType{
+	existingLinkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
+	linkType := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
 		Topology:       topology,
@@ -546,7 +545,16 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeID, lt.TargetTypeID, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID, lt.SpaceID)
+		_, err := linkTypeRepo.Create(ctx,
+			existingLinkType.Name,
+			existingLinkType.Description,
+			existingLinkType.SourceTypeID,
+			existingLinkType.TargetTypeID,
+			existingLinkType.ForwardName,
+			existingLinkType.ReverseName,
+			existingLinkType.Topology,
+			existingLinkType.LinkCategoryID,
+			existingLinkType.SpaceID)
 		if err != nil {
 			return errs.WithStack(err)
 		}
@@ -554,11 +562,9 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		log.Info(ctx, map[string]interface{}{
 			"wilt": name,
 		}, "Work item link type %s exists, will update/overwrite all fields", name)
-
-		lt.ID = linkType.ID
-		lt.Version = linkType.Version
-
-		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(goa.ContextRequest(ctx), lt))
+		linkType.ID = existingLinkType.ID
+		linkType.Version = existingLinkType.Version
+		_, err = linkTypeRepo.Save(ctx, linkType)
 		return errs.WithStack(err)
 	}
 	return nil
