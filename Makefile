@@ -106,7 +106,7 @@ golint: $(GOLINT_BIN)
 ## Run gocyclo analysis over the code.
 gocyclo: $(GOCYCLO_BIN)
 	$(info >>--- RESULTS: GOCYCLO CODE ANALYSIS ---<<)
-	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 15 $d;)
+	@$(foreach d,$(GOANALYSIS_DIRS),$(GOCYCLO_BIN) -over 10 $d | grep -vEf .golint_exclude;)
 
 ## Run go vet analysis over the code.
 govet:
