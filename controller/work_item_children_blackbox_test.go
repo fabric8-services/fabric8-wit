@@ -17,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
@@ -61,8 +62,14 @@ func (s *workItemChildSuite) SetupSuite() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
+	ctx := migration.NewMigrationContext(context.Background())
 	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
+		return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
+	}); err != nil {
+		panic(err.Error())
+	}
+	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
+		return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
 	}); err != nil {
 		panic(err.Error())
 	}
