@@ -157,7 +157,11 @@ func (s *workItemChildSuite) SetupTest() {
 	var catID uuid.UUID
 	err = models.Transactional(s.DB, func(tx *gorm.DB) error {
 		linkCatRepo := link.NewWorkItemLinkCategoryRepository(tx)
-		cat, err := linkCatRepo.LoadCategoryFromDB(context.Background(), "parent-child")
+		cat, err := linkCatRepo.LoadCategoryFromDB(context.Background(), link.SystemWorkItemLinkCategoryParentChild)
+		if err != nil {
+			s.T().Fatalf("Fetching category faild: %s", err)
+			return err
+		}
 		catID = cat.ID
 		return err
 	})
