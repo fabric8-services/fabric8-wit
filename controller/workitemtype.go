@@ -118,6 +118,15 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
+
+		// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
+		// for the space.
+		if len(witModels) == 0 {
+			witModels, err = appl.WorkItemTypes().List(ctx.Context, space.SystemSpace, start, &limit)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+			}
+		}
 		// convert from model to app
 		result := &app.WorkItemTypeList{}
 		result.Data = make([]*app.WorkItemTypeData, len(witModels))
