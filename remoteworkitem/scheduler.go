@@ -66,7 +66,7 @@ func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[str
 						return errors.WithStack(err)
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
+					_, err = convertToWorkItemModel(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
 					return errors.WithStack(err)
 				})
 			}

@@ -2,18 +2,13 @@ package workitem
 
 import (
 	"fmt"
-	"reflect"
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 
-	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -23,9 +18,9 @@ var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
-	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error)
-	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
-	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) (*app.WorkItemTypeList, error)
+	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
+	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
+	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
 }
 
@@ -39,20 +34,19 @@ type GormWorkItemTypeRepository struct {
 	db *gorm.DB
 }
 
-// Load returns the work item for the given id
+// LoadByID returns the work item for the given id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
 	res, err := r.LoadTypeFromDB(ctx, id)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
-	result := convertTypeFromModels(goa.ContextRequest(ctx), res)
-	return &app.WorkItemTypeSingle{Data: &result}, nil
+	return res, nil
 }
 
 // Load returns the work item for the given spaceID and id
 // returns NotFoundError, InternalError
-func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error) {
 	log.Logger().Infoln("Loading work item type", id)
 	res, ok := cache.Get(id)
 	if !ok {
@@ -75,9 +69,7 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 		}
 		cache.Put(res)
 	}
-
-	result := convertTypeFromModels(goa.ContextRequest(ctx), &res)
-	return &app.WorkItemTypeSingle{Data: &result}, nil
+	return &res, nil
 }
 
 // LoadTypeFromDB return work item type for the given id
@@ -89,7 +81,6 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid
 			"wit_id": id,
 		}, "Work item type doesn't exist in the cache. Loading from DB...")
 		res = WorkItemType{}
-
 		db := r.db.Model(&res).Where("id=?", id).First(&res)
 		if db.RecordNotFound() {
 			log.Error(ctx, map[string]interface{}{
@@ -98,6 +89,9 @@ func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid
 			return nil, errors.NewNotFoundError("work item type", id.String())
 		}
 		if err := db.Error; err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"witID": id,
+			}, "work item type retrieval error", err.Error())
 			return nil, errors.NewInternalError(err.Error())
 		}
 		cache.Put(res)
@@ -112,7 +106,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error) {
 	// Make sure this WIT has an ID
 	if id == nil {
 		tmpID := uuid.NewV4()
@@ -124,6 +118,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 		log.Error(ctx, map[string]interface{}{"wit_id": *id}, "unable to create new work item type")
 		return nil, errors.NewBadParameterError("name", *id)
 	}
+
 	allFields := map[string]FieldDefinition{}
 	path := LtreeSafeID(*id)
 	if extendedTypeID != nil {
@@ -141,24 +136,13 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 		}
 		path = extendedType.Path + pathSep + path
 	}
-
-	// now process new fields, checking whether they are ok to add.
+	// now process new fields, checking whether they are already there.
 	for field, definition := range fields {
 		existing, exists := allFields[field]
-		ct, err := convertFieldTypeToModels(*definition.Type)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		converted := FieldDefinition{
-			Label:       definition.Label,
-			Description: definition.Description,
-			Required:    definition.Required,
-			Type:        ct,
-		}
-		if exists && !compatibleFields(existing, converted) {
+		if exists && !compatibleFields(existing, definition) {
 			return nil, fmt.Errorf("incompatible change for field %s", field)
 		}
-		allFields[field] = converted
+		allFields[field] = definition
 	}
 
 	created := WorkItemType{
@@ -176,11 +160,8 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 		return nil, errors.NewInternalError(err.Error())
 	}
 
-	result := convertTypeFromModels(goa.ContextRequest(ctx), &created)
-
-	log.Debug(ctx, map[string]interface{}{"wit_id": created.ID}, "Work item type created successfully!")
-
-	return &app.WorkItemTypeSingle{Data: &result}, nil
+	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
+	return &created, nil
 }
 
 // List returns work item types that derives from PlannerItem type
@@ -200,7 +181,7 @@ func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, space
 }
 
 // List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
-func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) (*app.WorkItemTypeList, error) {
+func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
 	var rows []WorkItemType
@@ -214,149 +195,5 @@ func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID
 	if err := db.Find(&rows).Error; err != nil {
 		return nil, errs.WithStack(err)
 	}
-	result := &app.WorkItemTypeList{}
-	result.Data = make([]*app.WorkItemTypeData, len(rows))
-
-	for index, value := range rows {
-		wit := convertTypeFromModels(goa.ContextRequest(ctx), &value)
-		result.Data[index] = &wit
-	}
-
-	return result, nil
-}
-
-// compatibleFields returns true if the existing and new field are compatible;
-// otherwise false is returned. It does so by comparing all members of the field
-// definition except for the label and description.
-func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
-	if existing.Required != new.Required {
-		return false
-	}
-	return reflect.DeepEqual(existing.Type, new.Type)
-}
-
-// converts from models to app representation
-func convertTypeFromModels(request *goa.RequestData, t *WorkItemType) app.WorkItemTypeData {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
-	id := t.ID
-	createdAt := t.CreatedAt.UTC()
-	updatedAt := t.UpdatedAt.UTC()
-	var converted = app.WorkItemTypeData{
-		Type: "workitemtypes",
-		ID:   &id,
-		Attributes: &app.WorkItemTypeAttributes{
-			CreatedAt:   &createdAt,
-			UpdatedAt:   &updatedAt,
-			Version:     &t.Version,
-			Description: t.Description,
-			Icon:        t.Icon,
-			Name:        t.Name,
-			Fields:      map[string]*app.FieldDefinition{},
-		},
-		Relationships: &app.WorkItemTypeRelationships{
-			Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
-		},
-	}
-	for name, def := range t.Fields {
-		ct := convertFieldTypeFromModels(def.Type)
-		converted.Attributes.Fields[name] = &app.FieldDefinition{
-			Required:    def.Required,
-			Label:       def.Label,
-			Description: def.Description,
-			Type:        &ct,
-		}
-	}
-	return converted
-}
-
-// converts the field type from modesl to app representation
-func convertFieldTypeFromModels(t FieldType) app.FieldType {
-	result := app.FieldType{}
-	result.Kind = string(t.GetKind())
-	switch t2 := t.(type) {
-	case ListType:
-		kind := string(t2.ComponentType.GetKind())
-		result.ComponentType = &kind
-	case EnumType:
-		kind := string(t2.BaseType.GetKind())
-		result.BaseType = &kind
-		result.Values = t2.Values
-	}
-
-	return result
-}
-
-func convertAnyToKind(any interface{}) (*Kind, error) {
-	k, ok := any.(string)
-	if !ok {
-		return nil, fmt.Errorf("kind is not a string value %v", any)
-	}
-
-	return convertStringToKind(k)
-}
-
-func convertStringToKind(k string) (*Kind, error) {
-	kind := Kind(k)
-	switch kind {
-	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase:
-		return &kind, nil
-	}
-	return nil, fmt.Errorf("Not a simple type")
-}
-
-func convertFieldTypeToModels(t app.FieldType) (FieldType, error) {
-	kind, err := convertStringToKind(t.Kind)
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	switch *kind {
-	case KindList:
-		componentType, err := convertAnyToKind(*t.ComponentType)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		if !componentType.isSimpleType() {
-			return nil, fmt.Errorf("Component type is not list type: %T", componentType)
-		}
-		return ListType{SimpleType{*kind}, SimpleType{*componentType}}, nil
-	case KindEnum:
-		bt, err := convertAnyToKind(*t.BaseType)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		if !bt.isSimpleType() {
-			return nil, fmt.Errorf("baseType type is not list type: %T", bt)
-		}
-		baseType := SimpleType{*bt}
-
-		values := t.Values
-		converted, err := convertList(func(ft FieldType, element interface{}) (interface{}, error) {
-			return ft.ConvertToModel(element)
-		}, baseType, values)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		return EnumType{SimpleType{*kind}, baseType, converted}, nil
-	default:
-		return SimpleType{*kind}, nil
-	}
-}
-
-func TEMPConvertFieldTypesToModel(fields map[string]app.FieldDefinition) (map[string]FieldDefinition, error) {
-
-	allFields := map[string]FieldDefinition{}
-	for field, definition := range fields {
-		ct, err := convertFieldTypeToModels(*definition.Type)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		converted := FieldDefinition{
-			Required:    definition.Required,
-			Label:       definition.Label,
-			Description: definition.Description,
-			Type:        ct,
-		}
-		allFields[field] = converted
-	}
-	return allFields, nil
+	return rows, nil
 }

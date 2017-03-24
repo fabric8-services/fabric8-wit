@@ -85,7 +85,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 	createWorkitemPayload := app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
 				workitem.SystemTitle: "work item title",

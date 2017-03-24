@@ -36,7 +36,7 @@ type WorkItemLinkRepository interface {
 	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	Save(ctx context.Context, linkCat app.WorkItemLinkSingle, modifierID uuid.UUID) (*app.WorkItemLinkSingle, error)
-	ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error)
+	ListWorkItemChildren(ctx context.Context, parent string) ([]*workitem.WorkItem, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -314,7 +314,7 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLi
 }
 
 // ListWorkItemChildren get all child work items
-func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]*workitem.WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
 
 	where := fmt.Sprintf(`
@@ -324,27 +324,27 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 			SELECT id FROM %s WHERE forward_name = 'parent of'
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
-	db := r.db.Model(&workitem.WorkItem{}).Where(where, parent)
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	result := []*workitem.WorkItem{}
+	result := []*workitem.WorkItemStorage{}
 
 	for rows.Next() {
-		value := &workitem.WorkItem{}
+		value := &workitem.WorkItemStorage{}
 		db.ScanRows(rows, value)
 
 		result = append(result, value)
 	}
-	res := make([]*app.WorkItem, len(result))
+	res := make([]*workitem.WorkItem, len(result))
 	for index, value := range result {
 		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
-		res[index], err = workitem.ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, value)
+		res[index], err = workitem.ConvertWorkItemStorageToModel(wiType, value)
 	}
 
 	return res, nil

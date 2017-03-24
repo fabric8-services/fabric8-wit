@@ -171,7 +171,7 @@ func (s *workItemLinkSuite) cleanup() {
 	for _, idStr := range s.deleteWorkItems {
 		id, err := strconv.ParseUint(idStr, 10, 64)
 		require.Nil(s.T(), err)
-		db = db.Unscoped().Delete(&workitem.WorkItem{ID: id})
+		db = db.Unscoped().Delete(&workitem.WorkItemStorage{ID: id})
 		require.Nil(s.T(), db.Error)
 	}
 	s.deleteWorkItems = nil
@@ -278,7 +278,7 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))
 	payload := app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Attributes: map[string]interface{}{
 				workitem.SystemTitle: title,
 				workitem.SystemState: workitem.SystemStateClosed,
@@ -620,7 +620,7 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 				s.T().Log("Found work item link type in \"included\" element: ", *v.ID)
 				toBeFound--
 			}
-		case *app.WorkItem2:
+		case *app.WorkItem:
 			wid, err := strconv.ParseUint(*v.ID, 10, 64)
 			require.Nil(s.T(), err)
 			if wid == s.bug1ID || wid == s.bug2ID || wid == s.bug3ID {

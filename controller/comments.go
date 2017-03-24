@@ -197,7 +197,7 @@ func CommentIncludeParentWorkItem(ctx context.Context, appl application.Applicat
 
 	return func(request *goa.RequestData, comment *comment.Comment, data *app.Comment) {
 		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkitemHref(wi.Relationships.Space.Data.ID, "%v"), obj)
+			return fmt.Sprintf(app.WorkitemHref(wi.SpaceID, "%v"), obj)
 		}
 		CommentIncludeParent(request, comment, data, hrefFunc, APIStringTypeWorkItem)
 	}, nil
