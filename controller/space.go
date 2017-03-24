@@ -309,10 +309,14 @@ func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional .
 // ConvertSpace converts between internal and external REST representation
 func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(p.ID))
-	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", p.ID.String()))
-	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", p.ID.String()))
-	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", p.ID.String()))
-	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", p.ID.String()))
+	spaceIDStr := p.ID.String()
+	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
+	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
+	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
+	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
+	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
+	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
+	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
 
 	return &app.Space{
 		ID:   &p.ID,
@@ -325,8 +329,9 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Version:     &p.Version,
 		},
 		Links: &app.GenericLinksForSpace{
-			Self:    &selfURL,
-			Backlog: &relatedBacklogList,
+			Self:          &selfURL,
+			Backlog:       &relatedBacklogList,
+			WorkItemTypes: &relatedWorkItemTypeList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
@@ -348,6 +353,16 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Codebases: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedCodebasesList,
+				},
+			},
+			Workitems: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemList,
+				},
+			},
+			Workitemlinktypes: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemLinkTypeList,
 				},
 			},
 		},

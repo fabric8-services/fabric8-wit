@@ -310,6 +310,26 @@ func (rest *TestSpaceREST) TestSuccessShowProject() {
 	assert.Equal(t, *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
 	assert.Equal(t, *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
 	assert.Equal(t, *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
+
+	// verify list-WI URL exists in Relationships.Links
+	require.NotNil(t, *fetched.Data.Relationships.Workitems)
+	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links)
+	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links.Related)
+	subStringWI := fmt.Sprintf("/%s/workitems", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Relationships.Workitems.Links.Related, subStringWI)
+
+	// verify list-WIT URL exists in Relationships.Links
+	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links.WorkItemTypes)
+	subStringWIL := fmt.Sprintf("/%s/workitemtypes", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Links.WorkItemTypes, subStringWIL)
+
+	// verify list-WILT URL exists in Relationships.Links
+	require.NotNil(t, *fetched.Data.Relationships.Workitemlinktypes)
+	require.NotNil(t, *fetched.Data.Relationships.Workitemlinktypes.Links)
+	require.NotNil(t, *fetched.Data.Relationships.Workitemlinktypes.Links.Related)
+	subStringWILT := fmt.Sprintf("/%s/workitemlinktypes", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Relationships.Workitemlinktypes.Links.Related, subStringWILT)
 }
 
 func (rest *TestSpaceREST) TestFailShowSpaceNotFound() {
