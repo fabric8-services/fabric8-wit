@@ -273,12 +273,12 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	require.NotNil(s.T(), workItemLinkType)
 	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createPayload.Data.Relationships.Space.Data.ID.String(), workItemLinkType.Data.ID.String(), nil, nil)
 	require.NotNil(s.T(), readIn)
-	// Convert to model space and use equal function
-	expected := link.WorkItemLinkType{}
-	actual := link.WorkItemLinkType{}
-	require.Nil(s.T(), link.ConvertLinkTypeToModel(*workItemLinkType, &expected))
-	require.Nil(s.T(), link.ConvertLinkTypeToModel(*readIn, &actual))
-	require.True(s.T(), expected.Equal(actual))
+	// Convert to domain model and use equal function
+	expected, err := ConvertLinkTypeToModel(*workItemLinkType)
+	require.Nil(s.T(), err)
+	actual, err := ConvertLinkTypeToModel(*readIn)
+	require.Nil(s.T(), err)
+	require.Equal(s.T(), expected.ID, actual.ID)
 	// Check that the link category is included in the response in the "included" array
 	require.Len(s.T(), readIn.Included, 2, "The work item link type should include it's work item link category and space.")
 	categoryData, ok := readIn.Included[0].(*app.WorkItemLinkCategoryData)
