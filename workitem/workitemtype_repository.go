@@ -7,6 +7,7 @@ import (
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/path"
 
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -20,6 +21,7 @@ type WorkItemTypeRepository interface {
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
+	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
 }
 
 // NewWorkItemTypeRepository creates a wi type repository based on gorm
@@ -160,6 +162,22 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
 	return &created, nil
+}
+
+// List returns work item types that derives from PlannerItem type
+func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error) {
+	var rows []WorkItemType
+	path := path.Path{}
+	db := r.db.Select("id").Where("space_id = ? AND path::text LIKE '"+path.ConvertToLtree(SystemPlannerItem)+".%'", spaceID.String())
+
+	if err := db.Find(&rows).Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_id": spaceID,
+			"err":      err,
+		}, "unable to list the work item types that derive of planner item")
+		return nil, errs.WithStack(err)
+	}
+	return rows, nil
 }
 
 // List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types

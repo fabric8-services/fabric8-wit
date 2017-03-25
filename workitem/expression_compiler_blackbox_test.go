@@ -16,6 +16,7 @@ func TestField(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	expect(t, Equals(Field("foo"), Literal(23)), "(Fields@>'{\"foo\" : 23}')", []interface{}{})
 	expect(t, Equals(Field("Type"), Literal("abcd")), "(Type = ?)", []interface{}{"abcd"})
+	expect(t, Not(Field("Type"), Literal("abcd")), "(Type != ?)", []interface{}{"abcd"})
 }
 
 func TestAndOr(t *testing.T) {
@@ -23,6 +24,7 @@ func TestAndOr(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	expect(t, Or(Literal(true), Literal(false)), "(? or ?)", []interface{}{true, false})
 
+	expect(t, And(Not(Field("foo"), Literal("abcd")), Not(Literal(true), Literal(false))), "(NOT (Fields@>'{\"foo\" : \"abcd\"}') and (? != ?))", []interface{}{true, false})
 	expect(t, And(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo\" : \"abcd\"}') and (? = ?))", []interface{}{true, false})
 	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo\" : \"abcd\"}') or (? = ?))", []interface{}{true, false})
 }

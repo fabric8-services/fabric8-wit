@@ -124,6 +124,52 @@ func (test *TestIterationRepository) TestCreateChildIteration() {
 	assert.Equal(t, expectedPath, i2L.Path.Convert())
 }
 
+func (test *TestIterationRepository) TestRootIteration() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+
+	repo := iteration.NewIterationRepository(test.DB)
+
+	start := time.Now()
+	end := start.Add(time.Hour * (24 * 8 * 3))
+	name := "Sprint #24"
+	name2 := "Sprint #24.1"
+
+	newSpace := space.Space{
+		Name: "Space 1",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space, err := repoSpace.Create(context.Background(), &newSpace)
+	assert.Nil(t, err)
+
+	i := iteration.Iteration{
+		Name:    name,
+		SpaceID: space.ID,
+		StartAt: &start,
+		EndAt:   &end,
+	}
+	repo.Create(context.Background(), &i)
+
+	parentPath := append(i.Path, i.ID)
+	require.NotNil(t, parentPath)
+	i2 := iteration.Iteration{
+		Name:    name2,
+		SpaceID: space.ID,
+		StartAt: &start,
+		EndAt:   &end,
+		Path:    parentPath,
+	}
+	repo.Create(context.Background(), &i2)
+
+	res, err := repo.RootIteration(context.Background(), space.ID)
+	require.Nil(t, err)
+	assert.Equal(t, i.Name, res.Name)
+	assert.Equal(t, i.ID, res.ID)
+	expectedPath := i.Path.Convert()
+	require.NotNil(t, res)
+	assert.Equal(t, expectedPath, res.Path.Convert())
+}
+
 func (test *TestIterationRepository) TestListIterationBySpace() {
 	t := test.T()
 	resource.Require(t, resource.Database)

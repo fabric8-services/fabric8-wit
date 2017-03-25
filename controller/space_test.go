@@ -389,6 +389,11 @@ func (rest *TestSpaceREST) TestListSpacesOK() {
 	require.NotNil(rest.T(), list)
 	require.NotEmpty(rest.T(), list.Data)
 	for _, spc := range list.Data {
+		// Test that it contains the right link for backlog items
+		subStringBacklogUrl := fmt.Sprintf("/%s/backlog", spc.ID.String())
+		assert.Contains(t, *spc.Links.Backlog, subStringBacklogUrl)
+
+		// Test that it contains the right relationship values
 		subString := fmt.Sprintf("/%s/iterations", spc.ID.String())
 		assert.Contains(rest.T(), *spc.Relationships.Iterations.Links.Related, subString)
 		subStringAreaUrl := fmt.Sprintf("/%s/areas", spc.ID.String())
