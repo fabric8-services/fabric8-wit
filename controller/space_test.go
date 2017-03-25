@@ -345,7 +345,7 @@ func (rest *TestSpaceREST) TestSuccessListSpaces() {
 	for _, spc := range list.Data {
 		// Test that it contains the right link for backlog items
 		subStringBacklogUrl := fmt.Sprintf("/%s/backlog", spc.ID.String())
-		assert.Contains(t, *spc.Links.Backlog, subStringBacklogUrl)
+		assert.Contains(t, *spc.Links.Backlog.Self, subStringBacklogUrl)
 
 		// Test that it contains the right relationship values
 		subString := fmt.Sprintf("/%s/iterations", spc.ID.String())

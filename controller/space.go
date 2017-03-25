@@ -325,8 +325,11 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Version:     &p.Version,
 		},
 		Links: &app.GenericLinksForSpace{
-			Self:    &selfURL,
-			Backlog: &relatedBacklogList,
+			Self: &selfURL,
+			Backlog: &app.BacklogGenericLink{
+				Self: &relatedBacklogList,
+				Meta: &app.BacklogLinkMeta{TotalCount: 0},
+			},
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
