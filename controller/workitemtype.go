@@ -116,12 +116,10 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		witModels, err := appl.WorkItemTypes().List(ctx.Context, spaceID, start, &limit)
-		logrus.Info("witModels: ", len(witModels))
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
 		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemType, func() error {
-			logrus.Info("conditional witModels..")
 			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
 			// for the space.
 			if len(witModels) == 0 {
@@ -130,7 +128,6 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 					return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 				}
 			}
-			logrus.Info("witModels: ", len(witModels))
 			// convert from model to app
 			result := &app.WorkItemTypeList{}
 			result.Data = make([]*app.WorkItemTypeData, len(witModels))
@@ -138,7 +135,6 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 				wit := ConvertWorkItemTypeFromModel(ctx.RequestData, &value)
 				result.Data[index] = &wit
 			}
-			logrus.Info("result: ", len(result.Data))
 			return ctx.OK(result)
 		})
 	})
