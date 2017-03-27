@@ -321,6 +321,7 @@ func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...Space
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", sp.ID.String()))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", sp.ID.String()))
 	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", sp.ID.String()))
+	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", sp.ID.String()))
 	s := &app.Space{
 		ID:   &sp.ID,
 		Type: APIStringTypeSpace,
@@ -331,8 +332,9 @@ func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...Space
 			UpdatedAt:   &sp.UpdatedAt,
 			Version:     &sp.Version,
 		},
-		Links: &app.GenericLinks{
-			Self: &selfURL,
+		Links: &app.GenericLinksForSpace{
+			Self:    &selfURL,
+			Backlog: &relatedBacklogList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{

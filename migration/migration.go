@@ -545,15 +545,15 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx,
-			existingLinkType.Name,
-			existingLinkType.Description,
-			existingLinkType.SourceTypeID,
-			existingLinkType.TargetTypeID,
-			existingLinkType.ForwardName,
-			existingLinkType.ReverseName,
-			existingLinkType.Topology,
-			existingLinkType.LinkCategoryID,
-			existingLinkType.SpaceID)
+			linkType.Name,
+			linkType.Description,
+			linkType.SourceTypeID,
+			linkType.TargetTypeID,
+			linkType.ForwardName,
+			linkType.ReverseName,
+			linkType.Topology,
+			linkType.LinkCategoryID,
+			linkType.SpaceID)
 		if err != nil {
 			return errs.WithStack(err)
 		}

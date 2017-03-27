@@ -35,6 +35,10 @@ func bubbleUpJSONContext(exp criteria.Expression) bool {
 		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
 			t.SetAnnotation(jsonAnnotation, true)
 		}
+	case *criteria.NotExpression:
+		if t.Left().Annotation(jsonAnnotation) == true || t.Right().Annotation(jsonAnnotation) == true {
+			t.SetAnnotation(jsonAnnotation, true)
+		}
 	}
 	return true
 }
@@ -97,6 +101,17 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 		return c.binary(e, ":")
 	}
 	return c.binary(e, "=")
+}
+
+func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
+	if isInJSONContext(e.Left()) {
+		condition := c.binary(e, ":")
+		if condition != nil {
+			return "NOT " + condition.(string)
+		}
+		return nil
+	}
+	return c.binary(e, "!=")
 }
 
 func (c *expressionCompiler) Parameter(v *criteria.ParameterExpression) interface{} {

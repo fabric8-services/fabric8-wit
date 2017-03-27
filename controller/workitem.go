@@ -259,15 +259,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		// fetch default iteration for this space and assign it to WI if not present already
-		if wi.Relationships == nil {
-			wi.Relationships = &app.WorkItemRelationships{}
-		}
-
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
 			// no iteration set hence set to default of its space
-			wi.Relationships.Iteration = &app.RelationGeneric{
-				Data: &app.GenericData{},
-			}
 			defaultItr, defaultItrErr := appl.Iterations().LoadDefault(ctx, *spaceInstance)
 			if defaultItrErr == nil {
 				wi.Fields[workitem.SystemIteration] = defaultItr.ID.String()
