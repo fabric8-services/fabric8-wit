@@ -89,7 +89,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 		q = "" // Allow empty query if * specified
 	}
 
-	var result []*space.Space
+	var result []space.Space
 	var count int
 	var err error
 
@@ -115,7 +115,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			}
 		}
 
-		spaceData, err := ConvertSpaces(ctx.Context, c.db, ctx.RequestData, result)
+		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, result)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

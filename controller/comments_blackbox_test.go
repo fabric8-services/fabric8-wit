@@ -97,7 +97,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 						ID:   workitem.SystemBug,
 					},
 				},
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}

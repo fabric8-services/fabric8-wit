@@ -27,6 +27,7 @@ http.address: 0.0.0.0:8080
 
 cachecontrol.maxage.workitemtype: max-age=86400
 cachecontrol.maxage.workitemlinktype: max-age=86400
+cachecontrol.maxage.space: max-age=86400
 
 #------------------------
 # Misc.

@@ -43,7 +43,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		spaceData, err := ConvertSpace(ctx.Context, c.db, ctx.RequestData, s)
+		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -75,7 +75,7 @@ func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		spaceData, err := ConvertSpaces(ctx.Context, c.db, ctx.RequestData, spaces)
+		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, spaces)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

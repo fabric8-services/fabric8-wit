@@ -3,6 +3,7 @@ package workitem
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -190,4 +191,14 @@ func (wit WorkItemType) IsTypeOrSubtypeOf(typeID uuid.UUID) bool {
 	// Check for complete inclusion (e.g. "bar" is contained in "foo.bar.cake")
 	// and for suffix (e.g. ".cake" is the suffix of "foo.bar.cake").
 	return uuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, LtreeSafeID(typeID)+pathSep)
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (wit WorkItemType) GetETagData() []interface{} {
+	return []interface{}{wit.ID, wit.Version}
+}
+
+// GetLastModified returns the last modification time
+func (wit WorkItemType) GetLastModified() time.Time {
+	return wit.UpdatedAt.Truncate(time.Second)
 }
