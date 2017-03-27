@@ -50,7 +50,6 @@ imports:
   - goagen/codegen
   - goagen/gen_app
   - goagen/gen_controller
-  - goagen/
   - goagen/utils
   - goatest
   - middleware

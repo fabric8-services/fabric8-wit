@@ -1,6 +1,8 @@
 package link
 
 import (
+	"time"
+
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -62,4 +64,14 @@ func (l *WorkItemLink) CheckValidForCreation() error {
 // TableName implements gorm.tabler
 func (l WorkItemLink) TableName() string {
 	return "work_item_links"
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (l WorkItemLink) GetETagData() []interface{} {
+	return []interface{}{l.ID, l.Version}
+}
+
+// GetLastModified returns the last modification time
+func (l WorkItemLink) GetLastModified() time.Time {
+	return l.UpdatedAt.Truncate(time.Second)
 }

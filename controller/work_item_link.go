@@ -138,7 +138,7 @@ func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle
 	if err != nil {
 		return errs.WithStack(err)
 	}
-	appLinkType := ConvertLinkTypeFromModel(ctx.RequestData, *modelLinkType)
+	appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkType)
 	appLinks.Included = append(appLinks.Included, appLinkType.Data)
 
 	// include link category
