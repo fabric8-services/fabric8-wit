@@ -369,17 +369,9 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", p.ID.String()))
 	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", p.ID.String()))
 
-	var backlogCounter int
-	err := application.Transactional(db, func(appl application.Application) error {
-		backlogItems, err := appl.WorkItemTypes().ListPlannerItems(ctx, p.ID)
-		if err != nil {
-			return errs.Wrap(err, "unable to fetch work item types that derives of planner item")
-		}
-		backlogCounter = len(backlogItems)
-		return nil
-	})
+	_, count, err := getBacklogItems(ctx, db, p.ID, nil, nil, nil)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "unable to fetch backlog items")
 	}
 
 	return &app.Space{
@@ -396,7 +388,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			Self: &selfURL,
 			Backlog: &app.BacklogGenericLink{
 				Self: &relatedBacklogList,
-				Meta: &app.BacklogLinkMeta{TotalCount: backlogCounter},
+				Meta: &app.BacklogLinkMeta{TotalCount: count},
 			},
 		},
 		Relationships: &app.SpaceRelationships{
