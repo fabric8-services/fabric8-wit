@@ -104,9 +104,9 @@ var _ = a.Resource("space", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "ID of the space")
 		})
-		a.Response(d.OK, func() {
-			a.Media(spaceSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, spaceSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -121,10 +121,9 @@ var _ = a.Resource("space", func() {
 			a.Param("page[offset]", d.String, "Paging start position")
 			a.Param("page[limit]", d.Integer, "Paging size")
 		})
-
-		a.Response(d.OK, func() {
-			a.Media(spaceList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, spaceList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

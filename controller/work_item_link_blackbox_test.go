@@ -8,17 +8,14 @@ import (
 	"strconv"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
@@ -29,7 +26,6 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -42,8 +38,7 @@ import (
 // The workItemLinkSuite has state the is relevant to all tests.
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemLinkSuite struct {
-	suite.Suite
-	db                       *gorm.DB
+	gormtestsupport.DBTestSuite
 	svc                      *goa.Service
 	workItemLinkTypeCtrl     *WorkItemLinkTypeController
 	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
@@ -52,7 +47,6 @@ type workItemLinkSuite struct {
 	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
 	spaceCtrl                *SpaceController
 	typeCtrl                 *WorkitemtypeController
-
 	// These IDs can safely be used by all tests
 	bug1ID               uint64
 	bug2ID               uint64
@@ -77,65 +71,12 @@ func init() {
 	}
 }
 
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *workItemLinkSuite) SetupSuite() {
-	var err error
-
-	s.db, err = gorm.Open("postgres", wiConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(s.db, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
-	})
-	require.Nil(s.T(), err)
-	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	require.Nil(s.T(), err)
-	svc := goa.New("TestWorkItemLinkType-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
-
-	svc = goa.New("TestWorkItemLinkCategory-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemLinkCategoryCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemLinkCategoryCtrl)
-
-	svc = goa.New("TestWorkItemLinkSpace-Service")
-	require.NotNil(s.T(), svc)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db), wiConfiguration, &DummyResourceManager{})
-	require.NotNil(s.T(), s.spaceCtrl)
-
-	svc = goa.New("TestWorkItemType-Service")
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db), wiConfiguration)
-	require.NotNil(s.T(), s.typeCtrl)
-
-	svc = goa.New("TestWorkItemLink-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemLinkCtrl = NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemLinkCtrl)
-
-	svc = goa.New("TestWorkItemRelationshipsLinks-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
-
-	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
-	require.NotNil(s.T(), s.svc)
-	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemCtrl)
-}
-
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
 func (s *workItemLinkSuite) TearDownSuite() {
-	s.db.Unscoped().Delete(&account.Identity{Username: "test user"})
-
-	if s.db != nil {
-		s.db.Close()
+	if s.DB != nil {
+		s.DB.Unscoped().Delete(&account.Identity{Username: "test user"})
+		s.DB.Close()
 	}
 }
 
@@ -143,18 +84,16 @@ func (s *workItemLinkSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkSuite) cleanup() {
-	db := s.db
-
 	// First delete work item links and then the types;
 	// otherwise referential integrity will be violated.
 	for _, id := range s.deleteWorkItemLinks {
-		db = db.Unscoped().Delete(&link.WorkItemLink{ID: id})
+		db := s.DB.Unscoped().Delete(&link.WorkItemLink{ID: id})
 		require.Nil(s.T(), db.Error)
 	}
 	s.deleteWorkItemLinks = nil
 
 	// Delete all work item links for now
-	db.Unscoped().Delete(&link.WorkItemLink{})
+	db := s.DB.Unscoped().Delete(&link.WorkItemLink{})
 	require.Nil(s.T(), db.Error)
 
 	// Delete work item link types and categories by name.
@@ -182,9 +121,44 @@ func (s *workItemLinkSuite) cleanup() {
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemLinkSuite) SetupTest() {
 	s.cleanup()
+	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	require.Nil(s.T(), err)
+	svc := goa.New("TestWorkItemLinkType-Service")
+	require.NotNil(s.T(), svc)
+	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
 
-	var err error
+	svc = goa.New("TestWorkItemLinkCategory-Service")
+	require.NotNil(s.T(), svc)
+	s.workItemLinkCategoryCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.workItemLinkCategoryCtrl)
 
+	svc = goa.New("TestWorkItemLinkSpace-Service")
+	require.NotNil(s.T(), svc)
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	require.NotNil(s.T(), s.spaceCtrl)
+
+	svc = goa.New("TestWorkItemType-Service")
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	require.NotNil(s.T(), s.typeCtrl)
+
+	svc = goa.New("TestWorkItemLink-Service")
+	require.NotNil(s.T(), svc)
+	s.workItemLinkCtrl = NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.workItemLinkCtrl)
+
+	svc = goa.New("TestWorkItemRelationshipsLinks-Service")
+	require.NotNil(s.T(), svc)
+	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
+
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	require.NotNil(s.T(), s.svc)
+	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.workItemCtrl)
 	// Create a work item link space
 	createSpacePayload := CreateSpacePayload("test-space", "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, createSpacePayload)
@@ -290,7 +264,7 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 						Type: "workitemtypes",
 					},
 				},
-				Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
+				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 			},
 			Type: "workitems",
 		},
@@ -315,7 +289,7 @@ func CreateWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID,
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
-	payload := ConvertLinkTypeFromModel(reqLong, lt)
+	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
@@ -815,7 +789,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLink-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkController(service, gormapplication.NewGormDB(s.db))
+		controller := NewWorkItemLinkController(service, gormapplication.NewGormDB(s.DB))
 		app.MountWorkItemLinkController(service, controller)
 		return nil
 	})
@@ -907,7 +881,7 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemRelationshipLinksTestData(s.T(), space.SystemSpace.String(), wiID), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.db))
+		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB))
 		app.MountWorkItemRelationshipsLinksController(service, controller)
 		return nil
 	})

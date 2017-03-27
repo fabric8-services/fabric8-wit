@@ -100,12 +100,12 @@ func TestConvertTypeFromModel(t *testing.T) {
 				},
 			},
 			Relationships: &app.WorkItemTypeRelationships{
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
 	// when
-	result := convertTypeFromModel(reqLong, &a)
+	result := ConvertWorkItemTypeFromModel(reqLong, &a)
 	// then
 	require.NotNil(t, result.ID)
 	assert.True(t, uuid.Equal(*expected.Data.ID, *result.ID))

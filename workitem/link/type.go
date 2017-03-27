@@ -1,6 +1,8 @@
 package link
 
 import (
+	"time"
+
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -155,4 +157,14 @@ func CheckValidTopology(t string) error {
 		return errors.NewBadParameterError("topolgy", t).Expected(TopologyNetwork + "|" + TopologyDirectedNetwork + "|" + TopologyDependency + "|" + TopologyTree)
 	}
 	return nil
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (t WorkItemLinkType) GetETagData() []interface{} {
+	return []interface{}{t.ID, t.Version}
+}
+
+// GetLastModified returns the last modification time
+func (t WorkItemLinkType) GetLastModified() time.Time {
+	return t.UpdatedAt.Truncate(time.Second)
 }
