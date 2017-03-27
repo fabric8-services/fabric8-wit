@@ -89,7 +89,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 		q = "" // Allow empty query if * specified
 	}
 
-	var result []*space.Space
+	var result []space.Space
 	var count int
 	var err error
 
@@ -118,7 +118,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 		response := app.SearchSpaceList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpaces(ctx.RequestData, result),
+			Data:  ConvertSpacesFromModel(ctx.RequestData, result),
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
 

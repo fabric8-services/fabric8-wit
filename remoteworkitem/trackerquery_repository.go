@@ -7,7 +7,6 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -61,7 +60,7 @@ func (r *GormTrackerQueryRepository) Create(ctx context.Context, query string, s
 		Schedule:  schedule,
 		TrackerID: tracker,
 		Relationships: &app.TrackerQueryRelationships{
-			Space: space.NewSpaceRelation(spaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
 		},
 	}
 
@@ -101,7 +100,7 @@ func (r *GormTrackerQueryRepository) Load(ctx context.Context, ID string) (*app.
 		Schedule:  res.Schedule,
 		TrackerID: strconv.FormatUint(res.TrackerID, 10),
 		Relationships: &app.TrackerQueryRelationships{
-			Space: space.NewSpaceRelation(res.SpaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(res.SpaceID, spaceSelfURL),
 		},
 	}
 
@@ -178,7 +177,7 @@ func (r *GormTrackerQueryRepository) Save(ctx context.Context, tq app.TrackerQue
 		Query:     tq.Query,
 		TrackerID: tq.TrackerID,
 		Relationships: &app.TrackerQueryRelationships{
-			Space: space.NewSpaceRelation(*tq.Relationships.Space.Data.ID, spaceSelfURL),
+			Space: app.NewSpaceRelation(*tq.Relationships.Space.Data.ID, spaceSelfURL),
 		},
 	}
 
@@ -222,7 +221,7 @@ func (r *GormTrackerQueryRepository) List(ctx context.Context) ([]*app.TrackerQu
 			Query:     tq.Query,
 			TrackerID: strconv.FormatUint(tq.TrackerID, 10),
 			Relationships: &app.TrackerQueryRelationships{
-				Space: space.NewSpaceRelation(tq.SpaceID, spaceSelfURL),
+				Space: app.NewSpaceRelation(tq.SpaceID, spaceSelfURL),
 			},
 		}
 		result[i] = &t

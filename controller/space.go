@@ -34,19 +34,20 @@ type spaceConfiguration interface {
 	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
+	GetCacheControlSpace() string
 }
 
 // SpaceController implements the space resource.
 type SpaceController struct {
 	*goa.Controller
 	db              application.DB
-	configuration   spaceConfiguration
+	config          spaceConfiguration
 	resourceManager auth.AuthzResourceManager
 }
 
 // NewSpaceController creates a space controller.
-func NewSpaceController(service *goa.Service, db application.DB, configuration spaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
-	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, configuration: configuration, resourceManager: resourceManager}
+func NewSpaceController(service *goa.Service, db application.DB, config spaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
+	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, config: config, resourceManager: resourceManager}
 }
 
 // Create runs the create action.
@@ -123,7 +124,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create iteration for space: %s", rSpace.Name))
 		}
 		res := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, rSpace),
+			Data: ConvertSpaceFromModel(ctx.RequestData, *rSpace),
 		}
 
 		// Create space resource which will represent the keyclok resource associated with this space
@@ -188,19 +189,20 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		spaces, c, err := appl.Spaces().List(ctx.Context, &offset, &limit)
-		count := int(c)
+		spaces, cnt, err := appl.Spaces().List(ctx.Context, &offset, &limit)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		response := app.SpaceList{
-			Links: &app.PagingLinks{},
-			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpaces(ctx.RequestData, spaces),
-		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
-
-		return ctx.OK(&response)
+		return ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpace, func() error {
+			count := int(cnt)
+			response := app.SpaceList{
+				Links: &app.PagingLinks{},
+				Meta:  &app.SpaceListMeta{TotalCount: count},
+				Data:  ConvertSpacesFromModel(ctx.RequestData, spaces),
+			}
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
+			return ctx.OK(&response)
+		})
 	})
 
 }
@@ -217,11 +219,12 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		resp := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s),
-		}
-
-		return ctx.OK(&resp)
+		return ctx.ConditionalEntity(*s, c.config.GetCacheControlSpace, func() error {
+			result := app.SpaceSingle{
+				Data: ConvertSpaceFromModel(ctx.RequestData, *s),
+			}
+			return ctx.OK(&result)
+		})
 	})
 }
 
@@ -266,7 +269,7 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		}
 
 		response := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s),
+			Data: ConvertSpaceFromModel(ctx.RequestData, *s),
 		}
 
 		return ctx.OK(&response)
@@ -302,21 +305,52 @@ func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {
 	return nil
 }
 
+// ConvertSpaceToModel converts an `app.Space` to a `space.Space`
+func ConvertSpaceToModel(appSpace app.Space) space.Space {
+	modelSpace := space.Space{}
+
+	if appSpace.ID != nil {
+		modelSpace.ID = *appSpace.ID
+	}
+	if appSpace.Attributes != nil {
+		if appSpace.Attributes.CreatedAt != nil {
+			modelSpace.CreatedAt = *appSpace.Attributes.CreatedAt
+		}
+		if appSpace.Attributes.UpdatedAt != nil {
+			modelSpace.UpdatedAt = *appSpace.Attributes.UpdatedAt
+		}
+		if appSpace.Attributes.Version != nil {
+			modelSpace.Version = *appSpace.Attributes.Version
+		}
+		if appSpace.Attributes.Name != nil {
+			modelSpace.Name = *appSpace.Attributes.Name
+		}
+		if appSpace.Attributes.Description != nil {
+			modelSpace.Description = *appSpace.Attributes.Description
+		}
+	}
+	if appSpace.Relationships != nil && appSpace.Relationships.OwnedBy != nil &&
+		appSpace.Relationships.OwnedBy.Data != nil && appSpace.Relationships.OwnedBy.Data.ID != nil {
+		modelSpace.OwnerId = *appSpace.Relationships.OwnedBy.Data.ID
+	}
+	return modelSpace
+}
+
 // SpaceConvertFunc is a open ended function to add additional links/data/relations to a Space during
 // conversion from internal to API
 type SpaceConvertFunc func(*goa.RequestData, *space.Space, *app.Space)
 
-// ConvertSpaces converts between internal and external REST representation
-func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional ...SpaceConvertFunc) []*app.Space {
+// ConvertSpacesFromModel converts between internal and external REST representation
+func ConvertSpacesFromModel(request *goa.RequestData, spaces []space.Space, additional ...SpaceConvertFunc) []*app.Space {
 	var ps = []*app.Space{}
 	for _, p := range spaces {
-		ps = append(ps, ConvertSpace(request, p, additional...))
+		ps = append(ps, ConvertSpaceFromModel(request, p, additional...))
 	}
 	return ps
 }
 
-// ConvertSpace converts between internal and external REST representation
-func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...SpaceConvertFunc) *app.Space {
+// ConvertSpaceFromModel converts between internal and external REST representation
+func ConvertSpaceFromModel(request *goa.RequestData, sp space.Space, additional ...SpaceConvertFunc) *app.Space {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", sp.ID.String()))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", sp.ID.String()))
@@ -361,7 +395,7 @@ func ConvertSpace(request *goa.RequestData, sp *space.Space, additional ...Space
 		},
 	}
 	for _, add := range additional {
-		add(request, sp, s)
+		add(request, &sp, s)
 	}
 	return s
 }

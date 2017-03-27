@@ -23,6 +23,7 @@ import (
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
@@ -60,8 +61,7 @@ func TestSuiteWorkItem1(t *testing.T) {
 }
 
 type WorkItemSuite struct {
-	suite.Suite
-	db             *gorm.DB
+	gormtestsupport.DBTestSuite
 	clean          func()
 	controller     app.WorkitemController
 	pubKey         *rsa.PublicKey
@@ -75,38 +75,38 @@ type WorkItemSuite struct {
 
 func (s *WorkItemSuite) SetupSuite() {
 	var err error
-	s.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
+	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			s.ctx = migration.NewMigrationContext(context.Background())
 			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
 	}
-	s.clean = cleaner.DeleteCreatedEntities(s.db)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
-	s.clean()
-	if s.db != nil {
-		s.db.Close()
+	if s.DB != nil {
+		s.clean()
+		s.DB.Close()
 	}
 }
 
 func (s *WorkItemSuite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
-	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
+	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -513,7 +513,7 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestData, func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWI-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemController(service, gormapplication.NewGormDB(s.db))
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(s.DB))
 		app.MountWorkitemController(service, controller)
 		return nil
 	})
@@ -596,7 +596,7 @@ func minimumRequiredUpdatePayload() app.UpdateWorkitemPayload {
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -632,7 +632,7 @@ func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -738,8 +738,7 @@ func ident(id uuid.UUID) *app.GenericData {
 }
 
 type WorkItem2Suite struct {
-	suite.Suite
-	db             *gorm.DB
+	gormtestsupport.DBTestSuite
 	clean          func()
 	wiCtrl         app.WorkitemController
 	wi2Ctrl        app.WorkitemController
@@ -757,42 +756,35 @@ type WorkItem2Suite struct {
 
 func (s *WorkItem2Suite) SetupSuite() {
 	var err error
-	s.db, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
+	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
 	if err != nil {
 		panic("Failed to connect database: " + err.Error())
 	}
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if wibConfiguration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.db, func(tx *gorm.DB) error {
+		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			s.ctx = migration.NewMigrationContext(context.Background())
 			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
 			panic(err.Error())
 		}
 	}
-	s.clean = cleaner.DeleteCreatedEntities(s.db)
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	// create identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
 }
 
-func (s *WorkItem2Suite) TearDownSuite() {
-	s.clean()
-	if s.db != nil {
-		s.db.Close()
-	}
-}
-
 func (s *WorkItem2Suite) SetupTest() {
-	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.db))
-	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.db))
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.db))
-	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.db))
-	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.db), wibConfiguration, &DummyResourceManager{})
+	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
@@ -928,7 +920,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	s.minimumPayload.Data.Attributes["version"] = updatedWI.Data.Attributes["version"]
 
 	// update assignee relationship and verify
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	require.NotNil(s.T(), newUser)
 
 	newUserUUID := newUser.ID.String()
@@ -1178,7 +1170,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	// given
 	userType := "identities"
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	newUserId := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1209,9 +1201,9 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	// given
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.db)
-	newUser3 := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	newUser3 := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1258,7 +1250,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 
 func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	// given
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1365,7 +1357,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 }
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
-	tempArea := createOneRandomArea(s.svc.Context, s.db)
+	tempArea := createOneRandomArea(s.svc.Context, s.DB)
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1397,7 +1389,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 }
 
 func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
-	tempIteration := createOneRandomIteration(s.svc.Context, s.db)
+	tempIteration := createOneRandomIteration(s.svc.Context, s.DB)
 	require.NotNil(s.T(), tempIteration)
 	iterationID := tempIteration.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1449,7 +1441,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 }
 
 func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1481,8 +1473,8 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
-	newUser := createOneRandomUserIdentity(s.svc.Context, s.db)
-	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.db)
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	newUser2 := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1609,7 +1601,7 @@ func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 	t := s.T()
 
-	areaInstance := createSpaceAndArea(t, gormapplication.NewGormDB(s.db))
+	areaInstance := createSpaceAndArea(t, gormapplication.NewGormDB(s.DB))
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 
@@ -1627,7 +1619,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 				ID:   workitem.SystemBug,
 			},
 		},
-		Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+		Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Area: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &arType,
@@ -1643,7 +1635,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	t := s.T()
 
-	areaInstance := createSpaceAndArea(t, gormapplication.NewGormDB(s.db))
+	areaInstance := createSpaceAndArea(t, gormapplication.NewGormDB(s.DB))
 	areaID := areaInstance.ID.String()
 	arType := area.APIStringTypeAreas
 	c := minimumRequiredCreatePayload()
@@ -1705,7 +1697,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	t := s.T()
 
-	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 
@@ -1724,7 +1716,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 				ID:   workitem.SystemBug,
 			},
 		},
-		Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+		Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Iteration: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &itType,
@@ -1740,7 +1732,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	t := s.T()
 
-	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 
@@ -1756,9 +1748,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	// should get default iteration's id for that space
-	spaceRepo := space.NewRepository(s.db)
+	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
-	iterationRepo := iteration.NewIterationRepository(s.db)
+	iterationRepo := iteration.NewIterationRepository(s.DB)
 	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
 	require.Nil(t, err)
 	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
@@ -1786,7 +1778,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 
 	t.Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 
-	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.db))
+	iterationInstance := createSpaceAndIteration(t, gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 
@@ -2036,9 +2028,9 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	require.NotNil(t, wi.Data.Relationships)
 	require.NotNil(t, wi.Data.Relationships.Iteration)
 
-	spaceRepo := space.NewRepository(s.db)
+	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
-	iterationRepo := iteration.NewIterationRepository(s.db)
+	iterationRepo := iteration.NewIterationRepository(s.DB)
 	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
 	require.Nil(t, err)
 	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
@@ -2074,13 +2066,13 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 }
 
 func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
-	grandParentIteration := createOneRandomIteration(s.svc.Context, s.db)
+	grandParentIteration := createOneRandomIteration(s.svc.Context, s.DB)
 	require.NotNil(s.T(), grandParentIteration)
 
-	parentIteration := newChildIteration(s.svc.Context, s.db, grandParentIteration)
+	parentIteration := newChildIteration(s.svc.Context, s.DB, grandParentIteration)
 	require.NotNil(s.T(), parentIteration)
 
-	childIteraiton := newChildIteration(s.svc.Context, s.db, parentIteration)
+	childIteraiton := newChildIteration(s.svc.Context, s.DB, parentIteration)
 	require.NotNil(s.T(), childIteraiton)
 
 	// create 3 work items for grandParentIteration

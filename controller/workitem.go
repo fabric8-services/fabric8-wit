@@ -19,7 +19,6 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -245,7 +244,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
 		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
-		ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
+		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(spaceID, spaceSelfURL)
 	}
 	wi := workitem.WorkItem{
 		Fields: make(map[string]interface{}),
@@ -505,7 +504,7 @@ func ConvertWorkItem(request *goa.RequestData, wi *workitem.WorkItem, additional
 					Type: APIStringTypeWorkItemType,
 				},
 			},
-			Space: space.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,

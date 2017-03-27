@@ -192,6 +192,6 @@ func (test *repoBBTest) delete(id uuid.UUID) func() (*space.Space, error) {
 	return func() (*space.Space, error) { return nil, test.repo.Delete(context.Background(), id) }
 }
 
-func (test *repoBBTest) list(start *int, length *int) ([]*space.Space, uint64, error) {
+func (test *repoBBTest) list(start *int, length *int) ([]space.Space, uint64, error) {
 	return test.repo.List(context.Background(), start, length)
 }
