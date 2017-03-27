@@ -251,6 +251,9 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(spaceID.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(spaceID.String(), workItemType))
 	payload := app.CreateWorkitemPayload{
 		Data: &app.WorkItem{
 			Attributes: map[string]interface{}{
@@ -262,6 +265,9 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 					Data: &app.BaseTypeData{
 						ID:   workItemType,
 						Type: "workitemtypes",
+					},
+					Links: &app.GenericLinks{
+						Self: &witSelfURL,
 					},
 				},
 				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
