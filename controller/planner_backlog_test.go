@@ -160,7 +160,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems
 		repo := app.Iterations()
 
 		newSpace := space.Space{
-			Name: "Test 1",
+			Name: "TestSuccessEmptyListPlannerBacklogWorkItems" + uuid.NewV4().String(),
 		}
 		p, err := app.Spaces().Create(rest.ctx, &newSpace)
 		if err != nil {

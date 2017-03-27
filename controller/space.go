@@ -368,6 +368,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", p.ID.String()))
 	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", p.ID.String()))
 	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", p.ID.String()))
+	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, p.OwnerId.String()))
 
 	_, count, err := getBacklogItems(ctx, db, p.ID, nil, nil, nil)
 	if err != nil {
@@ -396,6 +397,9 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 				Data: &app.IdentityRelationData{
 					Type: "identities",
 					ID:   &p.OwnerId,
+				},
+				Links: &app.GenericLinks{
+					Related: &relatedOwnerByLink,
 				},
 			},
 			Iterations: &app.RelationGeneric{

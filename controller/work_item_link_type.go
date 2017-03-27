@@ -315,6 +315,10 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
+	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
+	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
+	linkCategorySelfURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
+
 	var converted = app.WorkItemLinkTypeSingle{
 		Data: &app.WorkItemLinkTypeData{
 			Type: link.EndpointWorkItemLinkTypes,
@@ -335,17 +339,26 @@ func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType li
 						Type: link.EndpointWorkItemLinkCategories,
 						ID:   modelLinkType.LinkCategoryID,
 					},
+					Links: &app.GenericLinks{
+						Self: &linkCategorySelfURL,
+					},
 				},
 				SourceType: &app.RelationWorkItemType{
 					Data: &app.RelationWorkItemTypeData{
 						Type: link.EndpointWorkItemTypes,
 						ID:   modelLinkType.SourceTypeID,
 					},
+					Links: &app.GenericLinks{
+						Self: &witSourceSelfURL,
+					},
 				},
 				TargetType: &app.RelationWorkItemType{
 					Data: &app.RelationWorkItemTypeData{
 						Type: link.EndpointWorkItemTypes,
 						ID:   modelLinkType.TargetTypeID,
+					},
+					Links: &app.GenericLinks{
+						Self: &witTargetSelfURL,
 					},
 				},
 				Space: app.NewSpaceRelation(modelLinkType.SpaceID, spaceSelfURL),

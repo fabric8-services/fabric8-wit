@@ -27,6 +27,12 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("description", d.String, "Description of the iteration ", func() {
 		a.Example("Sprint #42 focusing on UI and build process improvements")
 	})
+	a.Attribute("createdAt", d.DateTime, "When the iteration was created", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Attribute("updatedAt", d.DateTime, "When the iteration was updated", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
 	a.Attribute("startAt", d.DateTime, "When the iteration starts", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
@@ -72,9 +78,9 @@ var _ = a.Resource("iteration", func() {
 		a.Params(func() {
 			a.Param("iterationID", d.String, "Iteration Identifier")
 		})
-		a.Response(d.OK, func() {
-			a.Media(iterationSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, iterationSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -133,9 +139,9 @@ var _ = a.Resource("space_iterations", func() {
 				a.Param("page[limit]", d.Integer, "Paging size")
 			})
 		*/
-		a.Response(d.OK, func() {
-			a.Media(iterationList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, iterationList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
