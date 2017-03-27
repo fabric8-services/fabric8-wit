@@ -50,6 +50,7 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 // relationBaseType is top level block for WorkItemType relationship
 var relationBaseType = a.Type("RelationBaseType", func() {
 	a.Attribute("data", baseTypeData)
+	a.Attribute("links", genericLinks)
 	a.Required("data")
 })
 

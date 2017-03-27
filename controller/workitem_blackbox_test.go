@@ -613,13 +613,24 @@ func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 
 func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, wit)
+	return c
+}
+
+func newRelationBaseType(spaceID, wit uuid.UUID) *app.RelationBaseType {
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(spaceID.String(), wit.String()))
+
+	return &app.RelationBaseType{
 		Data: &app.BaseTypeData{
-			Type: APIStringTypeWorkItemType,
+			Type: "workitemtypes",
 			ID:   wit,
 		},
+		Links: &app.GenericLinks{
+			Self: &witSelfURL,
+		},
 	}
-	return c
 }
 
 func minimumRequiredCreatePayload() app.CreateWorkitemPayload {
@@ -842,12 +853,7 @@ func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
 	u.Data.Attributes["version"] = created.Data.Attributes["version"]
 	u.Data.ID = created.Data.ID
 	u.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				ID:   workitem.SystemExperience,
-				Type: APIStringTypeWorkItemType, // Not allowed to change the WIT of a WI
-			},
-		},
+		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemExperience),
 	}
 
 	_, newWi := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, &u)
@@ -970,12 +976,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -997,12 +999,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithoutDescription() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -1021,12 +1019,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithLegacyDescription() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = "Description"
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -1046,12 +1040,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndMarkup() 
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown)
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -1071,12 +1061,8 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItemWithDescriptionAndNoMarkup(
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContentFromLegacy("Description")
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -1096,12 +1082,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateWorkItemWithDescriptionAndUnsupportedM
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemDescription] = rendering.NewMarkupContent("Description", "foo")
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
@@ -1122,12 +1104,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithAssigneeAsField() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Attributes[workitem.SystemAssignees] = []string{"34343"}
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -1142,12 +1120,8 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithMissingTitle() {
 	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
@@ -1157,12 +1131,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = ""
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 }
@@ -1175,12 +1144,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			{
@@ -1207,12 +1171,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneesRelation() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			ident(newUser.ID),
@@ -1254,12 +1213,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			ident(newUser.ID),
@@ -1286,12 +1240,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	// when
 	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	// then
@@ -1313,21 +1262,11 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	l := minimumRequiredCreatePayload()
 	l.Data.Attributes[workitem.SystemTitle] = "Title"
 	l.Data.Attributes[workitem.SystemState] = workitem.SystemStateInProgress
-	l.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	l.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	// when
 	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	_, notExpected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, l.Data.Relationships.Space.Data.ID.String(), &l)
@@ -1363,12 +1302,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: APIStringTypeWorkItemType,
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Area = &app.RelationGeneric{
 		Data: &app.GenericData{
 			ID: &areaID,
@@ -1395,12 +1329,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: APIStringTypeWorkItemType,
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Iteration = &app.RelationGeneric{
 		Data: &app.GenericData{
 			ID: &iterationID,
@@ -1425,12 +1354,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateInvalidAssignees() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			ident(uuid.NewV4()),
@@ -1445,12 +1369,7 @@ func (s *WorkItem2Suite) TestWI2FailUpdateInvalidAssignees() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			ident(newUser.ID),
@@ -1478,12 +1397,7 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Assignees = &app.RelationGenericList{
 		Data: []*app.GenericData{
 			ident(newUser.ID),
@@ -1502,12 +1416,7 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	assert.NotNil(s.T(), fetchedWi.Data)
@@ -1529,12 +1438,8 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
 	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
@@ -1549,12 +1454,7 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "WI1"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	require.NotNil(s.T(), wi1)
 	c.Data.Attributes[workitem.SystemTitle] = "WI2"
@@ -1613,13 +1513,8 @@ func (s *WorkItem2Suite) TestWI2CreateWithArea() {
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
 	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
+		Space:    app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Area: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &arType,
@@ -1679,12 +1574,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Area = &app.RelationGeneric{
 		Data: &app.GenericData{
 			Type: &arType,
@@ -1710,13 +1600,8 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	}, app.SpaceHref(space.SystemSpace.String()))
 
 	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
-		Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
+		Space:    app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		Iteration: &app.RelationGeneric{
 			Data: &app.GenericData{
 				Type: &itType,
@@ -1739,12 +1624,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
 	// should get default iteration's id for that space
@@ -1785,12 +1665,7 @@ func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Iteration = &app.RelationGeneric{
 		Data: &app.GenericData{
 			Type: &itType,
@@ -1821,12 +1696,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownIteration() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	c.Data.Relationships.Iteration = &app.RelationGeneric{
 		Data: &app.GenericData{
 			Type: &itType,
@@ -1843,12 +1713,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLe
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
@@ -1864,12 +1729,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
@@ -1885,12 +1745,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemBug,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
 	require.NotNil(s.T(), fetchedWi.Data)
@@ -1905,12 +1760,8 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemPlannerItem,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+
 	branch := "earth-recycle-101"
 	repo := "golang-project"
 	file := "main.go"
@@ -1947,12 +1798,8 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-	c.Data.Relationships.BaseType = &app.RelationBaseType{
-		Data: &app.BaseTypeData{
-			Type: "workitemtypes",
-			ID:   workitem.SystemPlannerItem,
-		},
-	}
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+
 	branch := "earth-recycle-101"
 	cbase := codebase.CodebaseContent{
 		Branch: branch,
@@ -2045,12 +1892,7 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships = &app.WorkItemRelationships{
-		BaseType: &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: "workitemtypes",
-				ID:   workitem.SystemBug,
-			},
-		},
+		BaseType: newRelationBaseType(space.SystemSpace, workitem.SystemBug),
 	}
 
 	resp, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
@@ -2081,12 +1923,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 		c := minimumRequiredCreatePayload()
 		c.Data.Attributes[workitem.SystemTitle] = "Title"
 		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-		c.Data.Relationships.BaseType = &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: APIStringTypeWorkItemType,
-				ID:   workitem.SystemBug,
-			},
-		}
+		c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 		c.Data.Relationships.Iteration = &app.RelationGeneric{
 			Data: &app.GenericData{
 				ID: &grandParentIterationID,
@@ -2105,12 +1942,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 		c := minimumRequiredCreatePayload()
 		c.Data.Attributes[workitem.SystemTitle] = "Title"
 		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-		c.Data.Relationships.BaseType = &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: APIStringTypeWorkItemType,
-				ID:   workitem.SystemBug,
-			},
-		}
+		c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 		c.Data.Relationships.Iteration = &app.RelationGeneric{
 			Data: &app.GenericData{
 				ID: &parentIterationID,
@@ -2129,12 +1961,7 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 		c := minimumRequiredCreatePayload()
 		c.Data.Attributes[workitem.SystemTitle] = "Title"
 		c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
-		c.Data.Relationships.BaseType = &app.RelationBaseType{
-			Data: &app.BaseTypeData{
-				Type: APIStringTypeWorkItemType,
-				ID:   workitem.SystemBug,
-			},
-		}
+		c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 		c.Data.Relationships.Iteration = &app.RelationGeneric{
 			Data: &app.GenericData{
 				ID: &childIteraitonID,

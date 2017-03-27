@@ -1,6 +1,7 @@
 package iteration
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -39,6 +40,17 @@ type Iteration struct {
 	State       string // this tells if iteration is currently running or not
 }
 
+// GetETagData returns the field values to use to generate the ETag
+func (m Iteration) GetETagData() []interface{} {
+	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
+	return []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10)}
+}
+
+// GetLastModified returns the last modification time
+func (m Iteration) GetLastModified() time.Time {
+	return m.UpdatedAt.Truncate(time.Second)
+}
+
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m *Iteration) TableName() string {
@@ -48,14 +60,14 @@ func (m *Iteration) TableName() string {
 // Repository describes interactions with Iterations
 type Repository interface {
 	Create(ctx context.Context, u *Iteration) error
-	List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error)
+	List(ctx context.Context, spaceID uuid.UUID) ([]Iteration, error)
 	RootIteration(ctx context.Context, spaceID uuid.UUID) (*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
-	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error)
+	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error)
 	LoadDefault(ctx context.Context, spaceInstance space.Space) (*Iteration, error)
-	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]*Iteration, error)
+	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error)
 }
 
 // NewIterationRepository creates a new storage type.
@@ -69,9 +81,9 @@ type GormIterationRepository struct {
 }
 
 // LoadMultiple returns multiple instances of iteration.Iteration
-func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]*Iteration, error) {
+func (m *GormIterationRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "getmultiple"}, time.Now())
-	var objs []*Iteration
+	var objs []Iteration
 
 	for i := 0; i < len(ids); i++ {
 		m.db = m.db.Or("id = ?", ids[i])
@@ -106,9 +118,9 @@ func (m *GormIterationRepository) Create(ctx context.Context, u *Iteration) erro
 }
 
 // List all Iterations related to a single item
-func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) ([]*Iteration, error) {
+func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) ([]Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
-	var objs []*Iteration
+	var objs []Iteration
 
 	err := m.db.Where("space_id = ?", spaceID).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -234,13 +246,13 @@ func (m *GormIterationRepository) LoadDefault(ctx context.Context, spaceInstance
 }
 
 // LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
-func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]*Iteration, error) {
+func (m *GormIterationRepository) LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loadchildren"}, time.Now())
 	parentIteration, err := m.Load(ctx, parentIterationID)
 	if err != nil {
 		return nil, errors.NewNotFoundError("iteration", parentIterationID.String())
 	}
-	var objs []*Iteration
+	var objs []Iteration
 	selfPath := parentIteration.Path.Convert()
 	var query string
 	if selfPath != "" {

@@ -13,10 +13,10 @@ import (
 	"github.com/almighty/almighty-core/application"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
-	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -32,12 +32,12 @@ import (
 
 type TestIterationREST struct {
 	gormtestsupport.DBTestSuite
-
 	db    *gormapplication.GormDB
 	clean func()
 }
 
 func TestRunIterationREST(t *testing.T) {
+	// given
 	suite.Run(t, &TestIterationREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -54,99 +54,134 @@ func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationCont
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	return svc, NewIterationController(svc, rest.db)
+	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationController) {
 	svc := goa.New("Iteration-Service")
-	return svc, NewIterationController(svc, rest.db)
+	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	parent := createSpaceAndIteration(t, rest.db)
+	// given
+	parent := createSpaceAndIteration(rest.T(), rest.db)
 	parentID := parent.ID
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
-
 	svc, ctrl := rest.SecuredController()
-	_, created := test.CreateChildIterationCreated(t, svc.Context, svc, ctrl, parentID.String(), ci)
-	require.NotNil(t, created)
-	assertChildIterationLinking(t, created.Data)
-	assert.Equal(t, *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
+	// when
+	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	// then
+	require.NotNil(rest.T(), created)
+	assertChildIterationLinking(rest.T(), created.Data)
+	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
 	expectedParentPath := iteration.PathSepInService + parentID.String()
 	expectedResolvedParentPath := iteration.PathSepInService + parent.Name
-	assert.Equal(t, expectedParentPath, *created.Data.Attributes.ParentPath)
-	assert.Equal(t, expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
-	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
-	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
+	assert.Equal(rest.T(), expectedParentPath, *created.Data.Attributes.ParentPath)
+	assert.Equal(rest.T(), expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
+	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	parentID := createSpaceAndIteration(t, rest.db).ID
+	// given
+	parentID := createSpaceAndIteration(rest.T(), rest.db).ID
 	ci := createChildIteration(nil)
-
 	svc, ctrl := rest.SecuredController()
-	test.CreateChildIterationBadRequest(t, svc.Context, svc, ctrl, parentID.String(), ci)
+	// when/then
+	test.CreateChildIterationBadRequest(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingParent() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
+	// given
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
-
 	svc, ctrl := rest.SecuredController()
-	test.CreateChildIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	// when/then
+	test.CreateChildIterationNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationNotAuthorized() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	parentID := createSpaceAndIteration(t, rest.db).ID
+	// when
+	parentID := createSpaceAndIteration(rest.T(), rest.db).ID
 	name := "Sprint #21"
 	ci := createChildIteration(&name)
-
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateChildIterationUnauthorized(t, svc.Context, svc, ctrl, parentID.String(), ci)
+	// when/then
+	test.CreateChildIterationUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 }
 
-func (rest *TestIterationREST) TestSuccessShowIteration() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	itrID := createSpaceAndIteration(t, rest.db)
-
+func (rest *TestIterationREST) TestShowIterationOK() {
+	// given
+	itrID := createSpaceAndIteration(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
-	_, created := test.ShowIterationOK(t, svc.Context, svc, ctrl, itrID.ID.String())
-	assertIterationLinking(t, created.Data)
-	require.NotNil(t, created.Data.Relationships.Workitems.Meta)
-	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(t, 0, created.Data.Relationships.Workitems.Meta["closed"])
+	// when
+	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itrID.ID.String(), nil, nil)
+	// then
+	assertIterationLinking(rest.T(), created.Data)
+	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+}
+
+func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	// when
+	ifModifiedSinceHeader := itr.UpdatedAt.Add(-1 * time.Hour)
+	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
+	// then
+	assertIterationLinking(rest.T(), created.Data)
+	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+}
+
+func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	// when
+	ifNoneMatch := "foo"
+	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
+	// then
+	assertIterationLinking(rest.T(), created.Data)
+	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+}
+
+func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	// when/then
+	rest.T().Log("Iteration:", itr, " updatedAt: ", itr.UpdatedAt)
+	ifModifiedSinceHeader := itr.UpdatedAt
+	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
+}
+
+func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
+	svc, ctrl := rest.SecuredController()
+	// when/then
+	ifNoneMatch := app.GenerateEntityTag(itr)
+	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, &ifNoneMatch)
 }
 
 func (rest *TestIterationREST) TestFailShowIterationMissing() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
+	// given
 	svc, ctrl := rest.SecuredController()
-	test.ShowIterationNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String())
+	// when/then
+	test.ShowIterationNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	itr := createSpaceAndIteration(t, rest.db)
-
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -160,20 +195,19 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 		},
 	}
 	svc, ctrl := rest.SecuredController()
-	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
-	assert.Equal(t, newName, *updated.Data.Attributes.Name)
-	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
-	require.NotNil(t, updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(t, 0, updated.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(t, 0, updated.Data.Relationships.Workitems.Meta["closed"])
+	// when
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	// then
+	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	itr := createSpaceAndIteration(t, rest.db)
-
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -202,9 +236,9 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemState:     workitem.SystemStateNew,
 				workitem.SystemIteration: itr.ID.String(),
 			}, testIdentity.ID)
-		require.NotNil(t, wi)
-		require.Nil(t, err)
-		require.NotNil(t, wi)
+		require.NotNil(rest.T(), wi)
+		require.Nil(rest.T(), err)
+		require.NotNil(rest.T(), wi)
 	}
 	for i := 0; i < 5; i++ {
 		wi, err := wirepo.Create(
@@ -214,24 +248,25 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 				workitem.SystemState:     workitem.SystemStateClosed,
 				workitem.SystemIteration: itr.ID.String(),
 			}, testIdentity.ID)
-		require.NotNil(t, wi)
-		require.Nil(t, err)
-		require.NotNil(t, wi)
+		require.NotNil(rest.T(), wi)
+		require.Nil(rest.T(), err)
+		require.NotNil(rest.T(), wi)
 	}
 	svc, ctrl := rest.SecuredController()
-	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
-	require.NotNil(t, updated)
-	assert.Equal(t, newName, *updated.Data.Attributes.Name)
-	assert.Equal(t, newDesc, *updated.Data.Attributes.Description)
-	require.NotNil(t, updated.Data.Relationships.Workitems.Meta)
-	assert.Equal(t, 9, updated.Data.Relationships.Workitems.Meta["total"])
-	assert.Equal(t, 5, updated.Data.Relationships.Workitems.Meta["closed"])
+	// when
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	// then
+	require.NotNil(rest.T(), updated)
+	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
+	assert.Equal(rest.T(), newDesc, *updated.Data.Attributes.Description)
+	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 9, updated.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 5, updated.Data.Relationships.Workitems.Meta["closed"])
 }
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-	itr := createSpaceAndIteration(t, rest.db)
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
 	itr.ID = uuid.NewV4()
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -241,13 +276,13 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 		},
 	}
 	svc, ctrl := rest.SecuredController()
-	test.UpdateIterationNotFound(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	// when/then
+	test.UpdateIterationNotFound(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 }
 
 func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-	itr := createSpaceAndIteration(t, rest.db)
+	// given
+	itr := createSpaceAndIteration(rest.T(), rest.db)
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{},
@@ -256,16 +291,14 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 		},
 	}
 	svc, ctrl := rest.UnSecuredController()
-	test.UpdateIterationUnauthorized(t, svc.Context, svc, ctrl, itr.ID.String(), &payload)
+	// when/then
+	test.UpdateIterationUnauthorized(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 }
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
-	itr1 := createSpaceAndIteration(t, rest.db)
-	assert.Equal(t, iteration.IterationStateNew, itr1.State)
-
+	// given
+	itr1 := createSpaceAndIteration(rest.T(), rest.db)
+	assert.Equal(rest.T(), iteration.IterationStateNew, itr1.State)
 	startState := iteration.IterationStateStart
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -277,16 +310,15 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 		},
 	}
 	svc, ctrl := rest.SecuredController()
-	_, updated := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
-	assert.Equal(t, startState, *updated.Data.Attributes.State)
-
+	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
 	itr2 := iteration.Iteration{
 		Name:    "Spring 123",
 		SpaceID: itr1.SpaceID,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
-	require.Nil(t, err)
+	require.Nil(rest.T(), err)
 	payload2 := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{
@@ -296,17 +328,15 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	test.UpdateIterationBadRequest(t, svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
-
+	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
 	// now close first iteration
 	closeState := iteration.IterationStateClose
 	payload.Data.Attributes.State = &closeState
-	_, updated = test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr1.ID.String(), &payload)
-	assert.Equal(t, closeState, *updated.Data.Attributes.State)
-
+	_, updated = test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
+	assert.Equal(rest.T(), closeState, *updated.Data.Attributes.State)
 	// try to start iteration 2 now
-	_, updated2 := test.UpdateIterationOK(t, svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
-	assert.Equal(t, startState, *updated2.Data.Attributes.State)
+	_, updated2 := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr2.ID.String(), &payload2)
+	assert.Equal(rest.T(), startState, *updated2.Data.Attributes.State)
 }
 
 func createChildIteration(name *string) *app.CreateChildIterationPayload {
@@ -351,6 +381,10 @@ func createSpaceAndIteration(t *testing.T, db application.DB) iteration.Iteratio
 		name := "Sprint #2"
 
 		i := iteration.Iteration{
+			Lifecycle: gormsupport.Lifecycle{
+				CreatedAt: p.CreatedAt,
+				UpdatedAt: p.UpdatedAt,
+			},
 			Name:    name,
 			SpaceID: p.ID,
 			StartAt: &start,

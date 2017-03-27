@@ -147,6 +147,9 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
 	return app.WorkItem{
 		Type: "workitems",
 		Relationships: &app.WorkItemRelationships{
@@ -154,6 +157,9 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 				Data: &app.BaseTypeData{
 					Type: "workitemtypes",
 					ID:   workitem.SystemBug,
+				},
+				Links: &app.GenericLinks{
+					Self: &witSelfURL,
 				},
 			},
 			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
