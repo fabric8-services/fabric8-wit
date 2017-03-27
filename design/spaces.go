@@ -27,7 +27,6 @@ var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
 
 var backlogGenericLinkType = a.Type("BacklogGenericLink", func() {
 	a.Attribute("self", d.String)
-	a.Attribute("related", d.String)
 	a.Attribute("meta", backlogLinkMeta)
 })
 

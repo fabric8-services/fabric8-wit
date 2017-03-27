@@ -58,8 +58,14 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
+
+	spaceData, err := ConvertSpace(ctx.Context, ctx.DB, ctx.RequestData, space)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+	}
 	spaceSingle := &app.SpaceSingle{
-		Data: ConvertSpace(ctx.RequestData, space),
+		Data: spaceData,
 	}
 	single.Included = append(single.Included, spaceSingle.Data)
 
@@ -103,8 +109,13 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		spaceData, err := ConvertSpace(ctx.Context, ctx.DB, ctx.RequestData, space)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
 		spaceSingle := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, space),
+			Data: spaceData,
 		}
 		list.Included = append(list.Included, spaceSingle.Data)
 	}

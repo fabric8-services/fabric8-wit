@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/almighty/almighty-core/app"
@@ -111,8 +112,12 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", rSpace.Name))
 		}
 
+		spaceData, err := ConvertSpace(ctx.Context, c.db, ctx.RequestData, rSpace)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		res := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, rSpace),
+			Data: spaceData,
 		}
 
 		// Create space resource which will represent the keyclok resource associated with this space
@@ -177,16 +182,20 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		spaces, c, err := appl.Spaces().List(ctx.Context, &offset, &limit)
-		count := int(c)
+		spaces, cnt, err := appl.Spaces().List(ctx.Context, &offset, &limit)
+		count := int(cnt)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		spaceData, err := ConvertSpaces(ctx.Context, c.db, ctx.RequestData, spaces)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.SpaceList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpaces(ctx.RequestData, spaces),
+			Data:  spaceData,
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
 
@@ -208,8 +217,12 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		spaceData, err := ConvertSpace(ctx.Context, c.db, ctx.RequestData, s)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		resp := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s),
+			Data: spaceData,
 		}
 
 		return ctx.OK(&resp)
@@ -256,8 +269,12 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		spaceData, err := ConvertSpace(ctx.Context, c.db, ctx.RequestData, s)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, s),
+			Data: spaceData,
 		}
 
 		return ctx.OK(&response)
@@ -298,21 +315,39 @@ func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {
 type SpaceConvertFunc func(*goa.RequestData, *space.Space, *app.Space)
 
 // ConvertSpaces converts between internal and external REST representation
-func ConvertSpaces(request *goa.RequestData, spaces []*space.Space, additional ...SpaceConvertFunc) []*app.Space {
+func ConvertSpaces(ctx context.Context, db application.DB, request *goa.RequestData, spaces []*space.Space, additional ...SpaceConvertFunc) ([]*app.Space, error) {
 	var ps = []*app.Space{}
 	for _, p := range spaces {
-		ps = append(ps, ConvertSpace(request, p, additional...))
+		spaceData, err := ConvertSpace(ctx, db, request, p, additional...)
+		if err != nil {
+			return nil, err
+		}
+
+		ps = append(ps, spaceData)
 	}
-	return ps
+	return ps, nil
 }
 
 // ConvertSpace converts between internal and external REST representation
-func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) *app.Space {
+func ConvertSpace(ctx context.Context, db application.DB, request *goa.RequestData, p *space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(p.ID))
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", p.ID.String()))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", p.ID.String()))
 	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", p.ID.String()))
 	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", p.ID.String()))
+
+	var backlogCounter int
+	err := application.Transactional(db, func(appl application.Application) error {
+		backlogItems, err := appl.WorkItemTypes().ListPlannerItems(ctx, p.ID)
+		if err != nil {
+			return errs.Wrap(err, "unable to fetch work item types that derives of planner item")
+		}
+		backlogCounter = len(backlogItems)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &app.Space{
 		ID:   &p.ID,
@@ -328,7 +363,7 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 			Self: &selfURL,
 			Backlog: &app.BacklogGenericLink{
 				Self: &relatedBacklogList,
-				Meta: &app.BacklogLinkMeta{TotalCount: 0},
+				Meta: &app.BacklogLinkMeta{TotalCount: backlogCounter},
 			},
 		},
 		Relationships: &app.SpaceRelationships{
@@ -354,5 +389,5 @@ func ConvertSpace(request *goa.RequestData, p *space.Space, additional ...SpaceC
 				},
 			},
 		},
-	}
+	}, nil
 }
