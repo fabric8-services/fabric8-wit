@@ -162,7 +162,7 @@ func prepareWI2(attributes map[string]interface{}) app.WorkItem {
 					Self: &witSelfURL,
 				},
 			},
-			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 		Attributes: attributes,
 	}

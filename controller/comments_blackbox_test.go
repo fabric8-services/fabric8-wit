@@ -103,7 +103,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 						Self: &witSelfURL,
 					},
 				},
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}

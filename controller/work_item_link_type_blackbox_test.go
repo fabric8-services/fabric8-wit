@@ -2,11 +2,10 @@ package controller_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
-
-	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -23,10 +22,10 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
+	"github.com/jinzhu/gorm"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -119,6 +118,22 @@ func (s *workItemLinkTypeSuite) cleanup() {
 // SetupTest ensures that none of the work item link types that we will create already exist.
 func (s *workItemLinkTypeSuite) SetupTest() {
 	s.cleanup()
+	svc := goa.New("workItemLinkTypeSuite-Service")
+	require.NotNil(s.T(), svc)
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.linkTypeCtrl)
+	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
+	require.NotNil(s.T(), s.linkCatCtrl)
+	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	require.NotNil(s.T(), s.typeCtrl)
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
+	require.NotNil(s.T(), s.spaceCtrl)
+	s.spaceName = "test-space" + uuid.NewV4().String()
+	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
+	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
+	s.linkName = "test-workitem-link" + uuid.NewV4().String()
 }
 
 // The TearDownTest method will be run after every test in the suite.
@@ -274,9 +289,9 @@ func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
 	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createPayload.Data.Relationships.Space.Data.ID.String(), workItemLinkType.Data.ID.String(), nil, nil)
 	require.NotNil(s.T(), readIn)
 	// Convert to domain model and use equal function
-	expected, err := ConvertLinkTypeToModel(*workItemLinkType)
+	expected, err := ConvertWorkItemLinkTypeToModel(*workItemLinkType)
 	require.Nil(s.T(), err)
-	actual, err := ConvertLinkTypeToModel(*readIn)
+	actual, err := ConvertWorkItemLinkTypeToModel(*readIn)
 	require.Nil(s.T(), err)
 	require.Equal(s.T(), expected.ID, actual.ID)
 	// Check that the link category is included in the response in the "included" array
