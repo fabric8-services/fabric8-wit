@@ -360,8 +360,10 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	// when/then
 	ifNoneMatch := generateSpaceTag(*created)
 	// test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
-	_, fetched := test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
-	// _, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String())
+	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
+
+	t := rest.T()
+	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), nil, nil)
 	assert.Equal(t, created.Data.ID, fetched.Data.ID)
 	assert.Equal(t, *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
 	assert.Equal(t, *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)

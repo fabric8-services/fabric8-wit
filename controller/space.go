@@ -349,7 +349,7 @@ func ConvertSpaceFromModel(request *goa.RequestData, p space.Space, additional .
 	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-
+	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, p.OwnerId.String()))
 	return &app.Space{
 		ID:   &p.ID,
 		Type: APIStringTypeSpace,
@@ -370,6 +370,9 @@ func ConvertSpaceFromModel(request *goa.RequestData, p space.Space, additional .
 				Data: &app.IdentityRelationData{
 					Type: "identities",
 					ID:   &p.OwnerId,
+				},
+				Links: &app.GenericLinks{
+					Related: &relatedOwnerByLink,
 				},
 			},
 			Iterations: &app.RelationGeneric{

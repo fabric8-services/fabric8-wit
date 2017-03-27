@@ -38,6 +38,7 @@ var spaceRelationships = a.Type("SpaceRelationships", func() {
 
 var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
 	a.Attribute("data", identityRelationData)
+	a.Attribute("links", genericLinks)
 	a.Required("data")
 })
 
