@@ -247,7 +247,7 @@ func main() {
 	searchCtrl := controller.NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
 
-	// Mount "indentity" controller
+	// Mount "identity" controller
 	identityCtrl := controller.NewIdentityController(service, appDB)
 	app.MountIdentityController(service, identityCtrl)
 
@@ -256,11 +256,11 @@ func main() {
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "iterations" controller
-	iterationCtrl := controller.NewIterationController(service, appDB)
+	iterationCtrl := controller.NewIterationController(service, appDB, configuration)
 	app.MountIterationController(service, iterationCtrl)
 
 	// Mount "spaceiterations" controller
-	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB)
+	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, configuration)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
 	// Mount "userspace" controller
