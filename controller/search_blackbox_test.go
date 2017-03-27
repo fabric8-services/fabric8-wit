@@ -255,6 +255,9 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemUserStory.String()))
 	c := app.CreateWorkitemPayload{
 		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
@@ -264,6 +267,9 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 					Data: &app.BaseTypeData{
 						Type: APIStringTypeWorkItemType,
 						ID:   workitem.SystemUserStory,
+					},
+					Links: &app.GenericLinks{
+						Self: &witSelfURL,
 					},
 				},
 				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
