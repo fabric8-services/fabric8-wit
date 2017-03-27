@@ -74,12 +74,14 @@ func init() {
 		"workitemdsl":     "github.com/almighty/almighty-core/workitem",
 		"workitemlinkdsl": "github.com/almighty/almighty-core/workitem/link",
 		"spacedsl":        "github.com/almighty/almighty-core/space",
+		"iterationdsl":    "github.com/almighty/almighty-core/iteration",
 	}
 	structPackages = map[string]string{
 		"WorkItem":         "workitemdsl",
 		"WorkItemType":     "workitemdsl",
 		"WorkItemLinkType": "workitemlinkdsl",
 		"Space":            "spacedsl",
+		"Iteration":        "iterationdsl",
 	}
 
 }
