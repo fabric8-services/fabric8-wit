@@ -273,6 +273,9 @@ func GetMigrations() Migrations {
 	// Version 51
 	m = append(m, steps{ExecuteSQLFile("051-modify-work_item_link_types_name_idx.sql")})
 
+	// Version 52
+	m = append(m, steps{executeSQLFile("052-unique-space-names.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
