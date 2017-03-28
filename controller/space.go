@@ -361,9 +361,10 @@ func ConvertSpaceFromModel(request *goa.RequestData, p space.Space, additional .
 			Version:     &p.Version,
 		},
 		Links: &app.GenericLinksForSpace{
-			Self:          &selfURL,
-			Backlog:       &relatedBacklogList,
-			WorkItemTypes: &relatedWorkItemTypeList,
+			Self:              &selfURL,
+			Backlog:           &relatedBacklogList,
+			Workitemtypes:     &relatedWorkItemTypeList,
+			Workitemlinktypes: &relatedWorkItemLinkTypeList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
@@ -393,11 +394,6 @@ func ConvertSpaceFromModel(request *goa.RequestData, p space.Space, additional .
 			Workitems: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedWorkItemList,
-				},
-			},
-			Workitemlinktypes: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedWorkItemLinkTypeList,
 				},
 			},
 		},

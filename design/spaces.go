@@ -23,7 +23,8 @@ var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
 	a.Attribute("related", d.String)
 	a.Attribute("backlog", d.String, `URL to the backlog work items`)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("workItemTypes", d.String, "URL to list all WITs for this space")
+	a.Attribute("workitemtypes", d.String, "URL to list all WITs for this space")
+	a.Attribute("workitemlinktypes", d.String, "URL to list all WILTs for this space")
 })
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
