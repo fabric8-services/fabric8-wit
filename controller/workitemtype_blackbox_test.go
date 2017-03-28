@@ -293,7 +293,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType200OK() {
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*wit).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*wit).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -310,13 +310,13 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredLastModifiedHeade
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 	// when
-	lastModified := time.Now().Add(-1 * time.Hour)
+	lastModified := time.Now().Add(-1 * time.Hour).Format(time.RFC850)
 	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), *wit.Data.ID, &lastModified, nil)
 	// then
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*wit).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*wit).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -339,7 +339,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredETagHeader() {
 	require.NotNil(s.T(), wit2)
 	assert.EqualValues(s.T(), wit, wit2)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*wit).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*wit).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -356,7 +356,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType304UsingIfModifiedSinceHeader() 
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 	// when/then
-	lastModified := wit.Data.Attributes.UpdatedAt.Add(1 * time.Second)
+	lastModified := wit.Data.Attributes.UpdatedAt.Add(1 * time.Second).Format(time.RFC850)
 	test.ShowWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, wit.Data.Relationships.Space.Data.ID.String(), *wit.Data.ID, &lastModified, nil)
 }
 
@@ -395,7 +395,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200OK() {
 	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 		"Not all required work item types (animal and person) where found.")
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*witPerson).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*witPerson).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -414,7 +414,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfModifiedSinceHe
 	// when
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
-	lastModified := time.Now().Add(-1 * time.Hour)
+	lastModified := time.Now().Add(-1 * time.Hour).Format(time.RFC850)
 	page := "0,-1"
 	res, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &page, &lastModified, nil)
 	// then
@@ -423,7 +423,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfModifiedSinceHe
 	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 		"Not all required work item types (animal and person) where found.")
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*witPerson).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*witPerson).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -451,7 +451,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfNoneMatchHeader
 	assert.Condition(s.T(), lookupWorkItemTypes(*witCollection, *witAnimal, *witPerson),
 		"Not all required work item types (animal and person) where found.")
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*witPerson).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemTypeUpdatedAt(*witPerson).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -470,7 +470,7 @@ func (s *workItemTypeSuite) TestListWorkItemType304UsingIfModifiedSinceHeader() 
 	// when/then
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
-	lastModified := getWorkItemTypeUpdatedAt(*witPerson)
+	lastModified := getWorkItemTypeUpdatedAt(*witPerson).Format(time.RFC850)
 	page := "0,-1"
 	test.ListWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &page, &lastModified, nil)
 }
@@ -545,7 +545,7 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeSources200OK() {
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(sourceLinkType).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(sourceLinkType).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -565,7 +565,7 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeTargets200OK() {
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(targetLinkType).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(targetLinkType).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -578,7 +578,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinc
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
 	// when fetch source link types
-	ifModifiedSince := sourceLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSince := sourceLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour).Format(time.RFC850)
 	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID, &ifModifiedSince, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
@@ -586,7 +586,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinc
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(sourceLinkType).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(sourceLinkType).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -599,7 +599,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinc
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
 	// When fetch target link types
-	ifModifiedSince := targetLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSince := targetLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour).Format(time.RFC850)
 	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID, &ifModifiedSince, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
@@ -607,7 +607,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinc
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(targetLinkType).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(targetLinkType).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -628,7 +628,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfNoneMatchHea
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), animalLinksToBugStr, *wiltCollection.Data[0].Attributes.Name)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(sourceLinkType).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(sourceLinkType).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -649,7 +649,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfNoneMatchHea
 	require.Len(s.T(), wiltCollection.Data, 1)
 	assert.Equal(s.T(), bugLinksToAnimalStr, *wiltCollection.Data[0].Attributes.Name)
 	require.NotNil(s.T(), res.Header()[app.LastModified])
-	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(targetLinkType).String(), res.Header()[app.LastModified][0])
+	assert.Equal(s.T(), getWorkItemLinkTypeUpdatedAt(targetLinkType).Format(time.RFC850), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
 	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
@@ -662,7 +662,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes304UsingIfModifiedSinceHeader
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
 	// when/then
-	ifModifiedSince := getWorkItemLinkTypeUpdatedAt(sourceLinkType)
+	ifModifiedSince := getWorkItemLinkTypeUpdatedAt(sourceLinkType).Format(time.RFC850)
 	test.ListSourceLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID, &ifModifiedSince, nil)
 }
 
@@ -672,7 +672,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes304UsingIfModifiedSinceHeader
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
 	// When fetch target link types
-	ifModifiedSince := getWorkItemLinkTypeUpdatedAt(targetLinkType)
+	ifModifiedSince := getWorkItemLinkTypeUpdatedAt(targetLinkType).Format(time.RFC850)
 	test.ListTargetLinkTypesWorkitemtypeNotModified(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID, &ifModifiedSince, nil)
 }
 

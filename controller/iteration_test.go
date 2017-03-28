@@ -130,7 +130,7 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 	itr := createSpaceAndIteration(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
-	ifModifiedSinceHeader := itr.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSinceHeader := itr.UpdatedAt.Add(-1 * time.Hour).Format(time.RFC850)
 	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 	// then
 	assertIterationLinking(rest.T(), created.Data)
@@ -159,7 +159,7 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceH
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	rest.T().Log("Iteration:", itr, " updatedAt: ", itr.UpdatedAt)
-	ifModifiedSinceHeader := itr.UpdatedAt
+	ifModifiedSinceHeader := itr.UpdatedAt.Format(time.RFC850)
 	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
 
