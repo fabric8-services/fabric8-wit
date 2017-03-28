@@ -360,7 +360,34 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when/then
 	ifNoneMatch := generateSpaceTag(*created)
+	// test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
 	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
+
+	t := rest.T()
+	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), nil, nil)
+	assert.Equal(t, created.Data.ID, fetched.Data.ID)
+	assert.Equal(t, *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
+	assert.Equal(t, *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
+	assert.Equal(t, *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
+
+	// verify list-WI URL exists in Relationships.Links
+	require.NotNil(t, *fetched.Data.Relationships.Workitems)
+	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links)
+	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links.Related)
+	subStringWI := fmt.Sprintf("/%s/workitems", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Relationships.Workitems.Links.Related, subStringWI)
+
+	// verify list-WIT URL exists in Relationships.Links
+	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links.Workitemtypes)
+	subStringWIL := fmt.Sprintf("/%s/workitemtypes", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Links.Workitemtypes, subStringWIL)
+
+	// verify list-WILT URL exists in Relationships.Links
+	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links.Workitemlinktypes)
+	subStringWILT := fmt.Sprintf("/%s/workitemlinktypes", created.Data.ID.String())
+	assert.Contains(t, *fetched.Data.Links.Workitemlinktypes, subStringWILT)
 }
 
 func (rest *TestSpaceREST) TestFailShowSpaceNotFound() {
