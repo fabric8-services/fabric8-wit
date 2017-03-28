@@ -115,10 +115,14 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			}
 		}
 
+		spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, result)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 		response := app.SearchSpaceList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.SpaceListMeta{TotalCount: count},
-			Data:  ConvertSpacesFromModel(ctx.RequestData, result),
+			Data:  spaceData,
 		}
 		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
 
