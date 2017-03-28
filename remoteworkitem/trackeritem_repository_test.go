@@ -106,7 +106,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithExistingIdentitie
 	}
 
 	// when
-	workItem, err := convert(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -149,7 +149,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithUnknownIdentities
 	}
 
 	// when
-	workItem, err := convert(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -195,7 +195,7 @@ func (s *TrackerItemRepositorySuite) TestConvertNewWorkItemWithNoAssignee() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItem, err := convert(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), workItem.Fields)
@@ -235,7 +235,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItem, err := convert(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
+	workItem, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemData, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "linking", workItem.Fields[workitem.SystemTitle])
@@ -264,7 +264,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		ID: "http://github.com/sbose/api/testonly/1",
 	}
 	// when
-	workItemUpdated, err := convert(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataUpdated, ProviderGithub, s.trackerQuery.SpaceID)
+	workItemUpdated, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataUpdated, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	assert.Nil(s.T(), err)
 	require.NotNil(s.T(), workItemUpdated)
@@ -288,7 +288,7 @@ func (s *TrackerItemRepositorySuite) TestConvertGithubIssue() {
 		ID:      GitIssueWithAssignee, // GH issue url
 	}
 	// when
-	workItemGithub, err := convert(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataGithub, ProviderGithub, s.trackerQuery.SpaceID)
+	workItemGithub, err := convertToWorkItemModel(s.ctx, s.DB, int(s.trackerQuery.ID), remoteItemDataGithub, ProviderGithub, s.trackerQuery.SpaceID)
 	// then
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "map flatten : test case : with assignee", workItemGithub.Fields[workitem.SystemTitle])

@@ -20,12 +20,19 @@ import (
 // IterationController implements the iteration resource.
 type IterationController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config IterationControllerConfiguration
+}
+
+// IterationControllerConfiguration configuration for the IterationController
+
+type IterationControllerConfiguration interface {
+	GetCacheControlIteration() string
 }
 
 // NewIterationController creates a iteration controller.
-func NewIterationController(service *goa.Service, db application.DB) *IterationController {
-	return &IterationController{Controller: service.NewController("IterationController"), db: db}
+func NewIterationController(service *goa.Service, db application.DB, config IterationControllerConfiguration) *IterationController {
+	return &IterationController{Controller: service.NewController("IterationController"), db: db, config: config}
 }
 
 // CreateChild runs the create-child action.
@@ -79,9 +86,9 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.RequestData, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		} else {
-			responseData = ConvertIteration(ctx.RequestData, &newItr, updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.RequestData, newItr, updateIterationsWithCounts(wiCounts))
 		}
 		res := &app.IterationSingle{
 			Data: responseData,
@@ -99,20 +106,21 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Iterations().Load(ctx, id)
+		iter, err := appl.Iterations().Load(ctx, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, c.ID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.IterationSingle{}
-		res.Data = ConvertIteration(
-			ctx.RequestData,
-			c, updateIterationsWithCounts(wiCounts))
-		return ctx.OK(res)
+		return ctx.ConditionalEntity(*iter, c.config.GetCacheControlIteration, func() error {
+			wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, iter.ID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			res := &app.IterationSingle{}
+			res.Data = ConvertIteration(
+				ctx.RequestData,
+				*iter, updateIterationsWithCounts(wiCounts))
+			return ctx.OK(res)
+		})
 	})
 }
 
@@ -162,7 +170,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		response := app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, itr, updateIterationsWithCounts(wiCounts)),
+			Data: ConvertIteration(ctx.RequestData, *itr, updateIterationsWithCounts(wiCounts)),
 		}
 
 		return ctx.OK(&response)
@@ -174,7 +182,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 type IterationConvertFunc func(*goa.RequestData, *iteration.Iteration, *app.Iteration)
 
 // ConvertIterations converts between internal and external REST representation
-func ConvertIterations(request *goa.RequestData, Iterations []*iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
+func ConvertIterations(request *goa.RequestData, Iterations []iteration.Iteration, additional ...IterationConvertFunc) []*app.Iteration {
 	var is = []*app.Iteration{}
 	for _, i := range Iterations {
 		is = append(is, ConvertIteration(request, i, additional...))
@@ -183,9 +191,8 @@ func ConvertIterations(request *goa.RequestData, Iterations []*iteration.Iterati
 }
 
 // ConvertIteration converts between internal and external REST representation
-func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
+func ConvertIteration(request *goa.RequestData, itr iteration.Iteration, additional ...IterationConvertFunc) *app.Iteration {
 	iterationType := iteration.APIStringTypeIteration
-
 	spaceID := itr.SpaceID.String()
 	selfURL := rest.AbsoluteURL(request, app.IterationHref(itr.ID))
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(spaceID))
@@ -196,6 +203,8 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		ID:   &itr.ID,
 		Attributes: &app.IterationAttributes{
 			Name:        &itr.Name,
+			CreatedAt:   &itr.CreatedAt,
+			UpdatedAt:   &itr.UpdatedAt,
 			StartAt:     itr.StartAt,
 			EndAt:       itr.EndAt,
 			Description: itr.Description,
@@ -236,7 +245,7 @@ func ConvertIteration(request *goa.RequestData, itr *iteration.Iteration, additi
 		}
 	}
 	for _, add := range additional {
-		add(request, itr, i)
+		add(request, &itr, i)
 	}
 	return i
 }
@@ -260,7 +269,7 @@ func createIterationLinks(request *goa.RequestData, id interface{}) *app.Generic
 }
 
 // iterationIDMap contains a map that will hold iteration's ID as its key
-type iterationIDMap map[uuid.UUID]*iteration.Iteration
+type iterationIDMap map[uuid.UUID]iteration.Iteration
 
 func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 	return func(request *goa.RequestData, itr *iteration.Iteration, appIteration *app.Iteration) {

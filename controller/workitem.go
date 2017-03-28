@@ -119,7 +119,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			}
 		}
 
-		response := app.WorkItem2List{
+		response := app.WorkItemList{
 			Links: &app.PagingLinks{},
 			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 			Data:  ConvertWorkItems(ctx.RequestData, result),
@@ -165,7 +165,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi)
-		resp := &app.WorkItem2Single{
+		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
 				Self: buildAbsoluteURL(ctx.RequestData),
@@ -189,7 +189,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		var dataArray []*app.WorkItem2
+		var dataArray []*app.WorkItem
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing payload element in request", nil))
 		}
@@ -212,7 +212,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			wi2 := ConvertWorkItem(ctx.RequestData, wi)
 			dataArray = append(dataArray, wi2)
 		}
-		resp := &app.WorkItem2Reorder{
+		resp := &app.WorkItemReorder{
 			Data: dataArray,
 		}
 
@@ -245,10 +245,9 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
 		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
-		ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
+		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(spaceID, spaceSelfURL)
 	}
-
-	wi := app.WorkItem{
+	wi := workitem.WorkItem{
 		Fields: make(map[string]interface{}),
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
@@ -269,7 +268,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi)
-		resp := &app.WorkItem2Single{
+		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
 				Self: buildAbsoluteURL(ctx.RequestData),
@@ -305,7 +304,7 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 			}
 		}
 		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
-		resp := &app.WorkItem2Single{
+		resp := &app.WorkItemSingle{
 			Data: wi2,
 		}
 		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
@@ -337,7 +336,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 }
 
 // Time is default value if no UpdatedAt field is found
-func updatedAt(wi *app.WorkItem) time.Time {
+func updatedAt(wi *workitem.WorkItem) time.Time {
 	var t time.Time
 	if ua, ok := wi.Fields[workitem.SystemUpdatedAt]; ok {
 		t = ua.(time.Time)
@@ -345,7 +344,7 @@ func updatedAt(wi *app.WorkItem) time.Time {
 	return t.Truncate(time.Second)
 }
 
-func lastModified(wi *app.WorkItem) string {
+func lastModified(wi *workitem.WorkItem) string {
 	return lastModifiedTime(updatedAt(wi))
 }
 
@@ -353,7 +352,7 @@ func lastModifiedTime(t time.Time) string {
 	return t.Format(time.RFC850)
 }
 
-func findLastModified(wis []*app.WorkItem) time.Time {
+func findLastModified(wis []*workitem.WorkItem) time.Time {
 	var t time.Time
 	for _, wi := range wis {
 		lm := updatedAt(wi)
@@ -366,7 +365,7 @@ func findLastModified(wis []*app.WorkItem) time.Time {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem2, target *app.WorkItem) error {
+func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem, target *workitem.WorkItem) error {
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -466,12 +465,12 @@ func getVersion(version interface{}) (int, error) {
 
 // WorkItemConvertFunc is a open ended function to add additional links/data/relations to a Comment during
 // conversion from internal to API
-type WorkItemConvertFunc func(*goa.RequestData, *app.WorkItem, *app.WorkItem2)
+type WorkItemConvertFunc func(*goa.RequestData, *workitem.WorkItem, *app.WorkItem)
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem2 {
-	ops := []*app.WorkItem2{}
+func ConvertWorkItems(request *goa.RequestData, wis []*workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+	ops := []*app.WorkItem{}
 	for _, wi := range wis {
 		ops = append(ops, ConvertWorkItem(request, wi, additional...))
 	}
@@ -480,14 +479,17 @@ func ConvertWorkItems(request *goa.RequestData, wis []*app.WorkItem, additional 
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem2 {
+func ConvertWorkItem(request *goa.RequestData, wi *workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
-	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID.String(), wi.ID))
-	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Relationships.Space.Data.ID.String(), wi.Type)+sourceLinkTypesRouteEnd)
-	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.Relationships.Space.Data.ID.String(), wi.Type)+targetLinkTypesRouteEnd)
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.Relationships.Space.Data.ID.String()))
+	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
+	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
+	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+targetLinkTypesRouteEnd)
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(wi.SpaceID.String(), APIStringTypeWorkItemType))
 
-	op := &app.WorkItem2{
+	op := &app.WorkItem{
 		ID:   &wi.ID,
 		Type: APIStringTypeWorkItem,
 		Attributes: map[string]interface{}{
@@ -499,8 +501,11 @@ func ConvertWorkItem(request *goa.RequestData, wi *app.WorkItem, additional ...W
 					ID:   wi.Type,
 					Type: APIStringTypeWorkItemType,
 				},
+				Links: &app.GenericLinks{
+					Self: &witSelfURL,
+				},
 			},
-			Space: space.NewSpaceRelation(*wi.Relationships.Space.Data.ID, spaceSelfURL),
+			Space: app.NewSpaceRelation(wi.SpaceID, spaceSelfURL),
 		},
 		Links: &app.GenericLinksForWorkItem{
 			Self:            &selfURL,
@@ -595,7 +600,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		response := app.WorkItem2List{
+		response := app.WorkItemList{
 			Data: ConvertWorkItems(ctx.RequestData, result),
 		}
 		return ctx.OK(&response)
@@ -603,8 +608,8 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 }
 
 // WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
-func WorkItemIncludeChildren(request *goa.RequestData, wi *app.WorkItem, wi2 *app.WorkItem2) {
-	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.Relationships.Space.Data.ID, wi.ID)) + "/children"
+func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/children"
 	wi2.Relationships.Children = &app.RelationGeneric{
 		Links: &app.GenericLinks{
 			Related: &childrenRelated,

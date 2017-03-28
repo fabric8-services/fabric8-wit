@@ -46,7 +46,6 @@ func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemRepoBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
@@ -169,7 +168,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	// then
 	require.Nil(s.T(), err)
-	// app.WorkItem does not contain the markup associated with the description (yet)
+	// workitem.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
 
@@ -190,7 +189,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	// then
 	require.Nil(s.T(), err)
-	// app.WorkItem does not contain the markup associated with the description (yet)
+	// workitem.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
 
@@ -222,7 +221,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// given
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
-		Name: "Testing space",
+		Name: "Testing space" + uuid.NewV4().String(),
 	}
 	spaceRepo.Create(s.ctx, &spaceInstance)
 	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)

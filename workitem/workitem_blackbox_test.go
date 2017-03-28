@@ -18,7 +18,7 @@ func TestWorkItem_Equal(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	a := workitem.WorkItem{
+	a := workitem.WorkItemStorage{
 		ID:      0,
 		Type:    uuid.NewV4(),
 		Version: 0,
@@ -67,7 +67,7 @@ func TestWorkItem_Equal(t *testing.T) {
 	i.SpaceID = uuid.NewV4()
 	assert.False(t, a.Equal(i))
 
-	j := workitem.WorkItem{
+	j := workitem.WorkItemStorage{
 		ID:      0,
 		Type:    a.Type,
 		Version: 0,

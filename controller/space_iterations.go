@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -13,15 +14,22 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// SpaceIterationsControllerConfiguration configuration for the SpaceIterationsController
+
+type SpaceIterationsControllerConfiguration interface {
+	GetCacheControlIteration() string
+}
+
 // SpaceIterationsController implements the space-iterations resource.
 type SpaceIterationsController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config SpaceIterationsControllerConfiguration
 }
 
 // NewSpaceIterationsController creates a space-iterations controller.
-func NewSpaceIterationsController(service *goa.Service, db application.DB) *SpaceIterationsController {
-	return &SpaceIterationsController{Controller: service.NewController("SpaceIterationsController"), db: db}
+func NewSpaceIterationsController(service *goa.Service, db application.DB, config SpaceIterationsControllerConfiguration) *SpaceIterationsController {
+	return &SpaceIterationsController{Controller: service.NewController("SpaceIterationsController"), db: db, config: config}
 }
 
 // Create runs the create action.
@@ -66,6 +74,8 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
+		logrus.Info("wicounts for created iteration ", newItr.ID.String(), " -> ", wiCounts)
+
 		var responseData *app.Iteration
 		if newItr.Path.IsEmpty() == false {
 			allParentsUUIDs := newItr.Path
@@ -77,9 +87,9 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr
 			}
-			responseData = ConvertIteration(ctx.RequestData, &newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.RequestData, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		} else {
-			responseData = ConvertIteration(ctx.RequestData, &newItr, updateIterationsWithCounts(wiCounts))
+			responseData = ConvertIteration(ctx.RequestData, newItr, updateIterationsWithCounts(wiCounts))
 		}
 		res := &app.IterationSingle{
 			Data: responseData,
@@ -106,17 +116,20 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		itrMap := make(iterationIDMap)
-		for _, itr := range iterations {
-			itrMap[itr.ID] = itr
-		}
-		// fetch extra information(counts of WI in each iteration of the space) to be added in response
-		wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		res := &app.IterationList{}
-		res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
-		return ctx.OK(res)
+		return ctx.ConditionalEntities(iterations, c.config.GetCacheControlIteration, func() error {
+			itrMap := make(iterationIDMap)
+			for _, itr := range iterations {
+				itrMap[itr.ID] = itr
+			}
+			// fetch extra information(counts of WI in each iteration of the space) to be added in response
+			wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
+			logrus.Info("Retrieving wicounts for spaceID ", spaceID.String(), " -> ", wiCounts)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			res := &app.IterationList{}
+			res.Data = ConvertIterations(ctx.RequestData, iterations, updateIterationsWithCounts(wiCounts), parentPathResolver(itrMap))
+			return ctx.OK(res)
+		})
 	})
 }

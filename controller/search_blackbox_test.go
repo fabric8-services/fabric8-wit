@@ -255,8 +255,11 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemUserStory.String()))
 	c := app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
@@ -265,8 +268,11 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 						Type: APIStringTypeWorkItemType,
 						ID:   workitem.SystemUserStory,
 					},
+					Links: &app.GenericLinks{
+						Self: &witSelfURL,
+					},
 				},
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -314,7 +320,7 @@ func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.Se
 }
 
 // verifySearchByKnownURLs performs actual tests on search result and knwonURL map
-func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItem2Single, host, searchQuery string) {
+func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
 	assert.NotEmpty(s.T(), result.Data)
 	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)

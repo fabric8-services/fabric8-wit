@@ -84,8 +84,11 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
 	createWorkitemPayload := app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
 				workitem.SystemTitle: "work item title",
@@ -96,8 +99,11 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 						Type: "workitemtypes",
 						ID:   workitem.SystemBug,
 					},
+					Links: &app.GenericLinks{
+						Self: &witSelfURL,
+					},
 				},
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}

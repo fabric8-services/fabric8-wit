@@ -4,7 +4,6 @@ package test
 import (
 	"sync"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/workitem"
 	uuid "github.com/satori/go.uuid"
@@ -12,7 +11,7 @@ import (
 )
 
 type WorkItemRepository struct {
-	LoadStub        func(ctx context.Context, spaceID uuid.UUID, ID string) (*app.WorkItem, error)
+	LoadStub        func(ctx context.Context, spaceID uuid.UUID, ID string) (*workitem.WorkItem, error)
 	loadMutex       sync.RWMutex
 	loadArgsForCall []struct {
 		ctx     context.Context
@@ -20,42 +19,42 @@ type WorkItemRepository struct {
 		ID      string
 	}
 	loadReturns struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}
-	LoadByIDStub        func(ctx context.Context, ID string) (*app.WorkItem, error)
+	LoadByIDStub        func(ctx context.Context, ID string) (*workitem.WorkItem, error)
 	loadByIDMutex       sync.RWMutex
 	loadByIDArgsForCall []struct {
 		ctx context.Context
 		ID  string
 	}
 	loadByIDReturns struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}
-	SaveStub        func(ctx context.Context, spaceID uuid.UUID, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	SaveStub        func(ctx context.Context, spaceID uuid.UUID, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error)
 	saveMutex       sync.RWMutex
 	saveArgsForCall []struct {
 		ctx        context.Context
 		spaceID    uuid.UUID
-		wi         app.WorkItem
+		wi         workitem.WorkItem
 		modifierID uuid.UUID
 	}
 	saveReturns struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}
-	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error)
+	ReorderStub        func(ctx context.Context, direction workitem.DirectionType, targetID *string, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error)
 	reorderMutex       sync.RWMutex
 	reorderArgsForCall []struct {
 		ctx        context.Context
 		direction  workitem.DirectionType
 		targetID   *string
-		wi         app.WorkItem
+		wi         workitem.WorkItem
 		modifierID uuid.UUID
 	}
 	reorderReturns struct {
-		wi  *app.WorkItem
+		wi  *workitem.WorkItem
 		err error
 	}
 	DeleteStub        func(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
@@ -69,7 +68,7 @@ type WorkItemRepository struct {
 	deleteReturns struct {
 		result1 error
 	}
-	CreateStub        func(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error)
+	CreateStub        func(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*workitem.WorkItem, error)
 	createMutex       sync.RWMutex
 	createArgsForCall []struct {
 		ctx       context.Context
@@ -79,10 +78,10 @@ type WorkItemRepository struct {
 		creatorID uuid.UUID
 	}
 	createReturns struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}
-	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error)
+	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*workitem.WorkItem, uint64, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		ctx      context.Context
@@ -92,11 +91,11 @@ type WorkItemRepository struct {
 		length   *int
 	}
 	listReturns struct {
-		result1 []*app.WorkItem
+		result1 []*workitem.WorkItem
 		result2 uint64
 		result3 error
 	}
-	FetchStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*app.WorkItem, error)
+	FetchStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*workitem.WorkItem, error)
 	fetchMutex       sync.RWMutex
 	fetchArgsForCall []struct {
 		ctx      context.Context
@@ -104,7 +103,7 @@ type WorkItemRepository struct {
 		criteria criteria.Expression
 	}
 	fetchReturns struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}
 	GetCountsPerIterationStub        func(ctx context.Context, spaceID uuid.UUID) (map[string]workitem.WICountsPerIteration, error)
@@ -131,7 +130,7 @@ type WorkItemRepository struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *WorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, ID string) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, ID string) (*workitem.WorkItem, error) {
 	fake.loadMutex.Lock()
 	fake.loadArgsForCall = append(fake.loadArgsForCall, struct {
 		ctx     context.Context
@@ -146,7 +145,7 @@ func (fake *WorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, ID 
 	return fake.loadReturns.result1, fake.loadReturns.result2
 }
 
-func (fake *WorkItemRepository) LoadByID(ctx context.Context, ID string) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) LoadByID(ctx context.Context, ID string) (*workitem.WorkItem, error) {
 	fake.loadByIDMutex.Lock()
 	fake.loadByIDArgsForCall = append(fake.loadByIDArgsForCall, struct {
 		ctx context.Context
@@ -172,28 +171,28 @@ func (fake *WorkItemRepository) LoadArgsForCall(i int) (context.Context, string)
 	return fake.loadArgsForCall[i].ctx, fake.loadArgsForCall[i].ID
 }
 
-func (fake *WorkItemRepository) LoadReturns(result1 *app.WorkItem, result2 error) {
+func (fake *WorkItemRepository) LoadReturns(result1 *workitem.WorkItem, result2 error) {
 	fake.LoadStub = nil
 	fake.loadReturns = struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) LoadByIDReturns(result1 *app.WorkItem, result2 error) {
+func (fake *WorkItemRepository) LoadByIDReturns(result1 *workitem.WorkItem, result2 error) {
 	fake.LoadByIDStub = nil
 	fake.loadByIDReturns = struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error) {
 	fake.saveMutex.Lock()
 	fake.saveArgsForCall = append(fake.saveArgsForCall, struct {
 		ctx        context.Context
 		spaceID    uuid.UUID
-		wi         app.WorkItem
+		wi         workitem.WorkItem
 		modifierID uuid.UUID
 	}{ctx, spaceID, wi, modifierID})
 	fake.recordInvocation("Save", []interface{}{ctx, spaceID, wi, modifierID})
@@ -210,29 +209,29 @@ func (fake *WorkItemRepository) SaveCallCount() int {
 	return len(fake.saveArgsForCall)
 }
 
-func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, uuid.UUID, app.WorkItem, uuid.UUID) {
+func (fake *WorkItemRepository) SaveArgsForCall(i int) (context.Context, uuid.UUID, workitem.WorkItem, uuid.UUID) {
 	fake.saveMutex.RLock()
 	defer fake.saveMutex.RUnlock()
 	return fake.saveArgsForCall[i].ctx, fake.saveArgsForCall[i].spaceID, fake.saveArgsForCall[i].wi, fake.saveArgsForCall[i].modifierID
 }
 
-func (fake *WorkItemRepository) SaveReturns(result1 *app.WorkItem, result2 error) {
+func (fake *WorkItemRepository) SaveReturns(result1 *workitem.WorkItem, result2 error) {
 	fake.SaveStub = nil
 	fake.saveReturns = struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}{result1, result2}
 }
 
 // Reorder is a fake function for reordering of workitems
 // Used for testing purpose
-func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID *string, wi app.WorkItem, modifierID uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Reorder(ctx context.Context, direction workitem.DirectionType, targetID *string, wi workitem.WorkItem, modifierID uuid.UUID) (*workitem.WorkItem, error) {
 	fake.reorderMutex.Lock()
 	fake.reorderArgsForCall = append(fake.reorderArgsForCall, struct {
 		ctx        context.Context
 		direction  workitem.DirectionType
 		targetID   *string
-		wi         app.WorkItem
+		wi         workitem.WorkItem
 		modifierID uuid.UUID
 	}{ctx, direction, targetID, wi, modifierID})
 	fake.recordInvocation("Reorder", []interface{}{ctx, direction, *targetID, wi, modifierID})
@@ -252,17 +251,17 @@ func (fake *WorkItemRepository) ReorderCallCount() int {
 }
 
 // ReorderArgsForCall returns fake arguments for Reorder function
-func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, workitem.DirectionType, string, app.WorkItem, uuid.UUID) {
+func (fake *WorkItemRepository) ReorderArgsForCall(i int) (context.Context, workitem.DirectionType, string, workitem.WorkItem, uuid.UUID) {
 	fake.reorderMutex.RLock()
 	defer fake.reorderMutex.RUnlock()
 	return fake.reorderArgsForCall[i].ctx, fake.reorderArgsForCall[i].direction, *fake.reorderArgsForCall[i].targetID, fake.reorderArgsForCall[i].wi, fake.reorderArgsForCall[i].modifierID
 }
 
 // ReorderReturns returns fake values for Reorder function
-func (fake *WorkItemRepository) ReorderReturns(workItem *app.WorkItem, errr error) {
+func (fake *WorkItemRepository) ReorderReturns(workItem *workitem.WorkItem, errr error) {
 	fake.ReorderStub = nil
 	type reorder struct {
-		wi  *app.WorkItem
+		wi  *workitem.WorkItem
 		err error
 	}
 	v := reorder{workItem, errr}
@@ -304,7 +303,7 @@ func (fake *WorkItemRepository) DeleteReturns(result1 error) {
 	}{result1}
 }
 
-func (fake *WorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*workitem.WorkItem, error) {
 	fake.createMutex.Lock()
 	fake.createArgsForCall = append(fake.createArgsForCall, struct {
 		ctx       context.Context
@@ -333,15 +332,15 @@ func (fake *WorkItemRepository) CreateArgsForCall(i int) (context.Context, uuid.
 	return fake.createArgsForCall[i].ctx, fake.createArgsForCall[i].spaceID, fake.createArgsForCall[i].typeID, fake.createArgsForCall[i].fields, fake.createArgsForCall[i].creatorID
 }
 
-func (fake *WorkItemRepository) CreateReturns(result1 *app.WorkItem, result2 error) {
+func (fake *WorkItemRepository) CreateReturns(result1 *workitem.WorkItem, result2 error) {
 	fake.CreateStub = nil
 	fake.createReturns = struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]*app.WorkItem, uint64, error) {
+func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]*workitem.WorkItem, uint64, error) {
 	fake.listMutex.Lock()
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		ctx      context.Context
@@ -370,16 +369,16 @@ func (fake *WorkItemRepository) ListArgsForCall(i int) (context.Context, uuid.UU
 	return fake.listArgsForCall[i].ctx, fake.listArgsForCall[i].spaceID, fake.listArgsForCall[i].criteria, fake.listArgsForCall[i].start, fake.listArgsForCall[i].length
 }
 
-func (fake *WorkItemRepository) ListReturns(result1 []*app.WorkItem, result2 uint64, result3 error) {
+func (fake *WorkItemRepository) ListReturns(result1 []*workitem.WorkItem, result2 uint64, result3 error) {
 	fake.ListStub = nil
 	fake.listReturns = struct {
-		result1 []*app.WorkItem
+		result1 []*workitem.WorkItem
 		result2 uint64
 		result3 error
 	}{result1, result2, result3}
 }
 
-func (fake *WorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c criteria.Expression) (*app.WorkItem, error) {
+func (fake *WorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c criteria.Expression) (*workitem.WorkItem, error) {
 	fake.fetchMutex.Lock()
 	fake.fetchArgsForCall = append(fake.fetchArgsForCall, struct {
 		ctx      context.Context
@@ -406,10 +405,10 @@ func (fake *WorkItemRepository) FetchArgsForCall(i int) (context.Context, uuid.U
 	return fake.fetchArgsForCall[i].ctx, fake.fetchArgsForCall[i].spaceID, fake.fetchArgsForCall[i].criteria
 }
 
-func (fake *WorkItemRepository) FetchReturns(result1 *app.WorkItem, result2 error) {
+func (fake *WorkItemRepository) FetchReturns(result1 *workitem.WorkItem, result2 error) {
 	fake.FetchStub = nil
 	fake.fetchReturns = struct {
-		result1 *app.WorkItem
+		result1 *workitem.WorkItem
 		result2 error
 	}{result1, result2}
 }

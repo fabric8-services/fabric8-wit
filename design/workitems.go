@@ -19,8 +19,8 @@ in which the current work item can be used in the target part of the link`)
 	a.Attribute("doit", d.String, "URL to generate Che-editor's link based on values of codebase field")
 })
 
-// workItem2 defines how an update payload will look like
-var workItem2 = a.Type("WorkItem2", func() {
+// workItem defines how an update payload will look like
+var workItem = a.Type("WorkItem", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitems")
 	})
@@ -50,6 +50,7 @@ var workItemRelationships = a.Type("WorkItemRelationships", func() {
 // relationBaseType is top level block for WorkItemType relationship
 var relationBaseType = a.Type("RelationBaseType", func() {
 	a.Attribute("data", baseTypeData)
+	a.Attribute("links", genericLinks)
 	a.Required("data")
 })
 
@@ -72,15 +73,15 @@ var workItemLinks = a.Type("WorkItemLinks", func() {
 
 // workItemList contains paged results for listing work items and paging links
 var workItemList = JSONList(
-	"WorkItem2", "Holds the paginated response to a work item list request",
-	workItem2,
+	"WorkItem", "Holds the paginated response to a work item list request",
+	workItem,
 	pagingLinks,
 	meta)
 
 // workItemSingle is the media type for work items
 var workItemSingle = JSONSingle(
-	"WorkItem2", "A work item holds field values according to a given field type in JSONAPI form",
-	workItem2,
+	"WorkItem", "A work item holds field values according to a given field type in JSONAPI form",
+	workItem,
 	workItemLinks)
 
 // Reorder creates a UserTypeDefinition for Reorder action
@@ -100,8 +101,8 @@ func Reorder(name, description string, data *d.UserTypeDefinition, position *d.U
 
 // workItemReorder is the media type for reorder of work items
 var workItemReorder = Reorder(
-	"WorkItem2", "Holds values for work item reorder",
-	workItem2,
+	"WorkItem", "Holds values for work item reorder",
+	workItem,
 	position)
 
 // new version of "list" for migration
@@ -286,5 +287,32 @@ var _ = a.Resource("redirect_workitem", func() {
 			a.PATCH("/reorder"),
 		)
 		a.Response(d.MovedPermanently)
+	})
+})
+
+var _ = a.Resource("planner_backlog", func() {
+	a.Parent("space")
+	a.BasePath("/backlog")
+
+	a.Action("list", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Description("List backlog work items.")
+		a.Params(func() {
+			a.Param("filter", d.String, "a query language expression restricting the set of found work items")
+			a.Param("page[offset]", d.String, "Paging start position")
+			a.Param("page[limit]", d.Integer, "Paging size")
+			a.Param("filter[assignee]", d.String, "Work Items assigned to the given user")
+			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
+			a.Param("filter[area]", d.String, "AreaID to filter work items")
+		})
+		a.Response(d.OK, func() {
+			a.Media(workItemList)
+		})
+		a.Response(d.NotModified)
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.NotFound, JSONAPIErrors)
+		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })

@@ -3,14 +3,11 @@ package workitem
 import (
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 
-	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -163,17 +160,14 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 	return true
 }
 
-// ConvertFromModel converts a workItem from the persistence layer into a workItem of the API layer
-func (wit WorkItemType) ConvertFromModel(request *goa.RequestData, workItem WorkItem) (*app.WorkItem, error) {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
-	result := app.WorkItem{
+// ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
+func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) (*WorkItem, error) {
+	result := WorkItem{
 		ID:      strconv.FormatUint(workItem.ID, 10),
 		Type:    workItem.Type,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{},
-		Relationships: &app.WorkItemRelationships{
-			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
-		},
+		SpaceID: workItem.SpaceID,
 	}
 
 	for name, field := range wit.Fields {
@@ -197,4 +191,14 @@ func (wit WorkItemType) IsTypeOrSubtypeOf(typeID uuid.UUID) bool {
 	// Check for complete inclusion (e.g. "bar" is contained in "foo.bar.cake")
 	// and for suffix (e.g. ".cake" is the suffix of "foo.bar.cake").
 	return uuid.Equal(wit.ID, typeID) || strings.Contains(wit.Path, LtreeSafeID(typeID)+pathSep)
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (wit WorkItemType) GetETagData() []interface{} {
+	return []interface{}{wit.ID, wit.Version}
+}
+
+// GetLastModified returns the last modification time
+func (wit WorkItemType) GetLastModified() time.Time {
+	return wit.UpdatedAt.Truncate(time.Second)
 }

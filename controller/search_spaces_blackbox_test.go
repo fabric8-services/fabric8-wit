@@ -18,6 +18,7 @@ import (
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/goadesign/goa"
@@ -47,6 +48,7 @@ type TestSearchSpacesREST struct {
 }
 
 func TestRunSearchSpacesREST(t *testing.T) {
+	resource.Require(t, resource.Database)
 	suite.Run(t, &TestSearchSpacesREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -72,14 +74,9 @@ func (rest *TestSearchSpacesREST) UnSecuredController() (*goa.Service, *SearchCo
 }
 
 func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
+	// given
 	idents, err := createTestData(rest.db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	require.Nil(rest.T(), err)
 	tests := []okScenario{
 		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
 		{"With lowercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
@@ -91,13 +88,12 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
 		{"with different values", args{offset("0"), limit(10), "TEST"}, expects{differentValues()}},
 	}
-
 	svc, ctrl := rest.UnSecuredController()
-
+	// when/then
 	for _, tt := range tests {
-		_, result := test.SpacesSearchOK(t, svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
+		_, result := test.SpacesSearchOK(rest.T(), svc.Context, svc, ctrl, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
 		for _, expect := range tt.expects {
-			expect(t, tt, result)
+			expect(rest.T(), tt, result)
 		}
 	}
 }
