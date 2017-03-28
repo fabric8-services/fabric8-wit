@@ -279,7 +279,7 @@ func (rest *TestSpaceREST) TestShowSpaceOK() {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
 	assert.Equal(rest.T(), getSpaceUpdatedAt(*created).String(), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
-	assert.Equal(rest.T(), app.MaxAge+"=10", res.Header()[app.CacheControl][0])
+	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), app.GenerateEntityTag(ConvertSpaceToModel(*created.Data)), res.Header()[app.ETag][0])
 }
@@ -304,7 +304,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
 	assert.Equal(rest.T(), getSpaceUpdatedAt(*created).String(), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
-	assert.Equal(rest.T(), app.MaxAge+"=10", res.Header()[app.CacheControl][0])
+	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), generateSpaceTag(*created), res.Header()[app.ETag][0])
 }
@@ -329,7 +329,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfNoneMatchHeader() {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
 	assert.Equal(rest.T(), getSpaceUpdatedAt(*created).String(), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
-	assert.Equal(rest.T(), app.MaxAge+"=10", res.Header()[app.CacheControl][0])
+	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), generateSpaceTag(*created), res.Header()[app.ETag][0])
 }
