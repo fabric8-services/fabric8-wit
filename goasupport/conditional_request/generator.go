@@ -280,16 +280,22 @@ func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalRespon
 }
 
 func doConditionalEntities(ctx ConditionalRequestContext, entities []ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
-	var lastModified time.Time
-	for _, entity := range entities {
-		if entity.GetLastModified().After(lastModified) {
-			lastModified = entity.GetLastModified()
+	var lastModified time.Time 
+	var eTag string
+	if len(entities) > 0 {
+		for _, entity := range entities {
+			if entity.GetLastModified().After(lastModified) {
+				lastModified = entity.GetLastModified()
+			}
 		}
+		eTag := GenerateEntitiesTag(entities)
+		ctx.setLastModified(lastModified)
+		ctx.setETag(eTag)
+	} else {
+		ctx.setETag(GenerateEmptyTag())
+		ctx.setLastModified(time.Now())
 	}
-	eTag := GenerateEntitiesTag(entities)
 	cacheControl := cacheControlConfig()
-	ctx.setLastModified(lastModified)
-	ctx.setETag(eTag)
 	ctx.setCacheControl(cacheControl)
 	if !modifiedSince(ctx, lastModified) {
 		return ctx.NotModified()
@@ -324,6 +330,15 @@ func (ctx *{{$resp.Name}}) ConditionalEntities(entities []{{$entity.DomainTypeNa
 }
 {{ end }}`
 	generateETag = `
+// GenerateEmptyTag generates the value to return in the "ETag" HTTP response header for the an empty list of entities
+// The ETag is the base64-encoded value of the md5 hash of the buffer content
+func GenerateEmptyTag() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("empty")
+	etagData := md5.Sum(buffer.Bytes())
+	etag := base64.StdEncoding.EncodeToString(etagData[:])
+	return etag
+}
 // GenerateEntityTag generates the value to return in the "ETag" HTTP response header for the given entity
 // The ETag is the base64-encoded value of the md5 hash of the buffer content
 func GenerateEntityTag(entity ConditionalResponseEntity) string {
