@@ -167,8 +167,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
-	c.v.SetDefault(varCacheControlSpace, "max-age=86400")            // 1 day
-	c.v.SetDefault(varCacheControlIteration, "max-age=86400")        // 1 day
+	c.v.SetDefault(varCacheControlSpace, "max-age=300")
+	c.v.SetDefault(varCacheControlIteration, "max-age=300")
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
