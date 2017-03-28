@@ -691,12 +691,12 @@ func createOneRandomIteration(ctx context.Context, db *gorm.DB) *iteration.Itera
 	return &itr
 }
 
-func createOneRandomArea(ctx context.Context, db *gorm.DB) *area.Area {
+func createOneRandomArea(ctx context.Context, db *gorm.DB, testName string) *area.Area {
 	areaRepo := area.NewAreaRepository(db)
 	spaceRepo := space.NewRepository(db)
 
 	newSpace := space.Space{
-		Name: "Space area",
+		Name: fmt.Sprintf("Space area %v %v", testName, uuid.NewV4()),
 	}
 	space, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
@@ -1296,7 +1296,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 }
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
-	tempArea := createOneRandomArea(s.svc.Context, s.DB)
+	tempArea := createOneRandomArea(s.svc.Context, s.DB, "TestWI2ListByAreaFilter")
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1430,11 +1430,25 @@ func (s *WorkItem2Suite) TestWI2SuccessShow() {
 
 }
 
-func (s *WorkItem2Suite) TestWI2FailShowMissing() {
+// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+func (s *WorkItem2Suite) xTestWI2FailShowMissing() {
 	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), "00000000")
 }
 
-func (s *WorkItem2Suite) TestWI2SuccessDelete() {
+// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+func (s *WorkItem2Suite) TestWI2FailOnDelete() {
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+
+	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+}
+
+// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1449,7 +1463,8 @@ func (s *WorkItem2Suite) TestWI2SuccessDelete() {
 // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
 // creates a link between them. When one of the work items is deleted, the
 // link shall be gone as well.
-func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
+// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	// Create two work items (wi1 and wi2)
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "WI1"
@@ -1494,7 +1509,8 @@ func (s *WorkItem2Suite) TestWI2DeleteLinksOnWIDeletionOK() {
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi2.Data.Relationships.Space.Data.ID.String(), *wi2.Data.ID)
 }
 
-func (s *WorkItem2Suite) TestWI2FailMissingDelete() {
+// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+func (s *WorkItem2Suite) xTestWI2FailMissingDelete() {
 	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), "00000000")
 }
 
