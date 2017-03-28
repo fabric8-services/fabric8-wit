@@ -349,7 +349,7 @@ func lastModified(wi *workitem.WorkItem) string {
 }
 
 func lastModifiedTime(t time.Time) string {
-	return t.Format(time.RFC850)
+	return t.Format(time.RFC1123)
 }
 
 func findLastModified(wis []*workitem.WorkItem) time.Time {

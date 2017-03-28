@@ -428,7 +428,7 @@ func (ctx *{{$resp.Name}}) getIfModifiedSince() *time.Time {
 {{ $resp := . }}
 // SetLastModified sets the 'Last-Modified' header
 func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
-	ctx.ResponseData.Header().Set(LastModified, value.Format(time.RFC850))
+	ctx.ResponseData.Header().Set(LastModified, value.Format(time.RFC1123))
 }`
 
 	setCacheControl = `
