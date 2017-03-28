@@ -314,6 +314,11 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 // Delete does DELETE workitem
 func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
+
+	// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
+	if true {
+		return ctx.MethodNotAllowed()
+	}
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
