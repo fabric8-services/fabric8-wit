@@ -418,7 +418,8 @@ func (rest *TestSpaceREST) TestListSpacesOKEmptyResult() {
 	require.NotNil(rest.T(), *emptyList)
 	require.Empty(rest.T(), emptyList.Data)
 	var defaultTime time.Time
-	assert.NotEqual(rest.T(), defaultTime.Format(time.RFC1123), res.Header().Get("Last-Modified"))
+	assert.NotEqual(rest.T(), defaultTime.Format(time.RFC1123), res.Header().Get(app.LastModified))
+	assert.Equal(rest.T(), app.GenerateEmptyTag(), res.Header().Get(app.ETag))
 }
 
 func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {
