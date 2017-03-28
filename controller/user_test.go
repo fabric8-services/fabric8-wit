@@ -1,9 +1,13 @@
 package controller_test
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"golang.org/x/net/context"
+
+	"net/http"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -13,7 +17,9 @@ import (
 	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -27,64 +33,155 @@ import (
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func newUserController(identity *account.Identity, user *account.User) *UserController {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	return NewUserController(goa.New("alm-test"), newGormTestBase(identity, user), almtoken.NewManagerWithPrivateKey(priv))
+type TestUserREST struct {
+	suite.Suite
+	config configuration.ConfigurationData
 }
 
-func TestCurrentAuthorizedMissingUUID(t *testing.T) {
+func (rest *TestUserREST) TestRunUserREST(t *testing.T) {
+	resource.Require(rest.T(), resource.UnitTest)
 	t.Parallel()
-	resource.Require(t, resource.UnitTest)
+	suite.Run(rest.T(), &TestUserREST{})
+}
+
+func (rest *TestUserREST) SetupSuite() {
+	config, err := configuration.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	rest.config = *config
+}
+
+func (rest *TestUserREST) newUserController(identity *account.Identity, user *account.User) *UserController {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	return NewUserController(goa.New("alm-test"), newGormTestBase(identity, user), almtoken.NewManagerWithPrivateKey(priv), &rest.config)
+}
+
+func (rest *TestUserREST) TestCurrentAuthorizedMissingUUID() {
+	resource.Require(rest.T(), resource.UnitTest)
 	jwtToken := token.New(token.SigningMethodRS256)
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
 
-	controller := newUserController(nil, nil)
-	test.ShowUserBadRequest(t, ctx, nil, controller)
+	userCtrl := rest.newUserController(nil, nil)
+	test.ShowUserBadRequest(rest.T(), ctx, nil, userCtrl, nil, nil)
 }
 
-func TestCurrentAuthorizedNonUUID(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
+func (rest *TestUserREST) TestCurrentAuthorizedNonUUID() {
+	// given
 	jwtToken := token.New(token.SigningMethodRS256)
 	jwtToken.Claims.(token.MapClaims)["sub"] = "aa"
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
-
-	controller := newUserController(nil, nil)
-	test.ShowUserBadRequest(t, ctx, nil, controller)
+	// when
+	userCtrl := rest.newUserController(nil, nil)
+	// then
+	test.ShowUserBadRequest(rest.T(), ctx, nil, userCtrl, nil, nil)
 }
 
-func TestCurrentAuthorizedMissingIdentity(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
+func (rest *TestUserREST) TestCurrentAuthorizedMissingIdentity() {
+	// given
 	jwtToken := token.New(token.SigningMethodRS256)
 	jwtToken.Claims.(token.MapClaims)["sub"] = uuid.NewV4().String()
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
-
-	controller := newUserController(nil, nil)
-	test.ShowUserUnauthorized(t, ctx, nil, controller)
+	// when
+	userCtrl := rest.newUserController(nil, nil)
+	// then
+	test.ShowUserUnauthorized(rest.T(), ctx, nil, userCtrl, nil, nil)
 }
 
-func TestCurrentAuthorizedOK(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.UnitTest)
+func (rest *TestUserREST) TestCurrentAuthorizedOK() {
+	// given
+	ctx, userCtrl, usr, ident := rest.initTestCurrentAuthorized()
+	// when
+	res, user := test.ShowUserOK(rest.T(), ctx, nil, userCtrl, nil, nil)
+	// then
+	rest.assertCurrentUser(*user, ident, usr)
+	rest.assertResponseHeaders(res, usr)
+}
+
+func (rest *TestUserREST) TestCurrentAuthorizedOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	ctx, userCtrl, usr, ident := rest.initTestCurrentAuthorized()
+	// when
+	ifModifiedSince := usr.UpdatedAt.Add(-1 * time.Hour)
+	res, user := test.ShowUserOK(rest.T(), ctx, nil, userCtrl, &ifModifiedSince, nil)
+	// then
+	rest.assertCurrentUser(*user, ident, usr)
+	rest.assertResponseHeaders(res, usr)
+}
+
+func (rest *TestUserREST) TestCurrentAuthorizedOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	ctx, userCtrl, usr, ident := rest.initTestCurrentAuthorized()
+	// when
+	ifNoneMatch := "foo"
+	res, user := test.ShowUserOK(rest.T(), ctx, nil, userCtrl, nil, &ifNoneMatch)
+	// then
+	rest.assertCurrentUser(*user, ident, usr)
+	rest.assertResponseHeaders(res, usr)
+}
+
+func (rest *TestUserREST) TestCurrentAuthorizedNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	ctx, userCtrl, usr, _ := rest.initTestCurrentAuthorized()
+	// when
+	ifModifiedSince := usr.UpdatedAt.Add(-1 * time.Hour)
+	res := test.ShowUserNotModified(rest.T(), ctx, nil, userCtrl, &ifModifiedSince, nil)
+	// then
+	rest.assertResponseHeaders(res, usr)
+}
+
+func (rest *TestUserREST) TestCurrentAuthorizedNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	ctx, userCtrl, usr, _ := rest.initTestCurrentAuthorized()
+	// when
+	ifNoneMatch := "foo"
+	res := test.ShowUserNotModified(rest.T(), ctx, nil, userCtrl, nil, &ifNoneMatch)
+	// then
+	rest.assertResponseHeaders(res, usr)
+}
+
+func (rest *TestUserREST) initTestCurrentAuthorized() (context.Context, app.UserController, account.User, account.Identity) {
 	jwtToken := token.New(token.SigningMethodRS256)
 	jwtToken.Claims.(token.MapClaims)["sub"] = uuid.NewV4().String()
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
-
-	usr := account.User{FullName: "Test User", ImageURL: "someURL", Email: "email@domain.com", ID: uuid.NewV4()}
+	usr := account.User{
+		ID: uuid.NewV4(),
+		Lifecycle: gormsupport.Lifecycle{
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		FullName: "Test User",
+		ImageURL: "someURL",
+		Email:    "email@domain.com",
+	}
 	ident := account.Identity{ID: uuid.NewV4(), Username: "TestUser", ProviderType: account.KeycloakIDP, User: usr, UserID: account.NullUUID{UUID: usr.ID, Valid: true}}
-	controller := newUserController(&ident, &usr)
-	_, identity := test.ShowUserOK(t, ctx, nil, controller)
+	userCtrl := rest.newUserController(&ident, &usr)
+	return ctx, userCtrl, usr, ident
+}
 
-	assert.NotNil(t, identity)
+func (rest *TestUserREST) assertCurrentUser(user app.User, ident account.Identity, usr account.User) {
+	require.NotNil(rest.T(), user)
+	require.NotNil(rest.T(), user.Data)
+	require.NotNil(rest.T(), user.Data.Attributes)
+	assert.Equal(rest.T(), usr.FullName, *user.Data.Attributes.FullName)
+	assert.Equal(rest.T(), ident.Username, *user.Data.Attributes.Username)
+	assert.Equal(rest.T(), usr.ImageURL, *user.Data.Attributes.ImageURL)
+	assert.Equal(rest.T(), usr.Email, *user.Data.Attributes.Email)
+	assert.Equal(rest.T(), ident.ProviderType, *user.Data.Attributes.ProviderType)
+}
 
-	assert.Equal(t, usr.FullName, *identity.Data.Attributes.FullName)
-	assert.Equal(t, ident.Username, *identity.Data.Attributes.Username)
-	assert.Equal(t, usr.ImageURL, *identity.Data.Attributes.ImageURL)
-	assert.Equal(t, usr.Email, *identity.Data.Attributes.Email)
-	assert.Equal(t, ident.ProviderType, *identity.Data.Attributes.ProviderType)
+func (rest *TestUserREST) assertResponseHeaders(res http.ResponseWriter, usr account.User) {
+	require.NotNil(rest.T(), res.Header()[app.LastModified])
+	assert.Equal(rest.T(), usr.UpdatedAt.Truncate(time.Second).UTC().String(), res.Header()[app.LastModified][0])
+	require.NotNil(rest.T(), res.Header()[app.CacheControl])
+	assert.Equal(rest.T(), rest.config.GetCacheControlUser(), res.Header()[app.CacheControl][0])
+	require.NotNil(rest.T(), res.Header()[app.ETag])
+	assert.Equal(rest.T(), app.GenerateEntityTag(usr), res.Header()[app.ETag][0])
+
 }
 
 type TestIdentityRepository struct {
@@ -122,20 +219,13 @@ func (m TestIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error 
 }
 
 // Query expose an open ended Query model
-func (m TestIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*account.Identity, error) {
-	return []*account.Identity{m.Identity}, nil
+func (m TestIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]account.Identity, error) {
+	return []account.Identity{*m.Identity}, nil
 }
 
-func (m TestIdentityRepository) List(ctx context.Context) (*app.IdentityArray, error) {
+func (m TestIdentityRepository) List(ctx context.Context) ([]account.Identity, error) {
 	rows := []account.Identity{*m.Identity}
-
-	res := app.IdentityArray{}
-	res.Data = make([]*app.IdentityData, len(rows))
-	for index, value := range rows {
-		ident := value.ConvertIdentityFromModel()
-		res.Data[index] = ident.Data
-	}
-	return &res, nil
+	return rows, nil
 }
 
 func (m TestIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool {
@@ -171,13 +261,13 @@ func (m TestUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List return all users
-func (m TestUserRepository) List(ctx context.Context) ([]*account.User, error) {
-	return []*account.User{m.User}, nil
+func (m TestUserRepository) List(ctx context.Context) ([]account.User, error) {
+	return []account.User{*m.User}, nil
 }
 
 // Query expose an open ended Query model
-func (m TestUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*account.User, error) {
-	return []*account.User{m.User}, nil
+func (m TestUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]account.User, error) {
+	return []account.User{*m.User}, nil
 }
 
 type GormTestBase struct {
@@ -285,5 +375,7 @@ func (g *GormTestBase) BeginTransaction() (application.Transaction, error) {
 }
 
 func newGormTestBase(identity *account.Identity, user *account.User) *GormTestBase {
-	return &GormTestBase{IdentityRepository: TestIdentityRepository{Identity: identity}, UserRepository: TestUserRepository{User: user}}
+	return &GormTestBase{
+		IdentityRepository: TestIdentityRepository{Identity: identity},
+		UserRepository:     TestUserRepository{User: user}}
 }

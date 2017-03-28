@@ -2,9 +2,9 @@ package account
 
 import (
 	"database/sql/driver"
+	"strconv"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
 	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -78,21 +78,15 @@ func (m Identity) TableName() string {
 	return "identities"
 }
 
-// TODO: Remove. Data layer should not know about the REST layer. Moved to /users.go
-// ConvertIdentityFromModel convert identity from model to app representation
-func (m Identity) ConvertIdentityFromModel() *app.Identity {
-	id := m.ID.String()
-	converted := app.Identity{
-		Data: &app.IdentityData{
-			ID:   &id,
-			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
-				Username:     &m.Username,
-				ProviderType: &m.ProviderType,
-			},
-		},
-	}
-	return &converted
+// GetETagData returns the field values to use to generate the ETag
+func (m Identity) GetETagData() []interface{} {
+	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
+	return []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10)}
+}
+
+// GetLastModified returns the last modification time
+func (m Identity) GetLastModified() time.Time {
+	return m.UpdatedAt
 }
 
 // GormIdentityRepository is the implementation of the storage interface for
@@ -113,8 +107,8 @@ type IdentityRepository interface {
 	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
-	List(ctx context.Context) (*app.IdentityArray, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error)
+	List(ctx context.Context) ([]Identity, error)
 	IsValid(context.Context, uuid.UUID) bool
 }
 
@@ -157,7 +151,7 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 		return errors.WithStack(err)
 	}
 
-	log.Debug(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"identity_id": model.ID,
 	}, "Identity created!")
 
@@ -243,20 +237,18 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // Query expose an open ended Query model
-func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error) {
+func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "query"}, time.Now())
-	var objs []*Identity
-
-	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
+	var identities []Identity
+	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&identities).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errors.WithStack(err)
 	}
-
 	log.Debug(nil, map[string]interface{}{
-		"identity_list": objs,
+		"identity_query": identities,
 	}, "Identity query executed successfully!")
 
-	return objs, nil
+	return identities, nil
 }
 
 // First returns the first Identity element that matches the given criteria
@@ -317,7 +309,7 @@ func IdentityWithUser() func(db *gorm.DB) *gorm.DB {
 }
 
 // List return all user identities
-func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, error) {
+func (m *GormIdentityRepository) List(ctx context.Context) ([]Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "list"}, time.Now())
 	var rows []Identity
 
@@ -325,18 +317,12 @@ func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, 
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, errors.WithStack(err)
 	}
-	res := app.IdentityArray{}
-	res.Data = make([]*app.IdentityData, len(rows))
-	for index, value := range rows {
-		ident := value.ConvertIdentityFromModel()
-		res.Data[index] = ident.Data
-	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"identity_list": &res,
+		"identity_list": &rows,
 	}, "Identity List executed successfully!")
 
-	return &res, nil
+	return rows, nil
 }
 
 // IsValid returns true if the identity exists

@@ -538,12 +538,12 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 					}, "unable to update identity")
 					return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 				}
-				identities[0] = identity
+				identities[0] = *identity
 			} else {
 				// The found identity is not a KC identity, ignore it
 				// TODO we also should make sure that the email used by this Identity is not the same.
 				// It may happen if the found identity was imported from a remote issue tracker and has the same email
-				identities = []*account.Identity{}
+				identities = []account.Identity{}
 			}
 		}
 	}

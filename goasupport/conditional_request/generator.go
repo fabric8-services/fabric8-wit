@@ -75,6 +75,7 @@ func init() {
 		"workitemlinkdsl": "github.com/almighty/almighty-core/workitem/link",
 		"spacedsl":        "github.com/almighty/almighty-core/space",
 		"iterationdsl":    "github.com/almighty/almighty-core/iteration",
+		"accountdsl":      "github.com/almighty/almighty-core/account",
 	}
 	structPackages = map[string]string{
 		"WorkItem":         "workitemdsl",
@@ -82,6 +83,8 @@ func init() {
 		"WorkItemLinkType": "workitemlinkdsl",
 		"Space":            "spacedsl",
 		"Iteration":        "iterationdsl",
+		"User":             "accountdsl",
+		"Identity":         "accountdsl",
 	}
 
 }
@@ -109,15 +112,23 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 										// assume that a "list" entities have their name ending with "List"
 										// and "single" entities have their name ending with "Single"
 										isList := strings.HasSuffix(mt.TypeName, "List")
+										isArray := strings.HasSuffix(mt.TypeName, "Array")
 										var domainTypeName string
 										if isList {
 											domainTypeName = strings.TrimSuffix(mt.TypeName, "List")
+										} else if isArray {
+											domainTypeName = strings.TrimSuffix(mt.TypeName, "Array")
 										} else {
 											domainTypeName = strings.TrimSuffix(mt.TypeName, "Single")
 										}
 										// prepend the package
 										domainTypeName = structPackages[domainTypeName] + "." + domainTypeName
-										entity = &Entity{AppTypeName: mt.TypeName, DomainTypeName: domainTypeName, IsList: isList, IsSingle: !isList}
+										entity = &Entity{
+											AppTypeName:    mt.TypeName,
+											DomainTypeName: domainTypeName,
+											IsList:         isList || isArray,
+											IsSingle:       !(isList || isArray),
+										}
 										break
 									}
 								}
@@ -408,7 +419,7 @@ func matchesETag(ctx ConditionalRequestContext, etag string) bool {
 func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) bool {
 	if ctx.getIfModifiedSince() != nil {
 		ifModifiedSince := *ctx.getIfModifiedSince()
-		return ifModifiedSince.UTC().Before(lastModified.UTC())
+		return ifModifiedSince.Before(lastModified.Truncate(time.Second))
 	}
 	return true
 }`
@@ -423,7 +434,7 @@ func (ctx *{{$resp.Name}}) getIfModifiedSince() *time.Time {
 {{ $resp := . }}
 // SetLastModified sets the 'Last-Modified' header
 func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
-	ctx.ResponseData.Header().Set(LastModified, value.String())
+	ctx.ResponseData.Header().Set(LastModified, value.Truncate(time.Second).UTC().String())
 }`
 
 	setCacheControl = `
