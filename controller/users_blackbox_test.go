@@ -119,6 +119,60 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
 }
 
+func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
+
+	// given
+	user := s.createRandomUser()
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
+	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	// when
+	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
+
+	// This is the special thing we are testing - everything else
+	// has been tested in other tests.
+	// We use the full name to derive the first and the last name
+	// This test checks that the splitting is done correctly,
+	// ie, the first word is the first name ,and the rest is the last name
+
+	newFullName := " This name   has a   lot of spaces   in it"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	// then
+	require.NotNil(s.T(), result)
+	// let's fetch it and validate
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	require.NotNil(s.T(), result)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), newFullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
+	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	updatedContextInformation := result.Data.Attributes.ContextInformation
+	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
+
+	countValue, ok := updatedContextInformation["count"].(float64)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), contextInformation["count"], int(countValue))
+	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
+}
+
 /*
 	Test to unset variable in contextInformation
 */

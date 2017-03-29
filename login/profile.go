@@ -9,7 +9,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 )
 
-// KeycloakUserProfile represents standard Keycloak User profile payload
+// KeycloakUserProfile represents standard Keycloak User profile api request payload
 type KeycloakUserProfile struct {
 	ID         *string                        `json:"id,omitempty"`
 	CreatedAt  int64                          `json:"createdTimestamp,omitempty"`
@@ -81,7 +81,7 @@ func NewKeycloakUserProfileClient() *KeycloakUserProfileClient {
 	}
 }
 
-//Update updates the user profile information in Keycloak
+// Update updates the user profile information in Keycloak
 func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
 	body, err := json.Marshal(keycloakUserProfile)
 	if err != nil {
@@ -103,7 +103,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	return nil
 }
 
-//Get gets the user profile information in Keycloak
+//Get gets the user profile information from Keycloak
 func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
 
 	keycloakUserProfileResponse := KeycloakUserProfileResponse{}
