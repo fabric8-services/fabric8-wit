@@ -29,18 +29,18 @@ type KeycloakUserProfileAttributes struct {
 
 //KeycloakUserProfileResponse represents the user profile api response from keycloak
 type KeycloakUserProfileResponse struct {
-	ID                         *string                      `json:"id"`
-	CreatedTimestamp           *int64                       `json:"createdTimestamp"`
-	Username                   *string                      `json:"username"`
-	Enabled                    *bool                        `json:"enabled"`
-	Totp                       *bool                        `json:"totp"`
-	EmailVerified              *bool                        `json:"emailVerified"`
-	FirstName                  *string                      `json:"firstName"`
-	LastName                   *string                      `json:"lastName"`
-	Email                      *string                      `json:"email"`
-	Attributes                 *KeycloakUserProfileResponse `json:"attributes"`
-	DisableableCredentialTypes []*string                    `json:"disableableCredentialTypes"`
-	RequiredActions            []interface{}                `json:"requiredActions"`
+	ID                         *string                                `json:"id"`
+	CreatedTimestamp           *int64                                 `json:"createdTimestamp"`
+	Username                   *string                                `json:"username"`
+	Enabled                    *bool                                  `json:"enabled"`
+	Totp                       *bool                                  `json:"totp"`
+	EmailVerified              *bool                                  `json:"emailVerified"`
+	FirstName                  *string                                `json:"firstName"`
+	LastName                   *string                                `json:"lastName"`
+	Email                      *string                                `json:"email"`
+	Attributes                 *KeycloakUserProfileResponseAttributes `json:"attributes"`
+	DisableableCredentialTypes []*string                              `json:"disableableCredentialTypes"`
+	RequiredActions            []interface{}                          `json:"requiredActions"`
 }
 
 type KeycloakUserProfileResponseAttributes struct {
@@ -103,10 +103,10 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	return nil
 }
 
-//Update updates the user profile information in Keycloak
+//Get gets the user profile information in Keycloak
 func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
 
-	KeycloakUserProfileResponse := KeycloakUserProfileResponse{}
+	keycloakUserProfileResponse := KeycloakUserProfileResponse{}
 
 	req, err := http.NewRequest("GET", keycloakProfileURL, nil)
 	if err != nil {
@@ -114,6 +114,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	}
 	req.Header.Add("Authorization", "Bearer "+accessToken)
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json, text/plain, */*")
 
 	resp, err := userProfileClient.client.Do(req)
 	defer resp.Body.Close()
@@ -124,6 +125,6 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	if err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	err = json.NewDecoder(resp.Body).Decode(&KeycloakUserProfileResponse)
-	return &KeycloakUserProfileResponse, err
+	err = json.NewDecoder(resp.Body).Decode(&keycloakUserProfileResponse)
+	return &keycloakUserProfileResponse, err
 }

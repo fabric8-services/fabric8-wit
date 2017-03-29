@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -136,14 +137,13 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	// UPDATE the user profile
 
 	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
-	fmt.Println(*token)
 	assert.Nil(s.T(), err)
 
 	// Use the token to update user profile
 	keycloakUserProfileData := login.KeycloakUserProfile{}
 	keycloakUserProfileData.Attributes = &login.KeycloakUserProfileAttributes{}
 
-	testFirstName := "updatedFirstName"
+	testFirstName := "updatedFirstNameAgain"
 	testLastName := "updatedLastName"
 	testEmail := "updatedEmail"
 	testBio := "updatedBio"
@@ -171,8 +171,10 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	fmt.Println(retrievedkeycloakUserProfileData)
 
 	assert.Equal(s.T(), testFirstName, *retrievedkeycloakUserProfileData.FirstName)
-	assert.Equal(s.T(), testFirstName, *retrievedkeycloakUserProfileData.LastName)
-	assert.Equal(s.T(), testFirstName, *retrievedkeycloakUserProfileData.Email)
+	assert.Equal(s.T(), testLastName, *retrievedkeycloakUserProfileData.LastName)
+
+	// email is automatically stored in lower case
+	assert.Equal(s.T(), strings.ToLower(testEmail), *retrievedkeycloakUserProfileData.Email)
 
 }
 
@@ -180,10 +182,6 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileGet() {
 
 	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
 	require.Nil(s.T(), err)
-
-	// Use the token to update user profile
-	keycloakUserProfileData := &login.KeycloakUserProfile{}
-	keycloakUserProfileData.Attributes = &login.KeycloakUserProfileAttributes{}
 
 	// TODO: take from configuration
 	profileAPIURL := "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account"
