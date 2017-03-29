@@ -158,7 +158,13 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	keycloakUserProfileData.Attributes.ImageURL = &testImageURL
 
 	// TODO: take from configuration
-	profileAPIURL := "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account"
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.example.org"},
+	}
+	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
+	assert.Nil(s.T(), err)
+	assert.Equal(s.T(), "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account", profileAPIURL)
+
 	err = s.profileService.Update(&keycloakUserProfileData, *token, profileAPIURL)
 	require.Nil(s.T(), err)
 
@@ -184,7 +190,13 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileGet() {
 	require.Nil(s.T(), err)
 
 	// TODO: take from configuration
-	profileAPIURL := "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account"
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.example.org"},
+	}
+	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
+	assert.Nil(s.T(), err)
+	assert.Equal(s.T(), "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account", profileAPIURL)
+
 	profile, err := s.profileService.Get(*token, profileAPIURL)
 
 	assert.Nil(s.T(), err)
