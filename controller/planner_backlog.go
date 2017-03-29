@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -20,12 +19,21 @@ import (
 // PlannerBacklogController implements the planner_backlog resource.
 type PlannerBacklogController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config PlannerBacklogControllerConfig
+}
+
+type PlannerBacklogControllerConfig interface {
+	GetCacheControlWorkItems() string
 }
 
 // NewPlannerBacklogController creates a planner_backlog controller.
-func NewPlannerBacklogController(service *goa.Service, db application.DB) *PlannerBacklogController {
-	return &PlannerBacklogController{Controller: service.NewController("PlannerBacklogController"), db: db}
+func NewPlannerBacklogController(service *goa.Service, db application.DB, config PlannerBacklogControllerConfig) *PlannerBacklogController {
+	return &PlannerBacklogController{
+		Controller: service.NewController("PlannerBacklogController"),
+		db:         db,
+		config:     config,
+	}
 }
 
 func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) error {
@@ -55,33 +63,20 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-
-	if len(result) > 0 {
-		lastMod := findLastModified(result)
-		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
-			ifModSince, err := http.ParseTime(ifMod[0])
-			if err == nil {
-				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
-					return ctx.NotModified()
-				}
-			}
+	return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+		response := app.WorkItemList{
+			Data:  ConvertWorkItems(ctx.RequestData, result),
+			Links: &app.PagingLinks{},
+			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
 		}
-		ctx.ResponseData.Header().Set("Last-Modified", lastModifiedTime(lastMod))
-	}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), count, offset, limit, count)
+		return ctx.OK(&response)
+	})
 
-	response := app.WorkItemList{
-		Data:  ConvertWorkItems(ctx.RequestData, result),
-		Links: &app.PagingLinks{},
-		Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-	}
-
-	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), count, offset, limit, count)
-
-	return ctx.OK(&response)
 }
 
-func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression, offset *int, limit *int) ([]*workitem.WorkItem, int, error) {
-	result := []*workitem.WorkItem{}
+func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, exp criteria.Expression, offset *int, limit *int) ([]workitem.WorkItem, int, error) {
+	result := []workitem.WorkItem{}
 	count := 0
 
 	if exp != nil {

@@ -15,7 +15,6 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,9 +38,7 @@ type TestUsersSuite struct {
 }
 
 func (s *TestUsersSuite) SetupSuite() {
-	var err error
-	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
+	s.DBTestSuite.SetupSuite()
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.svc = goa.New("test")
 	s.db = gormapplication.NewGormDB(s.DB)

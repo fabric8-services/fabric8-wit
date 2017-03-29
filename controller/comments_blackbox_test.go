@@ -73,7 +73,7 @@ func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController
 func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkItemCommentsController, *CommentsController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("Comment-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	workitemCtrl := NewWorkitemController(svc, s.db)
+	workitemCtrl := NewWorkitemController(svc, s.db, s.Configuration)
 	workitemCommentsCtrl := NewWorkItemCommentsController(svc, s.db)
 	commentsCtrl := NewCommentsController(svc, s.db)
 	return svc, workitemCtrl, workitemCommentsCtrl, commentsCtrl

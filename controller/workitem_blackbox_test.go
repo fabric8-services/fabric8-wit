@@ -19,7 +19,6 @@ import (
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/codebase"
-	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -36,6 +35,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 
+	"github.com/almighty/almighty-core/configuration"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -44,16 +44,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
-
-var wibConfiguration *config.ConfigurationData
-
-func init() {
-	var err error
-	wibConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-}
 
 func TestSuiteWorkItem1(t *testing.T) {
 	resource.Require(t, resource.Database)
@@ -74,14 +64,11 @@ type WorkItemSuite struct {
 }
 
 func (s *WorkItemSuite) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
 	var err error
-	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if wibConfiguration.GetPopulateCommonTypes() {
+	if s.Configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			s.ctx = migration.NewMigrationContext(context.Background())
 			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -106,7 +93,7 @@ func (s *WorkItemSuite) TearDownSuite() {
 
 func (s *WorkItemSuite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
-	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -117,7 +104,7 @@ func (s *WorkItemSuite) SetupTest() {
 
 func (s *WorkItemSuite) TestGetWorkItemWithLegacyDescription() {
 	// given
-	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.controller, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID)
+	_, wi := test.ShowWorkitemOK(s.T(), nil, nil, s.controller, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, nil, nil)
 	require.NotNil(s.T(), wi)
 	assert.Equal(s.T(), s.wi.ID, wi.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemCreatedAt])
@@ -369,30 +356,30 @@ func (s *WorkItemSuite) TestListByFields() {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset)
+	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
+func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *testing.T) []testSecureAPI {
+	return func(t *testing.T) []testSecureAPI {
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(config.GetTokenPrivateKey())
+		if err != nil {
+			t.Fatal("Could not parse Key ", err)
+		}
+		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
 
-func getWorkItemTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wibConfiguration.GetTokenPrivateKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+		if err != nil {
+			t.Fatal("Could not parse different private key ", err)
+		}
 
-	if err != nil {
-		t.Fatal("Could not parse different private key ", err)
-	}
-
-	createWIPayloadString := bytes.NewBuffer([]byte(`
+		createWIPayloadString := bytes.NewBuffer([]byte(`
 		{
 			"data": {
 				"type": "workitems"
@@ -404,116 +391,117 @@ func getWorkItemTestData(t *testing.T) []testSecureAPI {
 			}
 		}`))
 
-	return []testSecureAPI{
-		// Create Work Item API with different parameters
-		{
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItems, "1234"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItems, "1234"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItems, "1234"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItems, "1234"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           "",
-		},
-		// Update Work Item API with different parameters
-		{
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWIPayloadString,
-			jwtToken:           "",
-		},
-		// Delete Work Item API with different parameters
-		{
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           "",
-		},
-		// Try fetching a random work Item
-		// We do not have security on GET hence this should return 404 not found
-		{
-			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItems, "1234") + "/088481764871",
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		},
+		return []testSecureAPI{
+			// Create Work Item API with different parameters
+			{
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           "",
+			},
+			// Update Work Item API with different parameters
+			{
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWIPayloadString,
+				jwtToken:           "",
+			},
+			// Delete Work Item API with different parameters
+			{
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           "",
+			},
+			// Try fetching a random work Item
+			// We do not have security on GET hence this should return 404 not found
+			{
+				method:             http.MethodGet,
+				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/088481764871",
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			},
+		}
 	}
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
 func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
-	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestData, func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemTestDataFunc(*s.Configuration), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWI-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkitemController(service, gormapplication.NewGormDB(s.DB))
+		controller := NewWorkitemController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
 		app.MountWorkitemController(service, controller)
 		return nil
 	})
@@ -525,7 +513,7 @@ func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemCon
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
 
-		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, &limit, &offset)
+		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -558,10 +546,10 @@ func computeCount(totalCount int, start int, limit int) int {
 	return limit
 }
 
-func makeWorkItems(count int) []*workitem.WorkItem {
-	res := make([]*workitem.WorkItem, count)
+func makeWorkItems(count int) []workitem.WorkItem {
+	res := make([]workitem.WorkItem, count)
 	for index := range res {
-		res[index] = &workitem.WorkItem{
+		res[index] = workitem.WorkItem{
 			ID:   fmt.Sprintf("id%d", index),
 			Type: uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{
@@ -736,7 +724,7 @@ func newChildIteration(ctx context.Context, db *gorm.DB, parentIteration *iterat
 // a normal test function that will kick off WorkItem2Suite
 func TestSuiteWorkItem2(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(WorkItem2Suite))
+	suite.Run(t, &WorkItem2Suite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func ident(id uuid.UUID) *app.GenericData {
@@ -766,13 +754,9 @@ type WorkItem2Suite struct {
 }
 
 func (s *WorkItem2Suite) SetupSuite() {
-	var err error
-	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
+	s.DBTestSuite.SetupSuite()
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if wibConfiguration.GetPopulateCommonTypes() {
+	if s.Configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			s.ctx = migration.NewMigrationContext(context.Background())
 			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -781,7 +765,6 @@ func (s *WorkItem2Suite) SetupSuite() {
 		}
 	}
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-
 	// create identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
 	require.Nil(s.T(), err)
@@ -790,8 +773,8 @@ func (s *WorkItem2Suite) SetupSuite() {
 }
 
 func (s *WorkItem2Suite) SetupTest() {
-	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB))
@@ -1229,7 +1212,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
@@ -1247,7 +1230,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
@@ -1280,7 +1263,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	dataArray = append(dataArray, expected)
 	wiNew := workitem.SystemStateNew
 	// var foundExpected bool
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &wiNew, nil, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &wiNew, nil, nil, nil, nil, nil)
 
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
@@ -1295,7 +1278,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	// assert.True(s.T(), foundExpected, "did not find expected work item in filtered list response")
 }
 
-func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
+func (s *WorkItem2Suite) setupAreaWorkItem() (string, string, app.WorkItemSingle) {
 	tempArea := createOneRandomArea(s.svc.Context, s.DB, "TestWI2ListByAreaFilter")
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
@@ -1309,17 +1292,74 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilter() {
 		},
 	}
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(s.T(), wi)
 	require.NotNil(s.T(), wi.Data)
 	require.NotNil(s.T(), wi.Data.ID)
 	require.NotNil(s.T(), wi.Data.Type)
 	require.NotNil(s.T(), wi.Data.Attributes)
 	require.NotNil(s.T(), wi.Data.Relationships.Area)
 	assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
+	return c.Data.Relationships.Space.Data.ID.String(), areaID, *wi
+}
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, &areaID, nil, nil, nil, nil, nil, nil)
-	require.Len(s.T(), list.Data, 1)
-	assert.Equal(s.T(), areaID, *list.Data[0].Relationships.Area.Data.ID)
-	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[area]"))
+func assertAreaWorkItems(t *testing.T, areaID string, workitems *app.WorkItemList) {
+	require.Len(t, workitems.Data, 1)
+	assert.Equal(t, areaID, *workitems.Data[0].Relationships.Area.Data.ID)
+	assert.True(t, strings.Contains(*workitems.Links.First, "filter[area]"))
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAreaFilterOK() {
+	// given
+	spaceID, areaID, _ := s.setupAreaWorkItem()
+	// when
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil)
+	// then
+	assertAreaWorkItems(s.T(), areaID, workitems)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	spaceID, areaID, wi := s.setupAreaWorkItem()
+	// when
+	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
+	ifModifiedSince := app.ToHTTPTime(updatedAt.Add(-1 * time.Hour))
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	// then
+	assertAreaWorkItems(s.T(), areaID, workitems)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	spaceID, areaID, _ := s.setupAreaWorkItem()
+	// when
+	ifNoneMatch := "foo"
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	// then
+	assertAreaWorkItems(s.T(), areaID, workitems)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	spaceID, areaID, wi := s.setupAreaWorkItem()
+	// when
+	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
+	ifModifiedSince := app.ToHTTPTime(updatedAt)
+	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	spaceID, areaID, wi := s.setupAreaWorkItem()
+	// when
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(wi))
+	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
@@ -1343,7 +1383,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, &iterationID, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -1412,27 +1452,98 @@ func (s *WorkItem2Suite) TestWI2SuccessUpdateWithAssigneesRelation() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 2)
 }
 
-func (s *WorkItem2Suite) TestWI2SuccessShow() {
+func (s *WorkItem2Suite) TestWI2ShowOK() {
+	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	assert.NotNil(s.T(), fetchedWi.Data)
-	assert.NotNil(s.T(), fetchedWi.Data.ID)
-	assert.Equal(s.T(), *createdWi.Data.ID, *fetchedWi.Data.ID)
-	assert.NotNil(s.T(), fetchedWi.Data.Type)
-	assert.NotNil(s.T(), fetchedWi.Data.Attributes)
-	assert.NotNil(s.T(), fetchedWi.Data.Links.Self)
-	assert.NotNil(s.T(), fetchedWi.Data.Relationships.Creator.Data.ID)
-	assert.NotNil(s.T(), fetchedWi.Data.Relationships.BaseType.Data.ID)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	// when
+	res, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	// then
+	assertSingleWorkItem(s.T(), *createdWI, *fetchedWI)
+	assertResponseHeaders(s.T(), res)
+}
 
+func (s *WorkItem2Suite) TestWI2ShowOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	// when
+	ifModifiedSince := app.ToHTTPTime(createdWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time).Add(-10 * time.Hour))
+	res, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, &ifModifiedSince, nil)
+	// then
+	assertSingleWorkItem(s.T(), *createdWI, *fetchedWI)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ShowOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	// when
+	ifNoneMatch := "foo"
+	res, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, &ifNoneMatch)
+	// then
+	assertSingleWorkItem(s.T(), *createdWI, *fetchedWI)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	// when
+	ifModifiedSince := app.ToHTTPTime(createdWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
+	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *WorkItem2Suite) TestWI2ShowNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	// when
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*createdWI))
+	res := test.ShowWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI app.WorkItemSingle) {
+	assert.NotNil(t, fetchedWI.Data)
+	assert.NotNil(t, fetchedWI.Data.ID)
+	assert.Equal(t, createdWI.Data.ID, fetchedWI.Data.ID)
+	assert.NotNil(t, fetchedWI.Data.Type)
+	assert.NotNil(t, fetchedWI.Data.Attributes)
+	assert.NotNil(t, fetchedWI.Data.Links.Self)
+	assert.NotNil(t, fetchedWI.Data.Relationships.Creator.Data.ID)
+	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
+}
+
+func assertResponseHeaders(t *testing.T, res http.ResponseWriter) {
+	assert.NotNil(t, res.Header()[app.LastModified])
+	assert.NotNil(t, res.Header()[app.ETag])
+	assert.NotNil(t, res.Header()[app.CacheControl])
 }
 
 // Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
 func (s *WorkItem2Suite) xTestWI2FailShowMissing() {
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), "00000000")
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), "00000000", nil, nil)
 }
 
 // Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
@@ -1442,9 +1553,9 @@ func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	test.DeleteWorkitemMethodNotAllowed(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID)
 }
 
 // Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
@@ -1454,10 +1565,10 @@ func (s *WorkItem2Suite) xTestWI2SuccessDelete() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID)
+	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
 }
 
 // TestWI2DeleteLinksOnWIDeletionOK creates two work items (WI1 and WI2) and
@@ -1506,7 +1617,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID)
 
 	// Check that we can query for wi2 without problems
-	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi2.Data.Relationships.Space.Data.ID.String(), *wi2.Data.ID)
+	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi2.Data.Relationships.Space.Data.ID.String(), *wi2.Data.ID, nil, nil)
 }
 
 // Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
@@ -1724,12 +1835,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithLe
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	require.NotNil(s.T(), fetchedWi.Data)
-	require.NotNil(s.T(), fetchedWi.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
-	assert.Equal(s.T(), html.EscapeString(description), fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	require.NotNil(s.T(), fetchedWI.Data)
+	require.NotNil(s.T(), fetchedWI.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(description), fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPlainTextDescription() {
@@ -1740,12 +1851,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithPl
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	require.NotNil(s.T(), fetchedWi.Data)
-	require.NotNil(s.T(), fetchedWi.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
-	assert.Equal(s.T(), html.EscapeString(description.Content), fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	require.NotNil(s.T(), fetchedWI.Data)
+	require.NotNil(s.T(), fetchedWI.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), html.EscapeString(description.Content), fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMarkdownDescription() {
@@ -1756,12 +1867,12 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateAndPreventJavascriptInjectionWithMa
 	c.Data.Attributes[workitem.SystemDescription] = description
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	require.NotNil(s.T(), fetchedWi.Data)
-	require.NotNil(s.T(), fetchedWi.Data.Attributes)
-	assert.Equal(s.T(), html.EscapeString(title), fetchedWi.Data.Attributes[workitem.SystemTitle])
-	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWi.Data.Attributes[workitem.SystemDescriptionRendered])
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	require.NotNil(s.T(), fetchedWI.Data)
+	require.NotNil(s.T(), fetchedWI.Data.Attributes)
+	assert.Equal(s.T(), html.EscapeString(title), fetchedWI.Data.Attributes[workitem.SystemTitle])
+	assert.Equal(s.T(), "<p>"+html.EscapeString(description.Content)+"</p>\n", fetchedWI.Data.Attributes[workitem.SystemDescriptionRendered])
 }
 
 func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
@@ -1783,23 +1894,23 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 		LineNumber: line,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	_, createdWi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	require.NotNil(t, createdWi)
-	_, fetchedWi := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWi.Data.Relationships.Space.Data.ID.String(), *createdWi.Data.ID)
-	require.NotNil(t, fetchedWi.Data)
-	require.NotNil(t, fetchedWi.Data.Attributes)
-	assert.Equal(t, title, fetchedWi.Data.Attributes[workitem.SystemTitle])
-	cb := fetchedWi.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(t, createdWI)
+	_, fetchedWI := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, createdWI.Data.Relationships.Space.Data.ID.String(), *createdWI.Data.ID, nil, nil)
+	require.NotNil(t, fetchedWI.Data)
+	require.NotNil(t, fetchedWI.Data.Attributes)
+	assert.Equal(t, title, fetchedWI.Data.Attributes[workitem.SystemTitle])
+	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
 	assert.Equal(t, repo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)
 	assert.Equal(t, line, cb.LineNumber)
 
 	// TODO: Uncomment following block that tests DO-IT URL
-	// require.NotNil(t, fetchedWi.Data.Links)
+	// require.NotNil(t, fetchedWI.Data.Links)
 	// expectedURL := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
 	// expectedURL = url.QueryEscape(expectedURL)
-	// assert.Contains(t, *fetchedWi.Data.Links.Doit, expectedURL)
+	// assert.Contains(t, *fetchedWI.Data.Links.Doit, expectedURL)
 }
 
 func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
@@ -1895,7 +2006,7 @@ func (s *WorkItem2Suite) xTestWI2IfModifiedSince() {
 			return nil
 		}
 	})
-	test.ShowWorkitemNotModified(t, s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID)
+	test.ShowWorkitemNotModified(t, s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, nil, nil)
 }
 
 func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
@@ -1966,14 +2077,24 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	}
 
 	// list workitems for grandParentIteration
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 7)
 
 	// list workitems for parentIteration
-	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &parentIterationID, nil, nil, nil, nil)
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 4)
 
 	// list workitems for childIteraiton
-	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &childIteraitonID, nil, nil, nil, nil)
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 2)
+}
+
+func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.ConditionalResponseEntity {
+	return workitem.WorkItem{
+		ID:      *appWI.Data.ID,
+		Version: appWI.Data.Attributes["version"].(int),
+		Fields: map[string]interface{}{
+			workitem.SystemUpdatedAt: appWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time),
+		},
+	}
 }

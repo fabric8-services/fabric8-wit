@@ -23,7 +23,7 @@ func TestNewWorkitemController(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	assert.Panics(t, func() {
-		NewWorkitemController(goa.New("Test service"), nil)
+		NewWorkitemController(goa.New("Test service"), nil, nil)
 	})
 }
 
@@ -124,7 +124,7 @@ func TestConvertWorkItemWithDescription(t *testing.T) {
 		Fields:  fields,
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := ConvertWorkItem(requestData, &wi)
+	wi2 := ConvertWorkItem(requestData, wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Equal(t, "description", wi2.Attributes[workitem.SystemDescription])
 }
@@ -138,7 +138,7 @@ func TestConvertWorkItemWithoutDescription(t *testing.T) {
 		},
 		SpaceID: space.SystemSpace,
 	}
-	wi2 := ConvertWorkItem(requestData, &wi)
+	wi2 := ConvertWorkItem(requestData, wi)
 	assert.Equal(t, "title", wi2.Attributes[workitem.SystemTitle])
 	assert.Nil(t, wi2.Attributes[workitem.SystemDescription])
 }
