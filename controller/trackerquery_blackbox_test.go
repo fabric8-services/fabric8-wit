@@ -267,7 +267,7 @@ func (rest *TestTrackerQueryREST) TestUpdateTrackerQuery() {
 		Schedule:  tqr.Schedule,
 		TrackerID: result.ID,
 		Relationships: &app.TrackerQueryRelationships{
-			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 	}
 
@@ -343,7 +343,7 @@ func getCreateTrackerQueryPayload(trackerID string) app.CreateTrackerQueryAltern
 		Schedule:  "15 * * * * *",
 		TrackerID: trackerID,
 		Relationships: &app.TrackerQueryRelationships{
-			Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+			Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 		},
 	}
 }

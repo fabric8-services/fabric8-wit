@@ -67,6 +67,8 @@ const (
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
 	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
+	varCacheControlSpace                = "cachecontrol.space"
+	varCacheControlIteration            = "cachecontrol.iteration"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
@@ -165,6 +167,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
+	c.v.SetDefault(varCacheControlSpace, "max-age=300")
+	c.v.SetDefault(varCacheControlIteration, "max-age=300")
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -256,16 +260,28 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
-// GetCacheControlWorkItemType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// GetCacheControlWorkItemType returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemType() string {
 	return c.v.GetString(varCacheControlWorkItemType)
 }
 
-// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control: max-age=%v" HTTP response header
+// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
 	return c.v.GetString(varCacheControlWorkItemLinkType)
+}
+
+// GetCacheControlSpace returns the value to set in the "Cache-Control" HTTP response header
+// when returning spaces.
+func (c *ConfigurationData) GetCacheControlSpace() string {
+	return c.v.GetString(varCacheControlSpace)
+}
+
+// GetCacheControlIteration returns the value to set in the "Cache-Control" HTTP response header
+// when returning iterations.
+func (c *ConfigurationData) GetCacheControlIteration() string {
+	return c.v.GetString(varCacheControlIteration)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)

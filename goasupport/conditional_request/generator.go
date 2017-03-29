@@ -12,7 +12,7 @@ import (
 	"github.com/goadesign/goa/goagen/codegen"
 )
 
-// Generate adds Get`Header`() methods to the XContext objects
+// Generate adds method to support conditional queries
 func Generate() ([]string, error) {
 	var (
 		ver    string
@@ -63,6 +63,29 @@ func contains(entities []Entity, entity Entity) bool {
 
 }
 
+// aliases for the domain model packages, to avoid conflict with structure names generated in the `app` package
+var packageAliases map[string]string
+
+// map of domain structure names and their corresponding aliased package (unknown at the design level)
+var structPackages map[string]string
+
+func init() {
+	packageAliases = map[string]string{
+		"workitemdsl":     "github.com/almighty/almighty-core/workitem",
+		"workitemlinkdsl": "github.com/almighty/almighty-core/workitem/link",
+		"spacedsl":        "github.com/almighty/almighty-core/space",
+		"iterationdsl":    "github.com/almighty/almighty-core/iteration",
+	}
+	structPackages = map[string]string{
+		"WorkItem":         "workitemdsl",
+		"WorkItemType":     "workitemdsl",
+		"WorkItemLinkType": "workitemlinkdsl",
+		"Space":            "spacedsl",
+		"Iteration":        "iterationdsl",
+	}
+
+}
+
 // WriteNames creates the names.txt file.
 func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	// Now iterate through the resources to gather their names
@@ -92,13 +115,15 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 										} else {
 											domainTypeName = strings.TrimSuffix(mt.TypeName, "Single")
 										}
+										// prepend the package
+										domainTypeName = structPackages[domainTypeName] + "." + domainTypeName
 										entity = &Entity{AppTypeName: mt.TypeName, DomainTypeName: domainTypeName, IsList: isList, IsSingle: !isList}
 										break
 									}
 								}
 								// skip if no response header was found
 								if entity != nil {
-									fmt.Printf("Response context: %s -> entity: %v\n", name, mt.TypeName)
+									fmt.Printf("Response context: %s -> entity: %v\n", name, entity)
 									// for k, v := range m.ToObject() {
 									// 	fmt.Printf("%s -> %v\n", k, v)
 									// }
@@ -124,22 +149,24 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	if err != nil {
 		panic(err) // bug
 	}
-	title := fmt.Sprintf("%s: Context Header Methods", api.Context())
+	title := fmt.Sprintf("%s: Conditional Requests methods - See goasupport/conditional_request/generator.go", api.Context())
 	imports := []*codegen.ImportSpec{
 		codegen.SimpleImport("bytes"),
 		codegen.SimpleImport("crypto/md5"),
 		codegen.SimpleImport("encoding/base64"),
 		codegen.SimpleImport("strconv"),
+		codegen.SimpleImport("net/http"),
 		codegen.SimpleImport("time"),
 		codegen.SimpleImport("reflect"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/configuration"),
 		codegen.SimpleImport("github.com/Sirupsen/logrus"),
+		codegen.NewImport("uuid", "github.com/satori/go.uuid"),
 	}
-
+	// add imports for domain packages
+	for alias, pkg := range packageAliases {
+		imports = append(imports, codegen.NewImport(alias, pkg))
+	}
 	ctxWr.WriteHeader(title, "app", imports)
-	// if err := ctxWr.ExecuteTemplate("headerMethods", headerMethods, nil, requestContexts); err != nil {
-	// 	return nil, err
-	// }
 	if err := ctxWr.ExecuteTemplate("constants", constants, nil, nil); err != nil {
 		return nil, err
 	}
@@ -152,7 +179,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	if err := ctxWr.ExecuteTemplate("conditionalResponseEntity", conditionalResponseEntity, nil, nil); err != nil {
 		return nil, err
 	}
-	if err := ctxWr.ExecuteTemplate("doConditional", doConditional, nil, nil); err != nil {
+	if err := ctxWr.ExecuteTemplate("doConditionals", doConditionals, nil, nil); err != nil {
 		return nil, err
 	}
 	if err := ctxWr.ExecuteTemplate("generateETag", generateETag, nil, nil); err != nil {
@@ -181,14 +208,6 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 			return nil, err
 		}
 		if err := ctxWr.ExecuteTemplate("setCacheControl", setCacheControl, nil, ctx); err != nil {
-			return nil, err
-		}
-	}
-	for _, entity := range entities {
-		if err := ctxWr.ExecuteTemplate("getLastModified", getLastModified, nil, entity); err != nil {
-			return nil, err
-		}
-		if err := ctxWr.ExecuteTemplate("getETagData", getETagData, nil, entity); err != nil {
 			return nil, err
 		}
 	}
@@ -242,10 +261,10 @@ type ConditionalResponseEntity interface {
 	cacheControlConfig = `
    type CacheControlConfig func() string 
    `
-	doConditional = `
-func doConditional(ctx ConditionalRequestContext, entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+	doConditionals = `
+func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
 	lastModified := entity.GetLastModified()
-	eTag := GenerateETag(entity)
+	eTag := GenerateEntityTag(entity)
 	cacheControl := cacheControlConfig()
 	ctx.setLastModified(lastModified)
 	ctx.setETag(eTag)
@@ -261,19 +280,54 @@ func doConditional(ctx ConditionalRequestContext, entity ConditionalResponseEnti
 	return nonConditionalCallback()
 }
 
+func doConditionalEntities(ctx ConditionalRequestContext, entities []ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+	var lastModified time.Time
+	for _, entity := range entities {
+		if entity.GetLastModified().After(lastModified) {
+			lastModified = entity.GetLastModified()
+		}
+	}
+	eTag := GenerateEntitiesTag(entities)
+	cacheControl := cacheControlConfig()
+	ctx.setLastModified(lastModified)
+	ctx.setETag(eTag)
+	ctx.setCacheControl(cacheControl)
+	if !modifiedSince(ctx, lastModified) {
+		return ctx.NotModified()
+	}
+	// check the ETag
+	if matchesETag(ctx, eTag) {
+		return ctx.NotModified()
+	}
+	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
+	return nonConditionalCallback()
+}`
 
-	`
 	conditional = `
 {{ $resp := . }}
-// Conditional checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
+{{ $entity := $resp.Entity }}
+{{ if $entity.IsSingle }}
+// ConditionalEntity checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
 // or calls the 'nonConditionalCallback' function to carry on.
-func (ctx *{{$resp.Name}}) Conditional(entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
-	return doConditional(ctx, entity, cacheControlConfig, nonConditionalCallback)
-}`
+func (ctx *{{$resp.Name}}) ConditionalEntity(entity {{$entity.DomainTypeName}}, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+	return doConditionalEntity(ctx, entity, cacheControlConfig, nonConditionalCallback)
+}
+{{ end }}
+{{ if $entity.IsList }}
+// ConditionalEntities checks if the entity to return changed since the client's last call and returns a "304 Not Modified" response
+// or calls the 'nonConditionalCallback' function to carry on.
+func (ctx *{{$resp.Name}}) ConditionalEntities(entities []{{$entity.DomainTypeName}}, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
+	conditionalEntities := make([]ConditionalResponseEntity, len(entities))
+	for i, entity := range entities {
+		conditionalEntities[i] = entity
+	}
+	return doConditionalEntities(ctx, conditionalEntities, cacheControlConfig, nonConditionalCallback)
+}
+{{ end }}`
 	generateETag = `
-// GenerateETag generates the value to return in the "ETag" HTTP response header for the given entity
+// GenerateEntityTag generates the value to return in the "ETag" HTTP response header for the given entity
 // The ETag is the base64-encoded value of the md5 hash of the buffer content
-func GenerateETag(entity ConditionalResponseEntity) string {
+func GenerateEntityTag(entity ConditionalResponseEntity) string {
 	var buffer bytes.Buffer
 	buffer.WriteString(generateETagValue(entity.GetETagData()))
 	etagData := md5.Sum(buffer.Bytes())
@@ -281,6 +335,20 @@ func GenerateETag(entity ConditionalResponseEntity) string {
 	return etag
 }
 
+// GenerateEntitiesTag generates the value to return in the "ETag" HTTP response header for the given list of entities
+// The ETag is the base64-encoded value of the md5 hash of the buffer content
+func GenerateEntitiesTag(entities []ConditionalResponseEntity) string {
+	var buffer bytes.Buffer
+	for i, entity := range entities {
+		buffer.WriteString(generateETagValue(entity.GetETagData()))
+		if i < len(entities)-1 {
+			buffer.WriteString("\n")
+		}
+	}
+	etagData := md5.Sum(buffer.Bytes())
+	etag := base64.StdEncoding.EncodeToString(etagData[:])
+	return etag
+}
 func generateETagValue(data []interface{}) string {
 	var buffer bytes.Buffer
 	for i, d := range data {
@@ -289,10 +357,20 @@ func generateETagValue(data []interface{}) string {
 			buffer.WriteString(generateETagValue(d))
 		case string:
 			buffer.WriteString(d)
+		case *string:
+			buffer.WriteString(*d)
 		case time.Time:
+			buffer.WriteString(d.UTC().String())
+		case *time.Time:
 			buffer.WriteString(d.UTC().String())
 		case int:
 			buffer.WriteString(strconv.Itoa(d))
+		case *int:
+			buffer.WriteString(strconv.Itoa(*d))
+		case uuid.UUID:
+			buffer.WriteString(d.String())
+		case *uuid.UUID:
+			buffer.WriteString(d.String())
 		default:
 			logrus.Error("Unexpected etag fragment format", reflect.TypeOf(d).String())
 		}
@@ -302,25 +380,6 @@ func generateETagValue(data []interface{}) string {
 	}
 	return buffer.String()
 }`
-	getETagData = `
-{{ $entity := . }}
-{{ if $entity.IsSingle }}
-// GetETagData generates the values to use to generate the ETag.
-// The ETag is the base64-encoded value of the md5 hash of the buffer content
-func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
-	return []interface{}{entity.Data.ID, entity.Data.Attributes.Version}
-}
-{{ end }}
-{{ if $entity.IsList }}
-// GetETagData generates the values to use to generate the ETag.
-func (entity {{$entity.AppTypeName}}) GetETagData() []interface{} {
-	var result []interface{}
-	for _, data := range entity.Data {
-		result = append(result, []interface{}{data.ID, data.Attributes.Version})
-	}
-	return result
-}
-{{ end }}`
 
 	setETag = `
 {{ $resp := . }}
@@ -358,39 +417,18 @@ func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) bool {
 {{ $resp := . }}
 // getIfModifiedSince sets the 'If-Modified-Since' header
 func (ctx *{{$resp.Name}}) getIfModifiedSince() *time.Time {
-	return ctx.IfModifiedSince
+	if ctx.IfModifiedSince != nil {
+		val, _ := http.ParseTime(*ctx.IfModifiedSince)
+		return &val
+	}
+	return nil
 }`
-
-	getLastModified = `
-{{ $entity := . }}
-{{ if $entity.IsSingle }}
- // GetLastModified gets the update time for a given element.
-func (entity {{$entity.AppTypeName}}) GetLastModified() time.Time {
-	var updatedAt time.Time
-	if entity.Data.Attributes.UpdatedAt != nil && entity.Data.Attributes.UpdatedAt.After(updatedAt) {
-		updatedAt = *entity.Data.Attributes.UpdatedAt
-	}
-	return updatedAt.Truncate(time.Second).UTC()
-}
-{{ end }}
-{{ if $entity.IsList }}
-// GetLastModified gets the update time for a given element.
-func (entity {{$entity.AppTypeName}}) GetLastModified() time.Time {
-	var updatedAt time.Time
-	for _, data := range entity.Data {
-		if data.Attributes.UpdatedAt != nil && data.Attributes.UpdatedAt.After(updatedAt) {
-			updatedAt = *data.Attributes.UpdatedAt
-		}
-	}
-	return updatedAt.Truncate(time.Second).UTC()
-}
-{{ end }}`
 
 	setLastModified = `
 {{ $resp := . }}
 // SetLastModified sets the 'Last-Modified' header
 func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
-	ctx.ResponseData.Header().Set(LastModified, value.String())
+	ctx.ResponseData.Header().Set(LastModified, value.UTC().Format(http.TimeFormat))
 }`
 
 	setCacheControl = `
