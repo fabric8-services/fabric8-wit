@@ -82,7 +82,7 @@ func (rest *TestLoginREST) TestAuthorizeLoginOK() {
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
 
-	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil)
+	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil)
 }
 
 func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {

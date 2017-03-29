@@ -86,7 +86,6 @@ var allProvidersToLink = []string{"github", "openshift-v3"}
 func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
-	referrer := ctx.RequestData.Header.Get("Referer")
 
 	if code != "" {
 		// After redirect from oauth provider
@@ -162,18 +161,29 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 	}
 
 	// First time access, redirect to oauth provider
+	redirect := ctx.Redirect
+	referrer := ctx.RequestData.Header.Get("Referer")
+	if redirect == nil {
+		if referrer == "" {
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest("Referer Header and redirect param are both empty. At least one should be specified."))
+			return ctx.BadRequest(jerrors)
+		}
+		redirect = &referrer
+	}
 
 	// store referrer in a state reference to redirect later
 	log.Info(ctx, map[string]interface{}{
 		"referrer": referrer,
+		"redirect": redirect,
 	}, "Got Request from!")
 
 	stateID := uuid.NewV4()
-	err := keycloak.saveReferrer(ctx, stateID, referrer)
+	err := keycloak.saveReferrer(ctx, stateID, *redirect)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"state":    stateID,
 			"referrer": referrer,
+			"redirect": redirect,
 			"err":      err,
 		}, "unable to save the state")
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Unable to save the state. " + err.Error()))

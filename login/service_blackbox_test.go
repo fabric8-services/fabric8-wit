@@ -138,6 +138,78 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 	assert.NotEqual(s.T(), rw.Header().Get("Location"), "")
 }
 
+func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirectsToRedirectParam() {
+	rw := httptest.NewRecorder()
+	redirect := "https://url.example.org/pathredirect"
+	u := &url.URL{
+		Path: fmt.Sprintf("/api/login/authorize?redirect="),
+	}
+	parameters := url.Values{}
+	if redirect != "" {
+		parameters.Add("redirect", redirect)
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, parameters)
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.io"},
+	}
+	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(s.T(), err)
+	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
+	require.Nil(s.T(), err)
+	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	require.Nil(s.T(), err)
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint)
+
+	assert.Equal(s.T(), 307, rw.Code)
+	assert.Contains(s.T(), rw.Header().Get("Location"), s.oauth.Endpoint.AuthURL)
+	assert.NotEqual(s.T(), rw.Header().Get("Location"), "")
+}
+
+func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoRefererAndRedirectParamFails() {
+	rw := httptest.NewRecorder()
+	u := &url.URL{
+		Path: fmt.Sprintf("/api/login/authorize"),
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+
+	prms := url.Values{}
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.io"},
+	}
+	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(s.T(), err)
+	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
+	require.Nil(s.T(), err)
+	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	require.Nil(s.T(), err)
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint)
+	assert.Equal(s.T(), 400, rw.Code)
+}
+
 func (s *serviceBlackBoxTest) TestKeycloakLinkRedirect() {
 	keycloakLinkRedirect(s, "", "")
 	keycloakLinkRedirect(s, "", "https://some.redirect.io")
