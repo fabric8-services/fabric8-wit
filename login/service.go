@@ -395,11 +395,7 @@ func (keycloak *KeycloakOAuthProvider) saveReferrer(ctx linkInterface, state uui
 	}
 	err = application.Transactional(keycloak.db, func(appl application.Application) error {
 		_, err := appl.OauthStates().Create(ctx, &ref)
-		if err != nil {
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal(err.Error()))
-			return ctx.InternalServerError(jerrors)
-		}
-		return nil
+		return err
 	})
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
