@@ -155,6 +155,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		codegen.SimpleImport("crypto/md5"),
 		codegen.SimpleImport("encoding/base64"),
 		codegen.SimpleImport("strconv"),
+		codegen.SimpleImport("net/http"),
 		codegen.SimpleImport("time"),
 		codegen.SimpleImport("reflect"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/configuration"),
@@ -431,14 +432,18 @@ func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) bool {
 {{ $resp := . }}
 // getIfModifiedSince sets the 'If-Modified-Since' header
 func (ctx *{{$resp.Name}}) getIfModifiedSince() *time.Time {
-	return ctx.IfModifiedSince
+	if ctx.IfModifiedSince != nil {
+		val, _ := http.ParseTime(*ctx.IfModifiedSince)
+		return &val
+	}
+	return nil
 }`
 
 	setLastModified = `
 {{ $resp := . }}
 // SetLastModified sets the 'Last-Modified' header
 func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
-	ctx.ResponseData.Header().Set(LastModified, value.String())
+	ctx.ResponseData.Header().Set(LastModified, value.UTC().Format(http.TimeFormat))
 }`
 
 	setCacheControl = `
