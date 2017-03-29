@@ -186,6 +186,7 @@ var _ = a.Resource("workitem", func() {
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)

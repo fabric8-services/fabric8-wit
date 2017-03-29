@@ -375,17 +375,20 @@ func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *goa
 // ConvertSpaceFromModel converts between internal and external REST representation
 func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.RequestData, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
 	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
-	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", sp.ID.String()))
-	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", sp.ID.String()))
-	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", sp.ID.String()))
-	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", sp.ID.String()))
+	spaceIDStr := sp.ID.String()
+	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
+	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
+	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
+	relatedCodebasesList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/codebases", spaceIDStr))
+	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
+	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
+	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, sp.OwnerId.String()))
 
 	_, count, err := getBacklogItems(ctx, db, sp.ID, nil, nil, nil)
 	if err != nil {
 		return nil, errs.Wrap(err, "unable to fetch backlog items")
 	}
-
 	s := &app.Space{
 		ID:   &sp.ID,
 		Type: APIStringTypeSpace,
@@ -402,6 +405,8 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 				Self: &relatedBacklogList,
 				Meta: &app.BacklogLinkMeta{TotalCount: count},
 			},
+			Workitemtypes:     &relatedWorkItemTypeList,
+			Workitemlinktypes: &relatedWorkItemLinkTypeList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
@@ -426,6 +431,11 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			Codebases: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedCodebasesList,
+				},
+			},
+			Workitems: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedWorkItemList,
 				},
 			},
 		},
