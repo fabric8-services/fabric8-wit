@@ -7,8 +7,11 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/login"
+
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
@@ -30,12 +33,14 @@ func TestUsers(t *testing.T) {
 
 type TestUsersSuite struct {
 	gormtestsupport.DBTestSuite
-	db           *gormapplication.GormDB
-	svc          *goa.Service
-	clean        func()
-	controller   *UsersController
-	userRepo     account.UserRepository
-	identityRepo account.IdentityRepository
+	db             *gormapplication.GormDB
+	svc            *goa.Service
+	clean          func()
+	controller     *UsersController
+	userRepo       account.UserRepository
+	identityRepo   account.IdentityRepository
+	configuration  *config.ConfigurationData
+	profileService login.UserProfileService
 }
 
 func (s *TestUsersSuite) SetupSuite() {
@@ -45,9 +50,16 @@ func (s *TestUsersSuite) SetupSuite() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.svc = goa.New("test")
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.controller = NewUsersController(s.svc, s.db)
+	s.configuration, err = config.GetConfigurationData()
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	keycloakUserProfileService := login.NewKeycloakUserProfileClient()
+	s.profileService = keycloakUserProfileService
+	s.controller = NewUsersController(s.svc, s.db, s.configuration, s.profileService)
 	s.userRepo = s.db.Users()
 	s.identityRepo = s.db.Identities()
+
 }
 
 func (s *TestUsersSuite) TearDownSuite() {
@@ -58,7 +70,7 @@ func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Serv
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
 	svc := testsupport.ServiceAsUser("Status-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	return svc, NewUsersController(svc, s.db)
+	return svc, NewUsersController(svc, s.db, s.configuration, s.profileService)
 }
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
