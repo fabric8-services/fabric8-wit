@@ -94,7 +94,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		token := goajwt.ContextJWT(ctx)
 		tokenString := token.Raw
-		//keycloakUserProfileAttributes := &login.KeycloakUserProfileAttributes{}
 
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil {
@@ -108,12 +107,16 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 		updatedFullName := ctx.Payload.Data.Attributes.FullName
 		if updatedFullName != nil {
+			*updatedFullName = standardizeSpaces(*updatedFullName)
 			user.FullName = *updatedFullName
 
 			// In KC, we store as first name and last name.
 			nameComponents := strings.Split(*updatedFullName, " ")
 			firstName := nameComponents[0]
-			lastName := strings.Join(nameComponents[1:], " ")
+			lastName := ""
+			if len(nameComponents) > 1 {
+				lastName = strings.Join(nameComponents[1:], " ")
+			}
 
 			keycloakUserProfile.FirstName = &firstName
 			keycloakUserProfile.LastName = &lastName
@@ -299,4 +302,8 @@ func createUserLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
+}
+
+func standardizeSpaces(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
