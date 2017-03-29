@@ -162,8 +162,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint) // "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account")
-
+		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
 }
