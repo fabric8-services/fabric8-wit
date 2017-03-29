@@ -21,7 +21,7 @@ import (
 
 type usersConfiguration interface {
 	// add configuration specific to keycloak user profile api url
-	GetKeycloakAccountEndpoint(*goa.RequestData) string,error
+	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
 }
 
 // UsersController implements the users resource.
@@ -154,11 +154,11 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		accountAPIEndpoint ,err := usersConfiguration.GetKeycloakAccountEndpoint(ctx.RequestData)
+		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		
+
 		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint) // "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account")
 
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
