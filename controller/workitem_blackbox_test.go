@@ -1335,7 +1335,9 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKEmptyList() {
 	// then
 	require.NotNil(s.T(), *workitems)
 	require.Empty(s.T(), workitems.Data)
-	assert.NotEqual(s.T(), time.Now().Format(time.RFC1123), res.Header().Get(app.LastModified))
+	// should not be the default/nil time
+	var defaultTime time.Time
+	assert.NotEqual(s.T(), app.ToHTTPTime(defaultTime), res.Header().Get(app.LastModified))
 	assert.Equal(s.T(), app.GenerateEmptyTag(), res.Header().Get(app.ETag))
 }
 
