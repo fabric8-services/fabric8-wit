@@ -81,7 +81,7 @@ type WorkItemRepository struct {
 		result1 *workitem.WorkItem
 		result2 error
 	}
-	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*workitem.WorkItem, uint64, error)
+	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]workitem.WorkItem, uint64, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
 		ctx      context.Context
@@ -91,7 +91,7 @@ type WorkItemRepository struct {
 		length   *int
 	}
 	listReturns struct {
-		result1 []*workitem.WorkItem
+		result1 []workitem.WorkItem
 		result2 uint64
 		result3 error
 	}
@@ -340,7 +340,7 @@ func (fake *WorkItemRepository) CreateReturns(result1 *workitem.WorkItem, result
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]*workitem.WorkItem, uint64, error) {
+func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]workitem.WorkItem, uint64, error) {
 	fake.listMutex.Lock()
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		ctx      context.Context
@@ -369,10 +369,10 @@ func (fake *WorkItemRepository) ListArgsForCall(i int) (context.Context, uuid.UU
 	return fake.listArgsForCall[i].ctx, fake.listArgsForCall[i].spaceID, fake.listArgsForCall[i].criteria, fake.listArgsForCall[i].start, fake.listArgsForCall[i].length
 }
 
-func (fake *WorkItemRepository) ListReturns(result1 []*workitem.WorkItem, result2 uint64, result3 error) {
+func (fake *WorkItemRepository) ListReturns(result1 []workitem.WorkItem, result2 uint64, result3 error) {
 	fake.ListStub = nil
 	fake.listReturns = struct {
-		result1 []*workitem.WorkItem
+		result1 []workitem.WorkItem
 		result2 uint64
 		result3 error
 	}{result1, result2, result3}

@@ -310,7 +310,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredLastModifiedHeade
 	require.NotNil(s.T(), wit.Data)
 	require.NotNil(s.T(), wit.Data.ID)
 	// when
-	lastModified := time.Now().Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
 	res, wit2 := test.ShowWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), *wit.Data.ID, &lastModified, nil)
 	// then
 	require.NotNil(s.T(), wit2)
@@ -414,7 +414,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfModifiedSinceHe
 	// when
 	// Fetch a single work item type
 	// Paging in the format <start>,<limit>"
-	lastModified := time.Now().Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	lastModified := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
 	page := "0,-1"
 	res, witCollection := test.ListWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), &page, &lastModified, nil)
 	// then
@@ -578,7 +578,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinc
 	// given
 	sourceLinkType, _ := s.createWorkitemtypeLinks()
 	// when fetch source link types
-	ifModifiedSince := sourceLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(sourceLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
 	res, wiltCollection := test.ListSourceLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID, &ifModifiedSince, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
@@ -599,7 +599,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinc
 	// given
 	_, targetLinkType := s.createWorkitemtypeLinks()
 	// When fetch target link types
-	ifModifiedSince := targetLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(targetLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
 	res, wiltCollection := test.ListTargetLinkTypesWorkitemtypeOK(s.T(), nil, nil, s.typeCtrl, space.SystemSpace.String(), animalID, &ifModifiedSince, nil)
 	require.NotNil(s.T(), wiltCollection)
 	assert.Nil(s.T(), wiltCollection.Validate())
