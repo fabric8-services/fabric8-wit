@@ -37,15 +37,24 @@ const (
 // WorkitemController implements the workitem resource.
 type WorkitemController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config WorkItemControllerConfig
+}
+
+// WorkItemControllerConfig the config interface for the WorkitemController
+type WorkItemControllerConfig interface {
+	GetCacheControlWorkItems() string
 }
 
 // NewWorkitemController creates a workitem controller.
-func NewWorkitemController(service *goa.Service, db application.DB) *WorkitemController {
+func NewWorkitemController(service *goa.Service, db application.DB, config WorkItemControllerConfig) *WorkitemController {
 	if db == nil {
 		panic("db must not be nil")
 	}
-	return &WorkitemController{Controller: service.NewController("WorkitemController"), db: db}
+	return &WorkitemController{
+		Controller: service.NewController("WorkitemController"),
+		db:         db,
+		config:     config}
 }
 
 // List runs the list action.
@@ -102,33 +111,22 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
-		result, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
+		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
-
-		lastMod := findLastModified(result)
-
-		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
-			ifModSince, err := http.ParseTime(ifMod[0])
-			if err == nil {
-				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
-					return ctx.NotModified()
-				}
+		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
+			response := app.WorkItemList{
+				Links: &app.PagingLinks{},
+				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
+				Data:  ConvertWorkItems(ctx.RequestData, workitems),
 			}
-		}
+			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
+			addFilterLinks(response.Links, ctx.RequestData)
+			return ctx.OK(&response)
+		})
 
-		response := app.WorkItemList{
-			Links: &app.PagingLinks{},
-			Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-			Data:  ConvertWorkItems(ctx.RequestData, result),
-		}
-		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, additionalQuery...)
-		addFilterLinks(response.Links, ctx.RequestData)
-
-		ctx.ResponseData.Header().Set("Last-Modified", lastModifiedTime(lastMod))
-		return ctx.OK(&response)
 	})
 }
 
@@ -164,7 +162,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
-		wi2 := ConvertWorkItem(ctx.RequestData, wi)
+		wi2 := ConvertWorkItem(ctx.RequestData, *wi)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -172,7 +170,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 			},
 		}
 
-		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
 		return ctx.OK(resp)
 	})
 }
@@ -209,7 +207,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			wi2 := ConvertWorkItem(ctx.RequestData, wi)
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi)
 			dataArray = append(dataArray, wi2)
 		}
 		resp := &app.WorkItemReorder{
@@ -267,14 +265,14 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		wi2 := ConvertWorkItem(ctx.RequestData, wi)
+		wi2 := ConvertWorkItem(ctx.RequestData, *wi)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
 				Self: buildAbsoluteURL(ctx.RequestData),
 			},
 		}
-		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
+		ctx.ResponseData.Header().Set("Last-Modified", lastModified(*wi))
 		ctx.ResponseData.Header().Set("Location", app.WorkitemHref(wi2.Relationships.Space.Data.ID.String(), wi2.ID))
 		return ctx.Created(resp)
 	})
@@ -293,22 +291,14 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
-
-		if ifMod, ok := ctx.RequestData.Header["If-Modified-Since"]; ok {
-			ifModSince, err := http.ParseTime(ifMod[0])
-			if err == nil {
-				lastMod := updatedAt(wi)
-				if lastMod.Before(ifModSince) || lastMod.Equal(ifModSince) {
-					return ctx.NotModified()
-				}
+		return ctx.ConditionalEntity(*wi, c.config.GetCacheControlWorkItems, func() error {
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments)
+			resp := &app.WorkItemSingle{
+				Data: wi2,
 			}
-		}
-		wi2 := ConvertWorkItem(ctx.RequestData, wi, comments)
-		resp := &app.WorkItemSingle{
-			Data: wi2,
-		}
-		ctx.ResponseData.Header().Set("Last-Modified", lastModified(wi))
-		return ctx.OK(resp)
+			return ctx.OK(resp)
+
+		})
 	})
 }
 
@@ -341,7 +331,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 }
 
 // Time is default value if no UpdatedAt field is found
-func updatedAt(wi *workitem.WorkItem) time.Time {
+func updatedAt(wi workitem.WorkItem) time.Time {
 	var t time.Time
 	if ua, ok := wi.Fields[workitem.SystemUpdatedAt]; ok {
 		t = ua.(time.Time)
@@ -349,7 +339,7 @@ func updatedAt(wi *workitem.WorkItem) time.Time {
 	return t.Truncate(time.Second)
 }
 
-func lastModified(wi *workitem.WorkItem) string {
+func lastModified(wi workitem.WorkItem) string {
 	return lastModifiedTime(updatedAt(wi))
 }
 
@@ -357,7 +347,7 @@ func lastModifiedTime(t time.Time) string {
 	return t.Format(time.RFC1123)
 }
 
-func findLastModified(wis []*workitem.WorkItem) time.Time {
+func findLastModified(wis []workitem.WorkItem) time.Time {
 	var t time.Time
 	for _, wi := range wis {
 		lm := updatedAt(wi)
@@ -474,7 +464,7 @@ type WorkItemConvertFunc func(*goa.RequestData, *workitem.WorkItem, *app.WorkIte
 
 // ConvertWorkItems is responsible for converting given []WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItems(request *goa.RequestData, wis []*workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
+func ConvertWorkItems(request *goa.RequestData, wis []workitem.WorkItem, additional ...WorkItemConvertFunc) []*app.WorkItem {
 	ops := []*app.WorkItem{}
 	for _, wi := range wis {
 		ops = append(ops, ConvertWorkItem(request, wi, additional...))
@@ -484,7 +474,7 @@ func ConvertWorkItems(request *goa.RequestData, wis []*workitem.WorkItem, additi
 
 // ConvertWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertWorkItem(request *goa.RequestData, wi *workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
+func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional ...WorkItemConvertFunc) *app.WorkItem {
 	// construct default values from input WI
 	selfURL := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID.String(), wi.ID))
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
@@ -587,10 +577,10 @@ func ConvertWorkItem(request *goa.RequestData, wi *workitem.WorkItem, additional
 		op.Relationships.Area = &app.RelationGeneric{Data: nil}
 	}
 	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
-	WorkItemIncludeComments(request, wi, op)
-	WorkItemIncludeChildren(request, wi, op)
+	WorkItemIncludeComments(request, &wi, op)
+	WorkItemIncludeChildren(request, &wi, op)
 	for _, add := range additional {
-		add(request, wi, op)
+		add(request, &wi, op)
 	}
 	return op
 }
@@ -605,10 +595,12 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		response := app.WorkItemList{
-			Data: ConvertWorkItems(ctx.RequestData, result),
-		}
-		return ctx.OK(&response)
+		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+			response := app.WorkItemList{
+				Data: ConvertWorkItems(ctx.RequestData, result),
+			}
+			return ctx.OK(&response)
+		})
 	})
 }
 

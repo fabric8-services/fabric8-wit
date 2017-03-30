@@ -284,6 +284,16 @@ func (rest *TestSpaceREST) TestShowSpaceOK() {
 	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), app.GenerateEntityTag(ConvertSpaceToModel(*created.Data)), res.Header()[app.ETag][0])
+	// Test that it contains the right link for backlog items
+	subStringBacklogUrl := fmt.Sprintf("/%s/backlog", fetched.Data.ID.String())
+	assert.Contains(rest.T(), *fetched.Data.Links.Backlog.Self, subStringBacklogUrl)
+	assert.Equal(rest.T(), fetched.Data.Links.Backlog.Meta.TotalCount, 0)
+
+	// Test that it contains the right relationship values
+	subString := fmt.Sprintf("/%s/iterations", fetched.Data.ID.String())
+	assert.Contains(rest.T(), *fetched.Data.Relationships.Iterations.Links.Related, subString)
+	subStringAreaUrl := fmt.Sprintf("/%s/areas", fetched.Data.ID.String())
+	assert.Contains(rest.T(), *fetched.Data.Relationships.Areas.Links.Related, subStringAreaUrl)
 }
 
 func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
@@ -296,7 +306,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when
-	ifModifiedSince := created.Data.Attributes.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(created.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
 	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), &ifModifiedSince, nil)
 	// then
 	assert.Equal(rest.T(), created.Data.ID, fetched.Data.ID)
@@ -417,18 +427,6 @@ func (rest *TestSpaceREST) TestListSpacesOK() {
 	// then
 	require.NotNil(rest.T(), list)
 	require.NotEmpty(rest.T(), list.Data)
-	for _, spc := range list.Data {
-		// Test that it contains the right link for backlog items
-		subStringBacklogUrl := fmt.Sprintf("/%s/backlog", spc.ID.String())
-		assert.Contains(rest.T(), *spc.Links.Backlog.Self, subStringBacklogUrl)
-		assert.Equal(rest.T(), spc.Links.Backlog.Meta.TotalCount, 0)
-
-		// Test that it contains the right relationship values
-		subString := fmt.Sprintf("/%s/iterations", spc.ID.String())
-		assert.Contains(rest.T(), *spc.Relationships.Iterations.Links.Related, subString)
-		subStringAreaUrl := fmt.Sprintf("/%s/areas", spc.ID.String())
-		assert.Contains(rest.T(), *spc.Relationships.Areas.Links.Related, subStringAreaUrl)
-	}
 }
 
 func (rest *TestSpaceREST) TestListSpacesOKEmptyResult() {
@@ -458,7 +456,7 @@ func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when
-	ifModifiedSince := time.Now().Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(time.Now().Add(-1 * time.Hour))
 	_, list := test.ListSpaceOK(rest.T(), svc.Context, svc, ctrl, nil, nil, &ifModifiedSince, nil)
 	// then
 	require.NotNil(rest.T(), list)

@@ -67,6 +67,7 @@ const (
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
 	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
+	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlSpace                = "cachecontrol.space"
 	varCacheControlIteration            = "cachecontrol.iteration"
 	defaultConfigFile                   = "config.yaml"
@@ -167,6 +168,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
+	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
 	c.v.SetDefault(varCacheControlSpace, "max-age=300")
 	c.v.SetDefault(varCacheControlIteration, "max-age=300")
 
@@ -270,6 +272,12 @@ func (c *ConfigurationData) GetCacheControlWorkItemType() string {
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
 	return c.v.GetString(varCacheControlWorkItemLinkType)
+}
+
+// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItems() string {
+	return c.v.GetString(varCacheControlWorkItems)
 }
 
 // GetCacheControlSpace returns the value to set in the "Cache-Control" HTTP response header
