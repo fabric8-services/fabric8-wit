@@ -71,62 +71,6 @@ func init() {
 	}
 }
 
-<<<<<<< HEAD
-// The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *workItemLinkSuite) SetupSuite() {
-	var err error
-
-	s.db, err = gorm.Open("postgres", wiConfiguration.GetPostgresConfigString())
-	s.db.Debug()
-	require.Nil(s.T(), err)
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(s.db, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
-	})
-	require.Nil(s.T(), err)
-	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	require.Nil(s.T(), err)
-	svc := goa.New("TestWorkItemLinkType-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
-
-	svc = goa.New("TestWorkItemLinkCategory-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemLinkCategoryCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemLinkCategoryCtrl)
-
-	svc = goa.New("TestWorkItemLinkSpace-Service")
-	require.NotNil(s.T(), svc)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.db), wiConfiguration, &DummyResourceManager{})
-	require.NotNil(s.T(), s.spaceCtrl)
-
-	svc = goa.New("TestWorkItemType-Service")
-	s.typeCtrl = NewWorkitemtypeController(svc, gormapplication.NewGormDB(s.db), wiConfiguration)
-	require.NotNil(s.T(), s.typeCtrl)
-
-	svc = goa.New("TestWorkItemLink-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemLinkCtrl = NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemLinkCtrl)
-
-	svc = goa.New("TestWorkItemRelationshipsLinks-Service")
-	require.NotNil(s.T(), svc)
-	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
-
-	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.db, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
-	require.NotNil(s.T(), s.svc)
-	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.db))
-	require.NotNil(s.T(), s.workItemCtrl)
-}
-
-=======
->>>>>>> upstream/master
 // The TearDownSuite method will run after all the tests in the suite have been run
 // It tears down the database connection for all the tests in this suite.
 func (s *workItemLinkSuite) TearDownSuite() {
@@ -140,7 +84,6 @@ func (s *workItemLinkSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkSuite) cleanup() {
-
 	// First delete work item links and then the types;
 	// otherwise referential integrity will be violated.
 	for _, id := range s.deleteWorkItemLinks {
