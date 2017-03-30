@@ -117,9 +117,8 @@ var _ = a.Resource("workitem", func() {
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemSingle)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -140,9 +139,8 @@ var _ = a.Resource("workitem", func() {
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -155,9 +153,9 @@ var _ = a.Resource("workitem", func() {
 		a.Params(func() {
 			a.Param("wiId", d.String, "wiId")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -308,9 +306,8 @@ var _ = a.Resource("planner_backlog", func() {
 			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 		})
-		a.Response(d.OK, func() {
-			a.Media(workItemList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, workItemList)
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)

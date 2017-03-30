@@ -130,7 +130,7 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 	itr := createSpaceAndIteration(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
-	ifModifiedSinceHeader := itr.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt.Add(-1 * time.Hour))
 	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 	// then
 	assertIterationLinking(rest.T(), created.Data)
@@ -221,7 +221,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		},
 	}
 	// add WI to this iteration and test counts in the response of update iteration API
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSuccessUpdateIterationWithWICounts user", "test provider")
 	require.Nil(rest.T(), err)
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 	req := &http.Request{Host: "localhost"}

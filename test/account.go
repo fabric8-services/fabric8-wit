@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/models"
 	"github.com/jinzhu/gorm"
@@ -56,5 +57,6 @@ func CreateTestIdentity(db *gorm.DB, username, providerType string) (account.Ide
 	err := models.Transactional(db, func(tx *gorm.DB) error {
 		return identityRepository.Create(context.Background(), &testIdentity)
 	})
+	logrus.Info("Created identity with id=", testIdentity.ID.String())
 	return testIdentity, err
 }
