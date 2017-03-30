@@ -38,6 +38,7 @@ type WorkItemRepository interface {
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]WorkItem, uint64, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
+	GetChildrenCountPerWorkitem(ctx context.Context, wiID string) (int, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
 }
@@ -686,9 +687,17 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	return countsMap, nil
 }
 
+func (r *GormWorkItemRepository) GetChildrenCountPerWorkitem(ctx context.Context, wiID string) (int, error) {
+	var totalcount int
+	query := fmt.Sprintf(` SELECT count(*) FROM "work_item_links" where source_id="%s" and link_type_id='b7508305-c92a-428c-8075-111e1f4c18a8'`, wiID)
+	db := r.db.Raw(query)
+	db.Scan(&totalcount)
+	return totalcount, nil
+}
+
 // GetCountsForIteration returns Closed and Total counts of WI for given iteration
 // It executes
-// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "work_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
+// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "w'b7508305-c92a-428c-8075-111e1f4c18a8'ork_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var res WICountsPerIteration
 	query := fmt.Sprintf(`SELECT count(*) as Total,

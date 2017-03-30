@@ -589,6 +589,8 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	// Put your logic here
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID)
+		totalcount, err := appl.WorkItems().GetChildrenCountPerWorkitem(ctx, ctx.WiID)
+		fmt.Println("=============totalcount==========", totalcount)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
@@ -596,7 +598,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 			response := app.WorkItemList{
 				Data: ConvertWorkItems(ctx.RequestData, result),
 				Meta: &app.WorkItemListResponseMeta{
-					TotalCount: 45,
+					TotalCount: totalcount,
 				},
 			}
 			return ctx.OK(&response)
@@ -607,6 +609,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 // WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
 func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/children"
+	// totalcount, err := appl.WorkItems().GetChildrenCountPerWorkitem(ctx, wi.ID)
 	wi2.Relationships.Children = &app.RelationGeneric{
 		Links: &app.GenericLinks{
 			Related: &childrenRelated,
