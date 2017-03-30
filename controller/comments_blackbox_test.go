@@ -46,10 +46,10 @@ type CommentsSuite struct {
 func (s *CommentsSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "test user2", "test provider")
+	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user2", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity2 = testIdentity2
 }

@@ -1,8 +1,11 @@
 package cleaner
 
 import (
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
+
+	"fmt"
 
 	"github.com/jinzhu/gorm"
 )
@@ -43,6 +46,7 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 	}
 	var entires []entity
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
+		logrus.Debug(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
 		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
 	})
 	return func() {

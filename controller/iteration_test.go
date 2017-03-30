@@ -221,7 +221,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		},
 	}
 	// add WI to this iteration and test counts in the response of update iteration API
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSuccessUpdateIterationWithWICounts user", "test provider")
 	require.Nil(rest.T(), err)
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 	req := &http.Request{Host: "localhost"}

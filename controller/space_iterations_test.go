@@ -59,7 +59,7 @@ func (rest *TestSpaceIterationREST) SetupSuite() {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	})
 	require.Nil(rest.T(), err)
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
 }

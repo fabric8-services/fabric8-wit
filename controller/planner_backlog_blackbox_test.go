@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -30,23 +31,22 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type TestPlannerBlacklogREST struct {
+type TestPlannerBacklogREST struct {
 	gormtestsupport.DBTestSuite
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
 }
 
-func TestRunPlannerBlacklogREST(t *testing.T) {
+func TestRunPlannerBacklogREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(TestPlannerBlacklogREST))
+	suite.Run(t, new(TestPlannerBacklogREST))
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
-func (rest *TestPlannerBlacklogREST) SetupSuite() {
+func (rest *TestPlannerBacklogREST) SetupSuite() {
 	rest.DBTestSuite.SetupSuite()
-	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if err := models.Transactional(rest.DB, func(tx *gorm.DB) error {
 		rest.ctx = migration.NewMigrationContext(context.Background())
@@ -56,24 +56,24 @@ func (rest *TestPlannerBlacklogREST) SetupSuite() {
 	}
 }
 
-func (rest *TestPlannerBlacklogREST) SetupTest() {
+func (rest *TestPlannerBacklogREST) SetupTest() {
+	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogREST user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
-
 }
 
-func (rest *TestPlannerBlacklogREST) TearDownTest() {
-	//rest.clean()
+func (rest *TestPlannerBacklogREST) TearDownTest() {
+	rest.clean()
 }
 
-func (rest *TestPlannerBlacklogREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
-	svc := goa.New("PlannerBlacklog-Service")
+func (rest *TestPlannerBacklogREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
+	svc := goa.New("PlannerBacklog-Service")
 	return svc, NewPlannerBacklogController(svc, gormapplication.NewGormDB(rest.DB), rest.Configuration)
 }
 
-func (rest *TestPlannerBlacklogREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration, childIteration *iteration.Iteration) {
+func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration, childIteration *iteration.Iteration) {
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
@@ -82,26 +82,11 @@ func (rest *TestPlannerBlacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 		_, err := spacesRepo.Create(rest.ctx, testSpace)
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), testSpace.ID)
-		rest.T().Log("Created space with ID=", testSpace.ID)
+		logrus.Info("Created space with ID=", testSpace.ID)
 		workitemTypesRepo := app.WorkItemTypes()
-		//extended := workitem.SystemBug
 		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
-		// workitemType, err = workitemTypesRepo.Create(rest.ctx, testSpace.ID,
-		// 	&workitem.SystemPlannerItem, nil, "foo", nil, "foo",
-		// 	map[string]workitem.FieldDefinition{
-		// 		"aListType": {
-		// 			Label:       "some list type",
-		// 			Description: "description for 'some list type'",
-		// 			Type: workitem.EnumType{
-		// 				BaseType:   workitem.SimpleType{Kind: workitem.KindString},
-		// 				SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
-		// 				Values:     []interface{}{"open", "done", "closed"},
-		// 			},
-		// 			Required: true,
-		// 		},
-		// 	})
 		require.Nil(rest.T(), err)
-		rest.T().Log("Created workitem type with ID=", workitemType.ID)
+		logrus.Info("Created workitem type with ID=", workitemType.ID)
 
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
@@ -110,7 +95,7 @@ func (rest *TestPlannerBlacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			State:   iteration.IterationStateNew,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
-		rest.T().Log("Created parent iteration with ID=", parentIteration.ID)
+		logrus.Info("Created parent iteration with ID=", parentIteration.ID)
 
 		childIteration = &iteration.Iteration{
 			Name:    "Child Iteration",
@@ -119,7 +104,7 @@ func (rest *TestPlannerBlacklogREST) setupPlannerBacklogWorkItems() (testSpace *
 			State:   iteration.IterationStateStart,
 		}
 		iterationsRepo.Create(rest.ctx, childIteration)
-		rest.T().Log("Created child iteration with ID=", childIteration.ID)
+		logrus.Info("Created child iteration with ID=", childIteration.ID)
 
 		fields := map[string]interface{}{
 			workitem.SystemTitle:     "parentIteration Test",
@@ -167,7 +152,7 @@ func generateWorkitemsTag(workitems *app.WorkItemList) string {
 	return app.GenerateEntitiesTag(entities)
 }
 
-func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsOK() {
+func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOK() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -181,7 +166,7 @@ func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsOK() {
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
+func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -196,7 +181,7 @@ func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpir
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfNoneMatchHeader() {
+func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfNoneMatchHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -211,7 +196,7 @@ func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpir
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfModifiedSinceHeader() {
+func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfModifiedSinceHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -225,7 +210,7 @@ func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsNotModifiedU
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfNoneMatchHeader() {
+func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfNoneMatchHeader() {
 	// given
 	testSpace, _, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -240,7 +225,7 @@ func (rest *TestPlannerBlacklogREST) TestListPlannerBacklogWorkItemsNotModifiedU
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBlacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
+func (rest *TestPlannerBacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
 	var spaceID uuid.UUID
 	var parentIteration *iteration.Iteration
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
@@ -280,7 +265,7 @@ func (rest *TestPlannerBlacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems
 	assert.Len(rest.T(), workitems.Data, 0)
 }
 
-func (rest *TestPlannerBlacklogREST) TestFailListPlannerBacklogByMissingSpace() {
+func (rest *TestPlannerBacklogREST) TestFailListPlannerBacklogByMissingSpace() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	filter := ""

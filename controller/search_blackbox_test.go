@@ -57,7 +57,7 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	var err error
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
@@ -69,7 +69,6 @@ func (s *searchBlackBoxTest) SetupSuite() {
 			panic(err.Error())
 		}
 	}
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
@@ -77,6 +76,10 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
+}
+
+func (s *searchBlackBoxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {

@@ -85,7 +85,7 @@ func (rest *TestSearchSpacesREST) TestSpacesSearchOK() {
 		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
 		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
 		{"with multi page", args{offset("0"), limit(10), "TEST"}, expects{hasLinks("Next")}},
-		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(100), "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
+		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
 		{"with different values", args{offset("0"), limit(10), "TEST"}, expects{differentValues()}},
 	}
 	svc, ctrl := rest.UnSecuredController()

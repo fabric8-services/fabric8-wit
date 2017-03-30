@@ -65,7 +65,6 @@ type WorkItemSuite struct {
 
 func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	var err error
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if s.Configuration.GetPopulateCommonTypes() {
@@ -76,22 +75,25 @@ func (s *WorkItemSuite) SetupSuite() {
 			panic(err.Error())
 		}
 	}
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-
-	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.testIdentity = testIdentity
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
 	if s.DB != nil {
-		s.clean()
 		s.DB.Close()
 	}
 }
 
+func (s *WorkItemSuite) TearDownTest() {
+	s.clean()
+}
+
 func (s *WorkItemSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	// create a test identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItemSuite setup user", "test provider")
+	require.Nil(s.T(), err)
+	s.testIdentity = testIdentity
+
 	s.svc = testsupport.ServiceAsUser("TestUpdateWI-Service", almtoken.NewManagerWithPrivateKey(s.priKey), s.testIdentity)
 	s.controller = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
@@ -764,15 +766,15 @@ func (s *WorkItem2Suite) SetupSuite() {
 			panic(err.Error())
 		}
 	}
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	// create identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
-	require.Nil(s.T(), err)
-	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
 }
 
 func (s *WorkItem2Suite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	// create identity
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "WorkItem2Suite setup user", "test provider")
+	require.Nil(s.T(), err)
+	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	s.svc = testsupport.ServiceAsUser("TestUpdateWI2-Service", almtoken.NewManagerWithPrivateKey(s.priKey), testIdentity)
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
@@ -788,6 +790,10 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi = wi.Data
 	s.minimumPayload = getMinimumRequiredUpdatePayload(s.wi)
 	//s.minimumReorderPayload = getMinimumRequiredReorderPayload(s.wi)
+}
+
+func (s *WorkItem2Suite) TearDownTest() {
+	s.clean()
 }
 
 // ========== Actual Test functions ==========

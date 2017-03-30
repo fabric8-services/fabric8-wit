@@ -61,7 +61,6 @@ type workItemChildSuite struct {
 func (s *workItemChildSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
 	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
@@ -70,7 +69,7 @@ func (s *workItemChildSuite) SetupSuite() {
 		panic(err.Error())
 	}
 
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
 
@@ -124,6 +123,7 @@ func (s *workItemChildSuite) SetupSuite() {
 // SetupTest ensures that none of the work item links that we will create already exist.
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemChildSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	var err error
 
 	// Create a test user identity
