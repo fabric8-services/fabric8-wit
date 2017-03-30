@@ -1,12 +1,11 @@
 package controller_test
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"testing"
 	"time"
-
-	"golang.org/x/net/context"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -16,13 +15,11 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
-	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -60,14 +57,10 @@ type workItemChildSuite struct {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemChildSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.db = gormapplication.NewGormDB(s.DB)
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
+	s.db = gormapplication.NewGormDB(s.DB)
 
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
