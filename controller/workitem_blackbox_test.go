@@ -26,7 +26,6 @@ import (
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
@@ -65,16 +64,9 @@ type WorkItemSuite struct {
 
 func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if s.Configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
@@ -757,15 +749,6 @@ type WorkItem2Suite struct {
 
 func (s *WorkItem2Suite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if s.Configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
 }
 
 func (s *WorkItem2Suite) SetupTest() {

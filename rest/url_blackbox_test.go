@@ -32,6 +32,25 @@ func TestAbsoluteURLOK(t *testing.T) {
 	assert.Equal(t, "https://api.service.domain.org/testpath2", urlStr)
 }
 
+func TestAbsoluteURLOKWithProxyForward(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
+	req := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+
+	// HTTPS
+	r, err := http.NewRequest("", "http://api.service.domain.org", nil)
+	require.Nil(t, err)
+	r.Header.Set("X-Forwarded-Proto", "https")
+	req = &goa.RequestData{
+		Request: r,
+	}
+	urlStr := AbsoluteURL(req, "/testpath2")
+	assert.Equal(t, "https://api.service.domain.org/testpath2", urlStr)
+}
+
 func TestReplaceDomainPrefixOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()

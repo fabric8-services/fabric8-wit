@@ -3,26 +3,20 @@ package workitem_test
 import (
 	"net/http"
 	"net/url"
-	"os"
-
-	"golang.org/x/net/context"
-
 	"testing"
 
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/context"
 )
 
 type workItemTypeRepoBlackBoxTest struct {
@@ -41,16 +35,9 @@ func TestRunWorkItemTypeRepoBlackBoxTest(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemTypeRepoBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
 	req := &http.Request{Host: "localhost"}
 	params := url.Values{}
 	s.ctx = goa.NewContext(context.Background(), nil, req, params)

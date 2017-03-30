@@ -471,12 +471,20 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 	var user *account.User
 
 	claims, err := parseToken(accessToken, keycloak.TokenManager.PublicKey())
-	if err != nil || checkClaims(claims) != nil {
+	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"token": accessToken,
 			"err":   err,
 		}, "unable to parse the token")
-		return nil, nil, errors.New("Error when parsing token " + err.Error())
+		return nil, nil, errors.New("unable to parse the token " + err.Error())
+	}
+
+	if err := checkClaims(claims); err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"token": accessToken,
+			"err":   err,
+		}, "invalid keycloak token claims")
+		return nil, nil, errors.New("invalid keycloak token claims " + err.Error())
 	}
 
 	keycloakIdentityID, _ := uuid.FromString(claims.Subject)

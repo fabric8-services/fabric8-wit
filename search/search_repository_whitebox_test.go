@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -44,16 +43,8 @@ type searchRepositoryWhiteboxTest struct {
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
 func (s *searchRepositoryWhiteboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			ctx := migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *searchRepositoryWhiteboxTest) SetupTest() {
