@@ -1764,9 +1764,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
 	iterationRepo := iteration.NewIterationRepository(s.DB)
-	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
+	rootIteration, err := iterationRepo.RootIteration(context.Background(), spaceInstance.ID)
 	require.Nil(t, err)
-	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
+	assert.Equal(t, rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
@@ -2011,9 +2011,9 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
 	iterationRepo := iteration.NewIterationRepository(s.DB)
-	defaultIteration, err := iterationRepo.LoadDefault(context.Background(), *spaceInstance)
+	rootIteration, err := iterationRepo.RootIteration(context.Background(), spaceInstance.ID)
 	require.Nil(t, err)
-	assert.Equal(t, defaultIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
+	assert.Equal(t, rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 }
 
 //Ignore, middlewares not respected by the generated test framework. No way to modify Request?

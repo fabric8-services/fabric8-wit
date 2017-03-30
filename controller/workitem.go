@@ -257,10 +257,10 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		// fetch default iteration for this space and assign it to WI if not present already
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
-			// no iteration set hence set to default of its space
-			defaultItr, defaultItrErr := appl.Iterations().LoadDefault(ctx, *spaceInstance)
-			if defaultItrErr == nil {
-				wi.Fields[workitem.SystemIteration] = defaultItr.ID.String()
+			// no iteration set hence set to root iteration of its space
+			rootItr, rootItrErr := appl.Iterations().RootIteration(ctx, spaceInstance.ID)
+			if rootItrErr == nil {
+				wi.Fields[workitem.SystemIteration] = rootItr.ID.String()
 			}
 		}
 		if err != nil {

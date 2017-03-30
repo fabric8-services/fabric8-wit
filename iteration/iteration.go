@@ -9,7 +9,6 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 
-	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -66,7 +65,6 @@ type Repository interface {
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error)
-	LoadDefault(ctx context.Context, spaceInstance space.Space) (*Iteration, error)
 	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error)
 }
 
@@ -133,7 +131,7 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 	return objs, nil
 }
 
-// Get the Root Iteration for a space
+// RootIteration returns the Root Iteration for a space
 func (m *GormIterationRepository) RootIteration(ctx context.Context, spaceID uuid.UUID) (*Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var itr Iteration
@@ -226,28 +224,6 @@ func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iter
 		return false, errors.NewBadParameterError("state", "One iteration from given space is already running")
 	}
 	return true, nil
-}
-
-// LoadDefault returns single Iteration which is default to given space
-func (m *GormIterationRepository) LoadDefault(ctx context.Context, spaceInstance space.Space) (*Iteration, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "iteration", "loaddefault"}, time.Now())
-	var obj Iteration
-
-	tx := m.db.Where("space_id = ? and name = ? and path = ''", spaceInstance.ID, spaceInstance.Name).First(&obj)
-	if tx.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"SpaceID": spaceInstance.ID.String(),
-		}, "iteration cannot be found")
-		return nil, errors.NewNotFoundError("Default Iteration for space", spaceInstance.ID.String())
-	}
-	if tx.Error != nil {
-		log.Error(ctx, map[string]interface{}{
-			"sapceID": spaceInstance.ID.String(),
-			"err":     tx.Error,
-		}, "unable to load the iteration")
-		return nil, errors.NewInternalError(tx.Error.Error())
-	}
-	return &obj, nil
 }
 
 // LoadChildren executes - select * from iterations where path <@ 'parent_path.parent_id';
