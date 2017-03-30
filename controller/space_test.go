@@ -18,7 +18,6 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
@@ -427,25 +426,6 @@ func (rest *TestSpaceREST) TestListSpacesOK() {
 	// then
 	require.NotNil(rest.T(), list)
 	require.NotEmpty(rest.T(), list.Data)
-}
-
-func (rest *TestSpaceREST) TestListSpacesOKEmptyResult() {
-	// delete all existing spaces
-	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
-	_, existingSpaces := test.ListSpaceOK(rest.T(), svc.Context, svc, ctrl, nil, nil, nil, nil)
-	spaceRepository := space.NewRepository(rest.DB)
-	for _, existingSpace := range existingSpaces.Data {
-		rest.T().Log("Deleting existing space with ID=", existingSpace.ID.String())
-		spaceRepository.Delete(svc.Context, *existingSpace.ID)
-	}
-	// when
-	res, emptyList := test.ListSpaceOK(rest.T(), svc.Context, svc, ctrl, nil, nil, nil, nil)
-	// then
-	require.NotNil(rest.T(), *emptyList)
-	require.Empty(rest.T(), emptyList.Data)
-	var defaultTime time.Time
-	assert.NotEqual(rest.T(), defaultTime.Format(time.RFC1123), res.Header().Get(app.LastModified))
-	assert.Equal(rest.T(), app.GenerateEmptyTag(), res.Header().Get(app.ETag))
 }
 
 func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {

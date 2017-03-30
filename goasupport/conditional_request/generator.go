@@ -284,7 +284,7 @@ func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalRespon
 }
 
 func doConditionalEntities(ctx ConditionalRequestContext, entities []ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
-	var lastModified time.Time 
+	var lastModified time.Time
 	var eTag string
 	if len(entities) > 0 {
 		for _, entity := range entities {
@@ -292,13 +292,13 @@ func doConditionalEntities(ctx ConditionalRequestContext, entities []Conditional
 				lastModified = entity.GetLastModified()
 			}
 		}
-		eTag := GenerateEntitiesTag(entities)
-		ctx.setLastModified(lastModified)
-		ctx.setETag(eTag)
+		eTag = GenerateEntitiesTag(entities)
 	} else {
-		ctx.setETag(GenerateEmptyTag())
-		ctx.setLastModified(time.Now())
+		eTag = GenerateEmptyTag()
+		lastModified = time.Now()
 	}
+	ctx.setLastModified(lastModified)
+	ctx.setETag(eTag)
 	cacheControl := cacheControlConfig()
 	ctx.setCacheControl(cacheControl)
 	if !modifiedSince(ctx, lastModified) {
