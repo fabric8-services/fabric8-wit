@@ -479,6 +479,11 @@ func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (s
 	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
 	}
+	xForwardProto := req.Header.Get("X-Forwarded-Proto")
+	if xForwardProto != "" {
+		scheme = xForwardProto
+	}
+
 	newHost, err := rest.ReplaceDomainPrefix(req.Host, c.GetKeycloakDomainPrefix())
 	if err != nil {
 		return "", err
