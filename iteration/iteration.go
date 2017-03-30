@@ -202,10 +202,21 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 	return &i, nil
 }
 
-// CanStartIteration checks the rule - Only one iteration from a space can have state=start at a time.
+// CanStartIteration checks the rule -
+// 1. Only one iteration from a space can have state=start at a time.
+// 2. Root iteration of the space can not be started.(Hence can not be closed - via UI)
+// Currently there is no State-machine for state transitions of iteraitons
+// till then we will not allow user to start root iteration.
 // More rules can be added as needed in this function
 func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iteration) (bool, error) {
 	var count int64
+	rootItr, err := m.RootIteration(ctx, i.SpaceID)
+	if err != nil {
+		return false, err
+	}
+	if i.ID == rootItr.ID {
+		return false, errors.NewBadParameterError("iteration", "Root iteration can not be started.")
+	}
 	m.db.Model(&Iteration{}).Where("space_id=? and state=?", i.SpaceID, IterationStateStart).Count(&count)
 	if count != 0 {
 		log.Error(ctx, map[string]interface{}{
