@@ -54,17 +54,14 @@ type searchBlackBoxTest struct {
 }
 
 func (s *searchBlackBoxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
 	var err error
-	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
 	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if wibConfiguration.GetPopulateCommonTypes() {
+	if s.Configuration.GetPopulateCommonTypes() {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			s.ctx = migration.NewMigrationContext(context.Background())
 			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
@@ -72,7 +69,6 @@ func (s *searchBlackBoxTest) SetupSuite() {
 			panic(err.Error())
 		}
 	}
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
@@ -80,6 +76,10 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
+}
+
+func (s *searchBlackBoxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {
@@ -336,7 +336,7 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, hos
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	// service := getServiceAsUser(s.testIdentity)
-	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI.Data.Relationships.Space.Data.ID.String(), newWI)

@@ -157,7 +157,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	require.NotNil(s.T(), s.svc)
-	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB))
+	s.workItemCtrl = NewWorkitemController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 	// Create a work item link space
 	createSpacePayload := CreateSpacePayload("test-space", "description")

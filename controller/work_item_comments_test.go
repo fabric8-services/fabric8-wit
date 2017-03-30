@@ -48,7 +48,7 @@ func (rest *TestCommentREST) SetupTest() {
 	resource.Require(rest.T(), resource.Database)
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestCommentREST setup user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
 	req := &http.Request{Host: "localhost"}

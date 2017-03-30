@@ -59,7 +59,7 @@ func (rest *TestSpaceIterationREST) SetupSuite() {
 		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
 	})
 	require.Nil(rest.T(), err)
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
 }
@@ -163,7 +163,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfMod
 	spaceID, fatherIteration, childIteration, grandChildIteration := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()
 	// when
-	idModifiedSince := fatherIteration.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	idModifiedSince := app.ToHTTPTime(fatherIteration.UpdatedAt.Add(-1 * time.Hour))
 	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &idModifiedSince, nil)
 	// then
 	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
