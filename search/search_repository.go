@@ -6,23 +6,17 @@ import (
 
 	"golang.org/x/net/context"
 
-	"strconv"
-
 	"strings"
 
 	"regexp"
 
 	"net/url"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -47,32 +41,6 @@ func NewGormSearchRepository(db *gorm.DB) *GormSearchRepository {
 
 func generateSearchQuery(q string) (string, error) {
 	return q, nil
-}
-
-func convertFromModel(request *goa.RequestData, wiType workitem.WorkItemType, workItem workitem.WorkItem) (*app.WorkItem, error) {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(workItem.SpaceID.String()))
-	result := app.WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
-		Type:    workItem.Type,
-		Version: workItem.Version,
-		Fields:  map[string]interface{}{},
-		Relationships: &app.WorkItemRelationships{
-			Space: space.NewSpaceRelation(workItem.SpaceID, spaceSelfURL),
-		},
-	}
-
-	for name, field := range wiType.Fields {
-		if name == workitem.SystemCreatedAt {
-			continue
-		}
-		var err error
-		result.Fields[name], err = field.ConvertFromModel(name, workItem.Fields[name])
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-	}
-
-	return &result, nil
 }
 
 //searchKeyword defines how a decomposed raw search query will look like
@@ -284,8 +252,8 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
-	db := r.db.Model(workitem.WorkItem{}).Where("tsv @@ query")
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int) ([]workitem.WorkItemStorage, uint64, error) {
+	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
 			return nil, 0, errors.NewBadParameterError("start", *start)
@@ -303,13 +271,13 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 		query := fmt.Sprintf("%[1]s.type in ("+
 			"select distinct subtype.id from %[2]s subtype "+
 			"join %[2]s supertype on subtype.path <@ supertype.path "+
-			"where supertype.id in (?))", workitem.WorkItem{}.TableName(), workitem.WorkItemType{}.TableName())
+			"where supertype.id in (?))", workitem.WorkItemStorage{}.TableName(), workitem.WorkItemType{}.TableName())
 		db = db.Where(query, workItemTypes)
 	}
 
 	db = db.Select("count(*) over () as cnt2 , *")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItem{}.TableName()))
+	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItemStorage{}.TableName()))
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -317,8 +285,8 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 	}
 	defer rows.Close()
 
-	result := []workitem.WorkItem{}
-	value := workitem.WorkItem{}
+	result := []workitem.WorkItemStorage{}
+	value := workitem.WorkItemStorage{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -355,7 +323,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 }
 
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int) ([]*app.WorkItem, uint64, error) {
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -365,12 +333,12 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	}
 
 	sqlSearchQueryParameter := generateSQLSearchInfo(parsedSearchDict)
-	var rows []workitem.WorkItem
+	var rows []workitem.WorkItemStorage
 	rows, count, err := r.search(ctx, sqlSearchQueryParameter, parsedSearchDict.workItemTypes, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	result := make([]*app.WorkItem, len(rows))
+	result := make([]workitem.WorkItem, len(rows))
 
 	for index, value := range rows {
 		var err error
@@ -379,10 +347,11 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		result[index], err = convertFromModel(goa.ContextRequest(ctx), *wiType, value)
+		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}
+		result[index] = *wiModel
 	}
 
 	return result, count, nil

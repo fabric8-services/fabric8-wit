@@ -1,14 +1,12 @@
 package link
 
 import (
-	"github.com/almighty/almighty-core/app"
+	"time"
+
 	convert "github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 
-	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -161,121 +159,12 @@ func CheckValidTopology(t string) error {
 	return nil
 }
 
-// ConvertLinkTypeFromModel converts a work item link type from model to REST representation
-func ConvertLinkTypeFromModel(request *goa.RequestData, t WorkItemLinkType) app.WorkItemLinkTypeSingle {
-	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(t.SpaceID.String()))
-
-	var converted = app.WorkItemLinkTypeSingle{
-		Data: &app.WorkItemLinkTypeData{
-			Type: EndpointWorkItemLinkTypes,
-			ID:   &t.ID,
-			Attributes: &app.WorkItemLinkTypeAttributes{
-				Name:        &t.Name,
-				Description: t.Description,
-				Version:     &t.Version,
-				ForwardName: &t.ForwardName,
-				ReverseName: &t.ReverseName,
-				Topology:    &t.Topology,
-			},
-			Relationships: &app.WorkItemLinkTypeRelationships{
-				LinkCategory: &app.RelationWorkItemLinkCategory{
-					Data: &app.RelationWorkItemLinkCategoryData{
-						Type: EndpointWorkItemLinkCategories,
-						ID:   t.LinkCategoryID,
-					},
-				},
-				SourceType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: EndpointWorkItemTypes,
-						ID:   t.SourceTypeID,
-					},
-				},
-				TargetType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: EndpointWorkItemTypes,
-						ID:   t.TargetTypeID,
-					},
-				},
-				Space: space.NewSpaceRelation(t.SpaceID, spaceSelfURL),
-			},
-		},
-	}
-	return converted
+// GetETagData returns the field values to use to generate the ETag
+func (t WorkItemLinkType) GetETagData() []interface{} {
+	return []interface{}{t.ID, t.Version}
 }
 
-// ConvertLinkTypeToModel converts the incoming app representation of a work item link type to the model layout.
-// Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
-func ConvertLinkTypeToModel(in app.WorkItemLinkTypeSingle, out *WorkItemLinkType) error {
-	if in.Data == nil {
-		return errors.NewBadParameterError("data", nil).Expected("not <nil>")
-	}
-	if in.Data.Attributes == nil {
-		return errors.NewBadParameterError("data.attributes", nil).Expected("not <nil>")
-	}
-	if in.Data.Relationships == nil {
-		return errors.NewBadParameterError("data.relationships", nil).Expected("not <nil>")
-	}
-
-	attrs := in.Data.Attributes
-	rel := in.Data.Relationships
-
-	if in.Data.ID != nil {
-		out.ID = *in.Data.ID
-	}
-
-	if attrs != nil {
-		// If the name is not nil, it MUST NOT be empty
-		if attrs.Name != nil {
-			if *attrs.Name == "" {
-				return errors.NewBadParameterError("data.attributes.name", *attrs.Name)
-			}
-			out.Name = *attrs.Name
-		}
-
-		if attrs.Description != nil {
-			out.Description = attrs.Description
-		}
-
-		if attrs.Version != nil {
-			out.Version = *attrs.Version
-		}
-
-		// If the forwardName is not nil, it MUST NOT be empty
-		if attrs.ForwardName != nil {
-			if *attrs.ForwardName == "" {
-				return errors.NewBadParameterError("data.attributes.forward_name", *attrs.ForwardName)
-			}
-			out.ForwardName = *attrs.ForwardName
-		}
-
-		// If the ReverseName is not nil, it MUST NOT be empty
-		if attrs.ReverseName != nil {
-			if *attrs.ReverseName == "" {
-				return errors.NewBadParameterError("data.attributes.reverse_name", *attrs.ReverseName)
-			}
-			out.ReverseName = *attrs.ReverseName
-		}
-
-		if attrs.Topology != nil {
-			if err := CheckValidTopology(*attrs.Topology); err != nil {
-				return errs.WithStack(err)
-			}
-			out.Topology = *attrs.Topology
-		}
-	}
-
-	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
-		out.LinkCategoryID = rel.LinkCategory.Data.ID
-	}
-	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		out.SourceTypeID = rel.SourceType.Data.ID
-	}
-	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		out.TargetTypeID = rel.TargetType.Data.ID
-	}
-	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
-		out.SpaceID = *rel.Space.Data.ID
-	}
-
-	return nil
+// GetLastModified returns the last modification time
+func (t WorkItemLinkType) GetLastModified() time.Time {
+	return t.UpdatedAt.Truncate(time.Second)
 }

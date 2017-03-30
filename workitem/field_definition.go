@@ -8,7 +8,8 @@ import (
 	"strings"
 
 	"github.com/almighty/almighty-core/convert"
-	"github.com/pkg/errors"
+
+	errs "github.com/pkg/errors"
 )
 
 // constants for describing possible field types
@@ -32,8 +33,8 @@ const (
 // Kind is the kind of field type
 type Kind string
 
-// FieldType describes the possible values of a FieldDefinition
-func (k Kind) isSimpleType() bool {
+// IsSimpleType returns 'true' if the kind is simple, i.e., not a list nor an enum
+func (k Kind) IsSimpleType() bool {
 	return k != KindEnum && k != KindList
 }
 
@@ -135,38 +136,64 @@ func (f *FieldDefinition) UnmarshalJSON(bytes []byte) error {
 
 	err := json.Unmarshal(bytes, &temp)
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	rawType := map[string]interface{}{}
 	json.Unmarshal(*temp.Type, &rawType)
-
-	kind, err := convertAnyToKind(rawType["Kind"])
+	kind, err := ConvertAnyToKind(rawType["Kind"])
 
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	switch *kind {
 	case KindList:
 		theType := ListType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
 	case KindEnum:
 		theType := EnumType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
 	default:
 		theType := SimpleType{}
 		err = json.Unmarshal(*temp.Type, &theType)
 		if err != nil {
-			return errors.WithStack(err)
+			return errs.WithStack(err)
 		}
 		*f = FieldDefinition{Type: theType, Required: temp.Required, Label: temp.Label, Description: temp.Description}
 	}
 	return nil
+}
+
+func ConvertAnyToKind(any interface{}) (*Kind, error) {
+	k, ok := any.(string)
+	if !ok {
+		return nil, fmt.Errorf("kind is not a string value %v", any)
+	}
+	return ConvertStringToKind(k)
+}
+
+func ConvertStringToKind(k string) (*Kind, error) {
+	kind := Kind(k)
+	switch kind {
+	case KindString, KindInteger, KindFloat, KindInstant, KindDuration, KindURL, KindWorkitemReference, KindUser, KindEnum, KindList, KindIteration, KindMarkup, KindArea, KindCodebase:
+		return &kind, nil
+	}
+	return nil, fmt.Errorf("kind '%s' is not a simple type", k)
+}
+
+// compatibleFields returns true if the existing and new field are compatible;
+// otherwise false is returned. It does so by comparing all members of the field
+// definition except for the label and description.
+func compatibleFields(existing FieldDefinition, new FieldDefinition) bool {
+	if existing.Required != new.Required {
+		return false
+	}
+	return reflect.DeepEqual(existing.Type, new.Type)
 }

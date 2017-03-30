@@ -1,83 +1,48 @@
 package workitem
 
 import (
-	"strconv"
+	"time"
 
-	"github.com/almighty/almighty-core/convert"
-	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport"
-
+	"github.com/Sirupsen/logrus"
 	uuid "github.com/satori/go.uuid"
 )
 
-// WorkItem represents a work item as it is stored in the database
+// WorkItem the model structure for the work item.
 type WorkItem struct {
-	gormsupport.Lifecycle
-	ID uint64 `gorm:"primary_key"`
-	// Id of the type of this work item
-	Type uuid.UUID `sql:"type:uuid"`
+	// unique id per installation
+	ID string
+	// ID of the type of this work item
+	Type uuid.UUID
 	// Version for optimistic concurrency control
 	Version int
-	// the field values
-	Fields Fields `sql:"type:jsonb"`
-	// the position of workitem
-	ExecutionOrder float64
-	// Reference to one Space
-	SpaceID uuid.UUID `sql:"type:uuid"`
+	// ID of the space to which this work item belongs
+	SpaceID uuid.UUID
+	// The field values, according to the field type
+	Fields map[string]interface{}
 }
 
-const (
-	workitemTableName = "work_items"
-)
-
-// TableName implements gorm.tabler
-func (w WorkItem) TableName() string {
-	return workitemTableName
-}
-
-// Ensure WorkItem implements the Equaler interface
-var _ convert.Equaler = WorkItem{}
-var _ convert.Equaler = (*WorkItem)(nil)
-
-// Equal returns true if two WorkItem objects are equal; otherwise false is returned.
-func (wi WorkItem) Equal(u convert.Equaler) bool {
-	other, ok := u.(WorkItem)
-	if !ok {
-		return false
-	}
-	if !wi.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
-
-	if !uuid.Equal(wi.Type, other.Type) {
-		return false
-	}
-	if wi.ID != other.ID {
-		return false
-	}
-	if wi.Version != other.Version {
-		return false
-	}
-	if wi.ExecutionOrder != other.ExecutionOrder {
-		return false
-	}
-	if wi.SpaceID != other.SpaceID {
-		return false
-	}
-	return wi.Fields.Equal(other.Fields)
-}
-
-// ParseWorkItemIDToUint64 does what it says
-func ParseWorkItemIDToUint64(wiIDStr string) (uint64, error) {
-	wiID, err := strconv.ParseUint(wiIDStr, 10, 64)
-	if err != nil {
-		return 0, errors.NewNotFoundError("work item ID", wiIDStr)
-	}
-	return wiID, nil
-}
-
+// WICountsPerIteration counting work item states by iteration
 type WICountsPerIteration struct {
 	IterationId string `gorm:"column:iterationid"`
 	Total       int
 	Closed      int
+}
+
+// GetETagData returns the field values to use to generate the ETag
+func (wi WorkItem) GetETagData() []interface{} {
+	return []interface{}{wi.ID, wi.Version}
+}
+
+// GetLastModified returns the last modification time
+func (wi WorkItem) GetLastModified() time.Time {
+	if updatedAt, ok := wi.Fields[SystemUpdatedAt]; ok {
+		switch updatedAt := updatedAt.(type) {
+		case time.Time:
+			return updatedAt
+		default:
+			logrus.Info("'system.update_at' field value is not a valid time for work item with ID=" + wi.ID)
+		}
+	}
+	// fallback value if none/no valid data was found.
+	return time.Now()
 }

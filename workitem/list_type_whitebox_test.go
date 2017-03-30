@@ -19,7 +19,7 @@ func TestConvertList(t *testing.T) {
 
 	// Test case that value is not not an array or a string
 	val1 := "foo"
-	res, err := convertList(dummyConverter, SimpleType{Kind: KindString}, val1)
+	res, err := ConvertList(dummyConverter, SimpleType{Kind: KindString}, val1)
 	assert.NotNil(t, err)
 	assert.Nil(t, res)
 	assert.Equal(t, fmt.Sprintf(stErrorNotArrayOrSlice, val1, reflect.TypeOf(val1).Name()), err.Error())
