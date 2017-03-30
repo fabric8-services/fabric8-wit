@@ -74,6 +74,7 @@ const (
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
+	varValidRedirectURLs                = "redirect.valid"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -511,6 +512,19 @@ func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
 }
 
+// GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
+// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+// In prod mode the default regex will be returned
+func (c *ConfigurationData) GetValidRedirectURLs() string {
+	if c.v.IsSet(varValidRedirectURLs) {
+		return c.v.GetString(varValidRedirectURLs)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return devModeValidRedirectURLs
+	}
+	return DefaultValidRedirectURL
+}
+
 const (
 	// Auth-related defaults
 
@@ -576,6 +590,12 @@ ZwIDAQAB
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 	defaultCheStarterURL            = "che-server"
+
+	// DefaultValidRedirectURL is a regex to be used to whitelist redirect URL for auth
+	// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+	// In prod mode the following regex will be used by default:
+	DefaultValidRedirectURL  = "^(https|http)://([^/]+[.])?(?i:openshift[.]io)(/.*)?$" // *.openshift.io/*
+	devModeValidRedirectURLs = ".*"
 )
 
 // ActualToken is actual OAuth access token of github

@@ -32,6 +32,7 @@ type loginConfiguration interface {
 	GetKeycloakTestUserSecret() string
 	GetKeycloakTestUser2Name() string
 	GetKeycloakTestUser2Secret() string
+	GetValidRedirectURLs() string
 }
 
 // LoginController implements the login resource.
@@ -72,7 +73,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		}, "Unable to get Keycloak broker endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak broker endpoint URL. "+err.Error()))
 	}
-	return c.auth.Perform(ctx, authEndpoint, tokenEndpoint, brokerEndpoint)
+	return c.auth.Perform(ctx, authEndpoint, tokenEndpoint, brokerEndpoint, c.configuration.GetValidRedirectURLs())
 }
 
 // Refresh obtain a new access token using the refresh token.
@@ -129,7 +130,7 @@ func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 	}
 	clientID := c.configuration.GetKeycloakClientID()
 
-	return c.auth.Link(ctx, brokerEndpoint, clientID)
+	return c.auth.Link(ctx, brokerEndpoint, clientID, c.configuration.GetValidRedirectURLs())
 }
 
 // Linksession links identity provider(s) to the user's account
@@ -143,7 +144,7 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 	}
 	clientID := c.configuration.GetKeycloakClientID()
 
-	return c.auth.LinkSession(ctx, brokerEndpoint, clientID)
+	return c.auth.LinkSession(ctx, brokerEndpoint, clientID, c.configuration.GetValidRedirectURLs())
 }
 
 // Linkcallback redirects to original referel when Identity Provider account are linked to the user account
