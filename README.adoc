@@ -21,7 +21,6 @@ You need to install:
 
 * `go` (>= v1.7)
 * `git`
-* `mercurial`
 * `make`
 
 ==== Check your Go version [[check-go-version]]

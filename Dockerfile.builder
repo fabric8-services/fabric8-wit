@@ -8,7 +8,6 @@ RUN yum --enablerepo=centosplus install -y \
       git \
       golang \
       make \
-      mercurial \
       procps-ng \
       tar \
       wget \
