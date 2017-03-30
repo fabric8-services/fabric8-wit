@@ -30,6 +30,7 @@ function install_deps() {
     curl
 
   service docker start
+
   echo 'CICO: Dependencies installed'
 }
 
@@ -55,18 +56,33 @@ function run_tests_without_coverage() {
   make docker-test-unit-no-coverage
   make integration-test-env-prepare
   trap cleanup_env EXIT
+
+  # Check that postgresql container is healthy
+  check_postgres_healthiness
+
   make docker-test-migration
   make docker-test-integration-no-coverage
   make docker-test-remote-no-coverage
   echo "CICO: ran tests without coverage"
 }
 
+function check_postgres_healthiness(){
+  echo "CICO: Waiting for postgresql container to be healthy...";
+  while ! docker ps | grep postgres_integration_test | grep -q healthy; do
+    printf .;
+    sleep 1 ;
+  done;
+  echo "CICO: postgresql container is HEALTHY!";
+}
+
 function run_tests_with_coverage() {
   # Run the unit tests that generate coverage information
   make docker-test-unit
-
   make integration-test-env-prepare
   trap cleanup_env EXIT
+
+  # Check that postgresql container is healthy
+  check_postgres_healthiness
 
   # Run the integration tests that generate coverage information
   make docker-test-migration
