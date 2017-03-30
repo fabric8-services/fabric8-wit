@@ -48,7 +48,8 @@ func (s *TestUsersSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.svc = goa.New("test")
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.configuration, err = config.GetConfigurationData()
+	configData, err := config.GetConfigurationData()
+	s.configuration = configData
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
@@ -123,7 +124,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("OK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
