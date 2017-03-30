@@ -193,6 +193,7 @@ clean-generated:
 	-rm -f ./bindata_assetfs.go
 	-rm -f ./migration/sqlbindata.go
 	-rm -f ./migration/sqlbindata_test.go
+	-rm -f ./account/tenant
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor
@@ -221,6 +222,7 @@ app/controllers.go: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)
 	$(GOAGEN_BIN) gen -d ${PACKAGE_NAME}/${DESIGN_DIR} --pkg-path=${PACKAGE_NAME}/goasupport/helper_function --out app
 	$(GOAGEN_BIN) client -d ${PACKAGE_NAME}/${DESIGN_DIR}
 	$(GOAGEN_BIN) swagger -d ${PACKAGE_NAME}/${DESIGN_DIR}
+	$(GOAGEN_BIN) client -d github.com/fabric8io/fabric8-init-tenant/design --notool --pkg tenant -o account
 
 
 assets/js/client.js: $(DESIGNS) $(GOAGEN_BIN) $(VENDOR_DIR)

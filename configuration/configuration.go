@@ -85,6 +85,7 @@ const (
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
 	varLogLevel                         = "log.level"
+	varTenantServiceURL                 = "tenant.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -602,6 +603,11 @@ func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData
 	return DefaultValidRedirectURLs, nil
 }
 
+// GetTenantServiceURL returns the URL for the Tenant service used by login to initialize OSO tenant space
+func (c *ConfigurationData) GetTenantServiceURL() string {
+	return c.v.GetString(varTenantServiceURL)
+}
+
 const (
 	defaultHeaderMaxLength = 5000 // bytes
 
@@ -680,6 +686,7 @@ ZwIDAQAB
 	// Allow redirects to localhost when running in prod-preveiw
 	localhostRedirectURLs      = "(" + DefaultValidRedirectURLs + "|^(https|http)://([^/]+[.])?(localhost|127[.]0[.]0[.]1)(:\\d+)?(/.*)?$)" // *.openshift.io/* or localhost/* or 127.0.0.1/*
 	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(:\\d+)?(/.*)?$"                             // *.prod-preview.openshift.io/*
+
 )
 
 // ActualToken is actual OAuth access token of github
