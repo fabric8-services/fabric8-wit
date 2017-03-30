@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"crypto/tls"
 	"testing"
 
 	"net/http"
@@ -9,6 +8,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAbsoluteURLOK(t *testing.T) {
@@ -19,13 +19,17 @@ func TestAbsoluteURLOK(t *testing.T) {
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	// HTTP
-	url := AbsoluteURL(req, "/testpath")
-	assert.Equal(t, "http://api.service.domain.org/testpath", url)
-	req.TLS = &tls.ConnectionState{}
+	urlStr := AbsoluteURL(req, "/testpath")
+	assert.Equal(t, "http://api.service.domain.org/testpath", urlStr)
 
 	// HTTPS
-	url = AbsoluteURL(req, "/testpath2")
-	assert.Equal(t, "https://api.service.domain.org/testpath2", url)
+	r, err := http.NewRequest("", "https://api.service.domain.org", nil)
+	require.Nil(t, err)
+	req = &goa.RequestData{
+		Request: r,
+	}
+	urlStr = AbsoluteURL(req, "/testpath2")
+	assert.Equal(t, "https://api.service.domain.org/testpath2", urlStr)
 }
 
 func TestReplaceDomainPrefixOK(t *testing.T) {
