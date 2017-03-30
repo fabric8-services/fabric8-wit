@@ -468,7 +468,7 @@ func (c *ConfigurationData) openIDConnectPath(suffix string) string {
 
 func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (string, error) {
 	scheme := "http"
-	if req.TLS != nil { // isHTTPS
+	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
 	}
 	newHost, err := rest.ReplaceDomainPrefix(req.Host, c.GetKeycloakDomainPrefix())
@@ -550,7 +550,7 @@ ZwIDAQAB
 	defaultKeycloakTesUser2Secret = "testuser2"
 
 	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
-	devModeKeycloakURL   = "http://sso.prod-preview.openshift.io"
+	devModeKeycloakURL   = "https://sso.prod-preview.openshift.io"
 	devModeKeycloakRealm = "fabric8-test"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
