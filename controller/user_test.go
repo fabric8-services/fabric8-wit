@@ -73,7 +73,7 @@ func TestCurrentAuthorizedOK(t *testing.T) {
 	jwtToken.Claims.(token.MapClaims)["sub"] = uuid.NewV4().String()
 	ctx := jwt.WithJWT(context.Background(), jwtToken)
 
-	usr := account.User{FullName: "Test User", ImageURL: "someURL", Email: "email@domain.com", ID: uuid.NewV4()}
+	usr := account.User{FullName: "TestCurrentAuthorizedOK User", ImageURL: "someURL", Email: "email@domain.com", ID: uuid.NewV4()}
 	ident := account.Identity{ID: uuid.NewV4(), Username: "TestUser", ProviderType: account.KeycloakIDP, User: usr, UserID: account.NullUUID{UUID: usr.ID, Valid: true}}
 	controller := newUserController(&ident, &usr)
 	_, identity := test.ShowUserOK(t, ctx, nil, controller)

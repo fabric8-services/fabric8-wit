@@ -15,7 +15,6 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,10 +38,7 @@ type TestUsersSuite struct {
 }
 
 func (s *TestUsersSuite) SetupSuite() {
-	var err error
-	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	s.DBTestSuite.SetupSuite()
 	s.svc = goa.New("test")
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.controller = NewUsersController(s.svc, s.db)
@@ -50,7 +46,11 @@ func (s *TestUsersSuite) SetupSuite() {
 	s.identityRepo = s.db.Identities()
 }
 
-func (s *TestUsersSuite) TearDownSuite() {
+func (s *TestUsersSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (s *TestUsersSuite) TearDownTest() {
 	s.clean()
 }
 
@@ -63,7 +63,7 @@ func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Serv
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserOK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
@@ -73,7 +73,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "newFull Name"
+	newFullName := "TestUpdateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
@@ -114,7 +114,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserUnsetVariableInContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
@@ -124,7 +124,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "newFull Name"
+	newFullName := "TestUpdateUserUnsetVariableInContextInfo"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
@@ -185,7 +185,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
@@ -195,7 +195,7 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
-	newFullName := "newFull Name"
+	newFullName := "TestUpdateUserOKWithoutContextInfo"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
@@ -207,7 +207,7 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 
 func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserUnauthorized")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
@@ -216,7 +216,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
 	newEmail := "updated@email.com"
-	newFullName := "newFull Name"
+	newFullName := "TestUpdateUserUnauthorized"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
@@ -232,7 +232,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 
 func (s *TestUsersSuite) TestShowUserOK() {
 	// given user
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestShowUserOK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
@@ -246,11 +246,11 @@ func (s *TestUsersSuite) TestShowUserOK() {
 
 func (s *TestUsersSuite) TestListUsersOK() {
 	// given user1
-	user1 := s.createRandomUser()
+	user1 := s.createRandomUser("TestListUsersOK1")
 	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
 	identity12 := s.createRandomIdentity(user1, "github-test")
 	// given user2
-	user2 := s.createRandomUser()
+	user2 := s.createRandomUser("TestListUsersOK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller)
@@ -264,10 +264,10 @@ func (s *TestUsersSuite) TestListUsersOK() {
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
 }
 
-func (s *TestUsersSuite) createRandomUser() account.User {
+func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 	user := account.User{
 		Email:    uuid.NewV4().String() + "primaryForUpdat7e@example.com",
-		FullName: "A test user",
+		FullName: fullname,
 		ImageURL: "someURLForUpdate",
 		ID:       uuid.NewV4(),
 	}
