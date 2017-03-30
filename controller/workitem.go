@@ -3,7 +3,6 @@ package controller
 import (
 	"fmt"
 	"html"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -480,9 +479,7 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 	sourceLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+sourceLinkTypesRouteEnd)
 	targetLinkTypesURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), wi.Type)+targetLinkTypesRouteEnd)
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(wi.SpaceID.String()))
-	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
-		Request: &http.Request{Host: "api.service.domain.org"},
-	}, app.WorkitemtypeHref(wi.SpaceID.String(), APIStringTypeWorkItemType))
+	witSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(wi.SpaceID.String(), APIStringTypeWorkItemType))
 
 	op := &app.WorkItem{
 		ID:   &wi.ID,
