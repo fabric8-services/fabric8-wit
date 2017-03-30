@@ -9,6 +9,10 @@ import (
 	"github.com/almighty/almighty-core/errors"
 )
 
+const ImageURLAttributeName = "ImageURL"
+const BioAttributeName = "Bio"
+const URLAttributeName = "URL"
+
 // KeycloakUserProfile represents standard Keycloak User profile api request payload
 type KeycloakUserProfile struct {
 	ID         *string                        `json:"id,omitempty"`
@@ -21,45 +25,37 @@ type KeycloakUserProfile struct {
 }
 
 // KeycloakUserProfileAttributes represents standard Keycloak profile payload Attributes
-type KeycloakUserProfileAttributes struct {
+type KeycloakUserProfileAttributes map[string][]string
+
+/* struct {
 	Bio      *string `json:"bio,omitempty"`
 	URL      *string `json:"url,omitempty"`
 	ImageURL *string `json:"image_url,omitempty"`
-}
+} */
 
 //KeycloakUserProfileResponse represents the user profile api response from keycloak
 type KeycloakUserProfileResponse struct {
-	ID                         *string                                `json:"id"`
-	CreatedTimestamp           *int64                                 `json:"createdTimestamp"`
-	Username                   *string                                `json:"username"`
-	Enabled                    *bool                                  `json:"enabled"`
-	Totp                       *bool                                  `json:"totp"`
-	EmailVerified              *bool                                  `json:"emailVerified"`
-	FirstName                  *string                                `json:"firstName"`
-	LastName                   *string                                `json:"lastName"`
-	Email                      *string                                `json:"email"`
-	Attributes                 *KeycloakUserProfileResponseAttributes `json:"attributes"`
-	DisableableCredentialTypes []*string                              `json:"disableableCredentialTypes"`
-	RequiredActions            []interface{}                          `json:"requiredActions"`
-}
-
-type KeycloakUserProfileResponseAttributes struct {
-	Bio      []*string `json:"bio"`
-	ImageURL []*string `json:"image_url"`
-	URL      []*string `json:"url"`
+	ID                         *string                        `json:"id"`
+	CreatedTimestamp           *int64                         `json:"createdTimestamp"`
+	Username                   *string                        `json:"username"`
+	Enabled                    *bool                          `json:"enabled"`
+	Totp                       *bool                          `json:"totp"`
+	EmailVerified              *bool                          `json:"emailVerified"`
+	FirstName                  *string                        `json:"firstName"`
+	LastName                   *string                        `json:"lastName"`
+	Email                      *string                        `json:"email"`
+	Attributes                 *KeycloakUserProfileAttributes `json:"attributes"`
+	DisableableCredentialTypes []*string                      `json:"disableableCredentialTypes"`
+	RequiredActions            []interface{}                  `json:"requiredActions"`
 }
 
 // NewKeycloakUserProfile creates a new keycloakUserProfile instance.
-func NewKeycloakUserProfile(firstName, lastName, email, bio, url, imageURL *string) *KeycloakUserProfile {
+func NewKeycloakUserProfile(firstName *string, lastName *string, email *string, attributes *KeycloakUserProfileAttributes) *KeycloakUserProfile {
 	return &KeycloakUserProfile{
-		FirstName: firstName,
-		LastName:  lastName,
-		Email:     email,
-		Attributes: &KeycloakUserProfileAttributes{
-			Bio:      bio,
-			URL:      url,
-			ImageURL: imageURL,
-		},
+		FirstName:  firstName,
+		LastName:   lastName,
+		Email:      email,
+		Attributes: attributes,
 	}
 }
 
@@ -120,9 +116,12 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("bad status code %d", resp.StatusCode)
 		return nil, errors.NewInternalError(fmt.Sprintf("The request to %s returned a bad response %s", keycloakProfileURL, resp.Status))
 	}
 	if err != nil {
+		fmt.Println("bad status code" + err.Error())
+
 		return nil, errors.NewInternalError(err.Error())
 	}
 	err = json.NewDecoder(resp.Body).Decode(&keycloakUserProfileResponse)

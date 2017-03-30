@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -138,24 +139,35 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
 	assert.Nil(s.T(), err)
+	fmt.Println(*token)
 
 	// Use the token to update user profile
-	keycloakUserProfileData := login.KeycloakUserProfile{}
-	keycloakUserProfileData.Attributes = &login.KeycloakUserProfileAttributes{}
+	//keycloakUserProfileData := login.KeycloakUserProfile{}
+	//keycloakUserProfileData.Attributes = &login.KeycloakUserProfileAttributes{}
 
-	testFirstName := "updatedFirstNameAgain"
-	testLastName := "updatedLastName"
+	testFirstName := "updatedFirstNameAgainNew"
+	testLastName := "updatedLastNameNew"
 	testEmail := "updatedEmail"
-	testBio := "updatedBio"
-	testURL := "updatedURL"
+	testBio := "updatedBioNew"
+	testURL := "updatedURLNew"
 	testImageURL := "updatedBio"
 
-	keycloakUserProfileData.FirstName = &testFirstName
-	keycloakUserProfileData.LastName = &testLastName
-	keycloakUserProfileData.Email = &testEmail
-	keycloakUserProfileData.Attributes.Bio = &testBio
-	keycloakUserProfileData.Attributes.URL = &testURL
-	keycloakUserProfileData.Attributes.ImageURL = &testImageURL
+	testKeycloakUserProfileAttributes := &login.KeycloakUserProfileAttributes{
+		login.ImageURLAttributeName: []string{testImageURL},
+		login.BioAttributeName:      []string{testBio},
+		login.URLAttributeName:      []string{testURL},
+	}
+
+	testKeycloakUserProfileData := login.NewKeycloakUserProfile(&testFirstName, &testLastName, &testEmail, testKeycloakUserProfileAttributes)
+
+	/*
+		keycloakUserProfileData.FirstName = &testFirstName
+		keycloakUserProfileData.LastName = &testLastName
+		keycloakUserProfileData.Email = &testEmail
+		//keycloakUserProfileData.Attributes.Bio = &testBio
+		(*keycloakUserProfileData.Attributes)["URL"] = &testURL
+		(*keycloakUserProfileData.Attributes)["ImageURL"] = &testImageURL
+	*/
 
 	// TODO: take from configuration
 	r := &goa.RequestData{
@@ -165,7 +177,7 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), "http://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account", profileAPIURL)
 
-	err = s.profileService.Update(&keycloakUserProfileData, *token, profileAPIURL)
+	err = s.profileService.Update(testKeycloakUserProfileData, *token, profileAPIURL)
 	require.Nil(s.T(), err)
 
 	// Do a GET on the user profile
@@ -174,7 +186,7 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), retrievedkeycloakUserProfileData)
 
-	fmt.Println(retrievedkeycloakUserProfileData)
+	fmt.Println(*retrievedkeycloakUserProfileData)
 
 	assert.Equal(s.T(), testFirstName, *retrievedkeycloakUserProfileData.FirstName)
 	assert.Equal(s.T(), testLastName, *retrievedkeycloakUserProfileData.LastName)
@@ -182,6 +194,9 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	// email is automatically stored in lower case
 	assert.Equal(s.T(), strings.ToLower(testEmail), *retrievedkeycloakUserProfileData.Email)
 
+	// validate Attributes
+	retrievedBio := (*retrievedkeycloakUserProfileData.Attributes)[login.BioAttributeName]
+	assert.Equal(s.T(), retrievedBio[0], testBio)
 }
 
 func (s *profileBlackBoxTest) TestKeycloakUserProfileGet() {
@@ -199,6 +214,10 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileGet() {
 
 	profile, err := s.profileService.Get(*token, profileAPIURL)
 
-	assert.Nil(s.T(), err)
+	require.Nil(s.T(), err)
 	assert.NotNil(s.T(), profile)
+
+	keys := reflect.ValueOf(*profile.Attributes).MapKeys()
+	assert.NotEqual(s.T(), len(keys), 0)
+
 }

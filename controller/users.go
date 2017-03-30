@@ -89,11 +89,31 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 
 		// prepare for updating keycloak user profile
+		tokenString := goajwt.ContextJWT(ctx).Raw
+
+		// This case shows up in tests - unable to find a way to inject an actual keycloak access token
+		if tokenString == "" {
+			log.Error(ctx, map[string]interface{}{
+				"token_string": tokenString,
+			}, "Token is empty")
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Token is empty"))
+			return ctx.Unauthorized(jerrors)
+		}
+
 		keycloakUserProfile := &login.KeycloakUserProfile{}
 		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
 
-		token := goajwt.ContextJWT(ctx)
-		tokenString := token.Raw
+		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		if keycloakUserExistingInfo.Attributes != nil {
+			// If there are existing attributes, we overwite only those
+			// handled by the Users service in platform.
+			keycloakUserProfile.Attributes = keycloakUserExistingInfo.Attributes
+		}
 
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil {
@@ -103,7 +123,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {
 			user.Bio = *updatedBio
-			keycloakUserProfile.Attributes.Bio = updatedBio
+			(*keycloakUserProfile.Attributes)[login.BioAttributeName] = []string{*updatedBio}
 		}
 		updatedFullName := ctx.Payload.Data.Attributes.FullName
 		if updatedFullName != nil {
@@ -124,12 +144,13 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
 		if updatedImageURL != nil {
 			user.ImageURL = *updatedImageURL
-			keycloakUserProfile.Attributes.ImageURL = updatedImageURL
+			(*keycloakUserProfile.Attributes)[login.ImageURLAttributeName] = []string{*updatedImageURL}
+
 		}
 		updateURL := ctx.Payload.Data.Attributes.URL
 		if updateURL != nil {
 			user.URL = *updateURL
-			keycloakUserProfile.Attributes.URL = updateURL
+			(*keycloakUserProfile.Attributes)[login.URLAttributeName] = []string{*updateURL}
 		}
 
 		// If none of the 'extra' attributes were present, we better make that section nil
@@ -154,10 +175,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 
 		err = appl.Identities().Save(ctx, identity)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

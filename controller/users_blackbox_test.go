@@ -7,12 +7,14 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/login"
 
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -67,12 +69,11 @@ func (s *TestUsersSuite) TearDownSuite() {
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 
-	svc := testsupport.ServiceAsUser("Status-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
+	svc := testsupport.ServiceAsUser("Users-Service", almtoken.NewManager(pub), identity)
 	return svc, NewUsersController(svc, s.db, s.configuration, s.profileService)
 }
-
 func (s *TestUsersSuite) TestUpdateUserOK() {
 	// given
 	user := s.createRandomUser()
@@ -182,6 +183,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	// given
 	user := s.createRandomUser()
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
@@ -341,7 +343,6 @@ func (s *TestUsersSuite) createRandomUser() account.User {
 	require.Nil(s.T(), err)
 	return user
 }
-
 func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType string) account.Identity {
 	profile := "foobarforupdate.com/" + uuid.NewV4().String() + "/" + user.ID.String()
 	identity := account.Identity{
