@@ -196,7 +196,7 @@ func main() {
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	workitemCtrl := controller.NewWorkitemController(service, appDB)
+	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
@@ -286,7 +286,7 @@ func main() {
 	app.MountNamedspacesController(service, namedSpacesCtrl)
 
 	// Mount "plannerBacklog" controller
-	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB)
+	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, configuration)
 	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
 
 	// Mount "codebase" controller

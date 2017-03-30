@@ -42,16 +42,18 @@ type TestUsersSuite struct {
 
 func (s *TestUsersSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	s.svc = goa.New("test")
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.controller = NewUsersController(s.svc, s.db, s.Configuration)
 	s.userRepo = s.db.Users()
 	s.identityRepo = s.db.Identities()
-	s.Configuration = wibConfiguration
 }
 
-func (s *TestUsersSuite) TearDownSuite() {
+func (s *TestUsersSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (s *TestUsersSuite) TearDownTest() {
 	s.clean()
 }
 
@@ -64,7 +66,7 @@ func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Serv
 
 func (s *TestUsersSuite) TestUpdateUserOK() {
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserOK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
@@ -113,7 +115,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 
 func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserUnsetVariableInContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
@@ -182,7 +184,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 
 func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
@@ -204,7 +206,7 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 
 func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 	// given
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestUpdateUserUnauthorized")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
@@ -229,7 +231,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 
 func (s *TestUsersSuite) TestShowUserOK() {
 	// given user
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestShowUserOK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
@@ -240,10 +242,10 @@ func (s *TestUsersSuite) TestShowUserOK() {
 
 func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfModifedSinceHeader() {
 	// given user
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestShowUserOKUsingExpiredIfModifedSinceHeader")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
-	ifModifiedSince := user.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(user.UpdatedAt.Add(-1 * time.Hour))
 	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), &ifModifiedSince, nil)
 	// then
 	assertUser(s.T(), result.Data, user, identity)
@@ -252,7 +254,7 @@ func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfModifedSinceHeader() {
 
 func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfNoneMatchHeader() {
 	// given user
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestShowUserOKUsingExpiredIfNoneMatchHeader")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	ifNoneMatch := "foo"
@@ -264,16 +266,16 @@ func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfNoneMatchHeader() {
 
 func (s *TestUsersSuite) TestShowUserNotModifiedUsingIfModifedSinceHeader() {
 	// given user
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestShowUserNotModifiedUsingIfModifedSinceHeader")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when/then
-	ifModifiedSince := user.UpdatedAt.UTC().Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(user.UpdatedAt.UTC())
 	test.ShowUsersNotModified(s.T(), nil, nil, s.controller, identity.ID.String(), &ifModifiedSince, nil)
 }
 
 func (s *TestUsersSuite) TestShowUserNotModifiedUsingIfNoneMatchHeader() {
 	// given user
-	user := s.createRandomUser()
+	user := s.createRandomUser("TestShowUserNotModifiedUsingIfNoneMatchHeader")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when/then
 	ifNoneMatch := app.GenerateEntityTag(user)
@@ -282,11 +284,11 @@ func (s *TestUsersSuite) TestShowUserNotModifiedUsingIfNoneMatchHeader() {
 
 func (s *TestUsersSuite) TestListUsersOK() {
 	// given user1
-	user1 := s.createRandomUser()
+	user1 := s.createRandomUser("TestListUsersOK1")
 	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
 	s.createRandomIdentity(user1, "github-test")
 	// given user2
-	user2 := s.createRandomUser()
+	user2 := s.createRandomUser("TestListUsersOK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil)
@@ -298,14 +300,14 @@ func (s *TestUsersSuite) TestListUsersOK() {
 
 func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfModifiedSinceHeader() {
 	// given user1
-	user1 := s.createRandomUser()
+	user1 := s.createRandomUser("TestListUsersOKUsingExpiredIfModifiedSinceHeader")
 	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
 	s.createRandomIdentity(user1, "github-test")
 	// given user2
-	user2 := s.createRandomUser()
+	user2 := s.createRandomUser("TestListUsersOKUsingExpiredIfModifiedSinceHeader2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
-	ifModifiedSinceHeader := user2.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
+	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt.Add(-1 * time.Hour))
 	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, &ifModifiedSinceHeader, nil)
 	// then
 	assertUser(s.T(), findUser(user1.ID, result.Data), user1, identity11)
@@ -315,11 +317,11 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfModifiedSinceHeader() {
 
 func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfNoneMatchHeader() {
 	// given user1
-	user1 := s.createRandomUser()
+	user1 := s.createRandomUser("TestListUsersOKUsingExpiredIfNoneMatchHeader")
 	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
 	s.createRandomIdentity(user1, "github-test")
 	// given user2
-	user2 := s.createRandomUser()
+	user2 := s.createRandomUser("TestListUsersOKUsingExpiredIfNoneMatchHeader2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	ifNoneMatch := "foo"
@@ -331,24 +333,24 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfNoneMatchHeader() {
 }
 func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfModifiedSinceHeader() {
 	// given user1
-	user1 := s.createRandomUser()
+	user1 := s.createRandomUser("TestListUsersNotModifiedUsingIfModifiedSinceHeader")
 	s.createRandomIdentity(user1, account.KeycloakIDP)
 	s.createRandomIdentity(user1, "github-test")
 	// given user2
-	user2 := s.createRandomUser()
+	user2 := s.createRandomUser("TestListUsersNotModifiedUsingIfModifiedSinceHeader2")
 	s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when/then
-	ifModifiedSinceHeader := user2.UpdatedAt.UTC().Format(http.TimeFormat)
+	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt)
 	test.ListUsersNotModified(s.T(), nil, nil, s.controller, &ifModifiedSinceHeader, nil)
 }
 
 func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
 	// given user1
-	user1 := s.createRandomUser()
+	user1 := s.createRandomUser("TestListUsersNotModifiedUsingIfNoneMatchHeader")
 	s.createRandomIdentity(user1, account.KeycloakIDP)
 	s.createRandomIdentity(user1, "github-test")
 	// given user2
-	user2 := s.createRandomUser()
+	user2 := s.createRandomUser("TestListUsersNotModifiedUsingIfNoneMatchHeader2")
 	s.createRandomIdentity(user2, account.KeycloakIDP)
 	_, allUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil)
 	// when/then
@@ -356,10 +358,10 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
 	test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, &ifNoneMatch)
 }
 
-func (s *TestUsersSuite) createRandomUser() account.User {
+func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 	user := account.User{
 		Email:    uuid.NewV4().String() + "primaryForUpdat7e@example.com",
-		FullName: "A test user",
+		FullName: fullname,
 		ImageURL: "someURLForUpdate",
 		ID:       uuid.NewV4(),
 	}

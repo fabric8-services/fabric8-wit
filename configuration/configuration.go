@@ -65,6 +65,7 @@ const (
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
 	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
 	varCacheControlSpaces               = "cachecontrol.spaces"
@@ -167,6 +168,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
 	// HTTP Cache-Control/max-age default
+	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=86400") // 1 day
 	c.v.SetDefault(varCacheControlSpaces, "max-age=300")
@@ -276,6 +278,12 @@ func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
 	return c.v.GetString(varCacheControlWorkItemLinkTypes)
+}
+
+// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItems() string {
+	return c.v.GetString(varCacheControlWorkItems)
 }
 
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
@@ -486,7 +494,7 @@ func (c *ConfigurationData) openIDConnectPath(suffix string) string {
 
 func (c *ConfigurationData) getKeycloakURL(req *goa.RequestData, path string) (string, error) {
 	scheme := "http"
-	if req.TLS != nil { // isHTTPS
+	if req.URL != nil && req.URL.Scheme == "https" { // isHTTPS
 		scheme = "https"
 	}
 	newHost, err := rest.ReplaceDomainPrefix(req.Host, c.GetKeycloakDomainPrefix())
@@ -568,7 +576,7 @@ ZwIDAQAB
 	defaultKeycloakTesUser2Secret = "testuser2"
 
 	// Keycloak vars to be used in dev mode. Can be overridden by setting up keycloak.url & keycloak.realm
-	devModeKeycloakURL   = "http://sso.prod-preview.openshift.io"
+	devModeKeycloakURL   = "https://sso.prod-preview.openshift.io"
 	devModeKeycloakRealm = "fabric8-test"
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"

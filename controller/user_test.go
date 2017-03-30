@@ -154,7 +154,7 @@ func (rest *TestUserREST) initTestCurrentAuthorized() (context.Context, app.User
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		},
-		FullName: "Test User",
+		FullName: "TestCurrentAuthorizedOK User",
 		ImageURL: "someURL",
 		Email:    "email@domain.com",
 	}
