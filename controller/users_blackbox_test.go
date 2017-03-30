@@ -243,7 +243,7 @@ func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfModifedSinceHeader() {
 	user := s.createRandomUser()
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
-	ifModifiedSince := user.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSince := user.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
 	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), &ifModifiedSince, nil)
 	// then
 	assertUser(s.T(), result.Data, user, identity)
@@ -267,7 +267,7 @@ func (s *TestUsersSuite) TestShowUserNotModifiedUsingIfModifedSinceHeader() {
 	user := s.createRandomUser()
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when/then
-	ifModifiedSince := user.UpdatedAt
+	ifModifiedSince := user.UpdatedAt.UTC().Format(http.TimeFormat)
 	test.ShowUsersNotModified(s.T(), nil, nil, s.controller, identity.ID.String(), &ifModifiedSince, nil)
 }
 
@@ -305,7 +305,7 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfModifiedSinceHeader() {
 	user2 := s.createRandomUser()
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
-	ifModifiedSinceHeader := user2.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSinceHeader := user2.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
 	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, &ifModifiedSinceHeader, nil)
 	// then
 	assertUser(s.T(), findUser(user1.ID, result.Data), user1, identity11)
@@ -338,7 +338,7 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfModifiedSinceHeader() {
 	user2 := s.createRandomUser()
 	s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when/then
-	ifModifiedSinceHeader := user2.UpdatedAt
+	ifModifiedSinceHeader := user2.UpdatedAt.UTC().Format(http.TimeFormat)
 	test.ListUsersNotModified(s.T(), nil, nil, s.controller, &ifModifiedSinceHeader, nil)
 }
 
@@ -403,7 +403,7 @@ func assertUser(t *testing.T, actual *app.UserData, expectedUser account.User, e
 
 func assertSingleUserResponseHeaders(t *testing.T, res http.ResponseWriter, appUser *app.User, modelUser account.User) {
 	require.NotNil(t, res.Header()[app.LastModified])
-	assert.Equal(t, getUserUpdatedAt(*appUser).String(), res.Header()[app.LastModified][0])
+	assert.Equal(t, getUserUpdatedAt(*appUser).UTC().Format(http.TimeFormat), res.Header()[app.LastModified][0])
 	require.NotNil(t, res.Header()[app.CacheControl])
 	assert.Equal(t, app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(t, res.Header()[app.ETag])
@@ -412,7 +412,7 @@ func assertSingleUserResponseHeaders(t *testing.T, res http.ResponseWriter, appU
 
 func assertMultiUsersResponseHeaders(t *testing.T, res http.ResponseWriter, lastCreatedUser account.User) {
 	require.NotNil(t, res.Header()[app.LastModified])
-	assert.Equal(t, lastCreatedUser.UpdatedAt.Truncate(time.Second).UTC().String(), res.Header()[app.LastModified][0])
+	assert.Equal(t, lastCreatedUser.UpdatedAt.Truncate(time.Second).UTC().Format(http.TimeFormat), res.Header()[app.LastModified][0])
 	require.NotNil(t, res.Header()[app.CacheControl])
 	assert.Equal(t, app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(t, res.Header()[app.ETag])

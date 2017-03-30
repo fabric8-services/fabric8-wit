@@ -106,7 +106,7 @@ func (rest *TestUserREST) TestCurrentAuthorizedOKUsingExpiredIfModifiedSinceHead
 	// given
 	ctx, userCtrl, usr, ident := rest.initTestCurrentAuthorized()
 	// when
-	ifModifiedSince := usr.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSince := usr.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
 	res, user := test.ShowUserOK(rest.T(), ctx, nil, userCtrl, &ifModifiedSince, nil)
 	// then
 	rest.assertCurrentUser(*user, ident, usr)
@@ -128,7 +128,7 @@ func (rest *TestUserREST) TestCurrentAuthorizedNotModifiedUsingIfModifiedSinceHe
 	// given
 	ctx, userCtrl, usr, _ := rest.initTestCurrentAuthorized()
 	// when
-	ifModifiedSince := usr.UpdatedAt.Add(-1 * time.Hour)
+	ifModifiedSince := usr.UpdatedAt.Add(-1 * time.Hour).UTC().Format(http.TimeFormat)
 	res := test.ShowUserNotModified(rest.T(), ctx, nil, userCtrl, &ifModifiedSince, nil)
 	// then
 	rest.assertResponseHeaders(res, usr)
@@ -176,7 +176,7 @@ func (rest *TestUserREST) assertCurrentUser(user app.User, ident account.Identit
 
 func (rest *TestUserREST) assertResponseHeaders(res http.ResponseWriter, usr account.User) {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
-	assert.Equal(rest.T(), usr.UpdatedAt.Truncate(time.Second).UTC().String(), res.Header()[app.LastModified][0])
+	assert.Equal(rest.T(), usr.UpdatedAt.Truncate(time.Second).UTC().Format(http.TimeFormat), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
 	assert.Equal(rest.T(), rest.config.GetCacheControlUser(), res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
