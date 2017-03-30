@@ -697,7 +697,7 @@ func (r *GormWorkItemRepository) GetChildrenCountPerWorkitem(ctx context.Context
 
 // GetCountsForIteration returns Closed and Total counts of WI for given iteration
 // It executes
-// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "w'b7508305-c92a-428c-8075-111e1f4c18a8'ork_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
+// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "work_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error) {
 	var res WICountsPerIteration
 	query := fmt.Sprintf(`SELECT count(*) as Total,
