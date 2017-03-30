@@ -2,9 +2,9 @@ package controller_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/app"
@@ -15,7 +15,6 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
@@ -27,12 +26,10 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"golang.org/x/net/context"
 )
 
 //-----------------------------------------------------------------------------
@@ -64,14 +61,8 @@ func TestSuiteWorkItemType(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemTypeSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(migration.NewMigrationContext(context.Background()), tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 // The SetupTest method will be run before every test in the suite.
