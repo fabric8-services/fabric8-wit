@@ -429,13 +429,16 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
+	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryParentChild, "The parent-child category can be used for link types with parent child relationships."); err != nil {
+		return errs.WithStack(err)
+	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeParentChild, "One planner item or a subtype of it which is a parent of another one.", link.TopologyTree, "parent of", "child of", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeParentChild, "One planner item or a subtype of it which is a parent of another one.", link.TopologyTree, "parent of", "child of", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategoryParentChild, space.SystemSpace); err != nil {
 		return errs.WithStack(err)
 	}
 	return nil

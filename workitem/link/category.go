@@ -6,9 +6,11 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Work item link categories
 const (
-	SystemWorkItemLinkCategorySystem = "system"
-	SystemWorkItemLinkCategoryUser   = "user"
+	SystemWorkItemLinkCategorySystem      = "system"
+	SystemWorkItemLinkCategoryUser        = "user"
+	SystemWorkItemLinkCategoryParentChild = "parent-child"
 )
 
 // WorkItemLinkCategory represents the category of a work item link as it is stored in the db
