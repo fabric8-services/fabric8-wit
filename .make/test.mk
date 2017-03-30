@@ -177,7 +177,7 @@ define download-docker-compose
 		echo "Downloading docker-compose to $(DOCKER_COMPOSE_BIN_ALT)"; \
 		UNAME_S=$(shell uname -s); \
 		UNAME_M=$(shell uname -m); \
-		URL="https://github.com/docker/compose/releases/download/1.8.0/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
+		URL="https://github.com/docker/compose/releases/download/1.11.2/docker-compose-$${UNAME_S}-$${UNAME_M}"; \
 		curl --silent -L $${URL} > $(DOCKER_COMPOSE_BIN_ALT); \
 		chmod +x $(DOCKER_COMPOSE_BIN_ALT); \
 	fi

@@ -17,14 +17,12 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,13 +45,8 @@ func TestRunPlannerBacklogREST(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (rest *TestPlannerBacklogREST) SetupSuite() {
 	rest.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(rest.DB, func(tx *gorm.DB) error {
-		rest.ctx = migration.NewMigrationContext(context.Background())
-		return migration.PopulateCommonTypes(rest.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
+	rest.ctx = migration.NewMigrationContext(context.Background())
+	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
 }
 
 func (rest *TestPlannerBacklogREST) SetupTest() {

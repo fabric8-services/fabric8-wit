@@ -272,10 +272,10 @@ func main() {
 	app.MountRenderController(service, renderCtrl)
 
 	// Mount "areas" controller
-	areaCtrl := controller.NewAreaController(service, appDB)
+	areaCtrl := controller.NewAreaController(service, appDB, configuration)
 	app.MountAreaController(service, areaCtrl)
 
-	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
+	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, configuration)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
 	filterCtrl := controller.NewFilterController(service)
