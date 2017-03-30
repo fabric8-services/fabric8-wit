@@ -323,7 +323,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 }
 
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int) ([]*workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int) ([]workitem.WorkItem, uint64, error) {
 	// parse
 	// generateSearchQuery
 	// ....
@@ -338,7 +338,7 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	result := make([]*workitem.WorkItem, len(rows))
+	result := make([]workitem.WorkItem, len(rows))
 
 	for index, value := range rows {
 		var err error
@@ -347,10 +347,11 @@ func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchStri
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		result[index], err = wiType.ConvertWorkItemStorageToModel(value)
+		wiModel, err := wiType.ConvertWorkItemStorageToModel(value)
 		if err != nil {
 			return nil, 0, errors.NewConversionError(err.Error())
 		}
+		result[index] = *wiModel
 	}
 
 	return result, count, nil

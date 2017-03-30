@@ -36,7 +36,7 @@ type WorkItemRepository interface {
 	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
-	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]*WorkItem, uint64, error)
+	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]WorkItem, uint64, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -632,18 +632,22 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]*WorkItem, uint64, error) {
+func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
 	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
-	res := make([]*WorkItem, len(result))
+	res := make([]WorkItem, len(result))
 	for index, value := range result {
 		wiType, err := r.witr.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
-		res[index], err = ConvertWorkItemStorageToModel(wiType, &value)
+		modelWI, err := ConvertWorkItemStorageToModel(wiType, &value)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(err.Error())
+		}
+		res[index] = *modelWI
 	}
 	return res, count, nil
 }
@@ -661,7 +665,7 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 	}
 	// one result
 	result := results[0]
-	return result, nil
+	return &result, nil
 }
 
 // GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration

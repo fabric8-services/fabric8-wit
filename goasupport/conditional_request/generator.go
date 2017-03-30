@@ -191,6 +191,9 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 	if err := ctxWr.ExecuteTemplate("matchesETag", matchesETag, nil, nil); err != nil {
 		return nil, err
 	}
+	if err := ctxWr.ExecuteTemplate("toHTTPTime", toHTTPTime, nil, nil); err != nil {
+		return nil, err
+	}
 	for _, ctx := range contexts {
 		if err := ctxWr.ExecuteTemplate("conditional", conditional, nil, ctx); err != nil {
 			return nil, err
@@ -409,7 +412,7 @@ func matchesETag(ctx ConditionalRequestContext, etag string) bool {
 func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) bool {
 	if ctx.getIfModifiedSince() != nil {
 		ifModifiedSince := *ctx.getIfModifiedSince()
-		return ifModifiedSince.UTC().Before(lastModified.UTC())
+		return ifModifiedSince.UTC().Truncate(time.Second).Before(lastModified.UTC().Truncate(time.Second))
 	}
 	return true
 }`
@@ -428,7 +431,7 @@ func (ctx *{{$resp.Name}}) getIfModifiedSince() *time.Time {
 {{ $resp := . }}
 // SetLastModified sets the 'Last-Modified' header
 func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
-	ctx.ResponseData.Header().Set(LastModified, value.UTC().Format(http.TimeFormat))
+	ctx.ResponseData.Header().Set(LastModified, ToHTTPTime(value))
 }`
 
 	setCacheControl = `
@@ -436,5 +439,10 @@ func (ctx *{{$resp.Name}}) setLastModified(value time.Time) {
 // SetCacheControl sets the 'Cache-Control' header
 func (ctx *{{$resp.Name}}) setCacheControl(value string) {
 	ctx.ResponseData.Header().Set(CacheControl, value)
+}`
+	toHTTPTime = `
+// ToHTTPTime utility function to convert a 'time.Time' into a valid HTTP date
+func ToHTTPTime(value time.Time) string {
+	return value.UTC().Format(http.TimeFormat)
 }`
 )
