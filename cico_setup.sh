@@ -27,9 +27,24 @@ function install_deps() {
     docker \
     make \
     git \
-    curl
+    curl \
+    python-pip
 
   service docker start
+
+  ## Test to update docker-compose to support 2.1
+  docker-compose --version
+
+  pip install docker-compose
+
+  docker-compose --version
+
+  curl -L https://github.com/docker/compose/releases/download/1.11.2/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose
+  chmod +x /usr/local/bin/docker-compose
+
+  docker-compose --version
+  ### ###############################
+
   echo 'CICO: Dependencies installed'
 }
 
