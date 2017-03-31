@@ -64,6 +64,7 @@ var commentRelationships = a.Type("CommentRelations", func() {
 var commentCreatedBy = a.Type("CommentCreatedBy", func() {
 	a.Attribute("data", identityRelationData)
 	a.Required("data")
+	a.Attribute("links", genericLinks)
 })
 
 var identityRelationData = a.Type("IdentityRelationData", func() {

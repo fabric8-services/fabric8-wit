@@ -14,6 +14,7 @@ import (
 func main() {
 	var packageName string
 	flag.StringVar(&packageName, "packageName", "github.com/almighty/almighty-core", "Package Name (e.g.)")
+	flag.Parse()
 
 	wd, err := os.Getwd()
 	if err != nil {

@@ -195,16 +195,16 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfNon
 	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
 }
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedIfModifiedSinceHeader() {
+func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfModifiedSinceHeader() {
 	// given
 	spaceID, _, _, grandChildIteration := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	idModifiedSince := grandChildIteration.UpdatedAt.Format(http.TimeFormat)
+	idModifiedSince := app.ToHTTPTime(grandChildIteration.UpdatedAt)
 	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &idModifiedSince, nil)
 }
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedIfNoneMatchSinceHeader() {
+func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfNoneMatchSinceHeader() {
 	// given
 	spaceID, _, _, _ := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()
