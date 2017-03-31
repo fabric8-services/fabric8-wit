@@ -75,6 +75,7 @@ func init() {
 		"workitemlinkdsl": "github.com/almighty/almighty-core/workitem/link",
 		"spacedsl":        "github.com/almighty/almighty-core/space",
 		"iterationdsl":    "github.com/almighty/almighty-core/iteration",
+		"areadsl":         "github.com/almighty/almighty-core/area",
 	}
 	structPackages = map[string]string{
 		"WorkItem":         "workitemdsl",
@@ -82,6 +83,7 @@ func init() {
 		"WorkItemLinkType": "workitemlinkdsl",
 		"Space":            "spacedsl",
 		"Iteration":        "iterationdsl",
+		"Area":             "areadsl",
 	}
 
 }
@@ -285,15 +287,21 @@ func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalRespon
 
 func doConditionalEntities(ctx ConditionalRequestContext, entities []ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
 	var lastModified time.Time
-	for _, entity := range entities {
-		if entity.GetLastModified().After(lastModified) {
-			lastModified = entity.GetLastModified()
+	var eTag string
+	if len(entities) > 0 {
+		for _, entity := range entities {
+			if entity.GetLastModified().After(lastModified) {
+				lastModified = entity.GetLastModified()
+			}
 		}
+		eTag = GenerateEntitiesTag(entities)
+	} else {
+		eTag = GenerateEmptyTag()
+		lastModified = time.Now()
 	}
-	eTag := GenerateEntitiesTag(entities)
-	cacheControl := cacheControlConfig()
 	ctx.setLastModified(lastModified)
 	ctx.setETag(eTag)
+	cacheControl := cacheControlConfig()
 	ctx.setCacheControl(cacheControl)
 	if !modifiedSince(ctx, lastModified) {
 		return ctx.NotModified()
@@ -328,6 +336,15 @@ func (ctx *{{$resp.Name}}) ConditionalEntities(entities []{{$entity.DomainTypeNa
 }
 {{ end }}`
 	generateETag = `
+// GenerateEmptyTag generates the value to return in the "ETag" HTTP response header for the an empty list of entities
+// The ETag is the base64-encoded value of the md5 hash of the buffer content
+func GenerateEmptyTag() string {
+	var buffer bytes.Buffer
+	buffer.WriteString("empty")
+	etagData := md5.Sum(buffer.Bytes())
+	etag := base64.StdEncoding.EncodeToString(etagData[:])
+	return etag
+}
 // GenerateEntityTag generates the value to return in the "ETag" HTTP response header for the given entity
 // The ETag is the base64-encoded value of the md5 hash of the buffer content
 func GenerateEntityTag(entity ConditionalResponseEntity) string {

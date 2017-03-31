@@ -121,7 +121,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), identity)
-	return svc, NewSpaceAreasController(svc, rest.db)
+	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
@@ -141,7 +141,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	require.NotNil(rest.T(), created.Data)
 	spaceAreaSvc, spaceAreaCtrl := rest.SecuredSpaceAreaController(testsupport.TestIdentity)
 	createdID := created.Data.ID.String()
-	_, areaList := test.ListSpaceAreasOK(rest.T(), spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID)
+	_, areaList := test.ListSpaceAreasOK(rest.T(), spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID, nil, nil)
 	// then
 	// only 1 default gets created.
 	assert.Len(rest.T(), areaList.Data, 1)
