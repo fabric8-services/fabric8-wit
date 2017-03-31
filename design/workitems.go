@@ -138,6 +138,7 @@ var _ = a.Resource("workitem", func() {
 			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
+			a.Param("filter[category]", d.UUID, "work item state to filter work items by")
 		})
 		a.Response(d.OK, func() {
 			a.Media(workItemList)

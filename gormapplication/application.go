@@ -129,13 +129,14 @@ func (g *GormBase) Iterations() iteration.Repository {
 	return iteration.NewIterationRepository(g.db)
 }
 
-func (g *GormBase) Categories() category.Repository {
-	return category.NewCategoryRepository(g.db)
-}
-
 // Areas returns a area repository
 func (g *GormBase) Areas() area.Repository {
 	return area.NewAreaRepository(g.db)
+}
+
+// Categories returns a category repository
+func (g *GormBase) Categories() category.Repository {
+	return category.NewCategoryRepository(g.db)
 }
 
 // OauthStates returns an oauth state reference repository

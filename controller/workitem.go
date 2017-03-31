@@ -99,6 +99,21 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemState), criteria.Literal(string(*ctx.FilterWorkitemstate))))
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
+	if ctx.FilterCategory != nil {
+		var wit *app.WorkItemTypeSingle
+		application.Transactional(c.db, func(tx application.Application) error {
+			fmt.Println("##############################################", spaceID)
+			fmt.Println("##############################################", *ctx.FilterCategory)
+			wit, err = tx.WorkItemTypes().LoadByCategoryID(ctx, spaceID, *ctx.FilterCategory)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
+			}
+			fmt.Println("**************************************")
+			return nil
+		})
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(wit.Data.ID)))
+		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())
+	}
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {

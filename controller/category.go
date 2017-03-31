@@ -28,22 +28,22 @@ func (c *CategoryController) List(ctx *app.ListCategoryContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		res := &app.CategoryList{}
-		res.Data = ConvertCategories(appl, ctx.RequestData, categories)
+		res.Data = ConvertCategories(ctx.RequestData, categories)
 		return ctx.OK(res)
 	})
 }
 
 // ConvertCategories converts between internal and external REST representation
-func ConvertCategories(appl application.Application, request *goa.RequestData, categories []*category.Category) []*app.Categories {
+func ConvertCategories(request *goa.RequestData, categories []*category.Category) []*app.Categories {
 	var cs = []*app.Categories{}
 	for _, c := range categories {
-		cs = append(cs, ConvertCategory(appl, request, c))
+		cs = append(cs, ConvertCategory(request, c))
 	}
 	return cs
 }
 
 // ConvertCategory converts between internal and external REST representation
-func ConvertCategory(appl application.Application, request *goa.RequestData, cat *category.Category) *app.Categories {
+func ConvertCategory(request *goa.RequestData, cat *category.Category) *app.Categories {
 	categoryType := category.APIStringTypeCategory
 	c := &app.Categories{
 		Type: categoryType,

@@ -69,11 +69,11 @@ func (db *MockDB) Iterations() iteration.Repository {
 	return nil
 }
 
-func (db *MockDB) Categories() category.Repository {
+func (db *MockDB) Areas() area.Repository {
 	return nil
 }
 
-func (db *MockDB) Areas() area.Repository {
+func (db *MockDB) Categories() category.Repository {
 	return nil
 }
 

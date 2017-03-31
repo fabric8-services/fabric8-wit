@@ -8,3 +8,6 @@ CREATE TABLE categories (
 
 ALTER TABLE work_item_types ADD COLUMN categories_id uuid;
 ALTER TABLE work_item_types ADD CONSTRAINT work_item_types_categories_fkey FOREIGN KEY (categories_id) REFERENCES categories(id);
+
+INSERT INTO categories(name) VALUES('requirements');
+INSERT INTO categories(name) VALUES('issues');

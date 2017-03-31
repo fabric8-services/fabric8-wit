@@ -64,6 +64,15 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 			},
 			Type: "filters",
 		},
+		&app.Filters{
+			Attributes: &app.FilterAttributes{
+				Title:       "Category",
+				Query:       "filter[category]={id}",
+				Description: "Filter by category",
+				Type:        "category",
+			},
+			Type: "filters",
+		},
 	)
 	result := &app.FilterList{
 		Data: arr,

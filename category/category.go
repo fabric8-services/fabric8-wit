@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/log"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -47,15 +45,11 @@ type GormCategoryRepository struct {
 
 // List all Categories related to a single item
 func (m *GormCategoryRepository) List(ctx context.Context) ([]*Category, error) {
-	defer goa.MeasureSince([]string{"goa", "db", "category", "query"}, time.Now())
+	defer goa.MeasureSince([]string{"goa", "db", "Category", "query"}, time.Now())
 	var objs []*Category
-
 	err := m.db.Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		log.Error(ctx, map[string]interface{}{
-			"err": err,
-		}, "unable to list the categories")
-		return nil, errs.WithStack(err)
+		return nil, err
 	}
 	return objs, nil
 }

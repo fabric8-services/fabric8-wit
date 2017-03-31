@@ -259,10 +259,6 @@ func main() {
 	iterationCtrl := controller.NewIterationController(service, appDB)
 	app.MountIterationController(service, iterationCtrl)
 
-	// Mount "categories" controller
-	categoryCtrl := controller.NewCategoryController(service, appDB)
-	app.MountCategoryController(service, categoryCtrl)
-
 	// Mount "spaceiterations" controller
 	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
@@ -284,6 +280,10 @@ func main() {
 
 	filterCtrl := controller.NewFilterController(service)
 	app.MountFilterController(service, filterCtrl)
+
+	// Mount "categories" controller
+	categoriesCtrl := controller.NewCategoryController(service, appDB)
+	app.MountCategoryController(service, categoriesCtrl)
 
 	// Mount "namedspaces" controller
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)

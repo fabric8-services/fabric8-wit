@@ -23,7 +23,8 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error)
-	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error)
+	LoadByCategoryID(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error)
+	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition, CategoriesID uuid.UUID) (*app.WorkItemTypeSingle, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) (*app.WorkItemTypeList, error)
 }
 
@@ -45,6 +46,26 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 		return nil, errs.WithStack(err)
 	}
 	result := convertTypeFromModels(goa.ContextRequest(ctx), res)
+	return &app.WorkItemTypeSingle{Data: &result}, nil
+}
+
+// Load returns the work item type for the given category id
+// returns NotFoundError, InternalError
+func (r *GormWorkItemTypeRepository) LoadByCategoryID(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*app.WorkItemTypeSingle, error) {
+	// Get the workitemtype
+	res := WorkItemType{}
+	db := r.db.Model(&res).Where("categories_id=? AND space_id=?", id, spaceID).First(&res)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": id,
+		}, "work item type not found")
+		return nil, errors.NewNotFoundError("work item type", id.String())
+	}
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	if err := db.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	result := convertTypeFromModels(goa.ContextRequest(ctx), &res)
 	return &app.WorkItemTypeSingle{Data: &result}, nil
 }
 
@@ -110,7 +131,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition) (*app.WorkItemTypeSingle, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]app.FieldDefinition, categoriesID uuid.UUID) (*app.WorkItemTypeSingle, error) {
 	// Make sure this WIT has an ID
 	if id == nil {
 		tmpID := uuid.NewV4()
@@ -160,14 +181,15 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	}
 
 	created := WorkItemType{
-		Version:     0,
-		ID:          *id,
-		Name:        name,
-		Description: description,
-		Icon:        icon,
-		Path:        path,
-		Fields:      allFields,
-		SpaceID:     spaceID,
+		Version:      0,
+		ID:           *id,
+		Name:         name,
+		Description:  description,
+		Icon:         icon,
+		Path:         path,
+		Fields:       allFields,
+		SpaceID:      spaceID,
+		CategoriesID: categoriesID,
 	}
 
 	if err := r.db.Create(&created).Error; err != nil {

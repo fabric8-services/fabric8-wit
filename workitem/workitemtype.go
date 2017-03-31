@@ -74,6 +74,8 @@ type WorkItemType struct {
 	Fields FieldDefinitions `sql:"type:jsonb"`
 	// Reference to one Space
 	SpaceID uuid.UUID `sql:"type:uuid"`
+	// Reference to one Space
+	CategoriesID uuid.UUID `sql:"type:uuid"`
 }
 
 // GetTypePathSeparator returns the work item type's path separator "."

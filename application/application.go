@@ -29,9 +29,9 @@ type Application interface {
 	Spaces() space.Repository
 	SpaceResources() space.ResourceRepository
 	Iterations() iteration.Repository
-	Categories() category.Repository
 	Users() account.UserRepository
 	Areas() area.Repository
+	Categories() category.Repository
 	OauthStates() auth.OauthStateReferenceRepository
 	Codebases() codebase.Repository
 }
