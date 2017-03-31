@@ -557,14 +557,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	if compileError != nil {
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
-
 	where = where + " AND space_id = ?"
 	parameters = append(parameters, spaceID)
-	log.Info(ctx, map[string]interface{}{
-		"where":      where,
-		"parameters": parameters,
-	}, "Executing query : '%s' with params %v", where, parameters)
-
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {

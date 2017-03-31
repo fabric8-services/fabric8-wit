@@ -27,6 +27,9 @@ var areaAttributes = a.Type("AreaAttributes", func() {
 	a.Attribute("created-at", d.DateTime, "When the area was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
+	a.Attribute("updated-at", d.DateTime, "When the area was updated", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(23)
 	})
@@ -46,13 +49,13 @@ var areaRelationships = a.Type("AreaRelations", func() {
 })
 
 var areaList = JSONList(
-	"area", "Holds the list of Areas",
+	"Area", "Holds the list of Areas",
 	area,
 	pagingLinks,
 	meta)
 
 var areaSingle = JSONSingle(
-	"area", "Holds a single Area",
+	"Area", "Holds a single Area",
 	area,
 	nil)
 
@@ -67,14 +70,14 @@ var _ = a.Resource("area", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
-		a.Response(d.OK, func() {
-			a.Media(areaSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, areaSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
-	a.Action("show-child", func() {
+	a.Action("show-children", func() {
 		a.Routing(
 			a.GET("/:id/children"),
 		)
@@ -82,9 +85,9 @@ var _ = a.Resource("area", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
-		a.Response(d.OK, func() {
-			a.Media(areaList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, areaList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -118,9 +121,9 @@ var _ = a.Resource("space_areas", func() {
 			a.GET("areas"),
 		)
 		a.Description("List Areas.")
-		a.Response(d.OK, func() {
-			a.Media(areaList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, areaList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
