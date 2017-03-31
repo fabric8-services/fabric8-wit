@@ -1,17 +1,14 @@
-package controller_test
+package controller
 
 import (
 	"testing"
-	"time"
 
 	"golang.org/x/net/context"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
-	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -131,148 +128,34 @@ func assertPlannerBacklogWorkItems(t *testing.T, workitems *app.WorkItemList, te
 	}
 }
 
-func generateWorkitemsTag(workitems *app.WorkItemList) string {
-	entities := make([]app.ConditionalResponseEntity, len(workitems.Data))
-	for i, wi := range workitems.Data {
-		entities[i] = workitem.WorkItem{
-			ID:      *wi.ID,
-			Version: wi.Attributes["version"].(int),
-			Fields: map[string]interface{}{
-				workitem.SystemUpdatedAt: wi.Attributes[workitem.SystemUpdatedAt],
-			},
-		}
-	}
-	return app.GenerateEntitiesTag(entities)
-}
-
 func (rest *TestPlannerBacklogREST) TestCountPlannerBacklogWorkItemsOK() {
 	// given
 	testSpace, _, _ := rest.setupPlannerBacklogWorkItems()
 	svc, _ := rest.UnSecuredController()
 	// when
-	count, err := CountBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), testSpace.ID)
+	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), testSpace.ID)
 	// we expect the count to be equal to 1
 	assert.Nil(rest.T(), err)
 	assert.Equal(rest.T(), 1, count)
 }
 
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOK() {
+func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	// given
-	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	offset := "0"
-	filter := ""
-	limit := -1
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
-	// then
-	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
-	// given
-	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	offset := "0"
-	filter := ""
-	limit := -1
-	ifModifiedSince := app.ToHTTPTime(parentIteration.UpdatedAt.Add(-1 * time.Hour))
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
-	// then
-	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfNoneMatchHeader() {
-	// given
-	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	offset := "0"
-	filter := ""
-	limit := -1
-	ifNoneMatch := "foo"
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
-	// then
-	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfModifiedSinceHeader() {
-	// given
-	testSpace, _, lastWorkItem := rest.setupPlannerBacklogWorkItems()
-	svc, ctrl := rest.UnSecuredController()
-	// when
-	offset := "0"
-	filter := ""
-	limit := -1
-	ifModifiedSince := app.ToHTTPTime(lastWorkItem.Fields[workitem.SystemUpdatedAt].(time.Time))
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
-	// then
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfNoneMatchHeader() {
-	// given
-	testSpace, _, _ := rest.setupPlannerBacklogWorkItems()
-	svc, ctrl := rest.UnSecuredController()
-	offset := "0"
-	filter := ""
-	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
-	// when
-	ifNoneMatch := generateWorkitemsTag(workitems)
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
-	// then
-	assertResponseHeaders(rest.T(), res)
-}
-
-func (rest *TestPlannerBacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
-	var spaceID uuid.UUID
-	var parentIteration *iteration.Iteration
+	var spaceCount *space.Space
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
-		iterationsRepo := app.Iterations()
-		newSpace := space.Space{
-			Name: "TestSuccessEmptyListPlannerBacklogWorkItems" + uuid.NewV4().String(),
+		spacesRepo := app.Spaces()
+		spaceCount = &space.Space{
+			Name: "PlannerBacklogWorkItems-" + uuid.NewV4().String(),
 		}
-		p, err := app.Spaces().Create(rest.ctx, &newSpace)
-		if err != nil {
-			rest.T().Error(err)
-		}
-		spaceID = p.ID
-		parentIteration = &iteration.Iteration{
-			Name:    "Parent Iteration",
-			SpaceID: spaceID,
-			State:   iteration.IterationStateNew,
-		}
-		iterationsRepo.Create(rest.ctx, parentIteration)
-
-		fields := map[string]interface{}{
-			workitem.SystemTitle:     "parentIteration Test",
-			workitem.SystemState:     "new",
-			workitem.SystemIteration: parentIteration.ID.String(),
-		}
-		app.WorkItems().Create(rest.ctx, spaceID, workitem.SystemPlannerItem, fields, rest.testIdentity.ID)
+		_, err := spacesRepo.Create(rest.ctx, spaceCount)
+		require.Nil(rest.T(), err)
 
 		return nil
 	})
-
-	svc, ctrl := rest.UnSecuredController()
-
-	offset := "0"
-	filter := ""
-	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
-	// The list has to be empty
-	assert.Len(rest.T(), workitems.Data, 0)
-}
-
-func (rest *TestPlannerBacklogREST) TestFailListPlannerBacklogByMissingSpace() {
-	svc, ctrl := rest.UnSecuredController()
-	offset := "0"
-	filter := ""
-	limit := 2
-	test.ListPlannerBacklogNotFound(rest.T(), svc.Context, svc, ctrl, "xxxxx", &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	svc, _ := rest.UnSecuredController()
+	// when
+	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), spaceCount.ID)
+	// we expect the count to be equal to 1
+	assert.Nil(rest.T(), err)
+	assert.Equal(rest.T(), 1, count)
 }
