@@ -1760,7 +1760,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
-	// should get default iteration's id for that space
+	// should get root iteration's id for that space
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
 	iterationRepo := iteration.NewIterationRepository(s.DB)

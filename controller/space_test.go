@@ -147,7 +147,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	assert.Len(rest.T(), areaList.Data, 1)
 	assert.Equal(rest.T(), name, *areaList.Data[0].Attributes.Name)
 
-	// verify if default iteration is created or not
+	// verify if root iteration is created or not
 	spaceIterationSvc, spaceIterationCtrl := rest.SecuredSpaceIterationController(testsupport.TestIdentity)
 	_, iterationList := test.ListSpaceIterationsOK(rest.T(), spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, createdID, nil, nil)
 	require.Len(rest.T(), iterationList.Data, 1)

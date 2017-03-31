@@ -255,7 +255,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
-		// fetch default iteration for this space and assign it to WI if not present already
+		// fetch root iteration for this space and assign it to WI if not present already
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
 			// no iteration set hence set to root iteration of its space
 			rootItr, rootItrErr := appl.Iterations().RootIteration(ctx, spaceInstance.ID)

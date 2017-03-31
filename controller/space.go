@@ -114,7 +114,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", rSpace.Name))
 		}
 
-		// Similar to above, we create a default iteration for this new space
+		// Similar to above, we create a root iteration for this new space
 		newIteration := iteration.Iteration{
 			ID:      uuid.NewV4(),
 			SpaceID: rSpace.ID,

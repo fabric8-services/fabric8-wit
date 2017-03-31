@@ -1,7 +1,7 @@
 ------ You can't allow the same iteration name and the same ancestry inside a space
 ALTER TABLE iterations ADD CONSTRAINT iterations_name_space_id_path_unique UNIQUE(space_id,name,path);
 
-------  For existing spaces in production, which dont have a default iteration, create one.
+------  For existing spaces in production, which dont have a root iteration, create one.
 --
 -- 1. Get all spaces which have an iteration under it with the same name.
 -- 2. Get all spaces not in (1)
@@ -22,15 +22,15 @@ WHERE  id NOT IN (SELECT s.id
                                  ON s.name = i.name
                                     AND s.id = i.space_id);
 
------ for all other existing iterations in production, move them under the default iteration of given space.
-CREATE OR REPLACE FUNCTION GetDefaultIteration(s_id uuid,OUT default_id uuid) AS $$ BEGIN
+----- for all other existing iterations in production, move them under the root iteration of given space.
+CREATE OR REPLACE FUNCTION GetRootIteration(s_id uuid,OUT root_id uuid) AS $$ BEGIN
 -- Get Root iteration for a space
      select id from iterations 
           where name in ( SELECT name as space_name
           from spaces 
               where id=s_id )
                   and space_id =s_id 
-                           into default_id;
+                           into root_id;
 END; $$ LANGUAGE plpgsql ;
 
 -- Convert Text to Ltree , use standard library FUNCTION?
@@ -49,7 +49,7 @@ CREATE OR REPLACE FUNCTION GetUpdatedIterationPath(iteration_id uuid,space_id uu
           rootiteration uuid;
      BEGIN
      
-     select GetDefaultIteration(space_id) into rootiteration;
+     select GetRootIteration(space_id) into rootiteration;
      IF rootiteration != iteration_id 
          THEN                  
          IF path=''
@@ -74,7 +74,7 @@ update work_items set fields=jsonb_set(fields, '{system.iteration}', to_jsonb(su
 
 -- cleanup
 DROP FUNCTION GetUpdatedIterationPath(uuid,uuid,ltree);
-DROP FUNCTION GetDefaultIteration(uuid);
+DROP FUNCTION GetRootIteration(uuid);
 DROP FUNCTION TextToLtreeNode(text);
 
 CREATE INDEX ix_name ON iterations USING btree (name);
