@@ -121,7 +121,6 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	}
 	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
 	assert.Nil(s.T(), err)
-	assert.Equal(s.T(), "https://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account", profileAPIURL)
 
 	err = s.profileService.Update(testKeycloakUserProfileData, *token, profileAPIURL)
 	require.Nil(s.T(), err)
@@ -153,7 +152,6 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileGet() {
 	}
 	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
 	assert.Nil(s.T(), err)
-	assert.Equal(s.T(), "https://sso.prod-preview.openshift.io/auth/realms/fabric8-test/account", profileAPIURL)
 
 	profile, err := s.profileService.Get(*token, profileAPIURL)
 
