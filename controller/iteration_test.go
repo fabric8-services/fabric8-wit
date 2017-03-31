@@ -159,7 +159,7 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceH
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	rest.T().Log("Iteration:", itr, " updatedAt: ", itr.UpdatedAt)
-	ifModifiedSinceHeader := itr.UpdatedAt.Format(http.TimeFormat)
+	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt)
 	test.ShowIterationNotModified(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &ifModifiedSinceHeader, nil)
 }
 
