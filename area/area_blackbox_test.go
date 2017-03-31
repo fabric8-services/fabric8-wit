@@ -157,7 +157,7 @@ func (test *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
 
 	// So now we have a space and area with the same name.
 
-	areaList, err := repo.Query(area.AreaFilterBySpaceID(space.ID), area.AreaFilterByPath(path.Path{}), area.AreaFilterByName(name))
+	areaList, err := repo.Query(area.FilterBySpaceID(space.ID), area.FilterByPath(path.Path{}), area.FilterByName(name))
 	require.Nil(t, err)
 
 	// there must be ONLY 1 result, because of the space,name,path unique constraint
