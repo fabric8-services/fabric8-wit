@@ -50,7 +50,7 @@ type Repository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Area, error)
 	ListChildren(ctx context.Context, parentArea *Area) ([]Area, error)
-	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Area, error)
 }
 
 // NewAreaRepository creates a new storage type.
@@ -141,9 +141,9 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 }
 
 // Query exposes an open ended Query model for Area
-func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, error) {
+func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Area, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "query"}, time.Now())
-	var objs []*Area
+	var objs []Area
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -151,28 +151,28 @@ func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Area, e
 	}
 
 	log.Debug(nil, map[string]interface{}{
-		"areaList": objs,
+		"area_list": objs,
 	}, "Area query executed successfully!")
 
 	return objs, nil
 }
 
-// AreaFilterBySpaceID is a gorm filter for a Belongs To relationship.
-func AreaFilterBySpaceID(spaceID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+// FilterBySpaceID is a gorm filter for a Belongs To relationship.
+func FilterBySpaceID(spaceID uuid.UUID) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("space_id = ?", spaceID)
 	}
 }
 
-// AreaFilterByName is a gorm filter by 'username'
-func AreaFilterByName(name string) func(db *gorm.DB) *gorm.DB {
+// FilterByName is a gorm filter by 'name'
+func FilterByName(name string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("name = ?", name).Limit(1)
 	}
 }
 
-// AreaFilterByPath is a gorm filter by 'path' of the parent area for any given area.
-func AreaFilterByPath(pathOfParent path.Path) func(db *gorm.DB) *gorm.DB {
+// FilterByPath is a gorm filter by 'path' of the parent area for any given area.
+func FilterByPath(pathOfParent path.Path) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		return db.Where("path = ?", pathOfParent.Convert()).Limit(1)
 	}

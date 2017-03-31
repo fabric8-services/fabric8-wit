@@ -266,7 +266,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 			// The parent of path of root area is an empty string since it has no parent.
 			parentPathOfRootArea := path.Path{}
-			rootArea, areaLoadErr := appl.Areas().Query(area.AreaFilterBySpaceID(spaceID), area.AreaFilterByPath(parentPathOfRootArea))
+			rootArea, areaLoadErr := appl.Areas().Query(area.FilterBySpaceID(spaceID), area.FilterByPath(parentPathOfRootArea))
 
 			if areaLoadErr != nil || len(rootArea) != 1 {
 				// During creation of space, this area should have been created, if not, there's a problem. Hence, len(rootArea) is going to be
