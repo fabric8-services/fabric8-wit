@@ -156,6 +156,7 @@ func ConvertComment(request *goa.RequestData, comment *comment.Comment, addition
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
+	relatedCreatorLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, comment.CreatedBy.String()))
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
@@ -170,6 +171,9 @@ func ConvertComment(request *goa.RequestData, comment *comment.Comment, addition
 				Data: &app.IdentityRelationData{
 					Type: "identities",
 					ID:   &comment.CreatedBy,
+				},
+				Links: &app.GenericLinks{
+					Related: &relatedCreatorLink,
 				},
 			},
 		},

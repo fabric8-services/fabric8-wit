@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -164,6 +165,7 @@ func (s *CommentsSuite) validateComment(result *app.CommentSingle, expectedBody 
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy.Data)
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy.Data.ID)
 	assert.Equal(s.T(), s.testIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	assert.True(s.T(), strings.Contains(*result.Data.Relationships.CreatedBy.Links.Related, result.Data.Relationships.CreatedBy.Data.ID.String()), "Link not found")
 }
 
 func (s *CommentsSuite) TestShowCommentWithoutAuth() {
