@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/almighty/almighty-core/resource"
@@ -115,10 +116,41 @@ func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
 		resetConfiguration()
 	}()
 
-	assert.Equal(t, devModeValidRedirectURLs, config.GetValidRedirectURLs())
+	whitelist, err := config.GetValidRedirectURLs(nil)
+	require.Nil(t, err)
+	assert.Equal(t, devModeValidRedirectURLs, whitelist)
 
 	os.Setenv(key, "https://someDomain.org/redirect")
 	resetConfiguration()
+}
 
-	assert.Equal(t, "https://someDomain.org/redirect", config.GetValidRedirectURLs())
+func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
+	// Valid if requesting prod-preview to redirect to localhost or to openshift.io
+	// OR if requesting openshift to redirect to openshift.io
+	// Invalid otherwise
+	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "http://localhost:3000/home"))
+	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "https://127.0.0.1"))
+	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "https://prod-preview.openshift.io/home"))
+	assert.True(t, validateRedirectURL(t, "https://api.openshift.io/api", "https://openshift.io/home"))
+	assert.False(t, validateRedirectURL(t, "https://api.openshift.io/api", "http://localhost:3000/api"))
+	assert.False(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "http://domain.com"))
+	assert.False(t, validateRedirectURL(t, "https://api.openshift.io/api", "http://domain.com"))
+}
+
+func validateRedirectURL(t *testing.T, request string, redirect string) bool {
+	r, err := http.NewRequest("", request, nil)
+	require.Nil(t, err)
+	req := &goa.RequestData{
+		Request: r,
+	}
+
+	whitelist, err := config.checkLocalhostRedirectException(req)
+	require.Nil(t, err)
+
+	matched, err := regexp.MatchString(whitelist, redirect)
+	require.Nil(t, err)
+	return matched
 }
