@@ -155,7 +155,7 @@ func (rest *TestPlannerBacklogREST) TestCountZeroPlannerBacklogWorkItemsOK() {
 	svc, _ := rest.UnSecuredController()
 	// when
 	count, err := countBacklogItems(svc.Context, gormapplication.NewGormDB(rest.DB), spaceCount.ID)
-	// we expect the count to be equal to 1
+	// we expect the count to be equal to 0
 	assert.Nil(rest.T(), err)
-	assert.Equal(rest.T(), 1, count)
+	assert.Equal(rest.T(), 0, count)
 }
