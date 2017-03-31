@@ -22,13 +22,11 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
-	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -54,11 +52,8 @@ func TestRunSpaceIterationREST(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (rest *TestSpaceIterationREST) SetupSuite() {
 	rest.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err := models.Transactional(rest.DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-	})
-	require.Nil(rest.T(), err)
+	rest.ctx = migration.NewMigrationContext(context.Background())
+	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
 	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestSpaceIterationREST user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
@@ -180,16 +175,16 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfNon
 	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
 }
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedIfModifiedSinceHeader() {
+func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfModifiedSinceHeader() {
 	// given
 	spaceID, _, _, grandChildIteration := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	idModifiedSince := grandChildIteration.UpdatedAt.Format(http.TimeFormat)
+	idModifiedSince := app.ToHTTPTime(grandChildIteration.UpdatedAt)
 	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &idModifiedSince, nil)
 }
 
-func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedIfNoneMatchSinceHeader() {
+func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfNoneMatchSinceHeader() {
 	// given
 	spaceID, _, _, _ := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()

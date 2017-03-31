@@ -3,7 +3,6 @@ package controller_test
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"testing"
 
 	"time"
@@ -118,7 +117,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity) (*goa.Service, *SpaceAreasController) {
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), identity)
-	return svc, NewSpaceAreasController(svc, rest.db)
+	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
@@ -132,7 +131,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	require.NotNil(rest.T(), created.Data)
 	spaceAreaSvc, spaceAreaCtrl := rest.SecuredSpaceAreaController(testsupport.TestIdentity)
 	createdID := created.Data.ID.String()
-	_, areaList := test.ListSpaceAreasOK(rest.T(), spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID)
+	_, areaList := test.ListSpaceAreasOK(rest.T(), spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID, nil, nil)
 	// then
 	// only 1 default gets created.
 	assert.Len(rest.T(), areaList.Data, 1)
@@ -278,7 +277,7 @@ func (rest *TestSpaceREST) TestShowSpaceOK() {
 	assert.Equal(rest.T(), *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
 	assert.Equal(rest.T(), *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
-	assert.Equal(rest.T(), getSpaceUpdatedAt(*created).Format(http.TimeFormat), res.Header()[app.LastModified][0])
+	assert.Equal(rest.T(), app.ToHTTPTime(getSpaceUpdatedAt(*created)), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
 	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
@@ -313,7 +312,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 	assert.Equal(rest.T(), *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
 	assert.Equal(rest.T(), *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
-	assert.Equal(rest.T(), getSpaceUpdatedAt(*created).Format(http.TimeFormat), res.Header()[app.LastModified][0])
+	assert.Equal(rest.T(), app.ToHTTPTime(getSpaceUpdatedAt(*created)), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
 	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
@@ -338,7 +337,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfNoneMatchHeader() {
 	assert.Equal(rest.T(), *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
 	assert.Equal(rest.T(), *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
-	assert.Equal(rest.T(), getSpaceUpdatedAt(*created).Format(http.TimeFormat), res.Header()[app.LastModified][0])
+	assert.Equal(rest.T(), app.ToHTTPTime(getSpaceUpdatedAt(*created)), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
 	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
@@ -355,7 +354,7 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfModifiedSinceHeader() 
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when/then
-	ifModifiedSince := getSpaceUpdatedAt(*created).Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(getSpaceUpdatedAt(*created))
 	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), &ifModifiedSince, nil)
 }
 
@@ -466,7 +465,7 @@ func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfModifiedSinceHeader()
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, createdSpace := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when/then
-	ifModifiedSince := createdSpace.Data.Attributes.UpdatedAt.Format(http.TimeFormat)
+	ifModifiedSince := app.ToHTTPTime(*createdSpace.Data.Attributes.UpdatedAt)
 	test.ListSpaceNotModified(rest.T(), svc.Context, svc, ctrl, nil, nil, &ifModifiedSince, nil)
 }
 

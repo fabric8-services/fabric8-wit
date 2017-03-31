@@ -3,13 +3,11 @@ package search_test
 import (
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/space"
@@ -17,7 +15,6 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -42,15 +39,8 @@ type searchRepositoryBlackboxTest struct {
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
 func (s *searchRepositoryBlackboxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *searchRepositoryBlackboxTest) SetupTest() {

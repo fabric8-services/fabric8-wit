@@ -28,6 +28,7 @@ http.address: 0.0.0.0:8080
 cachecontrol.workitemtype: max-age=86400
 cachecontrol.workitemlinktype: max-age=86400
 cachecontrol.workitems: max-age=300
+cachecontrol.areas: max-age=300
 cachecontrol.space: max-age=300
 cachecontrol.iteration: max-age=300
 
@@ -99,4 +100,4 @@ keycloak.testuser2.name : testuser2
 keycloak.testuser2.secret : testuser2
 
 # Uncomment if FQDN URL's should be used instead of relative URL's:
-# keycloak.url : http://sso.prod-preview.openshift.io
+# keycloak.url : https://sso.prod-preview.openshift.io

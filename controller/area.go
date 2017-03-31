@@ -22,16 +22,25 @@ import (
 // AreaController implements the area resource.
 type AreaController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config AreaControllerConfiguration
+}
+
+// AreaControllerConfiguration the configuration for the AreaController
+type AreaControllerConfiguration interface {
+	GetCacheControlAreas() string
 }
 
 // NewAreaController creates a area controller.
-func NewAreaController(service *goa.Service, db application.DB) *AreaController {
-	return &AreaController{Controller: service.NewController("AreaController"), db: db}
+func NewAreaController(service *goa.Service, db application.DB, config AreaControllerConfiguration) *AreaController {
+	return &AreaController{
+		Controller: service.NewController("AreaController"),
+		db:         db,
+		config:     config}
 }
 
-// ShowChild runs the show-child action
-func (c *AreaController) ShowChild(ctx *app.ShowChildAreaContext) error {
+// ShowChildren runs the show-children action
+func (c *AreaController) ShowChildren(ctx *app.ShowChildrenAreaContext) error {
 	id, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
@@ -46,17 +55,16 @@ func (c *AreaController) ShowChild(ctx *app.ShowChildAreaContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		res := &app.AreaList{}
-		res.Data = ConvertAreas(appl, ctx.RequestData, children, addResolvedPath)
-
-		return ctx.OK(res)
+		return ctx.ConditionalEntities(children, c.config.GetCacheControlAreas, func() error {
+			res := &app.AreaList{}
+			res.Data = ConvertAreas(appl, ctx.RequestData, children, addResolvedPath)
+			return ctx.OK(res)
+		})
 	})
 }
 
 // CreateChild runs the create-child action.
 func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
-
 	_, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
@@ -65,7 +73,6 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		parent, err := appl.Areas().Load(ctx, parentID)
 		if err != nil {
@@ -90,7 +97,7 @@ func (c *AreaController) CreateChild(ctx *app.CreateChildAreaContext) error {
 		}
 
 		res := &app.AreaSingle{
-			Data: ConvertArea(appl, ctx.RequestData, &newArea, addResolvedPath),
+			Data: ConvertArea(appl, ctx.RequestData, newArea, addResolvedPath),
 		}
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.AreaHref(res.Data.ID)))
 		return ctx.Created(res)
@@ -109,10 +116,11 @@ func (c *AreaController) Show(ctx *app.ShowAreaContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		res := &app.AreaSingle{}
-		res.Data = ConvertArea(appl, ctx.RequestData, a, addResolvedPath)
-		return ctx.OK(res)
+		return ctx.ConditionalEntity(*a, c.config.GetCacheControlAreas, func() error {
+			res := &app.AreaSingle{}
+			res.Data = ConvertArea(appl, ctx.RequestData, *a, addResolvedPath)
+			return ctx.OK(res)
+		})
 	})
 }
 
@@ -145,10 +153,10 @@ func getResolvePath(appl application.Application, a *area.Area) (*string, error)
 	return &pathResolved, nil
 }
 
-func getAreaByID(id uuid.UUID, areas []*area.Area) *area.Area {
+func getAreaByID(id uuid.UUID, areas []area.Area) *area.Area {
 	for _, a := range areas {
 		if a.ID == id {
-			return a
+			return &a
 		}
 	}
 	return nil
@@ -159,7 +167,7 @@ func getAreaByID(id uuid.UUID, areas []*area.Area) *area.Area {
 type AreaConvertFunc func(application.Application, *goa.RequestData, *area.Area, *app.Area) error
 
 // ConvertAreas converts between internal and external REST representation
-func ConvertAreas(appl application.Application, request *goa.RequestData, areas []*area.Area, additional ...AreaConvertFunc) []*app.Area {
+func ConvertAreas(appl application.Application, request *goa.RequestData, areas []area.Area, additional ...AreaConvertFunc) []*app.Area {
 	var is = []*app.Area{}
 	for _, i := range areas {
 		is = append(is, ConvertArea(appl, request, i, additional...))
@@ -168,7 +176,7 @@ func ConvertAreas(appl application.Application, request *goa.RequestData, areas 
 }
 
 // ConvertArea converts between internal and external REST representation
-func ConvertArea(appl application.Application, request *goa.RequestData, ar *area.Area, additional ...AreaConvertFunc) *app.Area {
+func ConvertArea(appl application.Application, request *goa.RequestData, ar area.Area, additional ...AreaConvertFunc) *app.Area {
 	areaType := area.APIStringTypeAreas
 	spaceID := ar.SpaceID.String()
 	selfURL := rest.AbsoluteURL(request, app.AreaHref(ar.ID))
@@ -181,6 +189,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 		Attributes: &app.AreaAttributes{
 			Name:       &ar.Name,
 			CreatedAt:  &ar.CreatedAt,
+			UpdatedAt:  &ar.UpdatedAt,
 			Version:    &ar.Version,
 			ParentPath: &pathToTopMostParent,
 		},
@@ -223,7 +232,7 @@ func ConvertArea(appl application.Application, request *goa.RequestData, ar *are
 		}
 	}
 	for _, add := range additional {
-		add(appl, request, ar, i)
+		add(appl, request, &ar, i)
 	}
 	return i
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var reqLong *goa.RequestData
@@ -56,6 +57,21 @@ func TestGetKeycloakURLOK(t *testing.T) {
 	assert.Equal(t, "http://sso.domain.org/somepath2", url)
 }
 
+func TestGetKeycloakHttpsURLOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+
+	r, err := http.NewRequest("", "https://sso.domain.org", nil)
+	require.Nil(t, err)
+	req := &goa.RequestData{
+		Request: r,
+	}
+
+	url, err := config.getKeycloakURL(req, "somepath")
+	assert.Nil(t, err)
+	assert.Equal(t, "https://sso.domain.org/somepath", url)
+}
+
 func TestGetKeycloakURLForTooShortHostFails(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	t.Parallel()
@@ -85,4 +101,24 @@ func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
 	resetConfiguration()
 
 	assert.Equal(t, "somecustomrealm", config.GetKeycloakRealm())
+}
+
+func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	key := "ALMIGHTY_REDIRECT_VALID"
+	realEnvValue := os.Getenv(key)
+
+	os.Unsetenv(key)
+	defer func() {
+		os.Setenv(key, realEnvValue)
+		resetConfiguration()
+	}()
+
+	assert.Equal(t, devModeValidRedirectURLs, config.GetValidRedirectURLs())
+
+	os.Setenv(key, "https://someDomain.org/redirect")
+	resetConfiguration()
+
+	assert.Equal(t, "https://someDomain.org/redirect", config.GetValidRedirectURLs())
 }
