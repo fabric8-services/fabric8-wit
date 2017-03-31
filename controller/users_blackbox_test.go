@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 
@@ -53,7 +54,9 @@ func (s *TestUsersSuite) SetupSuite() {
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-	keycloakUserProfileService := login.NewKeycloakUserProfileClient()
+	testAttributeValue := "a"
+	dummyProfileResponse := createDummyUserProfileResponse(&testAttributeValue, &testAttributeValue, &testAttributeValue)
+	keycloakUserProfileService := newDummyUserProfileService(dummyProfileResponse) //login.NewKeycloakUserProfileClient()
 	s.profileService = keycloakUserProfileService
 	s.controller = NewUsersController(s.svc, s.db, s.configuration, s.profileService)
 	s.userRepo = s.db.Users()
@@ -102,6 +105,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	//secureController, secureService := createSecureController(t, identity)
 	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
 	// then
 	require.NotNil(s.T(), result)
 	// let's fetch it and validate
@@ -405,4 +409,38 @@ func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, ima
 			},
 		},
 	}
+}
+
+type dummyUserProfileService struct {
+	dummyGetResponse *login.KeycloakUserProfileResponse
+}
+
+func newDummyUserProfileService(dummyGetResponse *login.KeycloakUserProfileResponse) *dummyUserProfileService {
+	return &dummyUserProfileService{
+		dummyGetResponse: dummyGetResponse,
+	}
+}
+
+func (d *dummyUserProfileService) Update(keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+	return nil
+}
+
+func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
+	return d.dummyGetResponse, nil
+}
+
+func (d *dummyUserProfileService) SetDummyGetResponse(dummyGetResponse *login.KeycloakUserProfileResponse) {
+	d.dummyGetResponse = dummyGetResponse
+}
+
+func createDummyUserProfileResponse(updatedBio, updatedImageURL, updatedURL *string) *login.KeycloakUserProfileResponse {
+	profile := &login.KeycloakUserProfileResponse{}
+	profile.Attributes = &login.KeycloakUserProfileAttributes{}
+
+	(*profile.Attributes)[login.BioAttributeName] = []string{*updatedBio}
+	(*profile.Attributes)[login.ImageURLAttributeName] = []string{*updatedImageURL}
+	(*profile.Attributes)[login.URLAttributeName] = []string{*updatedURL}
+
+	return profile
+
 }

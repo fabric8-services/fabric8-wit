@@ -91,15 +91,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		// prepare for updating keycloak user profile
 		tokenString := goajwt.ContextJWT(ctx).Raw
 
-		// This case shows up in tests - unable to find a way to inject an actual keycloak access token
-		if tokenString == "" {
-			log.Error(ctx, map[string]interface{}{
-				"token_string": tokenString,
-			}, "Token is empty")
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized("Token is empty"))
-			return ctx.Unauthorized(jerrors)
-		}
-
 		keycloakUserProfile := &login.KeycloakUserProfile{}
 		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
 
