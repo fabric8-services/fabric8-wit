@@ -1678,7 +1678,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 	}
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	require.NotNil(t, wi.Data.Relationships.Area)
-	assert.Nil(t, wi.Data.Relationships.Area.Data.ID)
+	assert.NotNil(t, wi.Data.Relationships.Area.Data.ID)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
