@@ -102,3 +102,23 @@ func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
 
 	assert.Equal(t, "somecustomrealm", config.GetKeycloakRealm())
 }
+
+func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	key := "ALMIGHTY_REDIRECT_VALID"
+	realEnvValue := os.Getenv(key)
+
+	os.Unsetenv(key)
+	defer func() {
+		os.Setenv(key, realEnvValue)
+		resetConfiguration()
+	}()
+
+	assert.Equal(t, devModeValidRedirectURLs, config.GetValidRedirectURLs())
+
+	os.Setenv(key, "https://someDomain.org/redirect")
+	resetConfiguration()
+
+	assert.Equal(t, "https://someDomain.org/redirect", config.GetValidRedirectURLs())
+}

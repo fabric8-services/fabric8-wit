@@ -17,14 +17,12 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -47,13 +45,8 @@ func TestRunPlannerBacklogREST(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (rest *TestPlannerBacklogREST) SetupSuite() {
 	rest.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(rest.DB, func(tx *gorm.DB) error {
-		rest.ctx = migration.NewMigrationContext(context.Background())
-		return migration.PopulateCommonTypes(rest.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
+	rest.ctx = migration.NewMigrationContext(context.Background())
+	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
 }
 
 func (rest *TestPlannerBacklogREST) SetupTest() {
@@ -73,7 +66,7 @@ func (rest *TestPlannerBacklogREST) UnSecuredController() (*goa.Service, *Planne
 	return svc, NewPlannerBacklogController(svc, gormapplication.NewGormDB(rest.DB), rest.Configuration)
 }
 
-func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration, childIteration *iteration.Iteration) {
+func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
@@ -97,7 +90,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		iterationsRepo.Create(rest.ctx, parentIteration)
 		logrus.Info("Created parent iteration with ID=", parentIteration.ID)
 
-		childIteration = &iteration.Iteration{
+		childIteration := &iteration.Iteration{
 			Name:    "Child Iteration",
 			SpaceID: testSpace.ID,
 			Path:    append(parentIteration.Path, parentIteration.ID),
@@ -118,8 +111,8 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 			workitem.SystemState:     "closed",
 			workitem.SystemIteration: childIteration.ID.String(),
 		}
-		app.WorkItems().Create(rest.ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
-
+		createdWI, err = app.WorkItems().Create(rest.ctx, testSpace.ID, workitemType.ID, fields2, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
 		return nil
 	})
 	return
@@ -198,13 +191,13 @@ func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpire
 
 func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
+	testSpace, _, lastWorkItem := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
 	// when
 	offset := "0"
 	filter := ""
 	limit := -1
-	ifModifiedSince := app.ToHTTPTime(parentIteration.UpdatedAt)
+	ifModifiedSince := app.ToHTTPTime(lastWorkItem.Fields[workitem.SystemUpdatedAt].(time.Time))
 	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)

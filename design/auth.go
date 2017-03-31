@@ -15,11 +15,14 @@ var _ = a.Resource("login", func() {
 		)
 		a.Params(func() {
 			a.Param("link", d.Boolean, "If true then link all available Identity Providers to the user account after successful login")
+			a.Param("redirect", d.String, "URL to be redirected to after successful login. If not set then will redirect to the referrer instead.")
+
 		})
 		a.Description("Authorize with the ALM")
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.TemporaryRedirect)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.BadRequest, JSONAPIErrors)
 	})
 
 	a.Action("generate", func() {

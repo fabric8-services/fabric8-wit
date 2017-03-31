@@ -2,7 +2,6 @@ package comment_test
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -10,13 +9,10 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
-	"github.com/almighty/almighty-core/workitem"
 
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -42,14 +38,8 @@ type revisionRepositoryBlackBoxTest struct {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *revisionRepositoryBlackBoxTest) SetupTest() {
