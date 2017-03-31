@@ -7,7 +7,7 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/almighty/almighty-core/app"
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -29,14 +29,14 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
-	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*app.WorkItemLinkSingle, error)
-	Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkSingle, error)
-	List(ctx context.Context) (*app.WorkItemLinkList, error)
-	ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error)
+	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error)
+	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error)
+	List(ctx context.Context) ([]WorkItemLink, error)
+	ListByWorkItemID(ctx context.Context, wiIDStr string) ([]WorkItemLink, error)
 	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
-	Save(ctx context.Context, linkCat app.WorkItemLinkSingle, modifierID uuid.UUID) (*app.WorkItemLinkSingle, error)
-	ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error)
+	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
+	ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -98,7 +98,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -122,19 +122,17 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := r.revisionRepo.Create(ctx, creatorID, RevisionTypeCreate, *link); err != nil {
 		return nil, errs.Wrapf(err, "error while creating work item")
 	}
-	// Convert the created link type entry into a JSONAPI response
-	result := ConvertLinkFromModel(*link)
-	return &result, nil
+	return link, nil
 }
 
 // Load returns the work item link for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*app.WorkItemLinkSingle, error) {
+func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error) {
 	log.Info(ctx, map[string]interface{}{
 		"wil_id": ID,
 	}, "Loading work item link")
-	res := WorkItemLink{}
-	db := r.db.Where("id=?", ID).Find(&res)
+	result := WorkItemLink{}
+	db := r.db.Where("id=?", ID).Find(&result)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"wil_id": ID,
@@ -144,64 +142,35 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*a
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	// Convert the created link type entry into a JSONAPI response
-	result := ConvertLinkFromModel(res)
 	return &result, nil
-}
-
-type fetchLinksFunc func() ([]WorkItemLink, error)
-
-func (r *GormWorkItemLinkRepository) list(ctx context.Context, fetchFunc fetchLinksFunc) (*app.WorkItemLinkList, error) {
-	rows, err := fetchFunc()
-	if err != nil {
-		return nil, errs.WithStack(err)
-	}
-	res := app.WorkItemLinkList{}
-	res.Data = make([]*app.WorkItemLinkData, len(rows))
-	for index, value := range rows {
-		cat := ConvertLinkFromModel(value)
-		res.Data[index] = cat.Data
-	}
-	// TODO: When adding pagination, this must not be len(rows) but
-	// the overall total number of elements from all pages.
-	res.Meta = &app.WorkItemLinkListMeta{
-		TotalCount: len(rows),
-	}
-	return &res, nil
 }
 
 // ListByWorkItemID returns the work item links that have wiID as source or target.
 // TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDStr string) (*app.WorkItemLinkList, error) {
-	fetchFunc := func() ([]WorkItemLink, error) {
-		var rows []WorkItemLink
-		wi, err := r.workItemRepo.LoadFromDB(ctx, wiIDStr)
-		if err != nil {
-			return nil, errs.WithStack(err)
-		}
-		// Now fetch all links for that work item
-		db := r.db.Model(&WorkItemLink{}).Where("? IN (source_id, target_id)", wi.ID).Find(&rows)
-		if db.Error != nil {
-			return nil, db.Error
-		}
-		return rows, nil
+func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDStr string) ([]WorkItemLink, error) {
+	var modelLinks []WorkItemLink
+	wi, err := r.workItemRepo.LoadFromDB(ctx, wiIDStr)
+	if err != nil {
+		return nil, errs.WithStack(err)
 	}
-	return r.list(ctx, fetchFunc)
+	// Now fetch all links for that work item
+	db := r.db.Model(modelLinks).Where("? IN (source_id, target_id)", wi.ID).Find(&modelLinks)
+	if db.Error != nil {
+		return nil, db.Error
+	}
+	return modelLinks, nil
 }
 
 // List returns all work item links if wiID is nil; otherwise the work item links are returned
 // that have wiID as source or target.
 // TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) List(ctx context.Context) (*app.WorkItemLinkList, error) {
-	fetchFunc := func() ([]WorkItemLink, error) {
-		var rows []WorkItemLink
-		db := r.db.Find(&rows)
-		if db.Error != nil {
-			return nil, db.Error
-		}
-		return rows, nil
+func (r *GormWorkItemLinkRepository) List(ctx context.Context) ([]WorkItemLink, error) {
+	var modelLinks []WorkItemLink
+	db := r.db.Find(&modelLinks)
+	if db.Error != nil {
+		return nil, db.Error
 	}
-	return r.list(ctx, fetchFunc)
+	return modelLinks, nil
 }
 
 // Delete deletes the work item link with the given id
@@ -264,57 +233,51 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Save(ctx context.Context, lt app.WorkItemLinkSingle, modifierID uuid.UUID) (*app.WorkItemLinkSingle, error) {
-	res := WorkItemLink{}
-	if lt.Data.ID == nil {
-		return nil, errors.NewBadParameterError("work item link", nil)
-	}
-	ID := *lt.Data.ID
-	db := r.db.Model(&res).Where("id=?", ID).First(&res)
+func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error) {
+	logrus.Info(fmt.Sprintf("saving workitem link with type =  %s", linkToSave.LinkTypeID))
+	existingLink := WorkItemLink{}
+	db := r.db.Model(&existingLink).Where("id=?", linkToSave.ID).First(&existingLink)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
-			"wil_id": ID,
+			"wil_id": linkToSave.ID,
 		}, "work item link not found")
-		return nil, errors.NewNotFoundError("work item link", ID.String())
+		return nil, errors.NewNotFoundError("work item link", linkToSave.ID.String())
 	}
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wil_id": ID,
+			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to find work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	if lt.Data.Attributes.Version == nil || res.Version != *lt.Data.Attributes.Version {
+	if existingLink.Version != linkToSave.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-	if err := ConvertLinkToModel(lt, &res); err != nil {
+	linkToSave.Version = linkToSave.Version + 1
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, existingLink.SourceID, existingLink.TargetID, existingLink.LinkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	res.Version = res.Version + 1
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, res.SourceID, res.TargetID, res.LinkTypeID); err != nil {
-		return nil, errs.WithStack(err)
-	}
-	db = r.db.Save(&res)
+	// save
+	db = r.db.Save(&linkToSave)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wil_id": res.ID,
+			"wil_id": linkToSave.ID,
 			"err":    db.Error,
 		}, "unable to save work item link")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	// save a revision of the modified work item link
-	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, res); err != nil {
+	if err := r.revisionRepo.Create(ctx, modifierID, RevisionTypeUpdate, linkToSave); err != nil {
 		return nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
-		"wil_id": res.ID,
+		"wil_id": linkToSave.ID,
 	}, "Work item link updated")
-	result := ConvertLinkFromModel(res)
-	return &result, nil
+	return &linkToSave, nil
 }
 
 // ListWorkItemChildren get all child work items
-func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]*app.WorkItem, error) {
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
 
 	where := fmt.Sprintf(`
@@ -324,27 +287,31 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 			SELECT id FROM %s WHERE forward_name = 'parent of'
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
-	db := r.db.Model(&workitem.WorkItem{}).Where(where, parent)
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	result := []*workitem.WorkItem{}
+	result := []workitem.WorkItemStorage{}
 
 	for rows.Next() {
-		value := &workitem.WorkItem{}
-		db.ScanRows(rows, value)
+		value := workitem.WorkItemStorage{}
+		db.ScanRows(rows, &value)
 
 		result = append(result, value)
 	}
-	res := make([]*app.WorkItem, len(result))
+	res := make([]workitem.WorkItem, len(result))
 	for index, value := range result {
 		wiType, err := r.workItemTypeRepo.LoadTypeFromDB(ctx, value.Type)
 		if err != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}
-		res[index], err = workitem.ConvertWorkItemModelToApp(goa.ContextRequest(ctx), wiType, value)
+		modelWI, err := workitem.ConvertWorkItemStorageToModel(wiType, &value)
+		if err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
+		res[index] = *modelWI
 	}
 
 	return res, nil

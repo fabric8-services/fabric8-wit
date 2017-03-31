@@ -1,6 +1,14 @@
-postgres_integration_test:
-  image: centos/postgresql-95-centos7
-  ports:
-    - "5432"
-  environment:
-    POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+version: '2.1'
+services:
+  postgres_integration_test:
+    image: centos/postgresql-95-centos7
+    network_mode: "bridge"
+    ports:
+      - "5432"
+    environment:
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+    healthcheck:
+      test: "bash -c 'pg_isready -h localhost -p 5432 -q -U postgres'"
+      interval: 3s
+      timeout: 7s
+      retries: 5

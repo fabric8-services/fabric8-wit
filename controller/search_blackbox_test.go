@@ -17,7 +17,6 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
@@ -26,7 +25,6 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
-	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
@@ -54,25 +52,16 @@ type searchBlackBoxTest struct {
 }
 
 func (s *searchBlackBoxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+
 	var err error
-	s.DB, err = gorm.Open("postgres", wibConfiguration.GetPostgresConfigString())
-	if err != nil {
-		panic("Failed to connect database: " + err.Error())
-	}
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if wibConfiguration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)
@@ -80,6 +69,10 @@ func (s *searchBlackBoxTest) SetupSuite() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	s.controller = NewSearchController(s.svc, gormapplication.NewGormDB(s.DB), spaceBlackBoxTestConfiguration)
+}
+
+func (s *searchBlackBoxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
 func (s *searchBlackBoxTest) TearDownTest() {
@@ -255,8 +248,11 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemUserStory.String()))
 	c := app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type:       APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{},
 			Relationships: &app.WorkItemRelationships{
@@ -265,8 +261,11 @@ func (s *searchBlackBoxTest) getWICreatePayload() *app.CreateWorkitemPayload {
 						Type: APIStringTypeWorkItemType,
 						ID:   workitem.SystemUserStory,
 					},
+					Links: &app.GenericLinks{
+						Self: &witSelfURL,
+					},
 				},
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -314,7 +313,7 @@ func (s *searchBlackBoxTest) searchByURL(customHost, queryString string) *app.Se
 }
 
 // verifySearchByKnownURLs performs actual tests on search result and knwonURL map
-func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItem2Single, host, searchQuery string) {
+func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItemSingle, host, searchQuery string) {
 	result := s.searchByURL(host, searchQuery)
 	assert.NotEmpty(s.T(), result.Data)
 	assert.Equal(s.T(), *wi.Data.ID, *result.Data[0].ID)
@@ -330,7 +329,7 @@ func (s *searchBlackBoxTest) verifySearchByKnownURLs(wi *app.WorkItem2Single, ho
 // Uses helper functions verifySearchByKnownURLs, searchByURL, getWICreatePayload
 func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	// service := getServiceAsUser(s.testIdentity)
-	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB))
+	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI.Data.Relationships.Space.Data.ID.String(), newWI)

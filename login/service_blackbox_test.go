@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -18,17 +17,14 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	. "github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/models"
-	"github.com/almighty/almighty-core/workitem"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/almighty/almighty-core/migration"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 
-	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/token"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/uuid"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,16 +49,8 @@ func TestRunServiceBlackBoxTest(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *serviceBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 
 	var err error
 	s.configuration, err = config.GetConfigurationData()
@@ -143,8 +131,156 @@ func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirect() {
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
-	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint)
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
 
+	assert.Equal(s.T(), 307, rw.Code)
+	assert.Contains(s.T(), rw.Header().Get("Location"), s.oauth.Endpoint.AuthURL)
+	assert.NotEqual(s.T(), rw.Header().Get("Location"), "")
+}
+
+func (s *serviceBlackBoxTest) getValidRedirectURLs() string {
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "domain.com"},
+	}
+	whitelist, err := s.configuration.GetValidRedirectURLs(r)
+	require.Nil(s.T(), err)
+	return whitelist
+}
+
+func (s *serviceBlackBoxTest) TestKeycloakAuthorizationRedirectsToRedirectParam() {
+	rw := httptest.NewRecorder()
+	redirect := "https://url.example.org/pathredirect"
+	u := &url.URL{
+		Path: fmt.Sprintf("/api/login/authorize?redirect="),
+	}
+	parameters := url.Values{}
+	if redirect != "" {
+		parameters.Add("redirect", redirect)
+	}
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, parameters)
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.io"},
+	}
+	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(s.T(), err)
+	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
+	require.Nil(s.T(), err)
+	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	require.Nil(s.T(), err)
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
+
+	assert.Equal(s.T(), 307, rw.Code)
+	assert.Contains(s.T(), rw.Header().Get("Location"), s.oauth.Endpoint.AuthURL)
+	assert.NotEqual(s.T(), rw.Header().Get("Location"), "")
+}
+
+func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoRefererAndRedirectParamFails() {
+	rw := httptest.NewRecorder()
+	u := &url.URL{
+		Path: fmt.Sprintf("/api/login/authorize"),
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+
+	prms := url.Values{}
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.io"},
+	}
+	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(s.T(), err)
+	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
+	require.Nil(s.T(), err)
+	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	require.Nil(s.T(), err)
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
+	assert.Equal(s.T(), 400, rw.Code)
+}
+
+func (s *serviceBlackBoxTest) TestKeycloakAuthorizationWithNoValidRefererFails() {
+	rw := httptest.NewRecorder()
+	u := &url.URL{
+		Path: fmt.Sprintf("/api/login/authorize"),
+	}
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		panic("invalid test " + err.Error()) // bug
+	}
+
+	// Not whitelisted redirect fails
+	prms := url.Values{}
+	prms.Add("redirect", "http://notauthorized.domain.com")
+
+	ctx := context.Background()
+	goaCtx := goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err := app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.domain.io"},
+	}
+	authEndpoint, err := s.configuration.GetKeycloakEndpointAuth(r)
+	require.Nil(s.T(), err)
+	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
+	require.Nil(s.T(), err)
+	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
+	require.Nil(s.T(), err)
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, config.DefaultValidRedirectURLs)
+	assert.Equal(s.T(), 400, rw.Code)
+
+	// openshift.io redirects pass
+	rw = httptest.NewRecorder()
+	prms = url.Values{}
+	prms.Add("redirect", "https://openshift.io/somepath")
+
+	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, config.DefaultValidRedirectURLs)
+	assert.Equal(s.T(), 307, rw.Code)
+	assert.Contains(s.T(), rw.Header().Get("Location"), s.oauth.Endpoint.AuthURL)
+	assert.NotEqual(s.T(), rw.Header().Get("Location"), "")
+
+	// Any redirects pass in Dev mode.
+	rw = httptest.NewRecorder()
+	prms = url.Values{}
+	prms.Add("redirect", "https://anydoamin.io/somepath")
+
+	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
+	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
+	if err != nil {
+		panic("invalid test data " + err.Error()) // bug
+	}
+
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
 	assert.Equal(s.T(), 307, rw.Code)
 	assert.Contains(s.T(), rw.Header().Get("Location"), s.oauth.Endpoint.AuthURL)
 	assert.NotEqual(s.T(), rw.Header().Get("Location"), "")
@@ -196,7 +332,7 @@ func keycloakLinkRedirect(s *serviceBlackBoxTest, provider string, redirect stri
 	require.Nil(s.T(), err)
 	clientID := s.configuration.GetKeycloakClientID()
 
-	err = s.loginService.Link(linkCtx, brokerEndpoint, clientID)
+	err = s.loginService.Link(linkCtx, brokerEndpoint, clientID, s.getValidRedirectURLs())
 	require.Nil(s.T(), err)
 
 	assert.Equal(s.T(), 307, rw.Code)
@@ -289,7 +425,7 @@ func (s *serviceBlackBoxTest) TestInvalidState() {
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
-	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint)
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
 	assert.Equal(s.T(), 401, rw.Code)
 }
 
@@ -334,7 +470,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	brokerEndpoint, err := s.configuration.GetKeycloakEndpointBroker(r)
 	require.Nil(s.T(), err)
 
-	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint)
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
 
 	assert.Equal(s.T(), 307, rw.Code) // redirect to keycloak login page.
 
@@ -369,7 +505,7 @@ func (s *serviceBlackBoxTest) TestInvalidOAuthAuthorizationCode() {
 	goaCtx = goa.NewContext(goa.WithAction(ctx, "LoginTest"), rw, req, prms)
 	authorizeCtx, err = app.NewAuthorizeLoginContext(goaCtx, req, goa.New("LoginService"))
 
-	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint)
+	err = s.loginService.Perform(authorizeCtx, authEndpoint, tokenEndpoint, brokerEndpoint, s.getValidRedirectURLs())
 
 	locationString = rw.HeaderMap["Location"][0]
 	locationUrl, err = url.Parse(locationString)

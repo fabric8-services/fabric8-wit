@@ -17,6 +17,8 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
+	"fmt"
+
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/client"
 	"github.com/jinzhu/gorm"
@@ -459,8 +461,7 @@ func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.G
 		}, "Work item link category %s exists, will update/overwrite the description", name)
 
 		cat.Description = &description
-		linkCat := link.ConvertLinkCategoryFromModel(*cat)
-		_, err = linkCatRepo.Save(ctx, linkCat)
+		_, err = linkCatRepo.Save(ctx, *cat)
 		return errs.WithStack(err)
 	}
 	return nil
@@ -530,8 +531,8 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		return errs.WithStack(err)
 	}
 
-	linkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
-	lt := link.WorkItemLinkType{
+	existingLinkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
+	linkType := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
 		Topology:       topology,
@@ -546,7 +547,16 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkTypeRepo.Create(ctx, lt.Name, lt.Description, lt.SourceTypeID, lt.TargetTypeID, lt.ForwardName, lt.ReverseName, lt.Topology, lt.LinkCategoryID, lt.SpaceID)
+		_, err := linkTypeRepo.Create(ctx,
+			linkType.Name,
+			linkType.Description,
+			linkType.SourceTypeID,
+			linkType.TargetTypeID,
+			linkType.ForwardName,
+			linkType.ReverseName,
+			linkType.Topology,
+			linkType.LinkCategoryID,
+			linkType.SpaceID)
 		if err != nil {
 			return errs.WithStack(err)
 		}
@@ -554,11 +564,9 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		log.Info(ctx, map[string]interface{}{
 			"wilt": name,
 		}, "Work item link type %s exists, will update/overwrite all fields", name)
-
-		lt.ID = linkType.ID
-		lt.Version = linkType.Version
-
-		_, err = linkTypeRepo.Save(ctx, link.ConvertLinkTypeFromModel(goa.ContextRequest(ctx), lt))
+		linkType.ID = existingLinkType.ID
+		linkType.Version = existingLinkType.Version
+		_, err = linkTypeRepo.Save(ctx, linkType)
 		return errs.WithStack(err)
 	}
 	return nil
@@ -606,37 +614,35 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	return nil
 }
 
-func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID, categories uuid.UUID) error {
+func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUIDi, categories uuid.UUID) error {
+	fmt.Println("Creating or updating planner item type...")
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
 	description := "Description for Planner Item"
-	stString := "string"
-	stUser := "user"
 	icon := "fa-bookmark"
-	workItemTypeFields := map[string]app.FieldDefinition{
-		workitem.SystemTitle:        {Type: &app.FieldType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
-		workitem.SystemDescription:  {Type: &app.FieldType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
-		workitem.SystemCreator:      {Type: &app.FieldType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
-		workitem.SystemRemoteItemID: {Type: &app.FieldType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
-		workitem.SystemCreatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
-		workitem.SystemUpdatedAt:    {Type: &app.FieldType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
-		workitem.SystemOrder:        {Type: &app.FieldType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
-		workitem.SystemIteration:    {Type: &app.FieldType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
-		workitem.SystemArea:         {Type: &app.FieldType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
-		workitem.SystemCodebase:     {Type: &app.FieldType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
+	workItemTypeFields := map[string]workitem.FieldDefinition{
+		workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
+		workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
+		workitem.SystemCreator:      {Type: workitem.SimpleType{Kind: "user"}, Required: true, Label: "Creator", Description: "The user that created the work item"},
+		workitem.SystemRemoteItemID: {Type: workitem.SimpleType{Kind: "string"}, Required: false, Label: "Remote item", Description: "The ID of the remote work item"},
+		workitem.SystemCreatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Created at", Description: "The date and time when the work item was created"},
+		workitem.SystemUpdatedAt:    {Type: workitem.SimpleType{Kind: "instant"}, Required: false, Label: "Updated at", Description: "The date and time when the work item was last updated"},
+		workitem.SystemOrder:        {Type: workitem.SimpleType{Kind: "float"}, Required: false, Label: "Execution Order", Description: "Execution Order of the workitem."},
+		workitem.SystemIteration:    {Type: workitem.SimpleType{Kind: "iteration"}, Required: false, Label: "Iteration", Description: "The iteration to which the work item belongs"},
+		workitem.SystemArea:         {Type: workitem.SimpleType{Kind: "area"}, Required: false, Label: "Area", Description: "The area to which the work item belongs"},
+		workitem.SystemCodebase:     {Type: workitem.SimpleType{Kind: "codebase"}, Required: false, Label: "Codebase", Description: "Contains codebase attributes to which this WI belongs to"},
 		workitem.SystemAssignees: {
-			Type: &app.FieldType{
-				ComponentType: &stUser,
-				Kind:          "list",
-			},
+			Type: &workitem.ListType{
+				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
+				ComponentType: workitem.SimpleType{Kind: workitem.KindUser}},
 			Required:    false,
 			Label:       "Assignees",
 			Description: "The users that are assigned to the work item",
 		},
 		workitem.SystemState: {
-			Type: &app.FieldType{
-				BaseType: &stString,
-				Kind:     "enum",
+			Type: &workitem.EnumType{
+				SimpleType: workitem.SimpleType{Kind: workitem.KindEnum},
+				BaseType:   workitem.SimpleType{Kind: workitem.KindString},
 				Values: []interface{}{
 					workitem.SystemStateNew,
 					workitem.SystemStateOpen,
@@ -645,6 +651,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 					workitem.SystemStateClosed,
 				},
 			},
+
 			Required:    true,
 			Label:       "State",
 			Description: "The state of the work item",
@@ -660,9 +667,9 @@ func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, descripti
 }
 
 func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]app.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, categories uuid.UUID) error {
+	fmt.Println("Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)
-
 	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := witr.Create(ctx, spaceID, &typeID, extendedTypeID, name, &description, icon, fields, categories)
@@ -675,7 +682,6 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		}, "Work item type %s exists, will update/overwrite the fields, name, icon, description and parentPath", typeID.String())
 
 		path := workitem.LtreeSafeID(typeID)
-		convertedFields, err := workitem.TEMPConvertFieldTypesToModel(fields)
 		if extendedTypeID != nil {
 			log.Info(ctx, map[string]interface{}{
 				"type_id":          typeID,
@@ -689,7 +695,7 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 			path = extendedWit.Path + workitem.GetTypePathSeparator() + path
 
 			//load fields from the extended type
-			err = loadFields(ctx, extendedWit, convertedFields)
+			err = loadFields(ctx, extendedWit, fields)
 			if err != nil {
 				return errs.WithStack(err)
 			}
@@ -701,12 +707,14 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		wit.Name = name
 		wit.Description = &description
 		wit.Icon = icon
-		wit.Fields = convertedFields
+		wit.Fields = fields
 		wit.Path = path
 		wit.CategoriesID = categories
 		db = db.Save(wit)
 		return db.Error
 	}
+	fmt.Println("Creating or updating planner item type done.")
+
 	return nil
 }
 

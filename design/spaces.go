@@ -13,9 +13,28 @@ var space = a.Type("Space", func() {
 		a.Example("40bbdd3d-8b5d-4fd6-ac90-7236b669af04")
 	})
 	a.Attribute("attributes", spaceAttributes)
-	a.Attribute("links", genericLinks)
+	a.Attribute("links", genericLinksForSpace)
 	a.Required("type", "attributes")
 	a.Attribute("relationships", spaceRelationships)
+})
+
+var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("related", d.String)
+	a.Attribute("backlog", backlogGenericLinkType, `URL to the backlog work items`)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+	a.Attribute("workitemtypes", d.String, "URL to list all WITs for this space")
+	a.Attribute("workitemlinktypes", d.String, "URL to list all WILTs for this space")
+})
+
+var backlogGenericLinkType = a.Type("BacklogGenericLink", func() {
+	a.Attribute("self", d.String)
+	a.Attribute("meta", backlogLinkMeta)
+})
+
+var backlogLinkMeta = a.Type("BacklogLinkMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
 })
 
 var spaceRelationships = a.Type("SpaceRelationships", func() {
@@ -31,6 +50,7 @@ var spaceRelationships = a.Type("SpaceRelationships", func() {
 
 var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
 	a.Attribute("data", identityRelationData)
+	a.Attribute("links", genericLinks)
 	a.Required("data")
 })
 
@@ -97,9 +117,9 @@ var _ = a.Resource("space", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "ID of the space")
 		})
-		a.Response(d.OK, func() {
-			a.Media(spaceSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, spaceSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -114,10 +134,9 @@ var _ = a.Resource("space", func() {
 			a.Param("page[offset]", d.String, "Paging start position")
 			a.Param("page[limit]", d.Integer, "Paging size")
 		})
-
-		a.Response(d.OK, func() {
-			a.Media(spaceList)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, spaceList)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})

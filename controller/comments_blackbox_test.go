@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -46,10 +47,10 @@ type CommentsSuite struct {
 func (s *CommentsSuite) SetupTest() {
 	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
-	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "test user2", "test provider")
+	testIdentity2, err := testsupport.CreateTestIdentity(s.DB, "CommentsSuite user2", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity2 = testIdentity2
 }
@@ -73,7 +74,7 @@ func (s *CommentsSuite) unsecuredController() (*goa.Service, *CommentsController
 func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Service, *WorkitemController, *WorkItemCommentsController, *CommentsController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("Comment-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	workitemCtrl := NewWorkitemController(svc, s.db)
+	workitemCtrl := NewWorkitemController(svc, s.db, s.Configuration)
 	workitemCommentsCtrl := NewWorkItemCommentsController(svc, s.db)
 	commentsCtrl := NewCommentsController(svc, s.db)
 	return svc, workitemCtrl, workitemCommentsCtrl, commentsCtrl
@@ -84,8 +85,11 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
+	witSelfURL := rest.AbsoluteURL(&goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}, app.WorkitemtypeHref(space.SystemSpace.String(), workitem.SystemBug.String()))
 	createWorkitemPayload := app.CreateWorkitemPayload{
-		Data: &app.WorkItem2{
+		Data: &app.WorkItem{
 			Type: APIStringTypeWorkItem,
 			Attributes: map[string]interface{}{
 				workitem.SystemTitle: "work item title",
@@ -96,8 +100,11 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 						Type: "workitemtypes",
 						ID:   workitem.SystemBug,
 					},
+					Links: &app.GenericLinks{
+						Self: &witSelfURL,
+					},
 				},
-				Space: space.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
 			},
 		},
 	}
@@ -158,6 +165,7 @@ func (s *CommentsSuite) validateComment(result *app.CommentSingle, expectedBody 
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy.Data)
 	require.NotNil(s.T(), result.Data.Relationships.CreatedBy.Data.ID)
 	assert.Equal(s.T(), s.testIdentity.ID, *result.Data.Relationships.CreatedBy.Data.ID)
+	assert.True(s.T(), strings.Contains(*result.Data.Relationships.CreatedBy.Links.Related, result.Data.Relationships.CreatedBy.Data.ID.String()), "Link not found")
 }
 
 func (s *CommentsSuite) TestShowCommentWithoutAuth() {

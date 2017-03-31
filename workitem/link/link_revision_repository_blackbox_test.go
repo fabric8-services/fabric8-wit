@@ -2,7 +2,7 @@ package link_test
 
 import (
 	"context"
-	"os"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -10,14 +10,12 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
-	"github.com/almighty/almighty-core/space"
-	"github.com/jinzhu/gorm"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,15 +47,8 @@ type revisionRepositoryBlackBoxTest struct {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *revisionRepositoryBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 }
 
 func (s *revisionRepositoryBlackBoxTest) SetupTest() {
@@ -111,12 +102,12 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	require.Nil(s.T(), err)
 	// create link types
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
-	linkType1, err := linkTypeRepository.Create(s.ctx, "test link type 1", nil, workitem.SystemBug, workitem.SystemBug, "foo", "foo", "dependency", *linkCategory.Data.ID, testSpace.ID)
+	linkType1, err := linkTypeRepository.Create(s.ctx, "test link type 1", nil, workitem.SystemBug, workitem.SystemBug, "foo", "foo", "dependency", linkCategory.ID, testSpace.ID)
 	require.Nil(s.T(), err)
-	s.testLinkType1ID = *linkType1.Data.ID
-	linkType2, err := linkTypeRepository.Create(s.ctx, "test link type 2", nil, workitem.SystemBug, workitem.SystemBug, "bar", "bar", "dependency", *linkCategory.Data.ID, testSpace.ID)
+	s.testLinkType1ID = linkType1.ID
+	linkType2, err := linkTypeRepository.Create(s.ctx, "test link type 2", nil, workitem.SystemBug, workitem.SystemBug, "bar", "bar", "dependency", linkCategory.ID, testSpace.ID)
 	require.Nil(s.T(), err)
-	s.testLinkType2ID = *linkType2.Data.ID
+	s.testLinkType2ID = linkType2.ID
 }
 
 func (s *revisionRepositoryBlackBoxTest) TearDownTest() {
@@ -130,20 +121,21 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisions() {
 	workitemLink, err := linkRepository.Create(s.ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// modify the work item link
-	workitemLink.Data.Relationships.LinkType.Data.ID = s.testLinkType2ID
+	s.T().Log(fmt.Sprintf("setting workitem link type from %s to %s", workitemLink.LinkTypeID, s.testLinkType2ID))
+	workitemLink.LinkTypeID = s.testLinkType2ID
 	workitemLink, err = linkRepository.Save(s.ctx, *workitemLink, s.testIdentity2.ID)
 	require.Nil(s.T(), err)
 	// delete the work item link
-	err = linkRepository.Delete(s.ctx, *workitemLink.Data.ID, s.testIdentity3.ID)
+	err = linkRepository.Delete(s.ctx, workitemLink.ID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
-	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, *workitemLink.Data.ID)
+	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, workitemLink.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), workitemLinkRevisions, 3)
 	// revision 1
 	revision1 := workitemLinkRevisions[0]
-	assert.Equal(s.T(), *workitemLink.Data.ID, revision1.WorkItemLinkID)
+	assert.Equal(s.T(), workitemLink.ID, revision1.WorkItemLinkID)
 	assert.Equal(s.T(), link.RevisionTypeCreate, revision1.Type)
 	assert.Equal(s.T(), s.testIdentity1.ID, revision1.ModifierIdentity)
 	assert.Equal(s.T(), s.sourceWorkItemID, revision1.WorkItemLinkSourceID)
@@ -151,7 +143,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisions() {
 	assert.Equal(s.T(), s.testLinkType1ID, revision1.WorkItemLinkTypeID)
 	// revision 2
 	revision2 := workitemLinkRevisions[1]
-	assert.Equal(s.T(), *workitemLink.Data.ID, revision2.WorkItemLinkID)
+	assert.Equal(s.T(), workitemLink.ID, revision2.WorkItemLinkID)
 	assert.Equal(s.T(), link.RevisionTypeUpdate, revision2.Type)
 	assert.Equal(s.T(), s.testIdentity2.ID, revision2.ModifierIdentity)
 	assert.Equal(s.T(), s.sourceWorkItemID, revision2.WorkItemLinkSourceID)
@@ -159,7 +151,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisions() {
 	assert.Equal(s.T(), s.testLinkType2ID, revision2.WorkItemLinkTypeID)
 	// revision 3
 	revision3 := workitemLinkRevisions[2]
-	assert.Equal(s.T(), *workitemLink.Data.ID, revision3.WorkItemLinkID)
+	assert.Equal(s.T(), workitemLink.ID, revision3.WorkItemLinkID)
 	assert.Equal(s.T(), link.RevisionTypeDelete, revision3.Type)
 	assert.Equal(s.T(), s.testIdentity3.ID, revision3.ModifierIdentity)
 	assert.Equal(s.T(), s.sourceWorkItemID, revision3.WorkItemLinkSourceID)
@@ -178,13 +170,13 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisionsWhenDelet
 	err = linkRepository.DeleteRelatedLinks(s.ctx, sourceWorkItemID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
-	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, *workitemLink.Data.ID)
+	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, workitemLink.ID)
 	// then
 	require.Nil(s.T(), err)
 	require.Len(s.T(), workitemLinkRevisions, 2)
 	// revision 1
 	revision1 := workitemLinkRevisions[0]
-	assert.Equal(s.T(), *workitemLink.Data.ID, revision1.WorkItemLinkID)
+	assert.Equal(s.T(), workitemLink.ID, revision1.WorkItemLinkID)
 	assert.Equal(s.T(), link.RevisionTypeCreate, revision1.Type)
 	assert.Equal(s.T(), s.testIdentity1.ID, revision1.ModifierIdentity)
 	assert.Equal(s.T(), s.sourceWorkItemID, revision1.WorkItemLinkSourceID)
@@ -192,7 +184,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisionsWhenDelet
 	assert.Equal(s.T(), s.testLinkType1ID, revision1.WorkItemLinkTypeID)
 	// revision 2
 	revision2 := workitemLinkRevisions[1]
-	assert.Equal(s.T(), *workitemLink.Data.ID, revision2.WorkItemLinkID)
+	assert.Equal(s.T(), workitemLink.ID, revision2.WorkItemLinkID)
 	assert.Equal(s.T(), link.RevisionTypeDelete, revision2.Type)
 	assert.Equal(s.T(), s.testIdentity3.ID, revision2.ModifierIdentity)
 	assert.Equal(s.T(), s.sourceWorkItemID, revision2.WorkItemLinkSourceID)

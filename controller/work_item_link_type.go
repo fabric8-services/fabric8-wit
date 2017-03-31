@@ -9,10 +9,10 @@ import (
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem/link"
 
 	"github.com/goadesign/goa"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -42,13 +42,14 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 	}
 
 	// Now include the optional link category data in the work item link type "included" array
-	linkCat, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, single.Data.Relationships.LinkCategory.Data.ID)
+	modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, single.Data.Relationships.LinkCategory.Data.ID)
 	if err != nil {
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 
 	}
-	single.Included = append(single.Included, linkCat.Data)
+	appCategory := convertLinkCategoryFromModel(*modelCategory)
+	single.Included = append(single.Included, appCategory.Data)
 
 	// Now include the optional link space data in the work item link type "included" array
 	space, err := ctx.Application.Spaces().Load(ctx.Context, *single.Data.Relationships.Space.Data.ID)
@@ -56,8 +57,14 @@ func enrichLinkTypeSingle(ctx *workItemLinkContext, single *app.WorkItemLinkType
 		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 	}
+
+	spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
+	if err != nil {
+		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+	}
 	spaceSingle := &app.SpaceSingle{
-		Data: ConvertSpace(ctx.RequestData, space),
+		Data: spaceData,
 	}
 	single.Included = append(single.Included, spaceSingle.Data)
 
@@ -80,12 +87,13 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 	}
 	// Now include the optional link category data in the work item link type "included" array
 	for categoryID := range categoryIDMap {
-		linkCat, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, categoryID)
+		modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, categoryID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		list.Included = append(list.Included, linkCat.Data)
+		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		list.Included = append(list.Included, appCategory.Data)
 	}
 
 	// Build our "set" of distinct space IDs already converted as strings
@@ -100,8 +108,13 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
 		spaceSingle := &app.SpaceSingle{
-			Data: ConvertSpace(ctx.RequestData, space),
+			Data: spaceData,
 		}
 		list.Included = append(list.Included, spaceSingle.Data)
 	}
@@ -117,46 +130,44 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 
 	// WorkItemLinkTypeController_Create: start_implement
 	// Convert payload from app to model representation
-	model := link.WorkItemLinkType{}
-	in := app.WorkItemLinkTypeSingle{
+	appLinkType := app.WorkItemLinkTypeSingle{
 		Data: ctx.Payload.Data,
 	}
-
 	// Set the space to the Payload
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
-		ctx.Payload.Data.Relationships.Space = space.NewSpaceRelation(spaceID, spaceSelfURL)
+		spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(spaceID.String()))
+		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(spaceID, spaceSelfURL)
 	}
-	model.SpaceID = spaceID
-
-	err = link.ConvertLinkTypeToModel(in, &model)
+	modelLinkType, err := ConvertWorkItemLinkTypeToModel(appLinkType)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
 		return ctx.BadRequest(jerrors)
 	}
+	modelLinkType.SpaceID = spaceID
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		linkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, model.Name, model.Description, model.SourceTypeID, model.TargetTypeID, model.ForwardName, model.ReverseName, model.Topology, model.LinkCategoryID, model.SpaceID)
+		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, modelLinkType.Name, modelLinkType.Description, modelLinkType.SourceTypeID, modelLinkType.TargetTypeID, modelLinkType.ForwardName, modelLinkType.ReverseName, modelLinkType.Topology, modelLinkType.LinkCategoryID, modelLinkType.SpaceID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *createdModelLinkType)
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
-			return fmt.Sprintf(app.WorkItemLinkTypeHref(model.SpaceID, "%v"), obj)
+			return fmt.Sprintf(app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
-		err = enrichLinkTypeSingle(linkCtx, linkType)
+		err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(model.SpaceID, linkType.Data.ID))
-		return ctx.Created(linkType)
+		ctx.ResponseData.Header().Set("Location", app.WorkItemLinkTypeHref(createdModelLinkType.SpaceID, appLinkType.Data.ID))
+		return ctx.Created(&appLinkType)
 	})
 	// WorkItemLinkTypeController_Create: end_implement
 }
@@ -187,22 +198,34 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 	}
 	// WorkItemLinkTypeController_List: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		result, err := appl.WorkItemLinkTypes().List(ctx.Context, spaceID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().List(ctx.Context, spaceID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		// convert to rest representation
+		appLinkTypes := app.WorkItemLinkTypeList{}
+		appLinkTypes.Data = make([]*app.WorkItemLinkTypeData, len(modelLinkTypes))
+		for index, modelLinkType := range modelLinkTypes {
+			appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, modelLinkType)
+			appLinkTypes.Data[index] = appLinkType.Data
+		}
+		// TODO: When adding pagination, this must not be len(rows) but
+		// the overall total number of elements from all pages.
+		appLinkTypes.Meta = &app.WorkItemLinkTypeListMeta{
+			TotalCount: len(modelLinkTypes),
 		}
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeList(linkCtx, result)
+		err = enrichLinkTypeList(linkCtx, &appLinkTypes)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		return ctx.OK(result)
+		return ctx.OK(&appLinkTypes)
 	})
 	// WorkItemLinkTypeController_List: end_implement
 }
@@ -215,27 +238,30 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 	}
 	// WorkItemLinkTypeController_Show: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		wiltId, err := uuid.FromString(ctx.WiltID)
+		wiltID, err := uuid.FromString(ctx.WiltID)
 		if err != nil {
 			return errors.NewNotFoundError("work item link type ID", ctx.WiltID)
 		}
 
-		res, err := appl.WorkItemLinkTypes().Load(ctx.Context, spaceID, wiltId)
+		modelLinkType, err := appl.WorkItemLinkTypes().Load(ctx.Context, spaceID, wiltID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		// Convert the created link type entry into a rest representation
+		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkType)
+
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
-		err = enrichLinkTypeSingle(linkCtx, res)
+		err = enrichLinkTypeSingle(linkCtx, &appLinkType)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		return ctx.OK(res)
+		return ctx.OK(&appLinkType)
 	})
 	// WorkItemLinkTypeController_Show: end_implement
 }
@@ -246,7 +272,6 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -256,22 +281,182 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 		toSave := app.WorkItemLinkTypeSingle{
 			Data: ctx.Payload.Data,
 		}
-		linkType, err := appl.WorkItemLinkTypes().Save(ctx.Context, toSave)
+		if toSave.Data.ID == nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(errors.NewBadParameterError("work item link type", nil))
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		modelLinkTypeToSave, err := ConvertWorkItemLinkTypeToModel(toSave)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
+		modelLinkTypeSaved, err := appl.WorkItemLinkTypes().Save(ctx.Context, *modelLinkTypeToSave)
+		if err != nil {
+			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
+			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		}
+		appLinkType := ConvertWorkItemLinkTypeFromModel(ctx.RequestData, *modelLinkTypeSaved)
+
 		// Enrich
 		hrefFunc := func(obj interface{}) string {
 			return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
 		}
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
-		err = enrichLinkTypeSingle(linkCtx, linkType)
+		linkTypeCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, currentUserIdentityID)
+		err = enrichLinkTypeSingle(linkTypeCtx, &appLinkType)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInternal("Failed to enrich link type: %s", err.Error()))
 			return ctx.InternalServerError(jerrors)
 		}
-		return ctx.OK(linkType)
+		return ctx.OK(&appLinkType)
 	})
 	// WorkItemLinkTypeController_Update: end_implement
+}
+
+// ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
+func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
+	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
+	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
+	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
+	linkCategorySelfURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
+
+	var converted = app.WorkItemLinkTypeSingle{
+		Data: &app.WorkItemLinkTypeData{
+			Type: link.EndpointWorkItemLinkTypes,
+			ID:   &modelLinkType.ID,
+			Attributes: &app.WorkItemLinkTypeAttributes{
+				Name:        &modelLinkType.Name,
+				Description: modelLinkType.Description,
+				Version:     &modelLinkType.Version,
+				CreatedAt:   &modelLinkType.CreatedAt,
+				UpdatedAt:   &modelLinkType.UpdatedAt,
+				ForwardName: &modelLinkType.ForwardName,
+				ReverseName: &modelLinkType.ReverseName,
+				Topology:    &modelLinkType.Topology,
+			},
+			Relationships: &app.WorkItemLinkTypeRelationships{
+				LinkCategory: &app.RelationWorkItemLinkCategory{
+					Data: &app.RelationWorkItemLinkCategoryData{
+						Type: link.EndpointWorkItemLinkCategories,
+						ID:   modelLinkType.LinkCategoryID,
+					},
+					Links: &app.GenericLinks{
+						Self: &linkCategorySelfURL,
+					},
+				},
+				SourceType: &app.RelationWorkItemType{
+					Data: &app.RelationWorkItemTypeData{
+						Type: link.EndpointWorkItemTypes,
+						ID:   modelLinkType.SourceTypeID,
+					},
+					Links: &app.GenericLinks{
+						Self: &witSourceSelfURL,
+					},
+				},
+				TargetType: &app.RelationWorkItemType{
+					Data: &app.RelationWorkItemTypeData{
+						Type: link.EndpointWorkItemTypes,
+						ID:   modelLinkType.TargetTypeID,
+					},
+					Links: &app.GenericLinks{
+						Self: &witTargetSelfURL,
+					},
+				},
+				Space: app.NewSpaceRelation(modelLinkType.SpaceID, spaceSelfURL),
+			},
+		},
+	}
+	return converted
+}
+
+// ConvertWorkItemLinkTypeToModel converts the incoming app representation of a work item link type to the model layout.
+// Values are only overwrriten if they are set in "in", otherwise the values in "out" remain.
+func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*link.WorkItemLinkType, error) {
+	modelLinkType := link.WorkItemLinkType{}
+	if appLinkType.Data == nil {
+		return nil, errors.NewBadParameterError("data", nil).Expected("not <nil>")
+	}
+	if appLinkType.Data.Attributes == nil {
+		return nil, errors.NewBadParameterError("data.attributes", nil).Expected("not <nil>")
+	}
+	if appLinkType.Data.Relationships == nil {
+		return nil, errors.NewBadParameterError("data.relationships", nil).Expected("not <nil>")
+	}
+
+	attrs := appLinkType.Data.Attributes
+	rel := appLinkType.Data.Relationships
+
+	if appLinkType.Data.ID != nil {
+		modelLinkType.ID = *appLinkType.Data.ID
+	}
+
+	if attrs != nil {
+		// If the name is not nil, it MUST NOT be empty
+		if attrs.Name != nil {
+			if *attrs.Name == "" {
+				return nil, errors.NewBadParameterError("data.attributes.name", *attrs.Name)
+			}
+			modelLinkType.Name = *attrs.Name
+		}
+
+		if attrs.Description != nil {
+			modelLinkType.Description = attrs.Description
+		}
+
+		if attrs.Version != nil {
+			modelLinkType.Version = *attrs.Version
+		}
+
+		// If the forwardName is not nil, it MUST NOT be empty
+		if attrs.ForwardName != nil {
+			if *attrs.ForwardName == "" {
+				return nil, errors.NewBadParameterError("data.attributes.forward_name", *attrs.ForwardName)
+			}
+			modelLinkType.ForwardName = *attrs.ForwardName
+		}
+
+		// If the ReverseName is not nil, it MUST NOT be empty
+		if attrs.ReverseName != nil {
+			if *attrs.ReverseName == "" {
+				return nil, errors.NewBadParameterError("data.attributes.reverse_name", *attrs.ReverseName)
+			}
+			modelLinkType.ReverseName = *attrs.ReverseName
+		}
+
+		if attrs.Topology != nil {
+			if err := link.CheckValidTopology(*attrs.Topology); err != nil {
+				return nil, errs.WithStack(err)
+			}
+			modelLinkType.Topology = *attrs.Topology
+		}
+	}
+
+	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
+		modelLinkType.LinkCategoryID = rel.LinkCategory.Data.ID
+	}
+	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
+		modelLinkType.SourceTypeID = rel.SourceType.Data.ID
+	}
+	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
+		modelLinkType.TargetTypeID = rel.TargetType.Data.ID
+	}
+	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
+		modelLinkType.SpaceID = *rel.Space.Data.ID
+	}
+
+	return &modelLinkType, nil
+}
+
+func ConvertLinkTypesFromModels(request *goa.RequestData, modelLinkTypes []link.WorkItemLinkType) (*app.WorkItemLinkTypeList, error) {
+	appLinkTypes := app.WorkItemLinkTypeList{}
+	appLinkTypes.Data = make([]*app.WorkItemLinkTypeData, len(modelLinkTypes))
+	for index, modelLinkType := range modelLinkTypes {
+		appLinkType := ConvertWorkItemLinkTypeFromModel(request, modelLinkType)
+		appLinkTypes.Data[index] = appLinkType.Data
+	}
+	// TODO: When adding pagination, this must not be len(rows) but
+	// the overall total number of elements from all pages.
+	appLinkTypes.Meta = &app.WorkItemLinkTypeListMeta{
+		TotalCount: len(modelLinkTypes),
+	}
+	return &appLinkTypes, nil
 }

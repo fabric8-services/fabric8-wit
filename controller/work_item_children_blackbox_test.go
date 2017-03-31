@@ -1,11 +1,11 @@
 package controller_test
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"testing"
-
-	"golang.org/x/net/context"
+	"time"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -15,13 +15,11 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
-	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
@@ -44,7 +42,9 @@ type workItemChildSuite struct {
 	svc                      *goa.Service
 	typeCtrl                 *WorkitemtypeController
 	// These IDs can safely be used by all tests
+	bug1        *app.WorkItemSingle
 	bug1ID      uint64
+	bug3        *app.WorkItemSingle
 	userSpaceID uuid.UUID
 
 	// Store IDs of resources that need to be removed at the beginning or end of a test
@@ -57,17 +57,12 @@ type workItemChildSuite struct {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemChildSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
+
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-		return migration.PopulateCommonTypes(context.Background(), tx, workitem.NewWorkItemTypeRepository(tx))
-	}); err != nil {
-		panic(err.Error())
-	}
-
-	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "workItemChildSuite user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
 
@@ -107,7 +102,7 @@ func (s *workItemChildSuite) SetupSuite() {
 	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	require.NotNil(s.T(), svc)
 	s.svc = svc
-	s.workItemCtrl = NewWorkitemController(svc, s.db)
+	s.workItemCtrl = NewWorkitemController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemCtrl)
 
 	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
@@ -121,7 +116,16 @@ func (s *workItemChildSuite) SetupSuite() {
 // SetupTest ensures that none of the work item links that we will create already exist.
 // It will also make sure that some resources that we rely on do exists.
 func (s *workItemChildSuite) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	var err error
+
+	// Create a test user identity
+	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	require.Nil(s.T(), err)
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "test user", "test provider")
+	require.Nil(s.T(), err)
+	s.svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
+	require.NotNil(s.T(), s.svc)
 
 	// Create a work item link space
 	createSpacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
@@ -134,6 +138,7 @@ func (s *workItemChildSuite) SetupTest() {
 	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug1Payload)
 	require.NotNil(s.T(), bug1)
 
+	s.bug1 = bug1
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
@@ -150,6 +155,7 @@ func (s *workItemChildSuite) SetupTest() {
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug3Payload)
 	require.NotNil(s.T(), bug3)
 
+	s.bug3 = bug3
 	bug3ID, err := strconv.ParseUint(*bug3.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
@@ -203,11 +209,25 @@ func createParentChildWorkItemLinkType(name string, sourceTypeID, targetTypeID, 
 	reqLong := &goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
-	payload := link.ConvertLinkTypeFromModel(reqLong, lt)
+	payload := ConvertWorkItemLinkTypeFromModel(reqLong, lt)
 	// The create payload is required during creation. Simply copy data over.
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
 	}
+}
+
+func assertWorkItemList(t *testing.T, workItemList *app.WorkItemList) {
+	assert.Equal(t, 2, len(workItemList.Data))
+	count := 0
+	for _, v := range workItemList.Data {
+		switch v.Attributes[workitem.SystemTitle] {
+		case "bug2":
+			count = count + 1
+		case "bug3":
+			count = count + 1
+		}
+	}
+	assert.Equal(t, 2, count)
 }
 
 //-----------------------------------------------------------------------------
@@ -221,19 +241,55 @@ func TestSuiteWorkItemChildren(t *testing.T) {
 	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func (s *workItemChildSuite) TestListChildren() {
+func (s *workItemChildSuite) TestListChildrenOK() {
+	// given
 	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
-	_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1)
-	assert.Equal(s.T(), 2, len(workItemList.Data))
-	var count int
-	for _, v := range workItemList.Data {
-		switch v.Attributes[workitem.SystemTitle] {
-		case "bug2":
-			count = count + 1
-		case "bug3":
-			count = count + 1
-		}
+	// when
+	res, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
+	// then
+	assertWorkItemList(s.T(), workItemList)
+	assertResponseHeaders(s.T(), res)
+}
 
-	}
-	assert.Equal(s.T(), 2, count)
+func (s *workItemChildSuite) TestListChildrenOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
+	// when
+	ifModifiedSince := app.ToHTTPTime(s.bug1.Data.Attributes[workitem.SystemUpdatedAt].(time.Time).Add(-1 * time.Hour))
+	res, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, &ifModifiedSince, nil)
+	// then
+	assertWorkItemList(s.T(), workItemList)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemChildSuite) TestListChildrenOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
+	// when
+	ifNoneMatch := "foo"
+	res, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, &ifNoneMatch)
+	// then
+	assertWorkItemList(s.T(), workItemList)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemChildSuite) TestListChildrenNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
+	// when
+	ifModifiedSince := app.ToHTTPTime(s.bug3.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
+	res := test.ListChildrenWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemChildSuite) TestListChildrenNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
+	_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
+	// when
+	ifNoneMatch := generateWorkitemsTag(workItemList)
+	res := test.ListChildrenWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }

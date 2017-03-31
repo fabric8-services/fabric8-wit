@@ -9,6 +9,8 @@ import (
 	"github.com/goadesign/goa"
 )
 
+const identitiesEndpoint = "/api/identities"
+
 // IdentityController implements the identity resource.
 type IdentityController struct {
 	*goa.Controller

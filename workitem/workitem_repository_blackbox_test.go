@@ -2,7 +2,6 @@ package workitem_test
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/almighty/almighty-core/codebase"
@@ -11,14 +10,12 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/workitem"
 
-	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -46,16 +43,8 @@ func TestRunWorkTypeRepoBlackBoxTest(t *testing.T) {
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemRepoBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if _, c := os.LookupEnv(resource.Database); c != false {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 }
 
 func (s *workItemRepoBlackBoxTest) SetupTest() {
@@ -169,7 +158,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionNoMarkup() {
 	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	// then
 	require.Nil(s.T(), err)
-	// app.WorkItem does not contain the markup associated with the description (yet)
+	// workitem.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContentFromLegacy("Description"), wi.Fields[workitem.SystemDescription])
 }
 
@@ -190,7 +179,7 @@ func (s *workItemRepoBlackBoxTest) TestCreateWorkItemWithDescriptionMarkup() {
 	wi, err = s.repo.Load(s.ctx, s.spaceID, wi.ID)
 	// then
 	require.Nil(s.T(), err)
-	// app.WorkItem does not contain the markup associated with the description (yet)
+	// workitem.WorkItem does not contain the markup associated with the description (yet)
 	assert.Equal(s.T(), rendering.NewMarkupContent("Description", rendering.SystemMarkupMarkdown), wi.Fields[workitem.SystemDescription])
 }
 
@@ -222,7 +211,7 @@ func (s *workItemRepoBlackBoxTest) TestGetCountsPerIteration() {
 	// given
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance := space.Space{
-		Name: "Testing space",
+		Name: "Testing space" + uuid.NewV4().String(),
 	}
 	spaceRepo.Create(s.ctx, &spaceInstance)
 	assert.NotEqual(s.T(), uuid.UUID{}, spaceInstance.ID)

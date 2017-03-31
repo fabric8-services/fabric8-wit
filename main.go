@@ -196,7 +196,7 @@ func main() {
 	app.MountStatusController(service, statusCtrl)
 
 	// Mount "workitem" controller
-	workitemCtrl := controller.NewWorkitemController(service, appDB)
+	workitemCtrl := controller.NewWorkitemController(service, appDB, configuration)
 	app.MountWorkitemController(service, workitemCtrl)
 
 	// Mount "workitemtype" controller
@@ -247,7 +247,7 @@ func main() {
 	searchCtrl := controller.NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
 
-	// Mount "indentity" controller
+	// Mount "identity" controller
 	identityCtrl := controller.NewIdentityController(service, appDB)
 	app.MountIdentityController(service, identityCtrl)
 
@@ -256,11 +256,11 @@ func main() {
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "iterations" controller
-	iterationCtrl := controller.NewIterationController(service, appDB)
+	iterationCtrl := controller.NewIterationController(service, appDB, configuration)
 	app.MountIterationController(service, iterationCtrl)
 
 	// Mount "spaceiterations" controller
-	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB)
+	spaceIterationCtrl := controller.NewSpaceIterationsController(service, appDB, configuration)
 	app.MountSpaceIterationsController(service, spaceIterationCtrl)
 
 	// Mount "userspace" controller
@@ -272,10 +272,10 @@ func main() {
 	app.MountRenderController(service, renderCtrl)
 
 	// Mount "areas" controller
-	areaCtrl := controller.NewAreaController(service, appDB)
+	areaCtrl := controller.NewAreaController(service, appDB, configuration)
 	app.MountAreaController(service, areaCtrl)
 
-	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB)
+	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, configuration)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
 	filterCtrl := controller.NewFilterController(service)
@@ -288,6 +288,10 @@ func main() {
 	// Mount "namedspaces" controller
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)
+
+	// Mount "plannerBacklog" controller
+	plannerBacklogCtrl := controller.NewPlannerBacklogController(service, appDB, configuration)
+	app.MountPlannerBacklogController(service, plannerBacklogCtrl)
 
 	// Mount "codebase" controller
 	codebaseCtrl := controller.NewCodebaseController(service, appDB, configuration)

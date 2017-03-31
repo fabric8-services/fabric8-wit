@@ -7,7 +7,7 @@ import (
 
 var searchWorkItemList = JSONList(
 	"SearchWorkItem", "Holds the paginated response to a search request",
-	workItem2,
+	workItem,
 	pagingLinks,
 	meta)
 
