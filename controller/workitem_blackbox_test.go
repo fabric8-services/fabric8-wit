@@ -960,7 +960,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.Equal(s.T(), "Title", wi.Data.Attributes[workitem.SystemTitle])
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
-	//assert.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Links)
 	assert.NotNil(s.T(), wi.Data.Links.Self)
