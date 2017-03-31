@@ -56,7 +56,7 @@ func (s *TestUsersSuite) SetupSuite() {
 	}
 	testAttributeValue := "a"
 	dummyProfileResponse := createDummyUserProfileResponse(&testAttributeValue, &testAttributeValue, &testAttributeValue)
-	keycloakUserProfileService := newDummyUserProfileService(dummyProfileResponse) //login.NewKeycloakUserProfileClient()
+	keycloakUserProfileService := newDummyUserProfileService(dummyProfileResponse)
 	s.profileService = keycloakUserProfileService
 	s.controller = NewUsersController(s.svc, s.db, s.configuration, s.profileService)
 	s.userRepo = s.db.Users()

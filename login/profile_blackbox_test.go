@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/test"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/almighty/almighty-core/login"
 
@@ -100,12 +101,12 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	// Use the token to update user profile
 
-	testFirstName := "updatedFirstNameAgainNew"
-	testLastName := "updatedLastNameNew"
-	testEmail := "updatedEmail"
-	testBio := "updatedBioNew"
-	testURL := "updatedURLNew"
-	testImageURL := "updatedBio"
+	testFirstName := "updatedFirstNameAgainNew" + uuid.NewV4().String()
+	testLastName := "updatedLastNameNew" + uuid.NewV4().String()
+	testEmail := "updatedEmail" + uuid.NewV4().String() + "@email.com"
+	testBio := "updatedBioNew" + uuid.NewV4().String()
+	testURL := "updatedURLNew" + uuid.NewV4().String()
+	testImageURL := "updatedBio" + uuid.NewV4().String()
 
 	testKeycloakUserProfileAttributes := &login.KeycloakUserProfileAttributes{
 		login.ImageURLAttributeName: []string{testImageURL},
