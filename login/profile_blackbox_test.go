@@ -36,7 +36,7 @@ type ProfileBlackBoxTest struct {
 
 func TestRunProfileBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Remote)
-	suite.Run(t, &ProfileBlackBoxTest{RemoteTestSuite: gormtestsupport.NewsRemoteTestSuite("../config.yaml")})
+	suite.Run(t, &ProfileBlackBoxTest{RemoteTestSuite: gormtestsupport.NewRemoteTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
