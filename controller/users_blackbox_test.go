@@ -68,7 +68,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	// given
 	user := s.createRandomUser("TestUpdateUserOK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
@@ -94,7 +94,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	// then
 	require.NotNil(s.T(), result)
 	// let's fetch it and validate
-	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	require.NotNil(s.T(), result)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), newFullName, *result.Data.Attributes.FullName)
@@ -117,7 +117,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	// given
 	user := s.createRandomUser("TestUpdateUserUnsetVariableInContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
@@ -142,7 +142,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	// then
 	require.NotNil(s.T(), result)
 	// let's fetch it and validate the usual stuff.
-	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	require.NotNil(s.T(), result)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), newFullName, *result.Data.Attributes.FullName)
@@ -165,7 +165,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	// then
 	require.NotNil(s.T(), result)
 	// let's fetch it and validate the usual stuff.
-	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	require.NotNil(s.T(), result)
 	updatedContextInformation = result.Data.Attributes.ContextInformation
 
@@ -186,7 +186,7 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 	// given
 	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
@@ -208,7 +208,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 	// given
 	user := s.createRandomUser("TestUpdateUserUnauthorized")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
@@ -234,7 +234,7 @@ func (s *TestUsersSuite) TestShowUserOK() {
 	user := s.createRandomUser("TestShowUserOK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
-	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, nil)
 	// then
 	assertUser(s.T(), result.Data, user, identity)
 	assertSingleUserResponseHeaders(s.T(), res, result, user)
@@ -246,7 +246,7 @@ func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfModifedSinceHeader() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	ifModifiedSince := app.ToHTTPTime(user.UpdatedAt.Add(-1 * time.Hour))
-	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), &ifModifiedSince, nil)
+	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), &ifModifiedSince, nil)
 	// then
 	assertUser(s.T(), result.Data, user, identity)
 	assertSingleUserResponseHeaders(s.T(), res, result, user)
@@ -258,7 +258,7 @@ func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfNoneMatchHeader() {
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	// when
 	ifNoneMatch := "foo"
-	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, &ifNoneMatch)
+	res, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, user.ID.String(), nil, &ifNoneMatch)
 	// then
 	assertUser(s.T(), result.Data, user, identity)
 	assertSingleUserResponseHeaders(s.T(), res, result, user)
@@ -267,19 +267,35 @@ func (s *TestUsersSuite) TestShowUserOKUsingExpiredIfNoneMatchHeader() {
 func (s *TestUsersSuite) TestShowUserNotModifiedUsingIfModifedSinceHeader() {
 	// given user
 	user := s.createRandomUser("TestShowUserNotModifiedUsingIfModifedSinceHeader")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	s.createRandomIdentity(user, account.KeycloakIDP)
 	// when/then
 	ifModifiedSince := app.ToHTTPTime(user.UpdatedAt.UTC())
-	test.ShowUsersNotModified(s.T(), nil, nil, s.controller, identity.ID.String(), &ifModifiedSince, nil)
+	test.ShowUsersNotModified(s.T(), nil, nil, s.controller, user.ID.String(), &ifModifiedSince, nil)
 }
 
 func (s *TestUsersSuite) TestShowUserNotModifiedUsingIfNoneMatchHeader() {
 	// given user
 	user := s.createRandomUser("TestShowUserNotModifiedUsingIfNoneMatchHeader")
-	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	s.createRandomIdentity(user, account.KeycloakIDP)
 	// when/then
 	ifNoneMatch := app.GenerateEntityTag(user)
-	test.ShowUsersNotModified(s.T(), nil, nil, s.controller, identity.ID.String(), nil, &ifNoneMatch)
+	test.ShowUsersNotModified(s.T(), nil, nil, s.controller, user.ID.String(), nil, &ifNoneMatch)
+}
+
+func (s *TestUsersSuite) TestShowUserNotFound() {
+	// given user
+	user := s.createRandomUser("TestShowUserNotFound")
+	s.createRandomIdentity(user, account.KeycloakIDP)
+	// when/then
+	test.ShowUsersNotFound(s.T(), nil, nil, s.controller, uuid.NewV4().String(), nil, nil)
+}
+
+func (s *TestUsersSuite) TestShowUserBadRequest() {
+	// given user
+	user := s.createRandomUser("TestShowUserBadRequest")
+	s.createRandomIdentity(user, account.KeycloakIDP)
+	// when/then
+	test.ShowUsersBadRequest(s.T(), nil, nil, s.controller, "invaliduuid", nil, nil)
 }
 
 func (s *TestUsersSuite) TestListUsersOK() {
