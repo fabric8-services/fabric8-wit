@@ -1,7 +1,6 @@
 package login_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -14,7 +13,6 @@ import (
 	"github.com/almighty/almighty-core/auth"
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/test"
 	"github.com/goadesign/goa"
@@ -28,10 +26,9 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type profileBlackBoxTest struct {
-	gormtestsupport.DBTestSuite
+type ProfileBlackBoxTest struct {
+	gormtestsupport.RemoteTestSuite
 	clean          func()
-	ctx            context.Context
 	profileService login.UserProfileService
 	configuration  *config.ConfigurationData
 	loginService   *login.KeycloakOAuthProvider
@@ -39,13 +36,13 @@ type profileBlackBoxTest struct {
 
 func TestRunProfileBlackBoxTest(t *testing.T) {
 	resource.Require(t, resource.Remote)
-	suite.Run(t, &profileBlackBoxTest{})
+	suite.Run(t, &ProfileBlackBoxTest{RemoteTestSuite: gormtestsupport.NewsRemoteTestSuite("../config.yaml")})
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
-func (s *profileBlackBoxTest) SetupSuite() {
+func (s *ProfileBlackBoxTest) SetupSuite() {
 
 	var err error
 	s.configuration, err = config.GetConfigurationData()
@@ -58,15 +55,13 @@ func (s *profileBlackBoxTest) SetupSuite() {
 
 }
 
-func (s *profileBlackBoxTest) SetupTest() {
-	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+func (s *ProfileBlackBoxTest) SetupTest() {
 }
 
-func (s *profileBlackBoxTest) TearDownTest() {
-	s.clean()
+func (s *ProfileBlackBoxTest) TearDownTest() {
 }
 
-func (s *profileBlackBoxTest) generateAccessToken() (*string, error) {
+func (s *ProfileBlackBoxTest) generateAccessToken() (*string, error) {
 
 	var scopes []account.Identity
 	scopes = append(scopes, test.TestIdentity)
@@ -96,7 +91,7 @@ func (s *profileBlackBoxTest) generateAccessToken() (*string, error) {
 	return token.AccessToken, err
 }
 
-func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
+func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	// UPDATE the user profile
 
@@ -147,12 +142,11 @@ func (s *profileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	assert.Equal(s.T(), retrievedBio[0], testBio)
 }
 
-func (s *profileBlackBoxTest) TestKeycloakUserProfileGet() {
+func (s *ProfileBlackBoxTest) TestKeycloakUserProfileGet() {
 
 	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
 	require.Nil(s.T(), err)
 
-	// TODO: take from configuration
 	r := &goa.RequestData{
 		Request: &http.Request{Host: "api.example.org"},
 	}
