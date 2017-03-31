@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/errors"
 )
 
@@ -116,12 +117,11 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("bad status code %d", resp.StatusCode)
+		logrus.Error("Request returned a bad status code ", resp.StatusCode)
 		return nil, errors.NewInternalError(fmt.Sprintf("The request to %s returned a bad response %s", keycloakProfileURL, resp.Status))
 	}
 	if err != nil {
-		fmt.Println("bad status code" + err.Error())
-
+		logrus.Error("Request returned a bad status code ", resp.StatusCode)
 		return nil, errors.NewInternalError(err.Error())
 	}
 	err = json.NewDecoder(resp.Body).Decode(&keycloakUserProfileResponse)
