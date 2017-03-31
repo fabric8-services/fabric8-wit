@@ -17,7 +17,6 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
@@ -26,7 +25,6 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
-	"github.com/jinzhu/gorm"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
@@ -55,20 +53,15 @@ type searchBlackBoxTest struct {
 
 func (s *searchBlackBoxTest) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
+
 	var err error
 	// create a test identity
 	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "SearchBlackBoxTest user", "test provider")
 	require.Nil(s.T(), err)
 	s.testIdentity = testIdentity
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if s.Configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
+
 	s.wiRepo = workitem.NewWorkItemRepository(s.DB)
 	spaceBlackBoxTestConfiguration, err := config.GetConfigurationData()
 	require.Nil(s.T(), err)

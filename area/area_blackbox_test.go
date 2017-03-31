@@ -30,6 +30,7 @@ type TestAreaRepository struct {
 }
 
 func TestRunAreaRepository(t *testing.T) {
+	resource.Require(t, resource.Database)
 	suite.Run(t, &TestAreaRepository{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -42,102 +43,76 @@ func (test *TestAreaRepository) TearDownTest() {
 }
 
 func (test *TestAreaRepository) TestCreateAreaWithSameNameFail() {
-	t := test.T()
-
-	resource.Require(t, resource.Database)
-
+	// given
 	repo := area.NewAreaRepository(test.DB)
-
-	name := "Area 21"
+	name := "TestCreateAreaWithSameNameFail"
 	newSpace := space.Space{
 		Name: "Space 1 " + uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	assert.Nil(t, err)
-
-	i := area.Area{
+	require.Nil(test.T(), err)
+	a := area.Area{
 		Name:    name,
 		SpaceID: space.ID,
 	}
-
-	repo.Create(context.Background(), &i)
-	if i.ID == uuid.Nil {
-		t.Errorf("Area was not created, ID nil")
-	}
-
-	require.False(t, i.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()")
-
-	assert.Equal(t, name, i.Name)
-
+	repo.Create(context.Background(), &a)
+	require.NotEqual(test.T(), uuid.Nil, a.ID)
+	require.False(test.T(), a.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()")
+	assert.Equal(test.T(), name, a.Name)
 	anotherAreaWithSameName := area.Area{
-		Name:    i.Name,
+		Name:    a.Name,
 		SpaceID: space.ID,
 	}
+	// when
 	err = repo.Create(context.Background(), &anotherAreaWithSameName)
-	assert.NotNil(t, err)
-
+	// then
+	require.NotNil(test.T(), err)
 	// In case of unique constrain error, a BadParameterError is returned.
 	_, ok := errors.Cause(err).(localerror.BadParameterError)
-	assert.True(t, ok)
+	assert.True(test.T(), ok)
 }
 
 func (test *TestAreaRepository) TestCreateArea() {
-	t := test.T()
-
-	resource.Require(t, resource.Database)
-
+	// given
 	repo := area.NewAreaRepository(test.DB)
-
-	name := "Area 21"
+	name := "TestCreateArea"
 	newSpace := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
-
-	i := area.Area{
+	require.Nil(test.T(), err)
+	a := area.Area{
 		Name:    name,
 		SpaceID: space.ID,
 	}
-
-	repo.Create(context.Background(), &i)
-	if i.ID == uuid.Nil {
-		t.Errorf("Area was not created, ID nil")
-	}
-
-	if i.CreatedAt.After(time.Now()) {
-		t.Errorf("Area was not created, CreatedAt after Now()?")
-	}
-
-	assert.Equal(t, name, i.Name)
+	// when
+	err = repo.Create(context.Background(), &a)
+	// then
+	require.Nil(test.T(), err)
+	require.NotEqual(test.T(), uuid.Nil, a.ID)
+	assert.True(test.T(), !a.CreatedAt.After(time.Now()), "Area was not created, CreatedAt after Now()?")
+	assert.Equal(test.T(), name, a.Name)
 }
 
 func (test *TestAreaRepository) TestCreateChildArea() {
-	t := test.T()
-
-	resource.Require(t, resource.Database)
-
+	// given
 	repo := area.NewAreaRepository(test.DB)
-
 	newSpace := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
-
-	name := "Area #24"
-	name2 := "Area #24.1"
-
+	require.Nil(test.T(), err)
+	name := "TestCreateChildArea"
+	name2 := "TestCreateChildArea.1"
 	i := area.Area{
 		Name:    name,
 		SpaceID: space.ID,
 	}
 	err = repo.Create(context.Background(), &i)
-	assert.Nil(t, err)
-
+	assert.Nil(test.T(), err)
 	// ltree field doesnt accept "-" , so we will save them as "_"
 	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
@@ -145,15 +120,15 @@ func (test *TestAreaRepository) TestCreateChildArea() {
 		SpaceID: space.ID,
 		Path:    expectedPath,
 	}
+	// when
 	err = repo.Create(context.Background(), &area2)
-	assert.Nil(t, err)
-
+	// then
+	require.Nil(test.T(), err)
 	actualArea, err := repo.Load(context.Background(), area2.ID)
 	actualPath := actualArea.Path
-	require.Nil(t, err)
-	require.NotNil(t, actualArea)
-	assert.Equal(t, expectedPath, actualPath)
-
+	require.Nil(test.T(), err)
+	require.NotNil(test.T(), actualArea)
+	assert.Equal(test.T(), expectedPath, actualPath)
 }
 
 func (test *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
@@ -194,18 +169,14 @@ func (test *TestAreaRepository) TestGetAreaBySpaceIDAndNameAndPath() {
 }
 
 func (test *TestAreaRepository) TestListAreaBySpace() {
-	t := test.T()
-
-	resource.Require(t, resource.Database)
-
+	// given
 	repo := area.NewAreaRepository(test.DB)
-
 	newSpace := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space1, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
+	require.Nil(test.T(), err)
 
 	var createdAreaIds []uuid.UUID
 	for i := 0; i < 3; i++ {
@@ -216,68 +187,61 @@ func (test *TestAreaRepository) TestListAreaBySpace() {
 			SpaceID: space1.ID,
 		}
 		err := repo.Create(context.Background(), &a)
-		assert.Equal(t, nil, err)
+		require.Nil(test.T(), err)
 		createdAreaIds = append(createdAreaIds, a.ID)
-		t.Log(a.ID)
+		test.T().Log(a.ID)
 	}
-
 	newSpace2 := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	space2, err := repoSpace.Create(context.Background(), &newSpace2)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	err = repo.Create(context.Background(), &area.Area{
 		Name:    "Other Test area #20",
 		SpaceID: space2.ID,
 	})
-	assert.Equal(t, nil, err)
-
+	require.Nil(test.T(), err)
+	// when
 	its, err := repo.List(context.Background(), space1.ID)
-	assert.Nil(t, err)
-	assert.Len(t, its, 3)
-
+	// then
+	require.Nil(test.T(), err)
+	require.Len(test.T(), its, 3)
 	for i := 0; i < 3; i++ {
-		assert.NotNil(t, searchInAreaSlice(createdAreaIds[i], its))
+		assert.NotNil(test.T(), searchInAreaSlice(createdAreaIds[i], its))
 	}
 }
 
-func searchInAreaSlice(searchKey uuid.UUID, areaList []*area.Area) *area.Area {
+func searchInAreaSlice(searchKey uuid.UUID, areaList []area.Area) *area.Area {
 	for i := 0; i < len(areaList); i++ {
 		if searchKey == areaList[i].ID {
-			return areaList[i]
+			return &areaList[i]
 		}
 	}
 	return nil
 }
 
 func (test *TestAreaRepository) TestListChildrenOfParents() {
-	t := test.T()
-	resource.Require(t, resource.Database)
+	// given
+	resource.Require(test.T(), resource.Database)
 	repo := area.NewAreaRepository(test.DB)
-
-	name := "Area #240"
-	name2 := "Area #240.1"
-	name3 := "Area #240.2"
+	name := "TestListChildrenOfParents"
+	name2 := "TestListChildrenOfParents.1"
+	name3 := "TestListChildrenOfParents.2"
 	var createdAreaIDs []uuid.UUID
-
 	newSpace := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	// *** Create Parent Area ***
 	i := area.Area{
 		Name:    name,
 		SpaceID: space.ID,
 	}
 	err = repo.Create(context.Background(), &i)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	// *** Create 1st child area ***
-
 	// ltree field doesnt accept "-" , so we will save them as "_"
 	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
@@ -286,17 +250,14 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
-	require.Nil(t, err)
+	require.Nil(test.T(), err)
 	createdAreaIDs = append(createdAreaIDs, area2.ID)
-
 	actualArea, err := repo.Load(context.Background(), area2.ID)
 	actualPath := actualArea.Path
-	require.Nil(t, err)
-	assert.NotEqual(t, uuid.Nil, area2.Path)
-	assert.Equal(t, expectedPath, actualPath) // check that path ( an ltree field ) was populated.
-
+	require.Nil(test.T(), err)
+	assert.NotEqual(test.T(), uuid.Nil, area2.Path)
+	assert.Equal(test.T(), expectedPath, actualPath) // check that path ( an ltree field ) was populated.
 	// *** Create 2nd child area ***
-
 	expectedPath = path.Path{i.ID}
 	area3 := area.Area{
 		Name:    name3,
@@ -304,54 +265,41 @@ func (test *TestAreaRepository) TestListChildrenOfParents() {
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area3)
-	require.Nil(t, err)
+	require.Nil(test.T(), err)
 	createdAreaIDs = append(createdAreaIDs, area3.ID)
-
 	actualArea, err = repo.Load(context.Background(), area3.ID)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	actualPath = actualArea.Path
-	assert.Equal(t, expectedPath, actualPath)
-
+	assert.Equal(test.T(), expectedPath, actualPath)
 	// *** Validate that there are 2 children
 	childAreaList, err := repo.ListChildren(context.Background(), &i)
-	require.Nil(t, err)
-
-	assert.Equal(t, 2, len(childAreaList))
-
+	require.Nil(test.T(), err)
+	assert.Equal(test.T(), 2, len(childAreaList))
 	for i := 0; i < len(createdAreaIDs); i++ {
-		assert.NotNil(t, createdAreaIDs[i], childAreaList[i].ID)
+		assert.NotNil(test.T(), createdAreaIDs[i], childAreaList[i].ID)
 	}
 }
 
 func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
-	t := test.T()
-
-	resource.Require(t, resource.Database)
+	// given
 	repo := area.NewAreaRepository(test.DB)
-
-	name := "Area #240"
-	name2 := "Area #240.1"
-	name3 := "Area #240.1.3"
-
+	name := "TestListImmediateChildrenOfGrandParents"
+	name2 := "TestListImmediateChildrenOfGrandParents.1"
+	name3 := "TestListImmediateChildrenOfGrandParents.1.3"
 	newSpace := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	// *** Create Parent Area ***
-
 	i := area.Area{
 		Name:    name,
 		SpaceID: space.ID,
 	}
 	err = repo.Create(context.Background(), &i)
-	assert.Nil(t, err)
-
+	assert.Nil(test.T(), err)
 	// *** Create 'son' area ***
-
 	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
 		Name:    name2,
@@ -359,14 +307,11 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	childAreaList, err := repo.ListChildren(context.Background(), &i)
-	assert.Equal(t, 1, len(childAreaList))
-	require.Nil(t, err)
-
+	assert.Equal(test.T(), 1, len(childAreaList))
+	require.Nil(test.T(), err)
 	// *** Create 'grandson' area ***
-
 	expectedPath = path.Path{i.ID, area2.ID}
 	area4 := area.Area{
 		Name:    name3,
@@ -374,45 +319,36 @@ func (test *TestAreaRepository) TestListImmediateChildrenOfGrandParents() {
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area4)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
+	// when
 	childAreaList, err = repo.ListChildren(context.Background(), &i)
-
 	// But , There is only 1 'son' .
-
-	require.Nil(t, err)
-	assert.Equal(t, 1, len(childAreaList))
-	assert.Equal(t, area2.ID, childAreaList[0].ID)
-
+	require.Nil(test.T(), err)
+	assert.Equal(test.T(), 1, len(childAreaList))
+	assert.Equal(test.T(), area2.ID, childAreaList[0].ID)
 	// *** Confirm the grandson has no son
-
 	childAreaList, err = repo.ListChildren(context.Background(), &area4)
-	assert.Equal(t, 0, len(childAreaList))
+	assert.Equal(test.T(), 0, len(childAreaList))
 }
 
 func (test *TestAreaRepository) TestListParentTree() {
-	t := test.T()
-
-	resource.Require(t, resource.Database)
+	// given
 	repo := area.NewAreaRepository(test.DB)
-
-	name := "Area #240"
-	name2 := "Area #240.1"
-
+	name := "TestListParentTree"
+	name2 := "TestListParentTree.1"
 	newSpace := space.Space{
 		Name: uuid.NewV4().String(),
 	}
 	repoSpace := space.NewRepository(test.DB)
 	space, err := repoSpace.Create(context.Background(), &newSpace)
-	require.Nil(t, err)
+	require.Nil(test.T(), err)
 	// *** Create Parent Area ***
 	i := area.Area{
 		Name:    name,
 		SpaceID: newSpace.ID,
 	}
 	err = repo.Create(context.Background(), &i)
-	assert.Nil(t, err)
-
+	assert.Nil(test.T(), err)
 	// *** Create 'son' area ***
 	expectedPath := path.Path{i.ID}
 	area2 := area.Area{
@@ -421,16 +357,15 @@ func (test *TestAreaRepository) TestListParentTree() {
 		Path:    expectedPath,
 	}
 	err = repo.Create(context.Background(), &area2)
-	require.Nil(t, err)
-
+	require.Nil(test.T(), err)
 	listOfCreatedID := []uuid.UUID{i.ID, area2.ID}
+	// when
 	listOfCreatedAreas, err := repo.LoadMultiple(context.Background(), listOfCreatedID)
-
-	require.Nil(t, err)
-	assert.Equal(t, 2, len(listOfCreatedAreas))
-
+	// then
+	require.Nil(test.T(), err)
+	assert.Equal(test.T(), 2, len(listOfCreatedAreas))
 	for i := 0; i < 2; i++ {
-		assert.NotNil(t, searchInAreaSlice(listOfCreatedID[i], listOfCreatedAreas))
+		assert.NotNil(test.T(), searchInAreaSlice(listOfCreatedID[i], listOfCreatedAreas))
 	}
 
 }

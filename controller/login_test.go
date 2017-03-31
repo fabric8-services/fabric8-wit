@@ -82,7 +82,7 @@ func (rest *TestLoginREST) TestAuthorizeLoginOK() {
 	resource.Require(t, resource.UnitTest)
 	svc, ctrl := rest.UnSecuredController()
 
-	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil)
+	test.AuthorizeLoginTemporaryRedirect(t, svc.Context, svc, ctrl, nil, nil)
 }
 
 func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
@@ -168,7 +168,7 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string) error {
+func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
 	return ctx.TemporaryRedirect()
 }
 
@@ -176,11 +176,11 @@ func (t TestLoginService) CreateOrUpdateKeycloakUser(accessToken string, ctx con
 	return nil, nil, nil
 }
 
-func (t TestLoginService) Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string) error {
+func (t TestLoginService) Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error {
 	return ctx.TemporaryRedirect()
 }
 
-func (t TestLoginService) LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string) error {
+func (t TestLoginService) LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error {
 	return ctx.TemporaryRedirect()
 }
 

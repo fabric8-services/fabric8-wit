@@ -6,20 +6,15 @@ import (
 	"net/http"
 	"testing"
 
-	"golang.org/x/net/context"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
-	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
-	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -66,12 +61,6 @@ func init() {
 func (s *workItemLinkCategorySuite) SetupSuite() {
 	var err error
 	s.db, err = gorm.Open("postgres", wilCatConfiguration.GetPostgresConfigString())
-	require.Nil(s.T(), err)
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	err = models.Transactional(s.db, func(tx *gorm.DB) error {
-		ctx := migration.NewMigrationContext(context.Background())
-		return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-	})
 	require.Nil(s.T(), err)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)

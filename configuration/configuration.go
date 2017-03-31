@@ -3,6 +3,7 @@ package configuration
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -68,11 +69,13 @@ const (
 	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
 	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
+	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlSpace                = "cachecontrol.space"
 	varCacheControlIteration            = "cachecontrol.iteration"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
+	varValidRedirectURLs                = "redirect.valid"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -169,6 +172,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
+	c.v.SetDefault(varCacheControlAreas, "max-age=300")
 	c.v.SetDefault(varCacheControlSpace, "max-age=300")
 	c.v.SetDefault(varCacheControlIteration, "max-age=300")
 
@@ -278,6 +282,12 @@ func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
 // when returning a work item (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
+}
+
+// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlAreas() string {
+	return c.v.GetString(varCacheControlAreas)
 }
 
 // GetCacheControlSpace returns the value to set in the "Cache-Control" HTTP response header
@@ -503,6 +513,33 @@ func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
 }
 
+// GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
+// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+// In prod mode the default regex will be returned
+func (c *ConfigurationData) GetValidRedirectURLs(req *goa.RequestData) (string, error) {
+	if c.v.IsSet(varValidRedirectURLs) {
+		return c.v.GetString(varValidRedirectURLs), nil
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return devModeValidRedirectURLs, nil
+	}
+	return c.checkLocalhostRedirectException(req)
+}
+
+func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData) (string, error) {
+	if req.Request == nil || req.Request.URL == nil {
+		return DefaultValidRedirectURLs, nil
+	}
+	matched, err := regexp.MatchString(localhostRedirectException, req.Request.URL.String())
+	if err != nil {
+		return "", err
+	}
+	if matched {
+		return localhostRedirectURLs, nil
+	}
+	return DefaultValidRedirectURLs, nil
+}
+
 const (
 	// Auth-related defaults
 
@@ -568,6 +605,15 @@ ZwIDAQAB
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 	defaultCheStarterURL            = "che-server"
+
+	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
+	// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
+	// In prod mode the following regex will be used by default:
+	DefaultValidRedirectURLs = "^(https|http)://([^/]+[.])?(?i:openshift[.]io)(/.*)?$" // *.openshift.io/*
+	devModeValidRedirectURLs = ".*"
+	// Allow redirects to localhost when running in prod-preveiw
+	localhostRedirectURLs      = "(" + DefaultValidRedirectURLs + "|^(https|http)://([^/]+[.])?(localhost|127[.]0[.]0[.]1)(:\\d+)?(/.*)?$)" // *.openshift.io/* or localhost/* or 127.0.0.1/*
+	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(/.*)?$"                                     // *.prod-preview.openshift.io/*
 )
 
 // ActualToken is actual OAuth access token of github

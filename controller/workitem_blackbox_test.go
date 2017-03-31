@@ -26,7 +26,6 @@ import (
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/migration"
-	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/rest"
@@ -65,16 +64,9 @@ type WorkItemSuite struct {
 
 func (s *WorkItemSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.ctx = migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 	s.priKey, _ = almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if s.Configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
 }
 
 func (s *WorkItemSuite) TearDownSuite() {
@@ -757,15 +749,6 @@ type WorkItem2Suite struct {
 
 func (s *WorkItem2Suite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
-	// Make sure the database is populated with the correct types (e.g. bug etc.)
-	if s.Configuration.GetPopulateCommonTypes() {
-		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
-			s.ctx = migration.NewMigrationContext(context.Background())
-			return migration.PopulateCommonTypes(s.ctx, tx, workitem.NewWorkItemTypeRepository(tx))
-		}); err != nil {
-			panic(err.Error())
-		}
-	}
 }
 
 func (s *WorkItem2Suite) SetupTest() {
@@ -1285,7 +1268,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	// assert.True(s.T(), foundExpected, "did not find expected work item in filtered list response")
 }
 
-func (s *WorkItem2Suite) setupAreaWorkItem() (string, string, app.WorkItemSingle) {
+func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (string, string, *app.WorkItemSingle) {
 	tempArea := createOneRandomArea(s.svc.Context, s.DB, "TestWI2ListByAreaFilter")
 	require.NotNil(s.T(), tempArea)
 	areaID := tempArea.ID.String()
@@ -1298,15 +1281,18 @@ func (s *WorkItem2Suite) setupAreaWorkItem() (string, string, app.WorkItemSingle
 			ID: &areaID,
 		},
 	}
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	require.NotNil(s.T(), wi)
-	require.NotNil(s.T(), wi.Data)
-	require.NotNil(s.T(), wi.Data.ID)
-	require.NotNil(s.T(), wi.Data.Type)
-	require.NotNil(s.T(), wi.Data.Attributes)
-	require.NotNil(s.T(), wi.Data.Relationships.Area)
-	assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
-	return c.Data.Relationships.Space.Data.ID.String(), areaID, *wi
+	if createWorkItem {
+		_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+		require.NotNil(s.T(), wi)
+		require.NotNil(s.T(), wi.Data)
+		require.NotNil(s.T(), wi.Data.ID)
+		require.NotNil(s.T(), wi.Data.Type)
+		require.NotNil(s.T(), wi.Data.Attributes)
+		require.NotNil(s.T(), wi.Data.Relationships.Area)
+		assert.Equal(s.T(), areaID, *wi.Data.Relationships.Area.Data.ID)
+		return c.Data.Relationships.Space.Data.ID.String(), areaID, wi
+	}
+	return c.Data.Relationships.Space.Data.ID.String(), areaID, nil
 }
 
 func assertAreaWorkItems(t *testing.T, areaID string, workitems *app.WorkItemList) {
@@ -1317,7 +1303,7 @@ func assertAreaWorkItems(t *testing.T, areaID string, workitems *app.WorkItemLis
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilterOK() {
 	// given
-	spaceID, areaID, _ := s.setupAreaWorkItem()
+	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
 	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
@@ -1325,9 +1311,23 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOK() {
 	assertResponseHeaders(s.T(), res)
 }
 
+func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKEmptyList() {
+	// given
+	spaceID, areaID, _ := s.setupAreaWorkItem(false)
+	// when
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil)
+	// then
+	require.NotNil(s.T(), *workitems)
+	require.Empty(s.T(), workitems.Data)
+	// should not be the default/nil time
+	var defaultTime time.Time
+	assert.NotEqual(s.T(), app.ToHTTPTime(defaultTime), res.Header().Get(app.LastModified))
+	assert.Equal(s.T(), app.GenerateEmptyTag(), res.Header().Get(app.ETag))
+}
+
 func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	spaceID, areaID, wi := s.setupAreaWorkItem()
+	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt.Add(-1 * time.Hour))
@@ -1339,7 +1339,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfModifiedSinceHea
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	spaceID, areaID, _ := s.setupAreaWorkItem()
+	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := "foo"
 	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
@@ -1350,7 +1350,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfNoneMatchHeader(
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	spaceID, areaID, wi := s.setupAreaWorkItem()
+	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt)
@@ -1361,9 +1361,9 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfModifiedSinceH
 
 func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	spaceID, areaID, wi := s.setupAreaWorkItem()
+	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
-	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(wi))
+	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*wi))
 	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
