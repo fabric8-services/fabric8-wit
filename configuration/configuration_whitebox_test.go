@@ -133,8 +133,10 @@ func TestRedirectURLsForLocalhostRequestAreExcepted(t *testing.T) {
 	// Invalid otherwise
 	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "http://localhost:3000/home"))
 	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "https://127.0.0.1"))
+	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io:8080/api", "https://127.0.0.1"))
 	assert.True(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "https://prod-preview.openshift.io/home"))
 	assert.True(t, validateRedirectURL(t, "https://api.openshift.io/api", "https://openshift.io/home"))
+	assert.True(t, validateRedirectURL(t, "https://api.openshift.io:8080/api", "https://openshift.io/home"))
 	assert.False(t, validateRedirectURL(t, "https://api.openshift.io/api", "http://localhost:3000/api"))
 	assert.False(t, validateRedirectURL(t, "https://api.prod-preview.openshift.io/api", "http://domain.com"))
 	assert.False(t, validateRedirectURL(t, "https://api.openshift.io/api", "http://domain.com"))
