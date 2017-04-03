@@ -81,6 +81,17 @@ type WorkItemRepository struct {
 		result1 *workitem.WorkItem
 		result2 error
 	}
+	CountStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
+	countMutex       sync.RWMutex
+	countArgsForCall []struct {
+		ctx      context.Context
+		spaceID  uuid.UUID
+		criteria criteria.Expression
+	}
+	countReturns struct {
+		result1 int
+		result2 error
+	}
 	ListStub        func(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]workitem.WorkItem, uint64, error)
 	listMutex       sync.RWMutex
 	listArgsForCall []struct {
@@ -338,6 +349,21 @@ func (fake *WorkItemRepository) CreateReturns(result1 *workitem.WorkItem, result
 		result1 *workitem.WorkItem
 		result2 error
 	}{result1, result2}
+}
+
+func (fake *WorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c criteria.Expression) (int, error) {
+	fake.countMutex.Lock()
+	fake.countArgsForCall = append(fake.countArgsForCall, struct {
+		ctx      context.Context
+		spaceID  uuid.UUID
+		criteria criteria.Expression
+	}{ctx, spaceID, c})
+	fake.recordInvocation("Count", []interface{}{ctx, spaceID, c})
+	fake.countMutex.Unlock()
+	if fake.CountStub != nil {
+		return fake.CountStub(ctx, spaceID, c)
+	}
+	return fake.countReturns.result1, fake.countReturns.result2
 }
 
 func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]workitem.WorkItem, uint64, error) {

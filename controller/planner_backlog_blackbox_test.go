@@ -29,44 +29,44 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type TestPlannerBacklogREST struct {
+type TestPlannerBacklogBlackboxREST struct {
 	gormtestsupport.DBTestSuite
 	clean        func()
 	testIdentity account.Identity
 	ctx          context.Context
 }
 
-func TestRunPlannerBacklogREST(t *testing.T) {
+func TestRunPlannerBacklogBlackboxREST(t *testing.T) {
 	resource.Require(t, resource.Database)
-	suite.Run(t, new(TestPlannerBacklogREST))
+	suite.Run(t, new(TestPlannerBacklogBlackboxREST))
 }
 
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
-func (rest *TestPlannerBacklogREST) SetupSuite() {
+func (rest *TestPlannerBacklogBlackboxREST) SetupSuite() {
 	rest.DBTestSuite.SetupSuite()
 	rest.ctx = migration.NewMigrationContext(context.Background())
 	rest.DBTestSuite.PopulateDBTestSuite(rest.ctx)
 }
 
-func (rest *TestPlannerBacklogREST) SetupTest() {
+func (rest *TestPlannerBacklogBlackboxREST) SetupTest() {
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
 	// create a test identity
-	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogREST user", "test provider")
+	testIdentity, err := testsupport.CreateTestIdentity(rest.DB, "TestPlannerBacklogBlackboxREST user", "test provider")
 	require.Nil(rest.T(), err)
 	rest.testIdentity = testIdentity
 }
 
-func (rest *TestPlannerBacklogREST) TearDownTest() {
+func (rest *TestPlannerBacklogBlackboxREST) TearDownTest() {
 	rest.clean()
 }
 
-func (rest *TestPlannerBacklogREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
+func (rest *TestPlannerBacklogBlackboxREST) UnSecuredController() (*goa.Service, *PlannerBacklogController) {
 	svc := goa.New("PlannerBacklog-Service")
 	return svc, NewPlannerBacklogController(svc, gormapplication.NewGormDB(rest.DB), rest.Configuration)
 }
 
-func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
+func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (testSpace *space.Space, parentIteration *iteration.Iteration, createdWI *workitem.WorkItem) {
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
 		spacesRepo := app.Spaces()
 		testSpace = &space.Space{
@@ -145,7 +145,7 @@ func generateWorkitemsTag(workitems *app.WorkItemList) string {
 	return app.GenerateEntitiesTag(entities)
 }
 
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOK() {
+func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -159,7 +159,7 @@ func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOK() {
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
+func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -174,7 +174,7 @@ func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpire
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfNoneMatchHeader() {
+func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfNoneMatchHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -189,7 +189,7 @@ func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsOkUsingExpire
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfModifiedSinceHeader() {
+func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfModifiedSinceHeader() {
 	// given
 	testSpace, _, lastWorkItem := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -203,7 +203,7 @@ func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUs
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfNoneMatchHeader() {
+func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotModifiedUsingIfNoneMatchHeader() {
 	// given
 	testSpace, _, _ := rest.setupPlannerBacklogWorkItems()
 	svc, ctrl := rest.UnSecuredController()
@@ -218,7 +218,7 @@ func (rest *TestPlannerBacklogREST) TestListPlannerBacklogWorkItemsNotModifiedUs
 	assertResponseHeaders(rest.T(), res)
 }
 
-func (rest *TestPlannerBacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
+func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWorkItems() {
 	var spaceID uuid.UUID
 	var parentIteration *iteration.Iteration
 	application.Transactional(gormapplication.NewGormDB(rest.DB), func(app application.Application) error {
@@ -258,7 +258,7 @@ func (rest *TestPlannerBacklogREST) TestSuccessEmptyListPlannerBacklogWorkItems(
 	assert.Len(rest.T(), workitems.Data, 0)
 }
 
-func (rest *TestPlannerBacklogREST) TestFailListPlannerBacklogByMissingSpace() {
+func (rest *TestPlannerBacklogBlackboxREST) TestFailListPlannerBacklogByMissingSpace() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	filter := ""
