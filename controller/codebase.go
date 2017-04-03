@@ -264,7 +264,7 @@ func getNamespace(ctx context.Context) string {
 	token := goajwt.ContextJWT(ctx)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		email := claims["email"].(string)
-		return strings.Split(email, "@")[0] + "-dsaas-che"
+		return strings.Replace(strings.Split(email, "@")[0], ".", "-", -1) + "-che"
 	}
 	return ""
 }
