@@ -8,6 +8,7 @@ import (
 
 	"golang.org/x/net/context"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/codebase"
@@ -135,7 +136,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
@@ -422,10 +422,32 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 	}
 
 	for key, val := range source.Attributes {
+		fmt.Printf("Processing attribute '%s' -> %v\r\n", key, val)
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription {
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
-				target.Fields[key] = *m
+				// if no description existed before, set the new one
+				if target.Fields[key] == nil {
+					fmt.Printf("Setting new description: %v\r\n", *m)
+					target.Fields[key] = *m
+				} else {
+					// only update the 'description' field in the existing description
+					existingDescription := target.Fields[key].(rendering.MarkupContent)
+					existingDescription.Content = (*m).Content
+					fmt.Printf("Updating description: %v\r\n", existingDescription)
+					target.Fields[key] = existingDescription
+				}
+			}
+		} else if key == workitem.SystemDescriptionMarkup {
+			markup := val.(string)
+			// if no description existed before, set the markup in a new one
+			if target.Fields[workitem.SystemDescription] == nil {
+				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: markup}
+			} else {
+				// only update the 'description' field in the existing description
+				existingDescription := target.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+				existingDescription.Markup = markup
+				target.Fields[workitem.SystemDescription] = existingDescription
 			}
 		} else if key == workitem.SystemCodebase {
 			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
@@ -442,6 +464,10 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 		if !rendering.IsMarkupSupported(description.Markup) {
 			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
 		}
+	}
+	logrus.Debug("Converted workitem:")
+	for k, v := range target.Fields {
+		logrus.Debug(fmt.Sprintf("\t%v: %v\r\n", k, v))
 	}
 	return nil
 }
