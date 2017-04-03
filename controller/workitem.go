@@ -261,7 +261,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			// no area assigned yet hence set root area
 			rootArea, err := appl.Areas().Root(ctx, spaceID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching Root Area")))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching root area")))
 			}
 			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
 		}
