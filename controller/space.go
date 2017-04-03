@@ -374,7 +374,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, p.OwnerId.String()))
 
-	_, count, err := getBacklogItems(ctx, db, p.ID, nil, nil, nil)
+	count, err := countBacklogItems(ctx, db, p.ID)
 	if err != nil {
 		return nil, errs.Wrap(err, "unable to fetch backlog items")
 	}
