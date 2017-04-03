@@ -40,6 +40,7 @@ type WorkItemRepository interface {
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
+	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
 }
 
 // NewWorkItemRepository creates a GormWorkItemRepository
@@ -573,6 +574,7 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 		}
 		db = db.Limit(*limit)
 	}
+
 	db = db.Select("count(*) over () as cnt2 , *").Order("execution_order desc")
 
 	rows, err := db.Rows()
@@ -644,6 +646,20 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 		res[index] = *modelWI
 	}
 	return res, count, nil
+}
+
+// Counts returns the amount of work item that satisfy the given criteria.Expression
+func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error) {
+	where, parameters, compileError := Compile(criteria)
+	if compileError != nil {
+		return 0, errors.NewBadParameterError("expression", criteria)
+	}
+	where = where + " AND space_id = ?"
+	parameters = append(parameters, spaceID)
+
+	var count int
+	r.db.Model(&WorkItemStorage{}).Where(where, parameters...).Count(&count)
+	return count, nil
 }
 
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
