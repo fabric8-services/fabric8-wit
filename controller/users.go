@@ -101,7 +101,12 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
 		if updatedContextInformation != nil {
-			user.ContextInformation = workitem.Fields{}
+			// if user.ContextInformation , we get to PATCH the ContextInformation field,
+			// instead of over-writing it altogether. Note: The PATCH-ing is only for the
+			// 1st level of JSON.
+			if user.ContextInformation == nil {
+				user.ContextInformation = workitem.Fields{}
+			}
 			for fieldName, fieldValue := range updatedContextInformation {
 				// Save it as is, for short-term.
 				user.ContextInformation[fieldName] = fieldValue
