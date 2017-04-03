@@ -106,11 +106,16 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			keycloakUserProfile.Attributes = keycloakUserExistingInfo.Attributes
 		}
 
-		updatedEmail := ctx.Payload.Data.Attributes.Email
-		if updatedEmail != nil {
-			user.Email = *updatedEmail
-			keycloakUserProfile.Email = updatedEmail
-		}
+		// Disabling updation of email till we figure out how to do the same in Keycloak Error-free.
+		//
+		/*
+			updatedEmail := ctx.Payload.Data.Attributes.Email
+			if updatedEmail != nil {
+				user.Email = *updatedEmail
+				keycloakUserProfile.Email = updatedEmail
+			}
+		*/
+
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {
 			user.Bio = *updatedBio
