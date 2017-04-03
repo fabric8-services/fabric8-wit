@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/codebase"
@@ -422,19 +421,16 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 	}
 
 	for key, val := range source.Attributes {
-		fmt.Printf("Processing attribute '%s' -> %v\r\n", key, val)
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription {
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
 				// if no description existed before, set the new one
 				if target.Fields[key] == nil {
-					fmt.Printf("Setting new description: %v\r\n", *m)
 					target.Fields[key] = *m
 				} else {
 					// only update the 'description' field in the existing description
 					existingDescription := target.Fields[key].(rendering.MarkupContent)
 					existingDescription.Content = (*m).Content
-					fmt.Printf("Updating description: %v\r\n", existingDescription)
 					target.Fields[key] = existingDescription
 				}
 			}
@@ -464,10 +460,6 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 		if !rendering.IsMarkupSupported(description.Markup) {
 			return errors.NewBadParameterError("data.relationships.attributes[system.description].markup", description.Markup)
 		}
-	}
-	logrus.Debug("Converted workitem:")
-	for k, v := range target.Fields {
-		logrus.Debug(fmt.Sprintf("\t%v: %v\r\n", k, v))
 	}
 	return nil
 }
