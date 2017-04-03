@@ -60,7 +60,7 @@ func (m *Iteration) TableName() string {
 type Repository interface {
 	Create(ctx context.Context, u *Iteration) error
 	List(ctx context.Context, spaceID uuid.UUID) ([]Iteration, error)
-	RootIteration(ctx context.Context, spaceID uuid.UUID) (*Iteration, error)
+	Root(ctx context.Context, spaceID uuid.UUID) (*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
 	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
@@ -131,8 +131,8 @@ func (m *GormIterationRepository) List(ctx context.Context, spaceID uuid.UUID) (
 	return objs, nil
 }
 
-// RootIteration returns the Root Iteration for a space
-func (m *GormIterationRepository) RootIteration(ctx context.Context, spaceID uuid.UUID) (*Iteration, error) {
+// Root returns the Root Iteration for a space
+func (m *GormIterationRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Iteration, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "iteration", "query"}, time.Now())
 	var itr Iteration
 
@@ -208,7 +208,7 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 // More rules can be added as needed in this function
 func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iteration) (bool, error) {
 	var count int64
-	rootItr, err := m.RootIteration(ctx, i.SpaceID)
+	rootItr, err := m.Root(ctx, i.SpaceID)
 	if err != nil {
 		return false, err
 	}

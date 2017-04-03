@@ -1764,7 +1764,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
 	iterationRepo := iteration.NewIterationRepository(s.DB)
-	rootIteration, err := iterationRepo.RootIteration(context.Background(), spaceInstance.ID)
+	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
 	require.Nil(t, err)
 	assert.Equal(t, rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 
@@ -2011,7 +2011,7 @@ func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
 	spaceRepo := space.NewRepository(s.DB)
 	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
 	iterationRepo := iteration.NewIterationRepository(s.DB)
-	rootIteration, err := iterationRepo.RootIteration(context.Background(), spaceInstance.ID)
+	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
 	require.Nil(t, err)
 	assert.Equal(t, rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 }

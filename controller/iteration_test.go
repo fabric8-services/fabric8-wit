@@ -66,7 +66,7 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	// given
 	parent := createSpaceAndIteration(rest.T(), rest.db)
-	ri, err := rest.db.Iterations().RootIteration(context.Background(), parent.SpaceID)
+	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.Nil(rest.T(), err)
 	parentID := parent.ID
 	name := "Sprint #21"
@@ -350,7 +350,7 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
 		var err error
-		ri, err = repo.RootIteration(context.Background(), itr1.SpaceID)
+		ri, err = repo.Root(context.Background(), itr1.SpaceID)
 		return err
 	})
 	require.Nil(rest.T(), err)

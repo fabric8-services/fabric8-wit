@@ -161,7 +161,7 @@ func (test *TestIterationRepository) TestRootIteration() {
 	}
 	repo.Create(context.Background(), &i2)
 
-	res, err := repo.RootIteration(context.Background(), space.ID)
+	res, err := repo.Root(context.Background(), space.ID)
 	require.Nil(t, err)
 	assert.Equal(t, i.Name, res.Name)
 	assert.Equal(t, i.ID, res.ID)

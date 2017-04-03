@@ -58,7 +58,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		// Put iteration under root iteration
-		rootIteration, err := appl.Iterations().RootIteration(ctx, spaceID)
+		rootIteration, err := appl.Iterations().Root(ctx, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}

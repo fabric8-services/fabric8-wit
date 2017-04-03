@@ -257,7 +257,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		// fetch root iteration for this space and assign it to WI if not present already
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
 			// no iteration set hence set to root iteration of its space
-			rootItr, rootItrErr := appl.Iterations().RootIteration(ctx, spaceInstance.ID)
+			rootItr, rootItrErr := appl.Iterations().Root(ctx, spaceInstance.ID)
 			if rootItrErr == nil {
 				wi.Fields[workitem.SystemIteration] = rootItr.ID.String()
 			}
