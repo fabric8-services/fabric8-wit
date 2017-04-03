@@ -278,6 +278,66 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
+func (s *TestUsersSuite) TestPatchUserContextInformation() {
+
+	// given
+	user := s.createRandomUser("TestPatchUserContextInformation")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
+	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	// when
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	// then
+	require.NotNil(s.T(), result)
+
+	// let's fetch it and validate the usual stuff.
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	require.NotNil(s.T(), result)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	updatedContextInformation := result.Data.Attributes.ContextInformation
+
+	// Before we PATCH, ensure that the 1st time update has worked well.
+	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
+	countValue, ok := updatedContextInformation["count"].(float64)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), contextInformation["count"], int(countValue))
+
+	/** Usual stuff done, now lets PATCH only 1 contextInformation attribute **/
+	patchedContextInformation := map[string]interface{}{
+		"count": 5,
+	}
+
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, patchedContextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.NotNil(s.T(), result)
+
+	// let's fetch it and validate the usual stuff.
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	require.NotNil(s.T(), result)
+	updatedContextInformation = result.Data.Attributes.ContextInformation
+
+	// what was NOT passed, should remain intact.
+	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
+
+	// what WAS PASSED, should be updated.
+	countValue, ok = updatedContextInformation["count"].(float64)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), patchedContextInformation["count"], int(countValue))
+
+}
+
 func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 	// given
 	user := s.createRandomUser("TestUpdateUserUnauthorized")
