@@ -1677,8 +1677,20 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 		},
 	}
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+
 	require.NotNil(t, wi.Data.Relationships.Area)
 	assert.NotNil(t, wi.Data.Relationships.Area.Data.ID)
+
+	// should get root area's id for that space
+	spaceRepo := space.NewRepository(s.DB)
+	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
+	require.Nil(t, err)
+
+	areaRepo := area.NewAreaRepository(s.DB)
+	rootArea, err := areaRepo.Root(context.Background(), spaceInstance.ID)
+	require.Nil(t, err)
+
+	assert.Equal(t, rootArea.ID.String(), *wi.Data.Relationships.Area.Data.ID)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
