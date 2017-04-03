@@ -175,11 +175,21 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		response := app.IterationSingle{
-			Data: ConvertIteration(ctx.RequestData, *itr, updateIterationsWithCounts(wiCounts)),
+		var responseData *app.Iteration
+		allParentsUUIDs := itr.Path
+		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
+		if error != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-
-		return ctx.OK(&response)
+		itrMap := make(iterationIDMap)
+		for _, itr := range iterations {
+			itrMap[itr.ID] = itr
+		}
+		responseData = ConvertIteration(ctx.RequestData, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+		res := &app.IterationSingle{
+			Data: responseData,
+		}
+		return ctx.OK(res)
 	})
 }
 
