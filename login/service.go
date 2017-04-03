@@ -147,12 +147,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 			return ctx.TemporaryRedirect()
 		}
 
-		// TODO
-		// ---- Autolinking enabled regardless of the "link" param. Remove when UI adds support of account linking
-		link := true
-		// ----
-
-		if !link && (ctx.Link == nil || !*ctx.Link) {
+		if ctx.Link == nil || !*ctx.Link {
 			referrerStr = referrerStr + "&linked=false"
 			ctx.ResponseData.Header().Set("Location", referrerStr)
 			return ctx.TemporaryRedirect()
