@@ -533,6 +533,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSameSpaceNameDifferentOwners() {
 	assert.NotNil(rest.T(), created2.Data.Attributes)
 	assert.NotNil(rest.T(), created2.Data.Attributes.Name)
 	assert.Equal(rest.T(), name, *created2.Data.Attributes.Name)
+	assert.NotEqual(rest.T(), created.Data.Relationships.OwnedBy.Data.ID, created2.Data.Relationships.OwnedBy.Data.ID)
 }
 
 func (rest *TestSpaceREST) TestFailCreateSameSpaceNameSameOwner() {
