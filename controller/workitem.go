@@ -10,13 +10,11 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/login"
-	"github.com/almighty/almighty-core/path"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
@@ -259,24 +257,13 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			}
 		}
 
-		if ctx.Payload.Data.Relationships.Area == nil || ctx.Payload.Data.Relationships.Area.Data == nil || ctx.Payload.Data.Relationships.Area.Data.ID == nil {
-			// The responsiblity of the code below is to check
-			// if the area information is absent or undefined ,
-			// the code should add the work item to the root area.
-
-			// The parent of path of root area is an empty string since it has no parent.
-			parentPathOfRootArea := path.Path{}
-			rootArea, areaLoadErr := appl.Areas().Query(area.FilterBySpaceID(spaceID), area.FilterByPath(parentPathOfRootArea))
-
-			if areaLoadErr != nil || len(rootArea) != 1 {
-				// During creation of space, this area should have been created, if not, there's a problem. Hence, len(rootArea) is going to be
-				// an important check. Moreover, there should be only 1 root area.
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space & path", "string & ltree").Expected("valid space ID and valid path"))
+		if _, ok := wi.Fields[workitem.SystemArea]; ok == false {
+			// no area assigned yet hence set root area
+			rootArea, err := appl.Areas().Root(ctx, spaceID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching Root Area")))
 			}
-
-			rArea := rootArea[0]
-			wi.Fields[workitem.SystemArea] = rArea.ID.String()
-
+			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
 		}
 
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)

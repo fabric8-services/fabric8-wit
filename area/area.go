@@ -1,6 +1,7 @@
 package area
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
@@ -51,6 +52,7 @@ type Repository interface {
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Area, error)
 	ListChildren(ctx context.Context, parentArea *Area) ([]Area, error)
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Area, error)
+	Root(ctx context.Context, spaceID uuid.UUID) (*Area, error)
 }
 
 // NewAreaRepository creates a new storage type.
@@ -138,6 +140,22 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return objs, nil
+}
+
+// Root fetches the Root Areas inside a space.
+func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "Area", "root"}, time.Now())
+	var rootArea []Area
+
+	parentPathOfRootArea := path.Path{}
+	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
+	if len(rootArea) != 1 {
+		return nil, errors.NewInternalError(fmt.Sprintf("Single Root area not found for space %s", spaceID.String()))
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &rootArea[0], nil
 }
 
 // Query exposes an open ended Query model for Area
