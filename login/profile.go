@@ -2,12 +2,14 @@ package login
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/rest"
 )
 
 const ImageURLAttributeName = "ImageURL"
@@ -87,10 +89,24 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := userProfileClient.client.Do(req)
+
 	if err != nil {
+		log.Error(context.Background(), map[string]interface{}{
+			"keycloak_user_profile_url": keycloakProfileURL,
+			"err": err,
+		}, "Unable to update Keycloak user profile")
 		return errors.NewInternalError(err.Error())
 	} else if err == nil && resp != nil {
 		defer resp.Body.Close()
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error(context.Background(), map[string]interface{}{
+			"response_status":           resp.Status,
+			"response_body":             rest.ReadBody(resp.Body),
+			"keycloak_user_profile_url": keycloakProfileURL,
+		}, "Unable to update Keycloak user profile")
+		return errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 	return nil
 }
@@ -111,15 +127,22 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	resp, err := userProfileClient.client.Do(req)
 
 	if err != nil {
-		logrus.Error("Request returned a bad status code ", resp.StatusCode)
+		log.Error(context.Background(), map[string]interface{}{
+			"keycloak_user_profile_url": keycloakProfileURL,
+			"err": err,
+		}, "Unable to fetch Keycloak user profile")
 		return nil, errors.NewInternalError(err.Error())
 	} else if err == nil && resp != nil {
 		defer resp.Body.Close()
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		logrus.Error("Request returned a bad status code ", resp.StatusCode)
-		return nil, errors.NewInternalError(fmt.Sprintf("The request to %s returned a bad response %s", keycloakProfileURL, resp.Status))
+		log.Error(context.Background(), map[string]interface{}{
+			"response_status":           resp.Status,
+			"response_body":             rest.ReadBody(resp.Body),
+			"keycloak_user_profile_url": keycloakProfileURL,
+		}, "Unable to fetch Keycloak user profile")
+		return nil, errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while fetching keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 
 	err = json.NewDecoder(resp.Body).Decode(&keycloakUserProfileResponse)
