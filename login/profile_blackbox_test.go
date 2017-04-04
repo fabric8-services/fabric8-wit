@@ -33,6 +33,8 @@ type ProfileBlackBoxTest struct {
 	profileService login.UserProfileService
 	configuration  *config.ConfigurationData
 	loginService   *login.KeycloakOAuthProvider
+	accessToken    *string
+	profileAPIURL  *string
 }
 
 func TestRunProfileBlackBoxTest(t *testing.T) {
@@ -40,9 +42,8 @@ func TestRunProfileBlackBoxTest(t *testing.T) {
 	suite.Run(t, &ProfileBlackBoxTest{RemoteTestSuite: gormtestsupport.NewRemoteTestSuite("../config.yaml")})
 }
 
-// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+// SetupSuite overrides the RemoteTestSuite's function but calls it before doing anything else
 // The SetupSuite method will run before the tests in the suite are run.
-// It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *ProfileBlackBoxTest) SetupSuite() {
 
 	var err error
@@ -54,12 +55,40 @@ func (s *ProfileBlackBoxTest) SetupSuite() {
 	keycloakUserProfileService := login.NewKeycloakUserProfileClient()
 	s.profileService = keycloakUserProfileService
 
+	// Get the API endpoint - avoid repition in every test.
+	r := &goa.RequestData{
+		Request: &http.Request{Host: "api.example.org"},
+	}
+	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
+	s.profileAPIURL = &profileAPIURL
+
+	// Get the access token ONCE which we will use for all profile related tests.
+	//  - avoid repition in every test.
+	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
+	assert.Nil(s.T(), err)
+	s.accessToken = token
 }
 
 func (s *ProfileBlackBoxTest) SetupTest() {
+
+	// Get the initial profile state.
+	profile, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), profile)
+
+	initialProfileState := &login.KeycloakUserProfile{
+		Attributes: profile.Attributes,
+		FirstName:  profile.FirstName,
+		LastName:   profile.LastName,
+		Email:      profile.Email,
+	}
+
+	// Schedule it for restoring of the initial state of the keycloak user after the test
+	s.clean = s.updateUserProfile(initialProfileState)
 }
 
 func (s *ProfileBlackBoxTest) TearDownTest() {
+	s.clean()
 }
 
 func (s *ProfileBlackBoxTest) generateAccessToken() (*string, error) {
@@ -94,11 +123,6 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	// UPDATE the user profile
 
-	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
-	assert.Nil(s.T(), err)
-
-	// Use the token to update user profile
-
 	testFirstName := "updatedFirstNameAgainNew" + uuid.NewV4().String()
 	testLastName := "updatedLastNameNew" + uuid.NewV4().String()
 	testEmail := "updatedEmail" + uuid.NewV4().String() + "@email.com"
@@ -114,18 +138,12 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	testKeycloakUserProfileData := login.NewKeycloakUserProfile(&testFirstName, &testLastName, &testEmail, testKeycloakUserProfileAttributes)
 
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
-	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
-	assert.Nil(s.T(), err)
-
-	err = s.profileService.Update(testKeycloakUserProfileData, *token, profileAPIURL)
-	require.Nil(s.T(), err)
+	updateProfileFunc := s.updateUserProfile(testKeycloakUserProfileData)
+	updateProfileFunc()
 
 	// Do a GET on the user profile
 	// Use the token to update user profile
-	retrievedkeycloakUserProfileData, err := s.profileService.Get(*token, profileAPIURL)
+	retrievedkeycloakUserProfileData, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), retrievedkeycloakUserProfileData)
 
@@ -141,22 +159,22 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 }
 
 func (s *ProfileBlackBoxTest) TestKeycloakUserProfileGet() {
-
-	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
-	require.Nil(s.T(), err)
-
-	r := &goa.RequestData{
-		Request: &http.Request{Host: "api.example.org"},
-	}
-	profileAPIURL, err := s.configuration.GetKeycloakAccountEndpoint(r)
-	assert.Nil(s.T(), err)
-
-	profile, err := s.profileService.Get(*token, profileAPIURL)
+	profile, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
 
 	require.Nil(s.T(), err)
 	assert.NotNil(s.T(), profile)
 
 	keys := reflect.ValueOf(*profile.Attributes).MapKeys()
 	assert.NotEqual(s.T(), len(keys), 0)
+	assert.NotNil(s.T(), *profile.FirstName)
+	assert.NotNil(s.T(), *profile.LastName)
+	assert.NotNil(s.T(), *profile.Email)
+	assert.NotNil(s.T(), *profile.Attributes)
+}
 
+func (s *ProfileBlackBoxTest) updateUserProfile(userProfile *login.KeycloakUserProfile) func() {
+	return func() {
+		err := s.profileService.Update(userProfile, *s.accessToken, *s.profileAPIURL)
+		require.Nil(s.T(), err)
+	}
 }
