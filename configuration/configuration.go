@@ -66,8 +66,8 @@ const (
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
-	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
-	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
+	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
+	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlSpace                = "cachecontrol.space"
@@ -169,8 +169,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
 	// HTTP Cache-Control/max-age default
-	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
-	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
+	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=86400")     // 1 day
+	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=86400") // 1 day
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
 	c.v.SetDefault(varCacheControlAreas, "max-age=300")
 	c.v.SetDefault(varCacheControlSpace, "max-age=300")
@@ -266,16 +266,16 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
-// GetCacheControlWorkItemType returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type (or a list of).
-func (c *ConfigurationData) GetCacheControlWorkItemType() string {
-	return c.v.GetString(varCacheControlWorkItemType)
+func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
+	return c.v.GetString(varCacheControlWorkItemTypes)
 }
 
-// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemLinkTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type (or a list of).
-func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
-	return c.v.GetString(varCacheControlWorkItemLinkType)
+func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
+	return c.v.GetString(varCacheControlWorkItemLinkTypes)
 }
 
 // GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header

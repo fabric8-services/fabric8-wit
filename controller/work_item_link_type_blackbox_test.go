@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -48,16 +48,6 @@ type workItemLinkTypeSuite struct {
 	linkName     string
 }
 
-var wiltConfiguration *config.ConfigurationData
-
-func init() {
-	var err error
-	wiltConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
-}
-
 // The SetupSuite method will run before the tests in the suite are run.
 // It sets up a database connection for all the tests in this suite without polluting global space.
 func (s *workItemLinkTypeSuite) SetupSuite() {
@@ -67,7 +57,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
@@ -75,7 +65,7 @@ func (s *workItemLinkTypeSuite) SetupSuite() {
 	require.NotNil(s.T(), s.typeCtrl)
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
-	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), wiltConfiguration, &DummyResourceManager{})
+	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 	s.spaceName = "test-space" + uuid.NewV4().String()
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
@@ -115,7 +105,7 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 	s.cleanup()
 	svc := goa.New("workItemLinkTypeSuite-Service")
 	require.NotNil(s.T(), svc)
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.linkTypeCtrl)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(svc, gormapplication.NewGormDB(s.DB))
 	require.NotNil(s.T(), s.linkCatCtrl)
@@ -171,6 +161,12 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 func TestSuiteWorkItemLinkType(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, new(workItemLinkTypeSuite))
+}
+
+func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {
+	require.Panics(t, func() {
+		NewWorkItemLinkTypeController(nil, nil, nil)
+	})
 }
 
 // TestCreateWorkItemLinkType tests if we can create the s.linkTypeName work item link type
@@ -275,43 +271,94 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 // 	test.UpdateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 // }
 
-// TestShowWorkItemLinkTypeOK tests if we can fetch the "system" work item link type
-func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
-	// Create the work item link type first and try to read it back in
+func (s *workItemLinkTypeSuite) createWorkItemLinkType() *app.WorkItemLinkTypeSingle {
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, createPayload.Data.Relationships.Space.Data.ID.String(), createPayload)
 	require.NotNil(s.T(), workItemLinkType)
-	_, readIn := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createPayload.Data.Relationships.Space.Data.ID.String(), workItemLinkType.Data.ID.String(), nil, nil)
-	require.NotNil(s.T(), readIn)
-	// Convert to domain model and use equal function
-	expected, err := ConvertWorkItemLinkTypeToModel(*workItemLinkType)
-	require.Nil(s.T(), err)
-	actual, err := ConvertWorkItemLinkTypeToModel(*readIn)
-	require.Nil(s.T(), err)
-	require.Equal(s.T(), expected.ID, actual.ID)
+	return workItemLinkType
+}
+
+func assertWorkItemLinkType(t *testing.T, expected *app.WorkItemLinkTypeSingle, spaceName, categoryName string, actual *app.WorkItemLinkTypeSingle) {
+	require.NotNil(t, actual)
+	expectedModel, err := ConvertWorkItemLinkTypeToModel(*expected)
+	require.Nil(t, err)
+	actualModel, err := ConvertWorkItemLinkTypeToModel(*actual)
+	require.Nil(t, err)
+	require.Equal(t, expectedModel.ID, actualModel.ID)
 	// Check that the link category is included in the response in the "included" array
-	require.Len(s.T(), readIn.Included, 2, "The work item link type should include it's work item link category and space.")
-	categoryData, ok := readIn.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	require.Len(t, actual.Included, 2, "The work item link type should include it's work item link category and space.")
+	categoryData, ok := actual.Included[0].(*app.WorkItemLinkCategoryData)
+	require.True(t, ok)
+	require.Equal(t, categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
 
 	// Check that the link space is included in the response in the "included" array
-	spaceData, ok := readIn.Included[1].(*app.Space)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
+	spaceData, ok := actual.Included[1].(*app.Space)
+	require.True(t, ok)
+	require.Equal(t, spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
 
-	require.NotNil(s.T(), readIn.Data.Links, "The link type MUST include a self link")
-	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link type MUST include a self link that's not empty")
+	require.NotNil(t, actual.Data.Links, "The link type MUST include a self link")
+	require.NotEmpty(t, actual.Data.Links.Self, "The link type MUST include a self link that's not empty")
+}
+
+// TestShowWorkItemLinkTypeOK tests if we can fetch the "system" work item link type
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOK() {
+	// given
+	createdWorkItemLinkType := s.createWorkItemLinkType()
+	// when
+	res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), createdWorkItemLinkType.Data.ID.String(), nil, nil)
+	// then
+	assertWorkItemLinkType(s.T(), createdWorkItemLinkType, s.spaceName, s.categoryName, readWorkItemLinkType)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	createdWorkItemLinkType := s.createWorkItemLinkType()
+	// when
+	ifModifiedSinceHeader := app.ToHTTPTime(createdWorkItemLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+	res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), createdWorkItemLinkType.Data.ID.String(), &ifModifiedSinceHeader, nil)
+	// then
+	assertWorkItemLinkType(s.T(), createdWorkItemLinkType, s.spaceName, s.categoryName, readWorkItemLinkType)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	createdWorkItemLinkType := s.createWorkItemLinkType()
+	// when
+	ifNoneMatch := "foo"
+	res, readWorkItemLinkType := test.ShowWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), createdWorkItemLinkType.Data.ID.String(), nil, &ifNoneMatch)
+	// then
+	assertWorkItemLinkType(s.T(), createdWorkItemLinkType, s.spaceName, s.categoryName, readWorkItemLinkType)
+	assertResponseHeaders(s.T(), res)
+}
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	createdWorkItemLinkType := s.createWorkItemLinkType()
+	// when
+	ifModifiedSinceHeader := app.ToHTTPTime(*createdWorkItemLinkType.Data.Attributes.UpdatedAt)
+	res := test.ShowWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), createdWorkItemLinkType.Data.ID.String(), &ifModifiedSinceHeader, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	createdWorkItemLinkType := s.createWorkItemLinkType()
+	// when
+	createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(*createdWorkItemLinkType)
+	require.Nil(s.T(), err)
+	ifNoneMatch := app.GenerateEntityTag(createdWorkItemLinkTypeModel)
+	res := test.ShowWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), createdWorkItemLinkType.Data.ID.String(), nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 // TestShowWorkItemLinkTypeNotFound tests if we can fetch a non existing work item link type
 func (s *workItemLinkTypeSuite) TestShowWorkItemLinkTypeNotFound() {
 	test.ShowWorkItemLinkTypeNotFound(s.T(), nil, nil, s.linkTypeCtrl, space.SystemSpace.String(), "88727441-4a21-4b35-aabe-007f8273cd19", nil, nil)
 }
-
-// TestListWorkItemLinkTypeOK tests if we can find the work item link types
-// s.linkTypeName and s.linkName in the list of work item link types
-func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
+func (s *workItemLinkTypeSuite) createWorkItemLinkTypes() (*app.WorkItemTypeSingle, *app.WorkItemLinkTypeSingle) {
 	bugBlockerPayload := s.createDemoLinkType(s.linkTypeName)
 	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, bugBlockerPayload.Data.Relationships.Space.Data.ID.String(), bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
@@ -323,50 +370,116 @@ func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
 	relatedPayload := CreateWorkItemLinkType(s.linkName, *workItemType.Data.ID, *workItemType.Data.ID, bugBlockerType.Data.Relationships.LinkCategory.Data.ID, *bugBlockerType.Data.Relationships.Space.Data.ID)
 	_, relatedType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, relatedPayload.Data.Relationships.Space.Data.ID.String(), relatedPayload)
 	require.NotNil(s.T(), relatedType)
-
-	// Fetch a single work item link type
-	_, linkTypeCollection := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, relatedPayload.Data.Relationships.Space.Data.ID.String(), nil, nil)
-	require.NotNil(s.T(), linkTypeCollection)
-	require.Nil(s.T(), linkTypeCollection.Validate())
-	// Check the number of found work item link types
-	require.NotNil(s.T(), linkTypeCollection.Data)
-	require.Condition(s.T(), func() bool {
-		return (len(linkTypeCollection.Data) >= 2)
-	}, "At least two work item link types must exist (bug-blocker and related), but only %d exist.", len(linkTypeCollection.Data))
-	// Search for the work item types that must exist at minimum
-	toBeFound := 2
-	for i := 0; i < len(linkTypeCollection.Data) && toBeFound > 0; i++ {
-		if *linkTypeCollection.Data[i].Attributes.Name == s.linkTypeName || *linkTypeCollection.Data[i].Attributes.Name == s.linkName {
-			s.T().Log("Found work item link type in collection: ", *linkTypeCollection.Data[i].Attributes.Name)
-			toBeFound--
-		}
-	}
-	require.Exactly(s.T(), 0, toBeFound, "Not all required work item link types (bug-blocker and related) where found.")
-
-	// Check that the link categories are included in the response in the "included" array
-	require.Len(s.T(), linkTypeCollection.Included, 2, "The work item link type should include it's work item link category and space.")
-	categoryData, ok := linkTypeCollection.Included[0].(*app.WorkItemLinkCategoryData)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
-
-	// Check that the link spaces are included in the response in the "included" array
-	spaceData, ok := linkTypeCollection.Included[1].(*app.Space)
-	require.True(s.T(), ok)
-	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's category should have the name 'test-space'.")
+	return workItemType, relatedType
 
 }
 
-func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiltConfiguration.GetTokenPrivateKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
+func assertWorkItemLinkTypes(t *testing.T, spaceName, categoryName, expectedLinkTypeName, expectedLinkName string, linkTypes *app.WorkItemLinkTypeList) {
+	require.NotNil(t, linkTypes)
+	require.Nil(t, linkTypes.Validate())
+	// Check the number of found work item link types
+	require.NotNil(t, linkTypes.Data)
+	require.Condition(t, func() bool {
+		return (len(linkTypes.Data) >= 2)
+	}, "At least two work item link types must exist (bug-blocker and related), but only %d exist.", len(linkTypes.Data))
+	// Search for the work item types that must exist at minimum
+	toBeFound := 2
+	for i := 0; i < len(linkTypes.Data) && toBeFound > 0; i++ {
+		if *linkTypes.Data[i].Attributes.Name == expectedLinkTypeName || *linkTypes.Data[i].Attributes.Name == expectedLinkName {
+			t.Log("Found work item link type in collection: ", *linkTypes.Data[i].Attributes.Name)
+			toBeFound--
+		}
 	}
-	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	if err != nil {
-		t.Fatal("Could not parse different private key ", err)
-	}
+	require.Exactly(t, 0, toBeFound, "Not all required work item link types (bug-blocker and related) where found.")
+	// Check that the link categories are included in the response in the "included" array
+	require.Len(t, linkTypes.Included, 2, "The work item link type should include it's work item link category and space.")
+	categoryData, ok := linkTypes.Included[0].(*app.WorkItemLinkCategoryData)
+	require.True(t, ok)
+	require.Equal(t, categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
+	// Check that the link spaces are included in the response in the "included" array
+	spaceData, ok := linkTypes.Included[1].(*app.Space)
+	require.True(t, ok)
+	require.Equal(t, spaceName, *spaceData.Attributes.Name, "The work item link type's category should have the name 'test-space'.")
+}
 
-	createWorkItemLinkTypePayloadString := bytes.NewBuffer([]byte(`
+// TestListWorkItemLinkTypeOK tests if we can find the work item link types
+// s.linkTypeName and s.linkName in the list of work item link types
+func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOK() {
+	// given
+	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
+	// when fetching all work item link type in a give space
+	res, linkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), nil, nil)
+	// then
+	assertWorkItemLinkTypes(s.T(), s.spaceName, s.categoryName, s.linkTypeName, s.linkName, linkTypes)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
+	// when fetching all work item link type in a give space
+	ifModifiedSinceHeader := app.ToHTTPTime(createdWorkItemLinkType.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+	res, linkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), &ifModifiedSinceHeader, nil)
+	// then
+	assertWorkItemLinkTypes(s.T(), s.spaceName, s.categoryName, s.linkTypeName, s.linkName, linkTypes)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
+	// when fetching all work item link type in a give space
+	ifNoneMatch := "foo"
+	res, linkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), nil, &ifNoneMatch)
+	// then
+	assertWorkItemLinkTypes(s.T(), s.spaceName, s.categoryName, s.linkTypeName, s.linkName, linkTypes)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	_, workItemLinkType := s.createWorkItemLinkTypes()
+	// when fetching all work item link type in a give space
+	ifModifiedSinceHeader := app.ToHTTPTime(*workItemLinkType.Data.Attributes.UpdatedAt)
+	res := test.ListWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, workItemLinkType.Data.Relationships.Space.Data.ID.String(), &ifModifiedSinceHeader, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) TestListWorkItemLinkTypeNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	_, createdWorkItemLinkType := s.createWorkItemLinkTypes()
+	_, existingLinkTypes := test.ListWorkItemLinkTypeOK(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), nil, nil)
+	// when fetching all work item link type in a give space
+	createdWorkItemLinkTypeModels := make([]app.ConditionalResponseEntity, len(existingLinkTypes.Data))
+	for i, linkTypeData := range existingLinkTypes.Data {
+		createdWorkItemLinkTypeModel, err := ConvertWorkItemLinkTypeToModel(
+			app.WorkItemLinkTypeSingle{
+				Data: linkTypeData,
+			},
+		)
+		require.Nil(s.T(), err)
+		createdWorkItemLinkTypeModels[i] = *createdWorkItemLinkTypeModel
+	}
+	ifNoneMatch := app.GenerateEntitiesTag(createdWorkItemLinkTypeModels)
+	res := test.ListWorkItemLinkTypeNotModified(s.T(), nil, nil, s.linkTypeCtrl, createdWorkItemLinkType.Data.Relationships.Space.Data.ID.String(), nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkTypeSuite) getWorkItemLinkTypeTestDataFunc() func(t *testing.T) []testSecureAPI {
+	return func(t *testing.T) []testSecureAPI {
+
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
+		if err != nil {
+			t.Fatal("Could not parse Key ", err)
+		}
+		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+		if err != nil {
+			t.Fatal("Could not parse different private key ", err)
+		}
+
+		createWorkItemLinkTypePayloadString := bytes.NewBuffer([]byte(`
 		{
 			"data": {
 				"type": "workitemlinktypes",
@@ -387,123 +500,118 @@ func getWorkItemLinkTypeTestData(t *testing.T) []testSecureAPI {
 			}
 		}
 		`))
-	return []testSecureAPI{
-		// Create Work Item API with different parameters
-		{
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           "",
-		},
-		// Update Work Item API with different parameters
-		{
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkTypePayloadString,
-			jwtToken:           "",
-		},
-		// Delete Work Item API with different parameters
-		{
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           "",
-		},
-		// Try fetching a random work item link type
-		// We do not have security on GET hence this should return 404 not found
-		{
-			method:             http.MethodGet,
-			url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/fc591f38-a805-4abd-bfce-2460e49d8cc4",
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		},
+		return []testSecureAPI{
+			// Create Work Item API with different parameters
+			{
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8"),
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           "",
+			},
+			// Update Work Item API with different parameters
+			{
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkTypePayloadString,
+				jwtToken:           "",
+			},
+			// Delete Work Item API with different parameters
+			{
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           "",
+			},
+			// Try fetching a random work item link type
+			// We do not have security on GET hence this should return 404 not found
+			{
+				method:             http.MethodGet,
+				url:                fmt.Sprintf(endpointWorkItemLinkTypes, "6ba7b810-9dad-11d1-80b4-00c04fd430c8") + "/fc591f38-a805-4abd-bfce-2460e49d8cc4",
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			},
+		}
 	}
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
 func (s *workItemLinkTypeSuite) TestUnauthorizeWorkItemLinkTypeCUD() {
-	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTypeTestData, func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemLinkTypeTestDataFunc(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLinkType-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkTypeController(service, gormapplication.NewGormDB(s.DB))
+		controller := NewWorkItemLinkTypeController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
 		app.MountWorkItemLinkTypeController(service, controller)
 		return nil
-	})
-}
-
-func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemLinkTypeController(nil, nil)
 	})
 }

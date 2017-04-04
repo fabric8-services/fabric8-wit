@@ -127,7 +127,7 @@ func (s *workItemLinkSuite) SetupTest() {
 	require.Nil(s.T(), err)
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)
-	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB))
+	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
 
 	svc = goa.New("TestWorkItemLinkCategory-Service")
