@@ -51,6 +51,10 @@ objects:
                 key: keycloak.realm
           image: registry.devshift.net/almighty/almighty-core:latest
           imagePullPolicy: Always
+          name: api
+          ports:
+          - containerPort: 8080
+            protocol: TCP
           livenessProbe:
             failureThreshold: 3
             httpGet:
@@ -61,10 +65,6 @@ objects:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          name: api
-          ports:
-          - containerPort: 8080
-            protocol: TCP
           readinessProbe:
             failureThreshold: 3
             httpGet:
@@ -114,15 +114,4 @@ objects:
     to:
       kind: Service
       name: api
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: api
-  type: Opaque
-  data:
-    db.host: ZGI=
-    db.port: NTQzMg==
-    db.user: cG9zdGdyZXM=
-    db.password: bXlzZWNyZXRwYXNzd29yZA==
-    keycloak.realm: ZmFicmljOAo=
   
