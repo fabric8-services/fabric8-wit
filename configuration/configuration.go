@@ -68,11 +68,12 @@ const (
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
+	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
 	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
 	varCacheControlSpaces               = "cachecontrol.spaces"
+	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlIterations           = "cachecontrol.iterations"
 	varCacheControlAreas                = "cachecontrol.areas"
-	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
@@ -172,7 +173,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
-	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=86400")     // 1 day
+	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=86400") // 1 day
+	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=300")
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=86400") // 1 day
 	c.v.SetDefault(varCacheControlSpaces, "max-age=300")
 	c.v.SetDefault(varCacheControlIterations, "max-age=300")
@@ -290,7 +292,13 @@ func (c *ConfigurationData) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
 }
 
-// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemLinks returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinks() string {
+	return c.v.GetString(varCacheControlWorkItemLinks)
+}
+
+// GetCacheControlAreas returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item (or a list of).
 func (c *ConfigurationData) GetCacheControlAreas() string {
 	return c.v.GetString(varCacheControlAreas)
