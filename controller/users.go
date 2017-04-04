@@ -62,6 +62,30 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	})
 }
 
+func copyExistingKeycloakUserProfileInfo(existingProfile *login.KeycloakUserProfileResponse) *login.KeycloakUserProfile {
+	keycloakUserProfile := &login.KeycloakUserProfile{}
+	keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+
+	if existingProfile.FirstName != nil {
+		keycloakUserProfile.FirstName = existingProfile.FirstName
+	}
+	if existingProfile.LastName != nil {
+		keycloakUserProfile.LastName = existingProfile.LastName
+	}
+	if existingProfile.Email != nil {
+		keycloakUserProfile.Email = existingProfile.Email
+	}
+	if existingProfile.Attributes != nil {
+		// If there are existing attributes, we overwite only those
+		// handled by the Users service in platform.
+		keycloakUserProfile.Attributes = existingProfile.Attributes
+	}
+	if existingProfile.Username != nil {
+		keycloakUserProfile.Username = existingProfile.Username
+	}
+	return keycloakUserProfile
+}
+
 // Update updates the authorized user based on the provided Token
 func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
@@ -91,20 +115,16 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		// prepare for updating keycloak user profile
 		tokenString := goajwt.ContextJWT(ctx).Raw
 
-		keycloakUserProfile := &login.KeycloakUserProfile{}
-		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
-
 		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		if keycloakUserExistingInfo.Attributes != nil {
-			// If there are existing attributes, we overwite only those
-			// handled by the Users service in platform.
-			keycloakUserProfile.Attributes = keycloakUserExistingInfo.Attributes
-		}
+		// The keycloak API doesn't support PATCH, hence the entire info needs
+		// to be sent over for User profile updation in Keycloak. So the POST request to KC needs
+		// to have everything - whatever we are updating, and whatever are not.
+		keycloakUserProfile := copyExistingKeycloakUserProfileInfo(keycloakUserExistingInfo)
 
 		// Disabling updation of email till we figure out how to do the same in Keycloak Error-free.
 		//

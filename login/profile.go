@@ -28,12 +28,6 @@ type KeycloakUserProfile struct {
 // KeycloakUserProfileAttributes represents standard Keycloak profile payload Attributes
 type KeycloakUserProfileAttributes map[string][]string
 
-/* struct {
-	Bio      *string `json:"bio,omitempty"`
-	URL      *string `json:"url,omitempty"`
-	ImageURL *string `json:"image_url,omitempty"`
-} */
-
 //KeycloakUserProfileResponse represents the user profile api response from keycloak
 type KeycloakUserProfileResponse struct {
 	ID                         *string                        `json:"id"`
