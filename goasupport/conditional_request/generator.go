@@ -80,6 +80,7 @@ func init() {
 	structPackages = map[string]string{
 		"WorkItem":         "workitemdsl",
 		"WorkItemType":     "workitemdsl",
+		"WorkItemLink":     "workitemlinkdsl",
 		"WorkItemLinkType": "workitemlinkdsl",
 		"Space":            "spacedsl",
 		"Iteration":        "iterationdsl",

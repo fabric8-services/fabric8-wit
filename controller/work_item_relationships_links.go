@@ -16,17 +16,24 @@ import (
 // WorkItemRelationshipsLinksController implements the work-item-relationships-links resource.
 type WorkItemRelationshipsLinksController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config WorkItemRelationshipsLinksControllerConfig
+}
+
+// WorkItemRelationshipsLinksControllerConfig the config interface for the WorkItemRelationshipsLinksController
+type WorkItemRelationshipsLinksControllerConfig interface {
+	GetCacheControlWorkItemLinks() string
 }
 
 // NewWorkItemRelationshipsLinksController creates a work-item-relationships-links controller.
-func NewWorkItemRelationshipsLinksController(service *goa.Service, db application.DB) *WorkItemRelationshipsLinksController {
+func NewWorkItemRelationshipsLinksController(service *goa.Service, db application.DB, config WorkItemRelationshipsLinksControllerConfig) *WorkItemRelationshipsLinksController {
 	if db == nil {
 		panic("db must not be nil")
 	}
 	return &WorkItemRelationshipsLinksController{
 		Controller: service.NewController("WorkItemRelationshipsLinksController"),
 		db:         db,
+		config:     config,
 	}
 }
 
@@ -81,7 +88,13 @@ func (c *WorkItemRelationshipsLinksController) Create(ctx *app.CreateWorkItemRel
 func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelationshipsLinksContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
-		return listWorkItemLink(linkCtx, ctx, &ctx.WiID)
+		modelLinks, err := appl.WorkItemLinks().ListByWorkItemID(ctx.Context, ctx.WiID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
+			return listWorkItemLink(modelLinks, linkCtx, ctx)
+		})
 	})
 }
 
