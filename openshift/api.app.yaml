@@ -1,0 +1,128 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: api
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    labels:
+      service: api
+    name: api
+  spec:
+    replicas: 1
+    selector:
+      service: api
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          service: api
+      spec:
+        containers:
+        - command:
+          - /usr/local/alm/bin/alm
+          env:
+          - name: ALMIGHTY_POSTGRES_HOST
+            valueFrom:
+              secretKeyRef:
+                name: api
+                key: db.host
+          - name: ALMIGHTY_POSTGRES_PORT
+            valueFrom:
+              secretKeyRef:
+                name: api
+                key: db.port
+          - name: ALMIGHTY_POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: api
+                key: db.user
+          - name: ALMIGHTY_POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: api
+                key: db.password
+          - name: ALMIGHTY_KEYCLOAK_REALM
+            valueFrom:
+              secretKeyRef:
+                name: api
+                key: keycloak.realm
+          image: registry.devshift.net/almighty/almighty-core:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: api
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /api/status
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+  status:
+    details:
+      causes:
+      - type: ConfigChange
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: api
+    labels:
+      service: api
+  spec:
+    ports:
+      -
+        name: 8080
+        protocol: TCP
+        port: 80
+        targetPort: 8080
+    selector:
+      service: api
+    type: ClusterIP
+    sessionAffinity: null
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: api
+  spec:
+    host: ''
+    to:
+      kind: Service
+      name: api
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: api
+  type: Opaque
+  data:
+    db.host: ZGI=
+    db.port: NTQzMg==
+    db.user: cG9zdGdyZXM=
+    db.password: bXlzZWNyZXRwYXNzd29yZA==
+    keycloak.realm: ZmFicmljOAo=
+  
