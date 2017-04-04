@@ -74,8 +74,6 @@ func (s *ProfileBlackBoxTest) generateAccessToken() (*string, error) {
 	}
 	tokenEndpoint, err := s.configuration.GetKeycloakEndpointToken(r)
 
-	assert.Equal(s.T(), tokenEndpoint, "https://sso.prod-preview.openshift.io/auth/realms/fabric8-test/protocol/openid-connect/token")
-
 	res, err := client.PostForm(tokenEndpoint, url.Values{
 		"client_id":     {s.configuration.GetKeycloakClientID()},
 		"client_secret": {s.configuration.GetKeycloakSecret()},
