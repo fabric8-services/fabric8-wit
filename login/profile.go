@@ -89,8 +89,9 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	resp, err := userProfileClient.client.Do(req)
 	if err != nil {
 		return errors.NewInternalError(err.Error())
+	} else if err == nil && resp != nil {
+		defer resp.Body.Close()
 	}
-	defer resp.Body.Close()
 	return nil
 }
 
@@ -108,16 +109,19 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	req.Header.Add("Accept", "application/json, text/plain, */*")
 
 	resp, err := userProfileClient.client.Do(req)
-	defer resp.Body.Close()
+
+	if err != nil {
+		logrus.Error("Request returned a bad status code ", resp.StatusCode)
+		return nil, errors.NewInternalError(err.Error())
+	} else if err == nil && resp != nil {
+		defer resp.Body.Close()
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		logrus.Error("Request returned a bad status code ", resp.StatusCode)
 		return nil, errors.NewInternalError(fmt.Sprintf("The request to %s returned a bad response %s", keycloakProfileURL, resp.Status))
 	}
-	if err != nil {
-		logrus.Error("Request returned a bad status code ", resp.StatusCode)
-		return nil, errors.NewInternalError(err.Error())
-	}
+
 	err = json.NewDecoder(resp.Body).Decode(&keycloakUserProfileResponse)
 	return &keycloakUserProfileResponse, err
 }
