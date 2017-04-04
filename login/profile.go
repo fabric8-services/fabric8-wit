@@ -96,7 +96,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 			"err": err,
 		}, "Unable to update Keycloak user profile")
 		return errors.NewInternalError(err.Error())
-	} else if err == nil && resp != nil {
+	} else if resp != nil {
 		defer resp.Body.Close()
 	}
 
@@ -132,7 +132,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 			"err": err,
 		}, "Unable to fetch Keycloak user profile")
 		return nil, errors.NewInternalError(err.Error())
-	} else if err == nil && resp != nil {
+	} else if resp != nil {
 		defer resp.Body.Close()
 	}
 
