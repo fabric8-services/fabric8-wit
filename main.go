@@ -212,7 +212,7 @@ func main() {
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
 
 	// Mount "work item link" controller
-	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB)
+	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, configuration)
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
@@ -220,7 +220,7 @@ func main() {
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
-	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB)
+	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB, configuration)
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller

@@ -20,17 +20,24 @@ import (
 // WorkItemLinkController implements the work-item-link resource.
 type WorkItemLinkController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config WorkItemLinkControllerConfig
+}
+
+// WorkItemLinkControllerConfig the config interface for the WorkitemLinkController
+type WorkItemLinkControllerConfig interface {
+	GetCacheControlWorkItemLinks() string
 }
 
 // NewWorkItemLinkController creates a work-item-link controller.
-func NewWorkItemLinkController(service *goa.Service, db application.DB) *WorkItemLinkController {
+func NewWorkItemLinkController(service *goa.Service, db application.DB, config WorkItemLinkControllerConfig) *WorkItemLinkController {
 	if db == nil {
 		panic("db must not be nil")
 	}
 	return &WorkItemLinkController{
 		Controller: service.NewController("WorkItemLinkController"),
 		db:         db,
+		config:     config,
 	}
 }
 
@@ -240,17 +247,18 @@ func enrichLinkList(ctx *workItemLinkContext, linkArr *app.WorkItemLinkList) err
 type createWorkItemLinkFuncs interface {
 	BadRequest(r *app.JSONAPIErrors) error
 	Created(r *app.WorkItemLinkSingle) error
+	InternalServerError(r *app.JSONAPIErrors) error
+	Unauthorized(r *app.JSONAPIErrors) error
 }
 
-func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
+func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFuncs, payload *app.CreateWorkItemLinkPayload) error {
 	// Convert payload from app to model representation
 	in := app.WorkItemLinkSingle{
 		Data: payload.Data,
 	}
 	modelLink, err := ConvertLinkToModel(in)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
 	createdModelLink, err := ctx.Application.WorkItemLinks().Create(ctx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *ctx.CurrentUserIdentityID)
 	if err != nil {
@@ -258,22 +266,18 @@ func createWorkItemLink(ctx *workItemLinkContext, funcs createWorkItemLinkFuncs,
 		switch cause.(type) {
 		// if the link type was not found/invalid, we return a "400 Bad Request" response
 		case errors.NotFoundError, errors.BadParameterError:
-			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(err.Error()))
-			return funcs.BadRequest(jerrors)
+			return jsonapi.JSONErrorResponse(httpFuncs, goa.ErrBadRequest(err.Error()))
 		default:
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			return jsonapi.JSONErrorResponse(httpFuncs, err)
 		}
 	}
 	// convert from model to rest representation
 	createdAppLink := ConvertLinkFromModel(*createdModelLink)
 	if err := enrichLinkSingle(ctx, &createdAppLink); err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-
 	ctx.ResponseData.Header().Set("Location", app.WorkItemLinkHref(createdAppLink.Data.ID))
-	return funcs.Created(&createdAppLink)
+	return httpFuncs.Created(&createdAppLink)
 }
 
 // Create runs the create action.
@@ -288,17 +292,21 @@ func (c *WorkItemLinkController) Create(ctx *app.CreateWorkItemLinkContext) erro
 
 type deleteWorkItemLinkFuncs interface {
 	OK(resp []byte) error
+	BadRequest(r *app.JSONAPIErrors) error
+	NotFound(r *app.JSONAPIErrors) error
+	Unauthorized(r *app.JSONAPIErrors) error
+	InternalServerError(r *app.JSONAPIErrors) error
 }
 
-func deleteWorkItemLink(ctx *workItemLinkContext, funcs deleteWorkItemLinkFuncs, linkID uuid.UUID) error {
+func deleteWorkItemLink(ctx *workItemLinkContext, httpFuncs deleteWorkItemLinkFuncs, linkID uuid.UUID) error {
 	err := ctx.Application.WorkItemLinks().Delete(ctx.Context, linkID, *ctx.CurrentUserIdentityID)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	return funcs.OK([]byte{})
+	return httpFuncs.OK([]byte{})
 }
 
+//
 // Delete runs the delete action
 func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
@@ -313,20 +321,12 @@ func (c *WorkItemLinkController) Delete(ctx *app.DeleteWorkItemLinkContext) erro
 
 type listWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLinkList) error
+	BadRequest(r *app.JSONAPIErrors) error
+	NotModified() error
+	InternalServerError(r *app.JSONAPIErrors) error
 }
 
-func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiIDStr *string) error {
-	var modelLinks []link.WorkItemLink
-	var err error
-	if wiIDStr != nil {
-		modelLinks, err = ctx.Application.WorkItemLinks().ListByWorkItemID(ctx.Context, *wiIDStr)
-	} else {
-		modelLinks, err = ctx.Application.WorkItemLinks().List(ctx.Context)
-	}
-	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-	}
+func listWorkItemLink(modelLinks []link.WorkItemLink, ctx *workItemLinkContext, httpFuncs listWorkItemLinkFuncs) error {
 	appLinks := app.WorkItemLinkList{}
 	appLinks.Data = make([]*app.WorkItemLinkData, len(modelLinks))
 	for index, modelLink := range modelLinks {
@@ -339,59 +339,71 @@ func listWorkItemLink(ctx *workItemLinkContext, funcs listWorkItemLinkFuncs, wiI
 		TotalCount: len(modelLinks),
 	}
 	if err := enrichLinkList(ctx, &appLinks); err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	return funcs.OK(&appLinks)
+	return httpFuncs.OK(&appLinks)
 }
 
 // List runs the list action.
 func (c *WorkItemLinkController) List(ctx *app.ListWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
-		return listWorkItemLink(linkCtx, ctx, nil)
+		modelLinks, err := appl.WorkItemLinks().List(ctx.Context)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
+			return listWorkItemLink(modelLinks, linkCtx, ctx)
+		})
 	})
 }
 
 type showWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLinkSingle) error
+	NotFound(r *app.JSONAPIErrors) error
+	NotModified() error
+	BadRequest(r *app.JSONAPIErrors) error
+	InternalServerError(r *app.JSONAPIErrors) error
 }
 
-func showWorkItemLink(ctx *workItemLinkContext, funcs showWorkItemLinkFuncs, linkID uuid.UUID) error {
-	modelLink, err := ctx.Application.WorkItemLinks().Load(ctx.Context, linkID)
-	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
-	}
+func showWorkItemLink(modelLink link.WorkItemLink, ctx *workItemLinkContext, httpFuncs showWorkItemLinkFuncs) error {
 	// convert to rest representation
-	appLink := ConvertLinkFromModel(*modelLink)
+	appLink := ConvertLinkFromModel(modelLink)
 	if err := enrichLinkSingle(ctx, &appLink); err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	return funcs.OK(&appLink)
+	return httpFuncs.OK(&appLink)
 }
 
 // Show runs the show action.
 func (c *WorkItemLinkController) Show(ctx *app.ShowWorkItemLinkContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
-		return showWorkItemLink(linkCtx, ctx, ctx.LinkID)
+		modelLink, err := appl.WorkItemLinks().Load(ctx.Context, ctx.LinkID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.ConditionalEntity(*modelLink, c.config.GetCacheControlWorkItemLinks, func() error {
+			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
+			return showWorkItemLink(*modelLink, linkCtx, ctx)
+		})
 	})
 }
 
 type updateWorkItemLinkFuncs interface {
 	OK(r *app.WorkItemLinkSingle) error
+	NotFound(r *app.JSONAPIErrors) error
+	BadRequest(r *app.JSONAPIErrors) error
+	InternalServerError(r *app.JSONAPIErrors) error
+	Unauthorized(r *app.JSONAPIErrors) error
 }
 
-func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs, payload *app.UpdateWorkItemLinkPayload) error {
+func updateWorkItemLink(ctx *workItemLinkContext, httpFuncs updateWorkItemLinkFuncs, payload *app.UpdateWorkItemLinkPayload) error {
 	toSave := app.WorkItemLinkSingle{
 		Data: payload.Data,
 	}
 	modelLink, err := ConvertLinkToModel(toSave)
 	if err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
 	savedModelLink, err := ctx.Application.WorkItemLinks().Save(ctx.Context, *modelLink, *ctx.CurrentUserIdentityID)
 	if err != nil {
@@ -402,10 +414,9 @@ func updateWorkItemLink(ctx *workItemLinkContext, funcs updateWorkItemLinkFuncs,
 	savedAppLink := ConvertLinkFromModel(*savedModelLink)
 
 	if err := enrichLinkSingle(ctx, &savedAppLink); err != nil {
-		jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-		return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+		return jsonapi.JSONErrorResponse(httpFuncs, err)
 	}
-	return funcs.OK(&savedAppLink)
+	return httpFuncs.OK(&savedAppLink)
 }
 
 // Update runs the update action.
@@ -427,7 +438,9 @@ func ConvertLinkFromModel(t link.WorkItemLink) app.WorkItemLinkSingle {
 			Type: link.EndpointWorkItemLinks,
 			ID:   &t.ID,
 			Attributes: &app.WorkItemLinkAttributes{
-				Version: &t.Version,
+				CreatedAt: &t.CreatedAt,
+				UpdatedAt: &t.UpdatedAt,
+				Version:   &t.Version,
 			},
 			Relationships: &app.WorkItemLinkRelationships{
 				LinkType: &app.RelationWorkItemLinkType{
