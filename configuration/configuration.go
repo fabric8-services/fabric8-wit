@@ -631,7 +631,7 @@ ZwIDAQAB
 	devModeValidRedirectURLs = ".*"
 	// Allow redirects to localhost when running in prod-preveiw
 	localhostRedirectURLs      = "(" + DefaultValidRedirectURLs + "|^(https|http)://([^/]+[.])?(localhost|127[.]0[.]0[.]1)(:\\d+)?(/.*)?$)" // *.openshift.io/* or localhost/* or 127.0.0.1/*
-	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(/.*)?$"                                     // *.prod-preview.openshift.io/*
+	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(:\\d+)?(/.*)?$"                             // *.prod-preview.openshift.io/*
 )
 
 // ActualToken is actual OAuth access token of github
