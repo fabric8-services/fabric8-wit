@@ -90,8 +90,7 @@ func (c *WorkItemRelationshipsLinksController) List(ctx *app.ListWorkItemRelatio
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkHref, nil)
 		modelLinks, err := appl.WorkItemLinks().ListByWorkItemID(ctx.Context, ctx.WiID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalEntities(modelLinks, c.config.GetCacheControlWorkItemLinks, func() error {
 			return listWorkItemLink(modelLinks, linkCtx, ctx)
