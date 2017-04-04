@@ -31,6 +31,7 @@ cachecontrol.workitems: max-age=300
 cachecontrol.areas: max-age=300
 cachecontrol.space: max-age=300
 cachecontrol.iteration: max-age=300
+cachecontrol.comments: max-age=300
 
 #------------------------
 # Misc.

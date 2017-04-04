@@ -73,6 +73,7 @@ const (
 	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlSpace                = "cachecontrol.space"
 	varCacheControlIteration            = "cachecontrol.iteration"
+	varCacheControlComments             = "cachecontrol.comments"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
@@ -177,6 +178,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlAreas, "max-age=300")
 	c.v.SetDefault(varCacheControlSpace, "max-age=300")
 	c.v.SetDefault(varCacheControlIteration, "max-age=300")
+	c.v.SetDefault(varCacheControlComments, "max-age=300")
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -308,6 +310,12 @@ func (c *ConfigurationData) GetCacheControlSpace() string {
 // when returning iterations.
 func (c *ConfigurationData) GetCacheControlIteration() string {
 	return c.v.GetString(varCacheControlIteration)
+}
+
+// GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlComments() string {
+	return c.v.GetString(varCacheControlComments)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
