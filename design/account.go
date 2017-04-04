@@ -178,7 +178,8 @@ var userDataAttributes = a.Type("UserDataAttributes", func() {
 	a.Attribute("email", d.String, "The email")
 	a.Attribute("bio", d.String, "The bio")
 	a.Attribute("url", d.String, "The url")
-	a.Attribute("providerType", d.String, "The IDP provided this identity")
+	a.Attribute("identityID", d.String, "The associated identity")
+	a.Attribute("providerType", d.String, "The type of provider for the identity")
 	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
 		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
 	})

@@ -210,10 +210,11 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 	// given
 	user := s.createRandomUser("TestPatchUserContextInformation")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
-	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.Attributes.IdentityID)
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
 	// when
@@ -230,9 +231,9 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 	require.NotNil(s.T(), result)
 
 	// let's fetch it and validate the usual stuff.
-	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	require.NotNil(s.T(), result)
-	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), user.ID.String(), *result.Data.ID)
 	updatedContextInformation := result.Data.Attributes.ContextInformation
 
 	// Before we PATCH, ensure that the 1st time update has worked well.
@@ -251,7 +252,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 	require.NotNil(s.T(), result)
 
 	// let's fetch it and validate the usual stuff.
-	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	require.NotNil(s.T(), result)
 	updatedContextInformation = result.Data.Attributes.ContextInformation
 
@@ -480,6 +481,8 @@ func assertUser(t *testing.T, actual *app.UserData, expectedUser account.User, e
 	assert.Equal(t, expectedUser.FullName, *actual.Attributes.FullName)
 	assert.Equal(t, expectedUser.ImageURL, *actual.Attributes.ImageURL)
 	assert.Equal(t, expectedUser.Email, *actual.Attributes.Email)
+	assert.Equal(t, expectedIdentity.ID.String(), *actual.Attributes.IdentityID)
+	assert.Equal(t, expectedIdentity.ProviderType, *actual.Attributes.ProviderType)
 }
 
 func assertSingleUserResponseHeaders(t *testing.T, res http.ResponseWriter, appUser *app.User, modelUser account.User) {

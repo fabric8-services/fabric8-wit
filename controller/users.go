@@ -193,6 +193,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 	fullName := user.FullName
 	userName := identity.Username
 	providerType := identity.ProviderType
+	identityID := identity.ID.String()
 	var imageURL string
 	var bio string
 	var userURL string
@@ -232,6 +233,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 				ImageURL:           &imageURL,
 				Bio:                &bio,
 				URL:                &userURL,
+				IdentityID:         &identityID,
 				ProviderType:       &providerType,
 				Email:              &email,
 				ContextInformation: workitem.Fields{},
