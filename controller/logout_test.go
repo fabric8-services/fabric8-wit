@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/app/test"
@@ -23,7 +22,7 @@ func TestRunLogoutREST(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	configuration, err := config.GetConfigurationData()
 	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+		t.Fatalf("Failed to setup the configuration: %s", err.Error())
 	}
 	suite.Run(t, &TestLogoutREST{configuration: configuration})
 }

@@ -25,8 +25,8 @@ func (s *KeycloakLogoutService) Logout(ctx *app.LogoutLogoutContext, logoutEndpo
 	referrer := ctx.RequestData.Header.Get("Referer")
 	if redirect == nil {
 		if referrer == "" {
-			log.Error(ctx, map[string]interface{}{}, "Failed to logout. Referer Header and redirect param are both empty.")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Referer Header and redirect param are both empty. At least one should be specified."))
+			log.Error(ctx, nil, "Failed to logout. Referer Header and redirect param are both empty.")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("referer Header and redirect param are both empty (at least one should be specified)"))
 		}
 		redirect = &referrer
 	}
