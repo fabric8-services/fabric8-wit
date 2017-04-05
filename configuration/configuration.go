@@ -10,11 +10,10 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-
 	"github.com/fabric8-services/fabric8-wit/rest"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 // String returns the current configuration as a string

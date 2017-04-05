@@ -8,9 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/fabric8-services/fabric8-wit/configuration"
-
 	log "github.com/Sirupsen/logrus"
+	"github.com/fabric8-services/fabric8-wit/configuration"
 	"github.com/goadesign/goa"
 )
 
