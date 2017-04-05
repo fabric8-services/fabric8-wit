@@ -191,6 +191,9 @@ func main() {
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 
+	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, configuration)
+	app.MountLogoutController(service, logoutCtrl)
+
 	// Mount "status" controller
 	statusCtrl := controller.NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)

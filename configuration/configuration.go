@@ -65,6 +65,7 @@ const (
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
+	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
@@ -470,6 +471,15 @@ func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (str
 // GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
 func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAccount, "auth/realms/"+c.GetKeycloakRealm()+"/account")
+}
+
+// GetKeycloakEndpointLogout returns the keycloak logout endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointLogout(req *goa.RequestData) (string, error) {
+	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointLogout, "logout")
 }
 
 // GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
