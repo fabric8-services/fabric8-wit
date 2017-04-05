@@ -72,10 +72,10 @@ const (
 	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
 	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
 	varCacheControlSpaces               = "cachecontrol.spaces"
-	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlIterations           = "cachecontrol.iterations"
 	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlComments             = "cachecontrol.comments"
+	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
@@ -309,26 +309,14 @@ func (c *ConfigurationData) GetCacheControlAreas() string {
 
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning spaces.
-func (c *ConfigurationData) GetCacheControlSpaces() string {
+func (c *ConfigurationData) GetCacheControlSpace() string {
 	return c.v.GetString(varCacheControlSpaces)
 }
 
 // GetCacheControlIterations returns the value to set in the "Cache-Control" HTTP response header
 // when returning iterations.
-func (c *ConfigurationData) GetCacheControlIterations() string {
+func (c *ConfigurationData) GetCacheControlIteration() string {
 	return c.v.GetString(varCacheControlIterations)
-}
-
-// GetCacheControlUsers returns the value to set in the "Cache-Control" HTTP response header
-// when returning users.
-func (c *ConfigurationData) GetCacheControlUsers() string {
-	return c.v.GetString(varCacheControlUsers)
-}
-
-// GetCacheControlUser returns the value to set in the "Cache-Control" HTTP response header
-// when data for the current user.
-func (c *ConfigurationData) GetCacheControlUser() string {
-	return c.v.GetString(varCacheControlUser)
 }
 
 // GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header

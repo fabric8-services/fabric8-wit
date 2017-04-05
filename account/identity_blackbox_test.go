@@ -66,9 +66,9 @@ func (s *identityBlackBoxTest) TestOKToDelete() {
 	assert.Nil(s.T(), err)
 	identities, err := s.repo.List(s.ctx)
 	require.Nil(s.T(), err, "Could not list identities")
-	require.True(s.T(), len(identities) > 0)
-	for _, ident := range identities {
-		require.NotEqual(s.T(), "someuserTestIdentity", ident.Username)
+	require.True(s.T(), len(identities.Data) > 0)
+	for _, data := range identities.Data {
+		require.NotEqual(s.T(), "someuserTestIdentity", data.Attributes.Username)
 	}
 }
 
