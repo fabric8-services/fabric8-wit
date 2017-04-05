@@ -3,10 +3,12 @@ package controller
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
@@ -14,38 +16,43 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 
 	uuid "github.com/satori/go.uuid"
 )
-
-type usersConfiguration interface {
-	// add configuration specific to keycloak user profile api url
-	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
-}
 
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
 	db                 application.DB
-	configuration      usersConfiguration
+	config             UsersControllerConfiguration
 	userProfileService login.UserProfileService
 }
 
+// UsersControllerConfiguration the configuration for the UsersController
+type UsersControllerConfiguration interface {
+	GetCacheControlUsers() string
+	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
+}
+
 // NewUsersController creates a users controller.
-func NewUsersController(service *goa.Service, db application.DB, configuration usersConfiguration, userProfileService login.UserProfileService) *UsersController {
-	return &UsersController{Controller: service.NewController("UsersController"), db: db, configuration: configuration, userProfileService: userProfileService}
+func NewUsersController(service *goa.Service, db application.DB, config UsersControllerConfiguration, userProfileService login.UserProfileService) *UsersController {
+	return &UsersController{
+		Controller:         service.NewController("UsersController"),
+		db:                 db,
+		config:             config,
+		userProfileService: userProfileService,
+	}
 }
 
 // Show runs the show action.
 func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		id, err := uuid.FromString(ctx.ID)
+		identityID, err := uuid.FromString(ctx.ID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(errors.NewBadParameterError("identity_id", ctx.ID), err.Error()))
 		}
-		identity, err := appl.Identities().Load(ctx.Context, id)
+		identity, err := appl.Identities().Load(ctx.Context, identityID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -55,10 +62,12 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 		if userID.Valid {
 			user, err = appl.Users().Load(ctx.Context, userID.UUID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("User ID %s not valid", userID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(fmt.Sprintf("User ID %s not valid", userID.UUID), err))
 			}
 		}
-		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
+		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUsers, func() error {
+			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
+		})
 	})
 }
 
@@ -108,14 +117,14 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if identity.UserID.Valid {
 			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
 			}
 		}
 
 		// prepare for updating keycloak user profile
 		tokenString := goajwt.ContextJWT(ctx).Raw
 
-		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+		accountAPIEndpoint, err := c.config.GetKeycloakAccountEndpoint(ctx.RequestData)
 		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -201,7 +210,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 
 		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
-		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
+		return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
 	})
 }
 
@@ -209,57 +218,61 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var err error
-		var users []*account.User
-		var result *app.UserArray
+		var users []account.User
 		users, err = appl.Users().List(ctx.Context)
-		if err == nil {
-			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
-			if err == nil {
-				return ctx.OK(result)
-			}
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing users"))
 		}
-		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "Error listing users"))
+		return ctx.ConditionalEntities(users, c.config.GetCacheControlUsers, func() error {
+			result, err := LoadKeyCloakIdentities(appl, ctx.RequestData, users)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing users"))
+			}
+			return ctx.OK(result)
+		})
 	})
 }
 
 // LoadKeyCloakIdentities loads keycloak identies for the users and converts the users into REST representation
-func LoadKeyCloakIdentities(appl application.Application, request *goa.RequestData, users []*account.User) (*app.UserArray, error) {
-	data := make([]*app.IdentityData, len(users))
+func LoadKeyCloakIdentities(appl application.Application, request *goa.RequestData, users []account.User) (*app.UserArray, error) {
+	data := make([]*app.UserData, len(users))
 	for i, user := range users {
 		identity, err := loadKeyCloakIdentity(appl, user)
 		if err != nil {
 			return nil, err
 		}
-		appIdentity := ConvertUser(request, identity, user)
-		data[i] = appIdentity.Data
+		appUser := ConvertToAppUser(request, &user, identity)
+		data[i] = appUser.Data
 	}
 	return &app.UserArray{Data: data}, nil
 }
 
-func loadKeyCloakIdentity(appl application.Application, user *account.User) (*account.Identity, error) {
+func loadKeyCloakIdentity(appl application.Application, user account.User) (*account.Identity, error) {
 	identities, err := appl.Identities().Query(account.IdentityFilterByUserID(user.ID))
 	if err != nil {
 		return nil, err
 	}
 	for _, identity := range identities {
 		if identity.ProviderType == account.KeycloakIDP {
-			return identity, nil
+			return &identity, nil
 		}
 	}
 	return nil, fmt.Errorf("Can't find Keycloak Identity for user %s", user.Email)
 }
 
-// ConvertUser converts a complete Identity object into REST representation
-func ConvertUser(request *goa.RequestData, identity *account.Identity, user *account.User) *app.Identity {
-	uuid := identity.ID
-	id := uuid.String()
-	fullName := identity.Username
+// ConvertToAppUser converts a complete Identity object into REST representation
+func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *account.Identity) *app.User {
+	userID := user.ID.String()
+	fullName := user.FullName
 	userName := identity.Username
 	providerType := identity.ProviderType
+	identityID := identity.ID.String()
 	var imageURL string
 	var bio string
 	var userURL string
 	var email string
+	var createdAt time.Time
+	var updatedAt time.Time
 	var contextInformation workitem.Fields
 
 	if user != nil {
@@ -269,6 +282,9 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		userURL = user.URL
 		email = user.Email
 		contextInformation = user.ContextInformation
+		// CreatedAt and UpdatedAt fields in the resulting app.Identity are based on the 'user' entity
+		createdAt = user.CreatedAt
+		updatedAt = user.UpdatedAt
 	}
 
 	// The following will be used for ContextInformation.
@@ -280,21 +296,24 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		Type: workitem.SimpleType{Kind: workitem.KindString},
 	}
 
-	converted := app.Identity{
-		Data: &app.IdentityData{
-			ID:   &id,
-			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+	converted := app.User{
+		Data: &app.UserData{
+			ID:   &userID,
+			Type: "users",
+			Attributes: &app.UserDataAttributes{
 				Username:           &userName,
 				FullName:           &fullName,
 				ImageURL:           &imageURL,
 				Bio:                &bio,
 				URL:                &userURL,
+				IdentityID:         &identityID,
 				ProviderType:       &providerType,
 				Email:              &email,
 				ContextInformation: workitem.Fields{},
+				CreatedAt:          &createdAt,
+				UpdatedAt:          &updatedAt,
 			},
-			Links: createUserLinks(request, uuid),
+			Links: createUserLinks(request, &identity.ID),
 		},
 	}
 	for name, value := range contextInformation {
@@ -315,27 +334,27 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
-func ConvertUsersSimple(request *goa.RequestData, ids []interface{}) []*app.GenericData {
+func ConvertUsersSimple(request *goa.RequestData, identityIDs []interface{}) []*app.GenericData {
 	ops := []*app.GenericData{}
-	for _, id := range ids {
-		ops = append(ops, ConvertUserSimple(request, id))
+	for _, identityID := range identityIDs {
+		ops = append(ops, ConvertUserSimple(request, identityID))
 	}
 	return ops
 }
 
 // ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
-func ConvertUserSimple(request *goa.RequestData, id interface{}) *app.GenericData {
-	t := "identities"
-	i := fmt.Sprint(id)
+func ConvertUserSimple(request *goa.RequestData, identityID interface{}) *app.GenericData {
+	t := "users"
+	i := fmt.Sprint(identityID)
 	return &app.GenericData{
 		Type:  &t,
 		ID:    &i,
-		Links: createUserLinks(request, id),
+		Links: createUserLinks(request, identityID),
 	}
 }
 
-func createUserLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := rest.AbsoluteURL(request, app.UsersHref(id))
+func createUserLinks(request *goa.RequestData, identityID interface{}) *app.GenericLinks {
+	selfURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}

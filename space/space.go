@@ -66,7 +66,7 @@ func (p Space) GetETagData() []interface{} {
 
 // GetLastModified returns the last modification time
 func (p Space) GetLastModified() time.Time {
-	return p.UpdatedAt.Truncate(time.Second)
+	return p.UpdatedAt
 }
 
 // Repository encapsulate storage & retrieval of spaces

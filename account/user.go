@@ -1,15 +1,17 @@
 package account
 
 import (
+	"strconv"
 	"time"
 
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -37,6 +39,17 @@ func (m User) TableName() string {
 	return "users"
 }
 
+// GetETagData returns the field values to use to generate the ETag
+func (m User) GetETagData() []interface{} {
+	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
+	return []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10)}
+}
+
+// GetLastModified returns the last modification time
+func (m User) GetLastModified() time.Time {
+	return m.UpdatedAt
+}
+
 // GormUserRepository is the implementation of the storage interface for User.
 type GormUserRepository struct {
 	db *gorm.DB
@@ -52,9 +65,9 @@ type UserRepository interface {
 	Load(ctx context.Context, ID uuid.UUID) (*User, error)
 	Create(ctx context.Context, u *User) error
 	Save(ctx context.Context, u *User) error
-	List(ctx context.Context) ([]*User, error)
+	List(ctx context.Context) ([]User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -69,14 +82,12 @@ func (m *GormUserRepository) TableName() string {
 // This is more for use internally, and probably not what you want in  your controllers
 func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "load"}, time.Now())
-
 	var native User
 	err := m.db.Table(m.TableName()).Where("id = ?", id).Find(&native).Error
 	if err == gorm.ErrRecordNotFound {
-		return nil, nil
+		return nil, errors.NewNotFoundError("user", id.String())
 	}
-
-	return &native, errors.WithStack(err)
+	return &native, errs.WithStack(err)
 }
 
 // Create creates a new record.
@@ -91,7 +102,7 @@ func (m *GormUserRepository) Create(ctx context.Context, u *User) error {
 			"user_id": u.ID,
 			"err":     err,
 		}, "unable to create the user")
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	log.Debug(ctx, map[string]interface{}{
 		"user_id": u.ID,
@@ -109,11 +120,11 @@ func (m *GormUserRepository) Save(ctx context.Context, model *User) error {
 			"user_id": model.ID,
 			"err":     err,
 		}, "unable to update user")
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 	if err != nil {
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
@@ -135,7 +146,7 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 			"user_id": id,
 			"err":     err,
 		}, "unable to delete the user")
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
@@ -146,25 +157,25 @@ func (m *GormUserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List return all users
-func (m *GormUserRepository) List(ctx context.Context) ([]*User, error) {
+func (m *GormUserRepository) List(ctx context.Context) ([]User, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "list"}, time.Now())
-	var rows []*User
+	var rows []User
 
 	err := m.db.Model(&User{}).Order("email").Find(&rows).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 	return rows, nil
 }
 
 // Query expose an open ended Query model
-func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error) {
+func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "user", "query"}, time.Now())
-	var objs []*User
+	var objs []User
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 
 	log.Debug(nil, map[string]interface{}{

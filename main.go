@@ -240,7 +240,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller
