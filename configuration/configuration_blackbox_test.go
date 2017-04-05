@@ -174,6 +174,17 @@ func TestGetKeycloakEndpointBrokerSetByEnvVaribaleOK(t *testing.T) {
 	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_BROKER", config.GetKeycloakEndpointBroker)
 }
 
+func TestGetKeycloakUserInfoEndpointOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/account", config.GetKeycloakAccountEndpoint)
+}
+
+func TestGetKeycloakUserInfoEndpointOKrSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_ACCOUNT", config.GetKeycloakAccountEndpoint)
+}
+
 func checkGetKeycloakEndpointOK(t *testing.T, expectedEndpoint string, getEndpoint func(req *goa.RequestData) (string, error)) {
 	url, err := getEndpoint(reqLong)
 	assert.Nil(t, err)

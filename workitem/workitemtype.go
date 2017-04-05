@@ -200,5 +200,5 @@ func (wit WorkItemType) GetETagData() []interface{} {
 
 // GetLastModified returns the last modification time
 func (wit WorkItemType) GetLastModified() time.Time {
-	return wit.UpdatedAt.Truncate(time.Second)
+	return wit.UpdatedAt
 }

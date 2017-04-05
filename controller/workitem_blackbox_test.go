@@ -762,7 +762,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
 	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
@@ -1638,7 +1638,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	test.DeleteWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi1.Data.Relationships.Space.Data.ID.String(), *wi1.Data.ID)
 
 	// Check that the link was deleted by deleting wi1
-	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID)
+	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.linkCtrl, *workItemLink.Data.ID, nil, nil)
 
 	// Check that we can query for wi2 without problems
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi2.Data.Relationships.Space.Data.ID.String(), *wi2.Data.ID, nil, nil)
