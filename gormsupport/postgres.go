@@ -9,6 +9,9 @@ const (
 
 // IsCheckViolation returns true if the error is a violation of the given check
 func IsCheckViolation(err error, constraintName string) bool {
+	if err == nil {
+		return false
+	}
 	pqError, ok := err.(*pq.Error)
 	if !ok {
 		return false
@@ -18,6 +21,9 @@ func IsCheckViolation(err error, constraintName string) bool {
 
 // IsUniqueViolation returns true if the error is a violation of the given unique index
 func IsUniqueViolation(err error, indexName string) bool {
+	if err == nil {
+		return false
+	}
 	pqError, ok := err.(*pq.Error)
 	if !ok {
 		return false
