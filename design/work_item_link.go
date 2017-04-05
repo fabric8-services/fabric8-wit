@@ -51,9 +51,16 @@ See also http://jsonapi.org/format/#document-resource-object`)
 var workItemLinkAttributes = a.Type("WorkItemLinkAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a work item link.
 See also see http://jsonapi.org/format/#document-resource-object-attributes`)
+	a.Attribute("created-at", d.DateTime, "When the space was created", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
+	a.Attribute("updated-at", d.DateTime, "When the space was updated", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control (optional during creating)", func() {
 		a.Example(0)
 	})
+
 	// IMPORTANT: We cannot require any field here because these "attributes" will be used
 	// during the creation as well as the update of a work item link type.
 	// During creation, the "name" field is required but not during update.
@@ -149,9 +156,9 @@ func listWorkItemLinks() {
 	a.Routing(
 		a.GET(""),
 	)
-	a.Response(d.OK, func() {
-		a.Media(workItemLinkList)
-	})
+	a.UseTrait("conditional")
+	a.Response(d.OK, workItemLinkList)
+	a.Response(d.NotModified)
 	a.Response(d.BadRequest, JSONAPIErrors)
 	a.Response(d.InternalServerError, JSONAPIErrors)
 }
@@ -164,9 +171,9 @@ func showWorkItemLink() {
 	a.Params(func() {
 		a.Param("linkId", d.UUID, "ID of the work item link to show")
 	})
-	a.Response(d.OK, func() {
-		a.Media(workItemLink)
-	})
+	a.UseTrait("conditional")
+	a.Response(d.OK, workItemLink)
+	a.Response(d.NotModified)
 	a.Response(d.BadRequest, JSONAPIErrors)
 	a.Response(d.InternalServerError, JSONAPIErrors)
 	a.Response(d.NotFound, JSONAPIErrors)

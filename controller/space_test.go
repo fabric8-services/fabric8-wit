@@ -279,7 +279,7 @@ func (rest *TestSpaceREST) TestShowSpaceOK() {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
 	assert.Equal(rest.T(), app.ToHTTPTime(getSpaceUpdatedAt(*created)), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
-	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
+	assert.NotNil(rest.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), app.GenerateEntityTag(ConvertSpaceToModel(*created.Data)), res.Header()[app.ETag][0])
 	// Test that it contains the right link for backlog items
@@ -314,7 +314,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
 	assert.Equal(rest.T(), app.ToHTTPTime(getSpaceUpdatedAt(*created)), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
-	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
+	assert.NotNil(rest.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), generateSpaceTag(*created), res.Header()[app.ETag][0])
 }
@@ -339,7 +339,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfNoneMatchHeader() {
 	require.NotNil(rest.T(), res.Header()[app.LastModified])
 	assert.Equal(rest.T(), app.ToHTTPTime(getSpaceUpdatedAt(*created)), res.Header()[app.LastModified][0])
 	require.NotNil(rest.T(), res.Header()[app.CacheControl])
-	assert.Equal(rest.T(), app.MaxAge+"=300", res.Header()[app.CacheControl][0])
+	assert.NotNil(rest.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(rest.T(), res.Header()[app.ETag])
 	assert.Equal(rest.T(), generateSpaceTag(*created), res.Header()[app.ETag][0])
 }

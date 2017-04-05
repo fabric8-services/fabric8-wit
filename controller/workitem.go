@@ -135,7 +135,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
@@ -425,7 +424,26 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription {
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
-				target.Fields[key] = *m
+				// if no description existed before, set the new one
+				if target.Fields[key] == nil {
+					target.Fields[key] = *m
+				} else {
+					// only update the 'description' field in the existing description
+					existingDescription := target.Fields[key].(rendering.MarkupContent)
+					existingDescription.Content = (*m).Content
+					target.Fields[key] = existingDescription
+				}
+			}
+		} else if key == workitem.SystemDescriptionMarkup {
+			markup := val.(string)
+			// if no description existed before, set the markup in a new one
+			if target.Fields[workitem.SystemDescription] == nil {
+				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: markup}
+			} else {
+				// only update the 'description' field in the existing description
+				existingDescription := target.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+				existingDescription.Markup = markup
+				target.Fields[workitem.SystemDescription] = existingDescription
 			}
 		} else if key == workitem.SystemCodebase {
 			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
@@ -512,16 +530,16 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
-				valArr := val.([]interface{})
+				userID := val.([]interface{})
 				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: ConvertUsersSimple(request, valArr),
+					Data: ConvertUsersSimple(request, userID),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
-				valStr := val.(string)
+				userID := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, valStr),
+					Data: ConvertUserSimple(request, userID),
 				}
 			}
 		case workitem.SystemIteration:

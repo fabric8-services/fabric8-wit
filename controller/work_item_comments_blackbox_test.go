@@ -63,12 +63,12 @@ func (rest *TestCommentREST) TearDownTest() {
 func (rest *TestCommentREST) SecuredController() (*goa.Service, *WorkItemCommentsController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsUser("WorkItemComment-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity)
-	return svc, NewWorkItemCommentsController(svc, rest.db)
+	return svc, NewWorkItemCommentsController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestCommentREST) UnSecuredController() (*goa.Service, *WorkItemCommentsController) {
 	svc := goa.New("WorkItemComment-Service")
-	return svc, NewWorkItemCommentsController(svc, rest.db)
+	return svc, NewWorkItemCommentsController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestCommentREST) newCreateWorkItemCommentsPayload(body string, markup *string) *app.CreateWorkItemCommentsPayload {
@@ -107,21 +107,21 @@ func (rest *TestCommentREST) createDefaultWorkItem() *workitem.WorkItem {
 	return workItem
 }
 
-func (rest *TestCommentREST) assertComment(c *app.Comment, expectedBody string, expectedMarkup string) {
-	assert.NotNil(rest.T(), c)
-	assert.Equal(rest.T(), "comments", c.Type)
-	assert.NotNil(rest.T(), c.ID)
-	require.NotNil(rest.T(), c.Attributes)
-	assert.Equal(rest.T(), expectedBody, *c.Attributes.Body)
-	assert.Equal(rest.T(), expectedMarkup, *c.Attributes.Markup)
-	assert.Equal(rest.T(), rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *c.Attributes.BodyRendered)
-	require.NotNil(rest.T(), c.Attributes.CreatedAt)
-	assert.WithinDuration(rest.T(), time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
-	require.NotNil(rest.T(), c.Relationships)
-	require.NotNil(rest.T(), c.Relationships.CreatedBy)
-	require.NotNil(rest.T(), c.Relationships.CreatedBy.Data)
-	assert.Equal(rest.T(), "identities", c.Relationships.CreatedBy.Data.Type)
-	assert.NotNil(rest.T(), c.Relationships.CreatedBy.Data.ID)
+func assertWorkItemComment(t *testing.T, c *app.Comment, expectedBody string, expectedMarkup string) {
+	assert.NotNil(t, c)
+	assert.Equal(t, "comments", c.Type)
+	assert.NotNil(t, c.ID)
+	require.NotNil(t, c.Attributes)
+	assert.Equal(t, expectedBody, *c.Attributes.Body)
+	assert.Equal(t, expectedMarkup, *c.Attributes.Markup)
+	assert.Equal(t, rendering.RenderMarkupToHTML(html.EscapeString(expectedBody), expectedMarkup), *c.Attributes.BodyRendered)
+	require.NotNil(t, c.Attributes.CreatedAt)
+	assert.WithinDuration(t, time.Now(), *c.Attributes.CreatedAt, 2*time.Second)
+	require.NotNil(t, c.Relationships)
+	require.NotNil(t, c.Relationships.CreatedBy)
+	require.NotNil(t, c.Relationships.CreatedBy.Data)
+	assert.Equal(t, "identities", c.Relationships.CreatedBy.Data.Type)
+	assert.NotNil(t, c.Relationships.CreatedBy.Data.ID)
 }
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
@@ -134,7 +134,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
 	// then
-	rest.assertComment(c.Data, "Test", markup)
+	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", markup)
 }
 
 func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
@@ -145,34 +145,100 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	svc, ctrl := rest.SecuredController()
 	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
 	// then
-	rest.assertComment(c.Data, "Test", rendering.SystemMarkupDefault)
+	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", rendering.SystemMarkupDefault)
 }
 
-func (rest *TestCommentREST) TestListCommentsByParentWorkItem() {
-	// given
+func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
 	wi := rest.createDefaultWorkItem()
+	comments := make([]*comment.Comment, 4)
+	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}
+	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: wi.ID + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
-		repo.Create(rest.ctx, &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
-		repo.Create(rest.ctx, &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
-		repo.Create(rest.ctx, &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
-		repo.Create(rest.ctx, &comment.Comment{ParentID: wi.ID + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}, rest.testIdentity.ID)
+		for _, c := range comments {
+			repo.Create(rest.ctx, c, rest.testIdentity.ID)
+		}
 		return nil
 	})
+	return *wi, comments
+}
+
+func assertComments(t *testing.T, expectedIdentity account.Identity, comments *app.CommentList) {
+	require.Equal(t, 3, len(comments.Data))
+	assertComment(t, comments.Data[0], expectedIdentity, "Test 3", rendering.SystemMarkupDefault) // items are returned in reverse order or creation
+}
+
+func (rest *TestCommentREST) TestListCommentsByParentWorkItemOK() {
+	// given
+	wi, _ := rest.setupComments()
 	// when
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, nil)
 	// then
-	require.Equal(rest.T(), 3, len(cs.Data))
-	rest.assertComment(cs.Data[0], "Test 3", rendering.SystemMarkupDefault) // items are returned in reverse order or creation
+	assertComments(rest.T(), rest.testIdentity, cs)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	wi2 := rest.createDefaultWorkItem()
+	wi, comments := rest.setupComments()
 	// when
-	_, cs2 := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi2.SpaceID.String(), wi2.ID, &limit, &offset)
+	svc, ctrl := rest.UnSecuredController()
+	offset := "0"
+	limit := 3
+	ifModifiedSince := app.ToHTTPTime(comments[3].UpdatedAt.Add(-1 * time.Hour))
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, &ifModifiedSince, nil)
 	// then
-	assert.Equal(rest.T(), 0, len(cs2.Data))
+	assertComments(rest.T(), rest.testIdentity, cs)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	wi, _ := rest.setupComments()
+	// when
+	svc, ctrl := rest.UnSecuredController()
+	offset := "0"
+	limit := 3
+	ifNoneMatch := "foo"
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, &ifNoneMatch)
+	// then
+	assertComments(rest.T(), rest.testIdentity, cs)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	wi, comments := rest.setupComments()
+	// when
+	svc, ctrl := rest.UnSecuredController()
+	offset := "0"
+	limit := 3
+	ifModifiedSince := app.ToHTTPTime(comments[3].UpdatedAt)
+	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	wi, comments := rest.setupComments()
+	// when
+	svc, ctrl := rest.UnSecuredController()
+	offset := "0"
+	limit := 3
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+		comments[2],
+		comments[1],
+		comments[0],
+	})
+	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(rest.T(), res)
 }
 
 func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
@@ -182,7 +248,7 @@ func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 1
-	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset)
+	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, nil)
 	// then
 	assert.Equal(rest.T(), 0, len(cs.Data))
 }
@@ -222,5 +288,5 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	// when/then
 	offset := "0"
 	limit := 1
-	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, "0000000", "0000000", &limit, &offset)
+	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, "0000000", "0000000", &limit, &offset, nil, nil)
 }

@@ -19,36 +19,45 @@ import (
 // CommentsController implements the comments resource.
 type CommentsController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config CommentsControllerConfiguration
+}
+
+// CommentsControllerConfiguration the configuration for CommentsController
+type CommentsControllerConfiguration interface {
+	GetCacheControlComments() string
 }
 
 // NewCommentsController creates a comments controller.
-func NewCommentsController(service *goa.Service, db application.DB) *CommentsController {
-	return &CommentsController{Controller: service.NewController("CommentsController"), db: db}
+func NewCommentsController(service *goa.Service, db application.DB, config CommentsControllerConfiguration) *CommentsController {
+	return &CommentsController{
+		Controller: service.NewController("CommentsController"),
+		db:         db,
+		config:     config,
+	}
 }
 
 // Show runs the show action.
 func (c *CommentsController) Show(ctx *app.ShowCommentsContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		c, err := appl.Comments().Load(ctx, ctx.CommentID)
+		cmt, err := appl.Comments().Load(ctx, ctx.CommentID)
 		if err != nil {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
 			return ctx.NotFound(jerrors)
 		}
-
-		res := &app.CommentSingle{}
-		// This code should change if others type of parents than WI are allowed
-		includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, c)
-		if err != nil {
-			return errors.NewNotFoundError("comment parentID", c.ParentID)
-		}
-
-		res.Data = ConvertComment(
-			ctx.RequestData,
-			c,
-			includeParentWorkItem)
-
-		return ctx.OK(res)
+		return ctx.ConditionalEntity(*cmt, c.config.GetCacheControlComments, func() error {
+			res := &app.CommentSingle{}
+			// This code should change if others type of parents than WI are allowed
+			includeParentWorkItem, err := CommentIncludeParentWorkItem(ctx, appl, cmt)
+			if err != nil {
+				return errors.NewNotFoundError("comment parentID", cmt.ParentID)
+			}
+			res.Data = ConvertComment(
+				ctx.RequestData,
+				*cmt,
+				includeParentWorkItem)
+			return ctx.OK(res)
+		})
 	})
 }
 
@@ -85,7 +94,7 @@ func (c *CommentsController) Update(ctx *app.UpdateCommentsContext) error {
 		}
 
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, cm, includeParentWorkItem),
+			Data: ConvertComment(ctx.RequestData, *cm, includeParentWorkItem),
 		}
 		return ctx.OK(res)
 	})
@@ -122,7 +131,7 @@ func (c *CommentsController) Delete(ctx *app.DeleteCommentsContext) error {
 type CommentConvertFunc func(*goa.RequestData, *comment.Comment, *app.Comment)
 
 // ConvertComments converts between internal and external REST representation
-func ConvertComments(request *goa.RequestData, comments []*comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertComments(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
 		cs = append(cs, ConvertComment(request, c, additional...))
@@ -131,7 +140,7 @@ func ConvertComments(request *goa.RequestData, comments []*comment.Comment, addi
 }
 
 // ConvertCommentsResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func ConvertCommentsResourceID(request *goa.RequestData, comments []*comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
+func ConvertCommentsResourceID(request *goa.RequestData, comments []comment.Comment, additional ...CommentConvertFunc) []*app.Comment {
 	var cs = []*app.Comment{}
 	for _, c := range comments {
 		cs = append(cs, ConvertCommentResourceID(request, c, additional...))
@@ -140,19 +149,19 @@ func ConvertCommentsResourceID(request *goa.RequestData, comments []*comment.Com
 }
 
 // ConvertCommentResourceID converts between internal and external REST representation, ResourceIdentificationObject only
-func ConvertCommentResourceID(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+func ConvertCommentResourceID(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	c := &app.Comment{
 		Type: "comments",
 		ID:   &comment.ID,
 	}
 	for _, add := range additional {
-		add(request, comment, c)
+		add(request, &comment, c)
 	}
 	return c
 }
 
 // ConvertComment converts between internal and external REST representation
-func ConvertComment(request *goa.RequestData, comment *comment.Comment, additional ...CommentConvertFunc) *app.Comment {
+func ConvertComment(request *goa.RequestData, comment comment.Comment, additional ...CommentConvertFunc) *app.Comment {
 	selfURL := rest.AbsoluteURL(request, app.CommentsHref(comment.ID))
 	markup := rendering.NilSafeGetMarkup(&comment.Markup)
 	bodyRendered := rendering.RenderMarkupToHTML(html.EscapeString(comment.Body), comment.Markup)
@@ -165,6 +174,7 @@ func ConvertComment(request *goa.RequestData, comment *comment.Comment, addition
 			BodyRendered: &bodyRendered,
 			Markup:       &markup,
 			CreatedAt:    &comment.CreatedAt,
+			UpdatedAt:    &comment.UpdatedAt,
 		},
 		Relationships: &app.CommentRelations{
 			CreatedBy: &app.CommentCreatedBy{
@@ -182,7 +192,7 @@ func ConvertComment(request *goa.RequestData, comment *comment.Comment, addition
 		},
 	}
 	for _, add := range additional {
-		add(request, comment, c)
+		add(request, &comment, c)
 	}
 	return c
 }
