@@ -98,7 +98,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 }
 
 // CreateWorkspace creates a new Che Workspace based on a repository
-func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceResponse, error) {
+func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceLink, error) {
 	body, err := json.Marshal(&workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -145,7 +145,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		return nil, &workspaceErr
 	}
 
-	workspaceResp := WorkspaceResponse{}
+	workspaceResp := WorkspaceLink{}
 	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -168,15 +168,33 @@ type WorkspaceRequest struct {
 
 // WorkspaceResponse represents a create workspace response body
 type WorkspaceResponse struct {
-	ID              string `json:"id"`
-	Branch          string `json:"branch"`
-	Description     string `json:"description"`
-	Location        string `json:"location"`
-	Login           string `json:"login"`
-	Name            string `json:"name"`
-	Repository      string `json:"repository"`
-	Status          string `json:"status"`
-	WorkspaceIDEURL string `json:"workspaceIdeUrl"`
+	ID string `json:"id"`
+	//	Branch          string `json:"branch"`
+	//	Description     string `json:"description"`
+	//	Location        string `json:"location"`
+	//	Login           string `json:"login"`
+	//	Name            string `json:"name"`
+	//	Repository      string `json:"repository"`
+	Status string `json:"status"`
+	//	WorkspaceIDEURL string `json:"workspaceIdeUrl"`
+	Links []WorkspaceLink `json:"links`
+}
+
+// GetIDEURL return the link with rel for ide url
+func (w WorkspaceResponse) GetIDEURL() string {
+	for _, l := range w.Links {
+		if l.Rel == "ide url" {
+			return l.HRef
+		}
+	}
+	return ""
+}
+
+// WorkspaceLink represents a URL for the location of a workspace
+type WorkspaceLink struct {
+	HRef   string `json:"href"`
+	Method string `json:"method"`
+	Rel    string `json:"rel"`
 }
 
 type WorkspaceError struct {
