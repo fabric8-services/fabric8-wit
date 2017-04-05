@@ -212,19 +212,19 @@ func main() {
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
 
 	// Mount "work item link" controller
-	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB)
+	workItemLinkCtrl := controller.NewWorkItemLinkController(service, appDB, configuration)
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
-	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB)
+	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
-	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB)
+	workItemRelationshipsLinksCtrl := controller.NewWorkItemRelationshipsLinksController(service, appDB, configuration)
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller
-	commentsCtrl := controller.NewCommentsController(service, appDB)
+	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "tracker" controller
@@ -240,7 +240,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller
@@ -252,7 +252,8 @@ func main() {
 	app.MountIdentityController(service, identityCtrl)
 
 	// Mount "users" controller
-	usersCtrl := controller.NewUsersController(service, appDB)
+	keycloakProfileService := login.NewKeycloakUserProfileClient()
+	usersCtrl := controller.NewUsersController(service, appDB, configuration, keycloakProfileService)
 	app.MountUsersController(service, usersCtrl)
 
 	// Mount "iterations" controller

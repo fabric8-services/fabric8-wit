@@ -7,11 +7,11 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -55,20 +55,6 @@ type workItemLinkSuite struct {
 	userLinkCategoryID   uuid.UUID
 	bugBlockerLinkTypeID uuid.UUID
 	userSpaceID          uuid.UUID
-
-	// Store IDs of resources that need to be removed at the beginning or end of a test
-	deleteWorkItemLinks []uuid.UUID
-	deleteWorkItems     []string
-}
-
-var wiConfiguration *config.ConfigurationData
-
-func init() {
-	var err error
-	wiConfiguration, err = config.GetConfigurationData()
-	if err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
 }
 
 // The TearDownSuite method will run after all the tests in the suite have been run
@@ -84,14 +70,6 @@ func (s *workItemLinkSuite) TearDownSuite() {
 // with this test suite. We need to remove them completely and not only set the
 // "deleted_at" field, which is why we need the Unscoped() function.
 func (s *workItemLinkSuite) cleanup() {
-	// First delete work item links and then the types;
-	// otherwise referential integrity will be violated.
-	for _, id := range s.deleteWorkItemLinks {
-		db := s.DB.Unscoped().Delete(&link.WorkItemLink{ID: id})
-		require.Nil(s.T(), db.Error)
-	}
-	s.deleteWorkItemLinks = nil
-
 	// Delete all work item links for now
 	db := s.DB.Unscoped().Delete(&link.WorkItemLink{})
 	require.Nil(s.T(), db.Error)
@@ -107,15 +85,6 @@ func (s *workItemLinkSuite) cleanup() {
 		db = db.Unscoped().Delete(&space.Space{ID: s.userSpaceID})
 		require.Nil(s.T(), db.Error)
 	}
-
-	// Last but not least delete the work items
-	for _, idStr := range s.deleteWorkItems {
-		id, err := strconv.ParseUint(idStr, 10, 64)
-		require.Nil(s.T(), err)
-		db = db.Unscoped().Delete(&workitem.WorkItemStorage{ID: id})
-		require.Nil(s.T(), db.Error)
-	}
-	s.deleteWorkItems = nil
 }
 
 // The SetupTest method will be run before every test in the suite.
@@ -146,12 +115,12 @@ func (s *workItemLinkSuite) SetupTest() {
 
 	svc = goa.New("TestWorkItemLink-Service")
 	require.NotNil(s.T(), svc)
-	s.workItemLinkCtrl = NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB))
+	s.workItemLinkCtrl = NewWorkItemLinkController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkCtrl)
 
 	svc = goa.New("TestWorkItemRelationshipsLinks-Service")
 	require.NotNil(s.T(), svc)
-	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.DB))
+	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
 	// create a test identity
@@ -177,7 +146,6 @@ func (s *workItemLinkSuite) SetupTest() {
 	bug1Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug1")
 	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug1Payload.Data.Relationships.Space.Data.ID.String(), bug1Payload)
 	require.NotNil(s.T(), bug1)
-	s.deleteWorkItems = append(s.deleteWorkItems, *bug1.Data.ID)
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
@@ -185,7 +153,6 @@ func (s *workItemLinkSuite) SetupTest() {
 	bug2Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug2")
 	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug2Payload.Data.Relationships.Space.Data.ID.String(), bug2Payload)
 	require.NotNil(s.T(), bug2)
-	s.deleteWorkItems = append(s.deleteWorkItems, *bug2.Data.ID)
 	s.bug2ID, err = strconv.ParseUint(*bug2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
@@ -193,7 +160,6 @@ func (s *workItemLinkSuite) SetupTest() {
 	bug3Payload := CreateWorkItem(s.userSpaceID, *wit.Data.ID, "bug3")
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, bug3Payload.Data.Relationships.Space.Data.ID.String(), bug3Payload)
 	require.NotNil(s.T(), bug3)
-	s.deleteWorkItems = append(s.deleteWorkItems, *bug3.Data.ID)
 	s.bug3ID, err = strconv.ParseUint(*bug3.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
@@ -201,7 +167,6 @@ func (s *workItemLinkSuite) SetupTest() {
 	feature1Payload := CreateWorkItem(s.userSpaceID, *wit2.Data.ID, "feature1")
 	_, feature1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, feature1Payload.Data.Relationships.Space.Data.ID.String(), feature1Payload)
 	require.NotNil(s.T(), feature1)
-	s.deleteWorkItems = append(s.deleteWorkItems, *feature1.Data.ID)
 	s.feature1ID, err = strconv.ParseUint(*feature1.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
 	s.T().Logf("Created workitem with ID: %s\n", *feature1.Data.ID)
@@ -372,7 +337,6 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemLinkBadRequestDueToUnique
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
-	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
 	createPayload2 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, _ = test.CreateWorkItemLinkBadRequest(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 }
@@ -382,7 +346,6 @@ func (s *workItemLinkSuite) TestCreateAndDeleteWorkItemRelationshipsLink() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemRelationshipsLinksCreated(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID.String(), strconv.FormatUint(s.bug1ID, 10), createPayload)
 	require.NotNil(s.T(), workItemLink)
-	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
 }
 
 func (s *workItemLinkSuite) TestCreateWorkItemLinkBadRequestDueToInvalidLinkTypeID() {
@@ -478,8 +441,6 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
-	// Delete this work item link during cleanup
-	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
 	// Specify new description for link type that we just created
 	// Wrap data portion in an update payload instead of a create payload
 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
@@ -493,46 +454,99 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
 }
 
-// TestShowWorkItemLinkOK tests if we can fetch the "system" work item link
-func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
+func (s *workItemLinkSuite) createWorkItemLink() *app.WorkItemLinkSingle {
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
-	// Delete this work item link during cleanup
-	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink.Data.ID)
-	expected, err := ConvertLinkToModel(*workItemLink)
-	require.Nil(s.T(), err)
+	require.NotNil(s.T(), workItemLink.Data.Attributes.UpdatedAt)
+	return workItemLink
+}
 
-	_, readIn := test.ShowWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *workItemLink.Data.ID)
-	require.NotNil(s.T(), readIn)
+func assertWorkItemLink(t *testing.T, expectedWorkItemLink *app.WorkItemLinkSingle, wiLink *app.WorkItemLinkSingle) {
+	require.NotNil(t, wiLink)
+	expected, err := ConvertLinkToModel(*expectedWorkItemLink)
+	require.Nil(t, err)
 	// Convert to model space and use equal function
-	actual, err := ConvertLinkToModel(*readIn)
-	require.Nil(s.T(), err)
-	require.True(s.T(), expected.Equal(*actual))
+	actual, err := ConvertLinkToModel(*wiLink)
+	require.Nil(t, err)
+	require.Equal(t, *expected, *actual)
+	require.NotNil(t, wiLink.Data.Links, "The link MUST include a self link")
+	require.NotEmpty(t, wiLink.Data.Links.Self, "The link MUST include a self link that's not empty")
+}
 
-	require.NotNil(s.T(), readIn.Data.Links, "The link MUST include a self link")
-	require.NotEmpty(s.T(), readIn.Data.Links.Self, "The link MUST include a self link that's not empty")
+// TestShowWorkItemLinkOK tests if we can fetch the "system" work item link
+func (s *workItemLinkSuite) TestShowWorkItemLinkOK() {
+	// given
+	createdWorkItemLink := s.createWorkItemLink()
+	// when
+	_, retrievedWorkItemLink := test.ShowWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *createdWorkItemLink.Data.ID, nil, nil)
+	// then
+	assertWorkItemLink(s.T(), createdWorkItemLink, retrievedWorkItemLink)
+}
+
+// TestShowWorkItemLinkOKUsingExpiredIfModifiedSinceHeader
+func (s *workItemLinkSuite) TestShowWorkItemLinkOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	createdWorkItemLink := s.createWorkItemLink()
+	// when
+	ifModifiedSince := app.ToHTTPTime(createdWorkItemLink.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+	res, retrievedWorkItemLink := test.ShowWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *createdWorkItemLink.Data.ID, &ifModifiedSince, nil)
+	// then
+	assertWorkItemLink(s.T(), createdWorkItemLink, retrievedWorkItemLink)
+	assertResponseHeaders(s.T(), res)
+}
+
+// TestShowWorkItemLinkOKUsingExpiredIfModifiedSinceHeader
+func (s *workItemLinkSuite) TestShowWorkItemLinkOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	createdWorkItemLink := s.createWorkItemLink()
+	// when
+	ifNoneMatch := "foo"
+	res, retrievedWorkItemLink := test.ShowWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *createdWorkItemLink.Data.ID, nil, &ifNoneMatch)
+	// then
+	assertWorkItemLink(s.T(), createdWorkItemLink, retrievedWorkItemLink)
+	assertResponseHeaders(s.T(), res)
+}
+
+// TestShowWorkItemLinkOKUsingExpiredIfModifiedSinceHeader
+func (s *workItemLinkSuite) TestShowWorkItemLinkNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	createdWorkItemLink := s.createWorkItemLink()
+	// when
+	ifModifiedSince := app.ToHTTPTime(*createdWorkItemLink.Data.Attributes.UpdatedAt)
+	res := test.ShowWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *createdWorkItemLink.Data.ID, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+// TestShowWorkItemLinkOKUsingExpiredIfModifiedSinceHeader
+func (s *workItemLinkSuite) TestShowWorkItemLinkNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	createdWorkItemLink := s.createWorkItemLink()
+	// when
+	modelWorkItemLink, err := ConvertLinkToModel(*createdWorkItemLink)
+	require.Nil(s.T(), err)
+	ifNoneMatch := app.GenerateEntityTag(modelWorkItemLink)
+	res := test.ShowWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *createdWorkItemLink.Data.ID, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 // TestShowWorkItemLinkNotFound tests if we can fetch a non existing work item link
 func (s *workItemLinkSuite) TestShowWorkItemLinkNotFound() {
-	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"))
+	test.ShowWorkItemLinkNotFound(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cd19"), nil, nil)
 }
 
 func (s *workItemLinkSuite) createSomeLinks() (*app.WorkItemLinkSingle, *app.WorkItemLinkSingle) {
 	createPayload1 := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink1 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload1)
 	require.NotNil(s.T(), workItemLink1)
-	// Delete this work item link during cleanup
-	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink1.Data.ID)
 	_, err := ConvertLinkToModel(*workItemLink1)
 	require.Nil(s.T(), err)
 
 	createPayload2 := CreateWorkItemLink(s.bug2ID, s.bug3ID, s.bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 	require.NotNil(s.T(), workItemLink2)
-	// Delete this work item link during cleanup
-	s.deleteWorkItemLinks = append(s.deleteWorkItemLinks, *workItemLink2.Data.ID)
 	_, err = ConvertLinkToModel(*workItemLink2)
 	require.Nil(s.T(), err)
 
@@ -621,41 +635,84 @@ func (s *workItemLinkSuite) validateSomeLinks(linkCollection *app.WorkItemLinkLi
 // TestListWorkItemLinkOK tests if we can find the work item links
 // "test-bug-blocker" and "related" in the list of work item links
 func (s *workItemLinkSuite) TestListWorkItemLinkOK() {
+	// given
 	link1, link2 := s.createSomeLinks()
-	_, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl)
+	// when
+	_, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, nil)
+	// then
 	s.validateSomeLinks(linkCollection, link1, link2)
 }
 
-// Same for /api/workitems/:id/relationships/links
+func (s *workItemLinkSuite) TestListWorkItemLinkOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	link1, link2 := s.createSomeLinks()
+	// when
+	ifModifiedSince := app.ToHTTPTime(link2.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
+	res, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, &ifModifiedSince, nil)
+	// then
+	s.validateSomeLinks(linkCollection, link1, link2)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkSuite) TestListWorkItemLinkOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	link1, link2 := s.createSomeLinks()
+	// when
+	ifNoneMatch := "foo"
+	res, linkCollection := test.ListWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, &ifNoneMatch)
+	// then
+	s.validateSomeLinks(linkCollection, link1, link2)
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkSuite) TestListWorkItemLinkNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	_, link2 := s.createSomeLinks()
+	// when
+	ifModifiedSince := app.ToHTTPTime(*link2.Data.Attributes.UpdatedAt)
+	res := test.ListWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+func (s *workItemLinkSuite) TestListWorkItemLinkNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	link1, link2 := s.createSomeLinks()
+	// when
+	modelLink1, _ := ConvertLinkToModel(*link1)
+	modelLink2, _ := ConvertLinkToModel(*link2)
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{modelLink1, modelLink2})
+	res := test.ListWorkItemLinkNotModified(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+// Same as TestListWorkItemLinkOK, for /api/workitems/:id/relationships/links
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksOK() {
 	link1, link2 := s.createSomeLinks()
 	filterByWorkItemID := strconv.FormatUint(s.bug2ID, 10)
-	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID.String(), filterByWorkItemID)
+	_, linkCollection := test.ListWorkItemRelationshipsLinksOK(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID.String(), filterByWorkItemID, nil, nil)
 	s.validateSomeLinks(linkCollection, link1, link2)
 }
 
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFound() {
 	filterByWorkItemID := strconv.FormatUint(math.MaxUint32, 10) // not existing bug ID
 	spaceRandomID := strconv.FormatUint(math.MaxUint32, 10)      // not existing space ID
-	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, spaceRandomID, filterByWorkItemID)
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, spaceRandomID, filterByWorkItemID, nil, nil)
 }
 
 func (s *workItemLinkSuite) TestListWorkItemRelationshipsLinksNotFoundDueToInvalidID() {
 	filterByWorkItemID := "invalid uint64"
-	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID.String(), filterByWorkItemID)
+	_, _ = test.ListWorkItemRelationshipsLinksNotFound(s.T(), s.svc.Context, s.svc, s.workItemRelsLinksCtrl, s.userSpaceID.String(), filterByWorkItemID, nil, nil)
 }
 
-func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
-	privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiConfiguration.GetTokenPrivateKey()))
-	if err != nil {
-		t.Fatal("Could not parse Key ", err)
-	}
-	differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
-	if err != nil {
-		t.Fatal("Could not parse different private key ", err)
-	}
-
-	createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
+func (s *workItemLinkSuite) getWorkItemLinkTestDataFunc() func(t *testing.T) []testSecureAPI {
+	return func(t *testing.T) []testSecureAPI {
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
+		require.Nil(t, err, "Could not parse private key")
+		differentPrivatekey, err := jwt.ParseRSAPrivateKeyFromPEM(([]byte(RSADifferentPrivateKeyTest)))
+		require.Nil(t, err, "Could not parse private key")
+		createWorkItemLinkPayloadString := bytes.NewBuffer([]byte(`
 		{
 			"data": {
 				"attributes": {
@@ -687,126 +744,127 @@ func getWorkItemLinkTestData(t *testing.T) []testSecureAPI {
 		}
   		`))
 
-	testWorkItemLinksAPI := []testSecureAPI{
-		// Create Work Item API with different parameters
-		{
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPost,
-			url:                endpointWorkItemLinks,
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           "",
-		},
-		// Update Work Item API with different parameters
-		{
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodPatch,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            createWorkItemLinkPayloadString,
-			jwtToken:           "",
-		},
-		// Delete Work Item API with different parameters
-		{
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getExpiredAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getMalformedAuthHeader(t, privatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           getValidAuthHeader(t, differentPrivatekey),
-		}, {
-			method:             http.MethodDelete,
-			url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
-			expectedStatusCode: http.StatusUnauthorized,
-			expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
-			payload:            nil,
-			jwtToken:           "",
-		},
-		// Try fetching a random work item link
-		// We do not have security on GET hence this should return 404 not found
-		{
-			method:             http.MethodGet,
-			url:                endpointWorkItemLinks + "/fc591f38-a805-4abd-bfce-2460e49d8cc4",
-			expectedStatusCode: http.StatusNotFound,
-			expectedErrorCode:  jsonapi.ErrorCodeNotFound,
-			payload:            nil,
-			jwtToken:           "",
-		},
+		testWorkItemLinksAPI := []testSecureAPI{
+			// Create Work Item API with different parameters
+			{
+				method:             http.MethodPost,
+				url:                endpointWorkItemLinks,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                endpointWorkItemLinks,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                endpointWorkItemLinks,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPost,
+				url:                endpointWorkItemLinks,
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           "",
+			},
+			// Update Work Item API with different parameters
+			{
+				method:             http.MethodPatch,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodPatch,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            createWorkItemLinkPayloadString,
+				jwtToken:           "",
+			},
+			// Delete Work Item API with different parameters
+			{
+				method:             http.MethodDelete,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getExpiredAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getMalformedAuthHeader(t, privatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
+			}, {
+				method:             http.MethodDelete,
+				url:                endpointWorkItemLinks + "/6c5610be-30b2-4880-9fec-81e4f8e4fd76",
+				expectedStatusCode: http.StatusUnauthorized,
+				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
+				payload:            nil,
+				jwtToken:           "",
+			},
+			// Try fetching a random work item link
+			// We do not have security on GET hence this should return 404 not found
+			{
+				method:             http.MethodGet,
+				url:                endpointWorkItemLinks + "/fc591f38-a805-4abd-bfce-2460e49d8cc4",
+				expectedStatusCode: http.StatusNotFound,
+				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
+				payload:            nil,
+				jwtToken:           "",
+			},
+		}
+		return testWorkItemLinksAPI
 	}
-	return testWorkItemLinksAPI
 }
 
 // This test case will check authorized access to Create/Update/Delete APIs
 func (s *workItemLinkSuite) TestUnauthorizeWorkItemLinkCUD() {
-	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemLinkTestData, func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemLinkTestDataFunc(), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemLink-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemLinkController(service, gormapplication.NewGormDB(s.DB))
+		controller := NewWorkItemLinkController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
 		app.MountWorkItemLinkController(service, controller)
 		return nil
 	})
 }
 
 // The work item ID will be used to construct /api/workitems/:id/relationships/links endpoints
-func getWorkItemRelationshipLinksTestData(t *testing.T, spaceID, wiID string) func(t *testing.T) []testSecureAPI {
+func (s *workItemLinkSuite) getWorkItemRelationshipLinksTestData(spaceID, wiID string) func(t *testing.T) []testSecureAPI {
 	return func(t *testing.T) []testSecureAPI {
-		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM((wiConfiguration.GetTokenPrivateKey()))
+		privatekey, err := jwt.ParseRSAPrivateKeyFromPEM(s.Configuration.GetTokenPrivateKey())
 		if err != nil {
 			t.Fatal("Could not parse Key ", err)
 		}
@@ -886,10 +944,10 @@ func getWorkItemRelationshipLinksTestData(t *testing.T, spaceID, wiID string) fu
 
 func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
 	wiID := strconv.FormatUint(s.bug1ID, 10)
-	UnauthorizeCreateUpdateDeleteTest(s.T(), getWorkItemRelationshipLinksTestData(s.T(), space.SystemSpace.String(), wiID), func() *goa.Service {
+	UnauthorizeCreateUpdateDeleteTest(s.T(), s.getWorkItemRelationshipLinksTestData(space.SystemSpace.String(), wiID), func() *goa.Service {
 		return goa.New("TestUnauthorizedCreateWorkItemRelationshipsLinks-Service")
 	}, func(service *goa.Service) error {
-		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB))
+		controller := NewWorkItemRelationshipsLinksController(service, gormapplication.NewGormDB(s.DB), s.Configuration)
 		app.MountWorkItemRelationshipsLinksController(service, controller)
 		return nil
 	})
@@ -897,12 +955,12 @@ func (s *workItemLinkSuite) TestUnauthorizeWorkItemRelationshipsLinksCUD() {
 
 func TestNewWorkItemLinkControllerDBNull(t *testing.T) {
 	require.Panics(t, func() {
-		NewWorkItemLinkController(nil, nil)
+		NewWorkItemLinkController(nil, nil, nil)
 	})
 }
 
 func TestNewWorkItemRelationshipsLinksControllerDBNull(t *testing.T) {
 	require.Panics(t, func() {
-		NewWorkItemRelationshipsLinksController(nil, nil)
+		NewWorkItemRelationshipsLinksController(nil, nil, nil)
 	})
 }

@@ -71,7 +71,7 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	svc := testsupport.ServiceAsUser("WorkItemLink-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
-	s.workItemLinkCtrl = NewWorkItemLinkController(svc, s.db)
+	s.workItemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkCtrl)
 
 	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
@@ -86,17 +86,17 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	svc = testsupport.ServiceAsUser("WorkItemType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
-	s.typeCtrl = NewWorkitemtypeController(svc, s.db, wiConfiguration)
+	s.typeCtrl = NewWorkitemtypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.typeCtrl)
 
 	svc = testsupport.ServiceAsUser("WorkItemLink-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
-	s.workItemLinkCtrl = NewWorkItemLinkController(svc, s.db)
+	s.workItemLinkCtrl = NewWorkItemLinkController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkCtrl)
 
 	svc = testsupport.ServiceAsUser("WorkItemRelationshipsLinks-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
-	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db)
+	s.workItemRelsLinksCtrl = NewWorkItemRelationshipsLinksController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemRelsLinksCtrl)
 
 	svc = testsupport.ServiceAsUser("TestWorkItem-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
@@ -107,7 +107,7 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	svc = testsupport.ServiceAsUser("Space-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity)
 	require.NotNil(s.T(), svc)
-	s.spaceCtrl = NewSpaceController(svc, s.db, wiConfiguration, &DummyResourceManager{})
+	s.spaceCtrl = NewSpaceController(svc, s.db, s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
 
 }

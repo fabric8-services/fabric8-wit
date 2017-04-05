@@ -34,7 +34,7 @@ type spaceConfiguration interface {
 	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
-	GetCacheControlSpace() string
+	GetCacheControlSpaces() string
 }
 
 // SpaceController implements the space resource.
@@ -187,7 +187,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpace, func() error {
+		return ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpaces, func() error {
 			count := int(cnt)
 			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, spaces)
 			if err != nil {
@@ -218,7 +218,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		return ctx.ConditionalEntity(*s, c.config.GetCacheControlSpace, func() error {
+		return ctx.ConditionalEntity(*s, c.config.GetCacheControlSpaces, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
