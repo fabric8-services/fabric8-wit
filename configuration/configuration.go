@@ -64,11 +64,13 @@ const (
 	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
+	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
 	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
+	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
 	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlSpace                = "cachecontrol.space"
 	varCacheControlIteration            = "cachecontrol.iteration"
@@ -172,6 +174,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
+	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=300")
 	c.v.SetDefault(varCacheControlAreas, "max-age=300")
 	c.v.SetDefault(varCacheControlSpace, "max-age=300")
 	c.v.SetDefault(varCacheControlIteration, "max-age=300")
@@ -284,7 +287,13 @@ func (c *ConfigurationData) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
 }
 
-// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemLinks returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinks() string {
+	return c.v.GetString(varCacheControlWorkItemLinks)
+}
+
+// GetCacheControlAreas returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item (or a list of).
 func (c *ConfigurationData) GetCacheControlAreas() string {
 	return c.v.GetString(varCacheControlAreas)
@@ -442,6 +451,11 @@ func (c *ConfigurationData) GetKeycloakEndpointEntitlement(req *goa.RequestData)
 // or api.domain.org -> sso.domain.org
 func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointBroker, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
+}
+
+// GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
+func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointAccount, "auth/realms/"+c.GetKeycloakRealm()+"/account")
 }
 
 // GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode

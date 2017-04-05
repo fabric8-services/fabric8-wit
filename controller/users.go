@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
@@ -12,19 +13,28 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
+	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/pkg/errors"
+
 	uuid "github.com/satori/go.uuid"
 )
+
+type usersConfiguration interface {
+	// add configuration specific to keycloak user profile api url
+	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
+}
 
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
-	db application.DB
+	db                 application.DB
+	configuration      usersConfiguration
+	userProfileService login.UserProfileService
 }
 
 // NewUsersController creates a users controller.
-func NewUsersController(service *goa.Service, db application.DB) *UsersController {
-	return &UsersController{Controller: service.NewController("UsersController"), db: db}
+func NewUsersController(service *goa.Service, db application.DB, configuration usersConfiguration, userProfileService login.UserProfileService) *UsersController {
+	return &UsersController{Controller: service.NewController("UsersController"), db: db, configuration: configuration, userProfileService: userProfileService}
 }
 
 // Show runs the show action.
@@ -50,6 +60,30 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 		}
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
+}
+
+func copyExistingKeycloakUserProfileInfo(existingProfile *login.KeycloakUserProfileResponse) *login.KeycloakUserProfile {
+	keycloakUserProfile := &login.KeycloakUserProfile{}
+	keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+
+	if existingProfile.FirstName != nil {
+		keycloakUserProfile.FirstName = existingProfile.FirstName
+	}
+	if existingProfile.LastName != nil {
+		keycloakUserProfile.LastName = existingProfile.LastName
+	}
+	if existingProfile.Email != nil {
+		keycloakUserProfile.Email = existingProfile.Email
+	}
+	if existingProfile.Attributes != nil {
+		// If there are existing attributes, we overwite only those
+		// handled by the Users service in platform.
+		keycloakUserProfile.Attributes = existingProfile.Attributes
+	}
+	if existingProfile.Username != nil {
+		keycloakUserProfile.Username = existingProfile.Username
+	}
+	return keycloakUserProfile
 }
 
 // Update updates the authorized user based on the provided Token
@@ -78,25 +112,68 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 
-		updatedEmail := ctx.Payload.Data.Attributes.Email
-		if updatedEmail != nil {
-			user.Email = *updatedEmail
+		// prepare for updating keycloak user profile
+		tokenString := goajwt.ContextJWT(ctx).Raw
+
+		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		// The keycloak API doesn't support PATCH, hence the entire info needs
+		// to be sent over for User profile updation in Keycloak. So the POST request to KC needs
+		// to have everything - whatever we are updating, and whatever are not.
+		keycloakUserProfile := copyExistingKeycloakUserProfileInfo(keycloakUserExistingInfo)
+
+		// Disabling updation of email till we figure out how to do the same in Keycloak Error-free.
+		//
+		/*
+			updatedEmail := ctx.Payload.Data.Attributes.Email
+			if updatedEmail != nil {
+				user.Email = *updatedEmail
+				keycloakUserProfile.Email = updatedEmail
+			}
+		*/
+
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {
 			user.Bio = *updatedBio
+			(*keycloakUserProfile.Attributes)[login.BioAttributeName] = []string{*updatedBio}
 		}
 		updatedFullName := ctx.Payload.Data.Attributes.FullName
 		if updatedFullName != nil {
+			*updatedFullName = standardizeSpaces(*updatedFullName)
 			user.FullName = *updatedFullName
+
+			// In KC, we store as first name and last name.
+			nameComponents := strings.Split(*updatedFullName, " ")
+			firstName := nameComponents[0]
+			lastName := ""
+			if len(nameComponents) > 1 {
+				lastName = strings.Join(nameComponents[1:], " ")
+			}
+
+			keycloakUserProfile.FirstName = &firstName
+			keycloakUserProfile.LastName = &lastName
 		}
 		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
 		if updatedImageURL != nil {
 			user.ImageURL = *updatedImageURL
+			(*keycloakUserProfile.Attributes)[login.ImageURLAttributeName] = []string{*updatedImageURL}
+
 		}
 		updateURL := ctx.Payload.Data.Attributes.URL
 		if updateURL != nil {
 			user.URL = *updateURL
+			(*keycloakUserProfile.Attributes)[login.URLAttributeName] = []string{*updateURL}
+		}
+
+		// If none of the 'extra' attributes were present, we better make that section nil
+		// so that the Attributes section is omitted in the payload sent to KC
+
+		if updatedBio == nil && updatedImageURL == nil && updateURL == nil {
+			keycloakUserProfile.Attributes = nil
 		}
 
 		updatedContextInformation := ctx.Payload.Data.Attributes.ContextInformation
@@ -123,6 +200,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
+		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
 }
@@ -261,4 +339,8 @@ func createUserLinks(request *goa.RequestData, id interface{}) *app.GenericLinks
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
+}
+
+func standardizeSpaces(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
