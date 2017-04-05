@@ -30,7 +30,6 @@ func (s *KeycloakLogoutService) Logout(ctx *app.LogoutLogoutContext, logoutEndpo
 		}
 		redirect = &referrer
 	}
-	// store referrer in a state reference to redirect later
 	log.Info(ctx, map[string]interface{}{
 		"referrer": referrer,
 		"redirect": redirect,
