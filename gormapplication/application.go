@@ -135,7 +135,7 @@ func (g *GormBase) Areas() area.Repository {
 }
 
 // Categories returns a category repository
-func (g *GormBase) Categories() category.Repository {
+func (g *GormBase) Categories() category.CategoryRepository {
 	return category.NewCategoryRepository(g.db)
 }
 

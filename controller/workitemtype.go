@@ -92,13 +92,15 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Name,
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
+			modelFields,
 			*ctx.Payload.Data.Relationships.Categories.Data.ID,
-			modelFields)
+		)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
+
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 		return ctx.Created(wit)
 	})

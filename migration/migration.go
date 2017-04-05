@@ -9,7 +9,6 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
@@ -572,6 +571,31 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	return nil
 }
 
+func createCategory(ctx context.Context, category *category.Category, categoryRepo category.CategoryRepository) error {
+	err := categoryRepo.Create(ctx, category)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	return nil
+}
+
+func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository) error {
+	fmt.Println("Creating categories...")
+	category1 := &category.Category{
+		Name: "planner.requirements",
+	}
+	err := createCategory(ctx, category1, categoryRepo)
+	category2 := &category.Category{
+		Name: "planner.issues",
+	}
+	err = createCategory(ctx, category2, categoryRepo)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+	fmt.Println("Creation of categories done.")
+	return nil
+}
+
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)
 func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWorkItemTypeRepository) error {
 	populateLocker.Lock()
@@ -579,8 +603,8 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
-
 	c := category.NewCategoryRepository(db)
+	populateCategories(ctx, db, c)
 	categories, err := c.List(ctx)
 	if err != nil {
 		return errs.WithStack(err)
@@ -614,7 +638,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	return nil
 }
 
-func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUIDi, categories uuid.UUID) error {
+func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID, categories uuid.UUID) error {
 	fmt.Println("Creating or updating planner item type...")
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
@@ -661,12 +685,12 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 }
 
 func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, description string, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID, categories uuid.UUID) error {
-	workItemTypeFields := map[string]app.FieldDefinition{}
+	workItemTypeFields := map[string]workitem.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
 	return createOrUpdateType(typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, ctx, witr, db, categories)
 }
 
-func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]app.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, categories uuid.UUID) error {
+func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, categories uuid.UUID) error {
 	fmt.Println("Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)
@@ -709,7 +733,6 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		wit.Icon = icon
 		wit.Fields = fields
 		wit.Path = path
-		wit.CategoriesID = categories
 		db = db.Save(wit)
 		return db.Error
 	}

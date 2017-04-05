@@ -10,6 +10,7 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
@@ -108,18 +109,17 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
 	if ctx.FilterCategory != nil {
-		var wit *app.WorkItemTypeSingle
+		var relationships []*category.CategoryWitRelationship
 		application.Transactional(c.db, func(tx application.Application) error {
-			fmt.Println("##############################################", spaceID)
-			fmt.Println("##############################################", *ctx.FilterCategory)
-			wit, err = tx.WorkItemTypes().LoadByCategoryID(ctx, spaceID, *ctx.FilterCategory)
+			relationships, err = tx.Categories().LoadRelationships(ctx, *ctx.FilterCategory)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 			}
-			fmt.Println("**************************************")
 			return nil
 		})
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(wit.Data.ID)))
+		for i := 0; i < len(relationships); i++ {
+			exp = criteria.Or(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[i].WorkitemtypeID)))
+		}
 		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())
 	}
 

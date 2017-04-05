@@ -31,7 +31,7 @@ type Application interface {
 	Iterations() iteration.Repository
 	Users() account.UserRepository
 	Areas() area.Repository
-	Categories() category.Repository
+	Categories() category.CategoryRepository
 	OauthStates() auth.OauthStateReferenceRepository
 	Codebases() codebase.Repository
 }
