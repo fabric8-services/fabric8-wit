@@ -5,11 +5,17 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+
+	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/login"
+
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
+
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
@@ -29,21 +35,33 @@ func TestUsers(t *testing.T) {
 
 type TestUsersSuite struct {
 	gormtestsupport.DBTestSuite
-	db           *gormapplication.GormDB
-	svc          *goa.Service
-	clean        func()
-	controller   *UsersController
-	userRepo     account.UserRepository
-	identityRepo account.IdentityRepository
+	db             *gormapplication.GormDB
+	svc            *goa.Service
+	clean          func()
+	controller     *UsersController
+	userRepo       account.UserRepository
+	identityRepo   account.IdentityRepository
+	configuration  *config.ConfigurationData
+	profileService login.UserProfileService
 }
 
 func (s *TestUsersSuite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
 	s.svc = goa.New("test")
 	s.db = gormapplication.NewGormDB(s.DB)
-	s.controller = NewUsersController(s.svc, s.db)
+	configData, err := config.GetConfigurationData()
+	s.configuration = configData
+	if err != nil {
+		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
+	}
+	testAttributeValue := "a"
+	dummyProfileResponse := createDummyUserProfileResponse(&testAttributeValue, &testAttributeValue, &testAttributeValue)
+	keycloakUserProfileService := newDummyUserProfileService(dummyProfileResponse)
+	s.profileService = keycloakUserProfileService
+	s.controller = NewUsersController(s.svc, s.db, s.configuration, s.profileService)
 	s.userRepo = s.db.Users()
 	s.identityRepo = s.db.Identities()
+
 }
 
 func (s *TestUsersSuite) SetupTest() {
@@ -55,12 +73,11 @@ func (s *TestUsersSuite) TearDownTest() {
 }
 
 func (s *TestUsersSuite) SecuredController(identity account.Identity) (*goa.Service, *UsersController) {
-	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 
-	svc := testsupport.ServiceAsUser("Status-Service", almtoken.NewManagerWithPrivateKey(priv), identity)
-	return svc, NewUsersController(svc, s.db)
+	svc := testsupport.ServiceAsUser("Users-Service", almtoken.NewManager(pub), identity)
+	return svc, NewUsersController(svc, s.db, s.configuration, s.profileService)
 }
-
 func (s *TestUsersSuite) TestUpdateUserOK() {
 	// given
 	user := s.createRandomUser("TestUpdateUserOK")
@@ -74,6 +91,61 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
 	newFullName := "TestUpdateUserOK"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
+		"rate":         100.00,
+		"count":        3,
+	}
+	//secureController, secureService := createSecureController(t, identity)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+	// then
+	require.NotNil(s.T(), result)
+	// let's fetch it and validate
+	_, result = test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	require.NotNil(s.T(), result)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), newFullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
+	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	updatedContextInformation := result.Data.Attributes.ContextInformation
+	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
+
+	countValue, ok := updatedContextInformation["count"].(float64)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), contextInformation["count"], int(countValue))
+	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
+}
+
+func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
+
+	// given
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
+	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
+	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
+	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	// when
+	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
+
+	// This is the special thing we are testing - everything else
+	// has been tested in other tests.
+	// We use the full name to derive the first and the last name
+	// This test checks that the splitting is done correctly,
+	// ie, the first word is the first name ,and the rest is the last name
+
+	newFullName := " This name   has a   lot of spaces   in it"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
@@ -116,6 +188,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	// given
 	user := s.createRandomUser("TestUpdateUserUnsetVariableInContextInfo")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 	assert.Equal(s.T(), user.FullName, *result.Data.Attributes.FullName)
@@ -335,7 +408,6 @@ func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 	require.Nil(s.T(), err)
 	return user
 }
-
 func (s *TestUsersSuite) createRandomIdentity(user account.User, providerType string) account.Identity {
 	profile := "foobarforupdate.com/" + uuid.NewV4().String() + "/" + user.ID.String()
 	identity := account.Identity{
@@ -397,4 +469,38 @@ func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, ima
 			},
 		},
 	}
+}
+
+type dummyUserProfileService struct {
+	dummyGetResponse *login.KeycloakUserProfileResponse
+}
+
+func newDummyUserProfileService(dummyGetResponse *login.KeycloakUserProfileResponse) *dummyUserProfileService {
+	return &dummyUserProfileService{
+		dummyGetResponse: dummyGetResponse,
+	}
+}
+
+func (d *dummyUserProfileService) Update(keycloakUserProfile *login.KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+	return nil
+}
+
+func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*login.KeycloakUserProfileResponse, error) {
+	return d.dummyGetResponse, nil
+}
+
+func (d *dummyUserProfileService) SetDummyGetResponse(dummyGetResponse *login.KeycloakUserProfileResponse) {
+	d.dummyGetResponse = dummyGetResponse
+}
+
+func createDummyUserProfileResponse(updatedBio, updatedImageURL, updatedURL *string) *login.KeycloakUserProfileResponse {
+	profile := &login.KeycloakUserProfileResponse{}
+	profile.Attributes = &login.KeycloakUserProfileAttributes{}
+
+	(*profile.Attributes)[login.BioAttributeName] = []string{*updatedBio}
+	(*profile.Attributes)[login.ImageURLAttributeName] = []string{*updatedImageURL}
+	(*profile.Attributes)[login.URLAttributeName] = []string{*updatedURL}
+
+	return profile
+
 }
