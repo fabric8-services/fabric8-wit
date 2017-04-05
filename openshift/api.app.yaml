@@ -49,7 +49,7 @@ objects:
               secretKeyRef:
                 name: api
                 key: keycloak.realm
-          image: registry.devshift.net/almighty/almighty-core:latest
+          image: registry.devshift.net/almighty/almighty-core:${IMAGE_TAG}
           imagePullPolicy: Always
           name: api
           ports:
@@ -114,4 +114,6 @@ objects:
     to:
       kind: Service
       name: api
-  
+parameters:
+- name: IMAGE_TAG
+  value: latest
