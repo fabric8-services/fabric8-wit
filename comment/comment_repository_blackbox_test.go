@@ -171,16 +171,16 @@ func (s *TestCommentRepository) TestListComments() {
 	// given
 	comment1 := newComment("A", "Test A", rendering.SystemMarkupMarkdown)
 	comment2 := newComment("B", "Test B", rendering.SystemMarkupMarkdown)
-	comments := []*comment.Comment{comment1, comment2}
-	s.createComments(comments, s.testIdentity.ID)
+	createdComments := []*comment.Comment{comment1, comment2}
+	s.createComments(createdComments, s.testIdentity.ID)
 	// when
 	offset := 0
 	limit := 1
-	comments, _, err := s.repo.List(s.ctx, comment1.ParentID, &offset, &limit)
+	resultComments, _, err := s.repo.List(s.ctx, comment1.ParentID, &offset, &limit)
 	// then
 	require.Nil(s.T(), err)
-	require.Equal(s.T(), 1, len(comments))
-	assert.Equal(s.T(), comment1.Body, comments[0].Body)
+	require.Equal(s.T(), 1, len(resultComments))
+	assert.Equal(s.T(), comment1.Body, resultComments[0].Body)
 }
 
 func (s *TestCommentRepository) TestListCommentsWrongOffset() {

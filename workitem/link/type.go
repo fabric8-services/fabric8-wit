@@ -166,5 +166,5 @@ func (t WorkItemLinkType) GetETagData() []interface{} {
 
 // GetLastModified returns the last modification time
 func (t WorkItemLinkType) GetLastModified() time.Time {
-	return t.UpdatedAt
+	return t.UpdatedAt.Truncate(time.Second)
 }

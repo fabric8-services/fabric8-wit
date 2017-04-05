@@ -19,7 +19,7 @@ type Repository interface {
 	Create(ctx context.Context, comment *Comment, creator uuid.UUID) error
 	Save(ctx context.Context, comment *Comment, modifier uuid.UUID) error
 	Delete(ctx context.Context, commentID uuid.UUID, suppressor uuid.UUID) error
-	List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error)
+	List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Comment, error)
 	Count(ctx context.Context, parent string) (int, error)
 }
@@ -133,7 +133,7 @@ func (m *GormCommentRepository) Delete(ctx context.Context, commentID uuid.UUID,
 }
 
 // List all comments related to a single item
-func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]*Comment, uint64, error) {
+func (m *GormCommentRepository) List(ctx context.Context, parent string, start *int, limit *int) ([]Comment, uint64, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "comment", "query"}, time.Now())
 
 	db := m.db.Model(&Comment{}).Where("parent_id = ?", parent)
@@ -158,7 +158,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 	}
 	defer rows.Close()
 
-	result := []*Comment{}
+	result := []Comment{}
 	columns, err := rows.Columns()
 	if err != nil {
 		return nil, 0, errors.NewInternalError(err.Error())
@@ -184,8 +184,7 @@ func (m *GormCommentRepository) List(ctx context.Context, parent string, start *
 				return nil, 0, errors.NewInternalError(err.Error())
 			}
 		}
-		result = append(result, value)
-
+		result = append(result, *value)
 	}
 	if first {
 		// means 0 rows were returned from the first query (maybe because of offset outside of total count),
