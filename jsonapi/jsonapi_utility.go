@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"fmt"
+
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
@@ -31,6 +34,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var title, code string
 	var statusCode int
 	var id *string
+	logrus.Info(fmt.Sprintf("Error occurred: %s (%T)", cause.Error(), cause))
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound

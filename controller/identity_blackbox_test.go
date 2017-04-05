@@ -29,6 +29,7 @@ type TestIdentityREST struct {
 }
 
 func TestRunIdentityREST(t *testing.T) {
+	resource.Require(t, resource.Database)
 	suite.Run(t, &TestIdentityREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
@@ -54,55 +55,42 @@ func (rest *TestIdentityREST) UnSecuredController() (*goa.Service, *IdentityCont
 }
 
 func (rest *TestIdentityREST) TestListIdentities() {
-	t := rest.T()
-	resource.Require(t, resource.Database)
-
+	// given
 	svc, ctrl := rest.UnSecuredController()
-	_, ic := test.ListIdentityOK(t, svc.Context, svc, ctrl)
-
+	_, ic := test.ListIdentityOK(rest.T(), svc.Context, svc, ctrl)
 	numberOfCurrentIdent := len(ic.Data)
-
 	ctx := context.Background()
-
 	identityRepo := rest.db.Identities()
-
 	id := uuid.NewV4()
 	identity := account.Identity{
 		Username:     "TestUser",
 		ProviderType: "test-idp",
 		ID:           id,
 	}
-
 	err := identityRepo.Create(ctx, &identity)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, ic2 := test.ListIdentityOK(t, svc.Context, svc, ctrl)
-	require.NotNil(t, ic2)
-
-	assert.Equal(t, numberOfCurrentIdent+1, len(ic2.Data))
-
-	assertIdent(t, identity, findIdent(identity.ID, ic2.Data))
-
+	require.Nil(rest.T(), err)
+	// when
+	_, ic2 := test.ListIdentityOK(rest.T(), svc.Context, svc, ctrl)
+	// then
+	require.NotNil(rest.T(), ic2)
+	assert.Equal(rest.T(), numberOfCurrentIdent+1, len(ic2.Data))
+	assertIdent(rest.T(), identity, findIdent(identity.ID, ic2.Data))
+	// given
 	id = uuid.NewV4()
 	identity2 := account.Identity{
 		Username:     "TestUser2",
 		ProviderType: "test-idp",
 		ID:           id,
 	}
-
 	err = identityRepo.Create(ctx, &identity2)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, ic3 := test.ListIdentityOK(t, svc.Context, svc, ctrl)
-	require.NotNil(t, ic3)
-	assert.Equal(t, numberOfCurrentIdent+2, len(ic3.Data))
-
-	assertIdent(t, identity, findIdent(identity.ID, ic3.Data))
-	assertIdent(t, identity2, findIdent(identity2.ID, ic3.Data))
+	require.Nil(rest.T(), err)
+	// when
+	_, ic3 := test.ListIdentityOK(rest.T(), svc.Context, svc, ctrl)
+	// then
+	require.NotNil(rest.T(), ic3)
+	assert.Equal(rest.T(), numberOfCurrentIdent+2, len(ic3.Data))
+	assertIdent(rest.T(), identity, findIdent(identity.ID, ic3.Data))
+	assertIdent(rest.T(), identity2, findIdent(identity2.ID, ic3.Data))
 }
 
 func findIdent(id uuid.UUID, idents []*app.IdentityData) *app.IdentityData {
