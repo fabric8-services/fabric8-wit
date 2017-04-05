@@ -75,6 +75,7 @@ const (
 	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlIterations           = "cachecontrol.iterations"
 	varCacheControlAreas                = "cachecontrol.areas"
+	varCacheControlComments             = "cachecontrol.comments"
 	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
@@ -180,6 +181,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
 	c.v.SetDefault(varCacheControlIterations, "max-age=2")
 	c.v.SetDefault(varCacheControlAreas, "max-age=2")
+	c.v.SetDefault(varCacheControlComments, "max-age=2")
 	c.v.SetDefault(varCacheControlUsers, "max-age=2")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
@@ -327,6 +329,12 @@ func (c *ConfigurationData) GetCacheControlUsers() string {
 // when data for the current user.
 func (c *ConfigurationData) GetCacheControlUser() string {
 	return c.v.GetString(varCacheControlUser)
+}
+
+// GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlComments() string {
+	return c.v.GetString(varCacheControlComments)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)

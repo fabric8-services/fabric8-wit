@@ -17,12 +17,21 @@ import (
 // WorkItemCommentsController implements the work-item-comments resource.
 type WorkItemCommentsController struct {
 	*goa.Controller
-	db application.DB
+	db     application.DB
+	config WorkItemCommentsControllerConfiguration
+}
+
+type WorkItemCommentsControllerConfiguration interface {
+	GetCacheControlComments() string
 }
 
 // NewWorkItemCommentsController creates a work-item-relationships-comments controller.
-func NewWorkItemCommentsController(service *goa.Service, db application.DB) *WorkItemCommentsController {
-	return &WorkItemCommentsController{Controller: service.NewController("WorkItemRelationshipsCommentsController"), db: db}
+func NewWorkItemCommentsController(service *goa.Service, db application.DB, config WorkItemCommentsControllerConfiguration) *WorkItemCommentsController {
+	return &WorkItemCommentsController{
+		Controller: service.NewController("WorkItemRelationshipsCommentsController"),
+		db:         db,
+		config:     config,
+	}
 }
 
 // Create runs the create action.
@@ -53,7 +62,7 @@ func (c *WorkItemCommentsController) Create(ctx *app.CreateWorkItemCommentsConte
 		}
 
 		res := &app.CommentSingle{
-			Data: ConvertComment(ctx.RequestData, &newComment),
+			Data: ConvertComment(ctx.RequestData, newComment),
 		}
 		return ctx.OK(res)
 	})
@@ -67,21 +76,20 @@ func (c *WorkItemCommentsController) List(ctx *app.ListWorkItemCommentsContext) 
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-
-		res := &app.CommentList{}
-		res.Data = []*app.Comment{}
-
 		comments, tc, err := appl.Comments().List(ctx, ctx.WiID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
-		res.Meta = &app.CommentListMeta{TotalCount: count}
-		res.Data = ConvertComments(ctx.RequestData, comments)
-		res.Links = &app.PagingLinks{}
-		setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(comments), offset, limit, count)
-
-		return ctx.OK(res)
+		return ctx.ConditionalEntities(comments, c.config.GetCacheControlComments, func() error {
+			res := &app.CommentList{}
+			res.Data = []*app.Comment{}
+			res.Meta = &app.CommentListMeta{TotalCount: count}
+			res.Data = ConvertComments(ctx.RequestData, comments)
+			res.Links = &app.PagingLinks{}
+			setPagingLinks(res.Links, buildAbsoluteURL(ctx.RequestData), len(comments), offset, limit, count)
+			return ctx.OK(res)
+		})
 	})
 }
 
