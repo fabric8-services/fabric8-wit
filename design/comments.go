@@ -33,6 +33,9 @@ var commentAttributes = a.Type("CommentAttributes", func() {
 	a.Attribute("created-at", d.DateTime, "When the comment was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
+	a.Attribute("updated-at", d.DateTime, "When the comment was updated", func() {
+		a.Example("2016-11-29T23:18:14Z")
+	})
 	a.Attribute("body", d.String, "The comment body", func() {
 		a.Example("This is really interesting")
 	})
@@ -116,9 +119,9 @@ var _ = a.Resource("comments", func() {
 			a.Param("commentId", d.UUID, "commentId")
 		})
 		a.Description("Retrieve comment with given commentId.")
-		a.Response(d.OK, func() {
-			a.Media(commentSingle)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, commentSingle)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -174,9 +177,9 @@ var _ = a.Resource("work_item_comments", func() {
 			the beginning of pagination.  The value starts from 0 onwards.`)
 			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
-		a.Response(d.OK, func() {
-			a.Media(commentArray)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, commentArray)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -191,9 +194,9 @@ var _ = a.Resource("work_item_comments", func() {
 				the beginning of pagination.  The value starts from 0 onwards.`)
 			a.Param("page[limit]", d.Integer, `Paging size is the number of items in a page`)
 		})
-		a.Response(d.OK, func() {
-			a.Media(commentRelationshipsArray)
-		})
+		a.UseTrait("conditional")
+		a.Response(d.OK, commentRelationshipsArray)
+		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
