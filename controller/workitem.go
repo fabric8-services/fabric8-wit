@@ -108,17 +108,18 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	}
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
-	return application.Transactional(c.db, func(tx application.Application) error {
-		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
+	return application.Transactional(c.db, func(appl application.Application) error {
+		workitems, tc, err := appl.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
+			hasChildren := WorkItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, workitems),
+				Data:  ConvertWorkItems(ctx.RequestData, workitems, hasChildren),
 			}
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
 			addFilterLinks(response.Links, ctx.RequestData)
@@ -159,7 +160,8 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi)
+		hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -204,7 +206,8 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi)
+			hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
 		resp := &app.WorkItemReorder{
@@ -268,7 +271,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi)
+		hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -290,12 +294,13 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+		hasChildren := WorkItemIncludeHasChildren(appl, ctx)
 		wi, err := appl.WorkItems().Load(ctx, spaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
 		return ctx.ConditionalEntity(*wi, c.config.GetCacheControlWorkItems, func() error {
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments)
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
 			}
@@ -605,6 +610,20 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 	return op
 }
 
+// WorkItemIncludeHasChildren adds meta information about existing children
+func WorkItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
+	// TODO: Wrap ctx in a Timeout context?
+	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+		hasChildren, _ := appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+		if wi2.Relationships.Children == nil {
+			wi2.Relationships.Children = &app.RelationGeneric{}
+		}
+		wi2.Relationships.Children.Meta = map[string]interface{}{
+			"hasChildren": hasChildren,
+		}
+	}
+}
+
 // ListChildren runs the list action.
 func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) error {
 	// WorkItemChildrenController_List: start_implement
@@ -627,10 +646,10 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 // WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
 func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/children"
-	wi2.Relationships.Children = &app.RelationGeneric{
-		Links: &app.GenericLinks{
-			Related: &childrenRelated,
-		},
+	if wi2.Relationships.Children == nil {
+		wi2.Relationships.Children = &app.RelationGeneric{}
 	}
-
+	wi2.Relationships.Children.Links = &app.GenericLinks{
+		Related: &childrenRelated,
+	}
 }
