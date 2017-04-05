@@ -111,7 +111,7 @@ func main() {
 	}
 
 	// Migrate the schema
-	err = migration.Migrate(db.DB())
+	err = migration.Migrate(db.DB(), configuration.GetPostgresDatabase())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,

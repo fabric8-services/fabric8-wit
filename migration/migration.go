@@ -36,7 +36,7 @@ type fn func(tx *sql.Tx) error
 type steps []fn
 
 // migrations defines all a collection of all the steps
-type migrations []steps
+type Migrations []steps
 
 // mutex variable to lock/unlock the population of common types
 var populateLocker = &sync.Mutex{}
@@ -44,14 +44,14 @@ var populateLocker = &sync.Mutex{}
 // Migrate executes the required migration of the database on startup.
 // For each successful migration, an entry will be written into the "version"
 // table, that states when a certain version was reached.
-func Migrate(db *sql.DB) error {
+func Migrate(db *sql.DB, catalog string) error {
 	var err error
 
 	if db == nil {
 		return errs.Errorf("Database handle is nil\n")
 	}
 
-	m := getMigrations()
+	m := GetMigrations()
 
 	var tx *sql.Tx
 	for nextVersion := int64(0); nextVersion < int64(len(m)) && err == nil; nextVersion++ {
@@ -61,7 +61,7 @@ func Migrate(db *sql.DB) error {
 			return errs.Errorf("Failed to start transaction: %s\n", err)
 		}
 
-		err = migrateToNextVersion(tx, &nextVersion, m)
+		err = MigrateToNextVersion(tx, &nextVersion, m, catalog)
 
 		if err != nil {
 			oldErr := err
@@ -103,119 +103,119 @@ func Migrate(db *sql.DB) error {
 	return nil
 }
 
-// getMigrations returns the migrations all the migrations we have.
+// GetMigrations returns the migrations all the migrations we have.
 // Add your own migration to the end of this function.
 // IMPORTANT: ALWAYS APPEND AT THE END AND DON'T CHANGE THE ORDER OF MIGRATIONS!
-func getMigrations() migrations {
-	m := migrations{}
+func GetMigrations() Migrations {
+	m := Migrations{}
 
 	// Version 0
-	m = append(m, steps{executeSQLFile("000-bootstrap.sql")})
+	m = append(m, steps{ExecuteSQLFile("000-bootstrap.sql")})
 
 	// Version 1
-	m = append(m, steps{executeSQLFile("001-common.sql")})
+	m = append(m, steps{ExecuteSQLFile("001-common.sql")})
 
 	// Version 2
-	m = append(m, steps{executeSQLFile("002-tracker-items.sql")})
+	m = append(m, steps{ExecuteSQLFile("002-tracker-items.sql")})
 
 	// Version 3
-	m = append(m, steps{executeSQLFile("003-login.sql")})
+	m = append(m, steps{ExecuteSQLFile("003-login.sql")})
 
 	// Version 4
-	m = append(m, steps{executeSQLFile("004-drop-tracker-query-id.sql")})
+	m = append(m, steps{ExecuteSQLFile("004-drop-tracker-query-id.sql")})
 
 	// Version 5
-	m = append(m, steps{executeSQLFile("005-add-search-index.sql")})
+	m = append(m, steps{ExecuteSQLFile("005-add-search-index.sql")})
 
 	// Version 6
-	m = append(m, steps{executeSQLFile("006-rename-parent-path.sql")})
+	m = append(m, steps{ExecuteSQLFile("006-rename-parent-path.sql")})
 
 	// Version 7
-	m = append(m, steps{executeSQLFile("007-work-item-links.sql")})
+	m = append(m, steps{ExecuteSQLFile("007-work-item-links.sql")})
 
 	// Version 8
-	m = append(m, steps{executeSQLFile("008-soft-delete-or-resurrect.sql")})
+	m = append(m, steps{ExecuteSQLFile("008-soft-delete-or-resurrect.sql")})
 
 	// Version 9
-	m = append(m, steps{executeSQLFile("009-drop-wit-trigger.sql")})
+	m = append(m, steps{ExecuteSQLFile("009-drop-wit-trigger.sql")})
 
 	// Version 10
-	m = append(m, steps{executeSQLFile("010-comments.sql")})
+	m = append(m, steps{ExecuteSQLFile("010-comments.sql")})
 
 	// Version 11
-	m = append(m, steps{executeSQLFile("011-projects.sql")})
+	m = append(m, steps{ExecuteSQLFile("011-projects.sql")})
 
 	// Version 12
-	m = append(m, steps{executeSQLFile("012-unique-work-item-links.sql")})
+	m = append(m, steps{ExecuteSQLFile("012-unique-work-item-links.sql")})
 
 	// version 13
-	m = append(m, steps{executeSQLFile("013-iterations.sql")})
+	m = append(m, steps{ExecuteSQLFile("013-iterations.sql")})
 
 	// Version 14
-	m = append(m, steps{executeSQLFile("014-wi-fields-index.sql")})
+	m = append(m, steps{ExecuteSQLFile("014-wi-fields-index.sql")})
 
 	// Version 15
-	m = append(m, steps{executeSQLFile("015-rename-projects-to-spaces.sql")})
+	m = append(m, steps{ExecuteSQLFile("015-rename-projects-to-spaces.sql")})
 
 	// Version 16
-	m = append(m, steps{executeSQLFile("016-drop-wi-links-trigger.sql")})
+	m = append(m, steps{ExecuteSQLFile("016-drop-wi-links-trigger.sql")})
 
 	// Version 17
-	m = append(m, steps{executeSQLFile("017-alter-iterations.sql")})
+	m = append(m, steps{ExecuteSQLFile("017-alter-iterations.sql")})
 
 	// Version 18
-	m = append(m, steps{executeSQLFile("018-rewrite-wits.sql")})
+	m = append(m, steps{ExecuteSQLFile("018-rewrite-wits.sql")})
 
 	// Version 19
-	m = append(m, steps{executeSQLFile("019-add-state-iterations.sql")})
+	m = append(m, steps{ExecuteSQLFile("019-add-state-iterations.sql")})
 
 	// Version 20
-	m = append(m, steps{executeSQLFile("020-work-item-description-update-search-index.sql")})
+	m = append(m, steps{ExecuteSQLFile("020-work-item-description-update-search-index.sql")})
 
 	// Version 21
-	m = append(m, steps{executeSQLFile("021-add-space-description.sql")})
+	m = append(m, steps{ExecuteSQLFile("021-add-space-description.sql")})
 
 	// Version 22
-	m = append(m, steps{executeSQLFile("022-work-item-description-update.sql")})
+	m = append(m, steps{ExecuteSQLFile("022-work-item-description-update.sql")})
 
 	// Version 23
-	m = append(m, steps{executeSQLFile("023-comment-markup.sql")})
+	m = append(m, steps{ExecuteSQLFile("023-comment-markup.sql")})
 
 	// Version 24
-	m = append(m, steps{executeSQLFile("024-comment-markup-default.sql")})
+	m = append(m, steps{ExecuteSQLFile("024-comment-markup-default.sql")})
 
 	// Version 25
-	m = append(m, steps{executeSQLFile("025-refactor-identities-users.sql")})
+	m = append(m, steps{ExecuteSQLFile("025-refactor-identities-users.sql")})
 
 	// version 26
-	m = append(m, steps{executeSQLFile("026-areas.sql")})
+	m = append(m, steps{ExecuteSQLFile("026-areas.sql")})
 
 	// version 27
-	m = append(m, steps{executeSQLFile("027-areas-index.sql")})
+	m = append(m, steps{ExecuteSQLFile("027-areas-index.sql")})
 
 	// Version 28
-	m = append(m, steps{executeSQLFile("028-identity-provider_url.sql")})
+	m = append(m, steps{ExecuteSQLFile("028-identity-provider_url.sql")})
 
 	// Version 29
-	m = append(m, steps{executeSQLFile("029-identities-foreign-key.sql")})
+	m = append(m, steps{ExecuteSQLFile("029-identities-foreign-key.sql")})
 
 	// Version 30
-	m = append(m, steps{executeSQLFile("030-indentities-unique-index.sql")})
+	m = append(m, steps{ExecuteSQLFile("030-indentities-unique-index.sql")})
 
 	// Version 31
-	m = append(m, steps{executeSQLFile("031-iterations-parent-path-ltree.sql")})
+	m = append(m, steps{ExecuteSQLFile("031-iterations-parent-path-ltree.sql")})
 
 	// Version 32
-	m = append(m, steps{executeSQLFile("032-add-foreign-key-space-id.sql")})
+	m = append(m, steps{ExecuteSQLFile("032-add-foreign-key-space-id.sql")})
 
 	// Version 33
-	m = append(m, steps{executeSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
+	m = append(m, steps{ExecuteSQLFile("033-add-space-id-wilt.sql", space.SystemSpace.String(), "system.space", "Description of the space")})
 
 	// Version 34
-	m = append(m, steps{executeSQLFile("034-space-owner.sql")})
+	m = append(m, steps{ExecuteSQLFile("034-space-owner.sql")})
 
 	// Version 35
-	m = append(m, steps{executeSQLFile("035-wit-to-use-uuid.sql",
+	m = append(m, steps{ExecuteSQLFile("035-wit-to-use-uuid.sql",
 		workitem.SystemPlannerItem.String(),
 		workitem.SystemUserStory.String(),
 		workitem.SystemValueProposition.String(),
@@ -226,40 +226,40 @@ func getMigrations() migrations {
 		workitem.SystemBug.String())})
 
 	// Version 36
-	m = append(m, steps{executeSQLFile("036-add-icon-to-wit.sql")})
+	m = append(m, steps{ExecuteSQLFile("036-add-icon-to-wit.sql")})
 
 	// version 37
-	m = append(m, steps{executeSQLFile("037-work-item-revisions.sql")})
+	m = append(m, steps{ExecuteSQLFile("037-work-item-revisions.sql")})
 
 	// Version 38
-	m = append(m, steps{executeSQLFile("038-comment-revisions.sql")})
+	m = append(m, steps{ExecuteSQLFile("038-comment-revisions.sql")})
 
 	// Version 39
-	m = append(m, steps{executeSQLFile("039-comment-revisions-parentid.sql")})
+	m = append(m, steps{ExecuteSQLFile("039-comment-revisions-parentid.sql")})
 
 	// Version 40
-	m = append(m, steps{executeSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
+	m = append(m, steps{ExecuteSQLFile("040-add-space-id-wi-wit-tq.sql", space.SystemSpace.String())})
 
 	// version 41
-	m = append(m, steps{executeSQLFile("041-unique-area-name-create-new-area.sql")})
+	m = append(m, steps{ExecuteSQLFile("041-unique-area-name-create-new-area.sql")})
 
 	// Version 42
-	m = append(m, steps{executeSQLFile("042-work-item-link-revisions.sql")})
+	m = append(m, steps{ExecuteSQLFile("042-work-item-link-revisions.sql")})
 
 	// Version 43
-	m = append(m, steps{executeSQLFile("043-space-resources.sql")})
+	m = append(m, steps{ExecuteSQLFile("043-space-resources.sql")})
 
 	// Version 44
-	m = append(m, steps{executeSQLFile("044-add-contextinfo-column-users.sql")})
+	m = append(m, steps{ExecuteSQLFile("044-add-contextinfo-column-users.sql")})
 
 	// Version 45
-	m = append(m, steps{executeSQLFile("045-adds-order-to-existing-wi.sql")})
+	m = append(m, steps{ExecuteSQLFile("045-adds-order-to-existing-wi.sql")})
 
 	// Version 46
-	m = append(m, steps{executeSQLFile("046-oauth-states.sql")})
+	m = append(m, steps{ExecuteSQLFile("046-oauth-states.sql")})
 
 	// Version 47
-	m = append(m, steps{executeSQLFile("047-codebases.sql")})
+	m = append(m, steps{ExecuteSQLFile("047-codebases.sql")})
 
 	// Version N
 	//
@@ -277,7 +277,7 @@ func getMigrations() migrations {
 				// Execute random go code
 				return nil
 			},
-			executeSQLFile("YOUR_OWN_FILE.sql"),
+			ExecuteSQLFile("YOUR_OWN_FILE.sql"),
 			func(db *sql.Tx) error {
 				// Execute random go code
 				return nil
@@ -288,10 +288,10 @@ func getMigrations() migrations {
 	return m
 }
 
-// executeSQLFile loads the given filename from the packaged SQL files and
+// ExecuteSQLFile loads the given filename from the packaged SQL files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql files
-func executeSQLFile(filename string, args ...string) fn {
+func ExecuteSQLFile(filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
@@ -320,10 +320,10 @@ func executeSQLFile(filename string, args ...string) fn {
 	}
 }
 
-// migrateToNextVersion migrates the database to the nextVersion.
+// MigrateToNextVersion migrates the database to the nextVersion.
 // If the database is already at nextVersion or higher, the nextVersion
 // will be set to the actual next version.
-func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
+func MigrateToNextVersion(tx *sql.Tx, nextVersion *int64, m Migrations, catalog string) error {
 	// Obtain exclusive transaction level advisory that doesn't depend on any table.
 	// Once obtained, the lock is held for the remainder of the current transaction.
 	// (There is no UNLOCK TABLE command; locks are always released at transaction end.)
@@ -333,7 +333,7 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 
 	// Determine current version and adjust the outmost loop
 	// iterator variable "version"
-	currentVersion, err := getCurrentVersion(tx)
+	currentVersion, err := getCurrentVersion(tx, catalog)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -377,8 +377,8 @@ func migrateToNextVersion(tx *sql.Tx, nextVersion *int64, m migrations) error {
 // Returning -1 simplifies the logic of the migration process because
 // the next version is always the current version + 1 which results
 // in -1 + 1 = 0 which is exactly what we want as the first version.
-func getCurrentVersion(db *sql.Tx) (int64, error) {
-	row := db.QueryRow("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_catalog='postgres' AND table_name='version')")
+func getCurrentVersion(db *sql.Tx, catalog string) (int64, error) {
+	row := db.QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_catalog='%s' AND table_name='version')", catalog))
 
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
