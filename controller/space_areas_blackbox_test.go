@@ -151,9 +151,9 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfNoneMatchHeader() {
 
 func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	parentArea, _, _ := rest.setupAreas()
+	parentArea, _, areas := rest.setupAreas()
 	// when
-	ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt)
+	ifModifiedSince := app.ToHTTPTime(areas[len(areas)-1].UpdatedAt)
 	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
