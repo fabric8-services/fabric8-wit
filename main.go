@@ -191,6 +191,9 @@ func main() {
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 
+	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, configuration)
+	app.MountLogoutController(service, logoutCtrl)
+
 	// Mount "status" controller
 	statusCtrl := controller.NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
@@ -240,7 +243,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager)
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller

@@ -85,7 +85,7 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 
 	err := application.Transactional(db, func(appl application.Application) error {
 		// Get the root iteration
-		iteration, err := appl.Iterations().RootIteration(ctx, spaceID)
+		iteration, err := appl.Iterations().Root(ctx, spaceID)
 		if err != nil {
 			return errs.Wrap(err, "unable to fetch root iteration")
 		}
