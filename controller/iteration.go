@@ -160,7 +160,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		}
 		if ctx.Payload.Data.Attributes.State != nil {
 			if *ctx.Payload.Data.Attributes.State == iteration.IterationStateStart {
-				res, err := appl.Iterations().CanStartIteration(ctx, itr)
+				res, err := appl.Iterations().CanStart(ctx, itr)
 				if res == false && err != nil {
 					return jsonapi.JSONErrorResponse(ctx, err)
 				}

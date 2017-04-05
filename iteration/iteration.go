@@ -63,7 +63,7 @@ type Repository interface {
 	Root(ctx context.Context, spaceID uuid.UUID) (*Iteration, error)
 	Load(ctx context.Context, id uuid.UUID) (*Iteration, error)
 	Save(ctx context.Context, i Iteration) (*Iteration, error)
-	CanStartIteration(ctx context.Context, i *Iteration) (bool, error)
+	CanStart(ctx context.Context, i *Iteration) (bool, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Iteration, error)
 	LoadChildren(ctx context.Context, parentIterationID uuid.UUID) ([]Iteration, error)
 }
@@ -200,13 +200,13 @@ func (m *GormIterationRepository) Save(ctx context.Context, i Iteration) (*Itera
 	return &i, nil
 }
 
-// CanStartIteration checks the rule -
+// CanStart checks the rule -
 // 1. Only one iteration from a space can have state=start at a time.
 // 2. Root iteration of the space can not be started.(Hence can not be closed - via UI)
 // Currently there is no State-machine for state transitions of iteraitons
 // till then we will not allow user to start root iteration.
 // More rules can be added as needed in this function
-func (m *GormIterationRepository) CanStartIteration(ctx context.Context, i *Iteration) (bool, error) {
+func (m *GormIterationRepository) CanStart(ctx context.Context, i *Iteration) (bool, error) {
 	var count int64
 	rootItr, err := m.Root(ctx, i.SpaceID)
 	if err != nil {
