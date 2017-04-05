@@ -174,15 +174,15 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
 	// HTTP Cache-Control/max-age default
-	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
-	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=86400") // 1 day
-	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=300")
-	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=86400") // 1 day
-	c.v.SetDefault(varCacheControlSpaces, "max-age=300")
-	c.v.SetDefault(varCacheControlIterations, "max-age=300")
-	c.v.SetDefault(varCacheControlAreas, "max-age=300")
+	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
+	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
+	c.v.SetDefault(varCacheControlIterations, "max-age=2")
+	c.v.SetDefault(varCacheControlAreas, "max-age=2")
 	c.v.SetDefault(varCacheControlComments, "max-age=2")
-	c.v.SetDefault(varCacheControlUsers, "max-age=300")
+	c.v.SetDefault(varCacheControlUsers, "max-age=2")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
