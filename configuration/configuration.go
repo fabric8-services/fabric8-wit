@@ -69,6 +69,7 @@ const (
 	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
 	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
+	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
 	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlSpace                = "cachecontrol.space"
 	varCacheControlIteration            = "cachecontrol.iteration"
@@ -172,6 +173,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
 	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
+	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=300")
 	c.v.SetDefault(varCacheControlAreas, "max-age=300")
 	c.v.SetDefault(varCacheControlSpace, "max-age=300")
 	c.v.SetDefault(varCacheControlIteration, "max-age=300")
@@ -284,7 +286,13 @@ func (c *ConfigurationData) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
 }
 
-// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemLinks returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinks() string {
+	return c.v.GetString(varCacheControlWorkItemLinks)
+}
+
+// GetCacheControlAreas returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item (or a list of).
 func (c *ConfigurationData) GetCacheControlAreas() string {
 	return c.v.GetString(varCacheControlAreas)
