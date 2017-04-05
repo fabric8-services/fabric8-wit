@@ -47,7 +47,7 @@ func (m Iteration) GetETagData() []interface{} {
 
 // GetLastModified returns the last modification time
 func (m Iteration) GetLastModified() time.Time {
-	return m.UpdatedAt
+	return m.UpdatedAt.Truncate(time.Second)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name

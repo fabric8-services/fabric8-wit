@@ -286,7 +286,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType200OK() {
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*wit)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypeTag(*wit), res.Header()[app.ETag][0])
 }
@@ -309,7 +309,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredLastModifiedHeade
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*wit)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypeTag(*wit), res.Header()[app.ETag][0])
 }
@@ -332,7 +332,7 @@ func (s *workItemTypeSuite) TestShowWorkItemType200UsingExpiredETagHeader() {
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*wit)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypeTag(*wit), res.Header()[app.ETag][0])
 }
@@ -388,7 +388,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200OK() {
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 }
@@ -416,7 +416,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfModifiedSinceHe
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 }
@@ -444,7 +444,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200UsingExpiredIfNoneMatchHeader
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemTypeUpdatedAt(*witPerson)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 }
@@ -538,7 +538,7 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeSources200OK() {
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemLinkTypeTag(sourceLinkType), res.Header()[app.ETag][0])
 }
@@ -558,7 +558,7 @@ func (s *workItemTypeSuite) TestListWorkItemLinkTypeTargets200OK() {
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemLinkTypeTag(targetLinkType), res.Header()[app.ETag][0])
 }
@@ -579,7 +579,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfModifiedSinc
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemLinkTypeTag(sourceLinkType), res.Header()[app.ETag][0])
 }
@@ -600,7 +600,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfModifiedSinc
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemLinkTypeTag(targetLinkType), res.Header()[app.ETag][0])
 }
@@ -621,7 +621,7 @@ func (s *workItemTypeSuite) TestListSourceLinkTypes200UsingExpiredIfNoneMatchHea
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(sourceLinkType)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemLinkTypeTag(sourceLinkType), res.Header()[app.ETag][0])
 }
@@ -642,7 +642,7 @@ func (s *workItemTypeSuite) TestListTargetLinkTypes200UsingExpiredIfNoneMatchHea
 	require.NotNil(s.T(), res.Header()[app.LastModified])
 	assert.Equal(s.T(), app.ToHTTPTime(getWorkItemLinkTypeUpdatedAt(targetLinkType)), res.Header()[app.LastModified][0])
 	require.NotNil(s.T(), res.Header()[app.CacheControl])
-	assert.Equal(s.T(), app.MaxAge+"=86400", res.Header()[app.CacheControl][0])
+	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemLinkTypeTag(targetLinkType), res.Header()[app.ETag][0])
 }

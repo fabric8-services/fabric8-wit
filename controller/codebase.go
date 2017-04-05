@@ -93,8 +93,8 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 		openLink := rest.AbsoluteURL(ctx.RequestData, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.ID))
 		existingWorkspaces = append(existingWorkspaces, &app.Workspace{
 			Attributes: &app.WorkspaceAttributes{
-				Name:        &workspace.Name,
-				Description: &workspace.Description,
+				Name:        &workspace.ID,
+				Description: &workspace.Status,
 			},
 			Links: &app.WorkspaceLinks{
 				Open: &openLink,
@@ -154,7 +154,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.WorkspaceIDEURL,
+			Open: &workspaceResp.HRef,
 		},
 	}
 	return ctx.OK(resp)
@@ -198,7 +198,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.WorkspaceIDEURL,
+			Open: &workspaceResp.HRef,
 		},
 	}
 	return ctx.OK(resp)

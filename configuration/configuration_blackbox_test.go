@@ -65,6 +65,10 @@ func TestGetKeycloakEndpointSetByUrlEnvVaribaleOK(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/auth", url)
 
+	url, err = config.GetKeycloakEndpointLogout(reqLong)
+	require.Nil(t, err)
+	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/logout", url)
+
 	url, err = config.GetKeycloakEndpointToken(reqLong)
 	require.Nil(t, err)
 	require.Equal(t, "http://xyz.io/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/token", url)
@@ -128,6 +132,17 @@ func TestGetKeycloakEndpointAuthDevModeOK(t *testing.T) {
 func TestGetKeycloakEndpointAuthSetByEnvVaribaleOK(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_AUTH", config.GetKeycloakEndpointAuth)
+}
+
+func TestGetKeycloakEndpointLogoutDevModeOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	t.Parallel()
+	checkGetKeycloakEndpointOK(t, config.GetKeycloakDevModeURL()+"/auth/realms/"+config.GetKeycloakRealm()+"/protocol/openid-connect/logout", config.GetKeycloakEndpointLogout)
+}
+
+func TestGetKeycloakEndpointLogoutSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	checkGetKeycloakEndpointSetByEnvVaribaleOK(t, "ALMIGHTY_KEYCLOAK_ENDPOINT_LOGOUT", config.GetKeycloakEndpointLogout)
 }
 
 func TestGetKeycloakEndpointTokenOK(t *testing.T) {

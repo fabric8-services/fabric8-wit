@@ -17,7 +17,7 @@ import (
 // SpaceIterationsControllerConfiguration configuration for the SpaceIterationsController
 
 type SpaceIterationsControllerConfiguration interface {
-	GetCacheControlIterations() string
+	GetCacheControlIteration() string
 }
 
 // SpaceIterationsController implements the space-iterations resource.
@@ -122,7 +122,7 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntities(iterations, c.config.GetCacheControlIterations, func() error {
+		return ctx.ConditionalEntities(iterations, c.config.GetCacheControlIteration, func() error {
 			itrMap := make(iterationIDMap)
 			for _, itr := range iterations {
 				itrMap[itr.ID] = itr

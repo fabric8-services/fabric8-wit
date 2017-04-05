@@ -848,6 +848,24 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
+// fixing https://github.com/almighty/almighty-core/issues/986
+func (s *WorkItem2Suite) TestWI2UpdateDescriptionAndMarkup() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
+	modifiedDescription := "# Description is modified"
+	expectedDescription := "# Description is modified"
+	expectedRenderedDescription := "<h1>Description is modified</h1>\n"
+	modifiedMarkup := rendering.SystemMarkupMarkdown
+	expectedMarkup := rendering.SystemMarkupMarkdown
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescriptionMarkup] = modifiedMarkup
+
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
+	assert.Equal(s.T(), expectedMarkup, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+}
+
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := rendering.NewMarkupContentFromLegacy("Only Description is modified")
