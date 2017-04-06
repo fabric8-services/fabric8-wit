@@ -1,5 +1,14 @@
 -- Update iterations having same name, append UUID to make it unique.
-update iterations set name = name || '-' || uuid_generate_v4()  where id IN( select id from iterations where name in (select name from iterations group by name having count(name) >1 ));
+UPDATE iterations
+SET name = name || '-' || uuid_generate_v4()
+WHERE id IN
+    (SELECT id
+     FROM iterations
+     WHERE name IN
+         (SELECT name
+          FROM iterations
+          GROUP BY name
+          HAVING count(name) >1));
 
 ------  For existing spaces in production, which dont have a root iteration, create one.
 --
