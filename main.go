@@ -191,6 +191,9 @@ func main() {
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 
+	logoutCtrl := controller.NewLogoutController(service, &login.KeycloakLogoutService{}, configuration)
+	app.MountLogoutController(service, logoutCtrl)
+
 	// Mount "status" controller
 	statusCtrl := controller.NewStatusController(service, db)
 	app.MountStatusController(service, statusCtrl)
@@ -216,7 +219,7 @@ func main() {
 	app.MountWorkItemLinkController(service, workItemLinkCtrl)
 
 	// Mount "work item comments" controller
-	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB)
+	workItemCommentsCtrl := controller.NewWorkItemCommentsController(service, appDB, configuration)
 	app.MountWorkItemCommentsController(service, workItemCommentsCtrl)
 
 	// Mount "work item relationships links" controller
@@ -224,7 +227,7 @@ func main() {
 	app.MountWorkItemRelationshipsLinksController(service, workItemRelationshipsLinksCtrl)
 
 	// Mount "comments" controller
-	commentsCtrl := controller.NewCommentsController(service, appDB)
+	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
 	// Mount "tracker" controller

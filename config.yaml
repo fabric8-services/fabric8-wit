@@ -25,12 +25,17 @@ http.address: 0.0.0.0:8080
 # HTTP Cache-Control
 #------------------------
 
-cachecontrol.workitemtype: max-age=86400
-cachecontrol.workitemlinktype: max-age=86400
-cachecontrol.workitems: max-age=300
-cachecontrol.areas: max-age=300
-cachecontrol.space: max-age=300
-cachecontrol.iteration: max-age=300
+cachecontrol.workitems: max-age=2
+cachecontrol.workitemtypes: max-age=2
+cachecontrol.workitemlinktypes: max-age=2
+cachecontrol.spaces: max-age=2
+cachecontrol.iterations: max-age=2
+cachecontrol.areas: max-age=2
+cachecontrol.users: max-age=2
+cachecontrol.comments: max-age=2
+# data returned from '/api/user' must not be cached by intermediate proxies, 
+# but can only be kept in the client's local cache.
+cachecontrol.user: private,max-age=2
 
 #------------------------
 # Misc.

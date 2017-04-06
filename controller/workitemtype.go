@@ -30,7 +30,7 @@ type WorkitemtypeController struct {
 }
 
 type WorkItemControllerConfiguration interface {
-	GetCacheControlWorkItemType() string
+	GetCacheControlWorkItemTypes() string
 }
 
 // NewWorkitemtypeController creates a workitemtype controller.
@@ -54,7 +54,7 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntity(*witModel, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntity(*witModel, c.config.GetCacheControlWorkItemTypes, func() error {
 			witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witModel)
 			wit := &app.WorkItemTypeSingle{Data: &witData}
 			return ctx.OK(wit)
@@ -119,7 +119,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
-		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
 			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
 			// for the space.
 			if len(witModels) == 0 {
@@ -159,7 +159,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntities(modelLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntities(modelLinkTypes, c.config.GetCacheControlWorkItemTypes, func() error {
 			// convert to rest representation
 			appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
 			if err != nil {
@@ -198,7 +198,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntities(modelLinkTypes, c.config.GetCacheControlWorkItemType, func() error {
+		return ctx.ConditionalEntities(modelLinkTypes, c.config.GetCacheControlWorkItemTypes, func() error {
 			appLinkTypes, err := ConvertLinkTypesFromModels(ctx.RequestData, modelLinkTypes)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)

@@ -57,12 +57,18 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-
+		// Put iteration under root iteration
+		rootIteration, err := appl.Iterations().Root(ctx, spaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		childPath := append(rootIteration.Path, rootIteration.ID)
 		newItr := iteration.Iteration{
 			SpaceID: spaceID,
 			Name:    *reqIter.Attributes.Name,
 			StartAt: reqIter.Attributes.StartAt,
 			EndAt:   reqIter.Attributes.EndAt,
+			Path:    childPath,
 		}
 		if reqIter.Attributes.Description != nil {
 			newItr.Description = reqIter.Attributes.Description

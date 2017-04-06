@@ -18,7 +18,6 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -135,7 +134,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
@@ -250,13 +248,19 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		if spaceID != space.SystemSpace {
-			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
-			if spaceLoadErr != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
-			}
+		spaceInstance, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+		if spaceLoadErr != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 		}
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		// fetch root iteration for this space and assign it to WI if not present already
+		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
+			// no iteration set hence set to root iteration of its space
+			rootItr, rootItrErr := appl.Iterations().Root(ctx, spaceInstance.ID)
+			if rootItrErr == nil {
+				wi.Fields[workitem.SystemIteration] = rootItr.ID.String()
+			}
+		}
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -425,7 +429,26 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription {
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
-				target.Fields[key] = *m
+				// if no description existed before, set the new one
+				if target.Fields[key] == nil {
+					target.Fields[key] = *m
+				} else {
+					// only update the 'description' field in the existing description
+					existingDescription := target.Fields[key].(rendering.MarkupContent)
+					existingDescription.Content = (*m).Content
+					target.Fields[key] = existingDescription
+				}
+			}
+		} else if key == workitem.SystemDescriptionMarkup {
+			markup := val.(string)
+			// if no description existed before, set the markup in a new one
+			if target.Fields[workitem.SystemDescription] == nil {
+				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: markup}
+			} else {
+				// only update the 'description' field in the existing description
+				existingDescription := target.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+				existingDescription.Markup = markup
+				target.Fields[workitem.SystemDescription] = existingDescription
 			}
 		} else if key == workitem.SystemCodebase {
 			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {

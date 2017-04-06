@@ -848,6 +848,24 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyLegacyDescription() {
 	assert.Equal(s.T(), rendering.SystemMarkupDefault, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
 }
 
+// fixing https://github.com/almighty/almighty-core/issues/986
+func (s *WorkItem2Suite) TestWI2UpdateDescriptionAndMarkup() {
+	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
+	modifiedDescription := "# Description is modified"
+	expectedDescription := "# Description is modified"
+	expectedRenderedDescription := "<h1>Description is modified</h1>\n"
+	modifiedMarkup := rendering.SystemMarkupMarkdown
+	expectedMarkup := rendering.SystemMarkupMarkdown
+	s.minimumPayload.Data.Attributes[workitem.SystemDescription] = modifiedDescription
+	s.minimumPayload.Data.Attributes[workitem.SystemDescriptionMarkup] = modifiedMarkup
+
+	_, updatedWI := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
+	require.NotNil(s.T(), updatedWI)
+	assert.Equal(s.T(), expectedDescription, updatedWI.Data.Attributes[workitem.SystemDescription])
+	assert.Equal(s.T(), expectedRenderedDescription, updatedWI.Data.Attributes[workitem.SystemDescriptionRendered])
+	assert.Equal(s.T(), expectedMarkup, updatedWI.Data.Attributes[workitem.SystemDescriptionMarkup])
+}
+
 func (s *WorkItem2Suite) TestWI2UpdateOnlyMarkupDescriptionWithoutMarkup() {
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	modifiedDescription := rendering.NewMarkupContentFromLegacy("Only Description is modified")
@@ -1760,7 +1778,13 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
 	assert.NotNil(t, wi.Data.Relationships.Iteration)
-	assert.Nil(t, wi.Data.Relationships.Iteration.Data)
+	// should get root iteration's id for that space
+	spaceRepo := space.NewRepository(s.DB)
+	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
+	iterationRepo := iteration.NewIterationRepository(s.DB)
+	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
+	require.Nil(t, err)
+	assert.Equal(t, rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
@@ -1989,6 +2013,25 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
 	fakeSpaceID := uuid.NewV4()
 	c.Data.Relationships.Space.Data.ID = &fakeSpaceID
 	test.CreateWorkitemBadRequest(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+}
+
+func (s *WorkItem2Suite) TestDefaultSpaceAndIterationRelations() {
+	t := s.T()
+	c := minimumRequiredCreateWithType(workitem.SystemFeature)
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(t, wi)
+	require.NotNil(t, wi.Data.Relationships)
+	require.NotNil(t, wi.Data.Relationships.Iteration)
+
+	spaceRepo := space.NewRepository(s.DB)
+	spaceInstance, err := spaceRepo.Load(s.svc.Context, space.SystemSpace)
+	iterationRepo := iteration.NewIterationRepository(s.DB)
+	rootIteration, err := iterationRepo.Root(context.Background(), spaceInstance.ID)
+	require.Nil(t, err)
+	assert.Equal(t, rootIteration.ID.String(), *wi.Data.Relationships.Iteration.Data.ID)
 }
 
 //Ignore, middlewares not respected by the generated test framework. No way to modify Request?
