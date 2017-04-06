@@ -38,6 +38,7 @@ type WorkItemRepository interface {
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
 	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]WorkItem, uint64, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
+	GetChildrenCountPerWorkitem(ctx context.Context, wiID string) (Count, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
 	Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error)
@@ -700,6 +701,22 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 		countsMap[iterationWithCount.IterationId] = iterationWithCount
 	}
 	return countsMap, nil
+}
+
+type Count struct {
+	count int
+}
+
+func (r *GormWorkItemRepository) GetChildrenCountPerWorkitem(ctx context.Context, wiID string) (Count, error) {
+	var totalcount Count
+	fmt.Println("===========workitem id=======", wiID)
+	query := fmt.Sprintf(`SELECT count(*) AS count FROM "work_item_links" where source_id=%s and link_type_id IN (SELECT id FROM "work_item_link_types" WHERE forward_name='parent of')`, wiID)
+	db := r.db.Debug()
+	db = r.db.Raw(query)
+	// db = db.Debug()
+	db.Scan(&totalcount)
+	fmt.Printf("=======totalcount+++++++++", totalcount)
+	return totalcount, nil
 }
 
 // GetCountsForIteration returns Closed and Total counts of WI for given iteration

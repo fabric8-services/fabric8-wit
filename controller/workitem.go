@@ -612,12 +612,17 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	// Put your logic here
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.WorkItemLinks().ListWorkItemChildren(ctx, ctx.WiID)
+		totalcount, err := appl.WorkItems().GetChildrenCountPerWorkitem(ctx, ctx.WiID)
+		fmt.Println("=============totalcount==========", totalcount)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
 			response := app.WorkItemList{
 				Data: ConvertWorkItems(ctx.RequestData, result),
+				Meta: &app.WorkItemListResponseMeta{
+					TotalCount: totalcount,
+				},
 			}
 			return ctx.OK(&response)
 		})
@@ -630,6 +635,9 @@ func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi
 	wi2.Relationships.Children = &app.RelationGeneric{
 		Links: &app.GenericLinks{
 			Related: &childrenRelated,
+		},
+		Meta: map[string]interface{}{
+			"totalCount": "45",
 		},
 	}
 

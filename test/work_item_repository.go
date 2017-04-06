@@ -137,6 +137,16 @@ type WorkItemRepository struct {
 		result1 map[string]workitem.WICountsPerIteration
 		result2 error
 	}
+	GetChildrenCountPerWorkitemStub        func(ctx context.Context, wiID string) (workitem.Count, error)
+	getChildrenCountPerWorkitemMutex       sync.RWMutex
+	getChildrenCountPerWorkitemArgsForCall []struct {
+		ctx  context.Context
+		wiID string
+	}
+	getChildrenCountPerWorkitemReturns struct {
+		result1 workitem.Count
+		result2 error
+	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
@@ -507,6 +517,40 @@ func (fake *WorkItemRepository) GetCountsForIterationReturns(result1 map[string]
 	}{result1, result2}
 }
 
+func (fake *WorkItemRepository) GetChildrenCountPerWorkitem(ctx context.Context, wiID string) (workitem.Count, error) {
+	fake.getChildrenCountPerWorkitemMutex.Lock()
+	fake.getChildrenCountPerWorkitemArgsForCall = append(fake.getChildrenCountPerWorkitemArgsForCall, struct {
+		ctx  context.Context
+		wiID string
+	}{ctx, wiID})
+	fake.recordInvocation("GetChildrenCountPerWorkitem", []interface{}{ctx, wiID})
+	fake.getChildrenCountPerWorkitemMutex.Unlock()
+	if fake.GetChildrenCountPerWorkitemStub != nil {
+		return fake.GetChildrenCountPerWorkitemStub(ctx, wiID)
+	}
+	return fake.getChildrenCountPerWorkitemReturns.result1, fake.getChildrenCountPerWorkitemReturns.result2
+}
+
+func (fake *WorkItemRepository) GetChildrenCountPerWorkitemCallCount() int {
+	fake.getChildrenCountPerWorkitemMutex.RLock()
+	defer fake.getChildrenCountPerWorkitemMutex.RUnlock()
+	return len(fake.getChildrenCountPerWorkitemArgsForCall)
+}
+
+func (fake *WorkItemRepository) GetChildrenCountPerWorkitemArgsForCall(i int) (context.Context, string) {
+	fake.getChildrenCountPerWorkitemMutex.RLock()
+	defer fake.getChildrenCountPerWorkitemMutex.RUnlock()
+	return fake.getChildrenCountPerWorkitemArgsForCall[i].ctx, fake.getChildrenCountPerWorkitemArgsForCall[i].wiID
+}
+
+func (fake *WorkItemRepository) GetChildrenCountPerWorkitemReturns(result1 workitem.Count, result2 error) {
+	fake.GetChildrenCountPerWorkitemStub = nil
+	fake.getChildrenCountPerWorkitemReturns = struct {
+		result1 workitem.Count
+		result2 error
+	}{result1, result2}
+}
+
 func (fake *WorkItemRepository) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
@@ -528,6 +572,8 @@ func (fake *WorkItemRepository) Invocations() map[string][][]interface{} {
 	defer fake.getCountsPerIterationMutex.RUnlock()
 	fake.getCountsForIterationMutex.RLock()
 	defer fake.getCountsForIterationMutex.RUnlock()
+	fake.getChildrenCountPerWorkitemMutex.RLock()
+	defer fake.getChildrenCountPerWorkitemMutex.RUnlock()
 	return fake.invocations
 }
 
