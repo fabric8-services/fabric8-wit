@@ -16,7 +16,6 @@ import (
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
@@ -50,9 +49,8 @@ func init() {
 
 type TestSpaceREST struct {
 	gormtestsupport.DBTestSuite
-	db            *gormapplication.GormDB
-	clean         func()
-	iterationRepo iteration.Repository
+	db    *gormapplication.GormDB
+	clean func()
 }
 
 func TestRunSpaceREST(t *testing.T) {
@@ -63,7 +61,6 @@ func TestRunSpaceREST(t *testing.T) {
 func (rest *TestSpaceREST) SetupTest() {
 	rest.db = gormapplication.NewGormDB(rest.DB)
 	rest.clean = cleaner.DeleteCreatedEntities(rest.DB)
-	rest.iterationRepo = iteration.NewIterationRepository(rest.DB)
 }
 
 func (rest *TestSpaceREST) TearDownTest() {
@@ -107,13 +104,13 @@ func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	// when
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// then
-	require.NotNil(rest.T(), created.Data)
-	require.NotNil(rest.T(), created.Data.Attributes)
+	assert.NotNil(rest.T(), created.Data)
+	assert.NotNil(rest.T(), created.Data.Attributes)
 	assert.NotNil(rest.T(), created.Data.Attributes.CreatedAt)
 	assert.NotNil(rest.T(), created.Data.Attributes.UpdatedAt)
-	require.NotNil(rest.T(), created.Data.Attributes.Name)
+	assert.NotNil(rest.T(), created.Data.Attributes.Name)
 	assert.Equal(rest.T(), name, *created.Data.Attributes.Name)
-	require.NotNil(rest.T(), created.Data.Links)
+	assert.NotNil(rest.T(), created.Data.Links)
 	assert.NotNil(rest.T(), created.Data.Links.Self)
 }
 
@@ -121,12 +118,6 @@ func (rest *TestSpaceREST) SecuredSpaceAreaController(identity account.Identity)
 	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
 	svc := testsupport.ServiceAsUser("Area-Service", almtoken.NewManager(pub), identity)
 	return svc, NewSpaceAreasController(svc, rest.db, rest.Configuration)
-}
-
-func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Identity) (*goa.Service, *SpaceIterationsController) {
-	pub, _ := almtoken.ParsePublicKey([]byte(almtoken.RSAPublicKey))
-	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManager(pub), identity)
-	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
 func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
@@ -145,12 +136,6 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	// only 1 default gets created.
 	assert.Len(rest.T(), areaList.Data, 1)
 	assert.Equal(rest.T(), name, *areaList.Data[0].Attributes.Name)
-
-	// verify if root iteration is created or not
-	spaceIterationSvc, spaceIterationCtrl := rest.SecuredSpaceIterationController(testsupport.TestIdentity)
-	_, iterationList := test.ListSpaceIterationsOK(rest.T(), spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, createdID, nil, nil)
-	require.Len(rest.T(), iterationList.Data, 1)
-	assert.Equal(rest.T(), name, *iterationList.Data[0].Attributes.Name)
 
 }
 

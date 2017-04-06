@@ -86,7 +86,6 @@ func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceI
 func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	// given
 	var p *space.Space
-	var rootItr *iteration.Iteration
 	ci := createSpaceIteration("Sprint #21", nil)
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
@@ -95,16 +94,6 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 		}
 		createdSpace, err := repo.Create(rest.ctx, &newSpace)
 		p = createdSpace
-		if err != nil {
-			return err
-		}
-		// create Root iteration for above space
-		rootItr = &iteration.Iteration{
-			SpaceID: newSpace.ID,
-			Name:    newSpace.Name,
-		}
-		iterationRepo := app.Iterations()
-		err = iterationRepo.Create(rest.ctx, rootItr)
 		return err
 	})
 	require.Nil(rest.T(), err)
@@ -116,7 +105,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	require.NotNil(rest.T(), c.Data.Relationships.Space)
 	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
 	assert.Equal(rest.T(), iteration.IterationStateNew, *c.Data.Attributes.State)
-	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
+	assert.Equal(rest.T(), "/", *c.Data.Attributes.ParentPath)
 	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta["total"])
 	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta["closed"])
@@ -125,7 +114,6 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues() {
 	// given
 	var p *space.Space
-	var rootItr *iteration.Iteration
 	iterationName := "Sprint #22"
 	iterationDesc := "testing description"
 	ci := createSpaceIteration(iterationName, &iterationDesc)
@@ -135,14 +123,6 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 			Name: "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
 		}
 		p, _ = repo.Create(rest.ctx, &testSpace)
-		// create Root iteration for above space
-		rootItr = &iteration.Iteration{
-			SpaceID: testSpace.ID,
-			Name:    testSpace.Name,
-		}
-		iterationRepo := app.Iterations()
-		err := iterationRepo.Create(rest.ctx, rootItr)
-		require.Nil(rest.T(), err)
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
