@@ -38,23 +38,24 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
-	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s",
+	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
 		conf.GetPostgresPort(),
 		conf.GetPostgresUser(),
 		conf.GetPostgresPassword(),
 		conf.GetPostgresSSLMode(),
+		conf.GetPostgresConnectionTimeout(),
 	)
 
 	db, err := sql.Open("postgres", configurationString)
 	defer db.Close()
 	if err != nil {
-		panic(fmt.Errorf("Cannot connect to DB: %s\n", err))
+		panic(fmt.Errorf("Cannot connect to database: %s\n", err))
 	}
 
-	db.Exec("DROP DATABASE " + databaseName)
+	_, err = db.Exec("DROP DATABASE " + databaseName)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("Cannot drop the database: %s\n", err))
 	}
 	_, err = db.Exec("CREATE DATABASE " + databaseName)
 	if err != nil {
@@ -65,13 +66,14 @@ func init() {
 }
 
 func TestMigrations(t *testing.T) {
-	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
 		conf.GetPostgresPort(),
 		conf.GetPostgresUser(),
 		conf.GetPostgresPassword(),
 		databaseName,
 		conf.GetPostgresSSLMode(),
+		conf.GetPostgresConnectionTimeout(),
 	)
 
 	db, err := sql.Open("postgres", configurationString)
