@@ -264,14 +264,16 @@ func TestSuiteWorkItemChildren(t *testing.T) {
 }
 
 func (s *workItemChildSuite) TestWorkItemChildrenRelationship() {
-	// given
-	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
 	hasChildren := true
-	//hasNoChildren := false
+	hasNoChildren := false
 
-	s.T().Run("show action", func(t *testing.T) {
-		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
+	s.T().Run("show action has children", func(t *testing.T) {
+		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *s.bug1.Data.ID, nil, nil)
 		checkChildrenRelationship(t, workItem.Data, &hasChildren)
+	})
+	s.T().Run("show action has no children", func(t *testing.T) {
+		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *s.bug3.Data.ID, nil, nil)
+		checkChildrenRelationship(t, workItem.Data, &hasNoChildren)
 	})
 }
 
