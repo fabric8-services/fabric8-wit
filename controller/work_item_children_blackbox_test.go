@@ -118,7 +118,7 @@ func (s *workItemChildSuite) SetupSuite() {
 func (s *workItemChildSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	var err error
-	//hasChildren := true
+	hasChildren := true
 	hasNoChildren := false
 
 	// Create a test user identity
@@ -182,6 +182,8 @@ func (s *workItemChildSuite) SetupTest() {
 	createPayload := CreateWorkItemLink(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
+	_, workItemAfterLinked := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *bug1.Data.ID, nil, nil)
+	checkChildrenRelationship(s.T(), workItemAfterLinked.Data, &hasChildren)
 
 	createPayload2 := CreateWorkItemLink(s.bug1ID, bug3ID, bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
@@ -224,13 +226,13 @@ func createParentChildWorkItemLinkType(name string, sourceTypeID, targetTypeID, 
 // checkChildrenRelationship runs a variety of checks on a given work item
 // regarding the children relationships
 func checkChildrenRelationship(t *testing.T, wi *app.WorkItem, expectedHasChildren *bool) {
-	require.NotNil(t, wi.Relationships.Children, "no 'children' relationship found")
-	require.NotNil(t, wi.Relationships.Children.Links, "no 'links' found in 'children' relationship")
-	require.NotNil(t, wi.Relationships.Children.Meta, "no 'meta' found in 'children' relationship")
+	require.NotNil(t, wi.Relationships.Children, "no 'children' relationship found in work item %s", *wi.ID)
+	require.NotNil(t, wi.Relationships.Children.Links, "no 'links' found in 'children' relationship in work item %s", *wi.ID)
+	require.NotNil(t, wi.Relationships.Children.Meta, "no 'meta' found in 'children' relationship in work item %s", *wi.ID)
 	hasChildren, hasChildrenFound := wi.Relationships.Children.Meta["hasChildren"]
-	require.True(t, hasChildrenFound, "no 'hasChildren' found in 'meta' object of 'children' relationship")
+	require.True(t, hasChildrenFound, "no 'hasChildren' found in 'meta' object of 'children' relationship in work item %s", *wi.ID)
 	if expectedHasChildren != nil {
-		require.Equal(t, *expectedHasChildren, hasChildren)
+		require.Equal(t, *expectedHasChildren, hasChildren, "work item %s is supposed to have children? %v", *wi.ID, *expectedHasChildren)
 	}
 }
 
