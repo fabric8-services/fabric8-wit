@@ -100,7 +100,6 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		}
 		witData := ConvertWorkItemTypeFromModel(ctx.RequestData, witTypeModel)
 		wit := &app.WorkItemTypeSingle{Data: &witData}
-
 		ctx.ResponseData.Header().Set("Location", app.WorkitemtypeHref(*ctx.Payload.Data.Relationships.Space.Data.ID, wit.Data.ID))
 		return ctx.Created(wit)
 	})

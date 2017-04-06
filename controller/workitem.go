@@ -111,6 +111,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	if ctx.FilterCategory != nil {
 		var relationships []*category.CategoryWitRelationship
 		application.Transactional(c.db, func(tx application.Application) error {
+			// Load all workitemtypes related to the specific category
 			relationships, err = tx.Categories().LoadRelationships(ctx, *ctx.FilterCategory)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
@@ -118,6 +119,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			return nil
 		})
 		for i := 0; i < len(relationships); i++ {
+			// for each workitemtype associated with the category, build the query expression
 			exp = criteria.Or(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[i].WorkitemtypeID)))
 		}
 		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())

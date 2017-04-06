@@ -571,6 +571,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	return nil
 }
 
+// createCategory creates category in db
 func createCategory(ctx context.Context, category *category.Category, categoryRepo category.CategoryRepository) error {
 	err := categoryRepo.Create(ctx, category)
 	if err != nil {
@@ -579,6 +580,7 @@ func createCategory(ctx context.Context, category *category.Category, categoryRe
 	return nil
 }
 
+// populateCategories populates the categories table with system defined categories
 func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository) error {
 	fmt.Println("Creating categories...")
 	category1 := &category.Category{
@@ -603,9 +605,10 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	if err := createSpace(ctx, space.NewRepository(db), space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
+
 	c := category.NewCategoryRepository(db)
-	populateCategories(ctx, db, c)
-	categories, err := c.List(ctx)
+	populateCategories(ctx, db, c) // populate the categories
+	categories, err := c.List(ctx) // fetch the categories
 	if err != nil {
 		return errs.WithStack(err)
 	}
