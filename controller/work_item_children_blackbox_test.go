@@ -220,6 +220,10 @@ func assertWorkItemList(t *testing.T, workItemList *app.WorkItemList) {
 	assert.Equal(t, 2, len(workItemList.Data))
 	count := 0
 	for _, v := range workItemList.Data {
+		require.NotNil(t, v.Relationships.Children.Links, "no 'links' found in 'children' relationship")
+		require.NotNil(t, v.Relationships.Children.Meta, "no 'meta' found in 'children' relationship")
+		_, hasChildrenFound := v.Relationships.Children.Meta["hasChildren"]
+		require.True(t, hasChildrenFound, "no 'hasChildren' found in 'meta' object of 'children' relationship")
 		switch v.Attributes[workitem.SystemTitle] {
 		case "bug2":
 			count = count + 1
