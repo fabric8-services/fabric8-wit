@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
@@ -614,7 +615,13 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 func WorkItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
-		hasChildren, _ := appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+		hasChildren, err := appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"wi_id": wi.ID,
+				"err":   err,
+			}, "unable to find out if work item has children: %s", wi.ID)
+		}
 		if wi2.Relationships.Children == nil {
 			wi2.Relationships.Children = &app.RelationGeneric{}
 		}
@@ -635,8 +642,9 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+			hasChildren := WorkItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
-				Data: ConvertWorkItems(ctx.RequestData, result),
+				Data: ConvertWorkItems(ctx.RequestData, result, hasChildren),
 			}
 			return ctx.OK(&response)
 		})
