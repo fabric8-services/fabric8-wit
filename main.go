@@ -282,7 +282,7 @@ func main() {
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, configuration)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	filterCtrl := controller.NewFilterController(service)
+	filterCtrl := controller.NewFilterController(service, configuration)
 	app.MountFilterController(service, filterCtrl)
 
 	// Mount "namedspaces" controller

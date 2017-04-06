@@ -33,6 +33,7 @@ cachecontrol.iterations: max-age=2
 cachecontrol.areas: max-age=2
 cachecontrol.users: max-age=2
 cachecontrol.comments: max-age=2
+cachecontrol.filters: max-age=86400 // 1 day
 # data returned from '/api/user' must not be cached by intermediate proxies, 
 # but can only be kept in the client's local cache.
 cachecontrol.user: private,max-age=2
