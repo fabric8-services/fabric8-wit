@@ -116,7 +116,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := WorkItemIncludeHasChildren(tx, ctx)
+			hasChildren := workItemIncludeHasChildren(tx, ctx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
@@ -161,7 +161,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
-		hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
@@ -207,7 +207,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
@@ -272,7 +272,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
@@ -294,8 +294,8 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
-		hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi, err := appl.WorkItems().Load(ctx, spaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
@@ -602,17 +602,17 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 	if op.Relationships.Area == nil {
 		op.Relationships.Area = &app.RelationGeneric{Data: nil}
 	}
-	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
-	WorkItemIncludeComments(request, &wi, op)
-	WorkItemIncludeChildren(request, &wi, op)
+	// Always include Comments Link, but optionally use workItemIncludeCommentsAndTotal
+	workItemIncludeComments(request, &wi, op)
+	workItemIncludeChildren(request, &wi, op)
 	for _, add := range additional {
 		add(request, &wi, op)
 	}
 	return op
 }
 
-// WorkItemIncludeHasChildren adds meta information about existing children
-func WorkItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
+// workItemIncludeHasChildren adds meta information about existing children
+func workItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 		hasChildren, err := appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
@@ -642,7 +642,7 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
 				Data: ConvertWorkItems(ctx.RequestData, result, hasChildren),
 			}
@@ -651,8 +651,8 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 	})
 }
 
-// WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
-func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+// workItemIncludeChildren adds relationship about children to workitem (include totalCount)
+func workItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/children"
 	if wi2.Relationships.Children == nil {
 		wi2.Relationships.Children = &app.RelationGeneric{}
