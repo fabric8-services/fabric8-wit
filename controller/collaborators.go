@@ -103,7 +103,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 
 // Add user's identity to the list of space collaborators.
 func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
-	identityIDs := []*app.UpdateUserID{&app.UpdateUserID{ID: ctx.IdentityID}}
+	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
 	err := c.updatePolicy(ctx, ctx.RequestData, ctx.ID, identityIDs, c.policyManager.AddUserToPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -137,7 +137,7 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	identityIDs := []*app.UpdateUserID{&app.UpdateUserID{ID: ctx.IdentityID}}
+	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
 	err = c.updatePolicy(ctx, ctx.RequestData, ctx.ID, identityIDs, c.policyManager.RemoveUserFromPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

@@ -153,7 +153,7 @@ func (rest *TestCollaboratorsREST) TestAddCollaboratorsWithWrongUserIDFormatRetu
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
-	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: "wrongFormatID", Type: idnType}}}
+	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: "wrongFormatID", Type: idnType}}}
 	test.AddManyCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
@@ -175,7 +175,7 @@ func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsOk() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
 
-	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity1.ID.String(), Type: idnType}, &app.UpdateUserID{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}, {ID: rest.testIdentity2.ID.String(), Type: idnType}}}
 	test.AddManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
@@ -189,7 +189,7 @@ func (rest *TestCollaboratorsREST) TestAddCollaboratorsUnauthorizedIfNoToken() {
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsUnauthorizedIfNoToken() {
 	svc, ctrl := rest.UnSecuredController()
-	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
 	test.AddManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
@@ -208,7 +208,7 @@ func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsUnauthorizedIfCurrent
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity2.ID.String()})
 
-	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity1.ID.String(), Type: idnType}}}
+	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}}}
 	test.AddManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
@@ -219,7 +219,7 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfNoToken(
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfNoToken() {
 	svc, ctrl := rest.UnSecuredController()
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
 	test.RemoveManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
@@ -241,7 +241,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfCurr
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
 
 	test.RemoveManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
@@ -262,7 +262,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsFailsIfTryToRemove
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity1.ID.String(), Type: idnType}}}
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}}}
 
 	test.RemoveManyCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
@@ -276,7 +276,7 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsWithRandomSpaceIDNotFo
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithRandomSpaceIDNotFound() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: uuid.NewV4().String(), Type: idnType}}}
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: uuid.NewV4().String(), Type: idnType}}}
 
 	test.RemoveManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), payload)
 }
@@ -290,7 +290,7 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsWithWrongUserIDFormatR
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: "wrongFormatID", Type: idnType}}}
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: "wrongFormatID", Type: idnType}}}
 
 	test.RemoveManyCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
@@ -323,7 +323,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsOk() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{&app.UpdateUserID{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
 
 	test.RemoveManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
