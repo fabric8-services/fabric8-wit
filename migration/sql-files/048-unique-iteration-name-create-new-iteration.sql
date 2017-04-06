@@ -48,6 +48,7 @@ CREATE OR REPLACE FUNCTION GetUpdatedIterationPath(iteration_id uuid,space_id uu
      DECLARE
           rootiteration uuid;
      BEGIN
+     -- In production this probably not NULL; safety check.
      If path IS NULL
         THEN
             path = '';
