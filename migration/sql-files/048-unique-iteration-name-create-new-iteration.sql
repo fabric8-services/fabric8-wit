@@ -1,5 +1,5 @@
------- You can't allow the same iteration name and the same ancestry inside a space
-ALTER TABLE iterations ADD CONSTRAINT iterations_name_space_id_path_unique UNIQUE(space_id,name,path);
+-- Update iterations having same name, append UUID to make it unique.
+update iterations set name = name || '-' || uuid_generate_v4()  where id IN( select id from iterations where name in (select name from iterations group by name having count(name) >1 ));
 
 ------  For existing spaces in production, which dont have a root iteration, create one.
 --
@@ -48,7 +48,10 @@ CREATE OR REPLACE FUNCTION GetUpdatedIterationPath(iteration_id uuid,space_id uu
      DECLARE
           rootiteration uuid;
      BEGIN
-     
+     If path IS NULL
+        THEN
+            path = '';
+     END IF;
      select GetRootIteration(space_id) into rootiteration;
      IF rootiteration != iteration_id 
          THEN                  
@@ -78,3 +81,6 @@ DROP FUNCTION GetRootIteration(uuid);
 DROP FUNCTION TextToLtreeNode(text);
 
 CREATE INDEX ix_name ON iterations USING btree (name);
+
+------ You can't allow the same iteration name and the same ancestry inside a space
+ALTER TABLE iterations ADD CONSTRAINT iterations_name_space_id_path_unique UNIQUE(space_id,name,path);
