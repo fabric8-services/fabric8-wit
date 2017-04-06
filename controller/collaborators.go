@@ -103,9 +103,21 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 
 // Add user's identity to the list of space collaborators.
 func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
-	err := c.updatePolicy(ctx, ctx.RequestData, ctx.ID, ctx.IdentityID, c.policyManager.AddUserToPolicy)
+	identityIDs := []*app.UpdateUserID{&app.UpdateUserID{ID: ctx.IdentityID}}
+	err := c.updatePolicy(ctx, ctx.RequestData, ctx.ID, identityIDs, c.policyManager.AddUserToPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
+}
+
+// AddMany adds user's identities to the list of space collaborators.
+func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) error {
+	if ctx.Payload != nil && ctx.Payload.Data != nil {
+		err := c.updatePolicy(ctx, ctx.RequestData, ctx.ID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
 	}
 	return ctx.OK([]byte{})
 }
@@ -120,12 +132,54 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 		}, "unable to convert the space ID to uuid v4")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
 	}
-	var ownerID string
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		space, err := appl.Spaces().Load(ctx, spaceID)
+	err = c.checkSpaceOwner(ctx, spaceID, ctx.IdentityID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	identityIDs := []*app.UpdateUserID{&app.UpdateUserID{ID: ctx.IdentityID}}
+	err = c.updatePolicy(ctx, ctx.RequestData, ctx.ID, identityIDs, c.policyManager.RemoveUserFromPolicy)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	return ctx.OK([]byte{})
+}
+
+// RemoveMany removes users from the list of space collaborators.
+func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsContext) error {
+	if ctx.Payload != nil && ctx.Payload.Data != nil {
+		// Don't remove the space owner
+		spaceID, err := uuid.FromString(ctx.ID)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"space_id": ctx.ID,
+			}, "unable to convert the space ID to uuid v4")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
+		}
+		for _, idn := range ctx.Payload.Data {
+			if idn != nil {
+				err := c.checkSpaceOwner(ctx, spaceID, idn.ID)
+				if err != nil {
+					return jsonapi.JSONErrorResponse(ctx, err)
+				}
+			}
+		}
+		err = c.updatePolicy(ctx, ctx.RequestData, ctx.ID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+	}
+
+	return ctx.OK([]byte{})
+}
+
+func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID uuid.UUID, identityID string) error {
+	var ownerID string
+	err := application.Transactional(c.db, func(appl application.Application) error {
+		space, err := appl.Spaces().Load(ctx, spaceID)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"space_id": spaceID.String(),
 				"err":      err,
 			}, "unable to find the space")
 			return err
@@ -134,20 +188,15 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 		return nil
 	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		return goa.ErrNotFound(err.Error())
 	}
-	if ctx.IdentityID == ownerID {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("Space owner can't be removed from the list of the space collaborators"))
+	if identityID == ownerID {
+		return goa.ErrBadRequest("Space owner can't be removed from the list of the space collaborators")
 	}
-
-	err = c.updatePolicy(ctx, ctx.RequestData, ctx.ID, ctx.IdentityID, c.policyManager.RemoveUserFromPolicy)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
-	return ctx.OK([]byte{})
+	return nil
 }
 
-func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID string, identityID string, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
+func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID string, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
 	// Authorize current user
 	authorized, err := c.policyManager.VerifyUser(ctx, req, spaceID)
 	if err != nil {
@@ -162,41 +211,47 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 	if err != nil {
 		return err
 	}
-	identityUUID, err := uuid.FromString(identityID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"identity_id": identityID,
-		}, "unable to convert the identity ID to uuid v4")
-		return goa.ErrBadRequest(err.Error())
-	}
-	var identity *account.Identity
-	err = application.Transactional(c.db, func(appl application.Application) error {
-		identities, err := appl.Identities().Query(account.IdentityFilterByID(identityUUID), account.IdentityWithUser())
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"identity_id": identityID,
-				"err":         err,
-			}, "unable to find the identity")
-			return err
+	updated := false
+	for _, identityIDData := range identityIDs {
+		if identityIDData != nil {
+			identityID := identityIDData.ID
+			identityUUID, err := uuid.FromString(identityID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"identity_id": identityID,
+				}, "unable to convert the identity ID to uuid v4")
+				return goa.ErrBadRequest(err.Error())
+			}
+			var identity *account.Identity
+			err = application.Transactional(c.db, func(appl application.Application) error {
+				identities, err := appl.Identities().Query(account.IdentityFilterByID(identityUUID), account.IdentityWithUser())
+				if err != nil {
+					log.Error(ctx, map[string]interface{}{
+						"identity_id": identityID,
+						"err":         err,
+					}, "unable to find the identity")
+					return err
+				}
+				if len(identities) == 0 {
+					log.Error(ctx, map[string]interface{}{
+						"identity_id": identityID,
+					}, "unable to find the identity")
+					return errors.New("Identity not found")
+				}
+				identity = identities[0]
+				return nil
+			})
+			if err != nil {
+				return goa.ErrNotFound(err.Error())
+			}
+			updated = updated || update(policy, identityID)
 		}
-		if len(identities) == 0 {
-			log.Error(ctx, map[string]interface{}{
-				"identity_id": identityID,
-			}, "unable to find the identity")
-			return errors.New("Identity not found")
-		}
-		identity = identities[0]
-		return nil
-	})
-	if err != nil {
-		return goa.ErrNotFound(err.Error())
 	}
-
-	updated := update(policy, identityID)
 	if !updated {
 		// Nothing changed. No need to update
 		return nil
 	}
+
 	err = c.policyManager.UpdatePolicy(ctx, req, *policy, *pat)
 	if err != nil {
 		return goa.ErrInternal(err.Error())

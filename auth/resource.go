@@ -138,7 +138,7 @@ func getPat(requestData *goa.RequestData, config KeycloakConfiguration) (string,
 	return token, nil
 }
 
-// DeleteResource deletes the keyclaok resource and associated permission and policy
+// DeleteResource deletes the keycloak resource and associated permission and policy
 func (m *KeycloakResourceManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error {
 	authzEndpoint, err := m.configuration.GetKeycloakEndpointAuthzResourceset(request)
 	if err != nil {
