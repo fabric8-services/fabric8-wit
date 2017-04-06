@@ -621,6 +621,8 @@ func workItemIncludeHasChildren(appl application.Application, ctx context.Contex
 				"wi_id": wi.ID,
 				"err":   err,
 			}, "unable to find out if work item has children: %s", wi.ID)
+			// enforce to have no children
+			hasChildren = false
 		}
 		if wi2.Relationships.Children == nil {
 			wi2.Relationships.Children = &app.RelationGeneric{}
