@@ -116,7 +116,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
-			hasChildren := WorkItemIncludeHasChildren(appl, ctx)
+			hasChildren := WorkItemIncludeHasChildren(tx, ctx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
