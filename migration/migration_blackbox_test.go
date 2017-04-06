@@ -53,10 +53,8 @@ func init() {
 		panic(fmt.Errorf("Cannot connect to database: %s\n", err))
 	}
 
-	_, err = db.Exec("DROP DATABASE " + databaseName)
-	if err != nil {
-		panic(fmt.Errorf("Cannot drop the database: %s\n", err))
-	}
+	db.Exec("DROP DATABASE " + databaseName)
+
 	_, err = db.Exec("CREATE DATABASE " + databaseName)
 	if err != nil {
 		panic(err)
