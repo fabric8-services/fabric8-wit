@@ -91,7 +91,7 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 	for categoryID := range categoryIDMap {
 		modelCategory, err := ctx.Application.WorkItemLinkCategories().Load(ctx.Context, categoryID)
 		if err != nil {
-			err
+			return err
 		}
 		appCategory := convertLinkCategoryFromModel(*modelCategory)
 		list.Included = append(list.Included, appCategory.Data)
@@ -106,11 +106,11 @@ func enrichLinkTypeList(ctx *workItemLinkContext, list *app.WorkItemLinkTypeList
 	for spaceID := range spaceIDMap {
 		space, err := ctx.Application.Spaces().Load(ctx.Context, spaceID)
 		if err != nil {
-			err
+			return err
 		}
 		spaceData, err := ConvertSpaceFromModel(ctx.Context, ctx.DB, ctx.RequestData, *space)
 		if err != nil {
-			err
+			return err
 		}
 		spaceSingle := &app.SpaceSingle{
 			Data: spaceData,
