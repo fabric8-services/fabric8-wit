@@ -182,6 +182,7 @@ func (s *workItemChildSuite) SetupTest() {
 	createPayload := CreateWorkItemLink(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
+	// Check that the bug1 now hasChildren
 	_, workItemAfterLinked := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *bug1.Data.ID, nil, nil)
 	checkChildrenRelationship(s.T(), workItemAfterLinked.Data, &hasChildren)
 
