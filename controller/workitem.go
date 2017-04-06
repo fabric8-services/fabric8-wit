@@ -118,9 +118,12 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			}
 			return nil
 		})
-		for i := 0; i < len(relationships); i++ {
-			// for each workitemtype associated with the category, build the query expression
-			exp = criteria.Or(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[i].WorkitemtypeID)))
+		// for each workitemtype associated with the category, build the query expression
+		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[0].WorkitemtypeID)))
+		if len(relationships) > 1 {
+			for i := 1; i < len(relationships); i++ {
+				exp = criteria.Or(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[i].WorkitemtypeID)))
+			}
 		}
 		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())
 	}
