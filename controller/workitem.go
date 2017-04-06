@@ -615,14 +615,19 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 func workItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
-		hasChildren, err := appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"wi_id": wi.ID,
-				"err":   err,
-			}, "unable to find out if work item has children: %s", wi.ID)
-			// enforce to have no children
-			hasChildren = false
+		var hasChildren bool
+		var err error
+		repo := appl.WorkItemLinks()
+		if repo != nil {
+			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"wi_id": wi.ID,
+					"err":   err,
+				}, "unable to find out if work item has children: %s", wi.ID)
+				// enforce to have no children
+				hasChildren = false
+			}
 		}
 		if wi2.Relationships.Children == nil {
 			wi2.Relationships.Children = &app.RelationGeneric{}
