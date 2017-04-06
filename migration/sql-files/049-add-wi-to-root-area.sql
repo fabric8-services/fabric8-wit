@@ -3,4 +3,4 @@ update work_items set fields=jsonb_set(fields, '{system.area}', to_jsonb(subq.id
     where subq.space_id = work_items.space_id and fields->>'system.area' IS NULL;
 
 
-CREATE INDEX ix_name ON areas USING btree (name);
+CREATE INDEX ix_area_name ON areas USING btree (name);
