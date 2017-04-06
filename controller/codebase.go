@@ -265,7 +265,7 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 func getNamespace(ctx context.Context) string {
 	token := goajwt.ContextJWT(ctx)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		email := claims["email"].(string)
+		email := claims["preferred_username"].(string)
 		return strings.Replace(strings.Split(email, "@")[0], ".", "-", -1) + "-che"
 	}
 	return ""
