@@ -262,7 +262,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("047-codebases.sql")})
 
 	// Version 48
-	m = append(m, steps{executeSQLFile("048-unique-iteration-name-create-new-iteration.sql")})
+	m = append(m, steps{ExecuteSQLFile("048-unique-iteration-name-create-new-iteration.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

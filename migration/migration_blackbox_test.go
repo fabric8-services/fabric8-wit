@@ -111,22 +111,28 @@ func TestMigrations(t *testing.T) {
 	}
 
 	// Insert dummy test data
-	runSQLscript(db, "044-insert-test-data.sql")
+	assert.Nil(t, runSQLscript(db, "044-insert-test-data.sql"))
 
 	// Migration 45
 	migrationToVersion(db, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
 	testMigration45(gormDB, dialect, t)
-	runSQLscript(db, "045-update-work-items.sql")
+	assert.Nil(t, runSQLscript(db, "045-update-work-items.sql"))
 
 	// Migration 46
 	migrationToVersion(db, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
 	testMigration46(gormDB, dialect, t)
-	runSQLscript(db, "046-insert-oauth-states.sql")
+	assert.Nil(t, runSQLscript(db, "046-insert-oauth-states.sql"))
 
 	// Migration 47
 	migrationToVersion(db, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
 	testMigration47(gormDB, dialect, t)
-	runSQLscript(db, "047-insert-codebases.sql")
+	assert.Nil(t, runSQLscript(db, "047-insert-codebases.sql"))
+
+	// Migration 48
+	migrationToVersion(db, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
+	testMigration48(gormDB, dialect, t)
+	// This script execution has to fail
+	assert.NotNil(t, runSQLscript(db, "048-unique-idx-failed-insert.sql"))
 
 	// Perform the migration
 	if err := migration.Migrate(db, databaseName); err != nil {
@@ -154,24 +160,30 @@ func testMigration47(db *gorm.DB, dialect gorm.Dialect, t *testing.T) {
 	assert.True(t, dialect.HasIndex("codebases", "ix_codebases_space_id"))
 }
 
+func testMigration48(db *gorm.DB, dialect gorm.Dialect, t *testing.T) {
+	assert.True(t, dialect.HasIndex("iterations", "ix_name"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
-func runSQLscript(db *sql.DB, sqlFilename string) {
+func runSQLscript(db *sql.DB, sqlFilename string) error {
 	var tx *sql.Tx
 	tx, err := db.Begin()
 	if err != nil {
-		panic(fmt.Errorf("Failed to start transaction: %s\n", err))
+		return errs.New(fmt.Sprintf("Failed to start transaction: %s\n", err))
 	}
 	if err := executeSQLTestFile(sqlFilename)(tx); err != nil {
-		log.Error(nil, nil, "Failed to execute data insertion of version: %s\n", err)
+		log.Warn(nil, nil, "Failed to execute data insertion of version: %s\n", err)
 		if err = tx.Rollback(); err != nil {
-			panic(fmt.Errorf("error while rolling back transaction: ", err))
+			return errs.New(fmt.Sprintf("error while rolling back transaction: ", err))
 		}
 	}
 	if err = tx.Commit(); err != nil {
-		panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+		return errs.New(fmt.Sprintf("Error during transaction commit: %s\n", err))
 	}
+
+	return nil
 }
 
 // executeSQLTestFile loads the given filename from the packaged SQL files and
