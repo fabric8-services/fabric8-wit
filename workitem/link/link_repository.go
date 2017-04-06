@@ -322,21 +322,22 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 // otherwise false is returned
 func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, parent string) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "has", "children"}, time.Now())
-	row := r.db.DB().QueryRow(fmt.Sprintf(`
-	SELECT EXISTS (
-		SELECT %[1]s WHERE id in (
-			SELECT target_id FROM %[2]s
-			WHERE source_id = ? AND link_type_id IN (
-				SELECT id FROM %[3]s WHERE forward_name = 'parent of'
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT %[1]s WHERE id in (
+				SELECT target_id FROM %[2]s
+				WHERE source_id = ? AND link_type_id IN (
+					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
+				)
 			)
-		)
-	)
-	`, workitem.WorkItemStorage{}.TableName(), WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName()))
-
+		)`,
+		workitem.WorkItemStorage{}.TableName(),
+		WorkItemLink{}.TableName(),
+		WorkItemLinkType{}.TableName())
 	var hasChildren bool
-	if err := row.Scan(&hasChildren); err != nil {
+	err := r.db.Raw(query, parent).Scan(&hasChildren).Error
+	if err != nil {
 		return false, errs.Wrapf(err, "failed to check if work item %s has children", parent)
 	}
-
 	return hasChildren, nil
 }
