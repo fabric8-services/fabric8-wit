@@ -76,16 +76,20 @@ func (c *IterationController) CreateChild(ctx *app.CreateChildIterationContext) 
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		var responseData *app.Iteration
-		allParentsUUIDs := newItr.Path
-		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
-		if error != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+		if newItr.Path.IsEmpty() == false {
+			allParentsUUIDs := newItr.Path
+			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
+			if error != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			itrMap := make(iterationIDMap)
+			for _, itr := range iterations {
+				itrMap[itr.ID] = itr
+			}
+			responseData = ConvertIteration(ctx.RequestData, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
+		} else {
+			responseData = ConvertIteration(ctx.RequestData, newItr, updateIterationsWithCounts(wiCounts))
 		}
-		itrMap := make(iterationIDMap)
-		for _, itr := range iterations {
-			itrMap[itr.ID] = itr
-		}
-		responseData = ConvertIteration(ctx.RequestData, newItr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
 		res := &app.IterationSingle{
 			Data: responseData,
 		}
@@ -111,20 +115,10 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			var responseData *app.Iteration
-			allParentsUUIDs := iter.Path
-			iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
-			if error != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-			itrMap := make(iterationIDMap)
-			for _, itr := range iterations {
-				itrMap[itr.ID] = itr
-			}
-			responseData = ConvertIteration(ctx.RequestData, *iter, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
-			res := &app.IterationSingle{
-				Data: responseData,
-			}
+			res := &app.IterationSingle{}
+			res.Data = ConvertIteration(
+				ctx.RequestData,
+				*iter, updateIterationsWithCounts(wiCounts))
 			return ctx.OK(res)
 		})
 	})
@@ -160,7 +154,7 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		}
 		if ctx.Payload.Data.Attributes.State != nil {
 			if *ctx.Payload.Data.Attributes.State == iteration.IterationStateStart {
-				res, err := appl.Iterations().CanStart(ctx, itr)
+				res, err := appl.Iterations().CanStartIteration(ctx, itr)
 				if res == false && err != nil {
 					return jsonapi.JSONErrorResponse(ctx, err)
 				}
@@ -175,21 +169,11 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		var responseData *app.Iteration
-		allParentsUUIDs := itr.Path
-		iterations, error := appl.Iterations().LoadMultiple(ctx, allParentsUUIDs)
-		if error != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+		response := app.IterationSingle{
+			Data: ConvertIteration(ctx.RequestData, *itr, updateIterationsWithCounts(wiCounts)),
 		}
-		itrMap := make(iterationIDMap)
-		for _, itr := range iterations {
-			itrMap[itr.ID] = itr
-		}
-		responseData = ConvertIteration(ctx.RequestData, *itr, parentPathResolver(itrMap), updateIterationsWithCounts(wiCounts))
-		res := &app.IterationSingle{
-			Data: responseData,
-		}
-		return ctx.OK(res)
+
+		return ctx.OK(&response)
 	})
 }
 
@@ -295,9 +279,6 @@ func parentPathResolver(itrMap iterationIDMap) IterationConvertFunc {
 			if i, ok := itrMap[id]; ok {
 				pathResolved += iteration.PathSepInService + i.Name
 			}
-		}
-		if pathResolved == "" {
-			pathResolved = iteration.PathSepInService
 		}
 		appIteration.Attributes.ResolvedParentPath = &pathResolved
 	}

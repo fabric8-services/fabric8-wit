@@ -9,7 +9,6 @@ import (
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/errors"
-	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
@@ -114,16 +113,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", rSpace.Name))
 		}
 
-		// Similar to above, we create a root iteration for this new space
-		newIteration := iteration.Iteration{
-			ID:      uuid.NewV4(),
-			SpaceID: rSpace.ID,
-			Name:    rSpace.Name,
-		}
-		err = appl.Iterations().Create(ctx, &newIteration)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create iteration for space: %s", rSpace.Name))
-		}
 		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *rSpace)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -373,9 +362,9 @@ func ConvertSpacesFromModel(ctx context.Context, db application.DB, request *goa
 }
 
 // ConvertSpaceFromModel converts between internal and external REST representation
-func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.RequestData, sp space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
-	selfURL := rest.AbsoluteURL(request, app.SpaceHref(sp.ID))
-	spaceIDStr := sp.ID.String()
+func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.RequestData, p space.Space, additional ...SpaceConvertFunc) (*app.Space, error) {
+	selfURL := rest.AbsoluteURL(request, app.SpaceHref(p.ID))
+	spaceIDStr := p.ID.String()
 	relatedIterationList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/iterations", spaceIDStr))
 	relatedAreaList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/areas", spaceIDStr))
 	relatedBacklogList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/backlog", spaceIDStr))
@@ -383,21 +372,21 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, sp.OwnerId.String()))
+	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, p.OwnerId.String()))
 
-	count, err := countBacklogItems(ctx, db, sp.ID)
+	count, err := countBacklogItems(ctx, db, p.ID)
 	if err != nil {
 		return nil, errs.Wrap(err, "unable to fetch backlog items")
 	}
-	s := &app.Space{
-		ID:   &sp.ID,
+	return &app.Space{
+		ID:   &p.ID,
 		Type: APIStringTypeSpace,
 		Attributes: &app.SpaceAttributes{
-			Name:        &sp.Name,
-			Description: &sp.Description,
-			CreatedAt:   &sp.CreatedAt,
-			UpdatedAt:   &sp.UpdatedAt,
-			Version:     &sp.Version,
+			Name:        &p.Name,
+			Description: &p.Description,
+			CreatedAt:   &p.CreatedAt,
+			UpdatedAt:   &p.UpdatedAt,
+			Version:     &p.Version,
 		},
 		Links: &app.GenericLinksForSpace{
 			Self: &selfURL,
@@ -412,7 +401,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			OwnedBy: &app.SpaceOwnedBy{
 				Data: &app.IdentityRelationData{
 					Type: "identities",
-					ID:   &sp.OwnerId,
+					ID:   &p.OwnerId,
 				},
 				Links: &app.GenericLinks{
 					Related: &relatedOwnerByLink,
@@ -439,9 +428,5 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 				},
 			},
 		},
-	}
-	for _, add := range additional {
-		add(request, &sp, s)
-	}
-	return s, nil
+	}, nil
 }
