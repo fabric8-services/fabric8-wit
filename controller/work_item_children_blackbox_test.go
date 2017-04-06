@@ -118,6 +118,8 @@ func (s *workItemChildSuite) SetupSuite() {
 func (s *workItemChildSuite) SetupTest() {
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 	var err error
+	//hasChildren := true
+	hasNoChildren := false
 
 	// Create a test user identity
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
@@ -137,6 +139,7 @@ func (s *workItemChildSuite) SetupTest() {
 	bug1Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug1")
 	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug1Payload)
 	require.NotNil(s.T(), bug1)
+	checkChildrenRelationship(s.T(), bug1.Data, &hasNoChildren)
 
 	s.bug1 = bug1
 	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
@@ -146,6 +149,7 @@ func (s *workItemChildSuite) SetupTest() {
 	bug2Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug2")
 	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug2Payload)
 	require.NotNil(s.T(), bug2)
+	checkChildrenRelationship(s.T(), bug2.Data, &hasNoChildren)
 
 	bug2ID, err := strconv.ParseUint(*bug2.Data.ID, 10, 64)
 	require.Nil(s.T(), err)
@@ -154,6 +158,7 @@ func (s *workItemChildSuite) SetupTest() {
 	bug3Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug3")
 	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug3Payload)
 	require.NotNil(s.T(), bug3)
+	checkChildrenRelationship(s.T(), bug3.Data, &hasNoChildren)
 
 	s.bug3 = bug3
 	bug3ID, err := strconv.ParseUint(*bug3.Data.ID, 10, 64)
@@ -216,14 +221,24 @@ func createParentChildWorkItemLinkType(name string, sourceTypeID, targetTypeID, 
 	}
 }
 
+// checkChildrenRelationship runs a variety of checks on a given work item
+// regarding the children relationships
+func checkChildrenRelationship(t *testing.T, wi *app.WorkItem, expectedHasChildren *bool) {
+	require.NotNil(t, wi.Relationships.Children, "no 'children' relationship found")
+	require.NotNil(t, wi.Relationships.Children.Links, "no 'links' found in 'children' relationship")
+	require.NotNil(t, wi.Relationships.Children.Meta, "no 'meta' found in 'children' relationship")
+	hasChildren, hasChildrenFound := wi.Relationships.Children.Meta["hasChildren"]
+	require.True(t, hasChildrenFound, "no 'hasChildren' found in 'meta' object of 'children' relationship")
+	if expectedHasChildren != nil {
+		require.Equal(t, *expectedHasChildren, hasChildren)
+	}
+}
+
 func assertWorkItemList(t *testing.T, workItemList *app.WorkItemList) {
 	assert.Equal(t, 2, len(workItemList.Data))
 	count := 0
 	for _, v := range workItemList.Data {
-		require.NotNil(t, v.Relationships.Children.Links, "no 'links' found in 'children' relationship")
-		require.NotNil(t, v.Relationships.Children.Meta, "no 'meta' found in 'children' relationship")
-		_, hasChildrenFound := v.Relationships.Children.Meta["hasChildren"]
-		require.True(t, hasChildrenFound, "no 'hasChildren' found in 'meta' object of 'children' relationship")
+		checkChildrenRelationship(t, v, nil)
 		switch v.Attributes[workitem.SystemTitle] {
 		case "bug2":
 			count = count + 1
@@ -243,6 +258,18 @@ func assertWorkItemList(t *testing.T, workItemList *app.WorkItemList) {
 func TestSuiteWorkItemChildren(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+}
+
+func (s *workItemChildSuite) TestWorkItemChildrenRelationship() {
+	// given
+	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
+	hasChildren := true
+	//hasNoChildren := false
+
+	s.T().Run("show action", func(t *testing.T) {
+		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
+		checkChildrenRelationship(t, workItem.Data, &hasChildren)
+	})
 }
 
 func (s *workItemChildSuite) TestListChildrenOK() {
