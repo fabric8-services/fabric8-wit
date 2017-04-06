@@ -263,7 +263,9 @@ func TestSuiteWorkItemChildren(t *testing.T) {
 	suite.Run(t, &workItemChildSuite{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
-func (s *workItemChildSuite) TestWorkItemChildrenRelationship() {
+func (s *workItemChildSuite) TestChildren() {
+	// given
+	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
 	hasChildren := true
 	hasNoChildren := false
 
@@ -275,13 +277,7 @@ func (s *workItemChildSuite) TestWorkItemChildrenRelationship() {
 		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *s.bug3.Data.ID, nil, nil)
 		checkChildrenRelationship(t, workItem.Data, &hasNoChildren)
 	})
-}
-
-func (s *workItemChildSuite) TestListChildren() {
-	// given
-	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
-
-	s.T().Run("ok", func(t *testing.T) {
+	s.T().Run("list ok", func(t *testing.T) {
 		// when
 		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
 		// then
