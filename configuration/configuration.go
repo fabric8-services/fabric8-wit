@@ -76,6 +76,7 @@ const (
 	varCacheControlIterations           = "cachecontrol.iterations"
 	varCacheControlAreas                = "cachecontrol.areas"
 	varCacheControlComments             = "cachecontrol.comments"
+	varCacheControlFilters              = "cachecontrol.filters"
 	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
@@ -183,6 +184,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlIterations, "max-age=2")
 	c.v.SetDefault(varCacheControlAreas, "max-age=2")
 	c.v.SetDefault(varCacheControlComments, "max-age=2")
+	c.v.SetDefault(varCacheControlFilters, "max-age=86400")
 	c.v.SetDefault(varCacheControlUsers, "max-age=2")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
@@ -324,6 +326,12 @@ func (c *ConfigurationData) GetCacheControlIteration() string {
 // when returning comments.
 func (c *ConfigurationData) GetCacheControlComments() string {
 	return c.v.GetString(varCacheControlComments)
+}
+
+// GetCacheControlFilters returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlFilters() string {
+	return c.v.GetString(varCacheControlFilters)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
