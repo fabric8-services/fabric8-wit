@@ -172,7 +172,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 			err = enrichLinkTypeList(linkCtx, appLinkTypes)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
 			}
 			return ctx.OK(appLinkTypes)
 		})
@@ -210,7 +210,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 			err = enrichLinkTypeList(linkCtx, appLinkTypes)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal("Failed to enrich link types: %s", err.Error()))
 			}
 			return ctx.OK(appLinkTypes)
 		})
