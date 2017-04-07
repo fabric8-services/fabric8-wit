@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/almighty/almighty-core/criteria"
+	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/workitem"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
@@ -127,11 +128,11 @@ type WorkItemRepository struct {
 		result1 map[string]workitem.WICountsPerIteration
 		result2 error
 	}
-	GetCountsForIterationStub        func(ctx context.Context, iterationID uuid.UUID) (map[string]workitem.WICountsPerIteration, error)
+	GetCountsForIterationStub        func(ctx context.Context, itr *iteration.Iteration) (map[string]workitem.WICountsPerIteration, error)
 	getCountsForIterationMutex       sync.RWMutex
 	getCountsForIterationArgsForCall []struct {
-		ctx         context.Context
-		iterationID uuid.UUID
+		ctx context.Context
+		itr *iteration.Iteration
 	}
 	getCountsForIterationReturns struct {
 		result1 map[string]workitem.WICountsPerIteration
@@ -473,16 +474,16 @@ func (fake *WorkItemRepository) GetCountsPerIterationReturns(result1 map[string]
 	}{result1, result2}
 }
 
-func (fake *WorkItemRepository) GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]workitem.WICountsPerIteration, error) {
+func (fake *WorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]workitem.WICountsPerIteration, error) {
 	fake.getCountsForIterationMutex.Lock()
 	fake.getCountsForIterationArgsForCall = append(fake.getCountsForIterationArgsForCall, struct {
-		ctx         context.Context
-		iterationID uuid.UUID
-	}{ctx, iterationID})
-	fake.recordInvocation("GetCountsForIteration", []interface{}{ctx, iterationID})
+		ctx context.Context
+		itr *iteration.Iteration
+	}{ctx, itr})
+	fake.recordInvocation("GetCountsForIteration", []interface{}{ctx, itr})
 	fake.getCountsForIterationMutex.Unlock()
 	if fake.GetCountsForIterationStub != nil {
-		return fake.GetCountsForIterationStub(ctx, iterationID)
+		return fake.GetCountsForIterationStub(ctx, itr)
 	}
 	return fake.getCountsForIterationReturns.result1, fake.getCountsForIterationReturns.result2
 }
@@ -493,10 +494,10 @@ func (fake *WorkItemRepository) GetCountsForIterationCallCount() int {
 	return len(fake.getCountsForIterationArgsForCall)
 }
 
-func (fake *WorkItemRepository) GetCountsForIterationArgsForCall(i int) (context.Context, uuid.UUID) {
+func (fake *WorkItemRepository) GetCountsForIterationArgsForCall(i int) (context.Context, *iteration.Iteration) {
 	fake.getCountsForIterationMutex.RLock()
 	defer fake.getCountsForIterationMutex.RUnlock()
-	return fake.getCountsForIterationArgsForCall[i].ctx, fake.getCountsForIterationArgsForCall[i].iterationID
+	return fake.getCountsForIterationArgsForCall[i].ctx, fake.getCountsForIterationArgsForCall[i].itr
 }
 
 func (fake *WorkItemRepository) GetCountsForIterationReturns(result1 map[string]workitem.WICountsPerIteration, result2 error) {
