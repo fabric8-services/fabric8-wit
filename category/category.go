@@ -15,6 +15,16 @@ const (
 	APIStringTypeCategory = "categories"
 )
 
+const (
+	PlannerRequirements = "planner.requirements"
+	PlannerIssues       = "planner.issues"
+)
+
+var (
+	PlannerRequirementsID = uuid.FromStringOrNil("04aef834-1505-44cf-80e4-ab0d857d9f56") // "planner.requirements"
+	PlannerIssuesID       = uuid.FromStringOrNil("27d92fe4-b2ee-45c2-b9bb-01f355ad616f") // "planner.issues"
+)
+
 // Category describes a single category
 type Category struct {
 	gormsupport.Lifecycle
@@ -46,6 +56,7 @@ type CategoryRepository interface {
 	List(ctx context.Context) ([]*Category, error)
 	CreateRelationship(ctx context.Context, relationship *CategoryWitRelationship) error
 	LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*CategoryWitRelationship, error)
+	LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error)
 }
 
 // NewCategoryRepository creates a new storage type.
@@ -84,6 +95,9 @@ func (r *GormCategoryRepository) Create(ctx context.Context, category *Category)
 	}
 	db := r.db.Create(category)
 	if db.Error != nil {
+		if gormsupport.IsUniqueViolation(db.Error, "categories_name_idx") {
+			return errors.NewBadParameterError("Name", category.Name).Expected("unique")
+		}
 		return errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
@@ -107,7 +121,6 @@ func (r *GormCategoryRepository) LoadRelationships(ctx context.Context, category
 	if err := db.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-
 	relationship := []*CategoryWitRelationship{}
 	db = r.db.Model(&relationship).Where("category_id=?", categoryID).Find(&relationship)
 	if db.RecordNotFound() {
@@ -120,4 +133,25 @@ func (r *GormCategoryRepository) LoadRelationships(ctx context.Context, category
 		return nil, errors.NewInternalError(err.Error())
 	}
 	return relationship, nil
+}
+
+// LoadCategoryFromDB returns category for the given id
+// This is needed to check if a particular category is present in db or not before creating.
+func (r *GormCategoryRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error) {
+	log.Logger().Infoln("Loading category", id)
+	res := Category{}
+	db := r.db.Model(&res).Where("id=?", id).First(&res)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"category_id": id,
+		}, "category not found")
+		return nil, errors.NewNotFoundError("category", id.String())
+	}
+	if err := db.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"categoryID": id,
+		}, "category retrieval error", err.Error())
+		return nil, errors.NewInternalError(err.Error())
+	}
+	return &res, nil
 }

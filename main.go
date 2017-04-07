@@ -281,10 +281,6 @@ func main() {
 	filterCtrl := controller.NewFilterController(service)
 	app.MountFilterController(service, filterCtrl)
 
-	// Mount "categories" controller
-	categoriesCtrl := controller.NewCategoryController(service, appDB)
-	app.MountCategoryController(service, categoriesCtrl)
-
 	// Mount "namedspaces" controller
 	namedSpacesCtrl := controller.NewNamedspacesController(service, appDB)
 	app.MountNamedspacesController(service, namedSpacesCtrl)

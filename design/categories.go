@@ -21,6 +21,7 @@ var categoryAttributes = a.Type("categoryAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a filter. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("name", d.String, "The Category name", func() {
 		a.Example("Requirements")
+		a.MinLength(1)
 	})
 	a.Required("name")
 })
@@ -47,20 +48,4 @@ var relationCategoriesData = a.Type("RelationCategoriesData", func() {
 		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Attribute("links", genericLinks)
-})
-
-var _ = a.Resource("category", func() {
-	a.BasePath("/categories")
-	a.Action("list", func() {
-		a.Routing(
-			a.GET("categories"),
-		)
-		a.Description("List Categories.")
-		a.Response(d.OK, func() {
-			a.Media(categoryList)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.NotFound, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
-	})
 })

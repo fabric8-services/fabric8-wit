@@ -572,30 +572,45 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 }
 
 // createCategory creates category in db
-func createCategory(ctx context.Context, category *category.Category, categoryRepo category.CategoryRepository) error {
-	err := categoryRepo.Create(ctx, category)
+func createOrUpdateCategory(ctx context.Context, categoryRepo category.CategoryRepository, categoryID *uuid.UUID, categoryName string) error {
+	category := category.Category{
+		ID:   *categoryID,
+		Name: categoryName,
+	}
+	err := categoryRepo.Create(ctx, &category)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	return nil
 }
 
-// populateCategories populates the categories table with system defined categories
-func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository) error {
-	fmt.Println("Creating categories...")
-	category1 := &category.Category{
-		Name: "planner.requirements",
-	}
-	err := createCategory(ctx, category1, categoryRepo)
-	category2 := &category.Category{
-		Name: "planner.issues",
-	}
-	err = createCategory(ctx, category2, categoryRepo)
-	if err != nil {
+func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository, categoryID *uuid.UUID, categoryName string) error {
+	cat, err := categoryRepo.LoadCategoryFromDB(ctx, *categoryID)
+	cause := errs.Cause(err)
+	switch cause.(type) {
+	case errors.NotFoundError:
+		err = createOrUpdateCategory(ctx, categoryRepo, categoryID, categoryName)
+		if err != nil {
+			return errs.WithStack(err)
+		}
+	case nil:
+		log.Info(ctx, map[string]interface{}{
+			"category": categoryName,
+		}, "Category %s exists, will update/overwrite all fields", categoryName)
+		cat.ID = *categoryID
+		cat.Name = categoryName
+		db = db.Save(cat)
 		return errs.WithStack(err)
 	}
-	fmt.Println("Creation of categories done.")
 	return nil
+}
+
+// populateCategories populates the categories table with system defined categories
+func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository) {
+	fmt.Println("Creating or updating categories...")
+	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerRequirementsID, category.PlannerRequirements)
+	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerIssuesID, category.PlannerIssues)
+	fmt.Println("Creating/updating of categories done.")
 }
 
 // PopulateCommonTypes makes sure the database is populated with the correct types (e.g. bug etc.)

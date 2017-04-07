@@ -374,6 +374,25 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, p.OwnerId.String()))
 
+	// fetch all categories links
+	categoriesData := []*app.GenericData{}
+	application.Transactional(db, func(appl application.Application) error {
+		categories, err := appl.Categories().List(ctx)
+		if err != nil {
+			return errs.Wrap(err, "unable to fetch categories")
+		}
+		for i := 0; i < len(categories); i++ {
+			relatedCategoryList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems?filter[category]=%s", spaceIDStr, categories[i].ID))
+			catList := app.GenericData{
+				Links: &app.GenericLinks{
+					Related: &relatedCategoryList,
+				},
+			}
+
+			categoriesData = append(categoriesData, &catList)
+		}
+		return nil
+	})
 	_, count, err := getBacklogItems(ctx, db, p.ID, nil, nil, nil)
 	if err != nil {
 		return nil, errs.Wrap(err, "unable to fetch backlog items")
@@ -426,6 +445,9 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 				Links: &app.GenericLinks{
 					Related: &relatedWorkItemList,
 				},
+			},
+			Categories: &app.RelationGenericList{
+				Data: categoriesData,
 			},
 		},
 	}, nil

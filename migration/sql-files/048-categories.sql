@@ -7,6 +7,7 @@ CREATE TABLE categories (
 );
 
 CREATE INDEX categories_id_index ON categories (id);
+CREATE UNIQUE INDEX categories_name_idx ON categories (name) WHERE deleted_at IS NULL;
 
 CREATE TABLE workitemtype_categories (
 	created_at timestamp with time zone,

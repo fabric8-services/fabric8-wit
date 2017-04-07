@@ -44,7 +44,7 @@ var spaceRelationships = a.Type("SpaceRelationships", func() {
 	a.Attribute("workitemlinktypes", relationGeneric, "Space can have one or many work item link types")
 	a.Attribute("workitemtypes", relationGeneric, "Space can have one or many work item types")
 	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
-	a.Attribute("categories", relationGeneric, "Space can have one or many categories")
+	a.Attribute("categories", relationGenericList, "Space can have one or many categories")
 	a.Attribute("codebases", relationGeneric, "Space can have one or many codebases")
 })
 
