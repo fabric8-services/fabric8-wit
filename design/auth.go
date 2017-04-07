@@ -102,6 +102,24 @@ var _ = a.Resource("login", func() {
 	})
 })
 
+var _ = a.Resource("logout", func() {
+
+	a.BasePath("/logout")
+
+	a.Action("logout", func() {
+		a.Routing(
+			a.GET(""),
+		)
+		a.Params(func() {
+			a.Param("redirect", d.String, "URL to be redirected to after successful logout. If not set then will redirect to the referrer instead.")
+		})
+		a.Description("Logout user")
+		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.TemporaryRedirect)
+		a.Response(d.InternalServerError, JSONAPIErrors)
+	})
+})
+
 var refreshToken = a.Type("RefreshToken", func() {
 	a.Attribute("refresh_token", d.String, "Refresh token")
 })

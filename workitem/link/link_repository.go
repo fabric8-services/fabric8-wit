@@ -37,6 +37,7 @@ type WorkItemLinkRepository interface {
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
 	ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error)
+	WorkItemHasChildren(ctx context.Context, parent string) (bool, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -315,4 +316,34 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 	}
 
 	return res, nil
+}
+
+// WorkItemHasChildren returns true if the given parent work item has children;
+// otherwise false is returned
+func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, parent string) (bool, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "workitem", "has", "children"}, time.Now())
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s WHERE id in (
+				SELECT target_id FROM %[2]s
+				WHERE source_id = $1 AND link_type_id IN (
+					SELECT id FROM %[3]s WHERE forward_name = 'parent of'
+				)
+			)
+		)`,
+		workitem.WorkItemStorage{}.TableName(),
+		WorkItemLink{}.TableName(),
+		WorkItemLinkType{}.TableName())
+	var hasChildren bool
+	db := r.db.CommonDB()
+	stmt, err := db.Prepare(query)
+	if err != nil {
+		return false, errs.Wrapf(err, "failed prepare statement: %s", query)
+	}
+	defer stmt.Close()
+	err = stmt.QueryRow(parent).Scan(&hasChildren)
+	if err != nil {
+		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parent, query)
+	}
+	return hasChildren, nil
 }
