@@ -107,7 +107,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categoriesID uuid.UUID) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categoryID uuid.UUID) (*WorkItemType, error) {
 	// Make sure this WIT has an ID
 	if id == nil {
 		tmpID := uuid.NewV4()
@@ -162,16 +162,17 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	}
 
 	// create relationship between workitemtype and category
-	c := category.NewCategoryRepository(r.db)
-	categoryWitRelationship := category.CategoryWitRelationship{
-		CategoryID:     categoriesID,
-		WorkitemtypeID: *id,
+	if categoryID != uuid.Nil {
+		c := category.NewCategoryRepository(r.db)
+		categoryWitRelationship := category.CategoryWitRelationship{
+			CategoryID:     categoryID,
+			WorkitemtypeID: *id,
+		}
+		err := c.CreateRelationship(ctx, &categoryWitRelationship)
+		if err != nil {
+			return nil, errors.NewInternalError(err.Error())
+		}
 	}
-	err := c.CreateRelationship(ctx, &categoryWitRelationship)
-	if err != nil {
-		return nil, errors.NewInternalError(err.Error())
-	}
-
 	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")
 	return &created, nil
 }
