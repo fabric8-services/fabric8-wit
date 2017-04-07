@@ -72,8 +72,6 @@ func newWorkItemLinkContext(ctx context.Context, appl application.Application, d
 	}
 }
 
-
-
 // getTypesOfLinks returns an array of distinct work item link types for the
 // given work item links
 func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkData) ([]*app.WorkItemLinkTypeData, error) {
