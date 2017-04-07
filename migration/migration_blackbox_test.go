@@ -11,6 +11,7 @@ import (
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
+	"github.com/almighty/almighty-core/resource"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -32,7 +33,7 @@ var (
 	migrations migration.Migrations
 )
 
-func init() {
+func setupTest() {
 	var err error
 	conf, err = config.GetConfigurationData()
 	if err != nil {
@@ -64,6 +65,10 @@ func init() {
 }
 
 func TestMigrations(t *testing.T) {
+	resource.Require(t, resource.Database)
+
+	setupTest()
+
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
 		conf.GetPostgresPort(),
