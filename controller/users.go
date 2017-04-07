@@ -262,11 +262,10 @@ func loadKeyCloakIdentity(appl application.Application, user account.User) (*acc
 
 // ConvertToAppUser converts a complete Identity object into REST representation
 func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *account.Identity) *app.User {
-	userID := user.ID.String()
+	identityID := identity.ID.String()
 	fullName := user.FullName
 	userName := identity.Username
 	providerType := identity.ProviderType
-	identityID := identity.ID.String()
 	var imageURL string
 	var bio string
 	var userURL string
@@ -298,7 +297,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 
 	converted := app.User{
 		Data: &app.UserData{
-			ID:   &userID,
+			ID:   &identityID,
 			Type: "users",
 			Attributes: &app.UserDataAttributes{
 				Username:           &userName,
