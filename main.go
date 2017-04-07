@@ -302,7 +302,7 @@ func main() {
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
 
 	// Mount "collaborators" controller
-	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, configuration, auth.NewKeycloakPolicyManager(configuration))
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, configuration, auth.NewKeycloakPolicyManager(configuration, auth.NewKeycloakResourceManager(configuration)))
 	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	if !configuration.IsPostgresDeveloperModeEnabled() {

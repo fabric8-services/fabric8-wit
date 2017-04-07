@@ -60,6 +60,14 @@ func (m *DummyPolicyManager) RemoveUserFromPolicy(p *auth.KeycloakPolicy, userID
 	return p.RemoveUserFromPolicy(userID)
 }
 
+func (m *DummyPolicyManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string, policyName string) (*auth.Resource, error) {
+	return &auth.Resource{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}, nil
+}
+
+func (m *DummyPolicyManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource auth.Resource) error {
+	return nil
+}
+
 type TestCollaboratorsREST struct {
 	gormtestsupport.DBTestSuite
 

@@ -5,12 +5,16 @@ import (
 	"errors"
 	"strings"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/auth"
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 )
@@ -269,11 +273,24 @@ func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.Re
 		return nil, nil, goa.ErrBadRequest(err.Error())
 	}
 	var policyID string
+	var spaceForMissingResource *space.Space
+	var policy *auth.KeycloakPolicy
+	var pat *string
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		// Load associated space resource
 		resource, err := appl.SpaceResources().LoadBySpace(ctx, &spaceUUID)
 		if err != nil {
-			return err
+			if _, ok := err.(errs.NotFoundError); !ok {
+				return err
+			}
+			// No space resource found. Check if the space exists.
+			space, err := appl.Spaces().Load(ctx, spaceUUID)
+			if err != nil {
+				return err
+			}
+			// Space found but there is no space resource assosiated with this Space. Can happen for old spaces.
+			spaceForMissingResource = space
+			return nil
 		}
 		policyID = resource.PolicyID
 		return nil
@@ -282,9 +299,41 @@ func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.Re
 	if err != nil {
 		return nil, nil, goa.ErrNotFound(err.Error())
 	}
-	policy, pat, err := c.policyManager.GetPolicy(ctx, req, policyID)
+	if spaceForMissingResource != nil {
+		policy, pat, err = c.createPolicy(ctx, req, *spaceForMissingResource)
+	} else {
+		policy, pat, err = c.policyManager.GetPolicy(ctx, req, policyID)
+	}
 	if err != nil {
 		return nil, nil, goa.ErrInternal(err.Error())
 	}
 	return policy, pat, nil
+}
+
+// Creates Policy if missing. Can happen for old spaces.
+func (c *CollaboratorsController) createPolicy(ctx collaboratorContext, req *goa.RequestData, spc space.Space) (*auth.KeycloakPolicy, *string, error) {
+	resource, err := c.policyManager.CreateResource(ctx, req, spc.ID.String(), spaceResourceType, &spc.Name, &scopes, spc.OwnerId.String(), fmt.Sprintf("%s-%s", spc.Name, uuid.NewV4().String()))
+	if err != nil {
+		return nil, nil, err
+	}
+	spaceResource := &space.Resource{
+		ResourceID:   resource.ResourceID,
+		PolicyID:     resource.PolicyID,
+		PermissionID: resource.PermissionID,
+		SpaceID:      spc.ID,
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// Create space resource which will represent the keyclok resource associated with this space
+		_, err = appl.SpaceResources().Create(ctx, spaceResource)
+		return err
+	})
+	if err != nil {
+		// Clean up KC resource if transaction failed
+		resErr := c.policyManager.DeleteResource(ctx, req, *resource)
+		if resErr != nil {
+			return nil, nil, fmt.Errorf("%s %s", err.Error(), resErr.Error())
+		}
+		return nil, nil, err
+	}
+	return c.policyManager.GetPolicy(ctx, req, resource.PolicyID)
 }

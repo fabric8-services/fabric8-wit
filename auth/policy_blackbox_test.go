@@ -26,7 +26,7 @@ type TestPolicySuite struct {
 }
 
 func (s *TestPolicySuite) SetupSuite() {
-	s.policyManager = auth.NewKeycloakPolicyManager(configuration)
+	s.policyManager = auth.NewKeycloakPolicyManager(configuration, auth.NewKeycloakResourceManager(configuration))
 }
 
 func (s *TestPolicySuite) TearDownSuite() {
