@@ -61,6 +61,7 @@ var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
 })
 
 // userArray represents an array of user objects
+// Deprecated. Use userList instead
 var userArray = a.MediaType("application/vnd.user-array+json", func() {
 	a.UseTrait("jsonapi-media-type")
 	a.TypeName("UserArray")
@@ -75,6 +76,17 @@ var userArray = a.MediaType("application/vnd.user-array+json", func() {
 		a.Required("data")
 	})
 })
+
+var userListMeta = a.Type("UserListMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
+})
+
+var userList = JSONList(
+	"User", "Holds the paginated response to a user list request",
+	userData,
+	pagingLinks,
+	userListMeta)
 
 var _ = a.Resource("user", func() {
 	a.BasePath("/user")

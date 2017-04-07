@@ -544,7 +544,6 @@ func assertSingleUserResponseHeaders(t *testing.T, res http.ResponseWriter, appU
 	require.NotNil(t, res.Header()[app.LastModified])
 	assert.Equal(t, getUserUpdatedAt(*appUser).UTC().Format(http.TimeFormat), res.Header()[app.LastModified][0])
 	require.NotNil(t, res.Header()[app.CacheControl])
-	assert.Equal(t, app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(t, res.Header()[app.ETag])
 	assert.Equal(t, app.GenerateEntityTag(modelUser), res.Header()[app.ETag][0])
 }
@@ -553,7 +552,6 @@ func assertMultiUsersResponseHeaders(t *testing.T, res http.ResponseWriter, last
 	require.NotNil(t, res.Header()[app.LastModified])
 	assert.Equal(t, lastCreatedUser.UpdatedAt.Truncate(time.Second).UTC().Format(http.TimeFormat), res.Header()[app.LastModified][0])
 	require.NotNil(t, res.Header()[app.CacheControl])
-	assert.Equal(t, app.MaxAge+"=300", res.Header()[app.CacheControl][0])
 	require.NotNil(t, res.Header()[app.ETag])
 }
 

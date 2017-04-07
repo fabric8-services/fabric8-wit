@@ -65,6 +65,7 @@ const (
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
+	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
@@ -72,9 +73,11 @@ const (
 	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
 	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
 	varCacheControlSpaces               = "cachecontrol.spaces"
-	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlIterations           = "cachecontrol.iterations"
 	varCacheControlAreas                = "cachecontrol.areas"
+	varCacheControlComments             = "cachecontrol.comments"
+	varCacheControlFilters              = "cachecontrol.filters"
+	varCacheControlUsers                = "cachecontrol.users"
 	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
@@ -173,17 +176,19 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
 	// HTTP Cache-Control/max-age default
-	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
-	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=86400") // 1 day
-	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=300")
-	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=86400") // 1 day
-	c.v.SetDefault(varCacheControlSpaces, "max-age=300")
-	c.v.SetDefault(varCacheControlIterations, "max-age=300")
-	c.v.SetDefault(varCacheControlAreas, "max-age=300")
-	c.v.SetDefault(varCacheControlUsers, "max-age=300")
+	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
+	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
+	c.v.SetDefault(varCacheControlIterations, "max-age=2")
+	c.v.SetDefault(varCacheControlAreas, "max-age=2")
+	c.v.SetDefault(varCacheControlComments, "max-age=2")
+	c.v.SetDefault(varCacheControlFilters, "max-age=86400")
+	c.v.SetDefault(varCacheControlUsers, "max-age=2")
 	// data returned from '/api/user' must not be cached by intermediate proxies,
 	// but can only be kept in the client's local cache.
-	c.v.SetDefault(varCacheControlUser, "private,max-age=300")
+	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -315,6 +320,18 @@ func (c *ConfigurationData) GetCacheControlSpaces() string {
 // when returning iterations.
 func (c *ConfigurationData) GetCacheControlIterations() string {
 	return c.v.GetString(varCacheControlIterations)
+}
+
+// GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlComments() string {
+	return c.v.GetString(varCacheControlComments)
+}
+
+// GetCacheControlFilters returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlFilters() string {
+	return c.v.GetString(varCacheControlFilters)
 }
 
 // GetCacheControlUsers returns the value to set in the "Cache-Control" HTTP response header
@@ -474,6 +491,15 @@ func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (str
 // GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
 func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointAccount, "auth/realms/"+c.GetKeycloakRealm()+"/account")
+}
+
+// GetKeycloakEndpointLogout returns the keycloak logout endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointLogout(req *goa.RequestData) (string, error) {
+	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointLogout, "logout")
 }
 
 // GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
