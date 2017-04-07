@@ -268,6 +268,24 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	fmt.Println("iteration2 id = ", iteration2.ID)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
 
+	childOfIteration2 := iteration.Iteration{
+		Name:    "Sprint 2.1",
+		SpaceID: spaceInstance.ID,
+		Path:    append(iteration2.Path, iteration2.ID),
+	}
+	iterationRepo.Create(rest.ctx, &childOfIteration2)
+	fmt.Println("iteration2 id = ", childOfIteration2.ID)
+	require.NotEqual(rest.T(), uuid.UUID{}, childOfIteration2.ID)
+
+	grnadChildOfIteration2 := iteration.Iteration{
+		Name:    "Sprint 2.1.1",
+		SpaceID: spaceInstance.ID,
+		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
+	}
+	iterationRepo.Create(rest.ctx, &grnadChildOfIteration2)
+	fmt.Println("iteration2 id = ", grnadChildOfIteration2.ID)
+	require.NotEqual(rest.T(), uuid.UUID{}, grnadChildOfIteration2.ID)
+
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 
 	for i := 0; i < 3; i++ {
@@ -289,21 +307,59 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			}, rest.testIdentity.ID)
 		require.Nil(rest.T(), err)
 	}
+	// ad items to nested iteration level 1
+	for i := 0; i < 4; i++ {
+		_, err := wirepo.Create(
+			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("New issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateNew,
+				workitem.SystemIteration: childOfIteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+	}
+	// ad items to nested iteration level 2
+	for i := 0; i < 5; i++ {
+		_, err := wirepo.Create(
+			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: grnadChildOfIteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+	}
+
 	svc, ctrl := rest.UnSecuredController()
 	// when
 	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID.String(), nil, nil)
 	// then
-	require.Len(rest.T(), cs.Data, 2)
+	require.Len(rest.T(), cs.Data, 4)
 	for _, iterationItem := range cs.Data {
 		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
 			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(rest.T(), 2, iterationItem.Relationships.Workitems.Meta["closed"])
 		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
-			assert.Equal(rest.T(), 0, iterationItem.Relationships.Workitems.Meta["total"])
-			assert.Equal(rest.T(), 0, iterationItem.Relationships.Workitems.Meta["closed"])
+			// we expect these counts should include that of child iterations too.
+			expectedTotal := 0 + 4 + 5  // sum of all items of self + child + grand-child
+			expectedClosed := 0 + 0 + 5 // sum of closed items self + child + grand-child
+			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
+		} else if uuid.Equal(*iterationItem.ID, childOfIteration2.ID) {
+			// we expect these counts should include that of child iterations too.
+			expectedTotal := 4 + 5  // sum of all items of self and child
+			expectedClosed := 0 + 5 // sum of closed items of self and child
+			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
+		} else if uuid.Equal(*iterationItem.ID, grnadChildOfIteration2.ID) {
+			// we expect these counts should include that of child iterations too.
+			expectedTotal := 5 + 0  // sum of all items of self and child
+			expectedClosed := 5 + 0 // sum of closed items of self and child
+			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
 		}
 	}
-	// seed 5 WI to iteration2
+	// seed 5 New WI to iteration2
 	for i := 0; i < 5; i++ {
 		_, err := wirepo.Create(
 			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
@@ -314,17 +370,43 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			}, rest.testIdentity.ID)
 		require.Nil(rest.T(), err)
 	}
+	// seed 2 Closed WI to iteration2
+	for i := 0; i < 3; i++ {
+		_, err := wirepo.Create(
+			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
+				workitem.SystemState:     workitem.SystemStateClosed,
+				workitem.SystemIteration: iteration2.ID.String(),
+			}, rest.testIdentity.ID)
+		require.Nil(rest.T(), err)
+	}
 	// when
 	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID.String(), nil, nil)
 	// then
-	require.Len(rest.T(), cs.Data, 2)
+	require.Len(rest.T(), cs.Data, 4)
 	for _, iterationItem := range cs.Data {
 		if uuid.Equal(*iterationItem.ID, iteration1.ID) {
 			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(rest.T(), 2, iterationItem.Relationships.Workitems.Meta["closed"])
 		} else if uuid.Equal(*iterationItem.ID, iteration2.ID) {
-			assert.Equal(rest.T(), 5, iterationItem.Relationships.Workitems.Meta["total"])
-			assert.Equal(rest.T(), 0, iterationItem.Relationships.Workitems.Meta["closed"])
+			// we expect these counts should include that of child iterations too.
+			expectedTotal := 8 + 4 + 5  // sum of all items of self + child + grand-child
+			expectedClosed := 3 + 0 + 5 // sum of closed items self + child + grand-child
+			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
+		} else if uuid.Equal(*iterationItem.ID, childOfIteration2.ID) {
+			// we expect these counts should include that of child iterations too.
+			expectedTotal := 4 + 5  // sum of all items of self + child + grand-child
+			expectedClosed := 0 + 5 // sum of closed items self + child + grand-child
+			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
+		} else if uuid.Equal(*iterationItem.ID, grnadChildOfIteration2.ID) {
+			// we expect these counts should include that of child iterations too.
+			expectedTotal := 5 + 0  // sum of all items of self + child + grand-child
+			expectedClosed := 5 + 0 // sum of closed items self + child + grand-child
+			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
+			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
 		}
 	}
 }
