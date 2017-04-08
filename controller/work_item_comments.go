@@ -119,8 +119,8 @@ func (c *WorkItemCommentsController) Relations(ctx *app.RelationsWorkItemComment
 	})
 }
 
-// WorkItemIncludeCommentsAndTotal adds relationship about comments to workitem (include totalCount)
-func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, parentID string) WorkItemConvertFunc {
+// workItemIncludeCommentsAndTotal adds relationship about comments to workitem (include totalCount)
+func workItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, parentID string) WorkItemConvertFunc {
 	// TODO: Wrap ctx in a Timeout context?
 	count := make(chan int)
 	go func() {
@@ -143,8 +143,8 @@ func WorkItemIncludeCommentsAndTotal(ctx context.Context, db application.DB, par
 	}
 }
 
-// WorkItemIncludeComments adds relationship about comments to workitem (include totalCount)
-func WorkItemIncludeComments(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+// workItemIncludeComments adds relationship about comments to workitem (include totalCount)
+func workItemIncludeComments(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	wi2.Relationships.Comments = CreateCommentsRelation(request, wi)
 }
 

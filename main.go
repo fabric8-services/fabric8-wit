@@ -282,7 +282,7 @@ func main() {
 	spaceAreaCtrl := controller.NewSpaceAreasController(service, appDB, configuration)
 	app.MountSpaceAreasController(service, spaceAreaCtrl)
 
-	filterCtrl := controller.NewFilterController(service)
+	filterCtrl := controller.NewFilterController(service, configuration)
 	app.MountFilterController(service, filterCtrl)
 
 	// Mount "namedspaces" controller
@@ -300,6 +300,10 @@ func main() {
 	// Mount "spacecodebases" controller
 	spaceCodebaseCtrl := controller.NewSpaceCodebasesController(service, appDB)
 	app.MountSpaceCodebasesController(service, spaceCodebaseCtrl)
+
+	// Mount "collaborators" controller
+	collaboratorsCtrl := controller.NewCollaboratorsController(service, appDB, configuration, auth.NewKeycloakPolicyManager(configuration))
+	app.MountCollaboratorsController(service, collaboratorsCtrl)
 
 	if !configuration.IsPostgresDeveloperModeEnabled() {
 		// TEMP MOUNT "redirect" controller

@@ -37,9 +37,7 @@ type TestAreaREST struct {
 func TestRunAreaREST(t *testing.T) {
 	resource.Require(t, resource.Database)
 	pwd, err := os.Getwd()
-	if err != nil {
-		require.Nil(t, err)
-	}
+	require.Nil(t, err)
 	suite.Run(t, &TestAreaREST{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
 }
 

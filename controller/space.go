@@ -162,21 +162,15 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		appl.SpaceResources().Delete(ctx, resource.ID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-
-		err = appl.Spaces().Delete(ctx.Context, id)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
-		}
-
 		resourceID = resource.ResourceID
 		permissionID = resource.PermissionID
 		policyID = resource.PolicyID
 
-		return ctx.OK([]byte{})
+		appl.SpaceResources().Delete(ctx, resource.ID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return appl.Spaces().Delete(ctx.Context, id)
 	})
 
 	if err != nil {
@@ -186,7 +180,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
-	return nil
+	return ctx.OK([]byte{})
 }
 
 // List runs the list action.
@@ -384,6 +378,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, sp.OwnerId.String()))
+	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 
 	count, err := countBacklogItems(ctx, db, sp.ID)
 	if err != nil {
@@ -436,6 +431,11 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			Workitems: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedWorkItemList,
+				},
+			},
+			Collaborators: &app.RelationGeneric{
+				Links: &app.GenericLinks{
+					Related: &relatedCollaboratorList,
 				},
 			},
 		},
