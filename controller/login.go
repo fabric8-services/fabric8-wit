@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"net/http"
 	"net/url"
 
@@ -78,7 +80,15 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
 
-	return c.auth.Perform(ctx, authEndpoint, tokenEndpoint, brokerEndpoint, whitelist)
+	oauth := &oauth2.Config{
+		ClientID:     c.configuration.GetKeycloakClientID(),
+		ClientSecret: c.configuration.GetKeycloakSecret(),
+		Scopes:       []string{"user:email"},
+		Endpoint:     oauth2.Endpoint{AuthURL: authEndpoint, TokenURL: tokenEndpoint},
+		RedirectURL:  rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize"),
+	}
+
+	return c.auth.Perform(ctx, oauth, authEndpoint, tokenEndpoint, brokerEndpoint, whitelist)
 }
 
 // Refresh obtain a new access token using the refresh token.
@@ -121,7 +131,18 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	return ctx.OK(&app.AuthToken{Token: token})
+	return ctx.OK(convertToken(*token))
+}
+
+func convertToken(token auth.Token) *app.AuthToken {
+	return &app.AuthToken{Token: &app.TokenData{
+		AccessToken:      token.AccessToken,
+		ExpiresIn:        token.ExpiresIn,
+		NotBeforePolicy:  token.NotBeforePolicy,
+		RefreshExpiresIn: token.RefreshExpiresIn,
+		RefreshToken:     token.RefreshToken,
+		TokenType:        token.TokenType,
+	}}
 }
 
 // Link links identity provider(s) to the user's account
@@ -238,5 +259,5 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 		return nil, errors.NewInternalError("error when unmarshal json with access token " + err.Error())
 	}
 
-	return &app.AuthToken{Token: token}, nil
+	return convertToken(*token), nil
 }

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
@@ -64,6 +63,16 @@ type KeycloakPolicy struct {
 type PolicyConfigData struct {
 	//"users":"[\"<ID>\",\"<ID>\"]"
 	UserIDs string `json:"users"`
+}
+
+// Token represents a Keycloak token respons
+type Token struct {
+	AccessToken      *string `json:"access_token,omitempty"`
+	ExpiresIn        *int    `json:"expires_in,omitempty"`
+	NotBeforePolicy  *int    `json:"not-before-policy,omitempty"`
+	RefreshExpiresIn *int    `json:"refresh_expires_in,omitempty"`
+	RefreshToken     *string `json:"refresh_token,omitempty"`
+	TokenType        *string `json:"token_type,omitempty"`
 }
 
 // AddUserToPolicy adds the user ID to the policy
@@ -746,14 +755,14 @@ func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientS
 }
 
 // ReadToken extracts json with token data from the response
-func ReadToken(res *http.Response) (*app.TokenData, error) {
+func ReadToken(res *http.Response) (*Token, error) {
 	// Read the json out of the response body
 	buf := new(bytes.Buffer)
 	io.Copy(buf, res.Body)
 	res.Body.Close()
 	jsonString := strings.TrimSpace(buf.String())
 
-	var token app.TokenData
+	var token Token
 	err := json.Unmarshal([]byte(jsonString), &token)
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with access token %s ", jsonString) + err.Error())

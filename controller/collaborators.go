@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
 )
@@ -198,7 +199,7 @@ func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID u
 
 func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID string, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
 	// Authorize current user
-	authorized, err := c.policyManager.VerifyUser(ctx, req, spaceID)
+	_, authorized, err := space.Authorize(ctx, spaceID)
 	if err != nil {
 		return goa.ErrUnauthorized(err.Error())
 	}

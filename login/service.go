@@ -35,9 +35,8 @@ import (
 )
 
 // NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
-func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) *KeycloakOAuthProvider {
+func NewKeycloakOAuthProvider(identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) *KeycloakOAuthProvider {
 	return &KeycloakOAuthProvider{
-		config:       config,
 		Identities:   identities,
 		Users:        users,
 		TokenManager: tokenManager,
@@ -47,7 +46,6 @@ func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.Identity
 
 // KeycloakOAuthProvider represents a keyclaok IDP
 type KeycloakOAuthProvider struct {
-	config       *oauth2.Config
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
 	TokenManager token.Manager
@@ -56,7 +54,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error
+	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error
 	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 	Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
 	LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
@@ -90,7 +88,7 @@ const (
 )
 
 // Perform performs authenticatin
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 
@@ -108,7 +106,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 			return ctx.Unauthorized(jerrors)
 		}
 
-		keycloakToken, err := keycloak.config.Exchange(ctx, code)
+		keycloakToken, err := config.Exchange(ctx, code)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"code": code,
@@ -203,11 +201,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 		return err
 	}
 
-	keycloak.config.Endpoint.AuthURL = authEndpoint
-	keycloak.config.Endpoint.TokenURL = tokenEndpoint
-	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
-
-	redirectURL := keycloak.config.AuthCodeURL(stateID.String(), oauth2.AccessTypeOnline)
+	redirectURL := config.AuthCodeURL(stateID.String(), oauth2.AccessTypeOnline)
 
 	ctx.ResponseData.Header().Set("Location", redirectURL)
 	return ctx.TemporaryRedirect()

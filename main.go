@@ -9,8 +9,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"golang.org/x/oauth2"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
@@ -176,18 +174,12 @@ func main() {
 	tokenManager := token.NewManager(publicKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 	service.Use(login.InjectTokenManager(tokenManager))
-
-	// Mount "login" controller
-	oauth := &oauth2.Config{
-		ClientID:     configuration.GetKeycloakClientID(),
-		ClientSecret: configuration.GetKeycloakSecret(),
-		Scopes:       []string{"user:email"},
-		Endpoint:     oauth2.Endpoint{},
-	}
+	spaceAuthzService := space.NewAuthzService(configuration)
+	service.Use(space.InjectAuthzService(spaceAuthzService))
 
 	appDB := gormapplication.NewGormDB(db)
 
-	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
+	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 
