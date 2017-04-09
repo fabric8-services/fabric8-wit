@@ -113,14 +113,29 @@ func (r *GormResourceRepository) Delete(ctx context.Context, ID uuid.UUID) error
 }
 
 // Save updates the given space resource in the DB
-// returns NotFoundError, VersionConflictError or InternalError
+// returns NotFoundError or InternalError
 func (r *GormResourceRepository) Save(ctx context.Context, p *Resource) (*Resource, error) {
 	pr := Resource{}
 	tx := r.db.Where("id=?", p.ID).First(&pr)
 	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"space_resource_id": p.ID,
+		}, "unable to find the space resource by ID")
 		return nil, errors.NewNotFoundError("space resource", p.ID.String())
 	}
 	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_resource_id": p.ID,
+			"err":               err,
+		}, "unknown error happened when searching the space resource")
+		return nil, errors.NewInternalError(err.Error())
+	}
+	tx = tx.Save(&p)
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"space_resource_id": p.ID,
+			"err":               err,
+		}, "unable to save the space resource")
 		return nil, errors.NewInternalError(err.Error())
 	}
 

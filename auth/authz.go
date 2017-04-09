@@ -62,7 +62,46 @@ type KeycloakPolicy struct {
 
 // PolicyConfigData represents a config in the keyclaok policy payload
 type PolicyConfigData struct {
+	//"users":"[\"<ID>\",\"<ID>\"]"
 	UserIDs string `json:"users"`
+}
+
+// AddUserToPolicy adds the user ID to the policy
+func (p *KeycloakPolicy) AddUserToPolicy(userID string) bool {
+	currentUsers := p.Config.UserIDs
+	if strings.Contains(currentUsers, userID) {
+		return false
+	}
+	s := strings.Split(currentUsers, "]")
+	if len(s) > 1 {
+		p.Config.UserIDs = fmt.Sprintf("%s,\"%s\"]", s[0], userID)
+	} else {
+		p.Config.UserIDs = fmt.Sprintf("[\"%s\"]", userID)
+	}
+	return true
+}
+
+// RemoveUserFromPolicy removes the user ID from the policy
+func (p *KeycloakPolicy) RemoveUserFromPolicy(userID string) bool {
+	currentUsers := p.Config.UserIDs
+	s := strings.Split(currentUsers, ",")
+	var found bool
+	var i int
+	newUsers := make([]string, len(s))
+	for _, id := range s {
+		newUsers[i] = strings.Trim(id, "[]")
+		if strings.Trim(newUsers[i], "\"") == userID {
+			found = true
+		} else {
+			i++
+		}
+	}
+	if !found {
+		return false
+	}
+	newUsers = newUsers[0 : len(newUsers)-1]
+	p.Config.UserIDs = fmt.Sprintf("[%s]", strings.Join(newUsers, ","))
+	return true
 }
 
 // KeycloakPermission represents a keyclaok permission payload
@@ -104,6 +143,18 @@ type ResourceSet struct {
 
 type entitlementResult struct {
 	Rpt string `json:"rpt"`
+}
+
+// VerifyResourceUser returns true if the user among the resource collaborators
+func VerifyResourceUser(ctx context.Context, token string, resourceName string, entitlementEndpoint string) (bool, error) {
+	resource := EntitlementResource{
+		Permissions: []ResourceSet{{Name: resourceName}},
+	}
+	ent, err := GetEntitlement(ctx, entitlementEndpoint, resource, token)
+	if err != nil {
+		return false, err
+	}
+	return ent != nil, nil
 }
 
 // CreateResource creates a Keycloak resource
@@ -326,6 +377,10 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 
 // DeleteResource deletes the Keycloak resource assosiated with the space
 func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint string, protectionAPIToken string) error {
+	if kcResourceID == "" {
+		log.Error(ctx, map[string]interface{}{}, "kc-resource-id is emtpy")
+		return errors.NewBadParameterError("kcResourceID", kcResourceID)
+	}
 	log.Debug(ctx, map[string]interface{}{
 		"kc_resource_id": kcResourceID,
 	}, "Deleting the Keycloak resource")
@@ -364,6 +419,10 @@ func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint stri
 
 // DeletePolicy deletes the Keycloak policy
 func DeletePolicy(ctx context.Context, clientsEndpoint string, clientID string, policyID string, protectionAPIToken string) error {
+	if policyID == "" {
+		log.Error(ctx, map[string]interface{}{}, "policy-id is emtpy")
+		return errors.NewBadParameterError("policyID", policyID)
+	}
 	req, err := http.NewRequest("DELETE", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy/"+policyID, nil)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -398,6 +457,10 @@ func DeletePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 
 // DeletePermission deletes the Keycloak permission
 func DeletePermission(ctx context.Context, clientsEndpoint string, clientID string, permissionID string, protectionAPIToken string) error {
+	if permissionID == "" {
+		log.Error(ctx, map[string]interface{}{}, "permission-id is emtpy")
+		return errors.NewBadParameterError("permissionID", permissionID)
+	}
 	req, err := http.NewRequest("DELETE", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy/"+permissionID, nil)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -432,6 +495,10 @@ func DeletePermission(ctx context.Context, clientsEndpoint string, clientID stri
 
 // GetPolicy obtains a policy from Keycloak
 func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, policyID string, protectionAPIToken string) (*KeycloakPolicy, error) {
+	if policyID == "" {
+		log.Error(ctx, map[string]interface{}{}, "policy-id is emtpy")
+		return nil, errors.NewBadParameterError("policyID", policyID)
+	}
 	req, err := http.NewRequest("GET", clientsEndpoint+"/"+clientID+"/authz/resource-server/policy/"+policyID, nil)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -485,6 +552,10 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 
 // UpdatePolicy updates the Keycloak policy
 func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, policy KeycloakPolicy, protectionAPIToken string) error {
+	if policy.ID == nil {
+		log.Error(ctx, map[string]interface{}{}, "Policy ID is nil")
+		return errors.NewBadParameterError("policy-id", "nil")
+	}
 	b, err := json.Marshal(policy)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -525,15 +596,16 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 	return nil
 }
 
-// GetEntitlement obtains Entitlement for specific resource
-func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource EntitlementResource, userAccesToken string) (string, error) {
+// GetEntitlement obtains Entitlement for specific resource.
+// Returns (nil, nil) if response status == Forbiden which means the user doesn't have permissions to obtain Entitlement
+func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource EntitlementResource, userAccesToken string) (*string, error) {
 	b, err := json.Marshal(entitlementResource)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"entitlement_resource": entitlementResource,
 			"err": err.Error(),
 		}, "Unable to marshal keyclaok entitlement resource struct")
-		return "", errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
+		return nil, errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
 	}
 
 	req, err := http.NewRequest("POST", entitlementEndpoint, strings.NewReader(string(b)))
@@ -541,7 +613,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		log.Error(ctx, map[string]interface{}{
 			"err": err.Error(),
 		}, "Unable to crete http request")
-		return "", errors.NewInternalError("unable to crete http request " + err.Error())
+		return nil, errors.NewInternalError("unable to crete http request " + err.Error())
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+userAccesToken)
@@ -551,20 +623,20 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 			"entitlement_resource": entitlementResource,
 			"err": err.Error(),
 		}, "Unable to obtain entitlement resource")
-		return "", errors.NewInternalError("unable to obtain entitlement resource " + err.Error())
+		return nil, errors.NewInternalError("unable to obtain entitlement resource " + err.Error())
 	}
 	switch res.StatusCode {
 	case http.StatusOK:
 		// OK
 	case http.StatusForbidden:
-		return "", errors.NewUnauthorizedError("not authorized")
+		return nil, nil
 	default:
 		log.Error(ctx, map[string]interface{}{
 			"entitlement_resource": entitlementResource,
 			"response_status":      res.Status,
 			"response_body":        rest.ReadBody(res.Body),
 		}, "Unable to update the Keycloak permission")
-		return "", errors.NewInternalError("unable to obtain entitlement resource. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
+		return nil, errors.NewInternalError("unable to obtain entitlement resource. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
 	}
 	jsonString := rest.ReadBody(res.Body)
 
@@ -575,10 +647,10 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 			"entitlement_resource": entitlementResource,
 			"json_string":          jsonString,
 		}, "Unable to unmarshal json with the obtain entitlement request result")
-		return "", errors.NewInternalError(fmt.Sprintf("error when unmarshal json with the obtain entitlement request result %s ", jsonString) + err.Error())
+		return nil, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with the obtain entitlement request result %s ", jsonString) + err.Error())
 	}
 
-	return r.Rpt, nil
+	return &r.Rpt, nil
 }
 
 // GetUserInfo gets user info from Keycloak
