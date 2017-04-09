@@ -978,6 +978,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.Equal(s.T(), "Title", wi.Data.Attributes[workitem.SystemTitle])
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
+	assert.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Creator.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Links)
 	assert.NotNil(s.T(), wi.Data.Links.Self)
@@ -1617,7 +1618,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), linkCat)
 
 	// Create link space
-	spacePayload := CreateSpacePayload("test-space", "description")
+	spacePayload := CreateSpacePayload("test-space"+uuid.NewV4().String(), "description")
 	_, space := test.CreateSpaceCreated(s.T(), s.svc.Context, s.svc, s.spaceCtrl, spacePayload)
 
 	// Create work item link type payload
@@ -1694,8 +1695,20 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 		},
 	}
 	_, wi := test.CreateWorkitemCreated(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	assert.NotNil(t, wi.Data.Relationships.Area)
-	assert.Nil(t, wi.Data.Relationships.Area.Data)
+
+	require.NotNil(t, wi.Data.Relationships.Area)
+	assert.NotNil(t, wi.Data.Relationships.Area.Data.ID)
+
+	// should get root area's id for that space
+	spaceRepo := space.NewRepository(s.DB)
+	spaceInstance, err := spaceRepo.Load(s.svc.Context, *c.Data.Relationships.Space.Data.ID)
+	require.Nil(t, err)
+
+	areaRepo := area.NewAreaRepository(s.DB)
+	rootArea, err := areaRepo.Root(context.Background(), spaceInstance.ID)
+	require.Nil(t, err)
+
+	assert.Equal(t, rootArea.ID.String(), *wi.Data.Relationships.Area.Data.ID)
 
 	u := minimumRequiredUpdatePayload()
 	u.Data.ID = wi.Data.ID
@@ -1974,6 +1987,8 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithInferredSpace() {
 	require.NotNil(t, item.Data.Relationships)
 	require.NotNil(t, item.Data.Relationships.Space)
 	assert.Equal(t, space.SystemSpace, *item.Data.Relationships.Space.Data.ID)
+	require.NotNil(t, *item.Data.Relationships.Area)
+	assert.NotNil(t, *item.Data.Relationships.Area.Data.ID)
 }
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
@@ -2001,6 +2016,8 @@ func (s *WorkItem2Suite) TestCreateWorkItemWithCustomSpace() {
 	require.NotNil(t, item.Data.Relationships)
 	require.NotNil(t, item.Data.Relationships.Space)
 	assert.Equal(t, *customSpace.Data.ID, *item.Data.Relationships.Space.Data.ID)
+	require.NotNil(t, *item.Data.Relationships.Area)
+	assert.NotNil(t, *item.Data.Relationships.Area.Data.ID)
 }
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithInvalidSpace() {
