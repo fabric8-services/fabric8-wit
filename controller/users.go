@@ -135,6 +135,16 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				keycloakUserProfile.Email = updatedEmail
 			}
 		*/
+		updatedUserName := ctx.Payload.Data.Attributes.Username
+		if updatedUserName != nil {
+			if identity.UsernameUpdated {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("Username cannot be updated more than once for idenitity id %s ", *id)))
+				return ctx.Unauthorized(jerrors)
+			}
+			identity.Username = *updatedUserName
+			identity.UsernameUpdated = true
+			keycloakUserProfile.Username = updatedUserName
+		}
 
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {

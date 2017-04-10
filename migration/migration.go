@@ -267,6 +267,9 @@ func getMigrations() migrations {
 	// Version 49
 	m = append(m, steps{executeSQLFile("049-add-wi-to-root-area.sql")})
 
+	// Version 50
+	m = append(m, steps{executeSQLFile("050-edit-username.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
