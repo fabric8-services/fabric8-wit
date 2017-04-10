@@ -31,9 +31,12 @@ const (
 var (
 	conf       *config.ConfigurationData
 	migrations migration.Migrations
+	dialect    gorm.Dialect
+	gormDB     *gorm.DB
+	sqlDB      *sql.DB
 )
 
-func setupTest() {
+func init() {
 	var err error
 	conf, err = config.GetConfigurationData()
 	if err != nil {
@@ -67,8 +70,7 @@ func setupTest() {
 func TestMigrations(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	setupTest()
-
+	var err error
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
 		conf.GetPostgresPort(),
@@ -78,25 +80,23 @@ func TestMigrations(t *testing.T) {
 		conf.GetPostgresSSLMode(),
 		conf.GetPostgresConnectionTimeout(),
 	)
-
-	db, err := sql.Open("postgres", configurationString)
-	defer db.Close()
+	m := migrations[:initialMigratedVersion]
+	sqlDB, err = sql.Open("postgres", configurationString)
+	defer sqlDB.Close()
 	if err != nil {
 		panic(fmt.Errorf("Cannot connect to DB: %s\n", err))
 	}
-	gormDB, err := gorm.Open("postgres", configurationString)
+	gormDB, err = gorm.Open("postgres", configurationString)
 	defer gormDB.Close()
 	if err != nil {
-		t.Fatalf("Cannot connect to DB: %s\n", err)
+		panic(fmt.Errorf("Cannot connect to DB: %s\n", err))
 	}
-	dialect := gormDB.Dialect()
-	dialect.SetDB(db)
-
-	m := migrations[:initialMigratedVersion]
+	dialect = gormDB.Dialect()
+	dialect.SetDB(sqlDB)
 
 	for nextVersion := int64(0); nextVersion < int64(len(m)) && err == nil; nextVersion++ {
 		var tx *sql.Tx
-		tx, err = db.Begin()
+		tx, err = sqlDB.Begin()
 		if err != nil {
 			t.Fatalf("Failed to start transaction: %s\n", err)
 		}
@@ -114,59 +114,67 @@ func TestMigrations(t *testing.T) {
 			t.Fatalf("Error during transaction commit: %s\n", err)
 		}
 	}
-
 	// Insert dummy test data
-	assert.Nil(t, runSQLscript(db, "044-insert-test-data.sql"))
+	assert.Nil(t, runSQLscript(sqlDB, "044-insert-test-data.sql"))
 
 	// Migration 45
-	migrationToVersion(db, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
-	testMigration45(gormDB, dialect, t)
-	assert.Nil(t, runSQLscript(db, "045-update-work-items.sql"))
-
-	// Migration 46
-	migrationToVersion(db, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
-	testMigration46(gormDB, dialect, t)
-	assert.Nil(t, runSQLscript(db, "046-insert-oauth-states.sql"))
-
-	// Migration 47
-	migrationToVersion(db, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
-	testMigration47(gormDB, dialect, t)
-	assert.Nil(t, runSQLscript(db, "047-insert-codebases.sql"))
-
-	// Migration 48
-	migrationToVersion(db, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
-	testMigration48(gormDB, dialect, t)
-	// This script execution has to fail
-	assert.NotNil(t, runSQLscript(db, "048-unique-idx-failed-insert.sql"))
+	t.Run("TestMigration45", testMigration45)
+	t.Run("TestMigration46", testMigration46)
+	t.Run("TestMigration47", testMigration47)
+	t.Run("TestMigration48", testMigration48)
+	t.Run("TestMigration49", testMigration49)
 
 	// Perform the migration
-	if err := migration.Migrate(db, databaseName); err != nil {
+	if err := migration.Migrate(sqlDB, databaseName); err != nil {
 		t.Fatalf("Failed to execute the migration: %s\n", err)
 	}
 }
 
-func testMigration45(db *gorm.DB, dialect gorm.Dialect, t *testing.T) {
-	assert.True(t, db.HasTable("work_items"))
+func testMigration45(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
+
+	assert.True(t, gormDB.HasTable("work_items"))
 	assert.True(t, dialect.HasColumn("work_items", "execution_order"))
 	assert.True(t, dialect.HasIndex("work_items", "order_index"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "045-update-work-items.sql"))
 }
 
-func testMigration46(db *gorm.DB, dialect gorm.Dialect, t *testing.T) {
-	assert.True(t, db.HasTable("oauth_state_references"))
+func testMigration46(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
+
+	assert.True(t, gormDB.HasTable("oauth_state_references"))
 	assert.True(t, dialect.HasColumn("oauth_state_references", "referrer"))
 	assert.True(t, dialect.HasColumn("oauth_state_references", "id"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "046-insert-oauth-states.sql"))
 }
 
-func testMigration47(db *gorm.DB, dialect gorm.Dialect, t *testing.T) {
-	assert.True(t, db.HasTable("codebases"))
+func testMigration47(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
+
+	assert.True(t, gormDB.HasTable("codebases"))
 	assert.True(t, dialect.HasColumn("codebases", "type"))
 	assert.True(t, dialect.HasColumn("codebases", "url"))
 	assert.True(t, dialect.HasColumn("codebases", "space_id"))
 	assert.True(t, dialect.HasIndex("codebases", "ix_codebases_space_id"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "047-insert-codebases.sql"))
 }
 
-func testMigration48(db *gorm.DB, dialect gorm.Dialect, t *testing.T) {
+func testMigration48(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
+
 	assert.True(t, dialect.HasIndex("iterations", "ix_name"))
+
+	// This script execution has to fail
+	assert.NotNil(t, runSQLscript(sqlDB, "048-unique-idx-failed-insert.sql"))
+}
+
+func testMigration49(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+5)], (initialMigratedVersion + 5))
+
+	assert.True(t, dialect.HasIndex("areas", "ix_area_name"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
