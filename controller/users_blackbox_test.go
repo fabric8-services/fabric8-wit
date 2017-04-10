@@ -119,6 +119,8 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
 	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	assert.Equal(s.T(), newCompany, *result.Data.Attributes.Company)
+
 	updatedContextInformation := result.Data.Attributes.ContextInformation
 	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
 
