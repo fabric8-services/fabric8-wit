@@ -1,5 +1,7 @@
 #! /bin/sh
 
+set -eu
+
 # Initialize a little unprivileged pcp pmcd metrics collector
 # process within this container; run this in a background subshell.
 # No special signal handling or cleanup required.

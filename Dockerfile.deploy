@@ -13,11 +13,10 @@ COPY config.yaml ${ALMIGHTY_INSTALL_PREFIX}/etc/config.yaml
 # Install little pcp pmcd server for metrics collection
 # would prefer only pmcd, and not the /bin/pm*tools etc.
 COPY pcp.repo /etc/yum.repos.d/pcp.repo
-RUN yum install -y pcp && yum clean all
+RUN yum install -y pcp && yum clean all && \
+    mkdir -p /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp && \
+    chown -R ${ALMIGHTY_USER_NAME} /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp
 COPY ./alm+pmcd.sh /alm+pmcd.sh
-RUN chmod a+x      /alm+pmcd.sh
-RUN mkdir -p                       /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp
-RUN chown -R ${ALMIGHTY_USER_NAME} /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp
 EXPOSE 44321
 
 
