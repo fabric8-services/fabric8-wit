@@ -65,7 +65,7 @@ type PolicyConfigData struct {
 	UserIDs string `json:"users"`
 }
 
-// Token represents a Keycloak token respons
+// Token represents a Keycloak token response
 type Token struct {
 	AccessToken      *string `json:"access_token,omitempty"`
 	ExpiresIn        *int    `json:"expires_in,omitempty"`

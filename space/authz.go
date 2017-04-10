@@ -106,11 +106,11 @@ func Authorize(ctx context.Context, spaceID string) (*string, bool, error) {
 	srv := tokencontext.ReadSpaceAuthzServiceFromContext(ctx)
 	if srv == nil {
 		log.Error(ctx, map[string]interface{}{
-			"authz-service": srv,
+			"space-id": spaceID,
 		}, "Missing space authz service")
 
 		return nil, false, errors.New("missing space authz service")
 	}
-	h := srv.(AuthzServiceManager)
-	return h.AuthzService().Authorize(ctx, h.EntitlementEndpoint(), spaceID)
+	manager := srv.(AuthzServiceManager)
+	return manager.AuthzService().Authorize(ctx, manager.EntitlementEndpoint(), spaceID)
 }
