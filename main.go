@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net/http"
 	"os"
 	"os/user"
@@ -14,16 +13,13 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
-	"github.com/satori/go.uuid"
 
 	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/auth"
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/controller"
-	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -190,15 +186,6 @@ func main() {
 	}
 
 	appDB := gormapplication.NewGormDB(db)
-
-	// Create Keycloak resources for old spaces which don't have such such associated resources yet.
-	// We need to do this only once for prod-preview.openshift.io then we should remove this code.
-	err = migrateKeycloakSpaces(configuration, appDB)
-	if err != nil {
-		log.Panic(nil, map[string]interface{}{
-			"err": err,
-		}, "failed to migrate Keyclaok Spaces")
-	}
 
 	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
@@ -374,81 +361,4 @@ func printUserInfo() {
 		}
 	}
 
-}
-
-func migrateKeycloakSpaces(configuration auth.KeycloakConfiguration, db application.DB) error {
-	ctx := migration.NewMigrationContext(context.Background())
-
-	var spaces []space.Space
-	err := application.Transactional(db, func(appl application.Application) error {
-		var err error
-		spaces, _, err = appl.Spaces().List(ctx, nil, nil)
-		return err
-	})
-	if err != nil {
-		return err
-	}
-
-	r, err := http.NewRequest("GET", "https://api.prod-preview.openshift.io", nil)
-	if err != nil {
-		return err
-	}
-	req := &goa.RequestData{
-		Request: r,
-	}
-	resourceManager := auth.NewKeycloakResourceManager(configuration)
-	for _, s := range spaces {
-		if s.ID != space.SystemSpace {
-			missing := false
-			err = application.Transactional(db, func(appl application.Application) error {
-				// Load associated space resource
-				_, err := appl.SpaceResources().LoadBySpace(ctx, &s.ID)
-				if err != nil {
-					if _, ok := err.(errors.NotFoundError); !ok {
-						return err
-					}
-					missing = true
-					return nil
-				}
-				return nil
-			})
-			if err != nil {
-				return nil
-			}
-			if missing {
-				err = createSpaceResource(ctx, req, resourceManager, db, s)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func createSpaceResource(ctx context.Context, req *goa.RequestData, resourceManager auth.AuthzResourceManager, db application.DB, spc space.Space) error {
-	resource, err := resourceManager.CreateResource(ctx, req, spc.ID.String(), "space", &spc.Name, &[]string{"read:space", "admin:space"}, spc.OwnerId.String(), fmt.Sprintf("%s-%s", spc.Name, uuid.NewV4().String()))
-	if err != nil {
-		return err
-	}
-	spaceResource := &space.Resource{
-		ResourceID:   resource.ResourceID,
-		PolicyID:     resource.PolicyID,
-		PermissionID: resource.PermissionID,
-		SpaceID:      spc.ID,
-	}
-	err = application.Transactional(db, func(appl application.Application) error {
-		// Create space resource which will represent the keyclok resource associated with this space
-		_, err = appl.SpaceResources().Create(ctx, spaceResource)
-		return err
-	})
-	if err != nil {
-		// Clean up KC resource if transaction failed
-		resErr := resourceManager.DeleteResource(ctx, req, *resource)
-		if resErr != nil {
-			return fmt.Errorf("Unable to create a space resource in DB: %s; Tried to clean up Keycloak Resource created for that space Resource but also failed: %s", err.Error(), resErr.Error())
-		}
-		return err
-	}
-	return nil
 }
