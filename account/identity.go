@@ -63,7 +63,7 @@ type Identity struct {
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// The username of the Identity
 	Username string
-	// Whether username update has been updated.
+	// Whether username has been updated.
 	UsernameUpdated bool `gorm:"column:username_updated"`
 	// ProviderType The type of provider, such as "keycloak", "github", "oso", etc
 	ProviderType string `gorm:"column:provider_type"`
