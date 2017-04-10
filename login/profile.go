@@ -15,6 +15,7 @@ import (
 const ImageURLAttributeName = "ImageURL"
 const BioAttributeName = "Bio"
 const URLAttributeName = "URL"
+const CompanyAttributeName = "Company"
 
 // KeycloakUserProfile represents standard Keycloak User profile api request payload
 type KeycloakUserProfile struct {
