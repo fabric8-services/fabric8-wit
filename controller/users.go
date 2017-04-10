@@ -271,6 +271,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	id := uuid.String()
 	fullName := identity.Username
 	userName := identity.Username
+	usernameUpdated := identity.UsernameUpdated
 	providerType := identity.ProviderType
 	var imageURL string
 	var bio string
@@ -312,6 +313,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 				Email:              &email,
 				Company:            &company,
 				ContextInformation: workitem.Fields{},
+				UsernameUpdated:    &usernameUpdated,
 			},
 			Links: createUserLinks(request, uuid),
 		},
