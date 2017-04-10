@@ -1,1 +1,1 @@
- alter table users add  company text;
+ALTER TABLE users ADD COLUMN company TEXT;
