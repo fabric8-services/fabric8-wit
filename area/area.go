@@ -1,13 +1,17 @@
 package area
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/path"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	errs "github.com/pkg/errors"
+
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -36,7 +40,7 @@ func (m Area) GetLastModified() time.Time {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *Area) TableName() string {
+func (m *GormAreaRepository) TableName() string {
 	return "areas"
 }
 
@@ -47,6 +51,8 @@ type Repository interface {
 	Load(ctx context.Context, id uuid.UUID) (*Area, error)
 	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]Area, error)
 	ListChildren(ctx context.Context, parentArea *Area) ([]Area, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Area, error)
+	Root(ctx context.Context, spaceID uuid.UUID) (*Area, error)
 }
 
 // NewAreaRepository creates a new storage type.
@@ -133,4 +139,58 @@ func (m *GormAreaRepository) ListChildren(ctx context.Context, parentArea *Area)
 		return nil, errors.NewInternalError(tx.Error.Error())
 	}
 	return objs, nil
+}
+
+// Root fetches the Root Areas inside a space.
+func (m *GormAreaRepository) Root(ctx context.Context, spaceID uuid.UUID) (*Area, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "Area", "root"}, time.Now())
+	var rootArea []Area
+
+	parentPathOfRootArea := path.Path{}
+	rootArea, err := m.Query(FilterBySpaceID(spaceID), FilterByPath(parentPathOfRootArea))
+	if len(rootArea) != 1 {
+		return nil, errors.NewInternalError(fmt.Sprintf("Single Root area not found for space %s", spaceID.String()))
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &rootArea[0], nil
+}
+
+// Query exposes an open ended Query model for Area
+func (m *GormAreaRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Area, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "area", "query"}, time.Now())
+	var objs []Area
+
+	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, errs.WithStack(err)
+	}
+
+	log.Debug(nil, map[string]interface{}{
+		"area_list": objs,
+	}, "Area query executed successfully!")
+
+	return objs, nil
+}
+
+// FilterBySpaceID is a gorm filter for a Belongs To relationship.
+func FilterBySpaceID(spaceID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("space_id = ?", spaceID)
+	}
+}
+
+// FilterByName is a gorm filter by 'name'
+func FilterByName(name string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("name = ?", name).Limit(1)
+	}
+}
+
+// FilterByPath is a gorm filter by 'path' of the parent area for any given area.
+func FilterByPath(pathOfParent path.Path) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("path = ?", pathOfParent.Convert()).Limit(1)
+	}
 }

@@ -263,6 +263,10 @@ func getMigrations() migrations {
 
 	// Version 48
 	m = append(m, steps{executeSQLFile("048-unique-iteration-name-create-new-iteration.sql")})
+
+	// Version 49
+	m = append(m, steps{executeSQLFile("049-add-wi-to-root-area.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
