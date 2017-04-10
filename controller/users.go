@@ -179,6 +179,12 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			(*keycloakUserProfile.Attributes)[login.URLAttributeName] = []string{*updateURL}
 		}
 
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+			(*keycloakUserProfile.Attributes)[login.CompanyAttributeName] = []string{*updatedCompany}
+		}
+
 		// If none of the 'extra' attributes were present, we better make that section nil
 		// so that the Attributes section is omitted in the payload sent to KC
 
@@ -270,6 +276,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	var bio string
 	var userURL string
 	var email string
+	var company string
 	var contextInformation workitem.Fields
 
 	if user != nil {
@@ -278,6 +285,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		bio = user.Bio
 		userURL = user.URL
 		email = user.Email
+		company = user.Company
 		contextInformation = user.ContextInformation
 	}
 
@@ -302,6 +310,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 				URL:                &userURL,
 				ProviderType:       &providerType,
 				Email:              &email,
+				Company:            &company,
 				ContextInformation: workitem.Fields{},
 			},
 			Links: createUserLinks(request, uuid),
