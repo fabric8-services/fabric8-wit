@@ -109,6 +109,7 @@ func ClearGlobalWorkItemTypeCache() {
 // returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categoryID uuid.UUID) (*WorkItemType, error) {
 	// Make sure this WIT has an ID
+
 	if id == nil {
 		tmpID := uuid.NewV4()
 		id = &tmpID

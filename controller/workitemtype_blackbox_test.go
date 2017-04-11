@@ -9,6 +9,8 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/category"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
@@ -93,6 +95,19 @@ var (
 	personID = uuid.FromStringOrNil("22a1e4f1-7e9d-4ce8-ac87-fe7c79356b16")
 )
 
+func getCategory(db application.DB) uuid.UUID {
+	categories := []*category.Category{}
+	var err error
+	application.Transactional(db, func(appl application.Application) error {
+		categories, err = appl.Categories().List(nil)
+		if err != nil {
+		}
+		return nil
+	})
+	return categories[0].ID
+
+}
+
 // createWorkItemTypeAnimal defines a work item type "animal" that consists of
 // two fields ("animal-type" and "color"). The type is mandatory but the color is not.
 func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *app.WorkItemTypeSingle) {
@@ -132,6 +147,7 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	category := getCategory(gormapplication.NewGormDB(s.DB))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			Type: "workitemtypes",
@@ -147,6 +163,11 @@ func (s *workItemTypeSuite) createWorkItemTypeAnimal() (http.ResponseWriter, *ap
 			},
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Categories: &app.RelationCategories{
+					Data: &app.RelationCategoriesData{
+						ID: &category,
+					},
+				},
 			},
 		},
 	}
@@ -179,6 +200,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(space.SystemSpace.String()))
+	category := getCategory(gormapplication.NewGormDB(s.DB))
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -193,6 +215,11 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 			},
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: app.NewSpaceRelation(space.SystemSpace, spaceSelfURL),
+				Categories: &app.RelationCategories{
+					Data: &app.RelationCategoriesData{
+						ID: &category,
+					},
+				},
 			},
 		},
 	}
@@ -205,7 +232,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	return responseWriter, wi
 }
 
-func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
+func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID, db application.DB) app.CreateWorkitemtypePayload {
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
 		Required: false,
@@ -220,6 +247,10 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}
 	spaceSelfURL := rest.AbsoluteURL(reqLong, app.SpaceHref(spaceID.String()))
+
+	// fetch category
+	category := getCategory(db)
+
 	payload := app.CreateWorkitemtypePayload{
 		Data: &app.WorkItemTypeData{
 			ID:   &id,
@@ -234,6 +265,11 @@ func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypeP
 			},
 			Relationships: &app.WorkItemTypeRelationships{
 				Space: app.NewSpaceRelation(spaceID, spaceSelfURL),
+				Categories: &app.RelationCategories{
+					Data: &app.RelationCategoriesData{
+						ID: &category,
+					},
+				},
 			},
 		},
 	}

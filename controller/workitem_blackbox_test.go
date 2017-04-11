@@ -350,14 +350,14 @@ func (s *WorkItemSuite) TestListByFields() {
 	filter := "{\"system.title\":\"run integration test\"}"
 	offset := "0"
 	limit := 1
-	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 	// when
 	filter = fmt.Sprintf("{\"system.creator\":\"%s\"}", s.testIdentity.ID.String())
 	// then
-	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+	_, result = test.ListWorkitemOK(s.T(), nil, nil, s.controller, payload.Data.Relationships.Space.Data.ID.String(), &filter, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 	require.NotNil(s.T(), result)
 	require.Equal(s.T(), 1, len(result.Data))
 }
@@ -507,7 +507,7 @@ func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemCon
 		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
 		offset := strconv.Itoa(start)
 
-		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
+		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
 		assertLink(t, "first", first, response.Links.First)
 		assertLink(t, "last", last, response.Links.Last)
 		assertLink(t, "prev", prev, response.Links.Prev)
@@ -1201,7 +1201,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), wi.Data.Relationships.Assignees.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *wi.Data.Relationships.Assignees.Data[0].ID)
 	newUserID := newUser.ID.String()
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
@@ -1219,7 +1219,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	assert.NotNil(s.T(), expected.Data)
 	require.NotNil(s.T(), expected.Data.ID)
 	require.NotNil(s.T(), expected.Data.Type)
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, nil, &workitem.SystemBug, nil, nil, nil, nil)
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
 	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemtype]=%s", workitem.SystemBug))
@@ -1252,7 +1252,7 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
 	dataArray = append(dataArray, expected)
 	wiNew := workitem.SystemStateNew
 	// var foundExpected bool
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &wiNew, nil, nil, nil, nil, nil)
+	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, nil, &wiNew, nil, nil, nil, nil, nil)
 
 	require.NotNil(s.T(), actual)
 	require.True(s.T(), len(actual.Data) > 1)
@@ -1304,7 +1304,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOK() {
 	// given
 	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
-	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil)
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1314,7 +1314,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKEmptyList() {
 	// given
 	spaceID, areaID, _ := s.setupAreaWorkItem(false)
 	// when
-	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil)
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), *workitems)
 	require.Empty(s.T(), workitems.Data)
@@ -1330,7 +1330,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfModifiedSinceHea
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt.Add(-1 * time.Hour))
-	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1341,7 +1341,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterOKUsingExpiredIfNoneMatchHeader(
 	spaceID, areaID, _ := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := "foo"
-	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	res, workitems := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertAreaWorkItems(s.T(), areaID, workitems)
 	assertResponseHeaders(s.T(), res)
@@ -1353,7 +1353,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfModifiedSinceH
 	// when
 	updatedAt := wi.Data.Attributes[workitem.SystemUpdatedAt].(time.Time)
 	ifModifiedSince := app.ToHTTPTime(updatedAt)
-	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
+	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1363,7 +1363,7 @@ func (s *WorkItem2Suite) TestWI2ListByAreaFilterNotModifiedUsingIfNoneMatchHeade
 	spaceID, areaID, wi := s.setupAreaWorkItem(true)
 	// when
 	ifNoneMatch := app.GenerateEntityTag(convertWorkItemToConditionalResponseEntity(*wi))
-	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
+	res := test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, spaceID, nil, &areaID, nil, nil, nil, nil, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1389,7 +1389,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -2083,15 +2083,15 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	}
 
 	// list workitems for grandParentIteration
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 7)
 
 	// list workitems for parentIteration
-	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 4)
 
 	// list workitems for childIteraiton
-	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 2)
 }
 

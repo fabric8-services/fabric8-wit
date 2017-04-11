@@ -76,8 +76,9 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), testSpace.ID)
 		logrus.Info("Created space with ID=", testSpace.ID)
+
 		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 		require.Nil(rest.T(), err)
 		logrus.Info("Created workitem type with ID=", workitemType.ID)
 

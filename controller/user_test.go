@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
 	. "github.com/almighty/almighty-core/controller"
@@ -244,6 +245,11 @@ func (g *GormTestBase) Comments() comment.Repository {
 
 // Iterations returns a iteration repository
 func (g *GormTestBase) Iterations() iteration.Repository {
+	return nil
+}
+
+// Categories returns a category repository
+func (g *GormTestBase) Categories() category.CategoryRepository {
 	return nil
 }
 
