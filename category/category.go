@@ -41,6 +41,7 @@ func (m *Category) TableName() string {
 // Category_wit_relationship describes relationship between a category and a workitemtype.
 type CategoryWitRelationship struct {
 	gormsupport.Lifecycle
+	ID             uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	CategoryID     uuid.UUID `sql:"type:uuid"`
 	WorkitemtypeID uuid.UUID `sql:"type:uuid"`
 }
@@ -81,6 +82,9 @@ func (m *GormCategoryRepository) List(ctx context.Context) ([]*Category, error) 
 
 // CreateRelationship creates relationship between workitemtype and category
 func (r *GormCategoryRepository) CreateRelationship(ctx context.Context, relationship *CategoryWitRelationship) error {
+	if relationship.ID == uuid.Nil {
+		relationship.ID = uuid.NewV4()
+	}
 	db := r.db.Create(relationship)
 	if db.Error != nil {
 		return errors.NewInternalError(db.Error.Error())

@@ -14,7 +14,9 @@ CREATE TABLE workitemtype_categories (
 	updated_at timestamp with time zone,
 	deleted_at timestamp with time zone,
 	category_id uuid NOT NULL,
-	workitemtype_id uuid NOT NULL
+	id uuid primary key DEFAULT uuid_generate_v4() NOT NULL,
+	workitemtype_id uuid NOT NULL,
+	UNIQUE (category_id, workitemtype_id)
 );
 
 ALTER TABLE workitemtype_categories ADD CONSTRAINT category_id_categories_id_fk FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE;
