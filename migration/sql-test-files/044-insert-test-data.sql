@@ -85,7 +85,7 @@ VALUES
       now(), now(), '2e0698d8-753e-4cef-bb7c-f027634824a2', '86af5178-9b41-469b-9096-57e5155c3f31', 0, 'path', 'area test one'
    ),
    (
-      now(), now(), '71171e90-6d35-498f-a6a7-2083b5267c18', '86af5178-9b41-469b-9096-57e5155c3f31', 0, 'path', 'area test two'
+      now(), now(), '71171e90-6d35-498f-a6a7-2083b5267c18', '86af5178-9b41-469b-9096-57e5155c3f31', 0, '', 'area test two'
    )
 ;
 -- iterations

@@ -36,7 +36,7 @@ var (
 	sqlDB      *sql.DB
 )
 
-func init() {
+func setupTest() {
 	var err error
 	conf, err = config.GetConfigurationData()
 	if err != nil {
@@ -70,7 +70,8 @@ func init() {
 func TestMigrations(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	var err error
+	setupTest()
+
 	configurationString := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=%d",
 		conf.GetPostgresHost(),
 		conf.GetPostgresPort(),
@@ -80,7 +81,7 @@ func TestMigrations(t *testing.T) {
 		conf.GetPostgresSSLMode(),
 		conf.GetPostgresConnectionTimeout(),
 	)
-	m := migrations[:initialMigratedVersion]
+	var err error
 	sqlDB, err = sql.Open("postgres", configurationString)
 	defer sqlDB.Close()
 	if err != nil {
@@ -94,6 +95,27 @@ func TestMigrations(t *testing.T) {
 	dialect = gormDB.Dialect()
 	dialect.SetDB(sqlDB)
 
+	// We migrate the new database until initialMigratedVersion
+	t.Run("TestMigration44", testMigration44)
+
+	// Insert dummy test data to our database
+	assert.Nil(t, runSQLscript(sqlDB, "044-insert-test-data.sql"))
+
+	t.Run("TestMigration45", testMigration45)
+	t.Run("TestMigration46", testMigration46)
+	t.Run("TestMigration47", testMigration47)
+	t.Run("TestMigration48", testMigration48)
+	t.Run("TestMigration49", testMigration49)
+
+	// Perform the migration
+	if err := migration.Migrate(sqlDB, databaseName); err != nil {
+		t.Fatalf("Failed to execute the migration: %s\n", err)
+	}
+}
+
+func testMigration44(t *testing.T) {
+	var err error
+	m := migrations[:initialMigratedVersion]
 	for nextVersion := int64(0); nextVersion < int64(len(m)) && err == nil; nextVersion++ {
 		var tx *sql.Tx
 		tx, err = sqlDB.Begin()
@@ -113,20 +135,6 @@ func TestMigrations(t *testing.T) {
 		if err = tx.Commit(); err != nil {
 			t.Fatalf("Error during transaction commit: %s\n", err)
 		}
-	}
-	// Insert dummy test data
-	assert.Nil(t, runSQLscript(sqlDB, "044-insert-test-data.sql"))
-
-	// Migration 45
-	t.Run("TestMigration45", testMigration45)
-	t.Run("TestMigration46", testMigration46)
-	t.Run("TestMigration47", testMigration47)
-	t.Run("TestMigration48", testMigration48)
-	t.Run("TestMigration49", testMigration49)
-
-	// Perform the migration
-	if err := migration.Migrate(sqlDB, databaseName); err != nil {
-		t.Fatalf("Failed to execute the migration: %s\n", err)
 	}
 }
 
@@ -175,6 +183,21 @@ func testMigration49(t *testing.T) {
 	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+5)], (initialMigratedVersion + 5))
 
 	assert.True(t, dialect.HasIndex("areas", "ix_area_name"))
+
+	// Tests that migration 49 set the system.are to the work_items and its value
+	// is 71171e90-6d35-498f-a6a7-2083b5267c18
+	rows, err := sqlDB.Query("SELECT count(*), fields->>'system.area' FROM work_items where fields != '{}' GROUP BY fields")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var fields string
+		var count int
+		err = rows.Scan(&count, &fields)
+		assert.True(t, count == 2)
+		assert.True(t, fields == "71171e90-6d35-498f-a6a7-2083b5267c18")
+	}
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
