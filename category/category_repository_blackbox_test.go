@@ -1,10 +1,9 @@
-package workitem_test
+package category_test
 
 import (
 	"context"
 	"testing"
 
-	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,7 @@ import (
 
 type categoryRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repo  category.CategoryRepository
+	repo  CategoryRepository
 	clean func()
 	ctx   context.Context
 }
@@ -24,7 +23,7 @@ func TestRunCategoryRepoBlackBoxTest(t *testing.T) {
 }
 
 func (test *categoryRepoBlackBoxTest) SetupTest() {
-	test.repo = category.NewCategoryRepository(test.DB)
+	test.repo = NewCategoryRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
@@ -35,7 +34,7 @@ func (test *categoryRepoBlackBoxTest) TearDownTest() {
 // TestCreateCategory tests that we can create a category
 func (test *categoryRepoBlackBoxTest) TestCreateLoadCategory() {
 
-	category := category.Category{
+	category := Category{
 		Name: "planner.testIssues",
 	}
 	category1, err := test.repo.Create(test.ctx, &category) // Create
