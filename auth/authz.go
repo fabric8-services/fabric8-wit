@@ -159,7 +159,7 @@ func VerifyResourceUser(ctx context.Context, token string, resourceName string, 
 	resource := EntitlementResource{
 		Permissions: []ResourceSet{{Name: resourceName}},
 	}
-	ent, err := GetEntitlement(ctx, entitlementEndpoint, resource, token)
+	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, token)
 	if err != nil {
 		return false, err
 	}
@@ -606,25 +606,33 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 }
 
 // GetEntitlement obtains Entitlement for specific resource.
+// If entitlementResource == nil then Entitlement for all resources available to the user is returned.
 // Returns (nil, nil) if response status == Forbiden which means the user doesn't have permissions to obtain Entitlement
-func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource EntitlementResource, userAccesToken string) (*string, error) {
-	b, err := json.Marshal(entitlementResource)
-	if err != nil {
+func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource *EntitlementResource, userAccesToken string) (*string, error) {
+	var req *http.Request
+	var reqErr error
+	if entitlementResource != nil {
+		b, err := json.Marshal(entitlementResource)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"entitlement_resource": entitlementResource,
+				"err": err.Error(),
+			}, "Unable to marshal keyclaok entitlement resource struct")
+			return nil, errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
+		}
+
+		req, reqErr = http.NewRequest("POST", entitlementEndpoint, strings.NewReader(string(b)))
+		req.Header.Add("Content-Type", "application/json")
+	} else {
+		req, reqErr = http.NewRequest("GET", entitlementEndpoint, nil)
+	}
+	if reqErr != nil {
 		log.Error(ctx, map[string]interface{}{
-			"entitlement_resource": entitlementResource,
-			"err": err.Error(),
-		}, "Unable to marshal keyclaok entitlement resource struct")
-		return nil, errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
+			"err": reqErr.Error(),
+		}, "Unable to crete http request")
+		return nil, errors.NewInternalError("unable to crete http request " + reqErr.Error())
 	}
 
-	req, err := http.NewRequest("POST", entitlementEndpoint, strings.NewReader(string(b)))
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err.Error(),
-		}, "Unable to crete http request")
-		return nil, errors.NewInternalError("unable to crete http request " + err.Error())
-	}
-	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+userAccesToken)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

@@ -26,6 +26,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
@@ -171,13 +172,13 @@ func main() {
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
 
+	appDB := gormapplication.NewGormDB(db)
+
 	tokenManager := token.NewManager(publicKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 	service.Use(login.InjectTokenManager(tokenManager))
-	spaceAuthzService := space.NewAuthzService(configuration)
-	service.Use(space.InjectAuthzService(spaceAuthzService))
-
-	appDB := gormapplication.NewGormDB(db)
+	spaceAuthzService := authz.NewAuthzService(configuration, appDB)
+	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
 	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)

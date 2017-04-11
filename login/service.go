@@ -54,7 +54,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error
+	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, validRedirectURL string) error
 	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 	Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
 	LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
@@ -88,7 +88,7 @@ const (
 )
 
 // Perform performs authenticatin
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, validRedirectURL string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 
@@ -118,8 +118,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		_, _, err = keycloak.CreateOrUpdateKeycloakUser(keycloakToken.AccessToken, ctx)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"token": keycloakToken.AccessToken,
-				"err":   err,
+				"err": err,
 			}, "failed to create a user and KeyCloak identity using the access token")
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
@@ -127,6 +126,18 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		referrerURL, err := url.Parse(knownReferrer)
 		if err != nil {
 			return redirectWithError(ctx, knownReferrer, err.Error())
+		}
+
+		rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, nil, keycloakToken.AccessToken)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to obtain entitlement during login")
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		}
+		if rpt != nil {
+			// Swap access token and rpt which contains all resources available to the user
+			keycloakToken.AccessToken = *rpt
 		}
 
 		err = encodeToken(referrerURL, keycloakToken)

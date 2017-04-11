@@ -24,7 +24,7 @@ func ReadTokenManagerFromContext(ctx context.Context) interface{} {
 }
 
 // ReadSpaceAuthzServiceFromContext returns an interface that encapsulates the
-// AuthzServiceManager extracted from context. This interface can be safely converted to space.AuthzServiceManager.
+// AuthzServiceManager extracted from context. This interface can be safely converted to authz.AuthzServiceManager.
 // Must have been set by ContextWithSpaceAuthzService ONLY.
 func ReadSpaceAuthzServiceFromContext(ctx context.Context) interface{} {
 	return ctx.Value(autzSpaceServiceKey)

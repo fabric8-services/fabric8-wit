@@ -5,9 +5,9 @@ import (
 
 	"github.com/almighty/almighty-core/account"
 	tokencontext "github.com/almighty/almighty-core/login/token_context"
+	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/token"
 
-	"github.com/almighty/almighty-core/space"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -21,7 +21,7 @@ func (s *dummySpaceAuthzService) Authorize(ctx context.Context, entitlementEndpo
 	return &token, true, nil
 }
 
-func (s *dummySpaceAuthzService) Configuration() space.AuthzConfiguration {
+func (s *dummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
 	return nil
 }
 
@@ -46,13 +46,13 @@ func service(serviceName string, tm token.Manager, u account.Identity) *goa.Serv
 // ServiceAsUser creates a new service and fill the context with input Identity
 func ServiceAsUser(serviceName string, tm token.Manager, u account.Identity) *goa.Service {
 	svc := service(serviceName, tm, u)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &space.KeyclaokAuthzServiceManager{Service: &dummySpaceAuthzService{}})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeyclaokAuthzServiceManager{Service: &dummySpaceAuthzService{}})
 	return svc
 }
 
 // ServiceAsSpaceUser creates a new service and fill the context with input Identity and space authz service
-func ServiceAsSpaceUser(serviceName string, tm token.Manager, u account.Identity, authz space.AuthzService) *goa.Service {
+func ServiceAsSpaceUser(serviceName string, tm token.Manager, u account.Identity, authzSrv authz.AuthzService) *goa.Service {
 	svc := service(serviceName, tm, u)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &space.KeyclaokAuthzServiceManager{Service: authz})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeyclaokAuthzServiceManager{Service: authzSrv})
 	return svc
 }

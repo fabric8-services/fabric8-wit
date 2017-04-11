@@ -19,7 +19,7 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -141,7 +141,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	_, authorized, err := space.Authorize(ctx, ctx.ID)
+	_, authorized, err := authz.Authorize(ctx, ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -193,7 +193,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	_, authorized, err := space.Authorize(ctx, ctx.ID)
+	_, authorized, err := authz.Authorize(ctx, ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -244,7 +244,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	_, authorized, err := space.Authorize(ctx, ctx.ID)
+	_, authorized, err := authz.Authorize(ctx, ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -357,7 +357,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	_, authorized, err := space.Authorize(ctx, ctx.ID)
+	_, authorized, err := authz.Authorize(ctx, ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}

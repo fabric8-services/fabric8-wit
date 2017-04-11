@@ -17,7 +17,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
-	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/space/authz"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	token "github.com/dgrijalva/jwt-go"
@@ -55,7 +55,7 @@ func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string,
 	return rpt, ok, nil
 }
 
-func (s *DummySpaceAuthzService) Configuration() space.AuthzConfiguration {
+func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
 	return nil
 }
 
@@ -384,7 +384,7 @@ func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, 
 	return rpt, ok, nil
 }
 
-func (s *TestSpaceAuthzService) Configuration() space.AuthzConfiguration {
+func (s *TestSpaceAuthzService) Configuration() authz.AuthzConfiguration {
 	return nil
 }
 

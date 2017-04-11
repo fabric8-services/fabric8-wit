@@ -27,6 +27,7 @@ type loginConfiguration interface {
 	GetKeycloakEndpointAuth(*goa.RequestData) (string, error)
 	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
 	GetKeycloakEndpointBroker(*goa.RequestData) (string, error)
+	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
 	IsPostgresDeveloperModeEnabled() bool
@@ -68,6 +69,14 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL. "+err.Error()))
 	}
 
+	entitlementEndpoint, err := c.configuration.GetKeycloakEndpointEntitlement(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak entitlement endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak entitlement endpoint URL. "+err.Error()))
+	}
+
 	brokerEndpoint, err := c.configuration.GetKeycloakEndpointBroker(ctx.RequestData)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -88,7 +97,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		RedirectURL:  rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize"),
 	}
 
-	return c.auth.Perform(ctx, oauth, authEndpoint, tokenEndpoint, brokerEndpoint, whitelist)
+	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, whitelist)
 }
 
 // Refresh obtain a new access token using the refresh token.
@@ -129,6 +138,26 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	token, err := auth.ReadToken(res)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	entitlementEndpoint, err := c.configuration.GetKeycloakEndpointEntitlement(ctx.RequestData)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Unable to get Keycloak token endpoint URL")
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	}
+
+	rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, nil, *token.AccessToken)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "failed to obtain entitlement during login")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	if rpt != nil {
+		// Swap access token and rpt which contains all resources available to the user
+		token.AccessToken = rpt
 	}
 
 	return ctx.OK(convertToken(*token))
