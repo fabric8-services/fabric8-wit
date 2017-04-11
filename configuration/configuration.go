@@ -164,7 +164,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// Enable development related features, e.g. token generation endpoint
 	c.v.SetDefault(varDeveloperModeEnabled, false)
 
-	c.v.SetDefault(varLogLevel, "info")
+	c.v.SetDefault(varLogLevel, defaultLogLevel)
 
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
@@ -638,6 +638,8 @@ gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
 51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
 ZwIDAQAB
 -----END PUBLIC KEY-----`
+
+	defaultLogLevel = "info"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"
