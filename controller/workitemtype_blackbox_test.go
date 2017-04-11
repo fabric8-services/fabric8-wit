@@ -101,6 +101,7 @@ func getCategory(db application.DB) uuid.UUID {
 	application.Transactional(db, func(appl application.Application) error {
 		categories, err = appl.Categories().List(nil)
 		if err != nil {
+			return err
 		}
 		return nil
 	})

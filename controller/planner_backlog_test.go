@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -74,7 +75,14 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		require.NotNil(rest.T(), testSpace.ID)
 		logrus.Info("Created space with ID=", testSpace.ID)
 		workitemTypesRepo := app.WorkItemTypes()
-		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+
+		categories := []*category.Category{}
+		categories, err = app.Categories().List(nil)
+		if err != nil {
+			return err
+		}
+
+		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, categories[0].ID)
 		require.Nil(rest.T(), err)
 		logrus.Info("Created workitem type with ID=", workitemType.ID)
 

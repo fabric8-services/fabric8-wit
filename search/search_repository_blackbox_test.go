@@ -71,17 +71,17 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	}
 
 	extended := workitem.SystemBug
-	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	base, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &extended, "base", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), base)
 	require.NotNil(s.T(), base.ID)
 
-	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "sub1", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	sub1, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "sub1", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub1)
 	require.NotNil(s.T(), sub1.ID)
 
-	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "subtwo", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	sub2, err := s.witRepo.Create(ctx, space.SystemSpace, nil, &base.ID, "subtwo", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), sub2)
 	require.NotNil(s.T(), sub2.ID)

@@ -60,13 +60,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	})
+	}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
 
 	// Test that we can create a WIT with the same name as before.
-	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.ID)
@@ -89,12 +89,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 				ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 		},
-	})
+	}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
 
-	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.ID)
@@ -118,12 +118,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 				ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 		},
-	})
+	}, uuid.Nil)
 
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), baseWit)
 	require.NotNil(s.T(), baseWit.ID)
-	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), extendedWit)
 	require.NotNil(s.T(), extendedWit.Fields)
@@ -133,7 +133,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 	baseTypeID := uuid.Nil
-	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
+	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, uuid.Nil)
 	// expect an error as the given base type does not exist
 	require.NotNil(s.T(), err)
 	require.Nil(s.T(), extendedWit)
