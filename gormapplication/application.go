@@ -135,8 +135,8 @@ func (g *GormBase) Areas() area.Repository {
 }
 
 // Categories returns a category repository
-func (g *GormBase) Categories() category.CategoryRepository {
-	return category.NewCategoryRepository(g.db)
+func (g *GormBase) Categories() category.Repository {
+	return category.NewRepository(g.db)
 }
 
 // OauthStates returns an oauth state reference repository

@@ -581,7 +581,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 }
 
 // createCategory creates category in db
-func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.CategoryRepository, categoryID *uuid.UUID, categoryName string) error {
+func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
 	category := category.Category{
 		ID:   *categoryID,
 		Name: categoryName,
@@ -593,7 +593,7 @@ func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.Cat
 	return nil
 }
 
-func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository, categoryID *uuid.UUID, categoryName string) error {
+func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
 	cat, err := categoryRepo.LoadCategoryFromDB(ctx, *categoryID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
@@ -615,7 +615,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 }
 
 // populateCategories populates the categories table with system defined categories
-func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.CategoryRepository) {
+func populateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository) {
 	fmt.Println("Creating or updating categories...")
 	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerRequirementsID, category.PlannerRequirements)
 	createOrUpdateCategories(ctx, db, categoryRepo, &category.PlannerIssuesID, category.PlannerIssues)
@@ -630,7 +630,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		return errs.WithStack(err)
 	}
 
-	c := category.NewCategoryRepository(db)
+	c := category.NewRepository(db)
 	populateCategories(ctx, db, c) // populate the categories
 	categories, err := c.List(ctx) // fetch the categories
 	if err != nil {

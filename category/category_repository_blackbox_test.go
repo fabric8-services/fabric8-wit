@@ -14,7 +14,7 @@ import (
 
 type categoryRepoBlackBoxTest struct {
 	gormtestsupport.DBTestSuite
-	repo  category.CategoryRepository
+	repo  category.Repository
 	clean func()
 	ctx   context.Context
 }

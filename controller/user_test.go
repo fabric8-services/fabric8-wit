@@ -249,7 +249,7 @@ func (g *GormTestBase) Iterations() iteration.Repository {
 }
 
 // Categories returns a category repository
-func (g *GormTestBase) Categories() category.CategoryRepository {
+func (g *GormTestBase) Categories() category.Repository {
 	return nil
 }
 

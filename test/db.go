@@ -73,7 +73,7 @@ func (db *MockDB) Areas() area.Repository {
 	return nil
 }
 
-func (db *MockDB) Categories() category.CategoryRepository {
+func (db *MockDB) Categories() category.Repository {
 	return nil
 }
 

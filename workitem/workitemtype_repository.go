@@ -158,7 +158,7 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 
 	// create relationship between workitemtype and category
 	if categoryID != uuid.Nil {
-		c := category.NewCategoryRepository(r.db)
+		c := category.NewRepository(r.db)
 		categoryWorkItemTypeRelationship := category.CategoryWorkItemTypeRelationship{
 			CategoryID:     categoryID,
 			WorkitemtypeID: *id,
