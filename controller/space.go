@@ -403,6 +403,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			},
 			Workitemtypes:     &relatedWorkItemTypeList,
 			Workitemlinktypes: &relatedWorkItemLinkTypeList,
+			Filters:           &relatedFilterList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
@@ -437,11 +438,6 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			Collaborators: &app.RelationGeneric{
 				Links: &app.GenericLinks{
 					Related: &relatedCollaboratorList,
-				},
-			},
-			Filters: &app.RelationGeneric{
-				Links: &app.GenericLinks{
-					Related: &relatedFilterList,
 				},
 			},
 		},
