@@ -83,6 +83,7 @@ const (
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
+	varLogLevel                         = "log.level"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -162,6 +163,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 
 	// Enable development related features, e.g. token generation endpoint
 	c.v.SetDefault(varDeveloperModeEnabled, false)
+
+	c.v.SetDefault(varLogLevel, "info")
 
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
@@ -557,6 +560,11 @@ func (c *ConfigurationData) GetCheStarterURL() string {
 // GetOpenshiftTenantMasterURL returns the URL for the openshift cluster where the tenant services are running
 func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
+}
+
+// GetLogLevel returns the loggging level (as set via config file or environment variable)
+func (c *ConfigurationData) GetLogLevel() string {
+	return c.v.GetString(varLogLevel)
 }
 
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
