@@ -586,7 +586,7 @@ func createOrUpdateCategory(ctx context.Context, categoryRepo category.CategoryR
 		ID:   *categoryID,
 		Name: categoryName,
 	}
-	err := categoryRepo.Create(ctx, &category)
+	_, err := categoryRepo.Create(ctx, &category)
 	if err != nil {
 		return errs.WithStack(err)
 	}

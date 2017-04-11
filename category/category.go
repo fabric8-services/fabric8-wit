@@ -53,7 +53,7 @@ func (m *CategoryWitRelationship) TableName() string {
 }
 
 type CategoryRepository interface {
-	Create(ctx context.Context, category *Category) error
+	Create(ctx context.Context, category *Category) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
 	CreateRelationship(ctx context.Context, relationship *CategoryWitRelationship) error
 	LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*CategoryWitRelationship, error)
@@ -93,21 +93,21 @@ func (r *GormCategoryRepository) CreateRelationship(ctx context.Context, relatio
 }
 
 // Create creates category. This function is used to populate categories table through migration -> PopulateCategories()
-func (r *GormCategoryRepository) Create(ctx context.Context, category *Category) error {
+func (r *GormCategoryRepository) Create(ctx context.Context, category *Category) (*Category, error) {
 	if category.ID == uuid.Nil {
 		category.ID = uuid.NewV4()
 	}
 	db := r.db.Create(category)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "categories_name_idx") {
-			return errors.NewBadParameterError("Name", category.Name).Expected("unique")
+			return nil, errors.NewBadParameterError("Name", category.Name).Expected("unique")
 		}
-		return errors.NewInternalError(db.Error.Error())
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
 		"category_id": category.ID,
 	}, "Category created successfully")
-	return nil
+	return category, nil
 }
 
 // LoadRelationships loads the relationships. This is required for workitemtype filtering.
