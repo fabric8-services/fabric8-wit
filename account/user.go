@@ -27,6 +27,7 @@ type User struct {
 	ImageURL           string          // The image URL for the User
 	Bio                string          // The bio of the User
 	URL                string          // The URL of the User
+	Company            string          // The (optional) Company of the User
 	Identities         []Identity      // has many Identities from different IDPs
 	ContextInformation workitem.Fields `sql:"type:jsonb"` // context information of the user activity
 }

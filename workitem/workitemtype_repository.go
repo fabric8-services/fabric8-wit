@@ -115,12 +115,6 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 		id = &tmpID
 	}
 
-	existing, _ := r.LoadTypeFromDB(ctx, *id)
-	if existing != nil {
-		log.Error(ctx, map[string]interface{}{"wit_id": *id}, "unable to create new work item type")
-		return nil, errors.NewBadParameterError("name", *id)
-	}
-
 	allFields := map[string]FieldDefinition{}
 	path := LtreeSafeID(*id)
 	if extendedTypeID != nil {

@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"time"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
@@ -9,11 +11,20 @@ import (
 // FilterController implements the filter resource.
 type FilterController struct {
 	*goa.Controller
+	config FilterControllerConfiguration
+}
+
+// FilterControllerConfiguration the configuration for the FilterController.
+type FilterControllerConfiguration interface {
+	GetCacheControlFilters() string
 }
 
 // NewFilterController creates a filter controller.
-func NewFilterController(service *goa.Service) *FilterController {
-	return &FilterController{Controller: service.NewController("FilterController")}
+func NewFilterController(service *goa.Service, config FilterControllerConfiguration) *FilterController {
+	return &FilterController{
+		Controller: service.NewController("FilterController"),
+		config:     config,
+	}
 }
 
 // List runs the list action.
@@ -77,11 +88,39 @@ func (c *FilterController) List(ctx *app.ListFilterContext) error {
 	result := &app.FilterList{
 		Data: arr,
 	}
-
+	// compute an ETag based on the type and query of each filter
+	filterEtagData := make([]app.ConditionalResponseEntity, len(result.Data))
+	for i, filter := range result.Data {
+		filterEtagData[i] = FilterEtagData{
+			Type:  filter.Attributes.Type,
+			Query: filter.Attributes.Query,
+		}
+	}
+	ctx.ResponseData.Header().Set(app.ETag, app.GenerateEntitiesTag(filterEtagData))
+	// set now as the last modified date
+	ctx.ResponseData.Header().Set(app.LastModified, app.ToHTTPTime(time.Now()))
+	// cache-control
+	ctx.ResponseData.Header().Set(app.CacheControl, c.config.GetCacheControlFilters())
 	return ctx.OK(result)
 }
 
 func addFilterLinks(links *app.PagingLinks, request *goa.RequestData) {
 	filter := rest.AbsoluteURL(request, app.FilterHref())
 	links.Filters = &filter
+}
+
+// FilterEtagData structure that carries the data to generate an ETag.
+type FilterEtagData struct {
+	Type  string
+	Query string
+}
+
+// GetETagData returns the field values to compute the ETag.
+func (f FilterEtagData) GetETagData() []interface{} {
+	return []interface{}{f.Type, f.Query}
+}
+
+// GetLastModified returns the field values to compute the '`Last-Modified` response header.
+func (f FilterEtagData) GetLastModified() time.Time {
+	return time.Now()
 }

@@ -263,6 +263,15 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("047-codebases.sql")})
 
 	// Version 48
+	m = append(m, steps{executeSQLFile("048-unique-iteration-name-create-new-iteration.sql")})
+
+	// Version 49
+	m = append(m, steps{executeSQLFile("049-add-wi-to-root-area.sql")})
+
+	// Version 50
+	m = append(m, steps{executeSQLFile("050-add-company-to-user-profile.sql")})
+
+	// Version 51
 	m = append(m, steps{executeSQLFile("048-categories.sql")})
 
 	// Version N

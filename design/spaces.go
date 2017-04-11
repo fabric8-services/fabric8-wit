@@ -25,6 +25,7 @@ var genericLinksForSpace = a.Type("GenericLinksForSpace", func() {
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
 	a.Attribute("workitemtypes", d.String, "URL to list all WITs for this space")
 	a.Attribute("workitemlinktypes", d.String, "URL to list all WILTs for this space")
+	a.Attribute("collaborators", d.String, `URL to the list of the space collaborators`)
 })
 
 var backlogGenericLinkType = a.Type("BacklogGenericLink", func() {
@@ -46,6 +47,7 @@ var spaceRelationships = a.Type("SpaceRelationships", func() {
 	a.Attribute("workitems", relationGeneric, "Space can have one or many work items")
 	a.Attribute("categories", relationGenericList, "Space can have one or many categories")
 	a.Attribute("codebases", relationGeneric, "Space can have one or many codebases")
+	a.Attribute("collaborators", relationGeneric, `Space can have one or many collaborators`)
 })
 
 var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {

@@ -77,12 +77,17 @@ type keycloakTokenClaims struct {
 	GivenName     string `json:"given_name"`
 	FamilyName    string `json:"family_name"`
 	Email         string `json:"email"`
+	Company       string `json:"company"`
 	SessionState  string `json:"session_state"`
 	ClientSession string `json:"client_session"`
 	jwt.StandardClaims
 }
 
 var allProvidersToLink = []string{"github", "openshift-v3"}
+
+const (
+	initiateLinkingParam = "initlinking"
+)
 
 // Perform performs authenticatin
 func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
@@ -120,7 +125,6 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 			}, "failed to create a user and KeyCloak identity using the access token")
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
-
 		// redirect back to original referrel
 		referrerURL, err := url.Parse(knownReferrer)
 		if err != nil {
@@ -147,12 +151,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 			return ctx.TemporaryRedirect()
 		}
 
-		// TODO
-		// ---- Autolinking enabled regardless of the "link" param. Remove when UI adds support of account linking
-		link := true
-		// ----
-
-		if !link && (ctx.Link == nil || !*ctx.Link) {
+		if s, err := strconv.ParseBool(referrerURL.Query().Get(initiateLinkingParam)); err != nil || !s {
 			referrerStr = referrerStr + "&linked=false"
 			ctx.ResponseData.Header().Set("Location", referrerStr)
 			return ctx.TemporaryRedirect()
@@ -180,6 +179,19 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 	}, "Got Request from!")
 
 	stateID := uuid.NewV4()
+	if ctx.Link != nil && *ctx.Link {
+		// We need to save the "link" param so we don't lose it when redirect to sso for auth and back to core.
+		// TODO find a better place to save this param between redirects.
+		linkURL, err := url.Parse(*redirect)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
+		}
+		parameters := linkURL.Query()
+		parameters.Add(initiateLinkingParam, strconv.FormatBool(*ctx.Link))
+		linkURL.RawQuery = parameters.Encode()
+		s := linkURL.String()
+		redirect = &s
+	}
 	err := keycloak.saveReferrer(ctx, stateID, *redirect, validRedirectURL)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -490,7 +502,7 @@ func encodeToken(referrer *url.URL, outhToken *oauth2.Token) error {
 		return errs.WithStack(errors.New("cant marshal token data struct " + err.Error()))
 	}
 
-	parameters := url.Values{}
+	parameters := referrer.Query()
 	parameters.Add("token", outhToken.AccessToken) // Temporary keep the old "token" param. We will drop this param as soon as UI adopt the new json param.
 	parameters.Add("token_json", string(b))
 	referrer.RawQuery = parameters.Encode()
@@ -700,6 +712,7 @@ func checkClaims(claims *keycloakTokenClaims) error {
 func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	user.FullName = claims.Name
 	user.Email = claims.Email
+	user.Company = claims.Company
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
 		log.Warn(nil, map[string]interface{}{

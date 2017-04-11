@@ -15,11 +15,11 @@ import (
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
-	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -136,10 +136,11 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
 		}
 		return ctx.ConditionalEntities(workitems, c.config.GetCacheControlWorkItems, func() error {
+			hasChildren := workItemIncludeHasChildren(tx, ctx)
 			response := app.WorkItemList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.WorkItemListResponseMeta{TotalCount: count},
-				Data:  ConvertWorkItems(ctx.RequestData, workitems),
+				Data:  ConvertWorkItems(ctx.RequestData, workitems, hasChildren),
 			}
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(workitems), offset, limit, count, additionalQuery...)
 			addFilterLinks(response.Links, ctx.RequestData)
@@ -155,7 +156,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
@@ -181,7 +181,8 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi)
+		hasChildren := workItemIncludeHasChildren(appl, ctx)
+		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -226,7 +227,8 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi)
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 			dataArray = append(dataArray, wi2)
 		}
 		resp := &app.WorkItemReorder{
@@ -270,21 +272,39 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		if spaceID != space.SystemSpace {
-			_, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
-			if spaceLoadErr != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+		spaceInstance, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+		if spaceLoadErr != nil {
+			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
+		}
+
+		if _, ok := wi.Fields[workitem.SystemArea]; ok == false {
+			// no area assigned yet hence set root area
+			rootArea, err := appl.Areas().Root(ctx, spaceID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching root area")))
+			}
+			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
+		}
+
+		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		// fetch root iteration for this space and assign it to WI if not present already
+		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
+			// no iteration set hence set to root iteration of its space
+			rootItr, rootItrErr := appl.Iterations().Root(ctx, spaceInstance.ID)
+			if rootItrErr == nil {
+				wi.Fields[workitem.SystemIteration] = rootItr.ID.String()
 			}
 		}
-		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
+
 		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
-		wi2 := ConvertWorkItem(ctx.RequestData, *wi)
+		hasChildren := workItemIncludeHasChildren(appl, ctx)
+		wi2 := ConvertWorkItem(ctx.RequestData, *wi, hasChildren)
 		resp := &app.WorkItemSingle{
 			Data: wi2,
 			Links: &app.WorkItemLinks{
@@ -305,13 +325,14 @@ func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		comments := WorkItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
+		hasChildren := workItemIncludeHasChildren(appl, ctx)
 		wi, err := appl.WorkItems().Load(ctx, spaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
 		return ctx.ConditionalEntity(*wi, c.config.GetCacheControlWorkItems, func() error {
-			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments)
+			wi2 := ConvertWorkItem(ctx.RequestData, *wi, comments, hasChildren)
 			resp := &app.WorkItemSingle{
 				Data: wi2,
 			}
@@ -445,7 +466,26 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 		// convert legacy description to markup content
 		if key == workitem.SystemDescription {
 			if m := rendering.NewMarkupContentFromValue(val); m != nil {
-				target.Fields[key] = *m
+				// if no description existed before, set the new one
+				if target.Fields[key] == nil {
+					target.Fields[key] = *m
+				} else {
+					// only update the 'description' field in the existing description
+					existingDescription := target.Fields[key].(rendering.MarkupContent)
+					existingDescription.Content = (*m).Content
+					target.Fields[key] = existingDescription
+				}
+			}
+		} else if key == workitem.SystemDescriptionMarkup {
+			markup := val.(string)
+			// if no description existed before, set the markup in a new one
+			if target.Fields[workitem.SystemDescription] == nil {
+				target.Fields[workitem.SystemDescription] = rendering.MarkupContent{Markup: markup}
+			} else {
+				// only update the 'description' field in the existing description
+				existingDescription := target.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+				existingDescription.Markup = markup
+				target.Fields[workitem.SystemDescription] = existingDescription
 			}
 		} else if key == workitem.SystemCodebase {
 			if m, err := codebase.NewCodebaseContentFromValue(val); err == nil {
@@ -593,13 +633,40 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 	if op.Relationships.Area == nil {
 		op.Relationships.Area = &app.RelationGeneric{Data: nil}
 	}
-	// Always include Comments Link, but optionally use WorkItemIncludeCommentsAndTotal
-	WorkItemIncludeComments(request, &wi, op)
-	WorkItemIncludeChildren(request, &wi, op)
+	// Always include Comments Link, but optionally use workItemIncludeCommentsAndTotal
+	workItemIncludeComments(request, &wi, op)
+	workItemIncludeChildren(request, &wi, op)
 	for _, add := range additional {
 		add(request, &wi, op)
 	}
 	return op
+}
+
+// workItemIncludeHasChildren adds meta information about existing children
+func workItemIncludeHasChildren(appl application.Application, ctx context.Context) WorkItemConvertFunc {
+	// TODO: Wrap ctx in a Timeout context?
+	return func(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+		var hasChildren bool
+		var err error
+		repo := appl.WorkItemLinks()
+		if repo != nil {
+			hasChildren, err = appl.WorkItemLinks().WorkItemHasChildren(ctx, wi.ID)
+			if err != nil {
+				log.Error(ctx, map[string]interface{}{
+					"wi_id": wi.ID,
+					"err":   err,
+				}, "unable to find out if work item has children: %s", wi.ID)
+				// enforce to have no children
+				hasChildren = false
+			}
+		}
+		if wi2.Relationships.Children == nil {
+			wi2.Relationships.Children = &app.RelationGeneric{}
+		}
+		wi2.Relationships.Children.Meta = map[string]interface{}{
+			"hasChildren": hasChildren,
+		}
+	}
 }
 
 // ListChildren runs the list action.
@@ -613,21 +680,22 @@ func (c *WorkitemController) ListChildren(ctx *app.ListChildrenWorkitemContext) 
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		return ctx.ConditionalEntities(result, c.config.GetCacheControlWorkItems, func() error {
+			hasChildren := workItemIncludeHasChildren(appl, ctx)
 			response := app.WorkItemList{
-				Data: ConvertWorkItems(ctx.RequestData, result),
+				Data: ConvertWorkItems(ctx.RequestData, result, hasChildren),
 			}
 			return ctx.OK(&response)
 		})
 	})
 }
 
-// WorkItemIncludeChildren adds relationship about children to workitem (include totalCount)
-func WorkItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
+// workItemIncludeChildren adds relationship about children to workitem (include totalCount)
+func workItemIncludeChildren(request *goa.RequestData, wi *workitem.WorkItem, wi2 *app.WorkItem) {
 	childrenRelated := rest.AbsoluteURL(request, app.WorkitemHref(wi.SpaceID, wi.ID)) + "/children"
-	wi2.Relationships.Children = &app.RelationGeneric{
-		Links: &app.GenericLinks{
-			Related: &childrenRelated,
-		},
+	if wi2.Relationships.Children == nil {
+		wi2.Relationships.Children = &app.RelationGeneric{}
 	}
-
+	wi2.Relationships.Children.Links = &app.GenericLinks{
+		Related: &childrenRelated,
+	}
 }
