@@ -581,7 +581,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 }
 
 // createCategory creates category in db
-func createOrUpdateCategory(ctx context.Context, categoryRepo category.CategoryRepository, categoryID *uuid.UUID, categoryName string) error {
+func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.CategoryRepository, categoryID *uuid.UUID, categoryName string) error {
 	category := category.Category{
 		ID:   *categoryID,
 		Name: categoryName,
@@ -598,7 +598,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		err = createOrUpdateCategory(ctx, categoryRepo, categoryID, categoryName)
+		err = createOrUpdateSingleCategory(ctx, categoryRepo, categoryID, categoryName)
 		if err != nil {
 			return errs.WithStack(err)
 		}

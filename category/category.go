@@ -39,7 +39,7 @@ func (m *Category) TableName() string {
 }
 
 // Category_wit_relationship describes relationship between a category and a workitemtype.
-type CategoryWitRelationship struct {
+type CategoryWorkItemTypeRelationship struct {
 	gormsupport.Lifecycle
 	ID             uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
 	CategoryID     uuid.UUID `sql:"type:uuid"`
@@ -48,15 +48,15 @@ type CategoryWitRelationship struct {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *CategoryWitRelationship) TableName() string {
+func (m *CategoryWorkItemTypeRelationship) TableName() string {
 	return "workitemtype_categories"
 }
 
 type CategoryRepository interface {
 	Create(ctx context.Context, category *Category) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
-	CreateRelationship(ctx context.Context, relationship *CategoryWitRelationship) error
-	LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*CategoryWitRelationship, error)
+	CreateRelationship(ctx context.Context, relationship *CategoryWorkItemTypeRelationship) error
+	LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*CategoryWorkItemTypeRelationship, error)
 	LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error)
 }
 
@@ -81,7 +81,7 @@ func (m *GormCategoryRepository) List(ctx context.Context) ([]*Category, error) 
 }
 
 // CreateRelationship creates relationship between workitemtype and category
-func (r *GormCategoryRepository) CreateRelationship(ctx context.Context, relationship *CategoryWitRelationship) error {
+func (r *GormCategoryRepository) CreateRelationship(ctx context.Context, relationship *CategoryWorkItemTypeRelationship) error {
 	if relationship.ID == uuid.Nil {
 		relationship.ID = uuid.NewV4()
 	}
@@ -111,7 +111,7 @@ func (r *GormCategoryRepository) Create(ctx context.Context, category *Category)
 }
 
 // LoadRelationships loads the relationships. This is required for workitemtype filtering.
-func (r *GormCategoryRepository) LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*CategoryWitRelationship, error) {
+func (r *GormCategoryRepository) LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*CategoryWorkItemTypeRelationship, error) {
 
 	// Check if category is present
 	getCategory := Category{}
@@ -125,7 +125,7 @@ func (r *GormCategoryRepository) LoadRelationships(ctx context.Context, category
 	if err := db.Error; err != nil {
 		return nil, errors.NewInternalError(err.Error())
 	}
-	relationship := []*CategoryWitRelationship{}
+	relationship := []*CategoryWorkItemTypeRelationship{}
 	db = r.db.Model(&relationship).Where("category_id=?", categoryID).Find(&relationship)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
