@@ -44,11 +44,4 @@ func TestCategory_Equal(t *testing.T) {
 	h := a
 	h.Name = plannerTestIssuesName
 	assert.False(t, a.Equal(h))
-
-	j := category.Category{
-		ID:   plannerTestIssues1,
-		Name: "planner.testIssues",
-	}
-	assert.True(t, a.Equal(j))
-	assert.True(t, j.Equal(a))
 }
