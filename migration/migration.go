@@ -271,7 +271,7 @@ func getMigrations() migrations {
 	m = append(m, steps{executeSQLFile("050-add-company-to-user-profile.sql")})
 
 	// Version 51
-	m = append(m, steps{executeSQLFile("051-modify_work_item_links_unique_idx.sql")})
+	m = append(m, steps{executeSQLFile("051-modify-work_item_link_types_name_idx.sql")})
 
 	// Version N
 	//
