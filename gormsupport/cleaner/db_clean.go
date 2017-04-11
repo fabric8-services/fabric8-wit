@@ -1,6 +1,8 @@
 package cleaner
 
 import (
+	"database/sql"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
@@ -38,16 +40,6 @@ import (
 // 2017/01/31 12:08:08 Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
 // 2017/01/31 12:08:08 Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
 func DeleteCreatedEntities(db *gorm.DB) func() {
-	deleteCreatedEntities(db, true)
-}
-
-// DeleteCreatedEntitiesNoTransaction does the same as DeleteCreatedEntities but
-// avoids using a transaction to secure the deletion.
-func DeleteCreatedEntitiesNoTransaction(db *gorm.DB) func() {
-	deleteCreatedEntities(db, false)
-}
-
-func deleteCreatedEntities(db *gorm.DB, withTransaction bool) func() {
 	hookName := "mighti:record"
 	type entity struct {
 		table   string
@@ -61,8 +53,10 @@ func deleteCreatedEntities(db *gorm.DB, withTransaction bool) func() {
 	})
 	return func() {
 		defer db.Callback().Create().Remove(hookName)
+		// Find out if the current db object is already a transaction
+		_, inTransaction := db.CommonDB().(*sql.Tx)
 		tx := db
-		if withTransaction {
+		if !inTransaction {
 			tx = db.Begin()
 		}
 		for i := len(entires) - 1; i >= 0; i-- {
@@ -78,7 +72,7 @@ func deleteCreatedEntities(db *gorm.DB, withTransaction bool) func() {
 		// NOTE: Feel free to add more cache freeing calls here as needed.
 		workitem.ClearGlobalWorkItemTypeCache()
 
-		if withTransaction {
+		if !inTransaction {
 			tx.Commit()
 		}
 	}
