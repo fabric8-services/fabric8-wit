@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
@@ -128,18 +129,18 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		// Disabling updation of email till we figure out how to do the same in Keycloak Error-free.
 		//
-		/*
-			updatedEmail := ctx.Payload.Data.Attributes.Email
-			if updatedEmail != nil {
-				user.Email = *updatedEmail
-				keycloakUserProfile.Email = updatedEmail
-			}
-		*/
+
+		updatedEmail := ctx.Payload.Data.Attributes.Email
+		if updatedEmail != nil {
+			user.Email = *updatedEmail
+			keycloakUserProfile.Email = updatedEmail
+		}
+
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil {
 			if identity.UsernameUpdated {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("Username cannot be updated more than once for idenitity id %s ", *id)))
-				return ctx.Unauthorized(jerrors)
+				return ctx.Forbidden(jerrors)
 			}
 			identity.Username = *updatedUserName
 			identity.UsernameUpdated = true
@@ -204,6 +205,26 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				// Save it as is, for short-term.
 				user.ContextInformation[fieldName] = fieldValue
 			}
+		}
+
+		// The update of the keycloak needs to be attempted first because if that fails,
+		// we should't update the platform db since that would leave things in an
+		// inconsistent state.
+		err = c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
+		if err != nil {
+
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
+
+			// We have mapped keycloak's 500 InternalServerError to our errors.BadParameterError
+			// because this scenario is directly associated with attempts to update
+			// duplicate email and/or username.
+			switch err.(type) {
+			default:
+				return ctx.BadRequest(jerrors)
+			case errs.BadParameterError:
+				return ctx.Conflict(jerrors)
+			}
+
 		}
 
 		err = appl.Users().Save(ctx, user)

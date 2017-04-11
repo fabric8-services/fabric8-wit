@@ -462,7 +462,7 @@ func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, compan
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UpdateIdentityDataAttributes{
 				Email:              email,
 				FullName:           fullName,
 				Bio:                bio,
@@ -479,7 +479,7 @@ func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, ima
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UpdateIdentityDataAttributes{
 				Email:    email,
 				FullName: fullName,
 				Bio:      bio,
