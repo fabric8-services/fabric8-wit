@@ -268,7 +268,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("049-add-wi-to-root-area.sql")})
 
 	// Version 50
-	m = append(m, steps{executeSQLFile("050-add-company-to-user-profile.sql")})
+	m = append(m, steps{ExecuteSQLFile("050-add-company-to-user-profile.sql")})
 
 	// Version N
 	//

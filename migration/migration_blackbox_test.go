@@ -106,6 +106,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration47", testMigration47)
 	t.Run("TestMigration48", testMigration48)
 	t.Run("TestMigration49", testMigration49)
+	t.Run("TestMigration50", testMigration50)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -198,6 +199,14 @@ func testMigration49(t *testing.T) {
 		assert.True(t, count == 2)
 		assert.True(t, fields == "71171e90-6d35-498f-a6a7-2083b5267c18")
 	}
+}
+
+func testMigration50(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+6)], (initialMigratedVersion + 6))
+
+	assert.True(t, dialect.HasColumn("users", "company"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "050-users-add-column-company.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

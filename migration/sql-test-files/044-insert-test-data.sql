@@ -3,10 +3,10 @@ INSERT INTO
    users(created_at, updated_at, id, email, full_name, image_url, bio, url, context_information)
 VALUES
    (
-      now(), now(), '01b291cd-9399-4f1a-8bbc-d1de66d76192', 'test one', 'testone@example.com', 'https://www.gravatar.com/avatar/testone', 'my test bio one', 'http://example.com', '{"key": "value"}'
+      now(), now(), '01b291cd-9399-4f1a-8bbc-d1de66d76192', 'testone@example.com', 'test one', 'https://www.gravatar.com/avatar/testone', 'my test bio one', 'http://example.com', '{"key": "value"}'
    ),
    (
-      now(), now(), '0d19928e-ef61-46fd-9bdc-71d1ecbce2c7', 'test two', 'testtwo@example.com', 'http://https://www.gravatar.com/avatar/testtwo', 'my test bio two', 'http://example.com', '{"key": "value"}'
+      now(), now(), '0d19928e-ef61-46fd-9bdc-71d1ecbce2c7', 'testtwo@example.com', 'test two', 'http://https://www.gravatar.com/avatar/testtwo', 'my test bio two', 'http://example.com', '{"key": "value"}'
    )
 ;
 -- identities
