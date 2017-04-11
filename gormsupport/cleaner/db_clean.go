@@ -38,6 +38,16 @@ import (
 // 2017/01/31 12:08:08 Deleting from x 0685068d-4934-4d9a-bac2-91eebbca9575
 // 2017/01/31 12:08:08 Deleting from x 2d20944e-7952-40c1-bd15-f3fa1a70026d
 func DeleteCreatedEntities(db *gorm.DB) func() {
+	deleteCreatedEntities(db, true)
+}
+
+// DeleteCreatedEntitiesNoTransaction does the same as DeleteCreatedEntities but
+// avoids using a transaction to secure the deletion.
+func DeleteCreatedEntitiesNoTransaction(db *gorm.DB) func() {
+	deleteCreatedEntities(db, false)
+}
+
+func deleteCreatedEntities(db *gorm.DB, withTransaction bool) func() {
 	hookName := "mighti:record"
 	type entity struct {
 		table   string
@@ -51,7 +61,10 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 	})
 	return func() {
 		defer db.Callback().Create().Remove(hookName)
-		tx := db.Begin()
+		tx := db
+		if withTransaction {
+			tx = db.Begin()
+		}
 		for i := len(entires) - 1; i >= 0; i-- {
 			entry := entires[i]
 			log.Info(nil, map[string]interface{}{
@@ -65,6 +78,8 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		// NOTE: Feel free to add more cache freeing calls here as needed.
 		workitem.ClearGlobalWorkItemTypeCache()
 
-		tx.Commit()
+		if withTransaction {
+			tx.Commit()
+		}
 	}
 }
