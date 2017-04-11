@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/resource"
@@ -20,7 +21,7 @@ func TestCategory_Equal(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 
-	a := Category{
+	a := category.Category{
 		ID:   plannerTestIssues1,
 		Name: "planner.testIssues",
 	}
@@ -44,7 +45,7 @@ func TestCategory_Equal(t *testing.T) {
 	h.Name = plannerTestIssuesName
 	assert.False(t, a.Equal(h))
 
-	j := Category{
+	j := category.Category{
 		ID:   plannerTestIssues1,
 		Name: "planner.testIssues",
 	}
