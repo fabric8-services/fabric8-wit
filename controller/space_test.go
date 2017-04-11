@@ -413,6 +413,10 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	subStringWILT := fmt.Sprintf("/%s/workitemlinktypes", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Links.Workitemlinktypes, subStringWILT)
 
+	// verify list-filters URL exists in Links
+	require.NotNil(t, fetched.Data.Links.Filters)
+	assert.Contains(t, *fetched.Data.Links.Filters, "/filters")
+
 	// verify list-Collaborators URL exists in Relationships.Links
 	require.NotNil(t, fetched.Data.Relationships.Collaborators)
 	require.NotNil(t, fetched.Data.Relationships.Collaborators.Links)

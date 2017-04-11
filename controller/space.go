@@ -379,6 +379,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
 	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, sp.OwnerId.String()))
 	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
+	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
 
 	// fetch all categories links
 	categoriesData := []*app.GenericData{}
@@ -421,6 +422,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 			},
 			Workitemtypes:     &relatedWorkItemTypeList,
 			Workitemlinktypes: &relatedWorkItemLinkTypeList,
+			Filters:           &relatedFilterList,
 		},
 		Relationships: &app.SpaceRelationships{
 			OwnedBy: &app.SpaceOwnedBy{
