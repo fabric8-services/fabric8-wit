@@ -24,7 +24,7 @@ func TestRunCategoryRepoBlackBoxTest(t *testing.T) {
 }
 
 func (test *categoryRepoBlackBoxTest) SetupTest() {
-	test.repo = category.NewCategoryRepository(test.DB)
+	test.repo = category.NewRepository(test.DB)
 	test.clean = cleaner.DeleteCreatedEntities(test.DB)
 }
 
