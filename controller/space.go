@@ -81,7 +81,8 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		SpaceID:      spaceID,
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var res *app.SpaceSingle
+	txnError := application.Transactional(c.db, func(appl application.Application) error {
 		newSpace := space.Space{
 			ID:      spaceID,
 			Name:    spaceName,
@@ -93,7 +94,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 		rSpace, err := appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return errs.Wrapf(err, "Failed to create space: %s", newSpace.Name)
 		}
 		/*
 			Should we create the new area
@@ -112,7 +113,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 		err = appl.Areas().Create(ctx, &newArea)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create area: %s", rSpace.Name))
+			return errs.Wrapf(err, "failed to create area: %s", rSpace.Name)
 		}
 
 		// Similar to above, we create a root iteration for this new space
@@ -123,25 +124,30 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		}
 		err = appl.Iterations().Create(ctx, &newIteration)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "failed to create iteration for space: %s", rSpace.Name))
+			return errs.Wrapf(err, "failed to create iteration for space: %s", rSpace.Name)
 		}
 		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *rSpace)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-		res := &app.SpaceSingle{
+		res = &app.SpaceSingle{
 			Data: spaceData,
 		}
 
 		// Create space resource which will represent the keyclok resource associated with this space
 		_, err = appl.SpaceResources().Create(ctx, spaceResource)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
+		return nil
+	})
+	if txnError != nil {
+		return jsonapi.JSONErrorResponse(ctx, txnError)
+	} else {
 		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
 		return ctx.Created(res)
-	})
+	}
 }
 
 // Delete runs the delete action.
@@ -175,7 +181,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	})
 
 	if err != nil {
-		return err
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	c.resourceManager.DeleteResource(ctx, ctx.RequestData, auth.Resource{ResourceID: resourceID, PermissionID: permissionID, PolicyID: policyID})
 	if err != nil {
@@ -188,27 +194,37 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var response app.SpaceList
+	txnErr := application.Transactional(c.db, func(appl application.Application) error {
 		spaces, cnt, err := appl.Spaces().List(ctx.Context, &offset, &limit)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-		return ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpace, func() error {
+		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpace, func() error {
 			count := int(cnt)
 			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, spaces)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
-			response := app.SpaceList{
+			response = app.SpaceList{
 				Links: &app.PagingLinks{},
 				Meta:  &app.SpaceListMeta{TotalCount: count},
 				Data:  spaceData,
 			}
 			setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(spaces), offset, limit, count)
-			return ctx.OK(&response)
+			return nil
 		})
+		if entityErr != nil {
+			return entityErr
+		} else {
+			return nil
+		}
 	})
-
+	if txnErr != nil {
+		return jsonapi.JSONErrorResponse(ctx, txnErr)
+	} else {
+		return ctx.OK(&response)
+	}
 }
 
 // Show runs the show action.
@@ -218,23 +234,33 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var result app.SpaceSingle
+	txnErr := application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
-		return ctx.ConditionalEntity(*s, c.config.GetCacheControlSpace, func() error {
+		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpace, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
+				return err
 			}
-			result := app.SpaceSingle{
+			result = app.SpaceSingle{
 				Data: spaceData,
 			}
-			return ctx.OK(&result)
+			return nil
 		})
+		if entityErr != nil {
+			return entityErr
+		}
+		return nil
 	})
+	if txnErr != nil {
+		return jsonapi.JSONErrorResponse(ctx, txnErr)
+	} else {
+		return ctx.OK(&result)
+	}
 }
 
 // Update runs the update action.
@@ -253,15 +279,16 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	var response app.SpaceSingle
+	txnErr := application.Transactional(c.db, func(appl application.Application) error {
 		s, err := appl.Spaces().Load(ctx.Context, id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		if !uuid.Equal(*currentUser, s.OwnerId) {
 			log.Error(ctx, map[string]interface{}{"currentUser": *currentUser, "owner": s.OwnerId}, "Current user is not owner")
-			return jsonapi.JSONErrorResponse(ctx, goa.NewErrorClass("forbidden", 403)("User is not the space owner"))
+			return goa.NewErrorClass("forbidden", 403)("User is not the space owner")
 		}
 
 		s.Version = *ctx.Payload.Data.Attributes.Version
@@ -274,19 +301,23 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 
 		s, err = appl.Spaces().Save(ctx.Context, s)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 
 		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
-		response := app.SpaceSingle{
+		response = app.SpaceSingle{
 			Data: spaceData,
 		}
-
-		return ctx.OK(&response)
+		return nil
 	})
+	if txnErr != nil {
+		return jsonapi.JSONErrorResponse(ctx, txnErr)
+	} else {
+		return ctx.OK(&response)
+	}
 }
 
 func validateCreateSpace(ctx *app.CreateSpaceContext) error {
