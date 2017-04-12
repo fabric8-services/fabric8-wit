@@ -10,6 +10,7 @@ import (
 
 // AuthzPolicyManager represents a space collaborators policy manager
 type AuthzPolicyManager interface {
+	AuthzResourceManager
 	GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*KeycloakPolicy, *string, error)
 	UpdatePolicy(ctx context.Context, request *goa.RequestData, policy KeycloakPolicy, pat string) error
 	VerifyUser(ctx context.Context, request *goa.RequestData, resourceName string) (bool, error)
@@ -19,12 +20,13 @@ type AuthzPolicyManager interface {
 
 // KeycloakPolicyManager implements AuthzPolicyManager interface
 type KeycloakPolicyManager struct {
-	configuration KeycloakConfiguration
+	configuration   KeycloakConfiguration
+	resourceManager AuthzResourceManager
 }
 
 // NewKeycloakPolicyManager constructs KeycloakPolicyManager
-func NewKeycloakPolicyManager(config KeycloakConfiguration) *KeycloakPolicyManager {
-	return &KeycloakPolicyManager{config}
+func NewKeycloakPolicyManager(config KeycloakConfiguration, resourceManager AuthzResourceManager) *KeycloakPolicyManager {
+	return &KeycloakPolicyManager{config, resourceManager}
 }
 
 // VerifyUser returns true if the user among the resource collaborators
@@ -88,4 +90,14 @@ func (m *KeycloakPolicyManager) UpdatePolicy(ctx context.Context, request *goa.R
 	}
 
 	return UpdatePolicy(ctx, clientsEndpoint, clientID, policy, pat)
+}
+
+// CreateResource creates a keyclaok resource and associated permission and policy
+func (m *KeycloakPolicyManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string, policyName string) (*Resource, error) {
+	return m.resourceManager.CreateResource(ctx, request, name, rType, uri, scopes, userID, policyName)
+}
+
+// DeleteResource deletes the keycloak resource and associated permission and policy
+func (m *KeycloakPolicyManager) DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error {
+	return m.resourceManager.DeleteResource(ctx, request, resource)
 }
