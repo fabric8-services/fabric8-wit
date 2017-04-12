@@ -274,7 +274,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("051-modify-work_item_link_types_name_idx.sql")})
 
 	// Version 52
-	m = append(m, steps{executeSQLFile("052-unique-space-names.sql")})
+	m = append(m, steps{ExecuteSQLFile("052-unique-space-names.sql")})
 
 	// Version N
 	//
