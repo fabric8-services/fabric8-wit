@@ -1,6 +1,8 @@
 package cleaner
 
 import (
+	"database/sql"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
@@ -51,7 +53,12 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 	})
 	return func() {
 		defer db.Callback().Create().Remove(hookName)
-		tx := db.Begin()
+		// Find out if the current db object is already a transaction
+		_, inTransaction := db.CommonDB().(*sql.Tx)
+		tx := db
+		if !inTransaction {
+			tx = db.Begin()
+		}
 		for i := len(entires) - 1; i >= 0; i-- {
 			entry := entires[i]
 			log.Info(nil, map[string]interface{}{
@@ -65,6 +72,8 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		// NOTE: Feel free to add more cache freeing calls here as needed.
 		workitem.ClearGlobalWorkItemTypeCache()
 
-		tx.Commit()
+		if !inTransaction {
+			tx.Commit()
+		}
 	}
 }

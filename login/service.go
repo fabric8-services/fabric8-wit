@@ -77,6 +77,7 @@ type keycloakTokenClaims struct {
 	GivenName     string `json:"given_name"`
 	FamilyName    string `json:"family_name"`
 	Email         string `json:"email"`
+	Company       string `json:"company"`
 	SessionState  string `json:"session_state"`
 	ClientSession string `json:"client_session"`
 	jwt.StandardClaims
@@ -711,6 +712,7 @@ func checkClaims(claims *keycloakTokenClaims) error {
 func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	user.FullName = claims.Name
 	user.Email = claims.Email
+	user.Company = claims.Company
 	image, err := generateGravatarURL(claims.Email)
 	if err != nil {
 		log.Warn(nil, map[string]interface{}{
