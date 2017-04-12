@@ -607,7 +607,6 @@ func encodeToken(referrer *url.URL, outhToken *oauth2.Token) error {
 	}
 
 	parameters := referrer.Query()
-	parameters.Add("token", outhToken.AccessToken) // Temporary keep the old "token" param. We will drop this param as soon as UI adopt the new json param.
 	parameters.Add("token_json", string(b))
 	referrer.RawQuery = parameters.Encode()
 
