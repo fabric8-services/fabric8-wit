@@ -29,6 +29,8 @@ import (
 
 var spaceConfiguration *configuration.ConfigurationData
 
+var testOversizedSpaceName = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 type DummyResourceManager struct {
 }
 
@@ -198,6 +200,23 @@ func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 	// then
 	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
 	assert.Equal(rest.T(), newDescription, *updated.Data.Attributes.Description)
+}
+
+func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
+	// given
+	name := "TestFailUpdateSpaceNameLength-" + uuid.NewV4().String()
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	// when
+	u := minimumRequiredUpdateSpace()
+	u.Data.ID = created.Data.ID
+	u.Data.Attributes.Version = created.Data.Attributes.Version
+	p.Data.Attributes.Name = &testOversizedSpaceName
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
+
+	test.UpdateSpaceBadRequest(rest.T(), svc2.Context, svc2, ctrl2, created.Data.ID.String(), u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceDifferentOwner() {

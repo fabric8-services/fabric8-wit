@@ -57,8 +57,9 @@ var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
-	a.Attribute("name", d.String, "Name of the space", func() {
-		a.Example("foobar")
+	a.Attribute("name", d.String, "Name for the space", func() {
+		a.MaxLength(100) // maximum space name length is 100 characters
+		a.MinLength(1)   // minimum space name length is 1 characters
 	})
 	a.Attribute("description", d.String, "Description for the space", func() {
 		a.Example("This is the foobar collaboration space")
