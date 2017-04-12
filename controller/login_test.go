@@ -61,20 +61,13 @@ func (rest *TestLoginREST) SecuredController() (*goa.Service, *LoginController) 
 }
 
 func newTestKeycloakOAuthProvider(db application.DB, configuration loginConfiguration) *login.KeycloakOAuthProvider {
-	oauth := &oauth2.Config{
-		ClientID:     configuration.GetKeycloakClientID(),
-		ClientSecret: configuration.GetKeycloakSecret(),
-		Scopes:       []string{"user:email"},
-		Endpoint:     oauth2.Endpoint{},
-	}
-
 	publicKey, err := token.ParsePublicKey([]byte(token.RSAPublicKey))
 	if err != nil {
 		panic(err)
 	}
 
 	tokenManager := token.NewManager(publicKey)
-	return login.NewKeycloakOAuthProvider(oauth, db.Identities(), db.Users(), tokenManager, db)
+	return login.NewKeycloakOAuthProvider(db.Identities(), db.Users(), tokenManager, db)
 }
 
 func (rest *TestLoginREST) TestAuthorizeLoginOK() {
@@ -168,7 +161,7 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
+func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, oauth *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, validRedirectURL string) error {
 	return ctx.TemporaryRedirect()
 }
 

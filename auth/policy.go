@@ -3,16 +3,13 @@ package auth
 import (
 	"context"
 
-	"github.com/almighty/almighty-core/errors"
 	"github.com/goadesign/goa"
-	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
 
 // AuthzPolicyManager represents a space collaborators policy manager
 type AuthzPolicyManager interface {
 	GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*KeycloakPolicy, *string, error)
 	UpdatePolicy(ctx context.Context, request *goa.RequestData, policy KeycloakPolicy, pat string) error
-	VerifyUser(ctx context.Context, request *goa.RequestData, resourceName string) (bool, error)
 	AddUserToPolicy(p *KeycloakPolicy, userID string) bool
 	RemoveUserFromPolicy(p *KeycloakPolicy, userID string) bool
 }
@@ -25,20 +22,6 @@ type KeycloakPolicyManager struct {
 // NewKeycloakPolicyManager constructs KeycloakPolicyManager
 func NewKeycloakPolicyManager(config KeycloakConfiguration) *KeycloakPolicyManager {
 	return &KeycloakPolicyManager{config}
-}
-
-// VerifyUser returns true if the user among the resource collaborators
-func (m *KeycloakPolicyManager) VerifyUser(ctx context.Context, request *goa.RequestData, resourceName string) (bool, error) {
-	entitlementEndpoint, err := m.configuration.GetKeycloakEndpointEntitlement(request)
-	if err != nil {
-		return false, err
-	}
-	token := goajwt.ContextJWT(ctx)
-	if token == nil {
-		return false, errors.NewUnauthorizedError("Missing token")
-	}
-
-	return VerifyResourceUser(ctx, token.Raw, resourceName, entitlementEndpoint)
 }
 
 // AddUserToPolicy adds the user ID to the policy

@@ -9,6 +9,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/auth"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/errors"
@@ -16,6 +17,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space/authz"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	token "github.com/dgrijalva/jwt-go"
@@ -34,6 +36,23 @@ type DummyPolicyManager struct {
 	rest *TestCollaboratorsREST
 }
 
+type DummySpaceAuthzService struct {
+	rest *TestCollaboratorsREST
+}
+
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+	jwtToken := goajwt.ContextJWT(ctx)
+	if jwtToken == nil {
+		return false, errors.NewUnauthorizedError("Missing token")
+	}
+	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
+	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
+}
+
+func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
+	return nil
+}
+
 func (m *DummyPolicyManager) GetPolicy(ctx context.Context, request *goa.RequestData, policyID string) (*auth.KeycloakPolicy, *string, error) {
 	pat := ""
 	return m.rest.policy, &pat, nil
@@ -41,15 +60,6 @@ func (m *DummyPolicyManager) GetPolicy(ctx context.Context, request *goa.Request
 
 func (m *DummyPolicyManager) UpdatePolicy(ctx context.Context, request *goa.RequestData, policy auth.KeycloakPolicy, pat string) error {
 	return nil
-}
-
-func (m *DummyPolicyManager) VerifyUser(ctx context.Context, request *goa.RequestData, resourceName string) (bool, error) {
-	jwtToken := goajwt.ContextJWT(ctx)
-	if jwtToken == nil {
-		return false, errors.NewUnauthorizedError("Missing token")
-	}
-	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
-	return strings.Contains(m.rest.policy.Config.UserIDs, id), nil
 }
 
 func (m *DummyPolicyManager) AddUserToPolicy(p *auth.KeycloakPolicy, userID string) bool {
@@ -103,7 +113,7 @@ func (rest *TestCollaboratorsREST) TearDownTest() {
 func (rest *TestCollaboratorsREST) SecuredController() (*goa.Service, *CollaboratorsController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 
-	svc := testsupport.ServiceAsUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity1)
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity1, &DummySpaceAuthzService{rest})
 	return svc, NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
 }
 
@@ -225,7 +235,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfNoTo
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity2)
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
 	ctrl := NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
@@ -236,7 +246,7 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfCurrentU
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-	svc := testsupport.ServiceAsUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity2)
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
 	ctrl := NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
@@ -346,5 +356,44 @@ func (rest *TestCollaboratorsREST) createSpace() app.Space {
 	_, sp := test.CreateSpaceCreated(rest.T(), svc.Context, svc, spaceCtrl, spacePayload)
 	require.NotNil(rest.T(), sp)
 	require.NotNil(rest.T(), sp.Data)
+	return *sp.Data
+}
+
+type TestSpaceAuthzService struct {
+	owner account.Identity
+}
+
+func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
+	jwtToken := goajwt.ContextJWT(ctx)
+	if jwtToken == nil {
+		return false, errors.NewUnauthorizedError("Missing token")
+	}
+	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
+	return s.owner.ID.String() == id, nil
+}
+
+func (s *TestSpaceAuthzService) Configuration() authz.AuthzConfiguration {
+	return nil
+}
+
+func CreateSecuredSpace(t *testing.T, db application.DB, config SpaceConfiguration, owner account.Identity) app.Space {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), owner, &TestSpaceAuthzService{owner})
+	spaceCtrl := NewSpaceController(svc, db, config, &DummyResourceManager{})
+	require.NotNil(t, spaceCtrl)
+	name := "TestCollaborators-space-" + uuid.NewV4().String()
+	description := "description"
+	spacePayload := &app.CreateSpacePayload{
+		Data: &app.Space{
+			Type: "spaces",
+			Attributes: &app.SpaceAttributes{
+				Name:        &name,
+				Description: &description,
+			},
+		},
+	}
+	_, sp := test.CreateSpaceCreated(t, svc.Context, svc, spaceCtrl, spacePayload)
+	require.NotNil(t, sp)
+	require.NotNil(t, sp.Data)
 	return *sp.Data
 }
