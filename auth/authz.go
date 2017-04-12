@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
@@ -64,6 +63,16 @@ type KeycloakPolicy struct {
 type PolicyConfigData struct {
 	//"users":"[\"<ID>\",\"<ID>\"]"
 	UserIDs string `json:"users"`
+}
+
+// Token represents a Keycloak token response
+type Token struct {
+	AccessToken      *string `json:"access_token,omitempty"`
+	ExpiresIn        *int    `json:"expires_in,omitempty"`
+	NotBeforePolicy  *int    `json:"not-before-policy,omitempty"`
+	RefreshExpiresIn *int    `json:"refresh_expires_in,omitempty"`
+	RefreshToken     *string `json:"refresh_token,omitempty"`
+	TokenType        *string `json:"token_type,omitempty"`
 }
 
 // AddUserToPolicy adds the user ID to the policy
@@ -150,7 +159,7 @@ func VerifyResourceUser(ctx context.Context, token string, resourceName string, 
 	resource := EntitlementResource{
 		Permissions: []ResourceSet{{Name: resourceName}},
 	}
-	ent, err := GetEntitlement(ctx, entitlementEndpoint, resource, token)
+	ent, err := GetEntitlement(ctx, entitlementEndpoint, &resource, token)
 	if err != nil {
 		return false, err
 	}
@@ -597,25 +606,33 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 }
 
 // GetEntitlement obtains Entitlement for specific resource.
+// If entitlementResource == nil then Entitlement for all resources available to the user is returned.
 // Returns (nil, nil) if response status == Forbiden which means the user doesn't have permissions to obtain Entitlement
-func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource EntitlementResource, userAccesToken string) (*string, error) {
-	b, err := json.Marshal(entitlementResource)
-	if err != nil {
+func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlementResource *EntitlementResource, userAccesToken string) (*string, error) {
+	var req *http.Request
+	var reqErr error
+	if entitlementResource != nil {
+		b, err := json.Marshal(entitlementResource)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"entitlement_resource": entitlementResource,
+				"err": err.Error(),
+			}, "Unable to marshal keyclaok entitlement resource struct")
+			return nil, errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
+		}
+
+		req, reqErr = http.NewRequest("POST", entitlementEndpoint, strings.NewReader(string(b)))
+		req.Header.Add("Content-Type", "application/json")
+	} else {
+		req, reqErr = http.NewRequest("GET", entitlementEndpoint, nil)
+	}
+	if reqErr != nil {
 		log.Error(ctx, map[string]interface{}{
-			"entitlement_resource": entitlementResource,
-			"err": err.Error(),
-		}, "Unable to marshal keyclaok entitlement resource struct")
-		return nil, errors.NewInternalError("Unable to marshal keyclaok entitlement resource struct " + err.Error())
+			"err": reqErr.Error(),
+		}, "Unable to crete http request")
+		return nil, errors.NewInternalError("unable to crete http request " + reqErr.Error())
 	}
 
-	req, err := http.NewRequest("POST", entitlementEndpoint, strings.NewReader(string(b)))
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"err": err.Error(),
-		}, "Unable to crete http request")
-		return nil, errors.NewInternalError("unable to crete http request " + err.Error())
-	}
-	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "Bearer "+userAccesToken)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -746,14 +763,14 @@ func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientS
 }
 
 // ReadToken extracts json with token data from the response
-func ReadToken(res *http.Response) (*app.TokenData, error) {
+func ReadToken(res *http.Response) (*Token, error) {
 	// Read the json out of the response body
 	buf := new(bytes.Buffer)
 	io.Copy(buf, res.Body)
 	res.Body.Close()
 	jsonString := strings.TrimSpace(buf.String())
 
-	var token app.TokenData
+	var token Token
 	err := json.Unmarshal([]byte(jsonString), &token)
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Sprintf("error when unmarshal json with access token %s ", jsonString) + err.Error())

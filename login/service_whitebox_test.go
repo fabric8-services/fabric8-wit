@@ -52,7 +52,6 @@ func setup() {
 	userRepository := account.NewUserRepository(nil)
 	identityRepository := account.NewIdentityRepository(nil)
 	loginService = &KeycloakOAuthProvider{
-		config:       oauth,
 		Identities:   identityRepository,
 		Users:        userRepository,
 		TokenManager: tokenManager,

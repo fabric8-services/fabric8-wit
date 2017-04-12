@@ -208,8 +208,9 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	entitlementResource := auth.EntitlementResource{
 		Permissions: []auth.ResourceSet{{Name: resourceName}},
 	}
-	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, entitlementResource, *testUserToken.Token.AccessToken)
+	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &entitlementResource, *testUserToken.Token.AccessToken)
 	require.Nil(s.T(), err)
+	require.NotNil(s.T(), ent)
 	require.NotEqual(s.T(), "", ent)
 
 	ok, err := auth.VerifyResourceUser(ctx, *testUserToken.Token.AccessToken, resourceName, entitlementEndpoint)
@@ -224,13 +225,23 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	err = auth.UpdatePolicy(ctx, clientsEndpoint, clientId, *pl, pat)
 	require.Nil(s.T(), err)
 
-	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, entitlementResource, *testUserToken.Token.AccessToken)
+	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, &entitlementResource, *testUserToken.Token.AccessToken)
 	require.Nil(s.T(), err)
 	require.Nil(s.T(), ent)
 
 	ok, err = auth.VerifyResourceUser(ctx, *testUserToken.Token.AccessToken, resourceName, entitlementEndpoint)
 	require.False(s.T(), ok)
 	require.Nil(s.T(), err)
+
+	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *testUserToken.Token.AccessToken)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), ent)
+	require.NotEqual(s.T(), "", ent)
+
+	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *ent)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), ent)
+	require.NotEqual(s.T(), "", ent)
 }
 
 func (s *TestAuthSuite) TestGetClientIDOK() {
