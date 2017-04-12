@@ -13,6 +13,11 @@ imports:
   version: c77561ca0c0cb1ed5d4ce4a912a75f5532566422
   subpackages:
   - gocov
+- name: github.com/DATA-DOG/godog
+  version: 2e189ad0f9dee046e42bb5f04a7ec5e91ec0700e
+  subpackages:
+  - colors
+  - gherkin
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
@@ -54,7 +59,6 @@ imports:
   - goatest
   - middleware
   - middleware/security/jwt
-  - logging/logrus
   - middleware/gzip
   - uuid
   - dslengine

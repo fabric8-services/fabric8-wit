@@ -248,6 +248,7 @@ include ./.make/test.mk
 ifneq ($(OS),Windows_NT)
 ifdef DOCKER_BIN
 include ./.make/docker.mk
+include ./.make/test-bdd.mk
 endif
 endif
 

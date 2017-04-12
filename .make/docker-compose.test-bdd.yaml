@@ -1,0 +1,27 @@
+version: '2'
+
+services:
+  db:
+    image: centos/postgresql-95-centos7
+    ports:
+      - "${DB_PORT_HOST}:${DB_PORT_CONTAINER}"
+    environment:
+      POSTGRESQL_ADMIN_PASSWORD: mysecretpassword
+    networks:
+      - default
+  backend:
+    image: ${DOCKER_IMAGE_CORE}
+    entrypoint: ./bin/alm
+    #command: -printConfig
+    working_dir: ${WORKING_DIR}
+    environment:
+      ALMIGHTY_POSTGRES_HOST: db
+      ALMIGHTY_DEVELOPER_MODE_ENABLED: 1
+    ports:
+      - "${BACKEND_PORT_HOST}:${BACKEND_PORT_CONTAINER}"
+    networks:
+      - default
+    depends_on:
+      - db
+    volumes:
+      - ${VOLUME_MOUNT}
