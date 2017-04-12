@@ -58,7 +58,7 @@ func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 
 func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 	spaceID := uuid.NewV4().String()
-	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{authz.Permissions{ResourceSetName: &spaceID}}}
+	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID}}}
 	ok := s.checkPermissions(authzPayload, spaceID)
 	require.True(s.T(), ok)
 }
@@ -66,7 +66,7 @@ func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 	spaceID1 := uuid.NewV4().String()
 	spaceID2 := uuid.NewV4().String()
-	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{authz.Permissions{ResourceSetName: &spaceID1}}}
+	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID1}}}
 	ok := s.checkPermissions(authzPayload, spaceID2)
 	require.False(s.T(), ok)
 }
