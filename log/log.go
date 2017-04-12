@@ -19,17 +19,22 @@ var (
 
 // InitializeLogger creates a default logger whose ouput format, log level differs
 // depending of whether the developer mode flag is enable/disabled.
-func InitializeLogger(developerModeFlag bool) {
+func InitializeLogger(developerModeFlag bool, lvl string) {
 	logger = log.New()
+
+	logLevel, err := log.ParseLevel(lvl)
+	if err != nil {
+		log.Debugf("unable to parse log level configuration Error: %q", err)
+		logLevel = log.ErrorLevel // reset to ERROR
+	}
+	log.SetLevel(logLevel)
+	logger.Level = logLevel
 
 	if developerModeFlag {
 		customFormatter := new(log.TextFormatter)
 		customFormatter.FullTimestamp = true
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 		log.SetFormatter(customFormatter)
-
-		log.SetLevel(log.DebugLevel)
-		logger.Level = log.DebugLevel
 		logger.Formatter = customFormatter
 	} else {
 		customFormatter := new(log.JSONFormatter)
@@ -37,9 +42,6 @@ func InitializeLogger(developerModeFlag bool) {
 
 		log.SetFormatter(customFormatter)
 		customFormatter.DisableTimestamp = false
-
-		log.SetLevel(log.InfoLevel)
-		logger.Level = log.InfoLevel
 		logger.Formatter = customFormatter
 	}
 
