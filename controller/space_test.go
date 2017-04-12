@@ -100,6 +100,17 @@ func (rest *TestSpaceREST) TestFailCreateSpaceMissingName() {
 	test.CreateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, p)
 }
 
+func (rest *TestSpaceREST) TestFailValidationSpaceNameLength() {
+	// given
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &testOversizedSpaceName
+
+	err := p.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(rest.T(), err)
+	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 100")
+}
+
 func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	// given
 	name := "TestSuccessCreateSpace-" + uuid.NewV4().String()
