@@ -270,6 +270,9 @@ func GetMigrations() Migrations {
 	// Version 50
 	m = append(m, steps{ExecuteSQLFile("050-add-company-to-user-profile.sql")})
 
+	// Version 51
+	m = append(m, steps{executeSQLFile("051-modify-work_item_link_types_name_idx.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
