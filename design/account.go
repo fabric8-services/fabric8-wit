@@ -61,6 +61,7 @@ var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
 })
 
 // userArray represents an array of user objects
+// Depricated. Use userList instead
 var userArray = a.MediaType("application/vnd.user-array+json", func() {
 	a.UseTrait("jsonapi-media-type")
 	a.TypeName("UserArray")
@@ -75,6 +76,17 @@ var userArray = a.MediaType("application/vnd.user-array+json", func() {
 		a.Required("data")
 	})
 })
+
+var userListMeta = a.Type("UserListMeta", func() {
+	a.Attribute("totalCount", d.Integer)
+	a.Required("totalCount")
+})
+
+var userList = JSONList(
+	"User", "Holds the paginated response to a user list request",
+	identityData,
+	pagingLinks,
+	userListMeta)
 
 var _ = a.Resource("user", func() {
 	a.BasePath("/user")
@@ -167,6 +179,7 @@ var identityDataAttributes = a.Type("IdentityDataAttributes", func() {
 	a.Attribute("email", d.String, "The email")
 	a.Attribute("bio", d.String, "The bio")
 	a.Attribute("url", d.String, "The url")
+	a.Attribute("company", d.String, "The company")
 	a.Attribute("providerType", d.String, "The IDP provided this identity")
 	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
 		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})

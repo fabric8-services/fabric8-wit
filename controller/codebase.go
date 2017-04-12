@@ -90,12 +90,13 @@ func (c *CodebaseController) Edit(ctx *app.EditCodebaseContext) error {
 
 	var existingWorkspaces []*app.Workspace
 	for _, workspace := range workspaces {
-		openLink := rest.AbsoluteURL(ctx.RequestData, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.ID))
+		openLink := rest.AbsoluteURL(ctx.RequestData, fmt.Sprintf(app.CodebaseHref(cb.ID)+"/open/%v", workspace.Config.Name))
 		existingWorkspaces = append(existingWorkspaces, &app.Workspace{
 			Attributes: &app.WorkspaceAttributes{
-				Name:        &workspace.Name,
-				Description: &workspace.Description,
+				Name:        &workspace.Config.Name,
+				Description: &workspace.Status,
 			},
+			Type: "workspaces",
 			Links: &app.WorkspaceLinks{
 				Open: &openLink,
 			},
@@ -136,7 +137,6 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
 	workspace := che.WorkspaceRequest{
 		Branch:     "master",
-		Name:       "test2",
 		StackID:    "java-default",
 		Repository: cb.URL,
 	}
@@ -154,7 +154,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.WorkspaceIDEURL,
+			Open: &workspaceResp.HRef,
 		},
 	}
 	return ctx.OK(resp)
@@ -182,7 +182,9 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
 	workspace := che.WorkspaceRequest{
-		ID: ctx.WorkspaceID,
+		Name:       ctx.WorkspaceID,
+		Repository: cb.URL,
+		Branch:     "master",
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
@@ -198,7 +200,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.WorkspaceIDEURL,
+			Open: &workspaceResp.HRef,
 		},
 	}
 	return ctx.OK(resp)
@@ -263,7 +265,7 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 func getNamespace(ctx context.Context) string {
 	token := goajwt.ContextJWT(ctx)
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
-		email := claims["email"].(string)
+		email := claims["preferred_username"].(string)
 		return strings.Replace(strings.Split(email, "@")[0], ".", "-", -1) + "-che"
 	}
 	return ""

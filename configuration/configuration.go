@@ -64,18 +64,26 @@ const (
 	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
 	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
+	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
+	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
-	varCacheControlWorkItemType         = "cachecontrol.workitemtype"
-	varCacheControlWorkItemLinkType     = "cachecontrol.workitemlinktype"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
+	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
+	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
+	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
+	varCacheControlSpaces               = "cachecontrol.spaces"
+	varCacheControlIterations           = "cachecontrol.iterations"
 	varCacheControlAreas                = "cachecontrol.areas"
-	varCacheControlSpace                = "cachecontrol.space"
-	varCacheControlIteration            = "cachecontrol.iteration"
+	varCacheControlComments             = "cachecontrol.comments"
+	varCacheControlFilters              = "cachecontrol.filters"
+	varCacheControlUsers                = "cachecontrol.users"
+	varCacheControlUser                 = "cachecontrol.user"
 	defaultConfigFile                   = "config.yaml"
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
+	varLogLevel                         = "log.level"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -156,6 +164,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// Enable development related features, e.g. token generation endpoint
 	c.v.SetDefault(varDeveloperModeEnabled, false)
 
+	c.v.SetDefault(varLogLevel, defaultLogLevel)
+
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
 	// Auth-related defaults
@@ -169,12 +179,19 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
 
 	// HTTP Cache-Control/max-age default
-	c.v.SetDefault(varCacheControlWorkItemType, "max-age=86400")     // 1 day
-	c.v.SetDefault(varCacheControlWorkItemLinkType, "max-age=86400") // 1 day
-	c.v.SetDefault(varCacheControlWorkItems, "max-age=300")
-	c.v.SetDefault(varCacheControlAreas, "max-age=300")
-	c.v.SetDefault(varCacheControlSpace, "max-age=300")
-	c.v.SetDefault(varCacheControlIteration, "max-age=300")
+	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
+	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
+	c.v.SetDefault(varCacheControlIterations, "max-age=2")
+	c.v.SetDefault(varCacheControlAreas, "max-age=2")
+	c.v.SetDefault(varCacheControlComments, "max-age=2")
+	c.v.SetDefault(varCacheControlFilters, "max-age=86400")
+	c.v.SetDefault(varCacheControlUsers, "max-age=2")
+	// data returned from '/api/user' must not be cached by intermediate proxies,
+	// but can only be kept in the client's local cache.
+	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
@@ -266,16 +283,16 @@ func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
 	return c.v.GetBool(varDeveloperModeEnabled)
 }
 
-// GetCacheControlWorkItemType returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type (or a list of).
-func (c *ConfigurationData) GetCacheControlWorkItemType() string {
-	return c.v.GetString(varCacheControlWorkItemType)
+func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
+	return c.v.GetString(varCacheControlWorkItemTypes)
 }
 
-// GetCacheControlWorkItemLinkType returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemLinkTypes returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item type (or a list of).
-func (c *ConfigurationData) GetCacheControlWorkItemLinkType() string {
-	return c.v.GetString(varCacheControlWorkItemLinkType)
+func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
+	return c.v.GetString(varCacheControlWorkItemLinkTypes)
 }
 
 // GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
@@ -284,22 +301,40 @@ func (c *ConfigurationData) GetCacheControlWorkItems() string {
 	return c.v.GetString(varCacheControlWorkItems)
 }
 
-// GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlWorkItemLinks returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinks() string {
+	return c.v.GetString(varCacheControlWorkItemLinks)
+}
+
+// GetCacheControlAreas returns the value to set in the "Cache-Control" HTTP response header
 // when returning a work item (or a list of).
 func (c *ConfigurationData) GetCacheControlAreas() string {
 	return c.v.GetString(varCacheControlAreas)
 }
 
-// GetCacheControlSpace returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning spaces.
 func (c *ConfigurationData) GetCacheControlSpace() string {
-	return c.v.GetString(varCacheControlSpace)
+	return c.v.GetString(varCacheControlSpaces)
 }
 
-// GetCacheControlIteration returns the value to set in the "Cache-Control" HTTP response header
+// GetCacheControlIterations returns the value to set in the "Cache-Control" HTTP response header
 // when returning iterations.
 func (c *ConfigurationData) GetCacheControlIteration() string {
-	return c.v.GetString(varCacheControlIteration)
+	return c.v.GetString(varCacheControlIterations)
+}
+
+// GetCacheControlComments returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlComments() string {
+	return c.v.GetString(varCacheControlComments)
+}
+
+// GetCacheControlFilters returns the value to set in the "Cache-Control" HTTP response header
+// when returning comments.
+func (c *ConfigurationData) GetCacheControlFilters() string {
+	return c.v.GetString(varCacheControlFilters)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
@@ -444,6 +479,20 @@ func (c *ConfigurationData) GetKeycloakEndpointBroker(req *goa.RequestData) (str
 	return c.getKeycloakEndpoint(req, varKeycloakEndpointBroker, "auth/realms/"+c.GetKeycloakRealm()+"/broker")
 }
 
+// GetKeycloakAccountEndpoint returns the API URL for Read and Update on Keycloak User Accounts.
+func (c *ConfigurationData) GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error) {
+	return c.getKeycloakEndpoint(req, varKeycloakEndpointAccount, "auth/realms/"+c.GetKeycloakRealm()+"/account")
+}
+
+// GetKeycloakEndpointLogout returns the keycloak logout endpoint set via config file or environment variable.
+// If nothing set then in Dev environment the defualt endopoint will be returned.
+// In producion the endpoint will be calculated from the request by replacing the last domain/host name in the full host name.
+// Example: api.service.domain.org -> sso.service.domain.org
+// or api.domain.org -> sso.domain.org
+func (c *ConfigurationData) GetKeycloakEndpointLogout(req *goa.RequestData) (string, error) {
+	return c.getKeycloakOpenIDConnectEndpoint(req, varKeycloakEndpointLogout, "logout")
+}
+
 // GetKeycloakDevModeURL returns Keycloak URL used by default in Dev mode
 func (c *ConfigurationData) GetKeycloakDevModeURL() string {
 	return devModeKeycloakURL
@@ -511,6 +560,11 @@ func (c *ConfigurationData) GetCheStarterURL() string {
 // GetOpenshiftTenantMasterURL returns the URL for the openshift cluster where the tenant services are running
 func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
+}
+
+// GetLogLevel returns the loggging level (as set via config file or environment variable)
+func (c *ConfigurationData) GetLogLevel() string {
+	return c.v.GetString(varLogLevel)
 }
 
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
@@ -584,6 +638,8 @@ gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
 51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
 ZwIDAQAB
 -----END PUBLIC KEY-----`
+
+	defaultLogLevel = "info"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"

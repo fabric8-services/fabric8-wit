@@ -143,13 +143,21 @@ $(GOCYCLO_BIN):
 	cd $(VENDOR_DIR)/github.com/fzipp/gocyclo && go build -v
 
 # Pack all migration SQL files into a compilable Go file
-migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql)
+migration/sqlbindata.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-files/*.sql) migration/sqlbindata_test.go
 	$(GO_BINDATA_BIN) \
 		-o migration/sqlbindata.go \
 		-pkg migration \
 		-prefix migration/sql-files \
 		-nocompress \
 		migration/sql-files
+
+migration/sqlbindata_test.go: $(GO_BINDATA_BIN) $(wildcard migration/sql-test-files/*.sql)
+	$(GO_BINDATA_BIN) \
+		-o migration/sqlbindata_test.go \
+		-pkg migration_test \
+		-prefix migration/sql-test-files \
+		-nocompress \
+		migration/sql-test-files
 
 # These are binary tools from our vendored packages
 $(GOAGEN_BIN): $(VENDOR_DIR)
@@ -184,6 +192,7 @@ clean-generated:
 	-rm -rf ./tool/cli/
 	-rm -f ./bindata_assetfs.go
 	-rm -f ./migration/sqlbindata.go
+	-rm -f ./migration/sqlbindata_test.go
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor

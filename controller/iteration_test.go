@@ -22,6 +22,7 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 
+	"github.com/almighty/almighty-core/path"
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -65,9 +66,11 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	// given
 	parent := createSpaceAndIteration(rest.T(), rest.db)
+	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	require.Nil(rest.T(), err)
 	parentID := parent.ID
 	name := "Sprint #21"
-	ci := createChildIteration(&name)
+	ci := getChildIterationPayload(&name)
 	svc, ctrl := rest.SecuredController()
 	// when
 	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -75,8 +78,8 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	require.NotNil(rest.T(), created)
 	assertChildIterationLinking(rest.T(), created.Data)
 	assert.Equal(rest.T(), *ci.Data.Attributes.Name, *created.Data.Attributes.Name)
-	expectedParentPath := iteration.PathSepInService + parentID.String()
-	expectedResolvedParentPath := iteration.PathSepInService + parent.Name
+	expectedParentPath := parent.Path.String() + path.SepInService + parentID.String()
+	expectedResolvedParentPath := path.SepInService + ri.Name + path.SepInService + parent.Name
 	assert.Equal(rest.T(), expectedParentPath, *created.Data.Attributes.ParentPath)
 	assert.Equal(rest.T(), expectedResolvedParentPath, *created.Data.Attributes.ResolvedParentPath)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
@@ -87,7 +90,7 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
 	// given
 	parentID := createSpaceAndIteration(rest.T(), rest.db).ID
-	ci := createChildIteration(nil)
+	ci := getChildIterationPayload(nil)
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	test.CreateChildIterationBadRequest(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -96,7 +99,7 @@ func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingParent() {
 	// given
 	name := "Sprint #21"
-	ci := createChildIteration(&name)
+	ci := getChildIterationPayload(&name)
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	test.CreateChildIterationNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
@@ -106,7 +109,7 @@ func (rest *TestIterationREST) TestFailCreateChildIterationNotAuthorized() {
 	// when
 	parentID := createSpaceAndIteration(rest.T(), rest.db).ID
 	name := "Sprint #21"
-	ci := createChildIteration(&name)
+	ci := getChildIterationPayload(&name)
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
 	test.CreateChildIterationUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
@@ -316,6 +319,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	itr2 := iteration.Iteration{
 		Name:    "Spring 123",
 		SpaceID: itr1.SpaceID,
+		Path:    itr1.Path,
 	}
 	err := rest.db.Iterations().Create(context.Background(), &itr2)
 	require.Nil(rest.T(), err)
@@ -339,7 +343,34 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 	assert.Equal(rest.T(), startState, *updated2.Data.Attributes.State)
 }
 
-func createChildIteration(name *string) *app.CreateChildIterationPayload {
+func (rest *TestIterationREST) TestRootIterationCanNotStart() {
+	// given
+	itr1 := createSpaceAndIteration(rest.T(), rest.db)
+	var ri *iteration.Iteration
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Iterations()
+		var err error
+		ri, err = repo.Root(context.Background(), itr1.SpaceID)
+		return err
+	})
+	require.Nil(rest.T(), err)
+	require.NotNil(rest.T(), ri)
+
+	startState := iteration.IterationStateStart
+	payload := app.UpdateIterationPayload{
+		Data: &app.Iteration{
+			Attributes: &app.IterationAttributes{
+				State: &startState,
+			},
+			ID:   &ri.ID,
+			Type: iteration.APIStringTypeIteration,
+		},
+	}
+	svc, ctrl := rest.SecuredController()
+	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
+}
+
+func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
 	start := time.Now()
 	end := start.Add(time.Hour * (24 * 8 * 3))
 
@@ -369,6 +400,13 @@ func createSpaceAndIteration(t *testing.T, db application.DB) iteration.Iteratio
 		if err != nil {
 			t.Error(err)
 		}
+		// above space should have a root iteration for itself
+		ri := iteration.Iteration{
+			Name:    newSpace.Name,
+			SpaceID: newSpace.ID,
+		}
+		repo.Create(context.Background(), &ri)
+
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
 		name := "Sprint #2"
@@ -382,6 +420,7 @@ func createSpaceAndIteration(t *testing.T, db application.DB) iteration.Iteratio
 			SpaceID: p.ID,
 			StartAt: &start,
 			EndAt:   &end,
+			Path:    append(ri.Path, ri.ID),
 		}
 		repo.Create(context.Background(), &i)
 		itr = i

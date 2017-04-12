@@ -161,7 +161,7 @@ func (test *TestIterationRepository) TestRootIteration() {
 	}
 	repo.Create(context.Background(), &i2)
 
-	res, err := repo.RootIteration(context.Background(), space.ID)
+	res, err := repo.Root(context.Background(), space.ID)
 	require.Nil(t, err)
 	assert.Equal(t, i.Name, res.Name)
 	assert.Equal(t, i.ID, res.ID)
@@ -260,6 +260,52 @@ func (test *TestIterationRepository) TestUpdateIteration() {
 	require.Nil(t, err)
 	assert.Equal(t, changedStart, *updatedIteration.StartAt)
 	assert.Equal(t, changedEnd, *updatedIteration.EndAt)
+}
+
+func (test *TestIterationRepository) TestCreateIterationSameNameFailsWithinSpace() {
+	t := test.T()
+	resource.Require(t, resource.Database)
+	repo := iteration.NewIterationRepository(test.DB)
+
+	sp1 := space.Space{
+		Name: "Space 1",
+	}
+	repoSpace := space.NewRepository(test.DB)
+	space1, err := repoSpace.Create(context.Background(), &sp1)
+	assert.Nil(t, err)
+
+	sp2 := space.Space{
+		Name: "Space 2",
+	}
+	space2, err := repoSpace.Create(context.Background(), &sp2)
+	assert.Nil(t, err)
+
+	name := "Iteration name test"
+	i := iteration.Iteration{
+		Name:    name,
+		SpaceID: space1.ID,
+	}
+	err = repo.Create(context.Background(), &i)
+	require.Nil(t, err)
+	require.NotEqual(t, uuid.Nil, i.ID)
+
+	// another iteration with same name within same sapce, should fail
+	i2 := iteration.Iteration{
+		Name:    name,
+		SpaceID: space1.ID,
+	}
+	err = repo.Create(context.Background(), &i)
+	require.NotNil(t, err)
+	require.Equal(t, uuid.Nil, i2.ID)
+
+	// create iteration with same name in anothe space, should pass
+	i3 := iteration.Iteration{
+		Name:    name,
+		SpaceID: space2.ID,
+	}
+	err = repo.Create(context.Background(), &i3)
+	require.Nil(t, err)
+	require.NotEqual(t, uuid.Nil, i3.ID)
 }
 
 func (test *TestIterationRepository) TestLoadChildren() {

@@ -208,9 +208,14 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	entitlementResource := auth.EntitlementResource{
 		Permissions: []auth.ResourceSet{{Name: resourceName}},
 	}
-	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, entitlementResource, *testUserToken.Token.AccessToken)
+	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &entitlementResource, *testUserToken.Token.AccessToken)
 	require.Nil(s.T(), err)
+	require.NotNil(s.T(), ent)
 	require.NotEqual(s.T(), "", ent)
+
+	ok, err := auth.VerifyResourceUser(ctx, *testUserToken.Token.AccessToken, resourceName, entitlementEndpoint)
+	require.True(s.T(), ok)
+	require.Nil(s.T(), err)
 
 	secondTestUserID := getUserID(s.T(), configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
 	pl, err := auth.GetPolicy(ctx, clientsEndpoint, clientId, policyID, pat)
@@ -220,9 +225,23 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 	err = auth.UpdatePolicy(ctx, clientsEndpoint, clientId, *pl, pat)
 	require.Nil(s.T(), err)
 
-	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, entitlementResource, *testUserToken.Token.AccessToken)
-	require.NotNil(s.T(), err)
-	require.IsType(s.T(), errors.UnauthorizedError{}, err)
+	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, &entitlementResource, *testUserToken.Token.AccessToken)
+	require.Nil(s.T(), err)
+	require.Nil(s.T(), ent)
+
+	ok, err = auth.VerifyResourceUser(ctx, *testUserToken.Token.AccessToken, resourceName, entitlementEndpoint)
+	require.False(s.T(), ok)
+	require.Nil(s.T(), err)
+
+	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *testUserToken.Token.AccessToken)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), ent)
+	require.NotEqual(s.T(), "", ent)
+
+	ent, err = auth.GetEntitlement(ctx, entitlementEndpoint, nil, *ent)
+	require.Nil(s.T(), err)
+	require.NotNil(s.T(), ent)
+	require.NotEqual(s.T(), "", ent)
 }
 
 func (s *TestAuthSuite) TestGetClientIDOK() {
@@ -244,6 +263,39 @@ func (s *TestAuthSuite) TestReadTokenOK() {
 	assert.Equal(s.T(), 1, *token.ExpiresIn)
 	assert.Equal(s.T(), 2, *token.RefreshExpiresIn)
 	assert.Equal(s.T(), "refToken", *token.RefreshToken)
+}
+
+func (s *TestAuthSuite) TestUpdateUserToPolicyOK() {
+	policy := auth.KeycloakPolicy{
+		Name:             "test-" + uuid.NewV4().String(),
+		Type:             auth.PolicyTypeUser,
+		Logic:            auth.PolicyLogicPossitive,
+		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
+	}
+	userID1 := uuid.NewV4().String()
+	userID2 := uuid.NewV4().String()
+	userID3 := uuid.NewV4().String()
+	assert.True(s.T(), policy.AddUserToPolicy(userID1))
+	//"users":"[\"<ID>\",\"<ID>\"]"
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\"]", userID1), policy.Config.UserIDs)
+	assert.True(s.T(), policy.AddUserToPolicy(userID2))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\",\"%s\"]", userID1, userID2), policy.Config.UserIDs)
+	assert.False(s.T(), policy.AddUserToPolicy(userID2))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\",\"%s\"]", userID1, userID2), policy.Config.UserIDs)
+	assert.True(s.T(), policy.AddUserToPolicy(userID3))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\",\"%s\",\"%s\"]", userID1, userID2, userID3), policy.Config.UserIDs)
+	assert.False(s.T(), policy.RemoveUserFromPolicy(uuid.NewV4().String()))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\",\"%s\",\"%s\"]", userID1, userID2, userID3), policy.Config.UserIDs)
+	assert.True(s.T(), policy.RemoveUserFromPolicy(userID2))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\",\"%s\"]", userID1, userID3), policy.Config.UserIDs)
+	assert.True(s.T(), policy.RemoveUserFromPolicy(userID1))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\"]", userID3), policy.Config.UserIDs)
+	assert.True(s.T(), policy.AddUserToPolicy(userID2))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\",\"%s\"]", userID3, userID2), policy.Config.UserIDs)
+	assert.True(s.T(), policy.RemoveUserFromPolicy(userID3))
+	assert.Equal(s.T(), fmt.Sprintf("[\"%s\"]", userID2), policy.Config.UserIDs)
+	assert.True(s.T(), policy.RemoveUserFromPolicy(userID2))
+	assert.Equal(s.T(), "[]", policy.Config.UserIDs)
 }
 
 func deleteResource(t *testing.T, ctx context.Context, id string, authzEndpoint string, pat string) {
@@ -332,19 +384,16 @@ func createResource(t *testing.T, ctx context.Context, pat string) (string, stri
 }
 
 func createPolicy(t *testing.T, ctx context.Context, pat string) (string, auth.KeycloakPolicy) {
-	//"users":"[\"<ID>\",\"<ID>\"]"
 	firstTestUserID := getUserID(t, configuration.GetKeycloakTestUserName(), configuration.GetKeycloakTestUserSecret())
 	secondTestUserID := getUserID(t, configuration.GetKeycloakTestUser2Name(), configuration.GetKeycloakTestUser2Secret())
-	userIDs := "[\"" + firstTestUserID + "\",\"" + secondTestUserID + "\"]"
 	policy := auth.KeycloakPolicy{
 		Name:             "test-" + uuid.NewV4().String(),
 		Type:             auth.PolicyTypeUser,
 		Logic:            auth.PolicyLogicPossitive,
 		DecisionStrategy: auth.PolicyDecisionStrategyUnanimous,
-		Config: auth.PolicyConfigData{
-			UserIDs: userIDs,
-		},
 	}
+	assert.True(t, policy.AddUserToPolicy(firstTestUserID))
+	assert.True(t, policy.AddUserToPolicy(secondTestUserID))
 
 	clientId, clientsEndpoint := getClientIDAndEndpoint(t)
 
