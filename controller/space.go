@@ -93,7 +93,10 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 		rSpace, err := appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			// TODO Fix this hack. We return the error directly as we need to rollback this transaction.
+			// application.Transactional will bubble this error up and it will eventually be transformed
+			// to a JSONAPI error.
+			return errs.WithStack(err)
 		}
 		/*
 			Should we create the new area
