@@ -76,7 +76,7 @@ func (s *TestAuthzSuite) checkPermissions(authzPayload authz.AuthorizationPayloa
 	authzService := authz.NewAuthzService(nil, &db{app{resource: resource}})
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	testIdentity := testsupport.TestIdentity
-	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", almtoken.NewManagerWithPrivateKey(priv), testIdentity, authzPayload)
+	svc := testsupport.ServiceAsUserWithAuthz("SpaceAuthz-Service", almtoken.NewManagerWithPrivateKey(priv), priv, testIdentity, authzPayload)
 	resource.UpdatedAt = time.Now()
 
 	ok, err := authzService.Authorize(svc.Context, "", spaceID)

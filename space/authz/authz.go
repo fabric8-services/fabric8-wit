@@ -3,11 +3,9 @@ package authz
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/almighty/almighty-core/application"
@@ -16,12 +14,19 @@ import (
 	"github.com/almighty/almighty-core/log"
 	tokencontext "github.com/almighty/almighty-core/login/token_context"
 	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/token"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	uuid "github.com/satori/go.uuid"
 	contx "golang.org/x/net/context"
 )
+
+// TokenPayload represents an rpt token
+type TokenPayload struct {
+	jwt.StandardClaims
+	Authorization *AuthorizationPayload `json:"authorization"`
+}
 
 // AuthorizationPayload represents an authz payload in the rpt token
 type AuthorizationPayload struct {
@@ -85,33 +90,42 @@ func (s *KeyclaokAuthzService) Configuration() AuthzConfiguration {
 
 // Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
 func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
-	token := goajwt.ContextJWT(ctx)
-	if token == nil {
+	jwttoken := goajwt.ContextJWT(ctx)
+	if jwttoken == nil {
 		return false, errs.NewUnauthorizedError("missing token")
 	}
-	// Check if the token was issued before the space resouces changed the last time.
-	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
-	outdated, err := s.outdated(ctx, *token, entitlementEndpoint, spaceID)
-	if err != nil {
-		return false, err
+	tm := tokencontext.ReadTokenManagerFromContext(ctx)
+	if tm == nil {
+		log.Error(ctx, map[string]interface{}{
+			"token": tm,
+		}, "missing token manager")
+		return false, errs.NewInternalError("Missing token manager")
 	}
-	if outdated {
-		return s.checkEntitlementForSpace(ctx, *token, entitlementEndpoint, spaceID)
-	}
-	authz := token.Claims.(jwt.MapClaims)["authorization"]
-	if authz == nil {
-		return false, nil
-	}
-	var authzJSON AuthorizationPayload
-	err = json.Unmarshal([]byte(authz.(string)), &authzJSON)
+	tokenWithClaims, err := jwt.ParseWithClaims(jwttoken.Raw, &TokenPayload{}, func(t *jwt.Token) (interface{}, error) {
+		return tm.(token.Manager).PublicKey(), nil
+	})
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space-id": spaceID,
 			"err":      err,
-		}, "unable to unmarshal json with permissions from the rpt token")
-		return false, errs.NewInternalError(fmt.Sprintf("unable to unmarshal json with permissions from the rpt token: %s : %s", authz, err.Error()))
+		}, "unable to parse the rpt token")
+		return false, errs.NewInternalError(fmt.Sprintf("unable to parse the rpt token: %s", err.Error()))
 	}
-	permissions := authzJSON.Permissions
+	claims := tokenWithClaims.Claims.(*TokenPayload)
+
+	// Check if the token was issued before the space resouces changed the last time.
+	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
+	outdated, err := s.outdated(ctx, *claims, entitlementEndpoint, spaceID)
+	if err != nil {
+		return false, err
+	}
+	if outdated {
+		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
+	}
+	if claims.Authorization == nil {
+		return false, nil
+	}
+	permissions := claims.Authorization.Permissions
 	if permissions == nil {
 		return false, nil
 	}
@@ -135,7 +149,7 @@ func (s *KeyclaokAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 	return ent != nil, nil
 }
 
-func (s *KeyclaokAuthzService) outdated(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeyclaokAuthzService) outdated(ctx context.Context, token TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
 		return false, errs.NewInternalError(err.Error())
@@ -148,15 +162,10 @@ func (s *KeyclaokAuthzService) outdated(ctx context.Context, token jwt.Token, en
 	if err != nil {
 		return false, err
 	}
-	iat := token.Claims.(jwt.MapClaims)["iat"]
-	if iat == nil {
+	if token.IssuedAt == 0 {
 		return false, errs.NewInternalError("iat claim is not found in the token")
 	}
-	i, err := strconv.ParseInt(iat.(string), 10, 64)
-	if err != nil {
-		return false, errs.NewInternalError(err.Error())
-	}
-	tokenIssued := time.Unix(i, 0)
+	tokenIssued := time.Unix(token.IssuedAt, 0)
 	return tokenIssued.Before(spaceResource.UpdatedAt), nil
 }
 
