@@ -83,6 +83,7 @@ const (
 	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
+	varLogLevel                         = "log.level"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -162,6 +163,8 @@ func (c *ConfigurationData) setConfigDefaults() {
 
 	// Enable development related features, e.g. token generation endpoint
 	c.v.SetDefault(varDeveloperModeEnabled, false)
+
+	c.v.SetDefault(varLogLevel, defaultLogLevel)
 
 	c.v.SetDefault(varPopulateCommonTypes, true)
 
@@ -559,6 +562,11 @@ func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 	return c.v.GetString(varOpenshiftTenantMasterURL)
 }
 
+// GetLogLevel returns the loggging level (as set via config file or environment variable)
+func (c *ConfigurationData) GetLogLevel() string {
+	return c.v.GetString(varLogLevel)
+}
+
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
 // If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *
 // In prod mode the default regex will be returned
@@ -630,6 +638,8 @@ gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
 51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
 ZwIDAQAB
 -----END PUBLIC KEY-----`
+
+	defaultLogLevel = "info"
 
 	defaultKeycloakClientID = "fabric8-online-platform"
 	defaultKeycloakSecret   = "7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd"

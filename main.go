@@ -78,8 +78,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Initialized developer mode flag for the logger
-	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled())
+	// Initialized developer mode flag and log level for the logger
+	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled(), configuration.GetLogLevel())
 
 	printUserInfo()
 
