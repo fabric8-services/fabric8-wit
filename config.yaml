@@ -34,7 +34,7 @@ cachecontrol.areas: max-age=2
 cachecontrol.users: max-age=2
 cachecontrol.comments: max-age=2
 cachecontrol.filters: max-age=86400 # 1 day
-# data returned from '/api/user' must not be cached by intermediate proxies, 
+# data returned from '/api/user' must not be cached by intermediate proxies,
 # but can only be kept in the client's local cache.
 cachecontrol.user: private,max-age=2
 
@@ -44,6 +44,7 @@ cachecontrol.user: private,max-age=2
 
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
+log.level: info
 
 # Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true

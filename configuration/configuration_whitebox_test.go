@@ -104,6 +104,26 @@ func TestKeycloakRealmInDevModeCanBeOverridden(t *testing.T) {
 	assert.Equal(t, "somecustomrealm", config.GetKeycloakRealm())
 }
 
+func TestGetLogLevelOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+
+	key := "ALMIGHTY_LOG_LEVEL"
+	realEnvValue := os.Getenv(key)
+
+	os.Unsetenv(key)
+	defer func() {
+		os.Setenv(key, realEnvValue)
+		resetConfiguration()
+	}()
+
+	assert.Equal(t, defaultLogLevel, config.GetLogLevel())
+
+	os.Setenv(key, "warning")
+	resetConfiguration()
+
+	assert.Equal(t, "warning", config.GetLogLevel())
+}
+
 func TestValidRedirectURLsInDevModeCanBeOverridden(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 
