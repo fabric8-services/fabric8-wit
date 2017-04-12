@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/space"
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 type searchConfiguration interface {
@@ -40,6 +41,13 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	offset, limit = computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 
+	if ctx.SpaceID == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("spaceID", nil).Expected("not nil"))
+	}
+	spaceID, conversionErr := uuid.FromString(*ctx.SpaceID)
+	if conversionErr != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("spaceID", nil).Expected("valid UUID"))
+	}
 	// ToDo : Keep URL registeration central somehow.
 	hostString := ctx.RequestData.Host
 	if hostString == "" {
@@ -52,7 +60,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//return transaction.Do(c.ts, func() error {
-		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit)
+		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit, spaceID)
 		count := int(c)
 		if err != nil {
 			cause := errs.Cause(err)
