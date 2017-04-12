@@ -1,57 +1,102 @@
 kind: Template
 apiVersion: v1
 metadata:
-  name: api
+  name: core
 objects:
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
     labels:
-      service: api
-    name: api
+      service: core
+    name: core
   spec:
-    replicas: 1
+    replicas: 4
     selector:
-      service: api
+      service: core
     strategy:
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
       type: Rolling
     template:
       metadata:
         labels:
-          service: api
+          service: core
       spec:
         containers:
-        - command:
-          - /usr/local/alm/bin/alm
+        - image: registry.devshift.net/almighty/almighty-core:${IMAGE_TAG}
           env:
           - name: ALMIGHTY_POSTGRES_HOST
             valueFrom:
               secretKeyRef:
-                name: api
+                name: core
                 key: db.host
           - name: ALMIGHTY_POSTGRES_PORT
             valueFrom:
               secretKeyRef:
-                name: api
+                name: core
                 key: db.port
           - name: ALMIGHTY_POSTGRES_USER
             valueFrom:
               secretKeyRef:
-                name: api
+                name: core
                 key: db.user
           - name: ALMIGHTY_POSTGRES_PASSWORD
             valueFrom:
               secretKeyRef:
-                name: api
+                name: core
                 key: db.password
           - name: ALMIGHTY_KEYCLOAK_REALM
             valueFrom:
               secretKeyRef:
-                name: api
+                name: core
                 key: keycloak.realm
-          image: registry.devshift.net/almighty/almighty-core:${IMAGE_TAG}
+          - name: ALMIGHTY_TOKEN_PUBLICKEY
+            valueFrom:
+              secretKeyRef:
+                name: core
+                key: token.publickey
+          - name: ALMIGHTY_KEYCLOAK_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: core
+                key: keycloak.secret
+          - name: ALMIGHTY_POSTGRES_SSLMODE
+            valueFrom:
+              ConfigMapKeyRef:
+                name: core
+                key: postgres.sslmode
+          - name: ALMIGHTY_POSTGRES_CONNECTION_MAXIDLE
+            valueFrom:
+              ConfigMapKeyRef:
+                name: core
+                key: postgres.connection.maxidle
+          - name: ALMIGHTY_POSTGRES_CONNECTION_MAXOPEN
+            valueFrom:
+              ConfigMapKeyRef:
+                name: core
+                key: postgres.connection.maxopen
+          - name: ALMIGHTY_CHESTARTERURL
+            valueFrom:
+              ConfigMapKeyRef:
+                name: core
+                key: chestarter.url
+          - name: ALMIGHTY_REDIRECT_VALID
+            valueFrom:
+              ConfigMapKeyRef:
+                name: core
+                key: redirect.valid
+          - name: ALMIGHTY_OPENSHIFT_TENANT_MASTERURL
+            valueFrom:
+              ConfigMapKeyRef:
+                name: core
+                key: openshift.tenant.masterurl
           imagePullPolicy: Always
-          name: api
+          name: core
           ports:
           - containerPort: 8080
             protocol: TCP
@@ -91,29 +136,28 @@ objects:
 - kind: Service
   apiVersion: v1
   metadata:
-    name: api
+    name: core
     labels:
-      service: api
+      service: core
   spec:
     ports:
-      -
-        name: 8080
+      - name: 8080
         protocol: TCP
         port: 80
         targetPort: 8080
     selector:
-      service: api
+      service: core
     type: ClusterIP
     sessionAffinity: null
 - kind: Route
   apiVersion: v1
   metadata:
-    name: api
+    name: core
   spec:
     host: ''
     to:
       kind: Service
-      name: api
+      name: core
 parameters:
 - name: IMAGE_TAG
   value: latest
