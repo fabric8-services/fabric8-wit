@@ -28,7 +28,8 @@ const (
 
 var scopes = []string{"read:space", "admin:space"}
 
-type spaceConfiguration interface {
+// SpaceConfiguration represents space configuratoin
+type SpaceConfiguration interface {
 	GetKeycloakEndpointAuthzResourceset(*goa.RequestData) (string, error)
 	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
 	GetKeycloakEndpointClients(*goa.RequestData) (string, error)
@@ -42,12 +43,12 @@ type spaceConfiguration interface {
 type SpaceController struct {
 	*goa.Controller
 	db              application.DB
-	config          spaceConfiguration
+	config          SpaceConfiguration
 	resourceManager auth.AuthzResourceManager
 }
 
 // NewSpaceController creates a space controller.
-func NewSpaceController(service *goa.Service, db application.DB, config spaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
+func NewSpaceController(service *goa.Service, db application.DB, config SpaceConfiguration, resourceManager auth.AuthzResourceManager) *SpaceController {
 	return &SpaceController{Controller: service.NewController("SpaceController"), db: db, config: config, resourceManager: resourceManager}
 }
 
@@ -68,7 +69,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	spaceID := uuid.NewV4()
 	// Create keycloak resource for this space
 	// TODO if transaction below fails we need to remove this Keycloak Resource to avoid poluting Keycloak with unused resources
-	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String(), spaceName+"-"+uuid.NewV4().String())
+	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
