@@ -23,18 +23,20 @@ import (
 	contx "golang.org/x/net/context"
 )
 
-type authorization struct {
-	Permissions []permissions `json:"permissions"`
+// AuthorizationPayload represents an authz payload in the rpt token
+type AuthorizationPayload struct {
+	Permissions []Permissions `json:"permissions"`
 }
 
-type permissions struct {
+// Permissions represents an permissions and the AuthorizationPayload
+type Permissions struct {
 	ResourceSetName *string `json:"resource_set_name"`
 	ResourceSetID   *string `json:"resource_set_id"`
 }
 
 // AuthzService represents a space authorization service
 type AuthzService interface {
-	Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (*string, bool, error)
+	Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error)
 	Configuration() AuthzConfiguration
 }
 
@@ -82,41 +84,61 @@ func (s *KeyclaokAuthzService) Configuration() AuthzConfiguration {
 }
 
 // Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
-func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (*string, bool, error) {
+func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
 	token := goajwt.ContextJWT(ctx)
 	if token == nil {
-		return nil, false, errs.NewUnauthorizedError("missing token")
+		return false, errs.NewUnauthorizedError("missing token")
+	}
+	// Check if the token was issued before the space resouces changed the last time.
+	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
+	outdated, err := s.outdated(ctx, *token, entitlementEndpoint, spaceID)
+	if err != nil {
+		return false, err
+	}
+	if outdated {
+		return s.checkEntitlementForSpace(ctx, *token, entitlementEndpoint, spaceID)
 	}
 	authz := token.Claims.(jwt.MapClaims)["authorization"]
 	if authz == nil {
-		return s.checkEntitlementForSpace(ctx, *token, entitlementEndpoint, spaceID)
+		return false, nil
 	}
-	var authzJSON authorization
-	err := json.Unmarshal([]byte(authz.(string)), &authzJSON)
+	var authzJSON AuthorizationPayload
+	err = json.Unmarshal([]byte(authz.(string)), &authzJSON)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"space-id": spaceID,
 			"err":      err,
 		}, "unable to unmarshal json with permissions from the rpt token")
-		return nil, false, errs.NewInternalError(fmt.Sprintf("unable to unmarshal json with permissions from the rpt token: %s : %s", authz, err.Error()))
+		return false, errs.NewInternalError(fmt.Sprintf("unable to unmarshal json with permissions from the rpt token: %s : %s", authz, err.Error()))
 	}
 	permissions := authzJSON.Permissions
 	if permissions == nil {
-		return s.checkEntitlementForSpace(ctx, *token, entitlementEndpoint, spaceID)
+		return false, nil
 	}
 	for _, permission := range permissions {
 		name := permission.ResourceSetName
 		if name != nil && spaceID == *name {
-			return &token.Raw, true, nil
+			return true, nil
 		}
 	}
-	return s.checkEntitlementForSpace(ctx, *token, entitlementEndpoint, spaceID)
+	return false, nil
 }
 
-func (s *KeyclaokAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (*string, bool, error) {
+func (s *KeyclaokAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
+	resource := auth.EntitlementResource{
+		Permissions: []auth.ResourceSet{{Name: spaceID}},
+	}
+	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &resource, token.Raw)
+	if err != nil {
+		return false, err
+	}
+	return ent != nil, nil
+}
+
+func (s *KeyclaokAuthzService) outdated(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
-		return nil, false, errs.NewInternalError(err.Error())
+		return false, errs.NewInternalError(err.Error())
 	}
 	var spaceResource *space.Resource
 	err = application.Transactional(s.db, func(appl application.Application) error {
@@ -124,34 +146,18 @@ func (s *KeyclaokAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 		return err
 	})
 	if err != nil {
-		if _, notFound := err.(errs.NotFoundError); notFound {
-			return nil, false, nil
-		}
-		return nil, false, err
+		return false, err
 	}
 	iat := token.Claims.(jwt.MapClaims)["iat"]
 	if iat == nil {
-		return nil, false, errs.NewInternalError("iat claim is not found in the token")
+		return false, errs.NewInternalError("iat claim is not found in the token")
 	}
 	i, err := strconv.ParseInt(iat.(string), 10, 64)
 	if err != nil {
-		return nil, false, errs.NewInternalError(err.Error())
+		return false, errs.NewInternalError(err.Error())
 	}
-	tm := time.Unix(i, 0)
-	if !tm.Before(spaceResource.UpdatedAt) {
-		// Token issued after the space permissions were updated last time
-		// No need to update the token
-		return nil, false, nil
-	}
-
-	resource := auth.EntitlementResource{
-		Permissions: []auth.ResourceSet{{Name: spaceID}},
-	}
-	ent, err := auth.GetEntitlement(ctx, entitlementEndpoint, &resource, token.Raw)
-	if err != nil {
-		return nil, false, err
-	}
-	return nil, ent != nil, nil
+	tokenIssued := time.Unix(i, 0)
+	return tokenIssued.Before(spaceResource.UpdatedAt), nil
 }
 
 // InjectAuthzService is a middleware responsible for setting up AuthzService in the context for every request.
@@ -177,14 +183,14 @@ func InjectAuthzService(service AuthzService) goa.Middleware {
 }
 
 // Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
-func Authorize(ctx context.Context, spaceID string) (*string, bool, error) {
+func Authorize(ctx context.Context, spaceID string) (bool, error) {
 	srv := tokencontext.ReadSpaceAuthzServiceFromContext(ctx)
 	if srv == nil {
 		log.Error(ctx, map[string]interface{}{
 			"space-id": spaceID,
 		}, "Missing space authz service")
 
-		return nil, false, errors.New("missing space authz service")
+		return false, errors.New("missing space authz service")
 	}
 	manager := srv.(AuthzServiceManager)
 	return manager.AuthzService().Authorize(ctx, manager.EntitlementEndpoint(), spaceID)

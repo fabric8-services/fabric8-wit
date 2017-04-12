@@ -40,19 +40,13 @@ type DummySpaceAuthzService struct {
 	rest *TestCollaboratorsREST
 }
 
-func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (*string, bool, error) {
+func (s *DummySpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
-		return nil, false, errors.NewUnauthorizedError("Missing token")
+		return false, errors.NewUnauthorizedError("Missing token")
 	}
 	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
-	var rpt *string
-	ok := strings.Contains(s.rest.policy.Config.UserIDs, id)
-	if ok {
-		t := ""
-		rpt = &t
-	}
-	return rpt, ok, nil
+	return strings.Contains(s.rest.policy.Config.UserIDs, id), nil
 }
 
 func (s *DummySpaceAuthzService) Configuration() authz.AuthzConfiguration {
@@ -369,19 +363,13 @@ type TestSpaceAuthzService struct {
 	owner account.Identity
 }
 
-func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (*string, bool, error) {
+func (s *TestSpaceAuthzService) Authorize(ctx context.Context, endpoint string, spaceID string) (bool, error) {
 	jwtToken := goajwt.ContextJWT(ctx)
 	if jwtToken == nil {
-		return nil, false, errors.NewUnauthorizedError("Missing token")
+		return false, errors.NewUnauthorizedError("Missing token")
 	}
 	id := jwtToken.Claims.(token.MapClaims)["sub"].(string)
-	var rpt *string
-	ok := s.owner.ID.String() == id
-	if ok {
-		t := ""
-		rpt = &t
-	}
-	return rpt, ok, nil
+	return s.owner.ID.String() == id, nil
 }
 
 func (s *TestSpaceAuthzService) Configuration() authz.AuthzConfiguration {

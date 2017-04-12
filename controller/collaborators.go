@@ -199,7 +199,7 @@ func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID u
 
 func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID string, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
 	// Authorize current user
-	_, authorized, err := authz.Authorize(ctx, spaceID)
+	authorized, err := authz.Authorize(ctx, spaceID)
 	if err != nil {
 		return goa.ErrUnauthorized(err.Error())
 	}
