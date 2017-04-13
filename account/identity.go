@@ -64,7 +64,7 @@ type Identity struct {
 	// The username of the Identity
 	Username string
 	// Whether username has been updated.
-	UsernameUpdated bool `gorm:"column:username_updated"`
+	RegistrationCompleted bool `gorm:"column:registration_completed"`
 	// ProviderType The type of provider, such as "keycloak", "github", "oso", etc
 	ProviderType string `gorm:"column:provider_type"`
 	// the URL of the profile on the remote work item service

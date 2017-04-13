@@ -138,12 +138,12 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil {
-			if identity.UsernameUpdated {
+			if identity.RegistrationCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("Username cannot be updated more than once for idenitity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
 			}
 			identity.Username = *updatedUserName
-			identity.UsernameUpdated = true
+			identity.RegistrationCompleted = true
 			keycloakUserProfile.Username = updatedUserName
 		}
 
@@ -292,7 +292,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	id := uuid.String()
 	fullName := identity.Username
 	userName := identity.Username
-	usernameUpdated := identity.UsernameUpdated
+	registrationCompleted := identity.RegistrationCompleted
 	providerType := identity.ProviderType
 	var imageURL string
 	var bio string
@@ -325,16 +325,16 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Username:           &userName,
-				FullName:           &fullName,
-				ImageURL:           &imageURL,
-				Bio:                &bio,
-				URL:                &userURL,
-				ProviderType:       &providerType,
-				Email:              &email,
-				Company:            &company,
-				ContextInformation: workitem.Fields{},
-				UsernameUpdated:    &usernameUpdated,
+				Username:              &userName,
+				FullName:              &fullName,
+				ImageURL:              &imageURL,
+				Bio:                   &bio,
+				URL:                   &userURL,
+				ProviderType:          &providerType,
+				Email:                 &email,
+				Company:               &company,
+				ContextInformation:    workitem.Fields{},
+				RegistrationCompleted: &registrationCompleted,
 			},
 			Links: createUserLinks(request, uuid),
 		},

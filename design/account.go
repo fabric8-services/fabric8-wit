@@ -178,7 +178,7 @@ var identityDataAttributes = a.Type("IdentityDataAttributes", func() {
 	a.Attribute("fullName", d.String, "The users full name")
 	a.Attribute("imageURL", d.String, "The avatar image for the user")
 	a.Attribute("username", d.String, "The username")
-	a.Attribute("usernameUpdated", d.Boolean, "Whether the username has been updated")
+	a.Attribute("registrationCompleted", d.Boolean, "Whether the registration has been completed")
 	a.Attribute("email", d.String, "The email")
 	a.Attribute("bio", d.String, "The bio")
 	a.Attribute("url", d.String, "The url")

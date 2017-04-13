@@ -276,8 +276,8 @@ func GetMigrations() Migrations {
 	// Version 52
 	m = append(m, steps{ExecuteSQLFile("052-unique-space-names.sql")})
 
-	// Version 52
-	m = append(m, steps{executeSQLFile("052-edit-username.sql")})
+	// Version 53
+	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
 
 	// Version N
 	//
