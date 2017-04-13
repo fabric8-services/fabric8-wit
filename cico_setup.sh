@@ -101,11 +101,20 @@ function run_tests_with_coverage() {
   echo "CICO: ran tests and uploaded coverage"
 }
 
+function tag_push() {
+  TARGET=$1
+  docker tag almighty-core-deploy $TARGET
+  docker push $TARGET
+}
+
 function deploy() {
   # Let's deploy
   make docker-image-deploy
-  docker tag almighty-core-deploy registry.devshift.net/almighty/almighty-core:latest
-  docker push registry.devshift.net/almighty/almighty-core:latest
+
+  TAG=$(echo $GIT_COMMIT | cut -c1-6)
+
+  tag_push registry.devshift.net/almighty/almighty-core:$TAG
+  tag_push registry.devshift.net/almighty/almighty-core:latest
   echo 'CICO: Image pushed, ready to update deployed app'
 }
 

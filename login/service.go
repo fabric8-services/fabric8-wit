@@ -35,9 +35,8 @@ import (
 )
 
 // NewKeycloakOAuthProvider creates a new login.Service capable of using keycloak for authorization
-func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) *KeycloakOAuthProvider {
+func NewKeycloakOAuthProvider(identities account.IdentityRepository, users account.UserRepository, tokenManager token.Manager, db application.DB) *KeycloakOAuthProvider {
 	return &KeycloakOAuthProvider{
-		config:       config,
 		Identities:   identities,
 		Users:        users,
 		TokenManager: tokenManager,
@@ -47,7 +46,6 @@ func NewKeycloakOAuthProvider(config *oauth2.Config, identities account.Identity
 
 // KeycloakOAuthProvider represents a keyclaok IDP
 type KeycloakOAuthProvider struct {
-	config       *oauth2.Config
 	Identities   account.IdentityRepository
 	Users        account.UserRepository
 	TokenManager token.Manager
@@ -56,7 +54,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error
+	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, validRedirectURL string) error
 	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context) (*account.Identity, *account.User, error)
 	Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
 	LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
@@ -90,12 +88,21 @@ const (
 )
 
 // Perform performs authenticatin
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, authEndpoint string, tokenEndpoint string, brokerEndpoint string, validRedirectURL string) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, validRedirectURL string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 
+	log.Info(ctx, map[string]interface{}{
+		"code":  code,
+		"state": state,
+	}, "login request received")
+
 	if code != "" {
 		// After redirect from oauth provider
+		log.Info(ctx, map[string]interface{}{
+			"code":  code,
+			"state": state,
+		}, "Redireced from oauth provider")
 
 		// validate known state
 		knownReferrer, err := keycloak.getReferrer(ctx, state)
@@ -108,7 +115,13 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 			return ctx.Unauthorized(jerrors)
 		}
 
-		keycloakToken, err := keycloak.config.Exchange(ctx, code)
+		log.Info(ctx, map[string]interface{}{
+			"code":            code,
+			"state":           state,
+			"rknown-Referrer": knownReferrer,
+		}, "referrer found")
+
+		keycloakToken, err := config.Exchange(ctx, code)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"code": code,
@@ -117,24 +130,87 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
 
-		_, _, err = keycloak.CreateOrUpdateKeycloakUser(keycloakToken.AccessToken, ctx)
+		log.Info(ctx, map[string]interface{}{
+			"code":            code,
+			"state":           state,
+			"rknown-Referrer": knownReferrer,
+			"keycloak-token":  keycloakToken.AccessToken,
+		}, "exchanged code to access token")
+
+		_, usr, err := keycloak.CreateOrUpdateKeycloakUser(keycloakToken.AccessToken, ctx)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"token": keycloakToken.AccessToken,
-				"err":   err,
+				"err": err,
 			}, "failed to create a user and KeyCloak identity using the access token")
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
+
+		log.Info(ctx, map[string]interface{}{
+			"code":            code,
+			"state":           state,
+			"rknown-Referrer": knownReferrer,
+			"user-name":       usr.Email,
+		}, "local user created/updated")
+
 		// redirect back to original referrel
 		referrerURL, err := url.Parse(knownReferrer)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"code":            code,
+				"state":           state,
+				"rknown-Referrer": knownReferrer,
+				"err":             err,
+			}, "failed to parse referrer")
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
 
+		// RPT tokens disabled. Use access token instead. See https://github.com/almighty/almighty-core/issues/1177
+
+		// log.Info(ctx, map[string]interface{}{
+		// 	"code":            code,
+		// 	"state":           state,
+		// 	"rknown-Referrer": knownReferrer,
+		// 	"user-name":       usr.Email,
+		// }, "is about to excnange access token to rpt token")
+		// rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, nil, keycloakToken.AccessToken)
+		// if err != nil {
+		// 	log.Error(ctx, map[string]interface{}{
+		// 		"err": err,
+		// 	}, "failed to obtain entitlement during login")
+		// 	return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		// }
+		// if rpt != nil {
+		// 	// Swap access token and rpt which contains all resources available to the user
+		// 	log.Info(ctx, map[string]interface{}{
+		// 		"code":            code,
+		// 		"state":           state,
+		// 		"rknown-Referrer": knownReferrer,
+		// 		"rpt":             *rpt,
+		// 	}, "using rpt instead of access token")
+		// 	keycloakToken.AccessToken = *rpt
+		// } else {
+		// 	log.Info(ctx, map[string]interface{}{
+		// 		"code":            code,
+		// 		"state":           state,
+		// 		"rknown-Referrer": knownReferrer,
+		// 		"user-name":       usr.Email,
+		// 	}, "rpt is nil; will use access token instead")
+		// }
+
 		err = encodeToken(referrerURL, keycloakToken)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to encode token")
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
+		log.Info(ctx, map[string]interface{}{
+			"code":            code,
+			"state":           state,
+			"rknown-Referrer": knownReferrer,
+			"user-name":       usr.Email,
+		}, "token encoded")
+
 		referrerStr := referrerURL.String()
 
 		// Check if federated identities are not likned yet
@@ -142,22 +218,56 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 		// But we need it for now because old users still may not be linked.
 		linked, err := keycloak.checkAllFederatedIdentities(ctx, keycloakToken.AccessToken, brokerEndpoint)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"err": err,
+			}, "failed to check federated indentities")
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
+		log.Info(ctx, map[string]interface{}{
+			"code":            code,
+			"state":           state,
+			"rknown-Referrer": knownReferrer,
+			"user-name":       usr.Email,
+			"linked":          linked,
+		}, "identies links checked")
+
 		// Return linked=true param if account has been linked to all IdPs or linked=false if not.
 		if linked {
 			referrerStr = referrerStr + "&linked=true"
 			ctx.ResponseData.Header().Set("Location", referrerStr)
+			log.Info(ctx, map[string]interface{}{
+				"code":            code,
+				"state":           state,
+				"rknown-Referrer": knownReferrer,
+				"user-name":       usr.Email,
+				"linked":          linked,
+				"referrer-str":    referrerStr,
+			}, "all good; redirecting back to referrer")
 			return ctx.TemporaryRedirect()
 		}
 
 		if s, err := strconv.ParseBool(referrerURL.Query().Get(initiateLinkingParam)); err != nil || !s {
 			referrerStr = referrerStr + "&linked=false"
 			ctx.ResponseData.Header().Set("Location", referrerStr)
+			log.Info(ctx, map[string]interface{}{
+				"code":            code,
+				"state":           state,
+				"rknown-Referrer": knownReferrer,
+				"user-name":       usr.Email,
+				"linked":          linked,
+				"referrer-str":    referrerStr,
+			}, "all good; redirecting back to referrer")
 			return ctx.TemporaryRedirect()
 		}
 
 		referrerStr = referrerStr + "&linked=true"
+		log.Info(ctx, map[string]interface{}{
+			"code":            code,
+			"state":           state,
+			"rknown-Referrer": knownReferrer,
+			"user-name":       usr.Email,
+			"linked":          linked,
+		}, "linking identities...")
 		return keycloak.autoLinkProvidersDuringLogin(ctx, keycloakToken.AccessToken, referrerStr)
 	}
 
@@ -203,11 +313,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, a
 		return err
 	}
 
-	keycloak.config.Endpoint.AuthURL = authEndpoint
-	keycloak.config.Endpoint.TokenURL = tokenEndpoint
-	keycloak.config.RedirectURL = rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize")
-
-	redirectURL := keycloak.config.AuthCodeURL(stateID.String(), oauth2.AccessTypeOnline)
+	redirectURL := config.AuthCodeURL(stateID.String(), oauth2.AccessTypeOnline)
 
 	ctx.ResponseData.Header().Set("Location", redirectURL)
 	return ctx.TemporaryRedirect()
@@ -503,7 +609,6 @@ func encodeToken(referrer *url.URL, outhToken *oauth2.Token) error {
 	}
 
 	parameters := referrer.Query()
-	parameters.Add("token", outhToken.AccessToken) // Temporary keep the old "token" param. We will drop this param as soon as UI adopt the new json param.
 	parameters.Add("token_json", string(b))
 	referrer.RawQuery = parameters.Encode()
 
