@@ -164,36 +164,38 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
 
-		log.Info(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
-			"rknown-Referrer": knownReferrer,
-			"user-name":       usr.Email,
-		}, "is about to excnange access token to rpt token")
-		rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, nil, keycloakToken.AccessToken)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"err": err,
-			}, "failed to obtain entitlement during login")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
-		}
-		if rpt != nil {
-			// Swap access token and rpt which contains all resources available to the user
-			log.Info(ctx, map[string]interface{}{
-				"code":            code,
-				"state":           state,
-				"rknown-Referrer": knownReferrer,
-				"rpt":             *rpt,
-			}, "using rpt instead of access token")
-			keycloakToken.AccessToken = *rpt
-		} else {
-			log.Info(ctx, map[string]interface{}{
-				"code":            code,
-				"state":           state,
-				"rknown-Referrer": knownReferrer,
-				"user-name":       usr.Email,
-			}, "rpt is nil; will use access token instead")
-		}
+		// RPT tokens disabled. Use access token instead. See https://github.com/almighty/almighty-core/issues/1177
+
+		// log.Info(ctx, map[string]interface{}{
+		// 	"code":            code,
+		// 	"state":           state,
+		// 	"rknown-Referrer": knownReferrer,
+		// 	"user-name":       usr.Email,
+		// }, "is about to excnange access token to rpt token")
+		// rpt, err := auth.GetEntitlement(ctx, entitlementEndpoint, nil, keycloakToken.AccessToken)
+		// if err != nil {
+		// 	log.Error(ctx, map[string]interface{}{
+		// 		"err": err,
+		// 	}, "failed to obtain entitlement during login")
+		// 	return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+		// }
+		// if rpt != nil {
+		// 	// Swap access token and rpt which contains all resources available to the user
+		// 	log.Info(ctx, map[string]interface{}{
+		// 		"code":            code,
+		// 		"state":           state,
+		// 		"rknown-Referrer": knownReferrer,
+		// 		"rpt":             *rpt,
+		// 	}, "using rpt instead of access token")
+		// 	keycloakToken.AccessToken = *rpt
+		// } else {
+		// 	log.Info(ctx, map[string]interface{}{
+		// 		"code":            code,
+		// 		"state":           state,
+		// 		"rknown-Referrer": knownReferrer,
+		// 		"user-name":       usr.Email,
+		// 	}, "rpt is nil; will use access token instead")
+		// }
 
 		err = encodeToken(referrerURL, keycloakToken)
 		if err != nil {
