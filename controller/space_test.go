@@ -508,6 +508,61 @@ func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfNoneMatchHeader() {
 	test.ListSpaceNotModified(rest.T(), svc.Context, svc, ctrl, nil, nil, nil, &ifNoneMatch)
 }
 
+func (rest *TestSpaceREST) TestSuccessCreateSameSpaceNameDifferentOwners() {
+	// given
+	name := "SameName-" + uuid.NewV4().String()
+	description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
+	newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
+	a := minimumRequiredCreateSpace()
+	a.Data.Attributes.Name = &name
+	a.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, a)
+	// when
+	b := minimumRequiredCreateSpace()
+	b.Data.Attributes.Name = &name
+	b.Data.Attributes.Description = &newDescription
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
+	_, created2 := test.CreateSpaceCreated(rest.T(), svc2.Context, svc2, ctrl2, b)
+	// then
+	assert.NotNil(rest.T(), created.Data)
+	assert.NotNil(rest.T(), created.Data.Attributes)
+	assert.NotNil(rest.T(), created.Data.Attributes.Name)
+	assert.Equal(rest.T(), name, *created.Data.Attributes.Name)
+	assert.NotNil(rest.T(), created2.Data)
+	assert.NotNil(rest.T(), created2.Data.Attributes)
+	assert.NotNil(rest.T(), created2.Data.Attributes.Name)
+	assert.Equal(rest.T(), name, *created2.Data.Attributes.Name)
+	assert.NotEqual(rest.T(), created.Data.Relationships.OwnedBy.Data.ID, created2.Data.Relationships.OwnedBy.Data.ID)
+}
+
+func (rest *TestSpaceREST) TestFailCreateSameSpaceNameSameOwner() {
+	// given
+	name := "SameName-" + uuid.NewV4().String()
+	description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
+	newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
+	// when
+	a := minimumRequiredCreateSpace()
+	a.Data.Attributes.Name = &name
+	a.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, a)
+	// then
+	assert.NotNil(rest.T(), created.Data)
+	assert.NotNil(rest.T(), created.Data.Attributes)
+	assert.NotNil(rest.T(), created.Data.Attributes.Name)
+	assert.Equal(rest.T(), name, *created.Data.Attributes.Name)
+
+	// when
+	b := minimumRequiredCreateSpace()
+	b.Data.Attributes.Name = &name
+	b.Data.Attributes.Description = &newDescription
+	_, err := test.CreateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, b)
+	// then
+	assert.NotEmpty(rest.T(), err.Errors)
+	assert.Contains(rest.T(), err.Errors[0].Detail, "Bad value for parameter 'Name'", "expected: 'unique'")
+}
+
 func minimumRequiredCreateSpace() *app.CreateSpacePayload {
 	return &app.CreateSpacePayload{
 		Data: &app.Space{
