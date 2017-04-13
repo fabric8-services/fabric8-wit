@@ -438,3 +438,67 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	require.NotEmpty(s.T(), sr.Data)
 	assert.Len(s.T(), sr.Data, 8)
 }
+
+func (s *searchBlackBoxTest) TestSearchWorkItemsWithoutSpaceContext() {
+	name1 := "Test Space 1.1" + uuid.NewV4().String()
+	var space1 *space.Space
+	application.Transactional(s.db, func(app application.Application) error {
+		sp := space.Space{
+			Name: name1,
+		}
+		var err error
+		space1, err = app.Spaces().Create(context.Background(), &sp)
+		require.Nil(s.T(), err)
+		return nil
+	})
+
+	name2 := "Test Space 2.2" + uuid.NewV4().String()
+	var space2 *space.Space
+	application.Transactional(s.db, func(app application.Application) error {
+		sp := space.Space{
+			Name: name2,
+		}
+		var err error
+		space2, err = app.Spaces().Create(context.Background(), &sp)
+		require.Nil(s.T(), err)
+		return nil
+	})
+
+	// 10 WI for space 1
+	for i := 0; i < 10; i++ {
+		wi, err := s.wiRepo.Create(
+			s.ctx,
+			space1.ID,
+			workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "search_by_me random - " + uuid.NewV4().String(),
+				workitem.SystemDescription: nil,
+				workitem.SystemCreator:     "pranav",
+				workitem.SystemState:       workitem.SystemStateClosed,
+			},
+			s.testIdentity.ID)
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wi)
+	}
+	// 5 WI for space 2
+	for i := 0; i < 5; i++ {
+		wi, err := s.wiRepo.Create(
+			s.ctx,
+			space2.ID,
+			workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "search_by_me random - " + uuid.NewV4().String(),
+				workitem.SystemDescription: nil,
+				workitem.SystemCreator:     "pranav",
+				workitem.SystemState:       workitem.SystemStateClosed,
+			},
+			s.testIdentity.ID)
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wi)
+	}
+	q := "search_by_me"
+	// search without space context
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, nil)
+	require.NotEmpty(s.T(), sr.Data)
+	assert.Len(s.T(), sr.Data, 15)
+}
