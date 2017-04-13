@@ -108,6 +108,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration48", testMigration48)
 	t.Run("TestMigration49", testMigration49)
 	t.Run("TestMigration50", testMigration50)
+	t.Run("TestMigration51", testMigration51)
+	t.Run("TestMigration52", testMigration52)
 	t.Run("testMigration53", testMigration53)
 
 	// Perform the migration
@@ -209,6 +211,17 @@ func testMigration50(t *testing.T) {
 	assert.True(t, dialect.HasColumn("users", "company"))
 
 	assert.Nil(t, runSQLscript(sqlDB, "050-users-add-column-company.sql"))
+}
+func testMigration51(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+7)], (initialMigratedVersion + 7))
+
+	assert.True(t, dialect.HasIndex("work_item_link_types", "work_item_link_types_name_idx"))
+}
+
+func testMigration52(t *testing.T) {
+	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+8)], (initialMigratedVersion + 8))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
 }
 
 func testMigration53(t *testing.T) {
