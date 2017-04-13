@@ -26,6 +26,7 @@ import (
 type loginConfiguration interface {
 	GetKeycloakEndpointAuth(*goa.RequestData) (string, error)
 	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
+	GetKeycloakAccountEndpoint(req *goa.RequestData) (string, error)
 	GetKeycloakEndpointBroker(*goa.RequestData) (string, error)
 	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
 	GetKeycloakClientID() string
@@ -84,6 +85,10 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		}, "Unable to get Keycloak broker endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak broker endpoint URL. "+err.Error()))
 	}
+	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
+	}
 	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
@@ -97,7 +102,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		RedirectURL:  rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize"),
 	}
 
-	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, whitelist)
+	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist)
 }
 
 // Refresh obtain a new access token using the refresh token.
@@ -238,7 +243,11 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to generate test token "+err.Error()))
 	}
 	// Creates the testuser user and identity if they don't yet exist
-	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
+	}
+	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx, profileEndpoint)
 	tokens = append(tokens, testuser)
 
 	testuser, err = GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUser2Name(), c.configuration.GetKeycloakTestUser2Secret())
@@ -246,7 +255,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to generate test token "+err.Error()))
 	}
 	// Creates the testuser2 user and identity if they don't yet exist
-	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx)
+	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx, profileEndpoint)
 	tokens = append(tokens, testuser)
 
 	// jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))

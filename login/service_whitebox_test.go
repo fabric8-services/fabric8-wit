@@ -1,6 +1,7 @@
 package login
 
 import (
+	"context"
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
@@ -181,4 +182,62 @@ func TestEncodeTokenOK(t *testing.T) {
 	assert.Equal(t, tokenType, *tokenData.TokenType)
 	assert.Equal(t, expiresIn, *tokenData.ExpiresIn)
 	assert.Equal(t, refreshExpiresIn, *tokenData.RefreshExpiresIn)
+}
+
+func TestApprovedUserOK(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	var attributes KeycloakUserProfileAttributes
+	attributes = make(map[string][]string)
+	attributes[ApprovedAttributeName] = []string{"true"}
+	profile := &KeycloakUserProfileResponse{Attributes: &attributes}
+	approved, err := checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
+	assert.Nil(t, err)
+	assert.True(t, approved)
+}
+
+func TestNotApprovedUserFails(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	approved, err := checkApproved(context.Background(), newDummyUserProfileService(&KeycloakUserProfileResponse{}), "", "")
+	assert.Nil(t, err)
+	assert.False(t, approved)
+
+	var attributes KeycloakUserProfileAttributes
+	attributes = make(map[string][]string)
+	profile := &KeycloakUserProfileResponse{Attributes: &attributes}
+
+	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
+	assert.Nil(t, err)
+	assert.False(t, approved)
+
+	attributes[ApprovedAttributeName] = []string{"false"}
+
+	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
+	assert.Nil(t, err)
+	assert.False(t, approved)
+
+	attributes[ApprovedAttributeName] = []string{"blahblah"}
+
+	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
+	assert.NotNil(t, err)
+	assert.False(t, approved)
+}
+
+type dummyUserProfileService struct {
+	profile *KeycloakUserProfileResponse
+}
+
+func newDummyUserProfileService(profile *KeycloakUserProfileResponse) *dummyUserProfileService {
+	return &dummyUserProfileService{profile: profile}
+}
+
+func (d *dummyUserProfileService) Update(keycloakUserProfile *KeycloakUserProfile, accessToken string, keycloakProfileURL string) error {
+	return nil
+}
+
+func (d *dummyUserProfileService) Get(accessToken string, keycloakProfileURL string) (*KeycloakUserProfileResponse, error) {
+	return d.profile, nil
 }
