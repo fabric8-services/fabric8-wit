@@ -119,6 +119,11 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"identity_id": identity.ID,
+				"user_id":     identity.UserID.Valid,
+				"err":         err,
+			}, "failed to update keycloak account")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
@@ -139,7 +144,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil {
 			if identity.RegistrationCompleted {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("Username cannot be updated more than once for idenitity id %s ", *id)))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for idenitity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
 			}
 			identity.Username = *updatedUserName
@@ -211,7 +216,13 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		// we should't update the platform db since that would leave things in an
 		// inconsistent state.
 		err = c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
+
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_name": keycloakUserProfile.Username,
+				"email":     keycloakUserProfile.Email,
+				"err":       err,
+			}, "failed to update keycloak account")
 
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
 
