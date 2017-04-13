@@ -395,20 +395,20 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	assert.Equal(t, *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 
 	// verify list-WI URL exists in Relationships.Links
-	require.NotNil(t, *fetched.Data.Relationships.Workitems)
-	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links)
-	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links.Related)
+	require.NotNil(t, fetched.Data.Relationships.Workitems)
+	require.NotNil(t, fetched.Data.Relationships.Workitems.Links)
+	require.NotNil(t, fetched.Data.Relationships.Workitems.Links.Related)
 	subStringWI := fmt.Sprintf("/%s/workitems", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Relationships.Workitems.Links.Related, subStringWI)
 
 	// verify list-WIT URL exists in Relationships.Links
-	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links)
 	require.NotNil(t, fetched.Data.Links.Workitemtypes)
 	subStringWIL := fmt.Sprintf("/%s/workitemtypes", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Links.Workitemtypes, subStringWIL)
 
 	// verify list-WILT URL exists in Relationships.Links
-	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links)
 	require.NotNil(t, fetched.Data.Links.Workitemlinktypes)
 	subStringWILT := fmt.Sprintf("/%s/workitemlinktypes", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Links.Workitemlinktypes, subStringWILT)
