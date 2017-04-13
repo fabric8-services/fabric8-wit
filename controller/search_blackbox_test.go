@@ -368,15 +368,16 @@ func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
 	})
 
 	name2 := "Ultimate Space 2" + uuid.NewV4().String()
-	space2 := &space.Space{
-		Name: name2,
-	}
-	err2 := application.Transactional(s.db, func(app application.Application) error {
+	var space2 *space.Space
+	application.Transactional(s.db, func(app application.Application) error {
+		sp := space.Space{
+			Name: name2,
+		}
 		var err error
-		space2, err = app.Spaces().Create(context.Background(), space2)
-		return err
+		space2, err = app.Spaces().Create(context.Background(), &sp)
+		require.Nil(s.T(), err)
+		return nil
 	})
-	require.Nil(s.T(), err2)
 
 	// WI for space 1
 	for i := 0; i < 3; i++ {
