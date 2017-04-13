@@ -159,11 +159,11 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	// create relationship between workitemtype and category
 	if categoryID != uuid.Nil {
 		c := category.NewRepository(r.db)
-		categoryWorkItemTypeRelationship := category.CategoryWorkItemTypeRelationship{
+		WorkItemTypeCategoryRelationship := category.WorkItemTypeCategoryRelationship{
 			CategoryID:     categoryID,
 			WorkitemtypeID: *id,
 		}
-		err := c.CreateRelationship(ctx, &categoryWorkItemTypeRelationship)
+		err := c.CreateRelationship(ctx, &WorkItemTypeCategoryRelationship)
 		if err != nil {
 			return nil, errors.NewInternalError(err.Error())
 		}

@@ -109,7 +109,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		additionalQuery = append(additionalQuery, "filter[workitemstate]="+*ctx.FilterWorkitemstate)
 	}
 	if ctx.FilterCategory != nil {
-		var relationships []*category.CategoryWorkItemTypeRelationship
+		var relationships []*category.WorkItemTypeCategoryRelationship
 		application.Transactional(c.db, func(tx application.Application) error {
 			// Load all workitemtypes related to the specific category
 			relationships, err = tx.Categories().LoadRelationships(ctx, *ctx.FilterCategory)
