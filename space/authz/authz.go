@@ -113,21 +113,25 @@ func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	}
 	claims := tokenWithClaims.Claims.(*TokenPayload)
 
-	// RPT tokens disabled. See https://github.com/almighty/almighty-core/issues/1177
+	if claims.Authorization == nil {
+		// No autrhorization in the token. This is not a RPT token. This is an access token.
+		// We need to obtain an PRT token.
+		log.Warn(ctx, map[string]interface{}{
+			"space-id": spaceID,
+		}, "no autrhorization found in the token; this is an access token (not a RPT token)")
+		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
+	}
 
 	// Check if the token was issued before the space resouces changed the last time.
 	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
-	// outdated, err := s.outdated(ctx, *claims, entitlementEndpoint, spaceID)
-	// if err != nil {
-	// 	return false, err
-	// }
-	outdated := true
+	outdated, err := s.outdated(ctx, *claims, entitlementEndpoint, spaceID)
+	if err != nil {
+		return false, err
+	}
 	if outdated {
 		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 	}
-	if claims.Authorization == nil {
-		return false, nil
-	}
+
 	permissions := claims.Authorization.Permissions
 	if permissions == nil {
 		return false, nil

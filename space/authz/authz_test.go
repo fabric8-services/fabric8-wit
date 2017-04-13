@@ -56,16 +56,14 @@ func (s *TestAuthzSuite) TestFailsIfNoTokenInContext() {
 	require.NotNil(s.T(), err)
 }
 
-// RPT tokens disabled. See https://github.com/almighty/almighty-core/issues/1177
-func (s *TestAuthzSuite) _TestUserAmongSpaceCollaboratorsOK() {
+func (s *TestAuthzSuite) TestUserAmongSpaceCollaboratorsOK() {
 	spaceID := uuid.NewV4().String()
 	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID}}}
 	ok := s.checkPermissions(authzPayload, spaceID)
 	require.True(s.T(), ok)
 }
 
-// RPT tokens disabled. See https://github.com/almighty/almighty-core/issues/1177
-func (s *TestAuthzSuite) _TestUserIsNotAmongSpaceCollaboratorsFails() {
+func (s *TestAuthzSuite) TestUserIsNotAmongSpaceCollaboratorsFails() {
 	spaceID1 := uuid.NewV4().String()
 	spaceID2 := uuid.NewV4().String()
 	authzPayload := authz.AuthorizationPayload{Permissions: []authz.Permissions{{ResourceSetName: &spaceID1}}}
