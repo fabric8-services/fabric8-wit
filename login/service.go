@@ -20,7 +20,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/auth"
-	crerrors "github.com/almighty/almighty-core/errors"
+	coreerrors "github.com/almighty/almighty-core/errors"
 	er "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -649,13 +649,13 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 	}
 
 	if len(identities) == 0 {
-		// No Idenity found, create a new Identity and User
+		// No Identity found, create a new Identity and User
 		approved, err := checkApproved(ctx, NewKeycloakUserProfileClient(), accessToken, profileEndpoint)
 		if err != nil {
 			return nil, nil, err
 		}
 		if !approved {
-			return nil, nil, crerrors.NewUnauthorizedError("user is not approved")
+			return nil, nil, coreerrors.NewUnauthorizedError("user is not approved")
 		}
 		user = new(account.User)
 		fillUser(claims, user)
@@ -721,7 +721,7 @@ func checkApproved(ctx context.Context, profileService UserProfileService, acces
 	if approved == nil || len(approved) == 0 {
 		log.Warn(ctx, map[string]interface{}{
 			"username": profile.Username,
-		}, "no approved attribut found in the user's profile or the value is empty")
+		}, "no approved attribute found in the user's profile or the value is empty")
 		return false, nil
 	}
 	b, err := strconv.ParseBool(approved[0])

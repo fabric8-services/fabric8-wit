@@ -87,6 +87,9 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	}
 	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to get Keycloak account endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
 	whitelist, err := c.configuration.GetValidRedirectURLs(ctx.RequestData)
@@ -235,16 +238,25 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 
 	tokenEndpoint, err := c.configuration.GetKeycloakEndpointToken(ctx.RequestData)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to get Keycloak token endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
 	}
 
 	testuser, err := GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUserName(), c.configuration.GetKeycloakTestUserSecret())
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to get Generate User token")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to generate test token "+err.Error()))
 	}
 	// Creates the testuser user and identity if they don't yet exist
 	profileEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to get Keycloak account endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
 	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx, profileEndpoint)
@@ -252,6 +264,9 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 
 	testuser, err = GenerateUserToken(ctx, tokenEndpoint, c.configuration, c.configuration.GetKeycloakTestUser2Name(), c.configuration.GetKeycloakTestUser2Secret())
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to get Keycloak token endpoint URL")
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to generate test token "+err.Error()))
 	}
 	// Creates the testuser2 user and identity if they don't yet exist

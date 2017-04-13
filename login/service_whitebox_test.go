@@ -219,7 +219,7 @@ func TestNotApprovedUserFails(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, approved)
 
-	attributes[ApprovedAttributeName] = []string{"blahblah"}
+	attributes[ApprovedAttributeName] = []string{"blahblah", "anydata"}
 
 	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
 	assert.NotNil(t, err)
