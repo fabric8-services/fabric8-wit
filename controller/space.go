@@ -151,7 +151,6 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	return ctx.Created(res)
 }
 
-
 // Delete runs the delete action.
 func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	_, err := login.ContextIdentity(ctx)
