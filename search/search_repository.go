@@ -252,7 +252,7 @@ func generateSQLSearchInfo(keywords searchKeyword) (sqlParameter string) {
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID uuid.UUID) ([]workitem.WorkItemStorage, uint64, error) {
+func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParameter string, workItemTypes []uuid.UUID, start *int, limit *int, spaceID *string) ([]workitem.WorkItemStorage, uint64, error) {
 	db := r.db.Model(workitem.WorkItemStorage{}).Where("tsv @@ query")
 	if start != nil {
 		if *start < 0 {
@@ -277,7 +277,9 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 
 	db = db.Select("count(*) over () as cnt2 , *")
 	db = db.Joins(", to_tsquery('english', ?) as query, ts_rank(tsv, query) as rank", sqlSearchQueryParameter)
-	db = db.Where("space_id=?", spaceID)
+	if spaceID != nil {
+		db = db.Where("space_id=?", *spaceID)
+	}
 	db = db.Order(fmt.Sprintf("rank desc,%s.updated_at desc", workitem.WorkItemStorage{}.TableName()))
 
 	rows, err := db.Rows()
@@ -324,7 +326,7 @@ func (r *GormSearchRepository) search(ctx context.Context, sqlSearchQueryParamet
 }
 
 // SearchFullText Search returns work items for the given query
-func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID uuid.UUID) ([]workitem.WorkItem, uint64, error) {
+func (r *GormSearchRepository) SearchFullText(ctx context.Context, rawSearchString string, start *int, limit *int, spaceID *string) ([]workitem.WorkItem, uint64, error) {
 	// parse
 	// generateSearchQuery
 	// ....

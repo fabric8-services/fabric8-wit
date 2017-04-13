@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/application"
 	config "github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -25,6 +26,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 	"github.com/goadesign/goa/goatest"
@@ -72,6 +74,7 @@ func (s *searchBlackBoxTest) SetupSuite() {
 }
 
 func (s *searchBlackBoxTest) SetupTest() {
+	s.db = gormapplication.NewGormDB(s.DB)
 	s.clean = cleaner.DeleteCreatedEntities(s.DB)
 }
 
@@ -95,7 +98,8 @@ func (s *searchBlackBoxTest) TestSearchWorkItems() {
 	require.Nil(s.T(), err)
 	// when
 	q := "specialwordforsearch"
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -118,7 +122,8 @@ func (s *searchBlackBoxTest) TestSearchPagination() {
 	require.Nil(s.T(), err)
 	// when
 	q := "specialwordforsearch2"
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	// defaults in paging.go is 'pageSizeDefault = 20'
 	assert.Equal(s.T(), "http:///api/search?page[offset]=0&page[limit]=20&q=specialwordforsearch2", *sr.Links.First)
@@ -143,7 +148,8 @@ func (s *searchBlackBoxTest) TestSearchWithEmptyValue() {
 	require.Nil(s.T(), err)
 	// when
 	q := ""
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	require.NotNil(s.T(), sr.Data)
 	assert.Empty(s.T(), sr.Data)
@@ -165,7 +171,8 @@ func (s *searchBlackBoxTest) TestSearchWithDomainPortCombination() {
 	require.Nil(s.T(), err)
 	// when
 	q := `"http://localhost:8080/detail/154687364529310"`
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -189,7 +196,8 @@ func (s *searchBlackBoxTest) TestSearchURLWithoutPort() {
 	require.Nil(s.T(), err)
 	// when
 	q := `"http://localhost/detail/876394"`
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -213,7 +221,8 @@ func (s *searchBlackBoxTest) TestUnregisteredURLWithPort() {
 	require.Nil(s.T(), err)
 	// when
 	q := `http://some-other-domain:8080/different-path/`
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	require.NotEmpty(s.T(), sr.Data)
 	r := sr.Data[0]
@@ -238,7 +247,8 @@ func (s *searchBlackBoxTest) TestUnwantedCharactersRelatedToSearchLogic() {
 	// when
 	// add url: in the query, that is not expected by the code hence need to make sure it gives expected result.
 	q := `http://url:some-random-other-domain:8080/different-path/`
-	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q)
+	spaceIDStr := space.SystemSpace.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &spaceIDStr)
 	// then
 	require.NotNil(s.T(), sr.Data)
 	assert.Empty(s.T(), sr.Data)
@@ -342,4 +352,88 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	customHost2 := "own.domain.two"
 	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
 	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
+}
+
+func (s *searchBlackBoxTest) TestSearchWorkItemsSpaceContext() {
+	name1 := "Ultimate Space 1" + uuid.NewV4().String()
+	var space1 *space.Space
+	application.Transactional(s.db, func(app application.Application) error {
+		sp := space.Space{
+			Name: name1,
+		}
+		var err error
+		space1, err = app.Spaces().Create(context.Background(), &sp)
+		require.Nil(s.T(), err)
+		return nil
+	})
+
+	name2 := "Ultimate Space 2" + uuid.NewV4().String()
+	space2 := &space.Space{
+		Name: name2,
+	}
+	err2 := application.Transactional(s.db, func(app application.Application) error {
+		var err error
+		space2, err = app.Spaces().Create(context.Background(), space2)
+		return err
+	})
+	require.Nil(s.T(), err2)
+
+	// WI for space 1
+	for i := 0; i < 3; i++ {
+		wi, err := s.wiRepo.Create(
+			s.ctx,
+			space1.ID,
+			workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "shutter_island common_word random - " + uuid.NewV4().String(),
+				workitem.SystemDescription: nil,
+				workitem.SystemCreator:     "pranav",
+				workitem.SystemState:       workitem.SystemStateClosed,
+			},
+			s.testIdentity.ID)
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wi)
+	}
+	// WI for space 2
+	for i := 0; i < 5; i++ {
+		wi, err := s.wiRepo.Create(
+			s.ctx,
+			space2.ID,
+			workitem.SystemBug,
+			map[string]interface{}{
+				workitem.SystemTitle:       "inception common_word random - " + uuid.NewV4().String(),
+				workitem.SystemDescription: nil,
+				workitem.SystemCreator:     "pranav",
+				workitem.SystemState:       workitem.SystemStateClosed,
+			},
+			s.testIdentity.ID)
+		require.Nil(s.T(), err)
+		require.NotNil(s.T(), wi)
+	}
+	// when
+	q := "common_word"
+	space1IDStr := space1.ID.String()
+	_, sr := test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &space1IDStr)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
+	assert.Len(s.T(), sr.Data, 3)
+	for _, item := range sr.Data {
+		// make sure that retrived items are from space 1 only
+		assert.Contains(s.T(), item.Attributes[workitem.SystemTitle], "shutter_island common_word")
+	}
+	space2IDStr := space2.ID.String()
+	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, &space2IDStr)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
+	assert.Len(s.T(), sr.Data, 5)
+	for _, item := range sr.Data {
+		// make sure that retrived items are from space 2 only
+		assert.Contains(s.T(), item.Attributes[workitem.SystemTitle], "inception common_word")
+	}
+
+	// when searched without spaceID then it should get all related WI
+	_, sr = test.ShowSearchOK(s.T(), nil, nil, s.controller, nil, nil, q, nil)
+	// then
+	require.NotEmpty(s.T(), sr.Data)
+	assert.Len(s.T(), sr.Data, 8)
 }
