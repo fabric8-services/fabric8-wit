@@ -143,7 +143,11 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "failed to create a user and KeyCloak identity using the access token")
-			return redirectWithError(ctx, knownReferrer, err.Error())
+			switch err.(type) {
+			case coreerrors.UnauthorizedError:
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+			}
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
 
 		log.Info(ctx, map[string]interface{}{
