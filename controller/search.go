@@ -52,7 +52,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//return transaction.Do(c.ts, func() error {
-		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit)
+		result, c, err := appl.SearchItems().SearchFullText(ctx.Context, ctx.Q, &offset, &limit, ctx.SpaceID)
 		count := int(c)
 		if err != nil {
 			cause := errs.Cause(err)
