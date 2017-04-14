@@ -15,7 +15,8 @@ COPY config.yaml ${ALMIGHTY_INSTALL_PREFIX}/etc/config.yaml
 COPY pcp.repo /etc/yum.repos.d/pcp.repo
 RUN yum install -y pcp && yum clean all && \
     mkdir -p /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp && \
-    chown -R ${ALMIGHTY_USER_NAME} /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp
+    chown -R ${ALMIGHTY_USER_NAME} /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp && \
+    chmod -R ug+rw /etc/pcp /var/run/pcp /var/lib/pcp /var/log/pcp
 COPY ./alm+pmcd.sh /alm+pmcd.sh
 EXPOSE 44321
 

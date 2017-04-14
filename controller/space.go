@@ -67,22 +67,9 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 	reqSpace := ctx.Payload.Data
 	spaceName := *reqSpace.Attributes.Name
 	spaceID := uuid.NewV4()
-	// Create keycloak resource for this space
-	// TODO if transaction below fails we need to remove this Keycloak Resource to avoid poluting Keycloak with unused resources
-	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String())
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, err)
-	}
 
-	spaceResource := &space.Resource{
-		ResourceID:   resource.ResourceID,
-		PolicyID:     resource.PolicyID,
-		PermissionID: resource.PermissionID,
-		SpaceID:      spaceID,
-	}
-
-	var res *app.SpaceSingle
-	txnError := application.Transactional(c.db, func(appl application.Application) error {
+	var rSpace *space.Space
+	err = application.Transactional(c.db, func(appl application.Application) error {
 		newSpace := space.Space{
 			ID:      spaceID,
 			Name:    spaceName,
@@ -92,7 +79,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 			newSpace.Description = *reqSpace.Attributes.Description
 		}
 
-		rSpace, err := appl.Spaces().Create(ctx, &newSpace)
+		rSpace, err = appl.Spaces().Create(ctx, &newSpace)
 		if err != nil {
 			return errs.Wrapf(err, "Failed to create space: %s", newSpace.Name)
 		}
@@ -126,28 +113,42 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 		if err != nil {
 			return errs.Wrapf(err, "failed to create iteration for space: %s", rSpace.Name)
 		}
-		spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *rSpace)
-		if err != nil {
-			return err
-		}
-		res = &app.SpaceSingle{
-			Data: spaceData,
-		}
-
-		// Create space resource which will represent the keyclok resource associated with this space
-		_, err = appl.SpaceResources().Create(ctx, spaceResource)
-		if err != nil {
-			return err
-		}
-
 		return nil
 	})
-	if txnError != nil {
-		return jsonapi.JSONErrorResponse(ctx, txnError)
-	} else {
-		ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
-		return ctx.Created(res)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
+
+	// Create keycloak resource for this space
+	resource, err := c.resourceManager.CreateResource(ctx, ctx.RequestData, spaceID.String(), spaceResourceType, &spaceName, &scopes, currentUser.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	spaceResource := &space.Resource{
+		ResourceID:   resource.ResourceID,
+		PolicyID:     resource.PolicyID,
+		PermissionID: resource.PermissionID,
+		SpaceID:      spaceID,
+	}
+
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		// Create space resource which will represent the keyclok resource associated with this space
+		_, err = appl.SpaceResources().Create(ctx, spaceResource)
+		return err
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *rSpace)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	res := &app.SpaceSingle{
+		Data: spaceData,
+	}
+	ctx.ResponseData.Header().Set("Location", rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(res.Data.ID)))
+	return ctx.Created(res)
 }
 
 // Delete runs the delete action.
