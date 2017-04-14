@@ -37,7 +37,7 @@ func TestAuthz(t *testing.T) {
 
 type TestAuthzSuite struct {
 	suite.Suite
-	authzService *authz.KeyclaokAuthzService
+	authzService *authz.KeycloakAuthzService
 }
 
 func (s *TestAuthzSuite) SetupSuite() {
