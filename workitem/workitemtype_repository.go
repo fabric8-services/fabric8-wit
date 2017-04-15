@@ -20,7 +20,7 @@ var cache = NewWorkItemTypeCache()
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
-	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categories uuid.UUID) (*WorkItemType, error)
+	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categories *[]uuid.UUID) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
 	ListPlannerItems(ctx context.Context, spaceID uuid.UUID) ([]WorkItemType, error)
 }
@@ -107,7 +107,7 @@ func ClearGlobalWorkItemTypeCache() {
 
 // Create creates a new work item in the repository
 // returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categoryID uuid.UUID) (*WorkItemType, error) {
+func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition, categories *[]uuid.UUID) (*WorkItemType, error) {
 	// Make sure this WIT has an ID
 
 	if id == nil {
@@ -157,15 +157,17 @@ func (r *GormWorkItemTypeRepository) Create(ctx context.Context, spaceID uuid.UU
 	}
 
 	// create relationship between workitemtype and category
-	if categoryID != uuid.Nil {
-		c := category.NewRepository(r.db)
-		WorkItemTypeCategoryRelationship := category.WorkItemTypeCategoryRelationship{
-			CategoryID:     categoryID,
-			WorkitemtypeID: *id,
-		}
-		err := c.CreateRelationship(ctx, &WorkItemTypeCategoryRelationship)
-		if err != nil {
-			return nil, errors.NewInternalError(err.Error())
+	for _, categoryID := range *categories {
+		if categoryID != uuid.Nil {
+			c := category.NewRepository(r.db)
+			WorkItemTypeCategoryRelationship := category.WorkItemTypeCategoryRelationship{
+				CategoryID:     categoryID,
+				WorkitemtypeID: *id,
+			}
+			err := c.CreateRelationship(ctx, &WorkItemTypeCategoryRelationship)
+			if err != nil {
+				return nil, errors.NewInternalError(err.Error())
+			}
 		}
 	}
 	log.Debug(ctx, map[string]interface{}{"witID": created.ID}, "Work item type created successfully!")

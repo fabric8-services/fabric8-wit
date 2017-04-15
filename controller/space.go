@@ -388,8 +388,8 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 		if err != nil {
 			return errs.Wrap(err, "unable to fetch categories")
 		}
-		for i := 0; i < len(categories); i++ {
-			relatedCategoryList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems?filter[category]=%s", spaceIDStr, categories[i].ID))
+		for _, cat := range categories {
+			relatedCategoryList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems?filter[category]=%s", spaceIDStr, cat.ID))
 			catList := app.GenericData{
 				Links: &app.GenericLinks{
 					Related: &relatedCategoryList,

@@ -74,7 +74,7 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 
 var workItemTypeRelationships = a.Type("WorkItemTypeRelationships", func() {
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
-	a.Attribute("categories", relationCategories, "This defines the categories this work item type belongs.")
+	a.Attribute("categories", relationGenericList, "This defines the categories this work item type belongs.")
 })
 
 var workItemTypeData = a.Type("WorkItemTypeData", func() {

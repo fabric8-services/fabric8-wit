@@ -114,7 +114,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			// Load all workitemtypes related to the specific category
 			relationships, err = tx.Categories().LoadRelationships(ctx, *ctx.FilterCategory)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error listing work items"))
 			}
 			return nil
 		})

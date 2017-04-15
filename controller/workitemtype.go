@@ -84,6 +84,13 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
+
+		var category []uuid.UUID
+		for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
+			catID := uuid.FromStringOrNil(*cat.ID)
+			category = append(category, catID)
+		}
+
 		witTypeModel, err := appl.WorkItemTypes().Create(
 			ctx.Context,
 			*ctx.Payload.Data.Relationships.Space.Data.ID,
@@ -93,7 +100,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
 			modelFields,
-			*ctx.Payload.Data.Relationships.Categories.Data.ID,
+			&category,
 		)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)

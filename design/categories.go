@@ -19,7 +19,7 @@ var category = a.Type("categories", func() {
 
 var categoryAttributes = a.Type("categoryAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a filter. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "The Category name", func() {
+	a.Attribute("name", d.String, "A unique Category name", func() {
 		a.Example("Requirements")
 		a.MinLength(1)
 	})
@@ -31,6 +31,13 @@ var categoryList = JSONList(
 	category,
 	pagingLinks,
 	meta)
+
+/* relationCategoriesList is a top level structure
+var relationCategories = a.Type("RelationCategories", func() {
+	a.Attribute("data", relationCategoriesData)
+	a.Attribute("links", genericLinks)
+	a.Attribute("meta", a.HashOf(d.String, d.Any))
+})
 
 // relationCategories is the JSONAPI store for the categories
 var relationCategories = a.Type("RelationCategories", func() {
@@ -48,4 +55,4 @@ var relationCategoriesData = a.Type("RelationCategoriesData", func() {
 		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
 	})
 	a.Attribute("links", genericLinks)
-})
+})*/
