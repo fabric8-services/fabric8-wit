@@ -632,34 +632,30 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 
 	c := category.NewRepository(db)
 	populateCategories(ctx, db, c) // populate the categories
-	categories, err := c.List(ctx) // fetch the categories
-	if err != nil {
-		return errs.WithStack(err)
-	}
 
-	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, "User Story", "Desciption for User Story", "fa-map-marker", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, "User Story", "Desciption for User Story", "fa-map-marker", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, "Value Proposition", "Description for value proposition", "fa-gift", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, "Value Proposition", "Description for value proposition", "fa-gift", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, "Fundamental", "Description for Fundamental", "fa-bank", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, "Fundamental", "Description for Fundamental", "fa-bank", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, "Experience", "Description for Experience", "fa-map", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, "Experience", "Description for Experience", "fa-map", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, "Scenario", "Description for Scenario", "fa-adjust", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, "Scenario", "Description for Scenario", "fa-adjust", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, "Feature", "Description for Feature", "fa-mouse-pointer", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, "Feature", "Description for Feature", "fa-mouse-pointer", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID}); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, "Bug", "Description for Bug", "fa-bug", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{categories[0].ID, categories[1].ID}); err != nil {
+	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, "Bug", "Description for Bug", "fa-bug", ctx, witr, db, space.SystemSpace, &[]uuid.UUID{category.PlannerRequirementsID, category.PlannerIssuesID}); err != nil {
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
