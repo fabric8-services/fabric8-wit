@@ -104,7 +104,10 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 }
 
 func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
-	return "(Fields->>'" + e.FieldName + "' IS NULL)"
+	if isJSONField(e.FieldName) {
+		return "(Fields->>'" + e.FieldName + "' IS NULL)"
+	}
+	return "(" + e.FieldName + " IS NULL)"
 }
 
 func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
