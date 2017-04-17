@@ -112,7 +112,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		var relationships []*category.WorkItemTypeCategoryRelationship
 		application.Transactional(c.db, func(tx application.Application) error {
 			// Load all workitemtypes related to the specific category
-			relationships, err = tx.Categories().LoadRelationships(ctx, *ctx.FilterCategory)
+			relationships, err = tx.Categories().LoadAllRelationshipsOfCategory(ctx, *ctx.FilterCategory)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "error listing work items"))
 			}

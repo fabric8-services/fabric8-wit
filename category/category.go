@@ -59,10 +59,11 @@ func (m *WorkItemTypeCategoryRelationship) TableName() string {
 // Repository encapsulates storage and retrieval of categories
 type Repository interface {
 	Create(ctx context.Context, category *Category) (*Category, error)
+	LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error)
 	List(ctx context.Context) ([]*Category, error)
 	CreateRelationship(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error
-	LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error)
-	LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error)
+	LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error)
+	LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error)
 }
 
 // NewRepository creates a new storage type.
@@ -124,8 +125,8 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 	return category, nil
 }
 
-// LoadRelationships loads the relationships. This is required for workitemtype filtering.
-func (m *GormRepository) LoadRelationships(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error) {
+// LoadAllRelationshipsOfCategory loads all the relationships of a category. This is required for workitemtype filtering.
+func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error) {
 
 	// Check if category is present
 	getCategory := Category{}
@@ -172,4 +173,33 @@ func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (
 		return nil, errors.NewInternalError(err.Error())
 	}
 	return &res, nil
+}
+
+// LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
+func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error) {
+
+	// Check if category is present
+	getCategory := Category{}
+	db := m.db.Model(&getCategory).Where("id=?", categoryID).Find(&getCategory)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"categories_id": categoryID,
+		}, "category not found")
+		return nil, errors.NewNotFoundError("category", categoryID.String())
+	}
+	if err := db.Error; err != nil {
+		return nil, errors.NewInternalError(err.Error())
+	}
+	relationship := WorkItemTypeCategoryRelationship{}
+	db = m.db.Model(&relationship).Where("category_id=? AND workitemtype_id=?", categoryID, workitemtypeID).Find(&relationship)
+	if db.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"categories_id": categoryID,
+		}, "workitemtypes of category not found")
+		return nil, errors.NewNotFoundError("work item type category", categoryID.String())
+	}
+	if err := db.Error; err != nil {
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
+	return &relationship, nil
 }
