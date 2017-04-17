@@ -31,28 +31,3 @@ var categoryList = JSONList(
 	category,
 	pagingLinks,
 	meta)
-
-/* relationCategoriesList is a top level structure
-var relationCategories = a.Type("RelationCategories", func() {
-	a.Attribute("data", relationCategoriesData)
-	a.Attribute("links", genericLinks)
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-})
-
-// relationCategories is the JSONAPI store for the categories
-var relationCategories = a.Type("RelationCategories", func() {
-	a.Attribute("data", relationCategoriesData)
-	a.Attribute("links", genericLinks)
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-})
-
-// relationCategoriesData is the JSONAPI data object of the category relationship objects
-var relationCategoriesData = a.Type("RelationCategoriesData", func() {
-	a.Attribute("type", d.String, func() {
-		a.Enum("category")
-	})
-	a.Attribute("id", d.UUID, "UUID for the category", func() {
-		a.Example("6c5610be-30b2-4880-9fec-81e4f8e4fd76")
-	})
-	a.Attribute("links", genericLinks)
-})*/
