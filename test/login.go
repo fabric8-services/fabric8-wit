@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/almighty/almighty-core/account"
-	tokencontext "github.com/almighty/almighty-core/login/token_context"
+	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/token"
 

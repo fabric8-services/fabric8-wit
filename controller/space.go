@@ -217,9 +217,9 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		})
 		if entityErr != nil {
 			return entityErr
-		} else {
-			return nil
 		}
+
+		return nil
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
@@ -259,9 +259,8 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	} else {
-		return ctx.OK(&result)
 	}
+	return ctx.OK(&result)
 }
 
 // Update runs the update action.
@@ -316,9 +315,9 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	} else {
-		return ctx.OK(&response)
 	}
+
+	return ctx.OK(&response)
 }
 
 func validateCreateSpace(ctx *app.CreateSpaceContext) error {
