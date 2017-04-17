@@ -401,7 +401,7 @@ func (s *TestUsersSuite) TestListUsersOK() {
 	user2 := s.createRandomUser("TestListUsersOK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
-	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller)
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil)
 	// then
 	s.T().Log(fmt.Sprintf("User1 #%s: %s %s", user1.ID.String(), identity11.ID.String(), identity12.ID.String()))
 	s.T().Log(fmt.Sprintf("User2 #%s: %s", user2.ID.String(), identity2.ID.String()))

@@ -180,6 +180,13 @@ func (m TestUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*account.
 	return []*account.User{m.User}, nil
 }
 
+func (m TestUserRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]account.User, error) {
+	if m.User == nil {
+		return nil, errors.New("not found")
+	}
+	return []account.User{*m.User}, nil
+}
+
 type GormTestBase struct {
 	IdentityRepository account.IdentityRepository
 	UserRepository     account.UserRepository
