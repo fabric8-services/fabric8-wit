@@ -67,32 +67,32 @@ objects:
                 key: keycloak.secret
           - name: ALMIGHTY_POSTGRES_SSLMODE
             valueFrom:
-              ConfigMapKeyRef:
+              configMapKeyRef:
                 name: core
                 key: postgres.sslmode
           - name: ALMIGHTY_POSTGRES_CONNECTION_MAXIDLE
             valueFrom:
-              ConfigMapKeyRef:
+              configMapKeyRef:
                 name: core
                 key: postgres.connection.maxidle
           - name: ALMIGHTY_POSTGRES_CONNECTION_MAXOPEN
             valueFrom:
-              ConfigMapKeyRef:
+              configMapKeyRef:
                 name: core
                 key: postgres.connection.maxopen
           - name: ALMIGHTY_CHESTARTERURL
             valueFrom:
-              ConfigMapKeyRef:
+              configMapKeyRef:
                 name: core
                 key: chestarter.url
           - name: ALMIGHTY_REDIRECT_VALID
             valueFrom:
-              ConfigMapKeyRef:
+              configMapKeyRef:
                 name: core
                 key: redirect.valid
           - name: ALMIGHTY_OPENSHIFT_TENANT_MASTERURL
             valueFrom:
-              ConfigMapKeyRef:
+              configMapKeyRef:
                 name: core
                 key: openshift.tenant.masterurl
           imagePullPolicy: Always
@@ -141,7 +141,7 @@ objects:
       service: core
   spec:
     ports:
-      - name: 8080
+      - name: "8080"
         protocol: TCP
         port: 80
         targetPort: 8080
