@@ -106,7 +106,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// then
@@ -128,6 +128,27 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.True(s.T(), ok)
 	assert.Equal(s.T(), contextInformation["count"], int(countValue))
 	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
+}
+
+func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
+
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	newUserName := identity.Username + uuid.NewV4().String()
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+	// next attempt should fail.
+	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
@@ -167,7 +188,7 @@ func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -222,7 +243,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -245,7 +266,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 		"count":        3,
 	}
 
-	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, contextInformation)
+	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -311,7 +332,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -333,7 +354,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 		"count": 5,
 	}
 
-	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, patchedContextInformation)
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, patchedContextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.NotNil(s.T(), result)
 
@@ -372,7 +393,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
 	// when/then
 	test.UpdateUsersUnauthorized(s.T(), context.Background(), nil, s.controller, updateUsersPayload)
 }
@@ -458,11 +479,11 @@ func assertUser(t *testing.T, actual *app.IdentityData, expectedUser account.Use
 
 }
 
-func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company *string, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
+func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company, username *string, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UpdateIdentityDataAttributes{
 				Email:              email,
 				FullName:           fullName,
 				Bio:                bio,
@@ -470,6 +491,7 @@ func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, compan
 				URL:                profileURL,
 				Company:            company,
 				ContextInformation: contextInformation,
+				Username:           username,
 			},
 		},
 	}
@@ -479,7 +501,7 @@ func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, ima
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UpdateIdentityDataAttributes{
 				Email:    email,
 				FullName: fullName,
 				Bio:      bio,
