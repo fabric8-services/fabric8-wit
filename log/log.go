@@ -6,8 +6,9 @@ import (
 	"runtime"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/almighty/almighty-core/configuration"
 
+	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -275,13 +276,15 @@ func extractCallerDetails() (file string, line int, pkg string, function string,
 // in tests and as default static initialization of the log. If the ENV variable
 // is not set then the log level is Info.
 func getDefaultLogLevel() log.Level {
-	if os.Getenv("ALMIGHTY_LOG_LEVEL") != "" {
-		logLevel, err := log.ParseLevel(os.Getenv("ALMIGHTY_LOG_LEVEL"))
-		if err != nil {
-			log.Warnf("unable to parse log level configuration error: %q", err)
-			return log.InfoLevel // reset to ERROR
-		}
-		return logLevel
+	config, err := configuration.NewConfigurationData("")
+	if err != nil {
+		log.Errorf("error getting configuration data")
 	}
-	return log.InfoLevel
+
+	logLevel, err := log.ParseLevel(config.GetLogLevel())
+	if err != nil {
+		log.Warnf("unable to parse log level configuration error: %q", err)
+		return log.InfoLevel // reset to INFO
+	}
+	return logLevel
 }
