@@ -108,6 +108,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration49", testMigration49)
 	t.Run("TestMigration50", testMigration50)
 
+	t.Run("TestMigration53", testMigration53)
+
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
 		t.Fatalf("Failed to execute the migration: %s\n", err)
@@ -140,7 +142,7 @@ func testMigration44(t *testing.T) {
 }
 
 func testMigration45(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
 
 	assert.True(t, gormDB.HasTable("work_items"))
 	assert.True(t, dialect.HasColumn("work_items", "execution_order"))
@@ -150,7 +152,7 @@ func testMigration45(t *testing.T) {
 }
 
 func testMigration46(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
 
 	assert.True(t, gormDB.HasTable("oauth_state_references"))
 	assert.True(t, dialect.HasColumn("oauth_state_references", "referrer"))
@@ -160,7 +162,7 @@ func testMigration46(t *testing.T) {
 }
 
 func testMigration47(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
 
 	assert.True(t, gormDB.HasTable("codebases"))
 	assert.True(t, dialect.HasColumn("codebases", "type"))
@@ -172,7 +174,7 @@ func testMigration47(t *testing.T) {
 }
 
 func testMigration48(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
 
 	assert.True(t, dialect.HasIndex("iterations", "ix_name"))
 
@@ -181,7 +183,7 @@ func testMigration48(t *testing.T) {
 }
 
 func testMigration49(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+5)], (initialMigratedVersion + 5))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+5)], (initialMigratedVersion + 5))
 
 	assert.True(t, dialect.HasIndex("areas", "ix_area_name"))
 
@@ -202,11 +204,19 @@ func testMigration49(t *testing.T) {
 }
 
 func testMigration50(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+6)], (initialMigratedVersion + 6))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+6)], (initialMigratedVersion + 6))
 
 	assert.True(t, dialect.HasColumn("users", "company"))
 
 	assert.Nil(t, runSQLscript(sqlDB, "050-users-add-column-company.sql"))
+}
+
+func testMigration53(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+9)], (initialMigratedVersion + 9))
+
+	assert.True(t, dialect.HasColumn("codebases", "stack_id"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "053-add-stackid-to-codebase.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
@@ -263,21 +273,27 @@ func executeSQLTestFile(filename string, args ...string) fn {
 	}
 }
 
-func migrationToVersion(db *sql.DB, m migration.Migrations, version int64) {
-	var (
-		tx  *sql.Tx
-		err error
-	)
-	tx, err = db.Begin()
-	if err != nil {
-		panic(fmt.Errorf("Failed to start transaction: %s\n", err))
-	}
+// migrateToVersion runs the migration of all the scripts to a certain version
+func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
+	var err error
+	for nextVersion := int64(0); nextVersion < version && err == nil; nextVersion++ {
+		var tx *sql.Tx
+		tx, err = sqlDB.Begin()
+		if err != nil {
+			panic(fmt.Errorf("Failed to start transaction: %s\n", err))
+		}
 
-	if err = migration.MigrateToNextVersion(tx, &version, m, databaseName); err != nil {
-		panic(fmt.Errorf("Failed to migrate to version %d: %s\n", version, err))
-	}
+		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
+			panic(fmt.Errorf("Failed to migrate to version %d: %s\n", nextVersion, err))
 
-	if err = tx.Commit(); err != nil {
-		panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+			if err = tx.Rollback(); err != nil {
+				panic(fmt.Errorf("error while rolling back transaction: ", err))
+			}
+			panic(fmt.Errorf("Failed to migrate to version after rolling back"))
+		}
+
+		if err = tx.Commit(); err != nil {
+			panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+		}
 	}
 }

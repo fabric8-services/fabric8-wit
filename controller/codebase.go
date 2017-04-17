@@ -14,7 +14,6 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 
-	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
@@ -135,15 +134,18 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+	// FIXME:  should the StackID always be this one ?
 	workspace := che.WorkspaceRequest{
-		Branch:     "master",
-		StackID:    "java-default",
+		Branch: "master",
+		//StackID:    "java-default",
+		StackID:    cb.StackID,
 		Repository: cb.URL,
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
+			"stack_id":    cb.StackID,
 			"err":         err,
 		}, "unable to create workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
@@ -185,11 +187,13 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		Name:       ctx.WorkspaceID,
 		Repository: cb.URL,
 		Branch:     "master",
+		StackID:    cb.StackID,
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
+			"stack_id":    cb.StackID,
 			"err":         err,
 		}, "unable to open workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
@@ -237,6 +241,7 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 			CreatedAt: &codebase.CreatedAt,
 			Type:      &codebase.Type,
 			URL:       &codebase.URL,
+			StackID:   &codebase.StackID,
 		},
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{

@@ -276,6 +276,9 @@ func GetMigrations() Migrations {
 	// Version 52
 	m = append(m, steps{ExecuteSQLFile("052-unique-space-names.sql")})
 
+	// Version 53
+	m = append(m, steps{ExecuteSQLFile("053-add-stackid-to-codebase.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
