@@ -215,9 +215,43 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var err error
-		var users []*account.User
 		var result *app.UserArray
-		users, err = appl.Users().List(ctx.Context)
+
+		if ctx.Username != nil {
+			// From a data model perspective, we are querying by identity ( and not user )
+			identities, err := appl.Identities().Query(account.IdentityFilterByUsername(*ctx.Username))
+
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+			}
+
+			// corresponding users.
+			users, err := getUsersFromIdentities(ctx.RequestData, appl, identities)
+
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+			}
+
+			appIdentities := convertUsers(ctx.RequestData, users, identities)
+			return ctx.OK(appIdentities)
+
+		}
+
+		if ctx.Email != nil {
+			// From a data model perspective, we are querying by identity ( and not user )
+			users, err := appl.Users().Query(account.UserFilterByEmail(*ctx.Email))
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+			}
+			appIdentities, err := LoadKeyCloakIdentities(appl, ctx.RequestData, users)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+			}
+			return ctx.OK(appIdentities)
+		}
+
+		// From a data model perspective, we are querying by user ( and not identity )
+		users, err := appl.Users().List(ctx.Context)
 		if err == nil {
 			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
 			if err == nil {
@@ -226,6 +260,47 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 		}
 		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "Error listing users"))
 	})
+}
+
+func matchUserWithIdentity(users []account.User, identity *account.Identity) *account.User {
+	for _, user := range users {
+		if user.ID == identity.UserID.UUID {
+			return &user
+		}
+	}
+	return nil
+}
+
+func getUsersFromIdentities(request *goa.RequestData, appl application.Application, identities []*account.Identity) (*[]account.User, error) {
+	users := []account.User{}
+	if len(identities) == 0 {
+		return &users, nil
+	}
+	userIDs := []uuid.UUID{}
+
+	for _, identity := range identities {
+		userIDs = append(userIDs, identity.UserID.UUID)
+	}
+	users, err := appl.Users().LoadMultiple(nil, userIDs)
+	if err != nil {
+		return nil, err
+	}
+	return &users, nil
+}
+
+func convertUsers(request *goa.RequestData, users *[]account.User, identities []*account.Identity) *app.UserArray {
+	data := make([]*app.IdentityData, len(*users))
+	for i, identity := range identities {
+		user := matchUserWithIdentity(*users, identity)
+		if user != nil {
+			appIdentity := ConvertUser(request, identity, user)
+			if appIdentity != nil {
+				data[i] = appIdentity.Data
+			}
+		}
+	}
+	return &app.UserArray{Data: data}
+
 }
 
 // LoadKeyCloakIdentities loads keycloak identies for the users and converts the users into REST representation

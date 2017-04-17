@@ -3,8 +3,10 @@ package account
 import (
 	"time"
 
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -56,6 +58,7 @@ type UserRepository interface {
 	List(ctx context.Context) ([]*User, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, error)
+	LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]User, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -78,6 +81,20 @@ func (m *GormUserRepository) Load(ctx context.Context, id uuid.UUID) (*User, err
 	}
 
 	return &native, errors.WithStack(err)
+}
+
+func (m *GormUserRepository) LoadMultiple(ctx context.Context, ids []uuid.UUID) ([]User, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "user", "loadmultiple"}, time.Now())
+	var objs []User
+
+	for i := 0; i < len(ids); i++ {
+		m.db = m.db.Or("id = ?", ids[i])
+	}
+	tx := m.db.Find(&objs)
+	if tx.Error != nil {
+		return nil, errs.NewInternalError(tx.Error.Error())
+	}
+	return objs, nil
 }
 
 // Create creates a new record.
@@ -173,4 +190,18 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*User, e
 	}, "User query done successfully!")
 
 	return objs, nil
+}
+
+// UserFilterByID is a gorm filter for User ID.
+func UserFilterByID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("id = ?", userID)
+	}
+}
+
+// UserFilterByEmail is a gorm filter for User ID.
+func UserFilterByEmail(email string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("email = ?", email)
+	}
 }

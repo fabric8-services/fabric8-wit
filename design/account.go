@@ -166,6 +166,11 @@ var _ = a.Resource("users", func() {
 		a.Response(d.OK, func() {
 			a.Media(userArray)
 		})
+		a.Params(func() {
+			// This is not filtering - mutliple params do not work as "AND".
+			a.Param("username", d.String, "username to search users")
+			a.Param("email", d.String, "email to search users")
+		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
