@@ -63,7 +63,7 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	params := url.Values{}
 	ctx := goa.NewContext(context.Background(), nil, req, params)
 
-	res, count, err := s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
+	res, count, err := s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil, nil)
 	require.Nil(s.T(), err)
 	require.True(s.T(), count == uint64(len(res))) // safety check for many, many instances of bogus search results.
 	for _, wi := range res {
@@ -100,37 +100,37 @@ func (s *searchRepositoryBlackboxTest) TestRestrictByType() {
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wi2)
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType", nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub1.ID.String(), nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub1.ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
 		assert.Equal(s.T(), wi1.ID, res[0].ID)
 	}
 
-	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.ID.String(), nil, nil)
+	res, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(1), count)
 	if count == 1 {
 		assert.Equal(s.T(), wi2.ID, res[0].ID)
 	}
 
-	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.ID.String(), nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.ID.String()+" type:"+sub1.ID.String(), nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+sub2.ID.String()+" type:"+sub1.ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.ID.String()+" type:"+sub1.ID.String(), nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TestRestrictByType type:"+base.ID.String()+" type:"+sub1.ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(2), count)
 
-	_, count, err = s.searchRepo.SearchFullText(ctx, "TRBTgorxi type:"+base.ID.String(), nil, nil)
+	_, count, err = s.searchRepo.SearchFullText(ctx, "TRBTgorxi type:"+base.ID.String(), nil, nil, nil)
 	assert.Nil(s.T(), err)
 	assert.Equal(s.T(), uint64(0), count)
 }
