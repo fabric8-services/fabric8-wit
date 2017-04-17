@@ -213,19 +213,19 @@ func testMigration50(t *testing.T) {
 	assert.Nil(t, runSQLscript(sqlDB, "050-users-add-column-company.sql"))
 }
 func testMigration51(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+7)], (initialMigratedVersion + 7))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+7)], (initialMigratedVersion + 7))
 
 	assert.True(t, dialect.HasIndex("work_item_link_types", "work_item_link_types_name_idx"))
 }
 
 func testMigration52(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+8)], (initialMigratedVersion + 8))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+8)], (initialMigratedVersion + 8))
 
 	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
 }
 
 func testMigration53(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+9)], (initialMigratedVersion + 9))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+9)], (initialMigratedVersion + 9))
 	require.True(t, dialect.HasColumn("identities", "registration_completed"))
 
 	// add new rows and check if the new column has the default value
