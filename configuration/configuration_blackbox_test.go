@@ -3,10 +3,13 @@ package configuration_test
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
 	"net/http"
+
+	"time"
 
 	"github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
@@ -213,7 +216,7 @@ func checkGetKeycloakEndpointOK(t *testing.T, expectedEndpoint string, getEndpoi
 }
 
 func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
-
+	resource.Require(t, resource.UnitTest)
 	envKey := generateEnvKey(varTokenPrivateKey)
 	realEnvValue := os.Getenv(envKey) // could be "" as well.
 
@@ -235,7 +238,7 @@ func TestGetTokenPrivateKeyFromConfigFile(t *testing.T) {
 }
 
 func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
-
+	resource.Require(t, resource.UnitTest)
 	envKey := generateEnvKey(varTokenPublicKey)
 	realEnvValue := os.Getenv(envKey) // could be "" as well.
 
@@ -255,6 +258,31 @@ func TestGetTokenPublicKeyFromConfigFile(t *testing.T) {
 	parsedKey, err := jwt.ParseRSAPublicKeyFromPEM(viperValue)
 	require.Nil(t, err)
 	assert.NotNil(t, parsedKey)
+}
+
+func TestGetMaxHeaderSizeUsingDefaults(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	viperValue := config.GetHeaderMaxLength()
+	require.NotNil(t, viperValue)
+	assert.Equal(t, int64(5000), viperValue)
+}
+
+func TestGetMaxHeaderSizeSetByEnvVaribaleOK(t *testing.T) {
+	resource.Require(t, resource.UnitTest)
+	envName := "ALMIGHTY_HEADER_MAXLENGTH"
+	envValue := time.Now().Unix()
+	env := os.Getenv(envName)
+	defer func() {
+		os.Setenv(envName, env)
+		resetConfiguration(defaultValuesConfigFilePath)
+	}()
+
+	os.Setenv(envName, strconv.FormatInt(envValue, 10))
+	resetConfiguration(defaultValuesConfigFilePath)
+
+	viperValue := config.GetHeaderMaxLength()
+	require.NotNil(t, viperValue)
+	assert.Equal(t, envValue, viperValue)
 }
 
 func generateEnvKey(yamlKey string) string {
