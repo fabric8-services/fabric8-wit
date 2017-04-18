@@ -41,8 +41,17 @@ func (test *repoBBTest) TestCreate() {
 	res, _ := expectSpace(test.create(testSpace), test.requireOk)
 
 	require.Equal(test.T(), res.Name, testSpace)
+}
 
+func (test *repoBBTest) TestCreateFailSpaceNameChecks() {
 	expectSpace(test.create(""), test.assertBadParameter())
+}
+
+func (test *repoBBTest) TestCreateFailSameOwner() {
+	res, _ := expectSpace(test.create(testSpace), test.requireOk)
+
+	require.Equal(test.T(), res.Name, testSpace)
+
 	expectSpace(test.create(testSpace), test.assertBadParameter())
 }
 

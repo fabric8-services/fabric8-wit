@@ -3,6 +3,8 @@ package auth
 import (
 	"context"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
 	"github.com/goadesign/goa"
@@ -11,7 +13,7 @@ import (
 
 // AuthzResourceManager represents a space resource manager
 type AuthzResourceManager interface {
-	CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string, policyName string) (*Resource, error)
+	CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error)
 	DeleteResource(ctx context.Context, request *goa.RequestData, resource Resource) error
 }
 
@@ -44,7 +46,7 @@ func NewKeycloakResourceManager(config KeycloakConfiguration) *KeycloakResourceM
 }
 
 // CreateResource creates a keyclaok resource and associated permission and policy
-func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string, policyName string) (*Resource, error) {
+func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*Resource, error) {
 	pat, err := getPat(request, m.configuration)
 	if err != nil {
 		return nil, err
@@ -88,7 +90,7 @@ func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *g
 	}
 	userIDs := "[\"" + userID + "\"]"
 	policy := KeycloakPolicy{
-		Name:             policyName,
+		Name:             fmt.Sprintf("%s-%s", name, uuid.NewV4().String()),
 		Type:             PolicyTypeUser,
 		Logic:            PolicyLogicPossitive,
 		DecisionStrategy: PolicyDecisionStrategyUnanimous,
@@ -103,7 +105,7 @@ func (m *KeycloakResourceManager) CreateResource(ctx context.Context, request *g
 
 	// Create permission
 	permission := KeycloakPermission{
-		Name:             uuid.NewV4().String(),
+		Name:             fmt.Sprintf("%s-%s", name, uuid.NewV4().String()),
 		Type:             PermissionTypeResource,
 		Logic:            PolicyLogicPossitive,
 		DecisionStrategy: PolicyDecisionStrategyUnanimous,

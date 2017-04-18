@@ -32,7 +32,7 @@ var spaceConfiguration *configuration.ConfigurationData
 type DummyResourceManager struct {
 }
 
-func (m *DummyResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string, policyName string) (*auth.Resource, error) {
+func (m *DummyResourceManager) CreateResource(ctx context.Context, request *goa.RequestData, name string, rType string, uri *string, scopes *[]string, userID string) (*auth.Resource, error) {
 	return &auth.Resource{ResourceID: uuid.NewV4().String(), PermissionID: uuid.NewV4().String(), PolicyID: uuid.NewV4().String()}, nil
 }
 
@@ -395,20 +395,20 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	assert.Equal(t, *created.Data.Attributes.Version, *fetched.Data.Attributes.Version)
 
 	// verify list-WI URL exists in Relationships.Links
-	require.NotNil(t, *fetched.Data.Relationships.Workitems)
-	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links)
-	require.NotNil(t, *fetched.Data.Relationships.Workitems.Links.Related)
+	require.NotNil(t, fetched.Data.Relationships.Workitems)
+	require.NotNil(t, fetched.Data.Relationships.Workitems.Links)
+	require.NotNil(t, fetched.Data.Relationships.Workitems.Links.Related)
 	subStringWI := fmt.Sprintf("/%s/workitems", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Relationships.Workitems.Links.Related, subStringWI)
 
 	// verify list-WIT URL exists in Relationships.Links
-	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links)
 	require.NotNil(t, fetched.Data.Links.Workitemtypes)
 	subStringWIL := fmt.Sprintf("/%s/workitemtypes", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Links.Workitemtypes, subStringWIL)
 
 	// verify list-WILT URL exists in Relationships.Links
-	require.NotNil(t, *fetched.Data.Links)
+	require.NotNil(t, fetched.Data.Links)
 	require.NotNil(t, fetched.Data.Links.Workitemlinktypes)
 	subStringWILT := fmt.Sprintf("/%s/workitemlinktypes", created.Data.ID.String())
 	assert.Contains(t, *fetched.Data.Links.Workitemlinktypes, subStringWILT)
@@ -506,6 +506,61 @@ func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfNoneMatchHeader() {
 	// when/then
 	ifNoneMatch := generateSpacesTag(*spaceList)
 	test.ListSpaceNotModified(rest.T(), svc.Context, svc, ctrl, nil, nil, nil, &ifNoneMatch)
+}
+
+func (rest *TestSpaceREST) TestSuccessCreateSameSpaceNameDifferentOwners() {
+	// given
+	name := "SameName-" + uuid.NewV4().String()
+	description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
+	newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
+	a := minimumRequiredCreateSpace()
+	a.Data.Attributes.Name = &name
+	a.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, a)
+	// when
+	b := minimumRequiredCreateSpace()
+	b.Data.Attributes.Name = &name
+	b.Data.Attributes.Description = &newDescription
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
+	_, created2 := test.CreateSpaceCreated(rest.T(), svc2.Context, svc2, ctrl2, b)
+	// then
+	assert.NotNil(rest.T(), created.Data)
+	assert.NotNil(rest.T(), created.Data.Attributes)
+	assert.NotNil(rest.T(), created.Data.Attributes.Name)
+	assert.Equal(rest.T(), name, *created.Data.Attributes.Name)
+	assert.NotNil(rest.T(), created2.Data)
+	assert.NotNil(rest.T(), created2.Data.Attributes)
+	assert.NotNil(rest.T(), created2.Data.Attributes.Name)
+	assert.Equal(rest.T(), name, *created2.Data.Attributes.Name)
+	assert.NotEqual(rest.T(), created.Data.Relationships.OwnedBy.Data.ID, created2.Data.Relationships.OwnedBy.Data.ID)
+}
+
+func (rest *TestSpaceREST) TestFailCreateSameSpaceNameSameOwner() {
+	// given
+	name := "SameName-" + uuid.NewV4().String()
+	description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
+	newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
+	// when
+	a := minimumRequiredCreateSpace()
+	a.Data.Attributes.Name = &name
+	a.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, a)
+	// then
+	assert.NotNil(rest.T(), created.Data)
+	assert.NotNil(rest.T(), created.Data.Attributes)
+	assert.NotNil(rest.T(), created.Data.Attributes.Name)
+	assert.Equal(rest.T(), name, *created.Data.Attributes.Name)
+
+	// when
+	b := minimumRequiredCreateSpace()
+	b.Data.Attributes.Name = &name
+	b.Data.Attributes.Description = &newDescription
+	_, err := test.CreateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, b)
+	// then
+	assert.NotEmpty(rest.T(), err.Errors)
+	assert.Contains(rest.T(), err.Errors[0].Detail, "Bad value for parameter 'Name'", "expected: 'unique'")
 }
 
 func minimumRequiredCreateSpace() *app.CreateSpacePayload {

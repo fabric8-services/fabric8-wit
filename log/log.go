@@ -6,15 +6,21 @@ import (
 	"runtime"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/almighty/almighty-core/configuration"
 
+	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
 const defaultPackageName = "github.com/almighty/almighty-core/"
 
 var (
-	logger = log.New()
+	logger = &log.Logger{
+		Out:       os.Stderr,
+		Formatter: new(log.TextFormatter),
+		Hooks:     make(log.LevelHooks),
+		Level:     getDefaultLogLevel(),
+	}
 )
 
 // InitializeLogger creates a default logger whose ouput format, log level differs
@@ -24,7 +30,7 @@ func InitializeLogger(developerModeFlag bool, lvl string) {
 
 	logLevel, err := log.ParseLevel(lvl)
 	if err != nil {
-		log.Debugf("unable to parse log level configuration Error: %q", err)
+		log.Warnf("unable to parse log level configuration error: %q", err)
 		logLevel = log.ErrorLevel // reset to ERROR
 	}
 	log.SetLevel(logLevel)
@@ -46,7 +52,6 @@ func InitializeLogger(developerModeFlag bool, lvl string) {
 	}
 
 	logger.Out = os.Stdout
-
 }
 
 // NewCustomizedLogger creates a custom logger specifying the desired log level
@@ -265,4 +270,21 @@ func extractCallerDetails() (file string, line int, pkg string, function string,
 	}
 
 	return "", 0, "", "", errors.New("unable to extract the caller details")
+}
+
+// getDefaultLogLevel extracts the log level out of the ENV variable. It is used
+// in tests and as default static initialization of the log. If the ENV variable
+// is not set then the log level is Info.
+func getDefaultLogLevel() log.Level {
+	config, err := configuration.NewConfigurationData("")
+	if err != nil {
+		log.Errorf("error getting configuration data")
+	}
+
+	logLevel, err := log.ParseLevel(config.GetLogLevel())
+	if err != nil {
+		log.Warnf("unable to parse log level configuration error: %q", err)
+		return log.InfoLevel // reset to INFO
+	}
+	return logLevel
 }
