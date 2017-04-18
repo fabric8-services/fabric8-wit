@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
+	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
@@ -118,6 +119,11 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
 		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
 		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"identity_id": identity.ID,
+				"user_id":     identity.UserID.Valid,
+				"err":         err,
+			}, "failed to update keycloak account")
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
@@ -128,13 +134,23 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		// Disabling updation of email till we figure out how to do the same in Keycloak Error-free.
 		//
-		/*
-			updatedEmail := ctx.Payload.Data.Attributes.Email
-			if updatedEmail != nil {
-				user.Email = *updatedEmail
-				keycloakUserProfile.Email = updatedEmail
+
+		updatedEmail := ctx.Payload.Data.Attributes.Email
+		if updatedEmail != nil {
+			user.Email = *updatedEmail
+			keycloakUserProfile.Email = updatedEmail
+		}
+
+		updatedUserName := ctx.Payload.Data.Attributes.Username
+		if updatedUserName != nil {
+			if identity.RegistrationCompleted {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for idenitity id %s ", *id)))
+				return ctx.Forbidden(jerrors)
 			}
-		*/
+			identity.Username = *updatedUserName
+			identity.RegistrationCompleted = true
+			keycloakUserProfile.Username = updatedUserName
+		}
 
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {
@@ -169,6 +185,12 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			(*keycloakUserProfile.Attributes)[login.URLAttributeName] = []string{*updateURL}
 		}
 
+		updatedCompany := ctx.Payload.Data.Attributes.Company
+		if updatedCompany != nil {
+			user.Company = *updatedCompany
+			(*keycloakUserProfile.Attributes)[login.CompanyAttributeName] = []string{*updatedCompany}
+		}
+
 		// If none of the 'extra' attributes were present, we better make that section nil
 		// so that the Attributes section is omitted in the payload sent to KC
 
@@ -188,6 +210,32 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				// Save it as is, for short-term.
 				user.ContextInformation[fieldName] = fieldValue
 			}
+		}
+
+		// The update of the keycloak needs to be attempted first because if that fails,
+		// we should't update the platform db since that would leave things in an
+		// inconsistent state.
+		err = c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
+
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_name": keycloakUserProfile.Username,
+				"email":     keycloakUserProfile.Email,
+				"err":       err,
+			}, "failed to update keycloak account")
+
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
+
+			// We have mapped keycloak's 500 InternalServerError to our errors.BadParameterError
+			// because this scenario is directly associated with attempts to update
+			// duplicate email and/or username.
+			switch err.(type) {
+			default:
+				return ctx.BadRequest(jerrors)
+			case errs.BadParameterError:
+				return ctx.Conflict(jerrors)
+			}
+
 		}
 
 		err = appl.Users().Save(ctx, user)
@@ -255,11 +303,13 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	id := uuid.String()
 	fullName := identity.Username
 	userName := identity.Username
+	registrationCompleted := identity.RegistrationCompleted
 	providerType := identity.ProviderType
 	var imageURL string
 	var bio string
 	var userURL string
 	var email string
+	var company string
 	var contextInformation workitem.Fields
 
 	if user != nil {
@@ -268,6 +318,7 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		bio = user.Bio
 		userURL = user.URL
 		email = user.Email
+		company = user.Company
 		contextInformation = user.ContextInformation
 	}
 
@@ -285,14 +336,16 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 			ID:   &id,
 			Type: "identities",
 			Attributes: &app.IdentityDataAttributes{
-				Username:           &userName,
-				FullName:           &fullName,
-				ImageURL:           &imageURL,
-				Bio:                &bio,
-				URL:                &userURL,
-				ProviderType:       &providerType,
-				Email:              &email,
-				ContextInformation: workitem.Fields{},
+				Username:              &userName,
+				FullName:              &fullName,
+				ImageURL:              &imageURL,
+				Bio:                   &bio,
+				URL:                   &userURL,
+				ProviderType:          &providerType,
+				Email:                 &email,
+				Company:               &company,
+				ContextInformation:    workitem.Fields{},
+				RegistrationCompleted: &registrationCompleted,
 			},
 			Links: createUserLinks(request, uuid),
 		},

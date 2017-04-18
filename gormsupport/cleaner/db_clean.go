@@ -1,9 +1,12 @@
 package cleaner
 
 import (
+	"database/sql"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 
 	"fmt"
 
@@ -45,18 +48,28 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		key     interface{}
 	}
 	var entires []entity
+	hookRegistered := db.Callback().Create().Get(hookName) != nil
+	if hookRegistered {
+		hookName += "-" + uuid.NewV4().String()
+	}
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
 		logrus.Debug(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
 		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
 	})
 	return func() {
 		defer db.Callback().Create().Remove(hookName)
-		tx := db.Begin()
+		// Find out if the current db object is already a transaction
+		_, inTransaction := db.CommonDB().(*sql.Tx)
+		tx := db
+		if !inTransaction {
+			tx = db.Begin()
+		}
 		for i := len(entires) - 1; i >= 0; i-- {
 			entry := entires[i]
 			log.Info(nil, map[string]interface{}{
-				"table": entry.table,
-				"key":   entry.key,
+				"table":     entry.table,
+				"key":       entry.key,
+				"hook_name": hookName,
 			}, "Deleting entities from %s with key %s", entry.table, entry.key)
 			tx.Table(entry.table).Where(entry.keyname+" = ?", entry.key).Delete("")
 		}
@@ -65,6 +78,8 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		// NOTE: Feel free to add more cache freeing calls here as needed.
 		workitem.ClearGlobalWorkItemTypeCache()
 
-		tx.Commit()
+		if !inTransaction {
+			tx.Commit()
+		}
 	}
 }

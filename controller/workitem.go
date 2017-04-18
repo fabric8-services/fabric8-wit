@@ -19,6 +19,7 @@ import (
 	query "github.com/almighty/almighty-core/query/simple"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
+	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -138,8 +139,14 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	authorized, err := authz.Authorize(ctx, ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
@@ -186,6 +193,13 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
+	authorized, err := authz.Authorize(ctx, ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var dataArray []*app.WorkItem
 		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Position == nil {
@@ -228,8 +242,14 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	authorized, err := authz.Authorize(ctx, ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
@@ -256,6 +276,16 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if spaceLoadErr != nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 		}
+
+		if _, ok := wi.Fields[workitem.SystemArea]; ok == false {
+			// no area assigned yet hence set root area
+			rootArea, err := appl.Areas().Root(ctx, spaceID)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching root area")))
+			}
+			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
+		}
+
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
 		// fetch root iteration for this space and assign it to WI if not present already
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
@@ -268,6 +298,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
+
 		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
@@ -324,8 +355,14 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
-		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(err.Error()))
-		return ctx.Unauthorized(jerrors)
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	authorized, err := authz.Authorize(ctx, ctx.ID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+	}
+	if !authorized {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.WorkItems().Delete(ctx, spaceID, ctx.WiID, *currentUserIdentityID)

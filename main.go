@@ -9,8 +9,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"golang.org/x/oauth2"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
@@ -28,6 +26,7 @@ import (
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/remoteworkitem"
 	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/almighty/almighty-core/workitem/link"
@@ -78,8 +77,8 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Initialized developer mode flag for the logger
-	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled())
+	// Initialized developer mode flag and log level for the logger
+	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled(), configuration.GetLogLevel())
 
 	printUserInfo()
 
@@ -111,7 +110,7 @@ func main() {
 	}
 
 	// Migrate the schema
-	err = migration.Migrate(db.DB())
+	err = migration.Migrate(db.DB(), configuration.GetPostgresDatabase())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
 			"err": err,
@@ -173,21 +172,15 @@ func main() {
 	identityRepository := account.NewIdentityRepository(db)
 	userRepository := account.NewUserRepository(db)
 
+	appDB := gormapplication.NewGormDB(db)
+
 	tokenManager := token.NewManager(publicKey)
 	app.UseJWTMiddleware(service, jwt.New(publicKey, nil, app.NewJWTSecurity()))
 	service.Use(login.InjectTokenManager(tokenManager))
+	spaceAuthzService := authz.NewAuthzService(configuration, appDB)
+	service.Use(authz.InjectAuthzService(spaceAuthzService))
 
-	// Mount "login" controller
-	oauth := &oauth2.Config{
-		ClientID:     configuration.GetKeycloakClientID(),
-		ClientSecret: configuration.GetKeycloakSecret(),
-		Scopes:       []string{"user:email"},
-		Endpoint:     oauth2.Endpoint{},
-	}
-
-	appDB := gormapplication.NewGormDB(db)
-
-	loginService := login.NewKeycloakOAuthProvider(oauth, identityRepository, userRepository, tokenManager, appDB)
+	loginService := login.NewKeycloakOAuthProvider(identityRepository, userRepository, tokenManager, appDB)
 	loginCtrl := controller.NewLoginController(service, loginService, tokenManager, configuration)
 	app.MountLoginController(service, loginCtrl)
 

@@ -88,12 +88,15 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	assert.Equal(s.T(), user.Company, *result.Data.Attributes.Company)
+
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
 	newFullName := "TestUpdateUserOK"
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
 	secureService, secureController := s.SecuredController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -103,7 +106,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// then
@@ -116,6 +119,8 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
 	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	assert.Equal(s.T(), newCompany, *result.Data.Attributes.Company)
+
 	updatedContextInformation := result.Data.Attributes.ContextInformation
 	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
 
@@ -123,6 +128,27 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 	assert.True(s.T(), ok)
 	assert.Equal(s.T(), contextInformation["count"], int(countValue))
 	assert.Equal(s.T(), contextInformation["rate"], updatedContextInformation["rate"])
+}
+
+func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
+
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	newUserName := identity.Username + uuid.NewV4().String()
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+	// next attempt should fail.
+	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
@@ -136,6 +162,8 @@ func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	assert.Equal(s.T(), user.Company, *result.Data.Attributes.Company)
+
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
 
@@ -149,6 +177,8 @@ func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 	newImageURL := "http://new.image.io/imageurl"
 	newBio := "new bio"
 	newProfileURL := "http://new.profile.url/url"
+	newCompany := "updateCompany " + uuid.NewV4().String()
+
 	secureService, secureController := s.SecuredController(identity)
 
 	contextInformation := map[string]interface{}{
@@ -158,7 +188,7 @@ func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -170,6 +200,8 @@ func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 	assert.Equal(s.T(), newImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), newBio, *result.Data.Attributes.Bio)
 	assert.Equal(s.T(), newProfileURL, *result.Data.Attributes.URL)
+	assert.Equal(s.T(), newCompany, *result.Data.Attributes.Company)
+
 	updatedContextInformation := result.Data.Attributes.ContextInformation
 	assert.Equal(s.T(), contextInformation["last_visited"], updatedContextInformation["last_visited"])
 
@@ -195,6 +227,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+
 	// when
 	newEmail := "updated-" + uuid.NewV4().String() + "@email.com"
 	newFullName := "TestUpdateUserUnsetVariableInContextInfo"
@@ -210,7 +243,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -233,7 +266,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 		"count":        3,
 	}
 
-	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -289,6 +322,8 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	assert.Equal(s.T(), user.Company, *result.Data.Attributes.Company)
+
 	// when
 	secureService, secureController := s.SecuredController(identity)
 
@@ -297,7 +332,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -319,7 +354,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 		"count": 5,
 	}
 
-	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, patchedContextInformation)
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, patchedContextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.NotNil(s.T(), result)
 
@@ -358,7 +393,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
 	// when/then
 	test.UpdateUsersUnauthorized(s.T(), context.Background(), nil, s.controller, updateUsersPayload)
 }
@@ -375,6 +410,7 @@ func (s *TestUsersSuite) TestShowUserOK() {
 	assert.Equal(s.T(), user.ImageURL, *result.Data.Attributes.ImageURL)
 	assert.Equal(s.T(), identity.ProviderType, *result.Data.Attributes.ProviderType)
 	assert.Equal(s.T(), identity.Username, *result.Data.Attributes.Username)
+	assert.Equal(s.T(), user.Company, *result.Data.Attributes.Company)
 }
 
 func (s *TestUsersSuite) TestListUsersOK() {
@@ -403,6 +439,7 @@ func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 		FullName: fullname,
 		ImageURL: "someURLForUpdate",
 		ID:       uuid.NewV4(),
+		Company:  uuid.NewV4().String() + "company",
 	}
 	err := s.userRepo.Create(context.Background(), &user)
 	require.Nil(s.T(), err)
@@ -438,19 +475,23 @@ func assertUser(t *testing.T, actual *app.IdentityData, expectedUser account.Use
 	assert.Equal(t, expectedUser.FullName, *actual.Attributes.FullName)
 	assert.Equal(t, expectedUser.ImageURL, *actual.Attributes.ImageURL)
 	assert.Equal(t, expectedUser.Email, *actual.Attributes.Email)
+	assert.Equal(t, expectedUser.Company, *actual.Attributes.Company)
+
 }
 
-func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL *string, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
+func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company, username *string, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UpdateIdentityDataAttributes{
 				Email:              email,
 				FullName:           fullName,
 				Bio:                bio,
 				ImageURL:           imageURL,
 				URL:                profileURL,
+				Company:            company,
 				ContextInformation: contextInformation,
+				Username:           username,
 			},
 		},
 	}
@@ -460,7 +501,7 @@ func createUpdateUsersPayloadWithoutContextInformation(email, fullName, bio, ima
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UpdateIdentityDataAttributes{
 				Email:    email,
 				FullName: fullName,
 				Bio:      bio,

@@ -6,30 +6,41 @@ import (
 	"runtime"
 	"strings"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/almighty/almighty-core/configuration"
 
+	log "github.com/Sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
 const defaultPackageName = "github.com/almighty/almighty-core/"
 
 var (
-	logger = log.New()
+	logger = &log.Logger{
+		Out:       os.Stderr,
+		Formatter: new(log.TextFormatter),
+		Hooks:     make(log.LevelHooks),
+		Level:     getDefaultLogLevel(),
+	}
 )
 
 // InitializeLogger creates a default logger whose ouput format, log level differs
 // depending of whether the developer mode flag is enable/disabled.
-func InitializeLogger(developerModeFlag bool) {
+func InitializeLogger(developerModeFlag bool, lvl string) {
 	logger = log.New()
+
+	logLevel, err := log.ParseLevel(lvl)
+	if err != nil {
+		log.Warnf("unable to parse log level configuration error: %q", err)
+		logLevel = log.ErrorLevel // reset to ERROR
+	}
+	log.SetLevel(logLevel)
+	logger.Level = logLevel
 
 	if developerModeFlag {
 		customFormatter := new(log.TextFormatter)
 		customFormatter.FullTimestamp = true
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 		log.SetFormatter(customFormatter)
-
-		log.SetLevel(log.DebugLevel)
-		logger.Level = log.DebugLevel
 		logger.Formatter = customFormatter
 	} else {
 		customFormatter := new(log.JSONFormatter)
@@ -37,14 +48,10 @@ func InitializeLogger(developerModeFlag bool) {
 
 		log.SetFormatter(customFormatter)
 		customFormatter.DisableTimestamp = false
-
-		log.SetLevel(log.InfoLevel)
-		logger.Level = log.InfoLevel
 		logger.Formatter = customFormatter
 	}
 
 	logger.Out = os.Stdout
-
 }
 
 // NewCustomizedLogger creates a custom logger specifying the desired log level
@@ -263,4 +270,21 @@ func extractCallerDetails() (file string, line int, pkg string, function string,
 	}
 
 	return "", 0, "", "", errors.New("unable to extract the caller details")
+}
+
+// getDefaultLogLevel extracts the log level out of the ENV variable. It is used
+// in tests and as default static initialization of the log. If the ENV variable
+// is not set then the log level is Info.
+func getDefaultLogLevel() log.Level {
+	config, err := configuration.NewConfigurationData("")
+	if err != nil {
+		log.Errorf("error getting configuration data")
+	}
+
+	logLevel, err := log.ParseLevel(config.GetLogLevel())
+	if err != nil {
+		log.Warnf("unable to parse log level configuration error: %q", err)
+		return log.InfoLevel // reset to INFO
+	}
+	return logLevel
 }
