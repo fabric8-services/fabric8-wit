@@ -22,17 +22,17 @@ var _ convert.Equaler = SimpleType{}
 var _ convert.Equaler = (*SimpleType)(nil)
 
 // Equal returns true if two SimpleType objects are equal; otherwise false is returned.
-func (self SimpleType) Equal(u convert.Equaler) bool {
+func (t SimpleType) Equal(u convert.Equaler) bool {
 	other, ok := u.(SimpleType)
 	if !ok {
 		return false
 	}
-	return self.Kind == other.Kind
+	return t.Kind == other.Kind
 }
 
 // GetKind implements FieldType
-func (self SimpleType) GetKind() Kind {
-	return self.Kind
+func (t SimpleType) GetKind() Kind {
+	return t.Kind
 }
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()

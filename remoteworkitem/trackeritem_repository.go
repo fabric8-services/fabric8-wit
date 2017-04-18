@@ -80,7 +80,6 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 			identity, err := identityRepository.Lookup(context.Background(), creatorLogin, creatorProfileURL, providerType)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create identity during lookup")
-				return nil, err
 			}
 			// associate the identities to the work item
 			workItem.Fields[workitem.SystemCreator] = identity.ID.String()

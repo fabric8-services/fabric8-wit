@@ -23,12 +23,12 @@ func TestUpdateIterationsWithCounts(t *testing.T) {
 	iterationSlice = append(iterationSlice, i1, i2, i3)
 	counts := make(map[string]workitem.WICountsPerIteration)
 	counts[i1.ID.String()] = workitem.WICountsPerIteration{
-		IterationId: i1.ID.String(),
+		IterationID: i1.ID.String(),
 		Total:       10,
 		Closed:      8,
 	}
 	counts[i2.ID.String()] = workitem.WICountsPerIteration{
-		IterationId: i2.ID.String(),
+		IterationID: i2.ID.String(),
 		Total:       3,
 		Closed:      1,
 	}
