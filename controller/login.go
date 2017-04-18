@@ -23,12 +23,6 @@ import (
 	"github.com/goadesign/goa"
 )
 
-const (
-	// Max lenght of an rpt token.
-	// The token longer than that can cause 400s responsed if used as a Bearer in http requests because of header size limit.
-	maxRPTLenght = 5000
-)
-
 type loginConfiguration interface {
 	GetKeycloakEndpointAuth(*goa.RequestData) (string, error)
 	GetKeycloakEndpointToken(*goa.RequestData) (string, error)
@@ -43,6 +37,7 @@ type loginConfiguration interface {
 	GetKeycloakTestUser2Name() string
 	GetKeycloakTestUser2Secret() string
 	GetValidRedirectURLs(*goa.RequestData) (string, error)
+	GetHeaderMaxLength() int64
 }
 
 // LoginController implements the login resource.
@@ -169,7 +164,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		}, "failed to obtain entitlement during login")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	if rpt != nil && len(*rpt) < maxRPTLenght {
+	if rpt != nil && int64(len(*rpt)) <= c.configuration.GetHeaderMaxLength() {
 		// If the rpt token is not too long for using it as a Bearer in http requests because of header size limit
 		// the swap access token for the rpt token which contains all resources available to the user
 		token.AccessToken = rpt
