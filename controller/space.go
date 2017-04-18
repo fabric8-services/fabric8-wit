@@ -428,7 +428,6 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 					Related: &relatedCategoryList,
 				},
 			}
-
 			categoriesData = append(categoriesData, &catList)
 		}
 		return nil

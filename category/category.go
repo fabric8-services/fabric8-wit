@@ -57,6 +57,28 @@ func (m *WorkItemTypeCategoryRelationship) TableName() string {
 	return "workitemtype_categories"
 }
 
+// Ensure fields implements the Equaler interface
+var _ convert.Equaler = Category{}
+var _ convert.Equaler = (*Category)(nil)
+
+// Equal returns true if two Category objects are equal; otherwise false is returned.
+func (category Category) Equal(u convert.Equaler) bool {
+	other, ok := u.(Category)
+	if !ok {
+		return false
+	}
+	if !uuid.Equal(category.ID, other.ID) {
+		return false
+	}
+	if !category.Lifecycle.Equal(other.Lifecycle) {
+		return false
+	}
+	if category.Name != other.Name {
+		return false
+	}
+	return true
+}
+
 // Repository encapsulates storage and retrieval of categories
 type Repository interface {
 	Create(ctx context.Context, category *Category) (*Category, error)
@@ -83,7 +105,10 @@ func (m *GormRepository) List(ctx context.Context) ([]*Category, error) {
 	var objs []*Category
 	err := m.db.Find(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errs.Wrap(err, "failed to list categories")
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to list categories")
+		return nil, errs.WithStack(err)
 	}
 	return objs, nil
 }
@@ -104,7 +129,7 @@ func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *W
 	return nil
 }
 
-// Create creates category. This function is used to populate categories table through migration -> PopulateCategories()
+// Create creates category. This function is used to populate categories table during migration -> PopulateCategories()
 func (m *GormRepository) Create(ctx context.Context, category *Category) (*Category, error) {
 	if category.ID == uuid.Nil {
 		category.ID = uuid.NewV4()
@@ -129,7 +154,6 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 
 // LoadAllRelationshipsOfCategory loads all the relationships of a category. This is required for workitemtype filtering.
 func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error) {
-
 	// Check if category is present
 	getCategory := Category{}
 	db := m.db.Model(&getCategory).Where("id=?", categoryID).Find(&getCategory)
@@ -157,7 +181,7 @@ func (m *GormRepository) LoadAllRelationshipsOfCategory(ctx context.Context, cat
 }
 
 // LoadCategoryFromDB returns category for the given id
-// This is needed to check if a particular category is present in db or not before creating.
+// This is needed to check if a category is present in db or not.
 func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (*Category, error) {
 	log.Logger().Infoln("Loading category", id)
 	res := Category{}
@@ -179,7 +203,6 @@ func (m *GormRepository) LoadCategoryFromDB(ctx context.Context, id uuid.UUID) (
 
 // LoadWorkItemTypeCategoryRelationship loads all the relationships of a category. This is required for testing.
 func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error) {
-
 	// Check if category is present
 	getCategory := Category{}
 	db := m.db.Model(&getCategory).Where("id=?", categoryID).Find(&getCategory)
@@ -206,7 +229,7 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 	return &relationship, nil
 }
 
-// Save saves a category object. This function is used to update category properly through migration -> createOrUpdateSingleCategory()
+// Save saves a category object. This function is used to update category properly during migration -> createOrUpdateSingleCategory()
 func (r *GormRepository) Save(ctx context.Context, category *Category) (*Category, error) {
 	res := Category{}
 	log.Info(ctx, map[string]interface{}{
@@ -236,22 +259,4 @@ func (r *GormRepository) Save(ctx context.Context, category *Category) (*Categor
 		"id": category.ID,
 	}, "Updated category")
 	return &res, nil
-}
-
-// Equal returns true if two Category objects are equal; otherwise false is returned.
-func (category Category) Equal(u convert.Equaler) bool {
-	other, ok := u.(Category)
-	if !ok {
-		return false
-	}
-	if !uuid.Equal(category.ID, other.ID) {
-		return false
-	}
-	if !category.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
-	if category.Name != other.Name {
-		return false
-	}
-	return true
 }

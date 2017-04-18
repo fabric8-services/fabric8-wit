@@ -36,9 +36,8 @@ func (test *categoryRepoBlackBoxTest) TearDownTest() {
 	test.clean()
 }
 
-// TestCreateLoadValidCategory creates and loads valid category
+// TestCreateLoadValidCategory tests create and load valid category
 func (test *categoryRepoBlackBoxTest) TestCreateLoadValidCategory() {
-
 	category1 := category.Category{
 		Name: "Backlog",
 	}
@@ -60,12 +59,12 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadValidCategory() {
 	})
 }
 
-// TestCreateLoadInvalidCategory creates and loads invalid category
+// TestCreateLoadInvalidCategory tests create and load invalid category
 func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
-
 	category1 := category.Category{
 		Name: "Backlog",
 	}
+
 	test.T().Run("create and load (invalid)", func(t *testing.T) {
 		result1, err := test.repo.Create(test.ctx, &category1) // Create
 		require.Nil(test.T(), err)
@@ -83,15 +82,15 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
 	})
 }
 
-// TestCategoryNotFoundError creates category and checks NotFoundError is Nil
+// TestCategoryNotFoundError tests create category and check NotFoundError is Nil
 func (test *categoryRepoBlackBoxTest) TestCategoryNotFoundError() {
-
 	category1 := category.Category{
 		Name: "Backlog1",
 	}
+
 	test.T().Run("create and check NotFoundError", func(t *testing.T) {
 
-		// finds a random category by ID which is not created and tests it should return NotFoundError.
+		// loads a random category by ID which is not created and tests it should return NotFoundError.
 		randomID := uuid.FromStringOrNil("e42d0f80-9b1f-4715-b616-1fd931ce73cd")
 		result1, err := test.repo.LoadCategoryFromDB(test.ctx, randomID) // Load
 		require.NotNil(test.T(), err)

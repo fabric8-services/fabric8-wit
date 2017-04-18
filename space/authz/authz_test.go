@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/codebase"
 	"github.com/almighty/almighty-core/comment"
 	"github.com/almighty/almighty-core/iteration"
@@ -135,6 +136,10 @@ func (a *app) SearchItems() application.SearchRepository {
 }
 
 func (a *app) Identities() account.IdentityRepository {
+	return nil
+}
+
+func (a *app) Categories() category.Repository {
 	return nil
 }
 
