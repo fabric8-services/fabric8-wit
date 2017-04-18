@@ -594,7 +594,7 @@ func createOrUpdateSingleCategory(ctx context.Context, categoryRepo category.Rep
 }
 
 func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo category.Repository, categoryID *uuid.UUID, categoryName string) error {
-	cat, err := categoryRepo.LoadCategoryFromDB(ctx, *categoryID)
+	_, err := categoryRepo.LoadCategoryFromDB(ctx, *categoryID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
@@ -606,10 +606,15 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 		log.Info(ctx, map[string]interface{}{
 			"category": categoryName,
 		}, "Category %s exists, will update/overwrite all fields", categoryName)
-		cat.ID = *categoryID
-		cat.Name = categoryName
-		db = db.Save(cat)
-		return errs.WithStack(err)
+
+		updateCategory := category.Category{
+			ID:   *categoryID,
+			Name: categoryName,
+		}
+		_, err := categoryRepo.Create(ctx, &updateCategory)
+		if err != nil {
+			return errors.NewInternalError(err.Error())
+		}
 	}
 	return nil
 }
