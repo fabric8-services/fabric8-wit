@@ -187,7 +187,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 			s.T().Log("using search string: " + searchString)
 			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
-			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit)
+			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
 			if err != nil {
 				s.T().Fatal("Error getting search result ", err)
 			}
@@ -294,7 +294,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
 		var start, limit int = 0, 100
 		searchString := "id:" + createdWorkItem.ID
-		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit)
+		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
 		if err != nil {
 			s.T().Fatal("Error gettig search result ", err)
 		}

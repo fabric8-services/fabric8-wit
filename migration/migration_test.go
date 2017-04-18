@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	config "github.com/almighty/almighty-core/configuration"
-
 	"github.com/almighty/almighty-core/resource"
+
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func TestConcurrentMigrations(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Cannot connect to DB: %s\n", err)
 			}
-			err = Migrate(db)
+			err = Migrate(db, configuration.GetPostgresDatabase())
 			assert.Nil(t, err)
 		}()
 

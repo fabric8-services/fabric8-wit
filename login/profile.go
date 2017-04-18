@@ -15,6 +15,8 @@ import (
 const ImageURLAttributeName = "ImageURL"
 const BioAttributeName = "Bio"
 const URLAttributeName = "URL"
+const CompanyAttributeName = "company"
+const ApprovedAttributeName = "approved"
 
 // KeycloakUserProfile represents standard Keycloak User profile api request payload
 type KeycloakUserProfile struct {
@@ -101,11 +103,18 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	}
 
 	if resp.StatusCode != http.StatusOK {
+
 		log.Error(context.Background(), map[string]interface{}{
 			"response_status":           resp.Status,
 			"response_body":             rest.ReadBody(resp.Body),
 			"keycloak_user_profile_url": keycloakProfileURL,
 		}, "Unable to update Keycloak user profile")
+
+		if resp.StatusCode == 500 {
+			// Observed that a 500 is returned whenever username/email is not unique
+			return errors.NewBadParameterError("username or email", fmt.Sprintf("%s , %s", *keycloakUserProfile.Email, *keycloakUserProfile.Username))
+		}
+
 		return errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 	return nil

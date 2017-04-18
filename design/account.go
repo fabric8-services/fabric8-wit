@@ -20,10 +20,10 @@ var updateUser = a.MediaType("application/vnd.updateuser+json", func() {
 	})
 })
 
-// identityData represents an identified user object
+// updateUserData represents an identified user object
 var updateUserData = a.Type("UpdateUserData", func() {
 	a.Attribute("type", d.String, "type of the user identity")
-	a.Attribute("attributes", userDataAttributes, "Attributes of the user identity")
+	a.Attribute("attributes", updateUserDataAttributes, "Attributes of the user identity")
 	a.Attribute("links", genericLinks)
 	a.Required("type", "attributes")
 })
@@ -156,6 +156,8 @@ var _ = a.Resource("users", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
 		a.Response(d.Forbidden, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
+
 	})
 
 	a.Action("list", func() {
@@ -182,17 +184,34 @@ var userData = a.Type("UserData", func() {
 
 // userDataAttributes represents an identified user object attributes
 var userDataAttributes = a.Type("UserDataAttributes", func() {
+	a.Attribute("userID", d.String, "The id of the corresponding User")
+	a.Attribute("identityID", d.String, "The id of the corresponding Identity")
 	a.Attribute("created-at", d.DateTime, "The date of creation of the user")
 	a.Attribute("updated-at", d.DateTime, "The date of update of the user")
 	a.Attribute("fullName", d.String, "The user's full name")
 	a.Attribute("imageURL", d.String, "The avatar image for the user")
 	a.Attribute("username", d.String, "The username")
+	a.Attribute("registrationCompleted", d.Boolean, "Whether the registration has been completed")
 	a.Attribute("email", d.String, "The email")
 	a.Attribute("bio", d.String, "The bio")
 	a.Attribute("url", d.String, "The url")
-	a.Attribute("userID", d.String, "The id of the corresponding User")
-	a.Attribute("identityID", d.String, "The id of the corresponding Identity")
+	a.Attribute("company", d.String, "The company")
+	a.Attribute("providerType", d.String, "The IDP provided this identity")
+	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
+		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
+	})
+})
+
+// updateidentityDataAttributes represents an identified user object attributes used for updating a user.
+var updateUserDataAttributes = a.Type("UpdateIdentityDataAttributes", func() {
+	a.Attribute("fullName", d.String, "The users full name")
+	a.Attribute("imageURL", d.String, "The avatar image for the user")
+	a.Attribute("username", d.String, "The username")
+	a.Attribute("email", d.String, "The email")
+	a.Attribute("bio", d.String, "The bio")
+	a.Attribute("url", d.String, "The url")
 	a.Attribute("providerType", d.String, "The type of provider for the corresponding identity")
+	a.Attribute("company", d.String, "The company")
 	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
 		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
 	})
