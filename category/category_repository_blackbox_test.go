@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -35,31 +36,89 @@ func (test *categoryRepoBlackBoxTest) TearDownTest() {
 	test.clean()
 }
 
-// TestCreateCategory tests that we can create a category
-func (test *categoryRepoBlackBoxTest) TestCreateLoadCategory() {
+// TestCreateLoadValidCategory creates and loads valid category
+func (test *categoryRepoBlackBoxTest) TestCreateLoadValidCategory() {
 
-	category := category.Category{
+	category1 := category.Category{
 		Name: "Backlog",
 	}
 
 	test.T().Run("create and load (valid)", func(t *testing.T) {
-		category1, err := test.repo.Create(test.ctx, &category) // Create
+		result1, err := test.repo.Create(test.ctx, &category1) // Create
 		require.Nil(test.T(), err)
-		require.NotNil(test.T(), category1)
-		require.NotNil(test.T(), category1.ID)
-		require.NotNil(test.T(), category1.Name)
+		require.NotNil(test.T(), result1)
+		require.NotNil(test.T(), result1.ID)
+		require.NotNil(test.T(), result1.Name)
 
-		category2, err := test.repo.LoadCategoryFromDB(test.ctx, category1.ID) // Load
+		result2, err := test.repo.LoadCategoryFromDB(test.ctx, result1.ID) // Load
 		require.Nil(test.T(), err)
-		require.NotNil(test.T(), category2)
-		require.NotNil(test.T(), category2.ID)
+		require.NotNil(test.T(), result2)
+		require.NotNil(test.T(), result2.ID)
 
-		assert.Equal(test.T(), category1.ID, category2.ID)
-		assert.Equal(test.T(), category1.Name, category2.Name)
+		assert.Equal(test.T(), result1.ID, result2.ID)
+		assert.Equal(test.T(), result1.Name, result2.Name)
 	})
-
 }
 
+// TestCreateLoadInvalidCategory creates and loads invalid category
+func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
+
+	category1 := category.Category{
+		Name: "Backlog",
+	}
+	test.T().Run("create and load (invalid)", func(t *testing.T) {
+		result1, err := test.repo.Create(test.ctx, &category1) // Create
+		require.Nil(test.T(), err)
+		require.NotNil(test.T(), result1)
+		require.NotNil(test.T(), result1.ID)
+		require.NotNil(test.T(), result1.Name)
+
+		result2, err := test.repo.LoadCategoryFromDB(test.ctx, category.PlannerRequirementsID) // Load
+		require.Nil(test.T(), err)
+		require.NotNil(test.T(), result2)
+		require.NotNil(test.T(), result2.ID)
+
+		assert.NotEqual(test.T(), result1.ID, result2.ID)
+		assert.NotEqual(test.T(), result1.Name, result2.Name)
+	})
+}
+
+// TestCategoryNotFoundError creates category and checks NotFoundError is Nil
+func (test *categoryRepoBlackBoxTest) TestCategoryNotFoundError() {
+
+	category1 := category.Category{
+		Name: "Backlog1",
+	}
+	test.T().Run("create and check NotFoundError", func(t *testing.T) {
+
+		// finds a random category by ID which is not created and tests it should return NotFoundError.
+		randomID := uuid.FromStringOrNil("e42d0f80-9b1f-4715-b616-1fd931ce73cd")
+		result1, err := test.repo.LoadCategoryFromDB(test.ctx, randomID) // Load
+		require.NotNil(test.T(), err)
+		require.Nil(test.T(), result1)
+		_, ok := errors.Cause(err).(errs.NotFoundError)
+
+		// creates a category
+		result2, err := test.repo.Create(test.ctx, &category1) // Create
+		require.Nil(test.T(), err)
+		require.NotNil(test.T(), result2)
+		require.NotNil(test.T(), result2.ID)
+		require.NotNil(test.T(), result2.Name)
+
+		// Loads the created category and tests that NotFound error is Nil
+		result3, err := test.repo.LoadCategoryFromDB(test.ctx, category1.ID) // Load
+		require.Nil(test.T(), err)
+		require.NotNil(test.T(), result3)
+		require.NotNil(test.T(), result3.ID)
+
+		assert.Equal(test.T(), result2.ID, result3.ID)
+		assert.Equal(test.T(), result2.Name, result3.Name)
+		assert.True(test.T(), ok)
+	})
+}
+
+// TestCreateCategoryWithSameNameFail tests that we cannot create another category with same name
+// This tests unique name violation
 func (test *categoryRepoBlackBoxTest) TestCreateCategoryWithSameNameFail() {
 	category1 := category.Category{
 		Name: "categorySameName",
@@ -86,6 +145,7 @@ func (test *categoryRepoBlackBoxTest) TestCreateCategoryWithSameNameFail() {
 	})
 }
 
+// TestListCategories lists categories
 func (test *categoryRepoBlackBoxTest) TestListCategories() {
 	test.T().Run("list categories", func(t *testing.T) {
 		category1 := category.Category{
@@ -106,6 +166,7 @@ func (test *categoryRepoBlackBoxTest) TestListCategories() {
 	})
 }
 
+// TestDoNotCreateCategoryWithMissingName tests that we cannot create a category without a name
 func (test *categoryRepoBlackBoxTest) TestDoNotCreateCategoryWithMissingName() {
 	category1 := category.Category{}
 

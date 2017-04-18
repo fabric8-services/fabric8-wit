@@ -65,13 +65,13 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID)
+	}, categoryID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
 
 	// Test that we can create a WIT with the same name as before.
-	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, &categoryID)
+	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, categoryID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.ID)
@@ -96,12 +96,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 				ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 		},
-	}, &categoryID)
+	}, categoryID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
 
-	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, &categoryID)
+	wit3, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, categoryID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit3)
 	require.NotNil(s.T(), wit3.ID)
@@ -127,12 +127,12 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 				SimpleType:    workitem.SimpleType{Kind: workitem.KindList},
 				ComponentType: workitem.SimpleType{Kind: workitem.KindString}},
 		},
-	}, &categoryID)
+	}, categoryID)
 
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), baseWit)
 	require.NotNil(s.T(), baseWit.ID)
-	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, &categoryID)
+	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseWit.ID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, categoryID)
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), extendedWit)
 	require.NotNil(s.T(), extendedWit.Fields)
@@ -144,7 +144,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 	baseTypeID := uuid.Nil
 	categoryID := []uuid.UUID{}
 	categoryID = append(categoryID, category.PlannerRequirementsID)
-	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, &categoryID)
+	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, categoryID)
 	// expect an error as the given base type does not exist
 	require.NotNil(s.T(), err)
 	require.Nil(s.T(), extendedWit)
@@ -164,7 +164,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToSingleCategoryRel
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID) // create work item type
+	}, categoryID) // create work item type
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
@@ -185,7 +185,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToMultipleCategoryR
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID) // create workitemtype
+	}, categoryID) // create workitemtype
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
@@ -213,7 +213,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID) // create workitemtype
+	}, categoryID) // create workitemtype
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit1)
 	require.NotNil(s.T(), wit1.ID)
@@ -229,7 +229,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID) // create workitemtype
+	}, categoryID) // create workitemtype
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.ID)
@@ -251,7 +251,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID) // create workitemtype
+	}, categoryID) // create workitemtype
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit1)
 	require.NotNil(s.T(), wit1.ID)
@@ -273,7 +273,7 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 			Required: true,
 			Type:     &workitem.SimpleType{Kind: workitem.KindFloat},
 		},
-	}, &categoryID) // create workitemtype
+	}, categoryID) // create workitemtype
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.ID)

@@ -100,7 +100,7 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			ctx.Payload.Data.Attributes.Description,
 			ctx.Payload.Data.Attributes.Icon,
 			modelFields,
-			&category,
+			category,
 		)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
