@@ -281,7 +281,7 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
 
 	// Version 51
-	m = append(m, steps{executeSQLFile("051-categories.sql")})
+	m = append(m, steps{ExecuteSQLFile("051-categories.sql")})
 
 	// Version N
 	//
@@ -620,7 +620,7 @@ func createOrUpdateCategories(ctx context.Context, db *gorm.DB, categoryRepo cat
 			ID:   *categoryID,
 			Name: categoryName,
 		}
-		_, err := categoryRepo.Create(ctx, &updateCategory)
+		_, err := categoryRepo.Save(ctx, &updateCategory)
 		if err != nil {
 			return errors.NewInternalError(err.Error())
 		}

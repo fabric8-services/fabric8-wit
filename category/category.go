@@ -3,6 +3,7 @@ package category
 import (
 	"context"
 
+	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -64,6 +65,7 @@ type Repository interface {
 	CreateRelationship(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error
 	LoadWorkItemTypeCategoryRelationship(ctx context.Context, workitemtypeID uuid.UUID, categoryID uuid.UUID) (*WorkItemTypeCategoryRelationship, error)
 	LoadAllRelationshipsOfCategory(ctx context.Context, categoryID uuid.UUID) ([]*WorkItemTypeCategoryRelationship, error)
+	Save(ctx context.Context, category *Category) (*Category, error)
 }
 
 // NewRepository creates a new storage type.
@@ -202,4 +204,53 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	return &relationship, nil
+}
+
+func (r *GormRepository) Save(ctx context.Context, category *Category) (*Category, error) {
+	res := Category{}
+	log.Info(ctx, map[string]interface{}{
+		"id": category.ID,
+	}, "Looking for category")
+	tx := r.db.Model(&res).Where("id=?", category.ID).First(&res)
+	if tx.RecordNotFound() {
+		log.Error(ctx, map[string]interface{}{
+			"id": category.ID,
+		}, "category not found")
+		return nil, errors.NewNotFoundError("category", category.ID.String())
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+
+	res.Name = category.Name
+	tx = tx.Save(&res)
+	if err := tx.Error; err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"id":  category.ID,
+			"err": err,
+		}, "unable to save category")
+		return nil, errors.NewInternalError(err.Error())
+	}
+	log.Info(ctx, map[string]interface{}{
+		"id": category.ID,
+	}, "Updated category")
+	return &res, nil
+}
+
+// Equal returns true if two Category objects are equal; otherwise false is returned.
+func (category Category) Equal(u convert.Equaler) bool {
+	other, ok := u.(Category)
+	if !ok {
+		return false
+	}
+	if !uuid.Equal(category.ID, other.ID) {
+		return false
+	}
+	if !category.Lifecycle.Equal(other.Lifecycle) {
+		return false
+	}
+	if category.Name != other.Name {
+		return false
+	}
+	return true
 }
