@@ -206,6 +206,7 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 	return &relationship, nil
 }
 
+// Save saves a category object. This function is used to update category properly through migration -> createOrUpdateSingleCategory()
 func (r *GormRepository) Save(ctx context.Context, category *Category) (*Category, error) {
 	res := Category{}
 	log.Info(ctx, map[string]interface{}{
