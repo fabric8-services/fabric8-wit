@@ -276,6 +276,9 @@ func GetMigrations() Migrations {
 	// Version 52
 	m = append(m, steps{ExecuteSQLFile("052-unique-space-names.sql")})
 
+	// Version 53
+	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -423,10 +426,10 @@ func NewMigrationContext(ctx context.Context) context.Context {
 	params := url.Values{}
 	ctx = goa.NewContext(ctx, nil, req, params)
 	// set a random request ID for the context
-	var req_id string
-	ctx, req_id = client.ContextWithRequestID(ctx)
+	var reqID string
+	ctx, reqID = client.ContextWithRequestID(ctx)
 
-	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", req_id)
+	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", reqID)
 
 	return ctx
 }
@@ -530,13 +533,13 @@ func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.U
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceId uuid.UUID) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceID uuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 
-	space, err := spaceRepo.Load(ctx, spaceId)
+	space, err := spaceRepo.Load(ctx, spaceID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -619,7 +622,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 }
 
 func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
-	fmt.Println("Creating or updating planner item type...")
+	log.Info(ctx, nil, "Creating or updating planner item type...")
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
 	description := "Description for Planner Item"
@@ -671,7 +674,7 @@ func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, descripti
 }
 
 func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
-	fmt.Println("Creating or updating planner item types...")
+	log.Info(ctx, nil, "Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
@@ -716,8 +719,7 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		db = db.Save(wit)
 		return db.Error
 	}
-	fmt.Println("Creating or updating planner item type done.")
-
+	log.Info(ctx, nil, "Creating or updating planner item type done.")
 	return nil
 }
 

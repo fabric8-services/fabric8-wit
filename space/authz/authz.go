@@ -12,9 +12,10 @@ import (
 	"github.com/almighty/almighty-core/auth"
 	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
-	tokencontext "github.com/almighty/almighty-core/login/token_context"
+	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/token"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
