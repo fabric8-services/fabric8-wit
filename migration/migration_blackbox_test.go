@@ -17,6 +17,7 @@ import (
 	_ "github.com/lib/pq"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // fn defines the type of function that can be part of a migration steps
@@ -107,6 +108,9 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration48", testMigration48)
 	t.Run("TestMigration49", testMigration49)
 	t.Run("TestMigration50", testMigration50)
+	t.Run("TestMigration51", testMigration51)
+	t.Run("TestMigration52", testMigration52)
+	t.Run("testMigration53", testMigration53)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -140,7 +144,7 @@ func testMigration44(t *testing.T) {
 }
 
 func testMigration45(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+1)], (initialMigratedVersion + 1))
 
 	assert.True(t, gormDB.HasTable("work_items"))
 	assert.True(t, dialect.HasColumn("work_items", "execution_order"))
@@ -150,7 +154,7 @@ func testMigration45(t *testing.T) {
 }
 
 func testMigration46(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+2)], (initialMigratedVersion + 2))
 
 	assert.True(t, gormDB.HasTable("oauth_state_references"))
 	assert.True(t, dialect.HasColumn("oauth_state_references", "referrer"))
@@ -160,7 +164,7 @@ func testMigration46(t *testing.T) {
 }
 
 func testMigration47(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+3)], (initialMigratedVersion + 3))
 
 	assert.True(t, gormDB.HasTable("codebases"))
 	assert.True(t, dialect.HasColumn("codebases", "type"))
@@ -172,7 +176,7 @@ func testMigration47(t *testing.T) {
 }
 
 func testMigration48(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+4)], (initialMigratedVersion + 4))
 
 	assert.True(t, dialect.HasIndex("iterations", "ix_name"))
 
@@ -181,11 +185,11 @@ func testMigration48(t *testing.T) {
 }
 
 func testMigration49(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+5)], (initialMigratedVersion + 5))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+5)], (initialMigratedVersion + 5))
 
 	assert.True(t, dialect.HasIndex("areas", "ix_area_name"))
 
-	// Tests that migration 49 set the system.are to the work_items and its value
+	// Tests that migration 49 set the system.area to the work_items and its value
 	// is 71171e90-6d35-498f-a6a7-2083b5267c18
 	rows, err := sqlDB.Query("SELECT count(*), fields->>'system.area' FROM work_items where fields != '{}' GROUP BY fields")
 	if err != nil {
@@ -202,11 +206,42 @@ func testMigration49(t *testing.T) {
 }
 
 func testMigration50(t *testing.T) {
-	migrationToVersion(sqlDB, migrations[:(initialMigratedVersion+6)], (initialMigratedVersion + 6))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+6)], (initialMigratedVersion + 6))
 
 	assert.True(t, dialect.HasColumn("users", "company"))
 
 	assert.Nil(t, runSQLscript(sqlDB, "050-users-add-column-company.sql"))
+}
+func testMigration51(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+7)], (initialMigratedVersion + 7))
+
+	assert.True(t, dialect.HasIndex("work_item_link_types", "work_item_link_types_name_idx"))
+}
+
+func testMigration52(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+8)], (initialMigratedVersion + 8))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
+}
+
+func testMigration53(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+9)], (initialMigratedVersion + 9))
+	require.True(t, dialect.HasColumn("identities", "registration_completed"))
+
+	// add new rows and check if the new column has the default value
+	assert.Nil(t, runSQLscript(sqlDB, "053-edit-username.sql"))
+
+	// check if ALL the existing rows & new rows have the default value
+	rows, err := sqlDB.Query("SELECT registration_completed FROM identities")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var registration_completed bool
+		err = rows.Scan(&registration_completed)
+		assert.True(t, registration_completed == false)
+	}
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
@@ -263,21 +298,27 @@ func executeSQLTestFile(filename string, args ...string) fn {
 	}
 }
 
-func migrationToVersion(db *sql.DB, m migration.Migrations, version int64) {
-	var (
-		tx  *sql.Tx
-		err error
-	)
-	tx, err = db.Begin()
-	if err != nil {
-		panic(fmt.Errorf("Failed to start transaction: %s\n", err))
-	}
+// migrateToVersion runs the migration of all the scripts to a certain version
+func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
+	var err error
+	for nextVersion := int64(0); nextVersion < version && err == nil; nextVersion++ {
+		var tx *sql.Tx
+		tx, err = sqlDB.Begin()
+		if err != nil {
+			panic(fmt.Errorf("Failed to start transaction: %s\n", err))
+		}
 
-	if err = migration.MigrateToNextVersion(tx, &version, m, databaseName); err != nil {
-		panic(fmt.Errorf("Failed to migrate to version %d: %s\n", version, err))
-	}
+		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
+			panic(fmt.Errorf("Failed to migrate to version %d: %s\n", nextVersion, err))
 
-	if err = tx.Commit(); err != nil {
-		panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+			if err = tx.Rollback(); err != nil {
+				panic(fmt.Errorf("error while rolling back transaction: ", err))
+			}
+			panic(fmt.Errorf("Failed to migrate to version after rolling back"))
+		}
+
+		if err = tx.Commit(); err != nil {
+			panic(fmt.Errorf("Error during transaction commit: %s\n", err))
+		}
 	}
 }
