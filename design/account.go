@@ -168,8 +168,9 @@ var _ = a.Resource("users", func() {
 		})
 		a.Params(func() {
 			// This is not filtering - mutliple params do not work as "AND".
-			a.Param("username", d.String, "username to search users")
-			a.Param("email", d.String, "email to search users")
+			a.Param("filter[username]", d.String, "username to search users")
+			a.Param("filter[email]", d.String, "email to search users")
+			a.Param("filter[registrationCompleted]", d.Boolean, "users who have not completed registration")
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)

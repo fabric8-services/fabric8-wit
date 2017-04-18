@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 
 	uuid "github.com/satori/go.uuid"
@@ -215,92 +216,86 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var err error
+		var identities []*account.Identity
+		var users []*account.User
 		var result *app.UserArray
+		identityFilters := []func(*gorm.DB) *gorm.DB{}
+		userFilters := []func(*gorm.DB) *gorm.DB{}
 
-		if ctx.Username != nil {
-			// From a data model perspective, we are querying by identity ( and not user )
-			identities, err := appl.Identities().Query(account.IdentityFilterByUsername(*ctx.Username))
+		var appIdentities []*app.IdentityData
 
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
-			}
+		/*
+			There are 2 database tables we fetch the data from : identities , users
+			First, we filter on the attributes of identities table - providerType , username
+			After that we use the above result to cummulatively filter on users  - email , company
+		*/
 
-			// corresponding users.
-			users, err := getUsersFromIdentities(ctx.RequestData, appl, identities)
+		/*** Start filtering on Identities table ****/
 
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
-			}
-
-			appIdentities := convertUsers(ctx.RequestData, users, identities)
-			return ctx.OK(appIdentities)
-
+		if ctx.FilterUsername != nil {
+			identityFilters = append(identityFilters, account.IdentityFilterByUsername(*ctx.FilterUsername))
 		}
-
-		if ctx.Email != nil {
-			// From a data model perspective, we are querying by identity ( and not user )
-			users, err := appl.Users().Query(account.UserFilterByEmail(*ctx.Email))
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
-			}
-			appIdentities, err := LoadKeyCloakIdentities(appl, ctx.RequestData, users)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
-			}
-			return ctx.OK(appIdentities)
+		if ctx.FilterRegistrationCompleted != nil {
+			identityFilters = append(identityFilters, account.IdentityFilterByRegistrationCompleted(*ctx.FilterRegistrationCompleted))
 		}
+		// Add more filters when needed , here. ..
 
-		// From a data model perspective, we are querying by user ( and not identity )
-		users, err := appl.Users().List(ctx.Context)
-		if err == nil {
+		if len(identityFilters) != 0 {
+			identityFilters = append(identityFilters, account.IdentityFilterByProviderType(account.KeycloakIDP))
+			identityFilters = append(identityFilters, account.IdentityWithUser())
+
+			// From a data model perspective, we are querying by identity ( and not user )
+			identities, err = appl.Identities().Query(identityFilters...)
+
+			if err != nil {
+				// TODO: More elaborate error.
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+			}
+
+			// cumulatively filter out those not matcing the user-based filters.
+			for _, identity := range identities {
+				// this is where you keep trying all other filters one by one for 'user' fields like email.
+				if ctx.FilterEmail == nil || (ctx.FilterEmail != nil && identity.User.Email == *ctx.FilterEmail) {
+
+					// if one or more 'User' filters are present, check if it's satified, if Not, proceed with ConvertUser
+
+					appIdentity := ConvertUser(ctx.RequestData, identity, &identity.User)
+					appIdentities = append(appIdentities, appIdentity.Data)
+				}
+			}
+			result = &app.UserArray{Data: appIdentities}
+
+		} else {
+
+			/*** Start filtering on Users table ****/
+
+			if ctx.FilterEmail != nil {
+				userFilters = append(userFilters, account.UserFilterByEmail(*ctx.FilterEmail))
+			}
+			// .. Add other filters in future when needed into the userFilters slice in the above manner.
+
+			if len(userFilters) != 0 {
+				users, err = appl.Users().Query(userFilters...)
+			} else {
+				// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
+				users, err = appl.Users().List(ctx.Context)
+			}
+
+			if err != nil {
+				// TODO: More elaborate error.
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+			}
 			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
-			if err == nil {
-				return ctx.OK(result)
+			if err != nil {
+				// TODO: More elaborate error.
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
 			}
 		}
-		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "Error listing users"))
+		if result == nil {
+			result = &app.UserArray{Data: make([]*app.IdentityData, 0)}
+		}
+		return ctx.OK(result)
 	})
-}
-
-func matchUserWithIdentity(users []account.User, identity *account.Identity) *account.User {
-	for _, user := range users {
-		if user.ID == identity.UserID.UUID {
-			return &user
-		}
-	}
-	return nil
-}
-
-func getUsersFromIdentities(request *goa.RequestData, appl application.Application, identities []*account.Identity) (*[]account.User, error) {
-	users := []account.User{}
-	if len(identities) == 0 {
-		return &users, nil
-	}
-	userIDs := []uuid.UUID{}
-
-	for _, identity := range identities {
-		userIDs = append(userIDs, identity.UserID.UUID)
-	}
-	users, err := appl.Users().LoadMultiple(nil, userIDs)
-	if err != nil {
-		return nil, err
-	}
-	return &users, nil
-}
-
-func convertUsers(request *goa.RequestData, users *[]account.User, identities []*account.Identity) *app.UserArray {
-	data := make([]*app.IdentityData, len(*users))
-	for i, identity := range identities {
-		user := matchUserWithIdentity(*users, identity)
-		if user != nil {
-			appIdentity := ConvertUser(request, identity, user)
-			if appIdentity != nil {
-				data[i] = appIdentity.Data
-			}
-		}
-	}
-	return &app.UserArray{Data: data}
-
 }
 
 // LoadKeyCloakIdentities loads keycloak identies for the users and converts the users into REST representation
