@@ -217,7 +217,7 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID 
 		db = db.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(*q)+"%")
 		db = db.Or("LOWER(description) LIKE ?", "%"+strings.ToLower(*q)+"%")
 	}
-	if userId != nil {
+	if userID != nil {
 		db = db.Where("spaces.owner_id=?", userID)
 	}
 
