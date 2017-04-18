@@ -429,10 +429,10 @@ func NewMigrationContext(ctx context.Context) context.Context {
 	params := url.Values{}
 	ctx = goa.NewContext(ctx, nil, req, params)
 	// set a random request ID for the context
-	var req_id string
-	ctx, req_id = client.ContextWithRequestID(ctx)
+	var reqID string
+	ctx, reqID = client.ContextWithRequestID(ctx)
 
-	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", req_id)
+	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", reqID)
 
 	return ctx
 }
@@ -536,13 +536,13 @@ func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.U
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceId uuid.UUID) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceID uuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 
-	space, err := spaceRepo.Load(ctx, spaceId)
+	space, err := spaceRepo.Load(ctx, spaceID)
 	if err != nil {
 		return errs.WithStack(err)
 	}

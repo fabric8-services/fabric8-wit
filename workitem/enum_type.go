@@ -18,18 +18,18 @@ var _ convert.Equaler = EnumType{}
 var _ convert.Equaler = (*EnumType)(nil)
 
 // Equal returns true if two EnumType objects are equal; otherwise false is returned.
-func (self EnumType) Equal(u convert.Equaler) bool {
+func (t EnumType) Equal(u convert.Equaler) bool {
 	other, ok := u.(EnumType)
 	if !ok {
 		return false
 	}
-	if !self.SimpleType.Equal(other.SimpleType) {
+	if !t.SimpleType.Equal(other.SimpleType) {
 		return false
 	}
-	if !self.BaseType.Equal(other.BaseType) {
+	if !t.BaseType.Equal(other.BaseType) {
 		return false
 	}
-	return reflect.DeepEqual(self.Values, other.Values)
+	return reflect.DeepEqual(t.Values, other.Values)
 }
 
 func (fieldType EnumType) ConvertToModel(value interface{}) (interface{}, error) {

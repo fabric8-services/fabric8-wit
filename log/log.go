@@ -120,9 +120,9 @@ func Error(ctx context.Context, fields map[string]interface{}, format string, ar
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
-			identity_id, err := extractIdentityID(ctx)
+			identityID, err := extractIdentityID(ctx)
 			if err == nil {
-				entry = entry.WithField("identity_id", identity_id)
+				entry = entry.WithField("identity_id", identityID)
 			}
 		}
 
@@ -151,9 +151,9 @@ func Warn(ctx context.Context, fields map[string]interface{}, format string, arg
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
-			identity_id, err := extractIdentityID(ctx)
-			if err == nil { // Otherwise we don't use the identity_id
-				entry = entry.WithField("identity_id", identity_id)
+			identityID, err := extractIdentityID(ctx)
+			if err == nil { // Otherwise we don't use the identityID
+				entry = entry.WithField("identity_id", identityID)
 			}
 		}
 
@@ -180,9 +180,9 @@ func Info(ctx context.Context, fields map[string]interface{}, format string, arg
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
-			identity_id, err := extractIdentityID(ctx)
-			if err == nil { // Otherwise we don't use the identity_id
-				entry = entry.WithField("identity_id", identity_id)
+			identityID, err := extractIdentityID(ctx)
+			if err == nil { // Otherwise we don't use the identityID
+				entry = entry.WithField("identity_id", identityID)
 			}
 		}
 
@@ -205,9 +205,9 @@ func Panic(ctx context.Context, fields map[string]interface{}, format string, ar
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
-			identity_id, err := extractIdentityID(ctx)
-			if err == nil { // Otherwise we don't use the identity_id
-				entry = entry.WithField("identity_id", identity_id)
+			identityID, err := extractIdentityID(ctx)
+			if err == nil { // Otherwise we don't use the identityID
+				entry = entry.WithField("identity_id", identityID)
 			}
 		}
 
@@ -234,9 +234,9 @@ func Debug(ctx context.Context, fields map[string]interface{}, format string, ar
 
 		if ctx != nil {
 			entry = entry.WithField("req_id", extractRequestID(ctx))
-			identity_id, err := extractIdentityID(ctx)
+			identityID, err := extractIdentityID(ctx)
 			if err == nil {
-				entry = entry.WithField("identity_id", identity_id)
+				entry = entry.WithField("identity_id", identityID)
 			}
 		}
 
