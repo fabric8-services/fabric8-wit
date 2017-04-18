@@ -116,7 +116,7 @@ func (s *workItemLinkTypeSuite) SetupTest() {
 	s.svc = testsupport.ServiceAsUser("workItemLinkSpace-Service", almtoken.NewManagerWithPrivateKey(priv), testsupport.TestIdentity)
 	s.spaceCtrl = NewSpaceController(svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 	require.NotNil(s.T(), s.spaceCtrl)
-	s.spaceName = "test-space" + uuid.NewV4().String()[26:]
+	s.spaceName = testsupport.CreateRandomValidTestName("test-space")
 	s.categoryName = "test-workitem-category" + uuid.NewV4().String()
 	s.linkTypeName = "test-workitem-link-type" + uuid.NewV4().String()
 	s.linkName = "test-workitem-link" + uuid.NewV4().String()
