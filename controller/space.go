@@ -223,9 +223,8 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	} else {
-		return ctx.OK(&response)
 	}
+	return ctx.OK(&response)
 }
 
 // Show runs the show action.
