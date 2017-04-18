@@ -92,14 +92,6 @@ func (rest *TestSpaceREST) TestFailCreateSpaceUnsecure() {
 	test.CreateSpaceUnauthorized(rest.T(), svc.Context, svc, ctrl, p)
 }
 
-func (rest *TestSpaceREST) TestFailCreateSpaceMissingName() {
-	// given
-	p := minimumRequiredCreateSpace()
-	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
-	// when/then
-	test.CreateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, p)
-}
-
 func (rest *TestSpaceREST) TestFailValidationSpaceNameLength() {
 	// given
 	p := minimumRequiredCreateSpace()
@@ -108,12 +100,26 @@ func (rest *TestSpaceREST) TestFailValidationSpaceNameLength() {
 	err := p.Validate()
 	// Validate payload function returns an error
 	assert.NotNil(rest.T(), err)
-	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 100")
+	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+}
+
+func (rest *TestSpaceREST) TestFailValidationSpaceNameStartWith() {
+	// given
+	p := minimumRequiredCreateSpace()
+	invalidSpaceName := "_TestSpace"
+	p.Data.Attributes.Name = &invalidSpaceName
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	// when
+	test.CreateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, p)
+
+	// Validate payload function returns an error
+	//assert.NotNil(rest.T(), err)
+	//assert.Contains(rest.T(), err.Error(), "not start with")
 }
 
 func (rest *TestSpaceREST) TestSuccessCreateSpace() {
 	// given
-	name := "TestSuccessCreateSpace-" + uuid.NewV4().String()
+	name := "TestSuccessCreateSpace-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -144,7 +150,7 @@ func (rest *TestSpaceREST) SecuredSpaceIterationController(identity account.Iden
 
 func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	// given
-	name := "TestSuccessCreateSpaceAndDefaultArea-" + uuid.NewV4().String()
+	name := "TestSuccessCreateSpaceAndDefaultArea-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -169,7 +175,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 
 func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
 	// given
-	name := "TestSuccessCreateSpaceWithDescription-" + uuid.NewV4().String()
+	name := "TestSuccessCreateSpaceWithDescription-" + uuid.NewV4().String()[26:]
 	description := "Space for TestSuccessCreateSpaceWithDescription"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -192,9 +198,9 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
 
 func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 	// given
-	name := "TestSuccessUpdateSpace-" + uuid.NewV4().String()
+	name := "TestSuccessUpdateSpace-" + uuid.NewV4().String()[26:]
 	description := "Space for TestSuccessUpdateSpace"
-	newName := "TestSuccessUpdateSpace" + uuid.NewV4().String()
+	newName := "TestSuccessUpdateSpace" + uuid.NewV4().String()[26:]
 	newDescription := "Space for TestSuccessUpdateSpace2"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -215,7 +221,7 @@ func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
 	// given
-	name := "TestFailUpdateSpaceNameLength-" + uuid.NewV4().String()
+	name := "TestFailUpdateSpaceNameLength-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -232,9 +238,9 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceDifferentOwner() {
 	// given
-	name := "TestFailUpdateSpaceDifferentOwner-" + uuid.NewV4().String()
+	name := "TestFailUpdateSpaceDifferentOwner-" + uuid.NewV4().String()[26:]
 	description := "Space for TestFailUpdateSpaceDifferentOwner"
-	newName := "TestFailUpdateSpaceDifferentOwner-" + uuid.NewV4().String()
+	newName := "TestFailUpdateSpaceDifferentOwner-" + uuid.NewV4().String()[26:]
 	newDescription := "Space for TestFailUpdateSpaceDifferentOwner2"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -264,7 +270,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceUnSecure() {
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
 	// given
-	name := "TestFailUpdateSpaceNotFound-" + uuid.NewV4().String()
+	name := "TestFailUpdateSpaceNotFound-" + uuid.NewV4().String()[26:]
 	version := 0
 	id := uuid.NewV4()
 	u := minimumRequiredUpdateSpace()
@@ -278,7 +284,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceMissingName() {
 	// given
-	name := "TestFailUpdateSpaceMissingName-" + uuid.NewV4().String()
+	name := "TestFailUpdateSpaceMissingName-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -292,8 +298,8 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceMissingName() {
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceMissingVersion() {
 	// given
-	name := "TestFailUpdateSpaceMissingVersion-" + uuid.NewV4().String()
-	newName := "TestFailUpdateSpaceMissingVersion-" + uuid.NewV4().String()
+	name := "TestFailUpdateSpaceMissingVersion-" + uuid.NewV4().String()[26:]
+	newName := "TestFailUpdateSpaceMissingVersion-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -307,7 +313,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceMissingVersion() {
 
 func (rest *TestSpaceREST) TestShowSpaceOK() {
 	// given
-	name := "TestShowSpaceOK-" + uuid.NewV4().String()
+	name := "TestShowSpaceOK-" + uuid.NewV4().String()[26:]
 	description := "Space for TestShowSpaceOK"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -341,7 +347,7 @@ func (rest *TestSpaceREST) TestShowSpaceOK() {
 
 func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	name := "TestShowSpaceOKUsingExpiredIfModifiedSinceHeader-" + uuid.NewV4().String()
+	name := "TestShowSpaceOKUsingExpiredIfModifiedSinceHeader-" + uuid.NewV4().String()[26:]
 	description := "Space for TestShowSpaceOKUsingExpiredIfModifiedSinceHeader"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -366,7 +372,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 
 func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	name := "TestShowSpaceOKUsingExpiredIfNoneMatchHeader-" + uuid.NewV4().String()
+	name := "TestShowSpaceOKUsingExpiredIfNoneMatchHeader-" + uuid.NewV4().String()[26:]
 	description := "Space for TestShowSpaceOKUsingExpiredIfNoneMatchHeader"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -391,7 +397,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfNoneMatchHeader() {
 
 func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	name := "TestShowSpaceNotModifiedUsingIfModifiedSinceHeader-" + uuid.NewV4().String()
+	name := "TestShowSpaceNotModifiedUsingIfModifiedSinceHeader-" + uuid.NewV4().String()[26:]
 	description := "Space for TestShowSpaceNotModifiedUsingIfModifiedSinceHeader"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -405,7 +411,7 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfModifiedSinceHeader() 
 
 func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	name := "TestShowSpaceNotModifiedUsingIfNoneMatchHeader-" + uuid.NewV4().String()
+	name := "TestShowSpaceNotModifiedUsingIfNoneMatchHeader-" + uuid.NewV4().String()[26:]
 	description := "Space for TestShowSpaceNotModifiedUsingIfNoneMatchHeader"
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -471,7 +477,7 @@ func (rest *TestSpaceREST) TestFailShowSpaceNotFoundBadID() {
 
 func (rest *TestSpaceREST) TestListSpacesOK() {
 	// given
-	name := "TestListSpacesOK-" + uuid.NewV4().String()
+	name := "TestListSpacesOK-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -485,7 +491,7 @@ func (rest *TestSpaceREST) TestListSpacesOK() {
 
 func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	name := "TestListSpacesOKUsingExpiredIfModifiedSinceHeader-" + uuid.NewV4().String()
+	name := "TestListSpacesOKUsingExpiredIfModifiedSinceHeader-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -500,7 +506,7 @@ func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {
 
 func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	name := "TestListSpacesOKUsingExpiredIfNoneMatchHeader-" + uuid.NewV4().String()
+	name := "TestListSpacesOKUsingExpiredIfNoneMatchHeader-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -515,7 +521,7 @@ func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfNoneMatchHeader() {
 
 func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	name := "TestListSpacesNotModifiedUsingIfModifiedSinceHeader-" + uuid.NewV4().String()
+	name := "TestListSpacesNotModifiedUsingIfModifiedSinceHeader-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -527,7 +533,7 @@ func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfModifiedSinceHeader()
 
 func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	name := "TestListSpacesNotModifiedUsingIfNoneMatchHeader-" + uuid.NewV4().String()
+	name := "TestListSpacesNotModifiedUsingIfNoneMatchHeader-" + uuid.NewV4().String()[26:]
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
@@ -540,7 +546,7 @@ func (rest *TestSpaceREST) TestListSpacesNotModifiedUsingIfNoneMatchHeader() {
 
 func (rest *TestSpaceREST) TestSuccessCreateSameSpaceNameDifferentOwners() {
 	// given
-	name := "SameName-" + uuid.NewV4().String()
+	name := "SameName-" + uuid.NewV4().String()[26:]
 	description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
 	newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
 	a := minimumRequiredCreateSpace()
@@ -568,7 +574,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSameSpaceNameDifferentOwners() {
 
 func (rest *TestSpaceREST) TestFailCreateSameSpaceNameSameOwner() {
 	// given
-	name := "SameName-" + uuid.NewV4().String()
+	name := "SameName-" + uuid.NewV4().String()[26:]
 	description := "Space for TestSuccessCreateSameSpaceNameDifferentOwners"
 	newDescription := "Space for TestSuccessCreateSameSpaceNameDifferentOwners2"
 	// when

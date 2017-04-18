@@ -76,7 +76,7 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 		assert.Fail(t, "Failed to create an identity")
 	}
 
-	name := "Test 24" + uuid.NewV4().String()
+	name := "Test 24" + uuid.NewV4().String()[26:]
 
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -113,7 +113,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 		assert.Fail(t, "Failed to create an identity")
 	}
 
-	name := "Test 24" + uuid.NewV4().String()
+	name := "Test 24" + uuid.NewV4().String()[26:]
 
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name

@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -330,6 +331,8 @@ func validateCreateSpace(ctx *app.CreateSpaceContext) error {
 	}
 	if ctx.Payload.Data.Attributes.Name == nil {
 		return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
+	} else if strings.HasPrefix(*ctx.Payload.Data.Attributes.Name, "_") || strings.HasPrefix(*ctx.Payload.Data.Attributes.Name, "-") {
+		return errors.NewBadParameterError("data.attributes.name", nil).Expected("not start with '_' or '-'")
 	}
 	return nil
 }
@@ -343,6 +346,8 @@ func validateUpdateSpace(ctx *app.UpdateSpaceContext) error {
 	}
 	if ctx.Payload.Data.Attributes.Name == nil {
 		return errors.NewBadParameterError("data.attributes.name", nil).Expected("not nil")
+	} else if strings.HasPrefix(*ctx.Payload.Data.Attributes.Name, "_") || strings.HasPrefix(*ctx.Payload.Data.Attributes.Name, "-") {
+		return errors.NewBadParameterError("data.attributes.name", nil).Expected("not start with '_' or '-'")
 	}
 	if ctx.Payload.Data.Attributes.Version == nil {
 		return errors.NewBadParameterError("data.attributes.version", nil).Expected("not nil")
