@@ -134,18 +134,22 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
-	// FIXME:  should the StackID always be this one ?
+
+	stackID := cb.StackID
+	if cb.StackID == "" {
+		stackID = "java-default"
+		//TODO: Shouldn't we update the stackID in the codebase object ?
+	}
 	workspace := che.WorkspaceRequest{
-		Branch: "master",
-		//StackID:    "java-default",
-		StackID:    cb.StackID,
+		Branch:     "master",
+		StackID:    stackID,
 		Repository: cb.URL,
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
-			"stack_id":    cb.StackID,
+			"stack_id":    stackID,
 			"err":         err,
 		}, "unable to create workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {

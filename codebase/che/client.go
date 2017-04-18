@@ -186,8 +186,7 @@ type WorkspaceResponse struct {
 	//	Repository      string `json:"repository"`
 	Status string `json:"status,omitempty"`
 	//	WorkspaceIDEURL string `json:"workspaceIdeUrl"`
-	Links   []WorkspaceLink `json:"links,omitempty"`
-	StackID string          `json:"stackId,omitempty"`
+	Links []WorkspaceLink `json:"links,omitempty"`
 }
 
 // WorkspaceConfig represents the workspace config

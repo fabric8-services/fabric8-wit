@@ -17,6 +17,7 @@ import (
 	_ "github.com/lib/pq"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // fn defines the type of function that can be part of a migration steps
@@ -107,8 +108,12 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration48", testMigration48)
 	t.Run("TestMigration49", testMigration49)
 	t.Run("TestMigration50", testMigration50)
+	t.Run("TestMigration51", testMigration51)
+	t.Run("TestMigration52", testMigration52)
+	t.Run("testMigration53", testMigration53)
 
 	t.Run("TestMigration53", testMigration53)
+	t.Run("TestMigration54", testMigration54)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -187,7 +192,7 @@ func testMigration49(t *testing.T) {
 
 	assert.True(t, dialect.HasIndex("areas", "ix_area_name"))
 
-	// Tests that migration 49 set the system.are to the work_items and its value
+	// Tests that migration 49 set the system.area to the work_items and its value
 	// is 71171e90-6d35-498f-a6a7-2083b5267c18
 	rows, err := sqlDB.Query("SELECT count(*), fields->>'system.area' FROM work_items where fields != '{}' GROUP BY fields")
 	if err != nil {
@@ -210,13 +215,44 @@ func testMigration50(t *testing.T) {
 
 	assert.Nil(t, runSQLscript(sqlDB, "050-users-add-column-company.sql"))
 }
+func testMigration51(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+7)], (initialMigratedVersion + 7))
+
+	assert.True(t, dialect.HasIndex("work_item_link_types", "work_item_link_types_name_idx"))
+}
+
+func testMigration52(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+8)], (initialMigratedVersion + 8))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
+}
 
 func testMigration53(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+9)], (initialMigratedVersion + 9))
+	require.True(t, dialect.HasColumn("identities", "registration_completed"))
+
+	// add new rows and check if the new column has the default value
+	assert.Nil(t, runSQLscript(sqlDB, "053-edit-username.sql"))
+
+	// check if ALL the existing rows & new rows have the default value
+	rows, err := sqlDB.Query("SELECT registration_completed FROM identities")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var registration_completed bool
+		err = rows.Scan(&registration_completed)
+		assert.True(t, registration_completed == false)
+	}
+}
+
+func testMigration54(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+10)], (initialMigratedVersion + 10))
 
 	assert.True(t, dialect.HasColumn("codebases", "stack_id"))
 
-	assert.Nil(t, runSQLscript(sqlDB, "053-add-stackid-to-codebase.sql"))
+	assert.Nil(t, runSQLscript(sqlDB, "054-add-stackid-to-codebase.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

@@ -21,14 +21,12 @@ func TestCodebaseToMap(t *testing.T) {
 	branch := "task-101"
 	repo := "golang-project"
 	file := "main.go"
-	stackID := "golang-default"
 	line := 200
 	cb := codebase.CodebaseContent{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
 		LineNumber: line,
-		StackID:    stackID,
 	}
 
 	codebaseMap := cb.ToMap()
@@ -37,7 +35,6 @@ func TestCodebaseToMap(t *testing.T) {
 	assert.Equal(t, branch, codebaseMap[codebase.BranchKey])
 	assert.Equal(t, file, codebaseMap[codebase.FileNameKey])
 	assert.Equal(t, line, codebaseMap[codebase.LineNumberKey])
-	assert.Equal(t, stackID, codebaseMap[codebase.StackIdKey])
 }
 
 func TestNewCodebase(t *testing.T) {
@@ -49,12 +46,10 @@ func TestNewCodebase(t *testing.T) {
 	assert.Equal(t, "", cb.Branch)
 	assert.Equal(t, "", cb.FileName)
 	assert.Equal(t, 0, cb.LineNumber)
-	assert.Equal(t, "", cb.StackID)
 
 	// test for all values in codebase
 	branch := "task-101"
 	repo := "golang-project"
-	stackID := "golang-default"
 	file := "main.go"
 	line := 200
 	codebaseMap = map[string]interface{}{
@@ -62,7 +57,6 @@ func TestNewCodebase(t *testing.T) {
 		codebase.BranchKey:     branch,
 		codebase.FileNameKey:   file,
 		codebase.LineNumberKey: line,
-		codebase.StackIdKey:    stackID,
 	}
 	cb, err = codebase.NewCodebaseContent(codebaseMap)
 	require.Nil(t, err)
@@ -70,13 +64,11 @@ func TestNewCodebase(t *testing.T) {
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)
 	assert.Equal(t, line, cb.LineNumber)
-	assert.Equal(t, stackID, cb.StackID)
 }
 
 func TestIsValid(t *testing.T) {
 	cb := codebase.CodebaseContent{
 		Repository: "hello",
-		StackID:    "golang-default",
 	}
 	assert.Nil(t, cb.IsValid())
 
@@ -135,25 +127,6 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	require.Nil(test.T(), err)
 	require.Equal(test.T(), 1, len(codebases))
 	assert.Equal(test.T(), codebase1.URL, codebases[0].URL)
-}
-
-func (test *TestCodebaseRepository) TestListCodebasesByStackID() {
-	// given
-	spaceID := space.SystemSpace
-	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase1 := newCodebase(spaceID, "golang-default", "git", "git@github.com:almighty/almighty-core.git")
-	codebase2 := newCodebase(spaceID, "python-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
-
-	test.createCodebase(codebase1)
-	test.createCodebase(codebase2)
-	// when
-	offset := 0
-	limit := 1
-	codebases, _, err := repo.ListByStackId(context.Background(), spaceID, "python-default", &offset, &limit)
-	// then
-	require.Nil(test.T(), err)
-	require.Equal(test.T(), 1, len(codebases))
-	assert.Equal(test.T(), codebase2.StackID, codebases[0].StackID)
 }
 
 func (test *TestCodebaseRepository) TestLoadCodebase() {
