@@ -27,6 +27,7 @@ http.address: 0.0.0.0:8080
 
 cachecontrol.workitems: max-age=2
 cachecontrol.workitemtypes: max-age=2
+cachecontrol.workitemlinks: max-age=2
 cachecontrol.workitemlinktypes: max-age=2
 cachecontrol.spaces: max-age=2
 cachecontrol.iterations: max-age=2

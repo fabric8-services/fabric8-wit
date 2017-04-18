@@ -27,7 +27,7 @@ type IterationController struct {
 // IterationControllerConfiguration configuration for the IterationController
 
 type IterationControllerConfiguration interface {
-	GetCacheControlIteration() string
+	GetCacheControlIterations() string
 }
 
 // NewIterationController creates a iteration controller.
@@ -106,7 +106,7 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntity(*iter, c.config.GetCacheControlIteration, func() error {
+		return ctx.ConditionalEntity(*iter, c.config.GetCacheControlIterations, func() error {
 			wiCounts, err := appl.WorkItems().GetCountsForIteration(ctx, iter.ID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)

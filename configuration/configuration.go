@@ -315,13 +315,13 @@ func (c *ConfigurationData) GetCacheControlAreas() string {
 
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning spaces.
-func (c *ConfigurationData) GetCacheControlSpace() string {
+func (c *ConfigurationData) GetCacheControlSpaces() string {
 	return c.v.GetString(varCacheControlSpaces)
 }
 
 // GetCacheControlIterations returns the value to set in the "Cache-Control" HTTP response header
 // when returning iterations.
-func (c *ConfigurationData) GetCacheControlIteration() string {
+func (c *ConfigurationData) GetCacheControlIterations() string {
 	return c.v.GetString(varCacheControlIterations)
 }
 
