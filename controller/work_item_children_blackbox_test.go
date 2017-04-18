@@ -76,7 +76,7 @@ func (s *workItemChildSuite) SetupSuite() {
 
 	svc = testsupport.ServiceAsUser("WorkItemLinkType-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
-	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db)
+	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
 
 	svc = testsupport.ServiceAsUser("WorkItemLinkCategory-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
