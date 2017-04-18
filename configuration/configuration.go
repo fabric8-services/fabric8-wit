@@ -68,6 +68,7 @@ const (
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varHeaderMaxLength                  = "header.maxlength"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
 	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
@@ -156,6 +157,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP
 	//-----
 	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varHeaderMaxLength, defaultHeaderMaxLength)
 
 	//-----
 	// Misc
@@ -275,6 +277,12 @@ func (c *ConfigurationData) GetPopulateCommonTypes() bool {
 // that the alm server binds to (e.g. "0.0.0.0:8080")
 func (c *ConfigurationData) GetHTTPAddress() string {
 	return c.v.GetString(varHTTPAddress)
+}
+
+// GetHeaderMaxLength returns the max length of HTTP headers allowed in the system
+// For example it can be used to limit the size of bearer tokens returned by the api service
+func (c *ConfigurationData) GetHeaderMaxLength() int64 {
+	return c.v.GetInt64(varHeaderMaxLength)
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
@@ -595,6 +603,8 @@ func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData
 }
 
 const (
+	defaultHeaderMaxLength = 5000 // bytes
+
 	// Auth-related defaults
 
 	// RSAPrivateKey for signing JWT Tokens
