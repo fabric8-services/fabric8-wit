@@ -23,7 +23,7 @@ type WorkItem struct {
 
 // WICountsPerIteration counting work item states by iteration
 type WICountsPerIteration struct {
-	IterationId string `gorm:"column:iterationid"`
+	IterationID string `gorm:"column:iterationid"`
 	Total       int
 	Closed      int
 }

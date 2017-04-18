@@ -18,15 +18,15 @@ var _ convert.Equaler = ListType{}
 var _ convert.Equaler = (*ListType)(nil)
 
 // Equal returns true if two ListType objects are equal; otherwise false is returned.
-func (self ListType) Equal(u convert.Equaler) bool {
+func (t ListType) Equal(u convert.Equaler) bool {
 	other, ok := u.(ListType)
 	if !ok {
 		return false
 	}
-	if !self.SimpleType.Equal(other.SimpleType) {
+	if !t.SimpleType.Equal(other.SimpleType) {
 		return false
 	}
-	return self.ComponentType.Equal(other.ComponentType)
+	return t.ComponentType.Equal(other.ComponentType)
 }
 
 // ConvertToModel implements the FieldType interface
