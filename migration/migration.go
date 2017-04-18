@@ -276,6 +276,9 @@ func GetMigrations() Migrations {
 	// Version 52
 	m = append(m, steps{ExecuteSQLFile("052-unique-space-names.sql")})
 
+	// Version 53
+	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -619,7 +622,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 }
 
 func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
-	fmt.Println("Creating or updating planner item type...")
+	log.Info(ctx, nil, "Creating or updating planner item type...")
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
 	description := "Description for Planner Item"
@@ -671,7 +674,7 @@ func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, descripti
 }
 
 func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
-	fmt.Println("Creating or updating planner item types...")
+	log.Info(ctx, nil, "Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
@@ -716,8 +719,7 @@ func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, descri
 		db = db.Save(wit)
 		return db.Error
 	}
-	fmt.Println("Creating or updating planner item type done.")
-
+	log.Info(ctx, nil, "Creating or updating planner item type done.")
 	return nil
 }
 
