@@ -152,8 +152,8 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"known-Referrer": knownReferrer,
-			"user-name":       usr.Email,
+			"known_referrer": knownReferrer,
+			"user_name":       usr.Email,
 		}, "local user created/updated")
 
 		// redirect back to original referrel
@@ -200,7 +200,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			"known-Referrer": knownReferrer,
 			"user_name":       usr.Email,
 			"linked":          linked,
-		}, "identies links checked")
+		}, "identities links checked")
 
 		// Return linked=true param if account has been linked to all IdPs or linked=false if not.
 		if linked {
