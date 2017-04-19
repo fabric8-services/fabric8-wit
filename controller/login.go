@@ -37,6 +37,7 @@ type loginConfiguration interface {
 	GetKeycloakTestUser2Name() string
 	GetKeycloakTestUser2Secret() string
 	GetValidRedirectURLs(*goa.RequestData) (string, error)
+	GetHeaderMaxLength() int64
 }
 
 // LoginController implements the login resource.
@@ -163,8 +164,9 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		}, "failed to obtain entitlement during login")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	if rpt != nil {
-		// Swap access token and rpt which contains all resources available to the user
+	if rpt != nil && int64(len(*rpt)) <= c.configuration.GetHeaderMaxLength() {
+		// If the rpt token is not too long for using it as a Bearer in http requests because of header size limit
+		// the swap access token for the rpt token which contains all resources available to the user
 		token.AccessToken = rpt
 	}
 

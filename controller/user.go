@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -18,6 +20,7 @@ type UserController struct {
 	*goa.Controller
 	db           application.DB
 	tokenManager token.Manager
+	InitTenant   func(context.Context) error
 }
 
 // NewUserController creates a user controller.
@@ -51,7 +54,11 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", userID.UUID)))
 			}
 		}
-
+		if c.InitTenant != nil {
+			go func(ctx context.Context) {
+				c.InitTenant(ctx)
+			}(ctx)
+		}
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
 }
