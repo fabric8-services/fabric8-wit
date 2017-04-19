@@ -307,7 +307,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			}, rest.testIdentity.ID)
 		require.Nil(rest.T(), err)
 	}
-	// ad items to nested iteration level 1
+	// add items to nested iteration level 1
 	for i := 0; i < 4; i++ {
 		_, err := wirepo.Create(
 			rest.ctx, iteration1.SpaceID, workitem.SystemBug,
@@ -318,7 +318,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			}, rest.testIdentity.ID)
 		require.Nil(rest.T(), err)
 	}
-	// ad items to nested iteration level 2
+	// add items to nested iteration level 2
 	for i := 0; i < 5; i++ {
 		_, err := wirepo.Create(
 			rest.ctx, iteration1.SpaceID, workitem.SystemBug,

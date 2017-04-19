@@ -681,26 +681,100 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 	return &result, nil
 }
 
-// GetCountsPerIteration fetches WI count from DB and returns a map of iterationID->WICountsPerIteration
-// This function executes following query to fetch 'closed' and 'total' counts of the WI for each iteration in given spaceID
-// 	SELECT iterations.id as IterationId, count(*) as Total,
-// 		count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
-// 		FROM "work_items" left join iterations
-// 		on fields@> concat('{"system.iteration": "', iterations.id, '"}')::jsonb
-// 		WHERE (iterations.space_id = '33406de1-25f1-4969-bcec-88f29d0a7de3'
-// 		and work_items.deleted_at IS NULL) GROUP BY IterationId
+// GetCountsPerIteration counts WIs including iteration-children and returns a map of iterationID->WICountsPerIteration
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
-	var itrs []*iteration.Iteration
 	db := r.db.Debug()
-	db = db.Table("iterations").Select("*").Where("space_id = ? AND deleted_at IS NULL", spaceID).Scan(&itrs)
+	db = db.Table("iterations").Select("id").Where("space_id = ? AND deleted_at IS NULL", spaceID)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
+	var allItrations []uuid.UUID
+	db.Pluck("id", &allItrations)
+	iterationWithWICount := fmt.Sprintf(`
+	SELECT count(*) AS Total,
+       count(CASE fields->>'system.state'
+                 WHEN 'closed' THEN '1'
+                 ELSE NULL
+             END) AS Closed,
+       fields->>'system.iteration' AS iterationID
+	FROM "work_items"
+	WHERE fields->>'system.iteration' IN
+		(SELECT id::text
+		FROM iterations
+		WHERE space_id='%s')
+	AND work_items.deleted_at IS NULL
+	GROUP BY fields->>'system.iteration'`, spaceID.String())
+	db = r.db.Raw(iterationWithWICount)
+	var res []WICountsPerIteration
+	db.Scan(&res)
+	wiMap := map[string]WICountsPerIteration{}
+	for _, r := range res {
+		wiMap[r.IterationID] = WICountsPerIteration{
+			IterationID: r.IterationID,
+			Total:       r.Total,
+			Closed:      r.Closed,
+		}
+	}
+	// put 0 count for iterations which are not in wiMap
+	// ToDo: Update count query to include non matching rows with 0 values
+	// Following operation can be skipped once above is done
+	for _, i := range allItrations {
+		if _, exists := wiMap[i.String()]; exists == false {
+			wiMap[i.String()] = WICountsPerIteration{
+				IterationID: i.String(),
+				Total:       0,
+				Closed:      0,
+			}
+		}
+	}
+
+	type IterationHavingChildrenID struct {
+		Children    string `gorm:"column:children"`
+		IterationID string `gorm:"column:iterationid"`
+	}
+	var itrChildren []IterationHavingChildrenID
+	queryIterationWithChildren := fmt.Sprintf(`
+	WITH PathResolver AS
+	(SELECT CASE
+				WHEN path = '' THEN replace(id::text, '-', '_')::ltree
+				ELSE concat(path::text, '.', REPLACE(id::text, '-', '_'))::ltree
+			END AS pathself,
+			id
+	FROM iterations)
+	SELECT array_agg(iterations.id)::text AS children,
+		PathResolver.id::text AS iterationid
+	FROM iterations,
+		PathResolver
+	WHERE path <@ PathResolver.pathself
+	AND space_id = '%s'
+	GROUP BY (PathResolver.pathself,
+          PathResolver.id)`, spaceID.String())
+	db = r.db.Raw(queryIterationWithChildren)
+	db.Scan(&itrChildren)
+	childMap := map[string][]string{}
+	for _, r := range itrChildren {
+		// Following can be done by implementing Valuer interface for type IterationHavingChildrenID
+		r.Children = strings.TrimPrefix(r.Children, "{")
+		r.Children = strings.TrimRight(r.Children, "}")
+		children := strings.Split(r.Children, ",")
+		childMap[r.IterationID] = children
+	}
 	countsMap := map[string]WICountsPerIteration{}
-	for _, itr := range itrs {
-		mp, err := r.GetCountsForIteration(ctx, itr)
-		if err == nil {
-			countsMap[itr.ID.String()] = mp[itr.ID.String()]
+	for _, i := range wiMap {
+		t := i.Total
+		c := i.Closed
+		if children, exists := childMap[i.IterationID]; exists {
+			for _, child := range children {
+				if _, exists := wiMap[child]; exists {
+					t += wiMap[child].Total
+					c += wiMap[child].Closed
+				}
+			}
+		}
+		countsMap[i.IterationID] = WICountsPerIteration{
+			IterationID: i.IterationID,
+			Total:       t,
+			Closed:      c,
 		}
 	}
 	return countsMap, nil
