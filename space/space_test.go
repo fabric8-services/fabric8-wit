@@ -1,6 +1,7 @@
 package space_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
@@ -106,6 +107,7 @@ func (test *repoBBTest) TestList() {
 	_, orgCount, _ := test.list(nil, nil)
 	expectSpace(test.create(testSpace), test.requireOk)
 	_, newCount, _ := test.list(nil, nil)
+	test.T().Log(fmt.Sprintf("Old count of spaces : %d , new count of spaces : %d", orgCount, newCount))
 	assert.Equal(test.T(), orgCount+1, newCount)
 }
 
