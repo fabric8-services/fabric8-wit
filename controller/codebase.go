@@ -135,15 +135,21 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
+
+	stackID := cb.StackID
+	if cb.StackID == "" {
+		stackID = "java-centos"
+	}
 	workspace := che.WorkspaceRequest{
 		Branch:     "master",
-		StackID:    "java-default",
+		StackID:    stackID,
 		Repository: cb.URL,
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
+			"stack_id":    stackID,
 			"err":         err,
 		}, "unable to create workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
@@ -185,11 +191,13 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		Name:       ctx.WorkspaceID,
 		Repository: cb.URL,
 		Branch:     "master",
+		StackID:    cb.StackID,
 	}
 	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
+			"stack_id":    cb.StackID,
 			"err":         err,
 		}, "unable to open workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
@@ -237,6 +245,7 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 			CreatedAt: &codebase.CreatedAt,
 			Type:      &codebase.Type,
 			URL:       &codebase.URL,
+			StackID:   &codebase.StackID,
 		},
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{

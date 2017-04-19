@@ -279,6 +279,9 @@ func GetMigrations() Migrations {
 	// Version 53
 	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
 
+	// Version 54
+	m = append(m, steps{ExecuteSQLFile("054-add-stackid-to-codebase.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

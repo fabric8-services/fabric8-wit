@@ -90,6 +90,7 @@ func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB) *codebase
 			SpaceID: p.ID,
 			Type:    "git",
 			URL:     "https://github.com/almighty/almighty-core.git",
+			StackID: "golang-default",
 		}
 		err = appl.Codebases().Create(context.Background(), c)
 		if err != nil {
