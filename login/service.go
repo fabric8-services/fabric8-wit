@@ -117,8 +117,8 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		}
 
 		log.Debug(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
+			"code":           code,
+			"state":          state,
 			"known_referrer": knownReferrer,
 		}, "referrer found")
 
@@ -132,8 +132,8 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		}
 
 		log.Debug(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
+			"code":           code,
+			"state":          state,
 			"known_referrer": knownReferrer,
 		}, "exchanged code to access token")
 
@@ -150,20 +150,20 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		}
 
 		log.Debug(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
+			"code":           code,
+			"state":          state,
 			"known_referrer": knownReferrer,
-			"user_name":       usr.Email,
+			"user_name":      usr.Email,
 		}, "local user created/updated")
 
 		// redirect back to original referrel
 		referrerURL, err := url.Parse(knownReferrer)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"code":            code,
-				"state":           state,
+				"code":           code,
+				"state":          state,
 				"known_referrer": knownReferrer,
-				"err":             err,
+				"err":            err,
 			}, "failed to parse referrer")
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
@@ -176,10 +176,10 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
 		log.Debug(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
+			"code":           code,
+			"state":          state,
 			"known_referrer": knownReferrer,
-			"user_name":       usr.Email,
+			"user_name":      usr.Email,
 		}, "token encoded")
 
 		referrerStr := referrerURL.String()
@@ -195,11 +195,11 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 		}
 		log.Debug(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
+			"code":           code,
+			"state":          state,
 			"known_referrer": knownReferrer,
-			"user_name":       usr.Email,
-			"linked":          linked,
+			"user_name":      usr.Email,
+			"linked":         linked,
 		}, "identities links checked")
 
 		// Return linked=true param if account has been linked to all IdPs or linked=false if not.
@@ -207,12 +207,12 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			referrerStr = referrerStr + "&linked=true"
 			ctx.ResponseData.Header().Set("Location", referrerStr)
 			log.Debug(ctx, map[string]interface{}{
-				"code":            code,
-				"state":           state,
+				"code":           code,
+				"state":          state,
 				"known_referrer": knownReferrer,
-				"user_name":       usr.Email,
-				"linked":          linked,
-				"referrer_str":    referrerStr,
+				"user_name":      usr.Email,
+				"linked":         linked,
+				"referrer_str":   referrerStr,
 			}, "all good; redirecting back to referrer")
 			return ctx.TemporaryRedirect()
 		}
@@ -221,23 +221,23 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			referrerStr = referrerStr + "&linked=false"
 			ctx.ResponseData.Header().Set("Location", referrerStr)
 			log.Debug(ctx, map[string]interface{}{
-				"code":            code,
-				"state":           state,
+				"code":           code,
+				"state":          state,
 				"known_referrer": knownReferrer,
-				"user_name":       usr.Email,
-				"linked":          linked,
-				"referrer_str":    referrerStr,
+				"user_name":      usr.Email,
+				"linked":         linked,
+				"referrer_str":   referrerStr,
 			}, "all good; redirecting back to referrer")
 			return ctx.TemporaryRedirect()
 		}
 
 		referrerStr = referrerStr + "&linked=true"
 		log.Debug(ctx, map[string]interface{}{
-			"code":            code,
-			"state":           state,
+			"code":           code,
+			"state":          state,
 			"known_referrer": knownReferrer,
-			"user_name":       usr.Email,
-			"linked":          linked,
+			"user_name":      usr.Email,
+			"linked":         linked,
 		}, "linking identities...")
 		return keycloak.autoLinkProvidersDuringLogin(ctx, keycloakToken.AccessToken, referrerStr)
 	}
