@@ -433,6 +433,64 @@ func (s *TestUsersSuite) TestListUsersOK() {
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
 }
 
+func (s *TestUsersSuite) TestListUsersByUsernameOK() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
+	s.createRandomIdentity(user1, "github-test")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity11.Username)
+	// then
+	for i, data := range result.Data {
+		s.T().Log(fmt.Sprintf("Result #%d: %s %v", i, *data.ID, *data.Attributes.Username))
+	}
+	require.Len(s.T(), result.Data, 1)
+	assertUser(s.T(), findUser(identity11.ID, result.Data), user1, identity11)
+}
+
+func (s *TestUsersSuite) TestListUsersByEmailOK() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
+	_ = s.createRandomIdentity(user1, "xyz-idp")
+
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, &user1.Email, nil, nil)
+	// then
+	for i, data := range result.Data {
+		s.T().Log(fmt.Sprintf("Result #%d: %s %v", i, *data.ID, *data.Attributes.Username))
+	}
+	// even though 2 identites were created, only 1 app user was returned.
+	// this is because only we currently consider only kc identites.
+	require.Len(s.T(), result.Data, 1)
+	assertUser(s.T(), findUser(identity11.ID, result.Data), user1, identity11)
+}
+
+func (s *TestUsersSuite) TestListUsersByRegistrationCompletedOK() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	_ = s.createRandomIdentity(user1, account.KeycloakIDP)
+	_ = s.createRandomIdentity(user1, "xyz-idp")
+
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	boolFalse := false
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, &boolFalse, nil)
+	// then
+	for i, data := range result.Data {
+		s.T().Log(fmt.Sprintf("Result #%d: %s %v", i, *data.ID, *data.Attributes.Username))
+		assert.False(s.T(), *data.Attributes.RegistrationCompleted)
+	}
+}
+
 func (s *TestUsersSuite) createRandomUser(fullname string) account.User {
 	user := account.User{
 		Email:    uuid.NewV4().String() + "primaryForUpdat7e@example.com",
