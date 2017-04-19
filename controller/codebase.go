@@ -138,7 +138,7 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 
 	stackID := cb.StackID
 	if cb.StackID == "" {
-		stackID = "java-default"
+		stackID = "java-centos"
 	}
 	workspace := che.WorkspaceRequest{
 		Branch:     "master",
