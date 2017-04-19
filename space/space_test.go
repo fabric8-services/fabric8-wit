@@ -1,6 +1,7 @@
 package space_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/almighty/almighty-core/errors"
@@ -103,10 +104,26 @@ func (test *repoBBTest) TestDelete() {
 }
 
 func (test *repoBBTest) TestList() {
+	// given
 	_, orgCount, _ := test.list(nil, nil)
-	expectSpace(test.create(testSpace), test.requireOk)
-	_, newCount, _ := test.list(nil, nil)
-	assert.Equal(test.T(), orgCount+1, newCount)
+	newSpace, err := expectSpace(test.create(testSpace), test.requireOk)
+
+	require.Nil(test.T(), err)
+	require.NotNil(test.T(), newSpace)
+
+	// when
+	updatedListOfSpaces, newCount, _ := test.list(nil, nil)
+
+	test.T().Log(fmt.Sprintf("Old count of spaces : %d , new count of spaces : %d", orgCount, newCount))
+
+	foundNewSpaceInList := false
+	for _, retrievedSpace := range updatedListOfSpaces {
+		if retrievedSpace.ID == newSpace.ID {
+			foundNewSpaceInList = true
+		}
+	}
+	// then
+	assert.True(test.T(), foundNewSpaceInList)
 }
 
 func (test *repoBBTest) TestListDoNotReturnPointerToSameObject() {
