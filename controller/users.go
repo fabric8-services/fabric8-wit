@@ -290,14 +290,13 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 			identities, err = appl.Identities().Query(identityFilters...)
 
 			if err != nil {
-				// TODO: More elaborate error.
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching identities with filter(s)"))
 			}
 
 			// cumulatively filter out those not matcing the user-based filters.
 			for _, identity := range identities {
 				// this is where you keep trying all other filters one by one for 'user' fields like email.
-				if ctx.FilterEmail == nil || (ctx.FilterEmail != nil && identity.User.Email == *ctx.FilterEmail) {
+				if ctx.FilterEmail == nil || identity.User.Email == *ctx.FilterEmail {
 
 					// if one or more 'User' filters are present, check if it's satified, if Not, proceed with ConvertUser
 
@@ -320,17 +319,16 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 				users, err = appl.Users().Query(userFilters...)
 			} else {
 				// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
+				// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
 				users, err = appl.Users().List(ctx.Context)
 			}
 
 			if err != nil {
-				// TODO: More elaborate error.
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching users"))
 			}
 			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
 			if err != nil {
-				// TODO: More elaborate error.
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error listing users"))
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching keycloak identities"))
 			}
 		}
 		if result == nil {
