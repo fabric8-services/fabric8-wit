@@ -12,9 +12,10 @@ import (
 	"github.com/almighty/almighty-core/auth"
 	errs "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/log"
-	tokencontext "github.com/almighty/almighty-core/login/token_context"
+	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/token"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
@@ -56,40 +57,40 @@ type AuthzServiceManager interface {
 	EntitlementEndpoint() string
 }
 
-// KeyclaokAuthzServiceManager is a keyaloak implementation of a space autharizarion service
-type KeyclaokAuthzServiceManager struct {
+// KeycloakAuthzServiceManager is a keyaloak implementation of a space autharizarion service
+type KeycloakAuthzServiceManager struct {
 	Service             AuthzService
 	entitlementEndpoint string
 }
 
 // AuthzService returns a space autharizarion service
-func (m *KeyclaokAuthzServiceManager) AuthzService() AuthzService {
+func (m *KeycloakAuthzServiceManager) AuthzService() AuthzService {
 	return m.Service
 }
 
 // EntitlementEndpoint returns a keyclaok entitlement endpoint URL
-func (m *KeyclaokAuthzServiceManager) EntitlementEndpoint() string {
+func (m *KeycloakAuthzServiceManager) EntitlementEndpoint() string {
 	return m.entitlementEndpoint
 }
 
-// KeyclaokAuthzService implements AuthzService interface
-type KeyclaokAuthzService struct {
+// KeycloakAuthzService implements AuthzService interface
+type KeycloakAuthzService struct {
 	config AuthzConfiguration
 	db     application.DB
 }
 
-// NewAuthzService constructs a new KeyclaokAuthzService
-func NewAuthzService(config AuthzConfiguration, db application.DB) *KeyclaokAuthzService {
-	return &KeyclaokAuthzService{config: config, db: db}
+// NewAuthzService constructs a new KeycloakAuthzService
+func NewAuthzService(config AuthzConfiguration, db application.DB) *KeycloakAuthzService {
+	return &KeycloakAuthzService{config: config, db: db}
 }
 
 // Configuration returns authz service configuration
-func (s *KeyclaokAuthzService) Configuration() AuthzConfiguration {
+func (s *KeycloakAuthzService) Configuration() AuthzConfiguration {
 	return s.config
 }
 
 // Authorize returns true and the corresponding Requesting Party Token if the current user is among the space collaborators
-func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) Authorize(ctx context.Context, entitlementEndpoint string, spaceID string) (bool, error) {
 	jwttoken := goajwt.ContextJWT(ctx)
 	if jwttoken == nil {
 		return false, errs.NewUnauthorizedError("missing token")
@@ -113,21 +114,25 @@ func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	}
 	claims := tokenWithClaims.Claims.(*TokenPayload)
 
-	// RPT tokens disabled. See https://github.com/almighty/almighty-core/issues/1177
+	if claims.Authorization == nil {
+		// No authorization in the token. This is not a RPT token. This is an access token.
+		// We need to obtain an PRT token.
+		log.Warn(ctx, map[string]interface{}{
+			"space-id": spaceID,
+		}, "no authorization found in the token; this is an access token (not a RPT token)")
+		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
+	}
 
 	// Check if the token was issued before the space resouces changed the last time.
 	// If so, we need to re-fetch the rpt token for that space/resource and check permissions.
-	// outdated, err := s.outdated(ctx, *claims, entitlementEndpoint, spaceID)
-	// if err != nil {
-	// 	return false, err
-	// }
-	outdated := true
+	outdated, err := s.isTokenOutdated(ctx, *claims, entitlementEndpoint, spaceID)
+	if err != nil {
+		return false, err
+	}
 	if outdated {
 		return s.checkEntitlementForSpace(ctx, *jwttoken, entitlementEndpoint, spaceID)
 	}
-	if claims.Authorization == nil {
-		return false, nil
-	}
+
 	permissions := claims.Authorization.Permissions
 	if permissions == nil {
 		return false, nil
@@ -141,7 +146,7 @@ func (s *KeyclaokAuthzService) Authorize(ctx context.Context, entitlementEndpoin
 	return false, nil
 }
 
-func (s *KeyclaokAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) checkEntitlementForSpace(ctx context.Context, token jwt.Token, entitlementEndpoint string, spaceID string) (bool, error) {
 	resource := auth.EntitlementResource{
 		Permissions: []auth.ResourceSet{{Name: spaceID}},
 	}
@@ -152,7 +157,7 @@ func (s *KeyclaokAuthzService) checkEntitlementForSpace(ctx context.Context, tok
 	return ent != nil, nil
 }
 
-func (s *KeyclaokAuthzService) outdated(ctx context.Context, token TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
+func (s *KeycloakAuthzService) isTokenOutdated(ctx context.Context, token TokenPayload, entitlementEndpoint string, spaceID string) (bool, error) {
 	spaceUUID, err := uuid.FromString(spaceID)
 	if err != nil {
 		return false, errs.NewInternalError(err.Error())
@@ -188,7 +193,7 @@ func InjectAuthzService(service AuthzService) goa.Middleware {
 					return err
 				}
 			}
-			ctxWithAuthzServ := tokencontext.ContextWithSpaceAuthzService(ctx, &KeyclaokAuthzServiceManager{Service: service, entitlementEndpoint: endpoint})
+			ctxWithAuthzServ := tokencontext.ContextWithSpaceAuthzService(ctx, &KeycloakAuthzServiceManager{Service: service, entitlementEndpoint: endpoint})
 			return h(ctxWithAuthzServ, rw, req)
 		}
 	}

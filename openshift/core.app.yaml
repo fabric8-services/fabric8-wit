@@ -80,6 +80,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: postgres.connection.maxopen
+          - name: ALMIGHTY_TENANT_SERVICEURL
+            valueFrom:
+              secretKeyRef:
+                name: core
+                key: tenantsvc.url
           - name: ALMIGHTY_CHESTARTERURL
             valueFrom:
               configMapKeyRef:

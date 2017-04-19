@@ -68,6 +68,7 @@ const (
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varHeaderMaxLength                  = "header.maxlength"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
 	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
@@ -84,6 +85,7 @@ const (
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
 	varLogLevel                         = "log.level"
+	varTenantServiceURL                 = "tenant.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -156,6 +158,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP
 	//-----
 	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varHeaderMaxLength, defaultHeaderMaxLength)
 
 	//-----
 	// Misc
@@ -275,6 +278,12 @@ func (c *ConfigurationData) GetPopulateCommonTypes() bool {
 // that the alm server binds to (e.g. "0.0.0.0:8080")
 func (c *ConfigurationData) GetHTTPAddress() string {
 	return c.v.GetString(varHTTPAddress)
+}
+
+// GetHeaderMaxLength returns the max length of HTTP headers allowed in the system
+// For example it can be used to limit the size of bearer tokens returned by the api service
+func (c *ConfigurationData) GetHeaderMaxLength() int64 {
+	return c.v.GetInt64(varHeaderMaxLength)
 }
 
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
@@ -594,7 +603,14 @@ func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData
 	return DefaultValidRedirectURLs, nil
 }
 
+// GetTenantServiceURL returns the URL for the Tenant service used by login to initialize OSO tenant space
+func (c *ConfigurationData) GetTenantServiceURL() string {
+	return c.v.GetString(varTenantServiceURL)
+}
+
 const (
+	defaultHeaderMaxLength = 5000 // bytes
+
 	// Auth-related defaults
 
 	// RSAPrivateKey for signing JWT Tokens
@@ -670,6 +686,7 @@ ZwIDAQAB
 	// Allow redirects to localhost when running in prod-preveiw
 	localhostRedirectURLs      = "(" + DefaultValidRedirectURLs + "|^(https|http)://([^/]+[.])?(localhost|127[.]0[.]0[.]1)(:\\d+)?(/.*)?$)" // *.openshift.io/* or localhost/* or 127.0.0.1/*
 	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(:\\d+)?(/.*)?$"                             // *.prod-preview.openshift.io/*
+
 )
 
 // ActualToken is actual OAuth access token of github

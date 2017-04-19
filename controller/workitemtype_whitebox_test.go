@@ -145,7 +145,7 @@ func testConvertFieldType(original workitem.FieldType) error {
 	return nil
 }
 
-func TestconvertFieldTypeToModel(t *testing.T) {
+func TestConvertFieldTypeToModel(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 

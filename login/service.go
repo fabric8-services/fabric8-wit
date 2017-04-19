@@ -24,7 +24,7 @@ import (
 	er "github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
-	tokencontext "github.com/almighty/almighty-core/login/token_context"
+	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/token"
 	jwt "github.com/dgrijalva/jwt-go"
