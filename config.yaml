@@ -20,6 +20,7 @@ postgres.connection.maxopen: -1
 #------------------------
 
 http.address: 0.0.0.0:8080
+#header.maxlength: 10240 # bytes
 
 #------------------------
 # HTTP Cache-Control

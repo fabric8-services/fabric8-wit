@@ -309,8 +309,6 @@ func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
 		}
 
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
-			panic(fmt.Errorf("Failed to migrate to version %d: %s\n", nextVersion, err))
-
 			if err = tx.Rollback(); err != nil {
 				panic(fmt.Errorf("error while rolling back transaction: ", err))
 			}

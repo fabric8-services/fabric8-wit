@@ -247,26 +247,26 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 
 	if tx.RecordNotFound() {
 		// Item is placed at first or last position
-		ItemId := strconv.FormatUint(Item.ID, 10)
-		return &ItemId, nil, nil
+		ItemID := strconv.FormatUint(Item.ID, 10)
+		return &ItemID, nil, nil
 	}
 	if tx.Error != nil {
 		return nil, nil, errors.NewInternalError(tx.Error.Error())
 	}
 
-	ItemId := strconv.FormatUint(Item.ID, 10)
-	return &ItemId, &Item.ExecutionOrder, nil
+	ItemID := strconv.FormatUint(Item.ID, 10)
+	return &ItemID, &Item.ExecutionOrder, nil
 
 }
 
 // FindFirstItem returns the order of the target workitem
 func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 	Item := WorkItemStorage{}
-	Id, err := strconv.ParseUint(id, 10, 64)
-	if err != nil || Id == 0 {
-		return nil, errors.NewNotFoundError("work item", string(Id))
+	ID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil || ID == 0 {
+		return nil, errors.NewNotFoundError("work item", string(ID))
 	}
-	tx := r.db.First(&Item, Id)
+	tx := r.db.First(&Item, ID)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("work item", id)
 	}
@@ -312,15 +312,15 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		if aboveItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionAbove)
+		belowItemID, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionAbove)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		if *belowItemId == "0" {
+		if *belowItemID == "0" {
 			// Item is placed at last position
 			belowItemOrder := float64(0)
 			order = r.CalculateOrder(aboveItemOrder, &belowItemOrder)
-		} else if *belowItemId == strconv.FormatUint(res.ID, 10) {
+		} else if *belowItemID == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
 			order = wi.Fields[SystemOrder].(float64)
 		} else {
@@ -332,14 +332,14 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionBelow)
+		aboveItemID, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionBelow)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		if *aboveItemId == "0" {
+		if *aboveItemID == "0" {
 			// Item is placed at first position
 			order = *belowItemOrder + float64(orderValue)
-		} else if *aboveItemId == strconv.FormatUint(res.ID, 10) {
+		} else if *aboveItemID == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
 			order = wi.Fields[SystemOrder].(float64)
 		} else {
@@ -741,7 +741,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	}
 	countsMap := map[string]WICountsPerIteration{}
 	countsMap[itr.ID.String()] = WICountsPerIteration{
-		IterationId: itr.ID.String(),
+		IterationID: itr.ID.String(),
 		Closed:      res.Closed,
 		Total:       res.Total,
 	}
