@@ -106,6 +106,7 @@ func (test *repoBBTest) TestDelete() {
 func (test *repoBBTest) TestList() {
 	// given
 	_, orgCount, _ := test.list(nil, nil)
+
 	newSpace, err := expectSpace(test.create(testSpace), test.requireOk)
 
 	require.Nil(test.T(), err)
