@@ -15,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 
 	uuid "github.com/satori/go.uuid"
@@ -257,16 +258,83 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var err error
+		var identities []*account.Identity
 		var users []*account.User
 		var result *app.UserArray
-		users, err = appl.Users().List(ctx.Context)
-		if err == nil {
+		identityFilters := []func(*gorm.DB) *gorm.DB{}
+		userFilters := []func(*gorm.DB) *gorm.DB{}
+
+		var appIdentities []*app.IdentityData
+
+		/*
+			There are 2 database tables we fetch the data from : identities , users
+			First, we filter on the attributes of identities table - providerType , username
+			After that we use the above result to cummulatively filter on users  - email , company
+		*/
+
+		/*** Start filtering on Identities table ****/
+
+		if ctx.FilterUsername != nil {
+			identityFilters = append(identityFilters, account.IdentityFilterByUsername(*ctx.FilterUsername))
+		}
+		if ctx.FilterRegistrationCompleted != nil {
+			identityFilters = append(identityFilters, account.IdentityFilterByRegistrationCompleted(*ctx.FilterRegistrationCompleted))
+		}
+		// Add more filters when needed , here. ..
+
+		if len(identityFilters) != 0 {
+			identityFilters = append(identityFilters, account.IdentityFilterByProviderType(account.KeycloakIDP))
+			identityFilters = append(identityFilters, account.IdentityWithUser())
+
+			// From a data model perspective, we are querying by identity ( and not user )
+			identities, err = appl.Identities().Query(identityFilters...)
+
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching identities with filter(s)"))
+			}
+
+			// cumulatively filter out those not matcing the user-based filters.
+			for _, identity := range identities {
+				// this is where you keep trying all other filters one by one for 'user' fields like email.
+				if ctx.FilterEmail == nil || identity.User.Email == *ctx.FilterEmail {
+
+					// if one or more 'User' filters are present, check if it's satified, if Not, proceed with ConvertUser
+
+					appIdentity := ConvertUser(ctx.RequestData, identity, &identity.User)
+					appIdentities = append(appIdentities, appIdentity.Data)
+				}
+			}
+			result = &app.UserArray{Data: appIdentities}
+
+		} else {
+
+			/*** Start filtering on Users table ****/
+
+			if ctx.FilterEmail != nil {
+				userFilters = append(userFilters, account.UserFilterByEmail(*ctx.FilterEmail))
+			}
+			// .. Add other filters in future when needed into the userFilters slice in the above manner.
+
+			if len(userFilters) != 0 {
+				users, err = appl.Users().Query(userFilters...)
+			} else {
+				// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
+				// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
+				users, err = appl.Users().List(ctx.Context)
+			}
+
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching users"))
+			}
 			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
-			if err == nil {
-				return ctx.OK(result)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching keycloak identities"))
 			}
 		}
-		return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "Error listing users"))
+		if result == nil {
+			result = &app.UserArray{Data: make([]*app.IdentityData, 0)}
+		}
+		return ctx.OK(result)
 	})
 }
 
