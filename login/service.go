@@ -162,7 +162,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			log.Error(ctx, map[string]interface{}{
 				"code":            code,
 				"state":           state,
-				"rknown_referrer": knownReferrer,
+				"known_referrer": knownReferrer,
 				"err":             err,
 			}, "failed to parse referrer")
 			return redirectWithError(ctx, knownReferrer, err.Error())
