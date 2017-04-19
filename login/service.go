@@ -197,7 +197,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"known-Referrer": knownReferrer,
+			"known_referrer": knownReferrer,
 			"user_name":       usr.Email,
 			"linked":          linked,
 		}, "identities links checked")
@@ -209,10 +209,10 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			log.Debug(ctx, map[string]interface{}{
 				"code":            code,
 				"state":           state,
-				"known-Referrer": knownReferrer,
-				"user-name":       usr.Email,
+				"known_referrer": knownReferrer,
+				"user_name":       usr.Email,
 				"linked":          linked,
-				"referrer-str":    referrerStr,
+				"referrer_str":    referrerStr,
 			}, "all good; redirecting back to referrer")
 			return ctx.TemporaryRedirect()
 		}
