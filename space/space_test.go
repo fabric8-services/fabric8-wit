@@ -103,11 +103,14 @@ func (test *repoBBTest) TestDelete() {
 }
 
 func (test *repoBBTest) TestList() {
+	// given
 	_, orgCount, _ := test.list(nil, nil)
 	newSpace, err := expectSpace(test.create(testSpace), test.requireOk)
 
 	require.Nil(test.T(), err)
 	require.NotNil(test.T(), newSpace)
+
+	// when
 	updatedListOfSpaces, newCount, _ := test.list(nil, nil)
 
 	assert.True(test.T(), newCount > orgCount)
@@ -118,6 +121,7 @@ func (test *repoBBTest) TestList() {
 			foundNewSpaceInList = true
 		}
 	}
+	// then
 	assert.True(test.T(), foundNewSpaceInList)
 }
 
