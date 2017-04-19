@@ -104,9 +104,21 @@ func (test *repoBBTest) TestDelete() {
 
 func (test *repoBBTest) TestList() {
 	_, orgCount, _ := test.list(nil, nil)
-	expectSpace(test.create(testSpace), test.requireOk)
-	_, newCount, _ := test.list(nil, nil)
-	assert.Equal(test.T(), orgCount+1, newCount)
+	newSpace, err := expectSpace(test.create(testSpace), test.requireOk)
+
+	require.Nil(test.T(), err)
+	require.NotNil(test.T(), newSpace)
+	updatedListOfSpaces, newCount, _ := test.list(nil, nil)
+
+	assert.True(test.T(), newCount > orgCount)
+
+	foundNewSpaceInList := false
+	for _, retrievedSpace := range updatedListOfSpaces {
+		if retrievedSpace.ID == newSpace.ID {
+			foundNewSpaceInList = true
+		}
+	}
+	assert.True(test.T(), foundNewSpaceInList)
 }
 
 func (test *repoBBTest) TestListDoNotReturnPointerToSameObject() {
