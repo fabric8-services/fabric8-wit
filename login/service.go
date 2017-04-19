@@ -119,7 +119,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"rknown_referrer": knownReferrer,
+			"known_referrer": knownReferrer,
 		}, "referrer found")
 
 		keycloakToken, err := config.Exchange(ctx, code)
@@ -134,7 +134,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"rknown_referrer": knownReferrer,
+			"known_referrer": knownReferrer,
 		}, "exchanged code to access token")
 
 		_, usr, err := keycloak.CreateOrUpdateKeycloakUser(keycloakToken.AccessToken, ctx, profileEndpoint)
@@ -152,7 +152,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"rknown-Referrer": knownReferrer,
+			"known-Referrer": knownReferrer,
 			"user-name":       usr.Email,
 		}, "local user created/updated")
 
@@ -178,7 +178,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"rknown_referrer": knownReferrer,
+			"known_referrer": knownReferrer,
 			"user_name":       usr.Email,
 		}, "token encoded")
 
@@ -197,7 +197,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"rknown-Referrer": knownReferrer,
+			"known-Referrer": knownReferrer,
 			"user_name":       usr.Email,
 			"linked":          linked,
 		}, "identies links checked")
@@ -209,7 +209,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			log.Debug(ctx, map[string]interface{}{
 				"code":            code,
 				"state":           state,
-				"rknown-Referrer": knownReferrer,
+				"known-Referrer": knownReferrer,
 				"user-name":       usr.Email,
 				"linked":          linked,
 				"referrer-str":    referrerStr,
@@ -223,7 +223,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			log.Debug(ctx, map[string]interface{}{
 				"code":            code,
 				"state":           state,
-				"rknown_referrer": knownReferrer,
+				"known_referrer": knownReferrer,
 				"user_name":       usr.Email,
 				"linked":          linked,
 				"referrer_str":    referrerStr,
@@ -235,7 +235,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 		log.Debug(ctx, map[string]interface{}{
 			"code":            code,
 			"state":           state,
-			"rknown_referrer": knownReferrer,
+			"known_referrer": knownReferrer,
 			"user_name":       usr.Email,
 			"linked":          linked,
 		}, "linking identities...")
