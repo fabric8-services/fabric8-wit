@@ -111,8 +111,6 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration51", testMigration51)
 	t.Run("TestMigration52", testMigration52)
 	t.Run("testMigration53", testMigration53)
-
-	t.Run("TestMigration53", testMigration53)
 	t.Run("TestMigration54", testMigration54)
 
 	// Perform the migration
