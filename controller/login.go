@@ -106,7 +106,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		RedirectURL:  rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize"),
 	}
 
-	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist)
+	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist, c.configuration.GetHeaderMaxLength())
 }
 
 // Refresh obtain a new access token using the refresh token.
