@@ -282,6 +282,9 @@ func GetMigrations() Migrations {
 	// Version 54
 	m = append(m, steps{ExecuteSQLFile("054-add-stackid-to-codebase.sql")})
 
+	// Version 55
+	m = append(m, steps{ExecuteSQLFile("055-assign-root-area-if-missing.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
