@@ -683,8 +683,7 @@ func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, c
 
 // GetCountsPerIteration counts WIs including iteration-children and returns a map of iterationID->WICountsPerIteration
 func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error) {
-	db := r.db.Debug()
-	db = db.Table("iterations").Select("id").Where("space_id = ? AND deleted_at IS NULL", spaceID)
+	db := r.db.Model(&iteration.Iteration{}).Where("space_id = ?", spaceID)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
