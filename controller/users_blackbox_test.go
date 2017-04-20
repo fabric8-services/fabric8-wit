@@ -455,7 +455,7 @@ func (s *TestUsersSuite) TestListUsersOK() {
 	user2 := s.createRandomUser("TestListUsersOK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil)
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
 	// then
 	assertUser(s.T(), findUser(identity1.ID, result.Data), user1, identity1)
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
@@ -472,7 +472,7 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfModifiedSinceHeader() {
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt.Add(-1 * time.Hour))
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, &ifModifiedSinceHeader, nil)
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, &ifModifiedSinceHeader, nil)
 	// then
 	assertUser(s.T(), findUser(identity1.ID, result.Data), user1, identity1)
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
@@ -489,7 +489,7 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfNoneMatchHeader() {
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	ifNoneMatch := "foo"
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, &ifNoneMatch)
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &ifNoneMatch)
 	s.T().Log(fmt.Sprintf("List of users: %v", result))
 	// then
 	assertUser(s.T(), findUser(identity1.ID, result.Data), user1, identity1)
@@ -507,7 +507,7 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfModifiedSinceHeader() {
 	s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when/then
 	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt)
-	test.ListUsersNotModified(s.T(), nil, nil, s.controller, &ifModifiedSinceHeader, nil)
+	test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, &ifModifiedSinceHeader, nil)
 }
 
 func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
@@ -518,10 +518,68 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
 	// given user2
 	user2 := s.createRandomUser("TestListUsersNotModifiedUsingIfNoneMatchHeader2")
 	s.createRandomIdentity(user2, account.KeycloakIDP)
-	_, allUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil)
+	_, allUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
 	// when/then
 	ifNoneMatch := s.generateUsersTag(*allUsers)
-	test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, &ifNoneMatch)
+	test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &ifNoneMatch)
+}
+
+func (s *TestUsersSuite) TestListUsersByUsernameOK() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
+	s.createRandomIdentity(user1, "github-test")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity11.Username, nil, nil)
+	// then
+	for i, data := range result.Data {
+		s.T().Log(fmt.Sprintf("Result #%d: %s %v", i, *data.ID, *data.Attributes.Username))
+	}
+	require.Len(s.T(), result.Data, 1)
+	assertUser(s.T(), findUser(identity11.ID, result.Data), user1, identity11)
+}
+
+func (s *TestUsersSuite) TestListUsersByEmailOK() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
+	_ = s.createRandomIdentity(user1, "xyz-idp")
+
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, &user1.Email, nil, nil, nil, nil)
+	// then
+	for i, data := range result.Data {
+		s.T().Log(fmt.Sprintf("Result #%d: %s %v", i, *data.ID, *data.Attributes.Username))
+	}
+	// even though 2 identites were created, only 1 app user was returned.
+	// this is because only we currently consider only kc identites.
+	require.Len(s.T(), result.Data, 1)
+	assertUser(s.T(), findUser(identity11.ID, result.Data), user1, identity11)
+}
+
+func (s *TestUsersSuite) TestListUsersByRegistrationCompletedOK() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	_ = s.createRandomIdentity(user1, account.KeycloakIDP)
+	_ = s.createRandomIdentity(user1, "xyz-idp")
+
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	boolFalse := false
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, &boolFalse, nil, nil, nil)
+	// then
+	for i, data := range result.Data {
+		s.T().Log(fmt.Sprintf("Result #%d: %s %v", i, *data.ID, *data.Attributes.Username))
+		assert.False(s.T(), *data.Attributes.RegistrationCompleted)
+	}
 }
 
 func (s *TestUsersSuite) createRandomUser(fullname string) account.User {

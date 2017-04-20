@@ -7,6 +7,7 @@ import (
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
+
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/goadesign/goa"
@@ -184,4 +185,18 @@ func (m *GormUserRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]User, er
 	}, "User query done successfully!")
 
 	return objs, nil
+}
+
+// UserFilterByID is a gorm filter for User ID.
+func UserFilterByID(userID uuid.UUID) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("id = ?", userID)
+	}
+}
+
+// UserFilterByEmail is a gorm filter for User ID.
+func UserFilterByEmail(email string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("email = ?", email)
+	}
 }

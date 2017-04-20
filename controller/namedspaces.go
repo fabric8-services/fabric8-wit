@@ -53,9 +53,6 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 
 		return ctx.OK(&resp)
 	})
-
-	res := &app.SpaceSingle{}
-	return ctx.OK(res)
 }
 
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {

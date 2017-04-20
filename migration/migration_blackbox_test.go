@@ -111,6 +111,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration51", testMigration51)
 	t.Run("TestMigration52", testMigration52)
 	t.Run("testMigration53", testMigration53)
+	t.Run("TestMigration54", testMigration54)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -244,6 +245,14 @@ func testMigration53(t *testing.T) {
 	}
 }
 
+func testMigration54(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+10)], (initialMigratedVersion + 10))
+
+	assert.True(t, dialect.HasColumn("codebases", "stack_id"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "054-add-stackid-to-codebase.sql"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -309,8 +318,6 @@ func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
 		}
 
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
-			panic(fmt.Errorf("Failed to migrate to version %d: %s\n", nextVersion, err))
-
 			if err = tx.Rollback(); err != nil {
 				panic(fmt.Errorf("error while rolling back transaction: ", err))
 			}

@@ -13,7 +13,6 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
@@ -76,7 +75,7 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 		assert.Fail(t, "Failed to create an identity")
 	}
 
-	name := "Test 24" + uuid.NewV4().String()
+	name := testsupport.CreateRandomValidTestName("Test 24")
 
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name
@@ -113,7 +112,7 @@ func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
 		assert.Fail(t, "Failed to create an identity")
 	}
 
-	name := "Test 24" + uuid.NewV4().String()
+	name := testsupport.CreateRandomValidTestName("Test 24")
 
 	p := minimumRequiredCreateSpace()
 	p.Data.Attributes.Name = &name

@@ -165,6 +165,12 @@ var _ = a.Resource("users", func() {
 			a.GET(""),
 		)
 		a.Description("List all users.")
+		a.Params(func() {
+			// This is not filtering - mutliple params do not work as "AND".
+			a.Param("filter[username]", d.String, "username to search users")
+			a.Param("filter[email]", d.String, "email to search users")
+			a.Param("filter[registrationCompleted]", d.Boolean, "users who have not completed registration")
+		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, userArray)
 		a.Response(d.NotModified)

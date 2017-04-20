@@ -16,6 +16,7 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
+	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 
 	uuid "github.com/satori/go.uuid"
@@ -264,34 +265,91 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		var err error
-		var users []account.User
-		users, err = appl.Users().List(ctx.Context)
+		users, identities, err := filterUsers(appl, ctx)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing users"))
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalEntities(users, c.config.GetCacheControlUsers, func() error {
-			result, err := LoadKeyCloakIdentities(appl, ctx.RequestData, users)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing users"))
+			var appUsers []*app.UserData
+			for i := range users {
+				appUser := ConvertToAppUser(ctx.RequestData, &users[i], &identities[i])
+				appUsers = append(appUsers, appUser.Data)
 			}
-			return ctx.OK(result)
+			return ctx.OK(&app.UserArray{Data: appUsers})
 		})
 	})
 }
 
-// LoadKeyCloakIdentities loads keycloak identies for the users and converts the users into REST representation
-func LoadKeyCloakIdentities(appl application.Application, request *goa.RequestData, users []account.User) (*app.UserArray, error) {
-	data := make([]*app.UserData, len(users))
-	for i, user := range users {
+func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]account.User, []account.Identity, error) {
+	var err error
+	var resultUsers []account.User
+	var resultIdentities []account.Identity
+	/*
+		There are 2 database tables we fetch the data from : identities , users
+		First, we filter on the attributes of identities table - providerType , username
+		After that we use the above result to cumulatively filter on users  - email , company
+	*/
+	identityFilters := []func(*gorm.DB) *gorm.DB{}
+	userFilters := []func(*gorm.DB) *gorm.DB{}
+	/*** Start filtering on Identities table ****/
+	if ctx.FilterUsername != nil {
+		identityFilters = append(identityFilters, account.IdentityFilterByUsername(*ctx.FilterUsername))
+	}
+	if ctx.FilterRegistrationCompleted != nil {
+		identityFilters = append(identityFilters, account.IdentityFilterByRegistrationCompleted(*ctx.FilterRegistrationCompleted))
+	}
+	// Add more filters when needed , here. ..
+	if len(identityFilters) != 0 {
+		identityFilters = append(identityFilters, account.IdentityFilterByProviderType(account.KeycloakIDP))
+		identityFilters = append(identityFilters, account.IdentityWithUser())
+		// From a data model perspective, we are querying by identity ( and not user )
+		filteredIdentities, err := appl.Identities().Query(identityFilters...)
+		if err != nil {
+			return nil, nil, errs.Wrap(err, "error fetching identities with filter(s)")
+		}
+		// cumulatively filter out those not matching the user-based filters.
+		for _, identity := range filteredIdentities {
+			// this is where you keep trying all other filters one by one for 'user' fields like email.
+			if ctx.FilterEmail == nil || identity.User.Email == *ctx.FilterEmail {
+				resultUsers = append(resultUsers, identity.User)
+				resultIdentities = append(resultIdentities, identity)
+			}
+		}
+	} else {
+		/*** Start filtering on Users table ****/
+		if ctx.FilterEmail != nil {
+			userFilters = append(userFilters, account.UserFilterByEmail(*ctx.FilterEmail))
+		}
+		// .. Add other filters in future when needed into the userFilters slice in the above manner.
+		if len(userFilters) != 0 {
+			resultUsers, err = appl.Users().Query(userFilters...)
+		} else {
+			// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
+			// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
+			resultUsers, err = appl.Users().List(ctx.Context)
+		}
+		if err != nil {
+			return nil, nil, errs.Wrap(err, "error fetching users")
+		}
+		resultIdentities, err = LoadKeyCloakIdentities(appl, resultUsers)
+		if err != nil {
+			return nil, nil, errs.Wrap(err, "error fetching keycloak identities")
+		}
+	}
+	return resultUsers, resultIdentities, nil
+}
+
+// LoadKeyCloakIdentities loads keycloak identies for the users and returns their associated identities
+func LoadKeyCloakIdentities(appl application.Application, users []account.User) ([]account.Identity, error) {
+	var identities []account.Identity
+	for _, user := range users {
 		identity, err := loadKeyCloakIdentity(appl, user)
 		if err != nil {
 			return nil, err
 		}
-		appUser := ConvertToAppUser(request, &user, identity)
-		data[i] = appUser.Data
+		identities = append(identities, *identity)
 	}
-	return &app.UserArray{Data: data}, nil
+	return identities, nil
 }
 
 func loadKeyCloakIdentity(appl application.Application, user account.User) (*account.Identity, error) {

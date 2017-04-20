@@ -96,7 +96,7 @@ func main() {
 		}
 	}
 
-	if configuration.IsPostgresDeveloperModeEnabled() {
+	if configuration.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
 		db = db.Debug()
 	}
 
@@ -204,7 +204,7 @@ func main() {
 	app.MountWorkItemLinkCategoryController(service, workItemLinkCategoryCtrl)
 
 	// Mount "work item link type" controller
-	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB)
+	workItemLinkTypeCtrl := controller.NewWorkItemLinkTypeController(service, appDB, configuration)
 	app.MountWorkItemLinkTypeController(service, workItemLinkTypeCtrl)
 
 	// Mount "work item link" controller
@@ -237,6 +237,10 @@ func main() {
 
 	// Mount "user" controller
 	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
+	if configuration.GetTenantServiceURL() != "" {
+		log.Logger().Infof("Enabling Init Tenant service %v", configuration.GetTenantServiceURL())
+		userCtrl.InitTenant = account.NewInitTenant(configuration)
+	}
 	app.MountUserController(service, userCtrl)
 
 	// Mount "search" controller

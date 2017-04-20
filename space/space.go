@@ -75,8 +75,8 @@ type Repository interface {
 	Save(ctx context.Context, space *Space) (*Space, error)
 	Load(ctx context.Context, ID uuid.UUID) (*Space, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
-	LoadByOwner(ctx context.Context, userId *uuid.UUID, start *int, length *int) ([]Space, uint64, error)
-	LoadByOwnerAndName(ctx context.Context, userId *uuid.UUID, spaceName *string) (*Space, error)
+	LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, length *int) ([]Space, uint64, error)
+	LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error)
 	List(ctx context.Context, start *int, length *int) ([]Space, uint64, error)
 	Search(ctx context.Context, q *string, start *int, length *int) ([]Space, uint64, error)
 }
@@ -197,7 +197,7 @@ func (r *GormRepository) Create(ctx context.Context, space *Space) (*Space, erro
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId *uuid.UUID, start *int, limit *int) ([]Space, uint64, error) {
+func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userID *uuid.UUID, start *int, limit *int) ([]Space, uint64, error) {
 	db := r.db.Model(&Space{})
 	orgDB := db
 	if start != nil {
@@ -217,8 +217,8 @@ func (r *GormRepository) listSpaceFromDB(ctx context.Context, q *string, userId 
 		db = db.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(*q)+"%")
 		db = db.Or("LOWER(description) LIKE ?", "%"+strings.ToLower(*q)+"%")
 	}
-	if userId != nil {
-		db = db.Where("spaces.owner_id=?", userId)
+	if userID != nil {
+		db = db.Where("spaces.owner_id=?", userID)
 	}
 
 	rows, err := db.Rows()
@@ -292,21 +292,21 @@ func (r *GormRepository) Search(ctx context.Context, q *string, start *int, limi
 	return result, count, nil
 }
 
-func (r *GormRepository) LoadByOwner(ctx context.Context, userId *uuid.UUID, start *int, limit *int) ([]Space, uint64, error) {
-	result, count, err := r.listSpaceFromDB(ctx, nil, userId, start, limit)
+func (r *GormRepository) LoadByOwner(ctx context.Context, userID *uuid.UUID, start *int, limit *int) ([]Space, uint64, error) {
+	result, count, err := r.listSpaceFromDB(ctx, nil, userID, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
 	return result, count, nil
 }
 
-func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userId *uuid.UUID, spaceName *string) (*Space, error) {
+func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error) {
 	res := Space{}
-	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userId, *spaceName).First(&res)
+	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userID, *spaceName).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"space_name": *spaceName,
-			"user_id":    *userId,
+			"user_id":    *userID,
 		}, "Could not find space under owner")
 		return nil, errors.NewNotFoundError("space", *spaceName)
 	}

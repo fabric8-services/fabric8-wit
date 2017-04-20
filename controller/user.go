@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -19,6 +21,7 @@ type UserController struct {
 	db           application.DB
 	tokenManager token.Manager
 	config       UserControllerConfiguration
+	InitTenant   func(context.Context) error
 }
 
 // UserControllerConfiguration the configuration for the UserController
@@ -62,6 +65,11 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 			}
 		}
 		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUser, func() error {
+			if c.InitTenant != nil {
+				go func(ctx context.Context) {
+					c.InitTenant(ctx)
+				}(ctx)
+			}
 			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
 		})
 	})

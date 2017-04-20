@@ -761,7 +761,7 @@ func (s *WorkItem2Suite) SetupTest() {
 	s.wiCtrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.wi2Ctrl = NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCatCtrl = NewWorkItemLinkCategoryController(s.svc, gormapplication.NewGormDB(s.DB))
-	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB))
+	s.linkTypeCtrl = NewWorkItemLinkTypeController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.linkCtrl = NewWorkItemLinkController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	s.spaceCtrl = NewSpaceController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration, &DummyResourceManager{})
 
@@ -2209,10 +2209,9 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	ctrlNotAuthrize := NewWorkitemController(svcNotAuthrized, gormapplication.NewGormDB(s.DB), s.Configuration)
 
 	_, wi := test.CreateWorkitemCreated(s.T(), svc.Context, svc, ctrl, payload.Data.Relationships.Space.Data.ID.String(), &payload)
-	// Not a space owner is not authorized to create
-	test.CreateWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, payload.Data.Relationships.Space.Data.ID.String(), &payload)
+	_, wi2 := test.CreateWorkitemCreated(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, payload.Data.Relationships.Space.Data.ID.String(), &payload)
 
-	// Update the workitem
+	// Update the workitem by space collaborator
 	wi.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
 	payload2 := minimumRequiredUpdatePayloadWithSpace(*space.ID)
 	payload2.Data.ID = wi.Data.ID
@@ -2223,8 +2222,19 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
 	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
 
+	// Update the workitem by the owner
+	wi2.Data.Attributes[workitem.SystemTitle] = "Updated Test WI"
+	payload3 := minimumRequiredUpdatePayloadWithSpace(*space.ID)
+	payload3.Data.ID = wi2.Data.ID
+	payload3.Data.Attributes = wi2.Data.Attributes
+	_, updated = test.UpdateWorkitemOK(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, payload.Data.Relationships.Space.Data.ID.String(), *wi2.Data.ID, &payload3)
+
+	assert.Equal(s.T(), *wi2.Data.ID, *updated.Data.ID)
+	assert.Equal(s.T(), (s.wi.Attributes["version"].(int) + 1), updated.Data.Attributes["version"])
+	assert.Equal(s.T(), wi2.Data.Attributes[workitem.SystemTitle], updated.Data.Attributes[workitem.SystemTitle])
+
 	// Check the execution order
-	assert.Equal(s.T(), wi.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
+	assert.Equal(s.T(), wi2.Data.Attributes[workitem.SystemOrder], updated.Data.Attributes[workitem.SystemOrder])
 
 	// Not a space collaborator is not authorized to update
 	test.UpdateWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, payload.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &payload2)
@@ -2232,12 +2242,12 @@ func (s *WorkItemSuite) TestUpdateWorkitemForSpaceCollaborator() {
 	// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
 	// test.DeleteWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, payload.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID)
 	// Not a space collaborator is not authorized to reoder
-	payload3 := minimumRequiredReorderPayload()
+	payload4 := minimumRequiredReorderPayload()
 	var dataArray []*app.WorkItem // dataArray contains the workitem(s) that have to be reordered
 	dataArray = append(dataArray, wi.Data)
-	payload3.Data = dataArray
-	payload3.Position.Direction = string(workitem.DirectionTop)
-	test.ReorderWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, space.ID.String(), &payload3)
+	payload4.Data = dataArray
+	payload4.Position.Direction = string(workitem.DirectionTop)
+	test.ReorderWorkitemUnauthorized(s.T(), svcNotAuthrized.Context, svcNotAuthrized, ctrlNotAuthrize, space.ID.String(), &payload4)
 }
 
 func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.ConditionalResponseEntity {

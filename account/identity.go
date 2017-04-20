@@ -307,6 +307,20 @@ func IdentityWithUser() func(db *gorm.DB) *gorm.DB {
 	}
 }
 
+// IdentityFilterByProviderType is a gorm filter by 'provider_type'
+func IdentityFilterByProviderType(providerType string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("provider_type = ?", providerType)
+	}
+}
+
+// IdentityFilterByRegistrationCompleted is a gorm filter by 'registration_completed'
+func IdentityFilterByRegistrationCompleted(registrationCompleted bool) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		return db.Where("registration_completed = ?", registrationCompleted)
+	}
+}
+
 // List return all user identities
 func (m *GormIdentityRepository) List(ctx context.Context) ([]Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "list"}, time.Now())
