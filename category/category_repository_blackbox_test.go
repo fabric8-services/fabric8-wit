@@ -61,10 +61,6 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadValidCategory() {
 
 // TestCreateLoadInvalidCategory tests create and load invalid category
 func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
-	category1 := category.Category{
-		Name: "Backlog",
-	}
-
 	test.T().Run("create and load (invalid)", func(t *testing.T) {
 		test.repo.LoadCategoryFromDB(test.ctx, category.PlannerRequirementsID) // Load
 		test.repo.LoadCategoryFromDB(test.ctx, category.PlannerIssuesID)       // Load
