@@ -2259,3 +2259,12 @@ func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.Co
 		},
 	}
 }
+
+func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
+	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	assert.Len(s.T(), result.Data, 3)
+
+	pe := false
+	_, result2 := test.ListWorkitemOK(s.T(), nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+	assert.Len(s.T(), result2.Data, 1)
+}
