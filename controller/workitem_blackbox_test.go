@@ -2261,10 +2261,21 @@ func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.Co
 }
 
 func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
-	_, result := test.ListWorkitemOK(s.T(), nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-	assert.Len(s.T(), result.Data, 3)
+	s.T().Run("without parentexists filter", func(t *testing.T) {
+		_, result := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		assert.Len(t, result.Data, 3)
+	})
 
-	pe := false
-	_, result2 := test.ListWorkitemOK(s.T(), nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
-	assert.Len(s.T(), result2.Data, 1)
+	s.T().Run("with parentexists value set to false", func(t *testing.T) {
+		pe := false
+		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+		assert.Len(t, result2.Data, 1)
+	})
+
+	s.T().Run("with parentexists value set to true", func(t *testing.T) {
+		pe := true
+		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+		assert.Len(t, result2.Data, 3)
+	})
+
 }
