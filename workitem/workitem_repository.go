@@ -561,12 +561,9 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 	}
 	where = where + " AND space_id = ?"
 	parameters = append(parameters, spaceID)
-	pe := true
-	if parentExists == nil {
-		parentExists = &pe
-	}
-	if *parentExists == false {
-		where = where + " AND " + `
+
+	if parentExists != nil && !*parentExists {
+		where += ` AND
 			id not in (
 				SELECT target_id FROM work_item_links
 				WHERE link_type_id IN (
