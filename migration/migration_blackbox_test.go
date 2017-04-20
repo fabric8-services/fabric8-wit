@@ -111,6 +111,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration51", testMigration51)
 	t.Run("TestMigration52", testMigration52)
 	t.Run("testMigration53", testMigration53)
+	t.Run("TestMigration54", testMigration54)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -242,6 +243,14 @@ func testMigration53(t *testing.T) {
 		err = rows.Scan(&registration_completed)
 		assert.True(t, registration_completed == false)
 	}
+}
+
+func testMigration54(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+10)], (initialMigratedVersion + 10))
+
+	assert.True(t, dialect.HasColumn("codebases", "stack_id"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "054-add-stackid-to-codebase.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

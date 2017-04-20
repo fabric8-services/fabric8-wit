@@ -151,8 +151,23 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	})
 }
 
+// Returns true if the user is the work item creator or space collaborator
+func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+	if editorID == creatorID {
+		return true, nil
+	}
+	authorized, err := authz.Authorize(ctx, spaceID.String())
+	if err != nil {
+		return false, errors.NewUnauthorizedError(err.Error())
+	}
+	return authorized, nil
+}
+
 // Update does PATCH workitem
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
+	if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
+	}
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
@@ -161,21 +176,31 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	authorized, err := authz.Authorize(ctx, ctx.ID)
+
+	var wi *workitem.WorkItem
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		wi, err = appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data.ID)
+		if err != nil {
+			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID))
+		}
+		return nil
+	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	creator := wi.Fields[workitem.SystemCreator]
+	if creator == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
+	}
+
+	authorized, err := authorizeWorkitemEditor(ctx, c.db, spaceID, creator.(string), currentUserIdentityID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
-		}
-		wi, err := appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data.ID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID)))
-		}
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
@@ -263,13 +288,6 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	authorized, err := authz.Authorize(ctx, ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&

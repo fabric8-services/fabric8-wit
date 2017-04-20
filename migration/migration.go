@@ -280,8 +280,11 @@ func GetMigrations() Migrations {
 	// Version 53
 	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
 
-	// Version 51
-	m = append(m, steps{ExecuteSQLFile("051-categories.sql")})
+	// Version 54
+	m = append(m, steps{ExecuteSQLFile("054-add-stackid-to-codebase.sql")})
+
+	// Version 55
+	m = append(m, steps{ExecuteSQLFile("055-categories.sql")})
 
 	// Version N
 	//
