@@ -66,8 +66,8 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
 	}
 
 	test.T().Run("create and load (invalid)", func(t *testing.T) {
-		result2, err := test.repo.LoadCategoryFromDB(test.ctx, category.PlannerRequirementsID) // Load
-		result2, err := test.repo.LoadCategoryFromDB(test.ctx, category.PlannerIssuesID)       // Load
+		test.repo.LoadCategoryFromDB(test.ctx, category.PlannerRequirementsID) // Load
+		test.repo.LoadCategoryFromDB(test.ctx, category.PlannerIssuesID)       // Load
 		/*result1, err := test.repo.Create(test.ctx, &category1) // Create
 		require.Nil(test.T(), err)
 		require.NotNil(test.T(), result1)
