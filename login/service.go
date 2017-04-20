@@ -763,15 +763,17 @@ func fillUser(claims *keycloakTokenClaims, user *account.User) error {
 	user.FullName = claims.Name
 	user.Email = claims.Email
 	user.Company = claims.Company
-	image, err := generateGravatarURL(claims.Email)
-	if err != nil {
-		log.Warn(nil, map[string]interface{}{
-			"user_full_name": user.FullName,
-			"err":            err,
-		}, "error when generating gravatar")
-		return errors.New("Error when generating gravatar " + err.Error())
+	if user.ImageURL == "" {
+		image, err := generateGravatarURL(claims.Email)
+		if err != nil {
+			log.Warn(nil, map[string]interface{}{
+				"user_full_name": user.FullName,
+				"err":            err,
+			}, "error when generating gravatar")
+			return errors.New("Error when generating gravatar " + err.Error())
+		}
+		user.ImageURL = image
 	}
-	user.ImageURL = image
 	return nil
 }
 
