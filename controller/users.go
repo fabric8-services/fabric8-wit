@@ -138,7 +138,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if updatedEmail != nil {
 			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.UserID.UUID, user.ID)))
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
 			}
 			if !isUnique {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
