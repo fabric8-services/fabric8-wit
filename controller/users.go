@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -270,10 +271,10 @@ func (c *UsersController) List(ctx *app.ListUsersContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		return ctx.ConditionalEntities(users, c.config.GetCacheControlUsers, func() error {
-			var appUsers []*app.UserData
+			appUsers := make([]*app.UserData, len(users))
 			for i := range users {
 				appUser := ConvertToAppUser(ctx.RequestData, &users[i], &identities[i])
-				appUsers = append(appUsers, appUser.Data)
+				appUsers[i] = appUser.Data
 			}
 			return ctx.OK(&app.UserArray{Data: appUsers})
 		})
@@ -316,22 +317,23 @@ func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]acc
 			}
 		}
 	} else {
+		var filteredUsers []account.User
 		/*** Start filtering on Users table ****/
 		if ctx.FilterEmail != nil {
 			userFilters = append(userFilters, account.UserFilterByEmail(*ctx.FilterEmail))
 		}
 		// .. Add other filters in future when needed into the userFilters slice in the above manner.
 		if len(userFilters) != 0 {
-			resultUsers, err = appl.Users().Query(userFilters...)
+			filteredUsers, err = appl.Users().Query(userFilters...)
 		} else {
 			// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
 			// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
-			resultUsers, err = appl.Users().List(ctx.Context)
+			filteredUsers, err = appl.Users().List(ctx.Context)
 		}
 		if err != nil {
 			return nil, nil, errs.Wrap(err, "error fetching users")
 		}
-		resultIdentities, err = LoadKeyCloakIdentities(appl, resultUsers)
+		resultUsers, resultIdentities, err = LoadKeyCloakIdentities(appl, filteredUsers)
 		if err != nil {
 			return nil, nil, errs.Wrap(err, "error fetching keycloak identities")
 		}
@@ -339,17 +341,22 @@ func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]acc
 	return resultUsers, resultIdentities, nil
 }
 
-// LoadKeyCloakIdentities loads keycloak identies for the users and returns their associated identities
-func LoadKeyCloakIdentities(appl application.Application, users []account.User) ([]account.Identity, error) {
-	var identities []account.Identity
+// LoadKeyCloakIdentities loads keycloak identities for the users and returns the valid users along with their KC identities
+// (if a user is missing his/her KC identity, he/she is filtered out of the result array)
+func LoadKeyCloakIdentities(appl application.Application, users []account.User) ([]account.User, []account.Identity, error) {
+	var resultUsers []account.User
+	var resultIdentities []account.Identity
 	for _, user := range users {
 		identity, err := loadKeyCloakIdentity(appl, user)
+		// if we can't find the Keycloak identity
 		if err != nil {
-			return nil, err
+			logrus.Error(err)
+		} else {
+			resultUsers = append(resultUsers, user)
+			resultIdentities = append(resultIdentities, *identity)
 		}
-		identities = append(identities, *identity)
 	}
-	return identities, nil
+	return resultUsers, resultIdentities, nil
 }
 
 func loadKeyCloakIdentity(appl application.Application, user account.User) (*account.Identity, error) {

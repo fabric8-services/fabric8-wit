@@ -462,6 +462,21 @@ func (s *TestUsersSuite) TestListUsersOK() {
 	assertMultiUsersResponseHeaders(s.T(), res, user2)
 }
 
+// a user should always have a KC identity, but just in case, the server should not fail
+// to respond to the query if data some data is invalid.
+func (s *TestUsersSuite) TestListUsersWithMissingKeycloakIdentityOK() {
+	// given user1
+	s.createRandomUser("TestListUsersOK1")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
+	// then
+	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
+	assertMultiUsersResponseHeaders(s.T(), res, user2)
+}
+
 func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfModifiedSinceHeader() {
 	// given user1
 	user1 := s.createRandomUser("TestListUsersOKUsingExpiredIfModifiedSinceHeader")
@@ -505,9 +520,11 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfModifiedSinceHeader() {
 	// given user2
 	user2 := s.createRandomUser("TestListUsersNotModifiedUsingIfModifiedSinceHeader2")
 	s.createRandomIdentity(user2, account.KeycloakIDP)
-	// when/then
+	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt)
-	test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, &ifModifiedSinceHeader, nil)
+	res := test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, &ifModifiedSinceHeader, nil)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
@@ -519,9 +536,11 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
 	user2 := s.createRandomUser("TestListUsersNotModifiedUsingIfNoneMatchHeader2")
 	s.createRandomIdentity(user2, account.KeycloakIDP)
 	_, allUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
-	// when/then
+	// when
 	ifNoneMatch := s.generateUsersTag(*allUsers)
-	test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &ifNoneMatch)
+	res := test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 func (s *TestUsersSuite) TestListUsersByUsernameOK() {
@@ -540,6 +559,38 @@ func (s *TestUsersSuite) TestListUsersByUsernameOK() {
 	}
 	require.Len(s.T(), result.Data, 1)
 	assertUser(s.T(), findUser(identity11.ID, result.Data), user1, identity11)
+}
+
+func (s *TestUsersSuite) TestListUsersByUsernameOKEmptyResult() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	s.createRandomIdentity(user1, account.KeycloakIDP)
+	s.createRandomIdentity(user1, "github-test")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	username := "foobar"
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &username, nil, nil)
+	// then
+	require.Len(s.T(), result.Data, 0)
+}
+
+func (s *TestUsersSuite) TestListUsersByUsernameNotModifiedUsingIfNoneMatchHeader() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	identity11 := s.createRandomIdentity(user1, account.KeycloakIDP)
+	s.createRandomIdentity(user1, "github-test")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	_, filteredUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity11.Username, nil, nil)
+	// when/then
+	ifNoneMatch := s.generateUsersTag(*filteredUsers)
+	// when
+	res := test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, &identity11.Username, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 func (s *TestUsersSuite) TestListUsersByEmailOK() {
@@ -561,6 +612,37 @@ func (s *TestUsersSuite) TestListUsersByEmailOK() {
 	// this is because only we currently consider only kc identites.
 	require.Len(s.T(), result.Data, 1)
 	assertUser(s.T(), findUser(identity11.ID, result.Data), user1, identity11)
+}
+
+func (s *TestUsersSuite) TestListUsersByEmailOKEmptyResult() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	s.createRandomIdentity(user1, account.KeycloakIDP)
+	s.createRandomIdentity(user1, "xyz-idp")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	// when
+	email := "foo@bar.com"
+	_, result := test.ListUsersOK(s.T(), nil, nil, s.controller, &email, nil, nil, nil, nil)
+	// then
+	require.Len(s.T(), result.Data, 0)
+}
+
+func (s *TestUsersSuite) TestListUsersByEmailNotModifiedUsingIfNoneMatchHeader() {
+	// given user1
+	user1 := s.createRandomUser("TestListUsersOK1")
+	s.createRandomIdentity(user1, account.KeycloakIDP)
+	s.createRandomIdentity(user1, "xyz-idp")
+	// given user2
+	user2 := s.createRandomUser("TestListUsersOK2")
+	s.createRandomIdentity(user2, account.KeycloakIDP)
+	_, filteredUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, &user1.Email, nil, nil, nil, nil)
+	// when
+	ifNoneMatch := s.generateUsersTag(*filteredUsers)
+	res := test.ListUsersNotModified(s.T(), nil, nil, s.controller, &user1.Email, nil, nil, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(s.T(), res)
 }
 
 func (s *TestUsersSuite) TestListUsersByRegistrationCompletedOK() {
