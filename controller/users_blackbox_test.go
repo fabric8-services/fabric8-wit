@@ -164,7 +164,7 @@ func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
 	assert.Equal(s.T(), identity2.ID.String(), *result2.Data.ID)
 
 	// try updating using the username of an existing ( just created ) user.
-	secureService, secureController := s.SecuredController(identity)
+	secureService, secureController := s.SecuredController(identity2)
 
 	contextInformation := map[string]interface{}{
 		"last_visited": "yesterday",
@@ -172,7 +172,7 @@ func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
 
 	newUserName := identity.Username
 	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
-	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
@@ -188,7 +188,7 @@ func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
 	assert.Equal(s.T(), identity2.ID.String(), *result2.Data.ID)
 
 	// try updating using the email of an existing ( just created ) user.
-	secureService, secureController := s.SecuredController(identity)
+	secureService, secureController := s.SecuredController(identity2)
 
 	contextInformation := map[string]interface{}{
 		"last_visited": "yesterday",
@@ -196,7 +196,7 @@ func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
 
 	newEmail := user.Email
 	updateUsersPayload := createUpdateUsersPayload(&newEmail, nil, nil, nil, nil, nil, nil, contextInformation)
-	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {

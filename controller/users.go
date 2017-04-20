@@ -138,7 +138,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if updatedEmail != nil {
 			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating user with id %s", identity.UserID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.UserID.UUID, user.ID)))
 			}
 			if !isUnique {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
@@ -269,7 +269,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 }
 
 func isUsernameUnique(appl application.Application, username string, identity account.Identity) (bool, error) {
-	usersWithSameUserName, err := appl.Identities().Query(account.IdentityFilterByUsername(username))
+	usersWithSameUserName, err := appl.Identities().Query(account.IdentityFilterByUsername(username), account.IdentityFilterByProviderType(account.KeycloakIDP))
 	if err != nil {
 		log.Error(context.Background(), map[string]interface{}{
 			"user_name": username,
@@ -286,7 +286,7 @@ func isUsernameUnique(appl application.Application, username string, identity ac
 }
 
 func isEmailUnique(appl application.Application, email string, user account.User) (bool, error) {
-	usersWithSameEmail, err := appl.Identities().Query(account.UserFilterByEmail(email))
+	usersWithSameEmail, err := appl.Users().Query(account.UserFilterByEmail(email))
 	if err != nil {
 		log.Error(context.Background(), map[string]interface{}{
 			"email": email,
@@ -295,7 +295,7 @@ func isEmailUnique(appl application.Application, email string, user account.User
 		return false, err
 	}
 	for _, u := range usersWithSameEmail {
-		if u.UserID.UUID != user.ID {
+		if u.ID != user.ID {
 			return false, nil
 		}
 	}
