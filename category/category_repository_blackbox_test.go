@@ -61,21 +61,34 @@ func (test *categoryRepoBlackBoxTest) TestCreateLoadValidCategory() {
 
 // TestCreateLoadInvalidCategory tests create and load invalid category
 func (test *categoryRepoBlackBoxTest) TestCreateLoadInvalidCategory() {
+	category1 := category.Category{
+		Name: "Issues1",
+	}
+	category2 := category.Category{
+		Name: "Issues2",
+	}
 	test.T().Run("create and load (invalid)", func(t *testing.T) {
-		test.repo.LoadCategoryFromDB(test.ctx, category.PlannerRequirementsID) // Load
-		test.repo.LoadCategoryFromDB(test.ctx, category.PlannerIssuesID)       // Load
-		/*result1, err := test.repo.Create(test.ctx, &category1) // Create
+		result1, err := test.repo.Create(test.ctx, &category1) // Create
 		require.Nil(test.T(), err)
 		require.NotNil(test.T(), result1)
 		require.NotNil(test.T(), result1.ID)
 		require.NotNil(test.T(), result1.Name)
 
+		result2, err := test.repo.Create(test.ctx, &category2) // Create
 		require.Nil(test.T(), err)
 		require.NotNil(test.T(), result2)
 		require.NotNil(test.T(), result2.ID)
+		require.NotNil(test.T(), result2.Name)
 
-		assert.NotEqual(test.T(), result1.ID, result2.ID)
-		assert.NotEqual(test.T(), result1.Name, result2.Name)*/
+		result3, err := test.repo.LoadCategoryFromDB(test.ctx, result2.ID) // Load
+		require.Nil(test.T(), err)
+		require.NotNil(test.T(), result3)
+		require.NotNil(test.T(), result3.ID)
+		assert.Equal(test.T(), result2.ID, result3.ID)
+		assert.Equal(test.T(), result2.Name, result3.Name)
+
+		assert.NotEqual(test.T(), result1.ID, result3.ID)
+		assert.NotEqual(test.T(), result1.Name, result3.Name)
 	})
 }
 
