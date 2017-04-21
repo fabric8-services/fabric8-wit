@@ -39,7 +39,7 @@ type Category struct {
 
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
-func (m *Category) TableName() string {
+func (category *Category) TableName() string {
 	return "categories"
 }
 
@@ -64,16 +64,7 @@ var _ convert.Equaler = (*Category)(nil)
 // Equal returns true if two Category objects are equal; otherwise false is returned.
 func (category Category) Equal(u convert.Equaler) bool {
 	other, ok := u.(Category)
-	if !ok {
-		return false
-	}
-	if !uuid.Equal(category.ID, other.ID) {
-		return false
-	}
-	if !category.Lifecycle.Equal(other.Lifecycle) {
-		return false
-	}
-	if category.Name != other.Name {
+	if !ok || !uuid.Equal(category.ID, other.ID) || !category.Lifecycle.Equal(other.Lifecycle) || category.Name != other.Name {
 		return false
 	}
 	return true
@@ -115,25 +106,18 @@ func (m *GormRepository) List(ctx context.Context) ([]*Category, error) {
 
 // CreateRelationship creates relationship between workitemtype and category
 func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error {
-	if relationship.ID == uuid.Nil {
-		relationship.ID = uuid.NewV4()
-	}
 	db := m.db.Create(relationship)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "workitemtype_categories_idx") {
 			return errors.NewBadParameterError("category+workitemtype", relationship.CategoryID).Expected("unique")
-		} else {
-			return errors.NewInternalError(db.Error.Error())
 		}
+		return errors.NewInternalError(db.Error.Error())
 	}
 	return nil
 }
 
 // Create creates category. This function is used to populate categories table during migration -> PopulateCategories()
 func (m *GormRepository) Create(ctx context.Context, category *Category) (*Category, error) {
-	if category.ID == uuid.Nil {
-		category.ID = uuid.NewV4()
-	}
 	if category.Name == "" {
 		return nil, errors.NewBadParameterError("Name", category.Name)
 
@@ -142,9 +126,8 @@ func (m *GormRepository) Create(ctx context.Context, category *Category) (*Categ
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "categories_name_idx") {
 			return nil, errors.NewBadParameterError("Name", category.Name).Expected("unique")
-		} else {
-			return nil, errors.NewInternalError(db.Error.Error())
 		}
+		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
 		"category_id": category.ID,
@@ -230,12 +213,12 @@ func (m *GormRepository) LoadWorkItemTypeCategoryRelationship(ctx context.Contex
 }
 
 // Save saves a category object. This function is used to update category properly during migration -> createOrUpdateSingleCategory()
-func (r *GormRepository) Save(ctx context.Context, category *Category) (*Category, error) {
+func (m *GormRepository) Save(ctx context.Context, category *Category) (*Category, error) {
 	res := Category{}
 	log.Info(ctx, map[string]interface{}{
 		"id": category.ID,
 	}, "Looking for category")
-	tx := r.db.Model(&res).Where("id=?", category.ID).First(&res)
+	tx := m.db.Model(&res).Where("id=?", category.ID).First(&res)
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"id": category.ID,
