@@ -111,7 +111,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
-		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
+		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, ctx.FilterParentexists, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
