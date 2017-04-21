@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
@@ -78,7 +79,7 @@ func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 		if gormsupport.IsUniqueViolation(err, "areas_name_space_id_path_unique") {
 			return errors.NewBadParameterError("name & space_id & path", u.Name+" & "+u.SpaceID.String()+" & "+u.Path.String()).Expected("unique")
 		}
-		goa.LogError(ctx, "error adding Area", "error", err.Error())
+		logrus.Error("error adding Area", "error", err.Error())
 		return err
 	}
 

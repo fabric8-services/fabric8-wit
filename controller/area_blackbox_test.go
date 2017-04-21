@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -64,7 +65,8 @@ func (rest *TestAreaREST) UnSecuredController() (*goa.Service, *AreaController) 
 
 func (rest *TestAreaREST) TestSuccessCreateChildArea() {
 	// given
-	parentID := createSpaceAndArea(rest.T(), rest.db).ID
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	parentID := parentArea.ID
 	name := "TestSuccessCreateChildArea"
 	ci := getCreateChildAreaPayload(&name)
 	svc, ctrl := rest.SecuredController()
@@ -81,7 +83,8 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 		TestAreaREST ---> TestSuccessCreateMultiChildArea-0 ----> TestSuccessCreateMultiChildArea-0-0
 	*/
 	// given
-	parentID := createSpaceAndArea(rest.T(), rest.db).ID
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	parentID := parentArea.ID
 	name := "TestSuccessCreateMultiChildArea-0"
 	ci := getCreateChildAreaPayload(&name)
 	svc, ctrl := rest.SecuredController()
@@ -106,7 +109,8 @@ func (rest *TestAreaREST) TestSuccessCreateMultiChildArea() {
 
 func (rest *TestAreaREST) TestFailCreateChildAreaMissingName() {
 	// given
-	parentID := createSpaceAndArea(rest.T(), rest.db).ID
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	parentID := parentArea.ID
 	createChildAreaPayload := getCreateChildAreaPayload(nil)
 	svc, ctrl := rest.SecuredController()
 	// when/then
@@ -124,7 +128,8 @@ func (rest *TestAreaREST) TestFailCreateChildAreaWithInvalidsParent() {
 
 func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
 	// given
-	parentID := createSpaceAndArea(rest.T(), rest.db).ID
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
+	parentID := parentArea.ID
 	name := "TestFailCreateChildAreaNotAuthorized"
 	createChildAreaPayload := getCreateChildAreaPayload(&name)
 	svc, ctrl := rest.UnSecuredController()
@@ -141,7 +146,7 @@ func (rest *TestAreaREST) TestFailShowAreaNotFound() {
 
 func (rest *TestAreaREST) TestShowAreaOK() {
 	// given
-	a := createSpaceAndArea(rest.T(), rest.db)
+	_, a := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	res, _ := test.ShowAreaOK(rest.T(), svc.Context, svc, ctrl, a.ID.String(), nil, nil)
@@ -151,7 +156,7 @@ func (rest *TestAreaREST) TestShowAreaOK() {
 
 func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfModifedSinceHeader() {
 	// given
-	a := createSpaceAndArea(rest.T(), rest.db)
+	_, a := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifModifiedSince := app.ToHTTPTime(a.UpdatedAt.Add(-1 * time.Hour))
@@ -162,7 +167,7 @@ func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfModifedSinceHeader() {
 
 func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	a := createSpaceAndArea(rest.T(), rest.db)
+	_, a := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifNoneMatch := "foo"
@@ -173,7 +178,7 @@ func (rest *TestAreaREST) TestShowAreaOKUsingExpiredIfNoneMatchHeader() {
 
 func (rest *TestAreaREST) TestShowAreaNotModifiedUsingIfModifedSinceHeader() {
 	// given
-	a := createSpaceAndArea(rest.T(), rest.db)
+	_, a := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifModifiedSince := app.ToHTTPTime(a.UpdatedAt)
@@ -184,7 +189,7 @@ func (rest *TestAreaREST) TestShowAreaNotModifiedUsingIfModifedSinceHeader() {
 
 func (rest *TestAreaREST) TestShowAreaNotModifiedIfNoneMatchHeader() {
 	// given
-	a := createSpaceAndArea(rest.T(), rest.db)
+	_, a := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifNoneMatch := app.GenerateEntityTag(a)
@@ -203,7 +208,7 @@ func (rest *TestAreaREST) createChildArea(name string, parent area.Area) *app.Ar
 
 func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 	// given
-	parentArea := createSpaceAndArea(rest.T(), rest.db)
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	rest.createChildArea("TestShowChildrenAreaOK", parentArea)
 	// when
@@ -215,7 +220,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOK() {
 
 func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader() {
 	// given
-	parentArea := createSpaceAndArea(rest.T(), rest.db)
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader", parentArea)
 	// when
@@ -228,7 +233,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfModifedSinceHeader
 
 func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	parentArea := createSpaceAndArea(rest.T(), rest.db)
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	rest.createChildArea("TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader", parentArea)
 	// when
@@ -241,7 +246,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaOKUsingExpiredIfNoneMatchHeader() 
 
 func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader() {
 	// given
-	parentArea := createSpaceAndArea(rest.T(), rest.db)
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedUsingIfModifedSinceHeader", parentArea)
 	// when
@@ -253,7 +258,7 @@ func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedUsingIfModifedSinceHead
 
 func (rest *TestAreaREST) TestShowChildrenAreaNotModifiedIfNoneMatchHeader() {
 	// given
-	parentArea := createSpaceAndArea(rest.T(), rest.db)
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	childArea := rest.createChildArea("TestShowChildrenAreaNotModifiedIfNoneMatchHeader", parentArea)
 	modelChildArea := convertAreaToModel(*childArea)
@@ -286,25 +291,25 @@ func getCreateChildAreaPayload(name *string) *app.CreateChildAreaPayload {
 	}
 }
 
-func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) area.Area {
+func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, area.Area) {
 	var areaObj area.Area
+	var spaceObj space.Space
 	application.Transactional(db, func(app application.Application) error {
 		repo := app.Areas()
-		newSpace := &space.Space{
-			Name: "TestAreaREST" + uuid.NewV4().String(),
+		spaceObj = space.Space{
+			Name: "TestAreaREST-" + uuid.NewV4().String(),
 		}
-		p, err := app.Spaces().Create(context.Background(), newSpace)
-		if err != nil {
-			t.Error(err)
-		}
-		name := "Main Area" + uuid.NewV4().String()
-		i := area.Area{
+		_, err := app.Spaces().Create(context.Background(), &spaceObj)
+		require.Nil(t, err)
+		name := "Main Area-" + uuid.NewV4().String()
+		areaObj = area.Area{
 			Name:    name,
-			SpaceID: p.ID,
+			SpaceID: spaceObj.ID,
 		}
-		repo.Create(context.Background(), &i)
-		areaObj = i
+		err = repo.Create(context.Background(), &areaObj)
+		require.Nil(t, err)
 		return nil
 	})
-	return areaObj
+	logrus.Info("Space and root area created")
+	return spaceObj, areaObj
 }
