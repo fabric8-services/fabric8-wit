@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"regexp"
 
+	"fmt"
+
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
@@ -16,11 +18,11 @@ type KeycloakLogoutService struct {
 
 // LogoutService represents logout service interface
 type LogoutService interface {
-	Logout(ctx *app.LogoutLogoutContext, logoutEndpoint string, validRedirectURL string) error
+	Logout(ctx *app.LogoutLogoutContext, logoutEndpoint string, validRedirectURL string, rhdURL string) error
 }
 
 // Logout logs out user
-func (s *KeycloakLogoutService) Logout(ctx *app.LogoutLogoutContext, logoutEndpoint string, validRedirectURL string) error {
+func (s *KeycloakLogoutService) Logout(ctx *app.LogoutLogoutContext, logoutEndpoint string, validRedirectURL string, rhdURL string) error {
 	redirect := ctx.Redirect
 	referrer := ctx.RequestData.Header.Get("Referer")
 	if redirect == nil {
@@ -38,39 +40,54 @@ func (s *KeycloakLogoutService) Logout(ctx *app.LogoutLogoutContext, logoutEndpo
 	redirectURL, err := url.Parse(*redirect)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"redirect-url": redirectURL,
+			"redirect_url": redirectURL,
 			"err":          err,
 		}, "Failed to logout. Unable to parse redirect url.")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
 	}
 
-	redirectURLStr := redirectURL.String()
-	matched, err := regexp.MatchString(validRedirectURL, redirectURLStr)
+	osioRedirectURLStr := redirectURL.String()
+	matched, err := regexp.MatchString(validRedirectURL, osioRedirectURLStr)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"redirect-url":       redirectURLStr,
-			"valid-redirect-url": validRedirectURL,
+			"redirect_url":       osioRedirectURLStr,
+			"valid_redirect_url": validRedirectURL,
 			"err":                err,
 		}, "Can't match redirect URL and whitelist regex")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 	if !matched {
 		log.Error(ctx, map[string]interface{}{
-			"redirect-url":       redirectURLStr,
-			"valid-redirect-url": validRedirectURL,
+			"osio_redirect_url":  osioRedirectURLStr,
+			"valid_redirect_url": validRedirectURL,
 		}, "Redirect URL is not valid")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest("not valid redirect URL"))
 	}
+
+	rhdURLStr := fmt.Sprintf("%s/protocol/openid-connect/logout", rhdURL)
+	rhdFullURL, err := url.Parse(rhdURLStr)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"rhd_url_str": rhdURLStr,
+			"err":         err,
+		}, "failed to logout; unable to parse RHD url")
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
+	}
+	parameters := rhdFullURL.Query()
+	parameters.Add("redirect_uri", osioRedirectURLStr)
+	rhdFullURL.RawQuery = parameters.Encode()
+
 	logoutURL, err := url.Parse(logoutEndpoint)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"logout-endpoint": logoutEndpoint,
+			"logout_endpoint": logoutEndpoint,
 			"err":             err,
 		}, "Failed to logout. Unable to parse logout url.")
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
-	parameters := logoutURL.Query()
-	parameters.Add("redirect_uri", redirectURLStr)
+
+	parameters = logoutURL.Query()
+	parameters.Add("redirect_uri", rhdFullURL.String())
 	logoutURL.RawQuery = parameters.Encode()
 
 	ctx.ResponseData.Header().Set("Location", logoutURL.String())
