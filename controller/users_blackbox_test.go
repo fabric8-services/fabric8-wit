@@ -166,10 +166,13 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesOK() {
 	}
 
 	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
-	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), result.RegistrationCompleted)
 
 	// next attempt should PASS.
-	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), result.RegistrationCompleted)
+
 }
 
 func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
