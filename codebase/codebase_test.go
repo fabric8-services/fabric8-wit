@@ -95,11 +95,12 @@ func (test *TestCodebaseRepository) TearDownTest() {
 	test.clean()
 }
 
-func newCodebase(spaceID uuid.UUID, repotype, url string) *codebase.Codebase {
+func newCodebase(spaceID uuid.UUID, stackID, repotype, url string) *codebase.Codebase {
 	return &codebase.Codebase{
 		SpaceID: spaceID,
 		Type:    repotype,
 		URL:     url,
+		StackID: stackID,
 	}
 }
 
@@ -113,8 +114,8 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase1 := newCodebase(spaceID, "git", "git@github.com:almighty/almighty-core.git")
-	codebase2 := newCodebase(spaceID, "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase1 := newCodebase(spaceID, "golang-default", "git", "git@github.com:almighty/almighty-core.git")
+	codebase2 := newCodebase(spaceID, "python-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
 
 	test.createCodebase(codebase1)
 	test.createCodebase(codebase2)
@@ -132,10 +133,12 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase := newCodebase(spaceID, "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase := newCodebase(spaceID, "golang-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
 	test.createCodebase(codebase)
 	// when
 	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), codebase.ID, loadedCodebase.ID)
+	assert.Equal(test.T(), "golang-default", loadedCodebase.StackID)
+
 }

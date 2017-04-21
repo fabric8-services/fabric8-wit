@@ -18,6 +18,7 @@ import (
 	_ "github.com/lib/pq"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
 )
 
@@ -224,6 +225,20 @@ func TestNotApprovedUserFails(t *testing.T) {
 	approved, err = checkApproved(context.Background(), newDummyUserProfileService(profile), "", "")
 	assert.NotNil(t, err)
 	assert.False(t, approved)
+}
+
+func TestFillUserDoesntOverwriteExistingImageURL(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+
+	user := &account.User{FullName: "Vasya Pupkin", Company: "Red Hat", Email: "vpupkin@mail.io", ImageURL: "http://vpupkin.io/image.jpg"}
+	claims := &keycloakTokenClaims{Name: "new name", Company: "new company", Email: "new email"}
+	err := fillUser(claims, user)
+	require.Nil(t, err)
+	assert.Equal(t, "new name", user.FullName)
+	assert.Equal(t, "new company", user.Company)
+	assert.Equal(t, "new email", user.Email)
+	assert.Equal(t, "http://vpupkin.io/image.jpg", user.ImageURL)
 }
 
 type dummyUserProfileService struct {

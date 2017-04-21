@@ -27,6 +27,9 @@ var codebaseAttributes = a.Type("CodebaseAttributes", func() {
 	a.Attribute("url", d.String, "The URL of the codebase ", func() {
 		a.Example("git@github.com:almighty/almighty-core.git")
 	})
+	a.Attribute("stackId", d.String, "The stack id of the codebase ", func() {
+		a.Example("java-centos")
+	})
 	a.Attribute("createdAt", d.DateTime, "When the codebase was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})

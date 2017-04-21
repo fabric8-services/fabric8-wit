@@ -96,7 +96,7 @@ func main() {
 		}
 	}
 
-	if configuration.IsPostgresDeveloperModeEnabled() {
+	if configuration.IsPostgresDeveloperModeEnabled() && log.IsDebug() {
 		db = db.Debug()
 	}
 
