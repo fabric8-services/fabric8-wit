@@ -275,6 +275,26 @@ func testMigration55(t *testing.T) {
 	}
 }
 
+func testMigration56(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	// fill DB with invalid data (ie, missing root area)
+	assert.Nil(t, runSQLscript(sqlDB, "056-assign-root-iteration-if-missing.sql"))
+	// then apply the fix
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	// and verify that the root area is available
+	rows, err := sqlDB.Query("select fields->>'system.iteration' from work_items where id = 12346")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rootIteration string
+		err = rows.Scan(&rootIteration)
+		assert.NotEmpty(t, rootIteration)
+	}
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
