@@ -651,7 +651,6 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 	populateCategories(ctx, db, c) // populate the categories
 
 	var categories []*uuid.UUID
-	categories = append(categories, &category.PlannerRequirementsID)
 
 	if err := createOrUpdateSystemPlannerItemType(ctx, witr, db, space.SystemSpace, categories); err != nil {
 		return errs.WithStack(err)
