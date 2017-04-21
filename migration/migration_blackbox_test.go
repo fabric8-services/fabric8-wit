@@ -257,7 +257,7 @@ func testMigration54(t *testing.T) {
 
 func testMigration55(t *testing.T) {
 	// migrate to previous version
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+10)], (initialMigratedVersion + 10))
 	// fill DB with invalid data (ie, missing root area)
 	assert.Nil(t, runSQLscript(sqlDB, "055-assign-root-area-if-missing.sql"))
 	// then apply the fix
@@ -281,7 +281,7 @@ func testMigration56(t *testing.T) {
 	// fill DB with invalid data (ie, missing root area)
 	assert.Nil(t, runSQLscript(sqlDB, "056-assign-root-iteration-if-missing.sql"))
 	// then apply the fix
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+12)], (initialMigratedVersion + 12))
 	// and verify that the root area is available
 	rows, err := sqlDB.Query("select fields->>'system.iteration' from work_items where id = 12346")
 	if err != nil {
