@@ -467,23 +467,25 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 		}
 	}
 
-	if source.Relationships != nil && source.Relationships.Area != nil && source.Relationships.Area.Data != nil {
-		d := source.Relationships.Area.Data
-		areaUUID, err := uuid.FromString(*d.ID)
-		if err != nil {
-			return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+	if source.Relationships != nil && source.Relationships.Area != nil {
+		if source.Relationships.Area.Data == nil {
+			logrus.Debug("assigning the work item to the root area of the space.")
+			rootArea, err := appl.Areas().Root(context.Background(), spaceID)
+			if err != nil {
+				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+			}
+			target.Fields[workitem.SystemArea] = rootArea.ID.String()
+		} else {
+			d := source.Relationships.Area.Data
+			areaUUID, err := uuid.FromString(*d.ID)
+			if err != nil {
+				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			}
+			if _, err = appl.Areas().Load(context.Background(), areaUUID); err != nil {
+				return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
+			}
+			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}
-		if _, err = appl.Areas().Load(context.Background(), areaUUID); err != nil {
-			return errors.NewBadParameterError("data.relationships.area.data.id", *d.ID)
-		}
-		target.Fields[workitem.SystemArea] = areaUUID.String()
-	} else if appl != nil && (source.Relationships == nil || source.Relationships.Area == nil || source.Relationships.Area.Data == nil) {
-		logrus.Debug("assigning the work item to the root area of the space.")
-		rootArea, err := appl.Areas().Root(context.Background(), spaceID)
-		if err != nil {
-			return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
-		}
-		target.Fields[workitem.SystemArea] = rootArea.ID.String()
 	}
 
 	if source.Relationships != nil && source.Relationships.BaseType != nil {

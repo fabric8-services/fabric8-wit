@@ -1779,7 +1779,9 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	u.Data.ID = wi.Data.ID
 	u.Data.Attributes[workitem.SystemTitle] = "Title"
 	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
-	u.Data.Relationships = &app.WorkItemRelationships{}
+	u.Data.Relationships = &app.WorkItemRelationships{
+		Area: &app.RelationGeneric{},
+	}
 	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &u)
 	// then
 	require.NotNil(s.T(), wiu.Data.Relationships.Space)
