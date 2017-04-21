@@ -689,6 +689,8 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	}
 	var allItrations []uuid.UUID
 	db.Pluck("id", &allItrations)
+	iterationTable := iteration.Iteration{}
+	iterationTableName := iterationTable.TableName()
 	iterationWithWICount := fmt.Sprintf(`
 	SELECT count(*) AS Total,
        count(CASE fields->>'system.state'
@@ -696,13 +698,16 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
                  ELSE NULL
              END) AS Closed,
        fields->>'system.iteration' AS iterationID
-	FROM "work_items"
+	FROM %s wi
 	WHERE fields->>'system.iteration' IN
 		(SELECT id::text
-		FROM iterations
+		FROM %s
 		WHERE space_id='%s')
-	AND work_items.deleted_at IS NULL
-	GROUP BY fields->>'system.iteration'`, spaceID.String())
+	AND wi.deleted_at IS NULL
+	GROUP BY fields->>'system.iteration'`,
+		workitemTableName,
+		iterationTableName,
+		spaceID.String())
 	db = r.db.Raw(iterationWithWICount)
 	var res []WICountsPerIteration
 	db.Scan(&res)
@@ -739,15 +744,18 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 				ELSE concat(path::text, '.', REPLACE(id::text, '-', '_'))::ltree
 			END AS pathself,
 			id
-	FROM iterations)
+	FROM %s)
 	SELECT array_agg(iterations.id)::text AS children,
 		PathResolver.id::text AS iterationid
-	FROM iterations,
+	FROM %s,
 		PathResolver
 	WHERE path <@ PathResolver.pathself
 	AND space_id = '%s'
 	GROUP BY (PathResolver.pathself,
-          PathResolver.id)`, spaceID.String())
+          PathResolver.id)`,
+		iterationTableName,
+		iterationTableName,
+		spaceID.String())
 	db = r.db.Raw(queryIterationWithChildren)
 	db.Scan(&itrChildren)
 	childMap := map[string][]string{}
@@ -787,7 +795,9 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	pathOfIteration := append(itr.Path, itr.ID)
 	// get child IDs of the iteration
 	var childIDs []uuid.UUID
-	getIterationsOfSpace := fmt.Sprintf(`select id from iterations where path <@ '%s'`, pathOfIteration.Convert())
+	iterationTable := iteration.Iteration{}
+	iterationTableName := iterationTable.TableName()
+	getIterationsOfSpace := fmt.Sprintf(`select id from %s where path <@ '%s'`, iterationTableName, pathOfIteration.Convert())
 	db := r.db.Raw(getIterationsOfSpace)
 	db = db.Debug()
 	db.Pluck("id", &childIDs)
@@ -804,9 +814,10 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	whereClause := strings.Join(idsToLookFor, ",")
 	query := fmt.Sprintf(`SELECT count(*) as Total,
 						count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
-						FROM "work_items"
+						FROM %s wi
 						where fields->>'system.iteration' IN (%s)
-						and work_items.deleted_at is null`, whereClause)
+						and wi.deleted_at is null`,
+		workitemTableName, whereClause)
 	db = r.db.Raw(query)
 	db.Scan(&res)
 	if db.Error != nil {
