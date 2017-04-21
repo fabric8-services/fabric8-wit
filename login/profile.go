@@ -12,9 +12,9 @@ import (
 	"github.com/almighty/almighty-core/rest"
 )
 
-const ImageURLAttributeName = "ImageURL"
-const BioAttributeName = "Bio"
-const URLAttributeName = "URL"
+const ImageURLAttributeName = "imageURL"
+const BioAttributeName = "bio"
+const URLAttributeName = "url"
 const CompanyAttributeName = "company"
 const ApprovedAttributeName = "approved"
 
