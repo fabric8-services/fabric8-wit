@@ -65,7 +65,16 @@ var _ convert.Equaler = (*Category)(nil)
 // Equal returns true if two Category objects are equal; otherwise false is returned.
 func (category Category) Equal(u convert.Equaler) bool {
 	other, ok := u.(Category)
-	if !ok || !uuid.Equal(category.ID, other.ID) || !category.Lifecycle.Equal(other.Lifecycle) || category.Name != other.Name {
+	if !ok {
+		return false
+	}
+	if !uuid.Equal(category.ID, other.ID) {
+		return false
+	}
+	if !category.Lifecycle.Equal(other.Lifecycle) {
+		return false
+	}
+	if category.Name != other.Name {
 		return false
 	}
 	return true
