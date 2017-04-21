@@ -85,10 +85,10 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 
-		var category []uuid.UUID
+		var category []*uuid.UUID
 		for _, cat := range ctx.Payload.Data.Relationships.Categories.Data {
 			catID := uuid.FromStringOrNil(*cat.ID)
-			category = append(category, catID)
+			category = append(category, &catID)
 		}
 
 		witTypeModel, err := appl.WorkItemTypes().Create(

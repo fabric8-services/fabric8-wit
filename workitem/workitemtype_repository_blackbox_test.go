@@ -57,8 +57,8 @@ func (s *workItemTypeRepoBlackBoxTest) TearDownTest() {
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID)
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID)
 
 	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
@@ -87,8 +87,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWIT() {
 }
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID)
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID)
 	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -118,8 +118,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateLoadWITWithList() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 	basetype := "foo.bar"
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID)
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID)
 	baseWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, basetype, nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -142,8 +142,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestCreateWITWithBaseType() {
 
 func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 	baseTypeID := uuid.Nil
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID)
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID)
 	extendedWit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, &baseTypeID, "foo.baz", nil, "fa-bomb", map[string]workitem.FieldDefinition{}, categoryID)
 	// expect an error as the given base type does not exist
 	require.NotNil(s.T(), err)
@@ -157,8 +157,8 @@ func (s *workItemTypeRepoBlackBoxTest) TestDoNotCreateWITWithMissingBaseType() {
 // TestSingleWorkItemTypeToSingleCategoryRelationship tests creation of relationship between a single workitemtype and a single category i.e. one-to-one relationship
 func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToSingleCategoryRelationship() {
 
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID) // single category
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID) // single category
 	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -168,18 +168,18 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToSingleCategoryRel
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, categoryID[0])
+	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[0], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 }
 
 // TestSingleWorkItemTypeToMultipleCategoryRelationship tests creation of relationship between a single workitemtype and multiple categories i.e. one-to-many relationship
 func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToMultipleCategoryRelationship() {
 
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID, category.PlannerIssuesID) // multiple categories
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID, &category.PlannerIssuesID) // multiple categories
 	wit, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -190,24 +190,24 @@ func (s *workItemTypeRepoBlackBoxTest) TestSingleWorkItemTypeToMultipleCategoryR
 	require.NotNil(s.T(), wit)
 	require.NotNil(s.T(), wit.ID)
 
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, categoryID[0])
+	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[0], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, categoryID[1])
+	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[1], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[1], relationship.CategoryID)
 }
 
 // TestMultipleWorkItemTypeToSingleCategoryRelationship tests creation of relationship between multiple workitemtypes and a single category i.e. many-to-one relationship
 func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryRelationship() {
 
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID) // single category
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID) // single category
 	wit1, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -218,11 +218,11 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 	require.NotNil(s.T(), wit1)
 	require.NotNil(s.T(), wit1.ID)
 
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, categoryID[0])
+	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit1.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[0], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
 	wit2, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
@@ -234,18 +234,18 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToSingleCategoryR
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.ID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, categoryID[0])
+	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit2.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[0], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 }
 
 // TestMultipleWorkItemTypeToMultipleCategoryRelationship tests creation of relationship between multiple workitemtypes and multiple categories i.e. many-to-many relationship
 func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategoryRelationship() {
 
-	categoryID := []uuid.UUID{}
-	categoryID = append(categoryID, category.PlannerRequirementsID, category.PlannerIssuesID) // multiple categories
+	categoryID := []*uuid.UUID{}
+	categoryID = append(categoryID, &category.PlannerRequirementsID, &category.PlannerIssuesID) // multiple categories
 	wit1, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
 			Required: true,
@@ -256,17 +256,17 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 	require.NotNil(s.T(), wit1)
 	require.NotNil(s.T(), wit1.ID)
 
-	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, categoryID[0])
+	relationship, err := s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit1.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[0], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, categoryID[1])
+	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit1.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit1.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[1], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[1], relationship.CategoryID)
 
 	wit2, err := s.repo.Create(s.ctx, space.SystemSpace, nil, nil, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{
 		"foo": {
@@ -278,15 +278,15 @@ func (s *workItemTypeRepoBlackBoxTest) TestMultipleWorkItemTypeToMultipleCategor
 	require.NotNil(s.T(), wit2)
 	require.NotNil(s.T(), wit2.ID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, categoryID[0])
+	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[0])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit2.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[0], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[0], relationship.CategoryID)
 
-	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, categoryID[1])
+	relationship, err = s.categoryRepo.LoadWorkItemTypeCategoryRelationship(s.ctx, wit2.ID, *categoryID[1])
 	require.Nil(s.T(), err)
 	require.NotNil(s.T(), relationship)
 	require.Equal(s.T(), wit2.ID, relationship.WorkitemtypeID)
-	require.Equal(s.T(), categoryID[1], relationship.CategoryID)
+	require.Equal(s.T(), *categoryID[1], relationship.CategoryID)
 }
