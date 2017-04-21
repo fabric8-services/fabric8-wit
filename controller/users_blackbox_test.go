@@ -148,6 +148,8 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// next attempt should fail.
+	newUserName = identity.Username + uuid.NewV4().String()
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
 	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
