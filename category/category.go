@@ -2,6 +2,7 @@ package category
 
 import (
 	"context"
+	"strings"
 
 	"github.com/almighty/almighty-core/convert"
 	"github.com/almighty/almighty-core/errors"
@@ -118,7 +119,7 @@ func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *W
 
 // Create creates category. This function is used to populate categories table during migration -> PopulateCategories()
 func (m *GormRepository) Create(ctx context.Context, category *Category) (*Category, error) {
-	if category.Name == "" {
+	if strings.TrimSpace(category.Name) == "" {
 		return nil, errors.NewBadParameterError("Name", category.Name)
 
 	}
