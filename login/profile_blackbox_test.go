@@ -129,6 +129,7 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	testBio := "updatedBioNew" + uuid.NewV4().String()
 	testURL := "updatedURLNew" + uuid.NewV4().String()
 	testImageURL := "updatedBio" + uuid.NewV4().String()
+	testUserName := "testuser"
 
 	testKeycloakUserProfileAttributes := &login.KeycloakUserProfileAttributes{
 		login.ImageURLAttributeName: []string{testImageURL},
@@ -137,6 +138,7 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	}
 
 	testKeycloakUserProfileData := login.NewKeycloakUserProfile(&testFirstName, &testLastName, &testEmail, testKeycloakUserProfileAttributes)
+	//testKeycloakUserProfileData.Username = &testUserName
 
 	updateProfileFunc := s.updateUserProfile(testKeycloakUserProfileData)
 	updateProfileFunc()
@@ -149,6 +151,7 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 
 	assert.Equal(s.T(), testFirstName, *retrievedkeycloakUserProfileData.FirstName)
 	assert.Equal(s.T(), testLastName, *retrievedkeycloakUserProfileData.LastName)
+	assert.Equal(s.T(), testUserName, *retrievedkeycloakUserProfileData.Username)
 
 	// email is automatically stored in lower case
 	assert.Equal(s.T(), strings.ToLower(testEmail), *retrievedkeycloakUserProfileData.Email)
