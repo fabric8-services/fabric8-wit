@@ -149,7 +149,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 
 		updatedUserName := ctx.Payload.Data.Attributes.Username
-		if updatedUserName != nil {
+		if updatedUserName != nil && *updatedUserName != identity.Username {
 			if identity.RegistrationCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for idenitity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
