@@ -1411,7 +1411,7 @@ func (s *WorkItem2Suite) TestWI2ListByIterationFilter() {
 	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
 	assert.Equal(s.T(), iterationID, *wi.Data.Relationships.Iteration.Data.ID)
 
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, &iterationID, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), iterationID, *list.Data[0].Relationships.Iteration.Data.ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[iteration]"))
@@ -2215,15 +2215,15 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	}
 
 	// list workitems for grandParentIteration
-	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil)
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &grandParentIterationID, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 7)
 
 	// list workitems for parentIteration
-	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &parentIterationID, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 4)
 
 	// list workitems for childIteraiton
-	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil)
+	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 2)
 }
 
@@ -2330,4 +2330,34 @@ func convertWorkItemToConditionalResponseEntity(appWI app.WorkItemSingle) app.Co
 			workitem.SystemUpdatedAt: appWI.Data.Attributes[workitem.SystemUpdatedAt].(time.Time),
 		},
 	}
+}
+
+func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
+	s.T().Run("without parentexists filter", func(t *testing.T) {
+		// given
+		var pe *bool
+		// when
+		_, result := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, pe, nil, nil, nil, nil, nil, nil)
+		// then
+		assert.Len(t, result.Data, 3)
+	})
+
+	s.T().Run("with parentexists value set to false", func(t *testing.T) {
+		// given
+		pe := false
+		// when
+		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+		// then
+		assert.Len(t, result2.Data, 1)
+	})
+
+	s.T().Run("with parentexists value set to true", func(t *testing.T) {
+		// given
+		pe := true
+		// when
+		_, result2 := test.ListWorkitemOK(t, nil, nil, s.workItemCtrl, s.userSpaceID.String(), nil, nil, nil, nil, &pe, nil, nil, nil, nil, nil, nil)
+		// then
+		assert.Len(t, result2.Data, 3)
+	})
+
 }
