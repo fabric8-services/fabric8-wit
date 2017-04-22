@@ -19,6 +19,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/category"
 	"github.com/almighty/almighty-core/codebase"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -1248,6 +1249,70 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	for _, actualWI := range actual.Data {
 		assert.Equal(s.T(), expected.Data.Type, actualWI.Type)
 		require.NotNil(s.T(), actualWI.ID)
+	}
+}
+
+// This test creates 3 workitems of 3 different workitemtypes. Two workitemtypes belong to a category. After filter by category, the list should return only 2 workitems.
+func (s *WorkItem2Suite) TestWI2ListByCategoryFilter() {
+	cat := category.NewRepository(s.DB)
+
+	// create relationship between "ValueProposition" workitemtype and "planner.requirements" category
+	relationship := category.WorkItemTypeCategoryRelationship{
+		CategoryID:     category.PlannerRequirementsID,
+		WorkitemtypeID: workitem.SystemValueProposition,
+	}
+	err := cat.CreateRelationship(s.svc.Context, &relationship)
+	require.Nil(s.T(), err)
+
+	// create relationship between "Scenario" workitemtype and "planner.requirements" category
+	relationship = category.WorkItemTypeCategoryRelationship{
+		CategoryID:     category.PlannerRequirementsID,
+		WorkitemtypeID: workitem.SystemScenario,
+	}
+	err = cat.CreateRelationship(s.svc.Context, &relationship)
+	require.Nil(s.T(), err)
+
+	// Create 3 workitems
+	// First Workitem
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title1"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemValueProposition)
+	_, wi1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	assert.NotNil(s.T(), wi1.Data)
+	require.NotNil(s.T(), wi1.Data.ID)
+	require.NotNil(s.T(), wi1.Data.Type)
+
+	// Second Workitem
+	c = minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title2"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemScenario)
+	_, wi2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	assert.NotNil(s.T(), wi2.Data)
+	require.NotNil(s.T(), wi2.Data.ID)
+	require.NotNil(s.T(), wi2.Data.Type)
+
+	// Third workitem
+	c = minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title3"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	_, wi3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	assert.NotNil(s.T(), wi3.Data)
+	require.NotNil(s.T(), wi3.Data.ID)
+	require.NotNil(s.T(), wi3.Data.Type)
+
+	// List workitems - filter by category.
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, &category.PlannerRequirementsID, nil, nil, nil, nil, nil, nil, nil, nil)
+	require.NotNil(s.T(), list)
+	assert.Len(s.T(), list.Data, 2)
+	assert.Contains(s.T(), *list.Links.First, fmt.Sprintf("filter[category]=%s", category.PlannerRequirementsID))
+
+	for _, actualWI := range list.Data {
+		assert.NotNil(s.T(), actualWI.ID)
+		assert.Contains(s.T(), []uuid.UUID{workitem.SystemValueProposition, workitem.SystemScenario}, actualWI.Relationships.BaseType.Data.ID)
+		assert.NotContains(s.T(), []uuid.UUID{workitem.SystemPlannerItem}, actualWI.Relationships.BaseType.Data.ID)
 	}
 }
 
