@@ -367,7 +367,7 @@ func (fake *WorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c 
 	return fake.countReturns.result1, fake.countReturns.result2
 }
 
-func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, start *int, length *int) ([]workitem.WorkItem, uint64, error) {
+func (fake *WorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, c criteria.Expression, parentExists *bool, start *int, length *int) ([]workitem.WorkItem, uint64, error) {
 	fake.listMutex.Lock()
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		ctx      context.Context

@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
+
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
 
@@ -39,7 +40,7 @@ type WorkItemRepository interface {
 	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
-	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]WorkItem, uint64, error)
+	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int) ([]WorkItem, uint64, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error)
@@ -556,13 +557,24 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]WorkItemStorage, uint64, error) {
+func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItemStorage, uint64, error) {
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 	where = where + " AND space_id = ?"
 	parameters = append(parameters, spaceID)
+
+	if parentExists != nil && !*parentExists {
+		where += ` AND
+			id not in (
+				SELECT target_id FROM work_item_links
+				WHERE link_type_id IN (
+					SELECT id FROM work_item_link_types WHERE forward_name = 'parent of'
+				)
+			)`
+
+	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
@@ -631,8 +643,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
-	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, start, limit)
+func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItem, uint64, error) {
+	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, parentExists, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -668,7 +680,7 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
 func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error) {
 	limit := 1
-	results, count, err := r.List(ctx, spaceID, criteria, nil, &limit)
+	results, count, err := r.List(ctx, spaceID, criteria, nil, nil, &limit)
 	if err != nil {
 		return nil, err
 	}

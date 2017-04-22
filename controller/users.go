@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -133,20 +134,33 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		// to have everything - whatever we are updating, and whatever are not.
 		keycloakUserProfile := copyExistingKeycloakUserProfileInfo(keycloakUserExistingInfo)
 
-		// Disabling updation of email till we figure out how to do the same in Keycloak Error-free.
-		//
-
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil {
+			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+			}
+			if !isUnique {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
+				return ctx.Conflict(jerrors)
+			}
 			user.Email = *updatedEmail
 			keycloakUserProfile.Email = updatedEmail
 		}
 
 		updatedUserName := ctx.Payload.Data.Attributes.Username
-		if updatedUserName != nil {
+		if updatedUserName != nil && *updatedUserName != identity.Username {
 			if identity.RegistrationCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for idenitity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
+			}
+			isUnique, err := isUsernameUnique(appl, *updatedUserName, *identity)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+			}
+			if !isUnique {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username : %s is already in use", *updatedUserName)))
+				return ctx.Conflict(jerrors)
 			}
 			identity.Username = *updatedUserName
 			identity.RegistrationCompleted = true
@@ -252,6 +266,40 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
 		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
 	})
+}
+
+func isUsernameUnique(appl application.Application, username string, identity account.Identity) (bool, error) {
+	usersWithSameUserName, err := appl.Identities().Query(account.IdentityFilterByUsername(username), account.IdentityFilterByProviderType(account.KeycloakIDP))
+	if err != nil {
+		log.Error(context.Background(), map[string]interface{}{
+			"user_name": username,
+			"err":       err,
+		}, "error fetching users with username filter")
+		return false, err
+	}
+	for _, u := range usersWithSameUserName {
+		if u.UserID.UUID != identity.UserID.UUID {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func isEmailUnique(appl application.Application, email string, user account.User) (bool, error) {
+	usersWithSameEmail, err := appl.Users().Query(account.UserFilterByEmail(email))
+	if err != nil {
+		log.Error(context.Background(), map[string]interface{}{
+			"email": email,
+			"err":   err,
+		}, "error fetching identities with email filter")
+		return false, err
+	}
+	for _, u := range usersWithSameEmail {
+		if u.ID != user.ID {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // List runs the list action.
