@@ -1311,7 +1311,11 @@ func (s *WorkItem2Suite) TestWI2ListByCategoryFilter() {
 
 	for _, actualWI := range list.Data {
 		assert.NotNil(s.T(), actualWI.ID)
+
+		assert.Contains(s.T(), []string{*wi1.Data.ID, *wi2.Data.ID}, *actualWI.ID)
 		assert.Contains(s.T(), []uuid.UUID{workitem.SystemValueProposition, workitem.SystemScenario}, actualWI.Relationships.BaseType.Data.ID)
+
+		assert.NotContains(s.T(), []string{*wi3.Data.ID}, *actualWI.ID)
 		assert.NotContains(s.T(), []uuid.UUID{workitem.SystemPlannerItem}, actualWI.Relationships.BaseType.Data.ID)
 	}
 }
