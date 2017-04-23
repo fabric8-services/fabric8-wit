@@ -67,9 +67,6 @@ func (s *ProfileBlackBoxTest) SetupSuite() {
 	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
 	assert.Nil(s.T(), err)
 	s.accessToken = token
-}
-
-func (s *ProfileBlackBoxTest) SetupTest() {
 
 	// Get the initial profile state.
 	profile, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
