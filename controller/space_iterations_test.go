@@ -238,6 +238,22 @@ func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 	test.ListSpaceIterationsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
 }
 
+// Following is behaviour of the test that verifies the WI Count in an iteration
+// Consider, iteration i1 has 2 children c1 & c2
+// Total WI for i1 = WI assigned to i1 + WI assigned to c1 + WI assigned to c2
+// Begin test with following setup :-
+// Create a space s1
+// create iteartion i1 & iteration i2 in s1
+// Create child of i2 : name it child
+// Create child of child : name it grandChild
+// Add few "new" & "closed" work items to i1
+// Add few "new" work items to child
+// Add few "closed" work items to grandChild
+// Call List-Iterations API, should return Total & Closed WI count for every itearion
+// Verify counts for all 4 iterations retrieved.
+// Add few "new" & "closed" work items to i2
+// Call List-Iterations API, should return Total & Closed WI count for every itearion
+// Verify updated count values for all 4 iterations retrieved.
 func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	// given
 	resource.Require(rest.T(), resource.Database)
@@ -275,16 +291,16 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	}
 	iterationRepo.Create(rest.ctx, &childOfIteration2)
 	fmt.Println("iteration2 id = ", childOfIteration2.ID)
-	require.NotEqual(rest.T(), uuid.UUID{}, childOfIteration2.ID)
+	require.NotEqual(rest.T(), uuid.Nil, childOfIteration2.ID)
 
-	grnadChildOfIteration2 := iteration.Iteration{
+	grandChildOfIteration2 := iteration.Iteration{
 		Name:    "Sprint 2.1.1",
 		SpaceID: spaceInstance.ID,
 		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
 	}
-	iterationRepo.Create(rest.ctx, &grnadChildOfIteration2)
-	fmt.Println("iteration2 id = ", grnadChildOfIteration2.ID)
-	require.NotEqual(rest.T(), uuid.UUID{}, grnadChildOfIteration2.ID)
+	iterationRepo.Create(rest.ctx, &grandChildOfIteration2)
+	fmt.Println("iteration2 id = ", grandChildOfIteration2.ID)
+	require.NotEqual(rest.T(), uuid.UUID{}, grandChildOfIteration2.ID)
 
 	wirepo := workitem.NewWorkItemRepository(rest.DB)
 
@@ -325,7 +341,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			map[string]interface{}{
 				workitem.SystemTitle:     fmt.Sprintf("Closed issue #%d", i),
 				workitem.SystemState:     workitem.SystemStateClosed,
-				workitem.SystemIteration: grnadChildOfIteration2.ID.String(),
+				workitem.SystemIteration: grandChildOfIteration2.ID.String(),
 			}, rest.testIdentity.ID)
 		require.Nil(rest.T(), err)
 	}
@@ -351,7 +367,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			expectedClosed := 0 + 5 // sum of closed items of self and child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
-		} else if uuid.Equal(*iterationItem.ID, grnadChildOfIteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, grandChildOfIteration2.ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 5 + 0  // sum of all items of self and child
 			expectedClosed := 5 + 0 // sum of closed items of self and child
@@ -401,7 +417,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			expectedClosed := 0 + 5 // sum of closed items self + child + grand-child
 			assert.Equal(rest.T(), expectedTotal, iterationItem.Relationships.Workitems.Meta["total"])
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
-		} else if uuid.Equal(*iterationItem.ID, grnadChildOfIteration2.ID) {
+		} else if uuid.Equal(*iterationItem.ID, grandChildOfIteration2.ID) {
 			// we expect these counts should include that of child iterations too.
 			expectedTotal := 5 + 0  // sum of all items of self + child + grand-child
 			expectedClosed := 5 + 0 // sum of closed items self + child + grand-child

@@ -89,7 +89,7 @@ func (r *GormWorkItemRepository) LoadFromDB(ctx context.Context, workitemID stri
 	return &res, nil
 }
 
-// Load returns the work item for the given id
+// LoadByID returns the work item for the given id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*WorkItem, error) {
 	res, err := r.LoadFromDB(ctx, ID)
@@ -219,7 +219,7 @@ func (r *GormWorkItemRepository) Delete(ctx context.Context, spaceID uuid.UUID, 
 	return nil
 }
 
-// Calculates the order of the reorder workitem
+// CalculateOrder Calculates the order of the reorder workitem
 func (r *GormWorkItemRepository) CalculateOrder(above, below *float64) float64 {
 	return (*above + *below) / 2
 }
@@ -663,7 +663,7 @@ func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, cr
 	return res, count, nil
 }
 
-// Counts returns the amount of work item that satisfy the given criteria.Expression
+// Count returns the amount of work item that satisfy the given criteria.Expression
 func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (int, error) {
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
@@ -723,6 +723,13 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	db = r.db.Raw(iterationWithWICount)
 	var res []WICountsPerIteration
 	db.Scan(&res)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": spaceID.String(),
+			"err":     db.Error,
+		}, "unable to count WI for every iteration in a space")
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
 	wiMap := map[string]WICountsPerIteration{}
 	for _, r := range res {
 		wiMap[r.IterationID] = WICountsPerIteration{
@@ -770,6 +777,13 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 		spaceID.String())
 	db = r.db.Raw(queryIterationWithChildren)
 	db.Scan(&itrChildren)
+	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"spaceID": spaceID.String(),
+			"err":     db.Error,
+		}, "unable to fetch children for every iteration in a space")
+		return nil, errors.NewInternalError(db.Error.Error())
+	}
 	childMap := map[string][]string{}
 	for _, r := range itrChildren {
 		// Following can be done by implementing Valuer interface for type IterationHavingChildrenID
@@ -811,9 +825,12 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	iterationTableName := iterationTable.TableName()
 	getIterationsOfSpace := fmt.Sprintf(`select id from %s where path <@ '%s'`, iterationTableName, pathOfIteration.Convert())
 	db := r.db.Raw(getIterationsOfSpace)
-	db = db.Debug()
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"path": pathOfIteration.Convert(),
+			"err":  db.Error,
+		}, "unable to fetch children for path")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	childIDs = append(childIDs, itr.ID)
@@ -833,6 +850,10 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	db = r.db.Raw(query)
 	db.Scan(&res)
 	if db.Error != nil {
+		log.Error(ctx, map[string]interface{}{
+			"iterationIDs`": whereClause,
+			"err":           db.Error,
+		}, "unable to count WI for an iteration")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	countsMap := map[string]WICountsPerIteration{}
