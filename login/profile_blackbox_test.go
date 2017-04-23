@@ -67,9 +67,6 @@ func (s *ProfileBlackBoxTest) SetupSuite() {
 	token, err := s.generateAccessToken() // TODO: Use a simpler way to do this.
 	assert.Nil(s.T(), err)
 	s.accessToken = token
-}
-
-func (s *ProfileBlackBoxTest) SetupTest() {
 
 	// Get the initial profile state.
 	profile, err := s.profileService.Get(*s.accessToken, *s.profileAPIURL)
@@ -81,6 +78,7 @@ func (s *ProfileBlackBoxTest) SetupTest() {
 		FirstName:  profile.FirstName,
 		LastName:   profile.LastName,
 		Email:      profile.Email,
+		Username:   profile.Username,
 	}
 
 	// Schedule it for restoring of the initial state of the keycloak user after the test
@@ -159,12 +157,6 @@ func (s *ProfileBlackBoxTest) TestKeycloakUserProfileUpdate() {
 	// validate Attributes
 	retrievedBio := (*retrievedkeycloakUserProfileData.Attributes)[login.BioAttributeName]
 	assert.Equal(s.T(), retrievedBio[0], testBio)
-
-	// put it back to testuser.
-	testUserName = "testuser"
-	testKeycloakUserProfileData.Username = &testUserName
-
-	updateProfileFunc()
 
 }
 
