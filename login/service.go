@@ -652,7 +652,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
 	} else {
-		identity = identities[0]
+		identity = &identities[0]
 		user = &identity.User
 		if user.ID == uuid.Nil {
 			log.Error(ctx, map[string]interface{}{
