@@ -139,7 +139,7 @@ func (s *workItemLinkTypeSuite) createDemoLinkType(name string) *app.CreateWorkI
 	s.spaceID = space.Data.ID
 
 	//	 2. Create at least one work item type
-	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID, gormapplication.NewGormDB(s.DB))
+	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *space.Data.ID)
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, s.spaceID.String(), &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 
@@ -364,7 +364,7 @@ func (s *workItemLinkTypeSuite) createWorkItemLinkTypes() (*app.WorkItemTypeSing
 	_, bugBlockerType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, bugBlockerPayload.Data.Relationships.Space.Data.ID.String(), bugBlockerPayload)
 	require.NotNil(s.T(), bugBlockerType)
 
-	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID, gormapplication.NewGormDB(s.DB))
+	workItemTypePayload := CreateWorkItemType(uuid.NewV4(), *s.spaceID)
 	_, workItemType := test.CreateWorkitemtypeCreated(s.T(), s.svc.Context, s.svc, s.typeCtrl, bugBlockerPayload.Data.Relationships.Space.Data.ID.String(), &workItemTypePayload)
 	require.NotNil(s.T(), workItemType)
 

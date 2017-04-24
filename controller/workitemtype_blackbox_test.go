@@ -9,7 +9,6 @@ import (
 
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/category"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
@@ -229,7 +228,7 @@ func (s *workItemTypeSuite) createWorkItemTypePerson() (http.ResponseWriter, *ap
 	return responseWriter, wi
 }
 
-func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID, db application.DB) app.CreateWorkitemtypePayload {
+func CreateWorkItemType(id uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemtypePayload {
 	// Create the type for the "color" field
 	nameFieldDef := app.FieldDefinition{
 		Required: false,
