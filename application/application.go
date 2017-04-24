@@ -2,16 +2,36 @@ package application
 
 import (
 	"github.com/almighty/almighty-core/account"
+	"github.com/almighty/almighty-core/area"
+	"github.com/almighty/almighty-core/auth"
+	"github.com/almighty/almighty-core/codebase"
+
+	"github.com/almighty/almighty-core/comment"
+	"github.com/almighty/almighty-core/iteration"
+	"github.com/almighty/almighty-core/space"
+	"github.com/almighty/almighty-core/workitem"
+	"github.com/almighty/almighty-core/workitem/link"
 )
 
 //An Application stands for a particular implementation of the business logic of our application
 type Application interface {
-	WorkItems() WorkItemRepository
-	WorkItemTypes() WorkItemTypeRepository
+	WorkItems() workitem.WorkItemRepository
+	WorkItemTypes() workitem.WorkItemTypeRepository
 	Trackers() TrackerRepository
 	TrackerQueries() TrackerQueryRepository
 	SearchItems() SearchRepository
 	Identities() account.IdentityRepository
+	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
+	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
+	WorkItemLinks() link.WorkItemLinkRepository
+	Comments() comment.Repository
+	Spaces() space.Repository
+	SpaceResources() space.ResourceRepository
+	Iterations() iteration.Repository
+	Users() account.UserRepository
+	Areas() area.Repository
+	OauthStates() auth.OauthStateReferenceRepository
+	Codebases() codebase.Repository
 }
 
 // A Transaction abstracts a database transaction. The repositories created for the transaction object make changes inside the the transaction

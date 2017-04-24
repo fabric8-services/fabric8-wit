@@ -6,8 +6,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/almighty/almighty-core/configuration"
+	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
+
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,8 +16,8 @@ import (
 func TestConcurrentMigrations(t *testing.T) {
 	resource.Require(t, resource.Database)
 
-	var err error
-	if err = configuration.Setup(""); err != nil {
+	configuration, err := config.GetConfigurationData()
+	if err != nil {
 		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
 	}
 
@@ -31,7 +32,7 @@ func TestConcurrentMigrations(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Cannot connect to DB: %s\n", err)
 			}
-			err = Migrate(db)
+			err = Migrate(db, configuration.GetPostgresDatabase())
 			assert.Nil(t, err)
 		}()
 

@@ -23,46 +23,12 @@ var ALMStatus = a.MediaType("application/vnd.status+json", func() {
 	})
 })
 
-// AuthToken represents an authentication JWT Token
-var AuthToken = a.MediaType("application/vnd.authtoken+json", func() {
-	a.TypeName("AuthToken")
-	a.Description("JWT Token")
-	a.Attributes(func() {
-		a.Attribute("token", d.String, "JWT Token")
-		a.Required("token")
-	})
-	a.View("default", func() {
-		a.Attribute("token")
-	})
-})
-
-// workItem is the media type for work items
-var workItem = a.MediaType("application/vnd.workitem+json", func() {
-	a.TypeName("WorkItem")
-	a.Description("A work item hold field values according to a given field type")
-	a.Attribute("id", d.String, "unique id per installation")
-	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("type", d.String, "Name of the type of this work item")
-	a.Attribute("fields", a.HashOf(d.String, d.Any), "The field values, according to the field type")
-
-	a.Required("id")
-	a.Required("version")
-	a.Required("type")
-	a.Required("fields")
-
-	a.View("default", func() {
-		a.Attribute("id")
-		a.Attribute("version")
-		a.Attribute("type")
-		a.Attribute("fields")
-	})
-})
-
 var pagingLinks = a.Type("pagingLinks", func() {
 	a.Attribute("prev", d.String)
 	a.Attribute("next", d.String)
 	a.Attribute("first", d.String)
 	a.Attribute("last", d.String)
+	a.Attribute("filters", d.String)
 })
 
 var meta = a.Type("workItemListResponseMeta", func() {
@@ -71,78 +37,17 @@ var meta = a.Type("workItemListResponseMeta", func() {
 	a.Required("totalCount")
 })
 
-// workItemListResponse contains paged results for listing work items and paging links
-var workItemListResponse = a.MediaType("application/vnd.workitemlist+json", func() {
-	a.TypeName("WorkItemListResponse")
-	a.Description("Holds the paginated response to a work item list request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", meta)
-	a.Attribute("data", a.CollectionOf(workItem))
-
-	a.Required("links")
-	a.Required("meta")
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("links", func() {
-			a.Attribute("prev", d.String)
-			a.Attribute("next", d.String)
-			a.Attribute("first", d.String)
-			a.Attribute("last", d.String)
-		})
-		a.Attribute("meta", func() {
-			a.Attribute("totalCount", d.Number)
-		})
-		a.Attribute("data")
+// position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed
+var position = a.Type("workItemReorderPosition", func() {
+	a.Description("Position represents the ID of the workitem above which the to-be-reordered workitem(s) should be placed")
+	a.Attribute("id", d.String, "ID of the workitem above which the to-be-reordered workitem(s) should be placed", func() {
+		a.MinLength(1)
 	})
-})
-
-// fieldDefinition defines the possible values for a field in a work item type
-var fieldDefinition = a.Type("fieldDefinition", func() {
-	a.Description("A fieldDescription aggregates a fieldType and additional field metadata")
-	a.Attribute("required", d.Boolean)
-	a.Attribute("type", fieldType)
-
-	a.Required("required")
-	a.Required("type")
-
-	a.View("default", func() {
-		a.Attribute("kind")
-	})
-})
-
-// fieldType is the datatype of a single field in a work item tepy
-var fieldType = a.Type("fieldType", func() {
-	a.Description("A fieldType describes the values a particular field can hold")
-	a.Attribute("kind", d.String, "The constant indicating the kind of type, for example 'string' or 'enum' or 'instant'")
-	a.Attribute("componentType", d.String, "The kind of type of the individual elements for a list type. Required for list types. Must be a simple type, not  enum or list")
-	a.Attribute("baseType", d.String, "The kind of type of the enumeration values for an enum type. Required for enum types. Must be a simple type, not  enum or list")
-	a.Attribute("values", a.ArrayOf(d.Any), "The possible values for an enum type. The values must be of a type convertible to the base type")
-
-	a.Required("kind")
-})
-
-// workItemType is the media type representing a work item type.
-var workItemType = a.MediaType("application/vnd.workitemtype+json", func() {
-	a.TypeName("WorkItemType")
-	a.Description("A work item type describes the values a work item type instance can hold.")
-	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
-	a.Attribute("name", d.String, "User Readable Name of this item type")
-	a.Attribute("fields", a.HashOf(d.String, fieldDefinition), "Definitions of fields in this work item type")
-
-	a.Required("version")
-	a.Required("name")
-	a.Required("fields")
-
-	a.View("default", func() {
-		a.Attribute("version")
-		a.Attribute("name")
-		a.Attribute("fields")
-	})
-	a.View("link", func() {
-		a.Attribute("name")
+	a.Attribute("direction", d.String, "Direction of the place of the reorder workitem. Above should be used to place the reorder workitem(s) above workitem with id equal to position.id. Below should be used to place the reorder workitem(s) below workitem with id equal to position.id. Top places the reorder workitem(s) at the Topmost position of the list. Bottom places the reorder item(s) at the bottom of the list.", func() {
+		a.Enum("above", "below", "top", "bottom")
 	})
 
+	a.Required("direction")
 })
 
 // Tracker configuration
@@ -172,56 +77,25 @@ var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
 	a.Attribute("query", d.String, "Search query")
 	a.Attribute("schedule", d.String, "Schedule for fetch and import")
 	a.Attribute("trackerID", d.String, "Tracker ID")
+	a.Attribute("relationships", trackerQueryRelationships)
 
 	a.Required("id")
 	a.Required("query")
 	a.Required("schedule")
 	a.Required("trackerID")
+	a.Required("relationships")
 
 	a.View("default", func() {
 		a.Attribute("id")
 		a.Attribute("query")
 		a.Attribute("schedule")
 		a.Attribute("trackerID")
+		a.Attribute("relationships")
 	})
 })
 
-// User represents a user object (TODO: add better description)
-var User = a.MediaType("application/vnd.user+json", func() {
-	a.TypeName("User")
-	a.Description("ALM User")
-	a.Attribute("fullName", d.String, "The users full name")
-	a.Attribute("imageURL", d.String, "The avatar image for the user")
-
-	a.View("default", func() {
-		a.Attribute("fullName")
-		a.Attribute("imageURL")
-	})
-})
-
-var searchResponse = a.MediaType("application/vnd.search+json", func() {
-	a.TypeName("SearchResponse")
-	a.Description("Holds the paginated response to a search request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", meta)
-	a.Attribute("data", a.CollectionOf(workItem))
-
-	a.Required("links")
-	a.Required("meta")
-	a.Required("data")
-
-	a.View("default", func() {
-		a.Attribute("links", func() {
-			a.Attribute("prev", d.String)
-			a.Attribute("next", d.String)
-			a.Attribute("first", d.String)
-			a.Attribute("last", d.String)
-		})
-		a.Attribute("meta", func() {
-			a.Attribute("totalCount", d.Integer)
-		})
-		a.Attribute("data")
-	})
+var trackerQueryRelationships = a.Type("TrackerQueryRelationships", func() {
+	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
 })
 
 // SearchUserArray represents the result of a search for Users

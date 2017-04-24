@@ -3,6 +3,7 @@ package criteria
 import (
 	"reflect"
 	"testing"
+
 	"github.com/almighty/almighty-core/resource"
 )
 

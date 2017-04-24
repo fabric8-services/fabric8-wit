@@ -8,16 +8,37 @@ postgres.user: postgres
 postgres.password: mysecretpassword
 postgres.database: postgres
 postgres.sslmode: disable
-# The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+# The amount of time before the connection times out
+postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
+postgres.connection.maxidle: -1
+postgres.connection.maxopen: -1
 
 #------------------------
 # HTTP configuration
 #------------------------
 
 http.address: 0.0.0.0:8080
+#header.maxlength: 10240 # bytes
+
+#------------------------
+# HTTP Cache-Control
+#------------------------
+
+cachecontrol.workitems: max-age=2
+cachecontrol.workitemtypes: max-age=2
+cachecontrol.workitemlinks: max-age=2
+cachecontrol.workitemlinktypes: max-age=2
+cachecontrol.spaces: max-age=2
+cachecontrol.iterations: max-age=2
+cachecontrol.areas: max-age=2
+cachecontrol.users: max-age=2
+cachecontrol.comments: max-age=2
+cachecontrol.filters: max-age=86400 # 1 day
+# data returned from '/api/user' must not be cached by intermediate proxies,
+# but can only be kept in the client's local cache.
+cachecontrol.user: private,max-age=2
 
 #------------------------
 # Misc.
@@ -25,15 +46,16 @@ http.address: 0.0.0.0:8080
 
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
+log.level: info
 
-# Whether you want to create the common work item types such as system.bug, system.feature, ...
+# Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true
 
 # ----------------------------
 # Authentication configuration
 # ----------------------------
 
-token.privatekey : > 
+token.privatekey : |
                     -----BEGIN RSA PRIVATE KEY-----
                     MIIEpQIBAAKCAQEAnwrjH5iTSErw9xUptp6QSFoUfpHUXZ+PaslYSUrpLjw1q27O
                     DSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nwxBobS723okFaIkshRrf6qgtD6coT
@@ -62,20 +84,29 @@ token.privatekey : >
                     OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
                     -----END RSA PRIVATE KEY-----
 
-token.publickey : >
+token.publickey : |
                     -----BEGIN PUBLIC KEY-----
-                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnwrjH5iTSErw9xUptp6Q
-                    SFoUfpHUXZ+PaslYSUrpLjw1q27ODSFwmhV4+dAaTMO5chFv/kM36H3ZOyA146nw
-                    xBobS723okFaIkshRrf6qgtD6coTHlVUSBTAcwKEjNn4C9jtEpyOl+eSgxhMzRH3
-                    bwTIFlLlVMiZf7XVE7P3yuOCpqkk2rdYVSpQWQWKU+ZRywJkYcLwjEYjc70AoNpj
-                    O5QnY+Exx98E30iEdPHZpsfNhsjh9Z7IX5TrMYgz7zBTw8+niO/uq3RBaHyIhDbv
-                    enbR9Q59d88lbnEeHKgSMe2RQpFR3rxFRkc/64Rn/bMuL/ptNowPqh1P+9GjYzWm
-                    PwIDAQAB
+                    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlscGA2NfO4ZkGzJgZE8
+                    e/WGHCFANE28DzU1aftOssKi4jCn++umFWPDWxTwLfQdiwc8Bbhn9/8udPMXrZ84
+                    L8OgVNbDXOle37QE0+GEAX/DnzkvOg2sm7F0IzKck9YNvo3ZUYj7dyW9s2zatCwu
+                    QyUsHJmbMdwtDOueHBHwXiAiU0kprtUjNsvK4SBvascBdCmLLIWkhj2lu5S6BGrH
+                    gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
+                    51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
+                    ZwIDAQAB
                     -----END PUBLIC KEY-----
 
 # ----------------------------
-# Github OAuth2.0 configuration
+# Keycloak OAuth2.0 configuration
 # ----------------------------
 
-github.client.id : 875da0d2113ba0a6951d
-github.secret : 2fe6736e90a9283036a37059d75ac0c82f4f5288
+keycloak.client.id : fabric8-online-platform
+keycloak.secret : 7a3d5a00-7f80-40cf-8781-b5b6f2dfd1bd
+keycloak.domain.prefix : sso
+keycloak.realm : fabric8
+keycloak.testuser.name : testuser
+keycloak.testuser.secret : testuser
+keycloak.testuser2.name : testuser2
+keycloak.testuser2.secret : testuser2
+
+# Uncomment if FQDN URL's should be used instead of relative URL's:
+# keycloak.url : https://sso.prod-preview.openshift.io

@@ -19,7 +19,7 @@ link:docs/development/getting-started-win.adoc[Getting started with almighty-cor
 
 You need to install:
 
-* `go` (>= v1.6)
+* `go` (>= v1.7)
 * `git`
 * `mercurial`
 * `make`
@@ -32,17 +32,7 @@ Run the following command to find out your Go version.
 $ go version
 ----
 
-*You must at least have Go version 1.6. Our code uses a code generation
-tool called goa and it doesn't play nice together with Go 1.5.*
-
-Ensure the environment variable `GO15VENDOREXPERIMENT`
-is set, for example by running `export GO15VENDOREXPERIMENT=1`.
-In Go `1.6` it is enabled by default and in Go `1.7` it is always enabled
-without the ability to turn it off.
-
-If set, the link:https://github.com/golang/go/wiki/PackageManagementTools#go15vendorexperiment[`GO15VENDOREXPERIMENT`]
-variable tells `go` to look for dependencies not only in the `GOPATH` (as usual)
-but also in a `vendor` directory located in the source directory.
+*You must at least have Go version 1.7.*
 
 See <<fetch-dependencies>> to see an explanaition on how we deal with
 dependencies.
@@ -256,8 +246,8 @@ postgres.user: postgres
 postgres.password: mysecretpassword
 postgres.database: postgres
 postgres.sslmode: disable
-# The number of times alm server will attempt to open a connection to the database before it gives up
-postgres.connection.maxretries: 50
+# The amount of time in seconds before the connection times out
+postgres.connection.timeout: 5
 # Duration to wait before trying to connect again
 postgres.connection.retrysleep: 1s
 
@@ -274,7 +264,7 @@ http.address: 0.0.0.0:8080
 # Enable development related features, e.g. token generation endpoint
 developer.mode.enabled: false
 
-# Whether you want to create the common work item types such as system.bug, system.feature, ...
+# Whether you want to create the common work item types such as bug, feature, ...
 populate.commontypes: true
 
 # -----------------------------
@@ -338,7 +328,7 @@ To override configuration values using environment variables, use the prefix
 
 For example to override `postgres.password`, set the environment variable `ALMIGHTY_POSTGRES_PASSWORD` to the value of you liking.
 
-NOTE: Environment variables override the default values and the ones you've set in your config file. 
+NOTE: Environment variables override the default values and the ones you've set in your config file.
 
 ==== Development
 
@@ -373,7 +363,7 @@ Generate a token for future use.
 ./bin/alm-cli generate login -H localhost:8080 --pp
 ----
 
-You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls  
+You should get Token in response, save this token in your favourite editor as you need to use this token for POST API calls
 
 Create a work item type (using above token).
 ----
@@ -410,17 +400,17 @@ $ ./bin/alm-cli show workitem --id 1 -H localhost:8080 --pp
 
 System defined Work Item Types are
 
- * system.userstory
- * system.valueproposition
- * system.fundamental
- * system.experience
- * system.feature
- * system.bug
+ * userstory
+ * valueproposition
+ * fundamental
+ * experience
+ * feature
+ * bug
 
 Use any one of above to create Work Item based on that type.
-Following example creates a Work Item of type `system.userstory`
+Following example creates a Work Item of type `userstory`
 ----
-$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{"type": "system.userstory", "fields": { "system.title": "A catchy Title", "system.owner": "tmaeder", "system.state": "open" }}' -H localhost:8080
+$ ./bin/alm-cli create workitem --key "<GENERATED TOKEN>" --payload '{ "data": { "attributes": { "system.owner": "tmaeder", "system.state": "open", "system.title": "Example of an Epic", "version": "1" }, "relationships": { "baseType": { "data": { "id": "Epic", "type": "workitemtypes" } } }, "type": "workitems" } }' -H localhost:8080
 ----
 
 In response you should get ID of created item, using that you can retrieve the work item.

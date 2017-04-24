@@ -2,135 +2,180 @@ package search
 
 import (
 	"fmt"
-	"os"
+	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
-	"github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
+	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
+	"github.com/almighty/almighty-core/space"
+	testsupport "github.com/almighty/almighty-core/test"
+	"github.com/almighty/almighty-core/workitem"
+
+	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
 
-var db *gorm.DB
+func TestRunSearchRepositoryWhiteboxTest(t *testing.T) {
+	resource.Require(t, resource.Database)
+	suite.Run(t, &searchRepositoryWhiteboxTest{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+}
 
-func TestMain(m *testing.M) {
-	var err error
+type searchRepositoryWhiteboxTest struct {
+	gormtestsupport.DBTestSuite
+	clean      func()
+	modifierID uuid.UUID
+}
 
-	if err = configuration.Setup(""); err != nil {
-		panic(fmt.Errorf("Failed to setup the configuration: %s", err.Error()))
-	}
+// SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
+func (s *searchRepositoryWhiteboxTest) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
+}
 
-	if _, c := os.LookupEnv(resource.Database); c {
-		db, err = gorm.Open("postgres", configuration.GetPostgresConfigString())
-		if err != nil {
-			panic("Failed to connect database: " + err.Error())
-		}
-		defer db.Close()
-	}
-	os.Exit(m.Run())
+func (s *searchRepositoryWhiteboxTest) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+	testIdentity, err := testsupport.CreateTestIdentity(s.DB, "jdoe", "test")
+	require.Nil(s.T(), err)
+	s.modifierID = testIdentity.ID
+}
+
+func (s *searchRepositoryWhiteboxTest) TearDownTest() {
+	s.clean()
 }
 
 type SearchTestDescriptor struct {
-	wi             app.WorkItem
+	wi             workitem.WorkItem
 	searchString   string
 	minimumResults int
 }
 
-func TestSearchByText(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.Database)
-
-	wir := models.NewWorkItemRepository(db)
+func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
+	wir := workitem.NewWorkItemRepository(s.DB)
 
 	testDataSet := []SearchTestDescriptor{
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
-					models.SystemTitle:       "test sbose title '12345678asdfgh'",
-					models.SystemDescription: `"description" for search test`,
-					models.SystemCreator:     "sbose78",
-					models.SystemAssignee:    "pranav",
-					models.SystemState:       "closed",
+					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
+					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
+					workitem.SystemCreator:     "sbose78",
+					workitem.SystemAssignees:   []string{"pranav"},
+					workitem.SystemState:       "closed",
 				},
 			},
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
-					models.SystemTitle:       "add new error types in models/errors.go'",
-					models.SystemDescription: `Make sure remoteworkitem can access..`,
-					models.SystemCreator:     "sbose78",
-					models.SystemAssignee:    "pranav",
-					models.SystemState:       "closed",
+					workitem.SystemTitle:       "add new error types in models/errors.go'",
+					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`Make sure remoteworkitem can access..`),
+					workitem.SystemCreator:     "sbose78",
+					workitem.SystemAssignees:   []string{"pranav"},
+					workitem.SystemState:       "closed",
 				},
 			},
 			searchString:   `models/errors.go remoteworkitem `,
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				Fields: map[string]interface{}{
-					models.SystemTitle:       "test sbose title '12345678asdfgh'",
-					models.SystemDescription: `"description" for search test`,
-					models.SystemCreator:     "sbose78",
-					models.SystemAssignee:    "pranav",
-					models.SystemState:       "closed",
+					workitem.SystemTitle:       "test sbose title '12345678asdfgh'",
+					workitem.SystemDescription: rendering.NewMarkupContentFromLegacy(`"description" for search test`),
+					workitem.SystemCreator:     "sbose78",
+					workitem.SystemAssignees:   []string{"pranav"},
+					workitem.SystemState:       "closed",
 				},
 			},
 			searchString:   `Sbose "deScription" '12345678asdfgh' `,
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					models.SystemTitle:    "test nofield sbose title '12345678asdfgh'",
-					models.SystemCreator:  "sbose78",
-					models.SystemAssignee: "pranav",
-					models.SystemState:    "closed",
+					workitem.SystemTitle:     "test nofield sbose title '12345678asdfgh'",
+					workitem.SystemCreator:   "sbose78",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "closed",
 				},
 			},
 			searchString:   `sbose nofield `,
 			minimumResults: 1,
 		},
 		{
-			wi: app.WorkItem{
+			wi: workitem.WorkItem{
 				// will test behaviour when null fields are present. In this case, "system.description" is nil
 				Fields: map[string]interface{}{
-					models.SystemTitle:    "test should return 0 results'",
-					models.SystemCreator:  "sbose78",
-					models.SystemAssignee: "pranav",
-					models.SystemState:    "closed",
+					workitem.SystemTitle:     "test should return 0 results'",
+					workitem.SystemCreator:   "sbose78",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "closed",
 				},
 			},
 			searchString:   `negative case `,
 			minimumResults: 0,
+		}, {
+			wi: workitem.WorkItem{
+				// search stirng with braces should be acceptable case
+				Fields: map[string]interface{}{
+					workitem.SystemTitle:     "Bug reported by administrator for input = (value)",
+					workitem.SystemCreator:   "pgore",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "new",
+				},
+			},
+			searchString:   `(value) `,
+			minimumResults: 1,
+		}, {
+			wi: workitem.WorkItem{
+				// search stirng with surrounding braces should be acceptable case
+				Fields: map[string]interface{}{
+					workitem.SystemTitle:     "trial for braces (pranav) {shoubhik} [aslak]",
+					workitem.SystemCreator:   "pgore",
+					workitem.SystemAssignees: []string{"pranav"},
+					workitem.SystemState:     "new",
+				},
+			},
+			searchString:   `(pranav) {shoubhik} [aslak] `,
+			minimumResults: 1,
 		},
 	}
 
-	models.Transactional(db, func(tx *gorm.DB) error {
+	models.Transactional(s.DB, func(tx *gorm.DB) error {
 
 		for _, testData := range testDataSet {
 			workItem := testData.wi
 			searchString := testData.searchString
 			minimumResults := testData.minimumResults
-			workItemURLInSearchString := "http://demo.almighty.io/detail/"
+			workItemURLInSearchString := "http://demo.almighty.io/work-item/list/detail/"
+			req := &http.Request{Host: "localhost"}
+			params := url.Values{}
+			ctx := goa.NewContext(context.Background(), nil, req, params)
 
-			createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+			createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 			if err != nil {
-				t.Fatal("Couldnt create test data")
+				s.T().Fatal("Couldnt create test data")
 			}
 
-			defer wir.Delete(context.Background(), createdWorkItem.ID)
+			defer wir.Delete(ctx, createdWorkItem.SpaceID, createdWorkItem.ID, s.modifierID)
 
 			// create the URL and use it in the search string
 			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
@@ -139,12 +184,12 @@ func TestSearchByText(t *testing.T) {
 			// till the test data was created.
 			searchString = searchString + workItemURLInSearchString
 			searchString = fmt.Sprintf("\"%s\"", searchString)
-			t.Log("using search string: " + searchString)
-			sr := NewGormSearchRepository(db)
+			s.T().Log("using search string: " + searchString)
+			sr := NewGormSearchRepository(tx)
 			var start, limit int = 0, 100
-			workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
+			workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
 			if err != nil {
-				t.Fatal("Error getting search result ", err)
+				s.T().Fatal("Error getting search result ", err)
 			}
 			searchString = strings.Trim(searchString, "\"")
 			// Since this test adds test data, whether or not other workitems exist
@@ -153,7 +198,7 @@ func TestSearchByText(t *testing.T) {
 				// no point checking further, we got what we wanted.
 				continue
 			} else if len(workItemList) < minimumResults {
-				t.Fatalf("At least %d search results was expected ", minimumResults)
+				s.T().Fatalf("At least %d search results was expected ", minimumResults)
 			}
 
 			// These keywords need a match in the textual part.
@@ -165,31 +210,32 @@ func TestSearchByText(t *testing.T) {
 			optionalKeywords := []string{workItemURLInSearchString, createdWorkItem.ID}
 
 			// We will now check the legitimacy of the search results.
-			// Iterate through all search results and see whether they meet the critera
+			// Iterate through all search results and see whether they meet the criteria
 
 			for _, workItemValue := range workItemList {
-				t.Log("Found search result  ", workItemValue.ID)
+				s.T().Log("Found search result  ", workItemValue.ID)
 
 				for _, keyWord := range allKeywords {
 
 					workItemTitle := ""
-					if workItemValue.Fields[models.SystemTitle] != nil {
-						workItemTitle = strings.ToLower(workItemValue.Fields[models.SystemTitle].(string))
+					if workItemValue.Fields[workitem.SystemTitle] != nil {
+						workItemTitle = strings.ToLower(workItemValue.Fields[workitem.SystemTitle].(string))
 					}
 					workItemDescription := ""
-					if workItemValue.Fields[models.SystemDescription] != nil {
-						workItemDescription = strings.ToLower(workItemValue.Fields[models.SystemDescription].(string))
+					if workItemValue.Fields[workitem.SystemDescription] != nil {
+						descriptionField := workItemValue.Fields[workitem.SystemDescription].(rendering.MarkupContent)
+						workItemDescription = strings.ToLower(descriptionField.Content)
 					}
 					keyWord = strings.ToLower(keyWord)
 
 					if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
 						// Check if the search keyword is present as text in the title/description
-						t.Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
+						s.T().Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
 					} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, workItemValue.ID) {
 						// If not present in title/description then it should be a URL or ID
-						t.Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
+						s.T().Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
 					} else {
-						t.Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemTitle, workItemDescription)
+						s.T().Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemTitle, workItemDescription)
 					}
 				}
 				//defer wir.Delete(context.Background(), workItemValue.ID)
@@ -210,54 +256,56 @@ func stringInSlice(str string, list []string) bool {
 	return false
 }
 
-func TestSearchByID(t *testing.T) {
-	t.Parallel()
-	resource.Require(t, resource.Database)
-	wir := models.NewWorkItemRepository(db)
+func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 
-	models.Transactional(db, func(tx *gorm.DB) error {
+	models.Transactional(s.DB, func(tx *gorm.DB) error {
+		req := &http.Request{Host: "localhost"}
+		params := url.Values{}
+		ctx := goa.NewContext(context.Background(), nil, req, params)
 
-		workItem := app.WorkItem{Fields: make(map[string]interface{})}
+		wir := workitem.NewWorkItemRepository(tx)
+
+		workItem := workitem.WorkItem{Fields: make(map[string]interface{})}
 
 		workItem.Fields = map[string]interface{}{
-			models.SystemTitle:       "Search Test Sbose",
-			models.SystemDescription: "Description",
-			models.SystemCreator:     "sbose78",
-			models.SystemAssignee:    "pranav",
-			models.SystemState:       "closed",
+			workitem.SystemTitle:       "Search Test Sbose",
+			workitem.SystemDescription: rendering.NewMarkupContentFromLegacy("Description"),
+			workitem.SystemCreator:     "sbose78",
+			workitem.SystemAssignees:   []string{"pranav"},
+			workitem.SystemState:       "closed",
 		}
 
-		createdWorkItem, err := wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		createdWorkItem, err := wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 		if err != nil {
-			t.Fatal("Couldnt create test data")
+			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(context.Background(), createdWorkItem.ID)
+		defer wir.Delete(ctx, createdWorkItem.SpaceID, createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
 
-		workItem.Fields[models.SystemTitle] = "Search test sbose " + createdWorkItem.ID
-		_, err = wir.Create(context.Background(), models.SystemBug, workItem.Fields, account.TestIdentity.ID.String())
+		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
+		_, err = wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 		if err != nil {
-			t.Fatal("Couldnt create test data")
+			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
 
-		sr := NewGormSearchRepository(db)
+		sr := NewGormSearchRepository(tx)
 
 		var start, limit int = 0, 100
 		searchString := "id:" + createdWorkItem.ID
-		workItemList, _, err := sr.SearchFullText(context.Background(), searchString, &start, &limit)
+		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
 		if err != nil {
-			t.Fatal("Error gettig search result ", err)
+			s.T().Fatal("Error gettig search result ", err)
 		}
 
 		// ID is unique, hence search result set's length should be 1
-		assert.Equal(t, len(workItemList), 1)
+		assert.Equal(s.T(), len(workItemList), 1)
 		for _, workItemValue := range workItemList {
-			t.Log("Found search result for ID Search ", workItemValue.ID)
-			assert.Equal(t, createdWorkItem.ID, workItemValue.ID)
+			s.T().Log("Found search result for ID Search ", workItemValue.ID)
+			assert.Equal(s.T(), createdWorkItem.ID, workItemValue.ID)
 		}
-		return err
+		return errors.WithStack(err)
 	})
 }
 
@@ -291,7 +339,7 @@ func TestParseSearchString(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "user input for search string with some ids like id:99 and id:400 but this is not id like 800"
-	op := parseSearchString(input)
+	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"99:*A", "400:*A"},
 		words: []string{"user:*", "input:*", "for:*", "search:*", "string:*", "with:*", "some:*", "ids:*", "like:*", "and:*", "but:*", "this:*", "is:*", "not:*", "id:*", "like:*", "800:*"},
@@ -299,39 +347,63 @@ func TestParseSearchString(t *testing.T) {
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
+type searchTestData struct {
+	query    string
+	expected searchKeyword
+}
+
 func TestParseSearchStringURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/detail/100"
-	op := parseSearchString(input)
+	inputSet := []searchTestData{{
+		query: "http://demo.almighty.io/work-item/list/detail/100",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
+		},
+	}, {
+		query: "http://demo.almighty.io/work-item/board/detail/100",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
+		},
+	}}
 
-	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"(100:* | demo.almighty.io/detail/100:*)"},
+	for _, input := range inputSet {
+		op, _ := parseSearchString(input.query)
+		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
-
-	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringURLWithouID(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "http://demo.almighty.io/detail/"
-	op := parseSearchString(input)
+	inputSet := []searchTestData{{
+		query: "http://demo.almighty.io/work-item/list/detail/",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"demo.almighty.io/work-item/list/detail:*"},
+		},
+	}, {
+		query: "http://demo.almighty.io/work-item/board/detail/",
+		expected: searchKeyword{
+			id:    nil,
+			words: []string{"demo.almighty.io/work-item/board/detail:*"},
+		},
+	}}
 
-	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"demo.almighty.io/detail:*"},
+	for _, input := range inputSet {
+		op, _ := parseSearchString(input.query)
+		assert.True(t, assert.ObjectsAreEqualValues(input.expected, op))
 	}
 
-	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
 func TestParseSearchStringDifferentURL(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := "http://demo.redhat.io"
-	op := parseSearchString(input)
+	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    nil,
 		words: []string{"demo.redhat.io:*"},
@@ -344,11 +416,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/detail/100 id:300 golang book and           id:900 \t \n unwanted"
-	op := parseSearchString(input)
+	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
 		id:    []string{"300:*A", "900:*A"},
-		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
@@ -363,7 +435,7 @@ func TestRegisterAsKnownURL(t *testing.T) {
 	groupNames := compiledRegex.SubexpNames()
 	var expected = make(map[string]KnownURL)
 	expected[routeName] = KnownURL{
-		urlRegex:          urlRegex,
+		URLRegex:          urlRegex,
 		compiledRegex:     regexp.MustCompile(urlRegex),
 		groupNamesInRegex: groupNames,
 	}

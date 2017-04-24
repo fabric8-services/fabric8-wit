@@ -2,9 +2,11 @@ package remoteworkitem
 
 import (
 	"encoding/json"
-	"log"
+
+	"github.com/almighty/almighty-core/log"
 
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 // githubFetcher provides issue listing
@@ -29,9 +31,13 @@ func (f *githubIssueFetcher) listIssues(query string, opts *github.SearchOptions
 }
 
 // Fetch tracker items from Github
-func (g *GithubTracker) Fetch() chan TrackerItemContent {
+func (g *GithubTracker) Fetch(githubAuthToken string) chan TrackerItemContent {
 	f := githubIssueFetcher{}
-	f.client = github.NewClient(nil)
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: githubAuthToken},
+	)
+	tc := oauth2.NewClient(oauth2.NoContext, ts)
+	f.client = github.NewClient(tc)
 	return g.fetch(&f)
 }
 
@@ -46,7 +52,10 @@ func (g *GithubTracker) fetch(f githubFetcher) chan TrackerItemContent {
 		for {
 			result, response, err := f.listIssues(g.Query, opts)
 			if _, ok := err.(*github.RateLimitError); ok {
-				log.Println("reached rate limit", err)
+				log.Warn(nil, map[string]interface{}{
+					"query": g.Query,
+					"opts":  opts,
+				}, "reached rate limit when listing Github issues")
 				break
 			}
 			issues := result.Issues

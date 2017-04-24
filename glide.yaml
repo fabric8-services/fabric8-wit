@@ -2,10 +2,13 @@ package: github.com/almighty/almighty-core
 homepage: https://github.com/almighty/almighty-core
 license: Apache-2.0
 import:
+- package: github.com/fabric8io/fabric8-init-tenant
+  subpackages:
+  - design
 - package: github.com/dgrijalva/jwt-go
   version: ^3.0.0
 - package: github.com/goadesign/goa
-  version: 994ca104f3dc4f982c3cb2f642ac602f8b481a74
+  version: ^1.1.0
   vcs: git
   subpackages:
   - client
@@ -15,6 +18,7 @@ import:
   - goagen
   - goagen/codegen
   - goagen/gen_app
+  - goagen/gen_controller
   - goagen/utils
   - goatest
   - middleware
@@ -76,13 +80,24 @@ import:
   version: ^1.7.0
 - package: github.com/mitchellh/mapstructure
 - package: github.com/pelletier/go-toml
-  version: ^0.3.5
+  version: ^0.5.0
+- package: github.com/pkg/errors
+  version: ^0.8.0
 - package: github.com/spf13/afero
 - package: github.com/spf13/cast
 - package: github.com/spf13/jwalterweatherman
-- package: github.com/dimfeld/httptreemux
-  version: ^3.1.0
 - package: golang.org/x/oauth2
 - package: github.com/dnaeon/go-vcr
+  version: 9d71b8a6df86e00127f96bc8dabc09856ab8afdb
   subpackages:
   - recorder
+- package: github.com/russross/blackfriday
+- package: github.com/microcosm-cc/bluemonday
+- package: github.com/shurcooL/sanitized_anchor_name
+- package: github.com/golang/lint
+  subpackages:
+  - golint
+- package: github.com/fzipp/gocyclo
+- package: github.com/Sirupsen/logrus
+- package: github.com/sourcegraph/syntaxhighlight
+- package: github.com/sourcegraph/annotate

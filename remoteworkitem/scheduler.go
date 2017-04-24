@@ -1,12 +1,14 @@
 package remoteworkitem
 
 import (
-	"log"
-
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/models"
+
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 	"github.com/robfig/cron"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/net/context"
 )
 
 // TrackerSchedule capture all configuration
@@ -16,6 +18,7 @@ type trackerSchedule struct {
 	TrackerType string
 	Query       string
 	Schedule    string
+	SpaceID     uuid.UUID
 }
 
 // Scheduler represents scheduler
@@ -43,23 +46,28 @@ func batchID() string {
 }
 
 // ScheduleAllQueries fetch and import of remote tracker items
-func (s *Scheduler) ScheduleAllQueries() {
+func (s *Scheduler) ScheduleAllQueries(ctx context.Context, accessTokens map[string]string) {
 	cr.Stop()
 
 	trackerQueries := fetchTrackerQueries(s.db)
 	for _, tq := range trackerQueries {
 		cr.AddFunc(tq.Schedule, func() {
 			tr := lookupProvider(tq)
-			for i := range tr.Fetch() {
+			authToken := accessTokens[tq.TrackerType]
+
+			// In case of Jira, no auth token is needed hence the map wouldnt
+			// return anything. So effectively the authToken is optional.
+
+			for i := range tr.Fetch(authToken) {
 				models.Transactional(s.db, func(tx *gorm.DB) error {
 					// Save the remote items in a 'temporary' table.
 					err := upload(tx, tq.TrackerID, i)
 					if err != nil {
-						return err
+						return errors.WithStack(err)
 					}
 					// Convert the remote item into a local work item and persist in the DB.
-					_, err = convert(tx, tq.TrackerID, i, tq.TrackerType)
-					return err
+					_, err = convertToWorkItemModel(ctx, tx, tq.TrackerID, i, tq.TrackerType, tq.SpaceID)
+					return errors.WithStack(err)
 				})
 			}
 		})
@@ -69,9 +77,11 @@ func (s *Scheduler) ScheduleAllQueries() {
 
 func fetchTrackerQueries(db *gorm.DB) []trackerSchedule {
 	tsList := []trackerSchedule{}
-	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
+	err := db.Table("tracker_queries").Select("trackers.id as tracker_id, trackers.url, trackers.type as tracker_type, tracker_queries.query, tracker_queries.schedule, tracker_queries.space_id").Joins("left join trackers on tracker_queries.tracker_id = trackers.id").Where("trackers.deleted_at is NULL AND tracker_queries.deleted_at is NULL").Scan(&tsList).Error
 	if err != nil {
-		log.Printf("Fetch failed %v\n", err)
+		log.Error(nil, map[string]interface{}{
+			"err": err,
+		}, "fetch operation failed for tracker queries")
 	}
 	return tsList
 }
@@ -95,7 +105,7 @@ type TrackerItemContent struct {
 
 // TrackerProvider represents a remote tracker
 type TrackerProvider interface {
-	Fetch() chan TrackerItemContent // TODO: Change to an interface to enforce the contract
+	Fetch(authToken string) chan TrackerItemContent // TODO: Change to an interface to enforce the contract
 }
 
 func init() {

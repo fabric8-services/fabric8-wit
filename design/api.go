@@ -26,10 +26,37 @@ var _ = a.API("alm", func() {
 		a.Credentials()
 	})
 
+	a.Trait("GenericLinksTrait", func() {
+		a.Attribute("self", d.String)
+		a.Attribute("related", d.String)
+		a.Attribute("meta", a.HashOf(d.String, d.Any))
+	})
+
+	a.Trait("jsonapi-media-type", func() {
+		a.ContentType("application/vnd.api+json")
+	})
+
+	a.Trait("conditional", func() {
+		a.Headers(func() {
+			a.Header("If-Modified-Since", d.String)
+			a.Header("If-None-Match", d.String)
+		})
+	})
+
 	a.JWTSecurity("jwt", func() {
 		a.Description("JWT Token Auth")
 		a.TokenURL("/api/login/authorize")
 		a.Header("Authorization")
+	})
+
+	a.ResponseTemplate(d.OK, func() {
+		a.Description("Resource created")
+		a.Status(200)
+		a.Headers(func() {
+			a.Header("Last-Modified", d.DateTime)
+			a.Header("ETag")
+			a.Header("Cache-Control")
+		})
 	})
 
 	a.ResponseTemplate(d.Created, func(pattern string) {

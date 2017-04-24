@@ -2,6 +2,7 @@ package criteria
 
 import (
 	"testing"
+
 	"github.com/almighty/almighty-core/resource"
 )
 

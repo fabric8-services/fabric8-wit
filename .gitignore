@@ -79,6 +79,8 @@ client/
 swagger/
 tool/cli/
 migration/sqlbindata.go
+migration/sqlbindata_test.go
+account/tenant
 
 # Ignore artifacts directory
 bin/

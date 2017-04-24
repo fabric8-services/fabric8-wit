@@ -1,5 +1,3 @@
-// Package criteria holds a representation of expression trees and code for their manipulation
-// This package serves to decouple the concrete query language from the execution of the queries against the database
 package criteria
 
 // Expression is used to express conditions for selecting an entity
@@ -30,7 +28,7 @@ func IterateParents(exp Expression, f func(Expression) bool) {
 }
 
 // BinaryExpression represents expressions with 2 children
-// This could be generalized to n-ary expressions, but that is not neccessary right now
+// This could be generalized to n-ary expressions, but that is not necessary right now
 type BinaryExpression interface {
 	Expression
 	Left() Expression
@@ -45,6 +43,7 @@ type ExpressionVisitor interface {
 	Equals(e *EqualsExpression) interface{}
 	Parameter(v *ParameterExpression) interface{}
 	Literal(c *LiteralExpression) interface{}
+	Not(e *NotExpression) interface{}
 }
 
 type expression struct {
@@ -199,4 +198,21 @@ func (t *EqualsExpression) Accept(visitor ExpressionVisitor) interface{} {
 // Equals constructs an EqualsExpression
 func Equals(left Expression, right Expression) Expression {
 	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
+}
+
+// Not
+
+// NotExpression represents the negation operator
+type NotExpression struct {
+	binaryExpression
+}
+
+// Accept implements ExpressionVisitor
+func (t *NotExpression) Accept(visitor ExpressionVisitor) interface{} {
+	return visitor.Not(t)
+}
+
+// And constructs a NotExpression
+func Not(left Expression, right Expression) Expression {
+	return reparent(&NotExpression{binaryExpression{expression{}, left, right}})
 }
