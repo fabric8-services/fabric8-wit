@@ -176,7 +176,7 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesOK() {
 func (s *TestUsersSuite) TestUpdateRegistrationCompletedOK() {
 	user := s.createRandomUser("OK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 
 	secureService, secureController := s.SecuredController(identity)
@@ -198,7 +198,7 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedOK() {
 func (s *TestUsersSuite) TestUpdateRegistrationCompletedBadRequest() {
 	user := s.createRandomUser("OKRegCompleted")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 
 	secureService, secureController := s.SecuredController(identity)
@@ -225,7 +225,7 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedAndUsernameOK() {
 
 	user := s.createRandomUser("OKRegCompleted")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 
 	secureService, secureController := s.SecuredController(identity)
