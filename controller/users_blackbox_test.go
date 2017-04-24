@@ -153,7 +153,7 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesOK() {
 
 	user := s.createRandomUser("OK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 
 	newUserName := identity.Username // new username = old userame
@@ -177,12 +177,12 @@ func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
 	// create 2 users.
 	user := s.createRandomUser("OK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 
 	user2 := s.createRandomUser("OK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
-	_, result2 := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity2.ID.String())
+	_, result2 := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity2.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity2.ID.String(), *result2.Data.ID)
 
 	// try updating using the username of an existing ( just created ) user.
@@ -201,12 +201,12 @@ func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
 	// create 2 users.
 	user := s.createRandomUser("OK")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
-	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
 
 	user2 := s.createRandomUser("OK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
-	_, result2 := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity2.ID.String())
+	_, result2 := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity2.ID.String(), nil, nil)
 	assert.Equal(s.T(), identity2.ID.String(), *result2.Data.ID)
 
 	// try updating using the email of an existing ( just created ) user.
