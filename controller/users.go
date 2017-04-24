@@ -227,6 +227,15 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			if *updatedRegistratedCompleted == false {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed")))
+				return ctx.Forbidden(jerrors)
+			}
+			identity.RegistrationCompleted = true
+		}
+
 		// The update of the keycloak needs to be attempted first because if that fails,
 		// we should't update the platform db since that would leave things in an
 		// inconsistent state.
