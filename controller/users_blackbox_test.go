@@ -242,7 +242,6 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedAndUsernameOK() {
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
 
-	// next attempt should fail.
 	boolTrue := true
 	newUserName := identity.Username + uuid.NewV4().String()
 	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, &boolTrue, contextInformation)
