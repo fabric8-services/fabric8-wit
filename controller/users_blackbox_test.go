@@ -199,8 +199,8 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedOK() {
 	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
-func (s *TestUsersSuite) TestUpdateRegistrationCompletedForbidden() {
-	user := s.createRandomUser("OK")
+func (s *TestUsersSuite) TestUpdateRegistrationCompletedBadRequest() {
+	user := s.createRandomUser("OKRegCompleted")
 	identity := s.createRandomIdentity(user, account.KeycloakIDP)
 	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
 	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
@@ -215,10 +215,39 @@ func (s *TestUsersSuite) TestUpdateRegistrationCompletedForbidden() {
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
 
-	// next attempt should PASS.
+	// next attempt should fail.
 	boolFalse := false
 	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, &boolFalse, contextInformation)
+	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+}
+
+func (s *TestUsersSuite) TestUpdateRegistrationCompletedAndUsernameOK() {
+
+	// In this test case, we send both registrationCompleted=True and an updated username
+	// as part of HTTP PATCH.
+
+	user := s.createRandomUser("OKRegCompleted")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+	// next attempt should fail.
+	boolTrue := true
+	newUserName := identity.Username + uuid.NewV4().String()
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, &boolTrue, contextInformation)
 	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
 }
 
 func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
@@ -660,14 +689,15 @@ func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, compan
 		Data: &app.UpdateIdentityData{
 			Type: "identities",
 			Attributes: &app.UpdateIdentityDataAttributes{
-				Email:              email,
-				FullName:           fullName,
-				Bio:                bio,
-				ImageURL:           imageURL,
-				URL:                profileURL,
-				Company:            company,
-				ContextInformation: contextInformation,
-				Username:           username,
+				Email:                 email,
+				FullName:              fullName,
+				Bio:                   bio,
+				ImageURL:              imageURL,
+				URL:                   profileURL,
+				Company:               company,
+				ContextInformation:    contextInformation,
+				Username:              username,
+				RegistrationCompleted: registrationCompleted,
 			},
 		},
 	}

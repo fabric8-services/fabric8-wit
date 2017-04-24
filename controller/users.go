@@ -167,6 +167,15 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			keycloakUserProfile.Username = updatedUserName
 		}
 
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			if *updatedRegistratedCompleted == false {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed")))
+				return ctx.BadRequest(jerrors)
+			}
+			identity.RegistrationCompleted = true
+		}
+
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil {
 			user.Bio = *updatedBio
@@ -225,15 +234,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				// Save it as is, for short-term.
 				user.ContextInformation[fieldName] = fieldValue
 			}
-		}
-
-		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
-		if updatedRegistratedCompleted != nil {
-			if *updatedRegistratedCompleted == false {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed")))
-				return ctx.Forbidden(jerrors)
-			}
-			identity.RegistrationCompleted = true
 		}
 
 		// The update of the keycloak needs to be attempted first because if that fails,
