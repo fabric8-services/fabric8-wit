@@ -2,16 +2,16 @@ package account
 
 import (
 	"database/sql/driver"
+	"strconv"
 	"time"
 
-	"github.com/almighty/almighty-core/app"
-	errs "github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/net/context"
 )
@@ -80,21 +80,15 @@ func (m Identity) TableName() string {
 	return "identities"
 }
 
-// TODO: Remove. Data layer should not know about the REST layer. Moved to /users.go
-// ConvertIdentityFromModel convert identity from model to app representation
-func (m Identity) ConvertIdentityFromModel() *app.Identity {
-	id := m.ID.String()
-	converted := app.Identity{
-		Data: &app.IdentityData{
-			ID:   &id,
-			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
-				Username:     &m.Username,
-				ProviderType: &m.ProviderType,
-			},
-		},
-	}
-	return &converted
+// GetETagData returns the field values to use to generate the ETag
+func (m Identity) GetETagData() []interface{} {
+	// using the 'ID' and 'UpdatedAt' (converted to number of seconds since epoch) fields
+	return []interface{}{m.ID, strconv.FormatInt(m.UpdatedAt.Unix(), 10)}
+}
+
+// GetLastModified returns the last modification time
+func (m Identity) GetLastModified() time.Time {
+	return m.UpdatedAt
 }
 
 // GormIdentityRepository is the implementation of the storage interface for
@@ -115,8 +109,8 @@ type IdentityRepository interface {
 	Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error)
 	Save(ctx context.Context, identity *Identity) error
 	Delete(ctx context.Context, id uuid.UUID) error
-	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error)
-	List(ctx context.Context) (*app.IdentityArray, error)
+	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error)
+	List(ctx context.Context) ([]Identity, error)
 	IsValid(context.Context, uuid.UUID) bool
 }
 
@@ -137,16 +131,15 @@ func (m *GormIdentityRepository) Load(ctx context.Context, id uuid.UUID) (*Ident
 	var native Identity
 	err := m.db.Table(m.TableName()).Where("id = ?", id).Find(&native).Error
 	if err == gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(errors.NewNotFoundError("identity", id.String()))
 	}
 
-	return &native, errors.WithStack(err)
+	return &native, errs.WithStack(err)
 }
 
 // Create creates a new record.
 func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) error {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "create"}, time.Now())
-
 	if model.ID == uuid.Nil {
 		model.ID = uuid.NewV4()
 	}
@@ -156,26 +149,24 @@ func (m *GormIdentityRepository) Create(ctx context.Context, model *Identity) er
 			"identity_id": model.ID,
 			"err":         err,
 		}, "unable to create the identity")
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
-
-	log.Debug(ctx, map[string]interface{}{
+	log.Info(ctx, map[string]interface{}{
 		"identity_id": model.ID,
 	}, "Identity created!")
-
 	return nil
 }
 
 // Lookup looks for an existing identity with the given `profileURL` or creates a new one
 func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileURL, providerType string) (*Identity, error) {
 	if username == "" || profileURL == "" || providerType == "" {
-		return nil, errors.New("Cannot lookup identity with empty username, profile URL or provider type")
+		return nil, errs.New("Cannot lookup identity with empty username, profile URL or provider type")
 	}
 	log.Debug(nil, nil, "Looking for identity of user with profile URL=%s\n", profileURL)
 	// bind the assignee to an existing identity, or create a new one
 	identity, err := m.First(IdentityFilterByProfileURL(profileURL))
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to lookup identity by profileURL '%s'", profileURL)
+		return nil, errs.Wrapf(err, "failed to lookup identity by profileURL '%s'", profileURL)
 	}
 	if identity == nil {
 		// create the identity if it does not exist yet
@@ -187,7 +178,7 @@ func (m *GormIdentityRepository) Lookup(ctx context.Context, username, profileUR
 		}
 		err = m.Create(context.Background(), identity)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to create identity during lookup")
+			return nil, errs.Wrap(err, "failed to create identity during lookup")
 		}
 	} else {
 		// use existing identity
@@ -208,7 +199,7 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 			"ctx":         ctx,
 			"err":         err,
 		}, "unable to update the identity")
-		return errors.WithStack(err)
+		return errs.WithStack(err)
 	}
 	err = m.db.Model(obj).Updates(model).Error
 
@@ -216,7 +207,7 @@ func (m *GormIdentityRepository) Save(ctx context.Context, model *Identity) erro
 		"identity_id": model.ID,
 	}, "Identity saved!")
 
-	return errors.WithStack(err)
+	return errs.WithStack(err)
 }
 
 // Delete removes a single record.
@@ -231,10 +222,10 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 			"identity_id": id,
 			"err":         db.Error,
 		}, "unable to delete the identity")
-		return errors.WithStack(db.Error)
+		return errs.WithStack(db.Error)
 	}
 	if db.RowsAffected == 0 {
-		return errs.NewNotFoundError("identity", id.String())
+		return errors.NewNotFoundError("identity", id.String())
 	}
 
 	log.Debug(ctx, map[string]interface{}{
@@ -245,20 +236,18 @@ func (m *GormIdentityRepository) Delete(ctx context.Context, id uuid.UUID) error
 }
 
 // Query expose an open ended Query model
-func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]*Identity, error) {
+func (m *GormIdentityRepository) Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "query"}, time.Now())
-	var objs []*Identity
-
-	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&objs).Error
+	var identities []Identity
+	err := m.db.Scopes(funcs...).Table(m.TableName()).Find(&identities).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
-
 	log.Debug(nil, map[string]interface{}{
-		"identity_list": objs,
+		"identity_query": identities,
 	}, "Identity query executed successfully!")
 
-	return objs, nil
+	return identities, nil
 }
 
 // First returns the first Identity element that matches the given criteria
@@ -269,7 +258,7 @@ func (m *GormIdentityRepository) First(funcs ...func(*gorm.DB) *gorm.DB) (*Ident
 
 	err := m.db.Scopes(funcs...).Table(m.TableName()).First(&objs).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
+		return nil, errs.WithStack(err)
 	}
 	if len(objs) != 0 && objs[0] != nil {
 		log.Debug(nil, map[string]interface{}{
@@ -333,26 +322,20 @@ func IdentityFilterByRegistrationCompleted(registrationCompleted bool) func(db *
 }
 
 // List return all user identities
-func (m *GormIdentityRepository) List(ctx context.Context) (*app.IdentityArray, error) {
+func (m *GormIdentityRepository) List(ctx context.Context) ([]Identity, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "identity", "list"}, time.Now())
 	var rows []Identity
 
 	err := m.db.Model(&Identity{}).Order("username").Find(&rows).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, errors.WithStack(err)
-	}
-	res := app.IdentityArray{}
-	res.Data = make([]*app.IdentityData, len(rows))
-	for index, value := range rows {
-		ident := value.ConvertIdentityFromModel()
-		res.Data[index] = ident.Data
+		return nil, errs.WithStack(err)
 	}
 
 	log.Debug(ctx, map[string]interface{}{
-		"identity_list": &res,
+		"identity_list": &rows,
 	}, "Identity List executed successfully!")
 
-	return &res, nil
+	return rows, nil
 }
 
 // IsValid returns true if the identity exists

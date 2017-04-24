@@ -97,7 +97,7 @@ func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Applic
 	}
 	for _, identity := range identities {
 		if identity.ProviderType == account.KeycloakIDP {
-			return identity, nil
+			return &identity, nil
 		}
 	}
 	log.Error(ctx, map[string]interface{}{
