@@ -49,7 +49,7 @@ func TestNewCodebase(t *testing.T) {
 
 	// test for all values in codebase
 	branch := "task-101"
-	repo := "golang-project"
+	repo := "https://github.com/pranavgore09/go-tutorial"
 	file := "main.go"
 	line := 200
 	codebaseMap = map[string]interface{}{
@@ -60,7 +60,8 @@ func TestNewCodebase(t *testing.T) {
 	}
 	cb, err = codebase.NewCodebaseContent(codebaseMap)
 	require.Nil(t, err)
-	assert.Equal(t, repo, cb.Repository)
+	expectedRepo := repo + ".git"
+	assert.Equal(t, expectedRepo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)
 	assert.Equal(t, line, cb.LineNumber)
@@ -68,12 +69,22 @@ func TestNewCodebase(t *testing.T) {
 
 func TestIsValid(t *testing.T) {
 	cb := codebase.CodebaseContent{
-		Repository: "hello",
+		Repository: "https://github.com/pranavgore09/go-tutorial",
 	}
 	assert.Nil(t, cb.IsValid())
 
 	cb = codebase.CodebaseContent{}
 	assert.NotNil(t, cb.IsValid())
+}
+
+func TestInvalidRepo(t *testing.T) {
+	cb := codebase.CodebaseContent{
+		Repository: "https://other-than-github.com/pranavgore09/go-tutorial",
+	}
+	assert.NotNil(t, cb.IsValid())
+
+	// cb = codebase.CodebaseContent{}
+	// assert.NotNil(t, cb.IsValid())
 }
 
 type TestCodebaseRepository struct {

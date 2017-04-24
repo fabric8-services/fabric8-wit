@@ -1993,7 +1993,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
 	branch := "earth-recycle-101"
-	repo := "golang-project"
+	repo := "https://github.com/pranavgore09/go-tutorial"
 	file := "main.go"
 	line := 200
 	cbase := codebase.CodebaseContent{
@@ -2012,16 +2012,16 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
 	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
 	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
-	assert.Equal(s.T(), repo, cb.Repository)
+	expectedRepo := repo + ".git"
+	assert.Equal(s.T(), expectedRepo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
 	assert.Equal(s.T(), line, cb.LineNumber)
+	assert.NotEmpty(s.T(), cb.CodebaseID)
 
-	// TODO: Uncomment following block that tests DO-IT URL
-	// require.NotNil(s.T(), fetchedWI.Data.Links)
-	// expectedURL := fmt.Sprintf("/codebase/generate?repo=%s&branch=%s&file=%s&line=%d", cb.Repository, cb.Branch, cb.FileName, cb.LineNumber)
-	// expectedURL = url.QueryEscape(expectedURL)
-	// assert.Contains(s.T(), *fetchedWI.Data.Links.Doit, expectedURL)
+	require.NotNil(s.T(), fetchedWI.Data.Links)
+	expectedURL := fmt.Sprintf("/api/codebases/%s/edit", cb.CodebaseID)
+	assert.Contains(s.T(), *fetchedWI.Data.Links.Doit, expectedURL)
 }
 
 func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {

@@ -271,7 +271,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	// given
 	title := "solution on global warming"
 	branch := "earth-recycle-101"
-	repo := "golang-project"
+	repo := "https://github.com/pranavgore09/go-tutorial"
 	file := "main.go"
 	line := 200
 	cbase := codebase.CodebaseContent{
@@ -296,8 +296,33 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))
 	require.NotNil(s.T(), wi.Fields[workitem.SystemCodebase])
 	cb := wi.Fields[workitem.SystemCodebase].(codebase.CodebaseContent)
-	assert.Equal(s.T(), repo, cb.Repository)
+	expectedRepo := repo + ".git"
+	assert.Equal(s.T(), expectedRepo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
 	assert.Equal(s.T(), line, cb.LineNumber)
+}
+
+func (s *workItemRepoBlackBoxTest) TestCodebaseInvalidRepo() {
+	// given
+	title := "solution on global warming"
+	branch := "earth-recycle-101"
+	repo := "https://non-github.com/pranavgore09/go-tutorial"
+	file := "main.go"
+	line := 200
+	cbase := codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+
+	_, err := s.repo.Create(
+		s.ctx, space.SystemSpace, workitem.SystemPlannerItem,
+		map[string]interface{}{
+			workitem.SystemTitle:    title,
+			workitem.SystemState:    workitem.SystemStateNew,
+			workitem.SystemCodebase: cbase,
+		}, s.creatorID)
+	require.NotNil(s.T(), err, "Should not create workitem")
 }

@@ -2,6 +2,7 @@ package codebase
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -20,6 +21,7 @@ type CodebaseContent struct {
 	Branch     string `json:"branch"`
 	FileName   string `json:"filename"`
 	LineNumber int    `json:"linenumber"`
+	CodebaseID string `json:"codebaseid"`
 }
 
 // Following keys define attribute names in the map of Codebase
@@ -28,6 +30,7 @@ const (
 	BranchKey     = "branch"
 	FileNameKey   = "filename"
 	LineNumberKey = "linenumber"
+	CodebaseIDKey = "codebaseid"
 )
 
 // ToMap converts CodebaseContent to a map of string->Interface{}
@@ -37,7 +40,20 @@ func (c *CodebaseContent) ToMap() map[string]interface{} {
 	res[BranchKey] = c.Branch
 	res[FileNameKey] = c.FileName
 	res[LineNumberKey] = c.LineNumber
+	res[CodebaseIDKey] = c.CodebaseID
 	return res
+}
+
+// validateURL makes sure Repo is valid GIT URL
+func validateURL(repo string) (string, bool) {
+	validPrefixes := []string{"https://github.com/", "git@github.com:"}
+	if strings.HasPrefix(repo, validPrefixes[0]) || strings.HasPrefix(repo, validPrefixes[1]) {
+		if strings.HasSuffix(repo, ".git") == false {
+			return repo + ".git", true
+		}
+		return repo, true
+	}
+	return "", false
 }
 
 // IsValid perform following checks
@@ -46,13 +62,19 @@ func (c *CodebaseContent) IsValid() error {
 	if c.Repository == "" {
 		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is mandatory")
 	}
+	repo, valid := validateURL(c.Repository)
+	if valid == false {
+		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is not valid git url")
+	}
+	c.Repository = repo
 	return nil
 }
 
 // NewCodebaseContent builds CodebaseContent instance from input Map.
 func NewCodebaseContent(value map[string]interface{}) (CodebaseContent, error) {
 	cb := CodebaseContent{}
-	validKeys := []string{RepositoryKey, BranchKey, FileNameKey, LineNumberKey}
+	validKeys := []string{RepositoryKey, BranchKey, FileNameKey,
+		LineNumberKey, CodebaseIDKey}
 	for _, key := range validKeys {
 		if v, ok := value[key]; ok {
 			switch key {
@@ -62,6 +84,8 @@ func NewCodebaseContent(value map[string]interface{}) (CodebaseContent, error) {
 				cb.Branch = v.(string)
 			case FileNameKey:
 				cb.FileName = v.(string)
+			case CodebaseIDKey:
+				cb.CodebaseID = v.(string)
 			case LineNumberKey:
 				switch v.(type) {
 				case int:
@@ -116,6 +140,7 @@ type Repository interface {
 	//Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Codebase, error)
+	LoadByRepo(ctx context.Context, repository string) (*Codebase, error)
 }
 
 // NewCodebaseRepository creates a new storage type.
@@ -247,6 +272,21 @@ func (m *GormCodebaseRepository) Load(ctx context.Context, id uuid.UUID) (*Codeb
 	tx := m.db.Where("id=?", id).First(&obj)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("codebase", id.String())
+	}
+	if tx.Error != nil {
+		return nil, errors.NewInternalError(tx.Error.Error())
+	}
+	return &obj, nil
+}
+
+// LoadByRepo returns a single codebase found for input repository url
+func (m *GormCodebaseRepository) LoadByRepo(ctx context.Context, repository string) (*Codebase, error) {
+	defer goa.MeasureSince([]string{"goa", "db", "codebase", "loadbyrepository"}, time.Now())
+	var obj Codebase
+
+	tx := m.db.Where("url=?", repository).First(&obj)
+	if tx.RecordNotFound() {
+		return nil, errors.NewNotFoundError("codebase url", repository)
 	}
 	if tx.Error != nil {
 		return nil, errors.NewInternalError(tx.Error.Error())
