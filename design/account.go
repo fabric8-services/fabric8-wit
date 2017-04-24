@@ -205,7 +205,7 @@ var updateIdentityDataAttributes = a.Type("UpdateIdentityDataAttributes", func()
 	a.Attribute("url", d.String, "The url")
 	a.Attribute("company", d.String, "The company")
 	a.Attribute("providerType", d.String, "The IDP provided this identity")
-	a.Attribute("registrationCompleted", d.Boolean, "Complete the registration to proceed. Setting this to true is allowed.")
+	a.Attribute("registrationCompleted", d.Boolean, "Complete the registration to proceed. This can only be set to true")
 	a.Attribute("contextInformation", a.HashOf(d.String, d.Any), "User context information of any type as a json", func() {
 		a.Example(map[string]interface{}{"last_visited_url": "https://a.openshift.io", "space": "3d6dab8d-f204-42e8-ab29-cdb1c93130ad"})
 	})
