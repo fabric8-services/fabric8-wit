@@ -9,7 +9,9 @@ import (
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+
 	"github.com/goadesign/goa"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -46,7 +48,8 @@ func (rest *TestLogoutREST) TestLogoutRedirects() {
 	svc, ctrl := rest.UnSecuredController()
 
 	redirect := "http://domain.com"
-	test.LogoutLogoutTemporaryRedirect(t, svc.Context, svc, ctrl, &redirect)
+	resp := test.LogoutLogoutTemporaryRedirect(t, svc.Context, svc, ctrl, &redirect)
+	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
 }
 
 func (rest *TestLogoutREST) TestLogoutWithoutReffererAndRedirectParamsBadRequest() {
