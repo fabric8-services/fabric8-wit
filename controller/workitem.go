@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/codebase"
@@ -453,7 +452,14 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 	}
 	if source.Relationships != nil && source.Relationships.Iteration != nil {
 		if source.Relationships.Iteration.Data == nil {
-			delete(target.Fields, workitem.SystemIteration)
+			log.Debug(nil, map[string]interface{}{
+				"wi_id": target.ID,
+			}, "assigning the work item to the root iteration of the space.")
+			rootIteration, err := appl.Iterations().Root(context.Background(), spaceID)
+			if err != nil {
+				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+			}
+			target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
 		} else {
 			d := source.Relationships.Iteration.Data
 			iterationUUID, err := uuid.FromString(*d.ID)
@@ -469,7 +475,9 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 
 	if source.Relationships != nil && source.Relationships.Area != nil {
 		if source.Relationships.Area.Data == nil {
-			logrus.Debug("assigning the work item to the root area of the space.")
+			log.Debug(nil, map[string]interface{}{
+				"wi_id": target.ID,
+			}, "assigning the work item to the root area of the space.")
 			rootArea, err := appl.Areas().Root(context.Background(), spaceID)
 			if err != nil {
 				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")

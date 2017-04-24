@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
+	"github.com/almighty/almighty-core/area"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -65,7 +66,7 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 
 func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	// given
-	parent := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.Nil(rest.T(), err)
 	parentID := parent.ID
@@ -89,11 +90,11 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
 	// given
-	parentID := createSpaceAndIteration(rest.T(), rest.db).ID
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	ci := getChildIterationPayload(nil)
 	svc, ctrl := rest.SecuredController()
 	// when/then
-	test.CreateChildIterationBadRequest(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	test.CreateChildIterationBadRequest(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), ci)
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingParent() {
@@ -107,20 +108,20 @@ func (rest *TestIterationREST) TestFailCreateChildIterationMissingParent() {
 
 func (rest *TestIterationREST) TestFailCreateChildIterationNotAuthorized() {
 	// when
-	parentID := createSpaceAndIteration(rest.T(), rest.db).ID
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	name := "Sprint #21"
 	ci := getChildIterationPayload(&name)
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	test.CreateChildIterationUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
+	test.CreateChildIterationUnauthorized(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), ci)
 }
 
 func (rest *TestIterationREST) TestShowIterationOK() {
 	// given
-	itrID := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
-	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itrID.ID.String(), nil, nil)
+	_, created := test.ShowIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), nil, nil)
 	// then
 	assertIterationLinking(rest.T(), created.Data)
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
@@ -130,7 +131,7 @@ func (rest *TestIterationREST) TestShowIterationOK() {
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHeader() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(itr.UpdatedAt.Add(-1 * time.Hour))
@@ -144,7 +145,7 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfModifiedSinceHea
 
 func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when
 	ifNoneMatch := "foo"
@@ -158,7 +159,7 @@ func (rest *TestIterationREST) TestShowIterationOKUsingExpiredIfNoneMatchHeader(
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceHeader() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	rest.T().Log("Iteration:", itr, " updatedAt: ", itr.UpdatedAt)
@@ -168,7 +169,7 @@ func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfModifiedSinceH
 
 func (rest *TestIterationREST) TestShowIterationNotModifiedUsingIfNoneMatchHeader() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	svc, ctrl := rest.SecuredController()
 	// when/then
 	ifNoneMatch := app.GenerateEntityTag(itr)
@@ -184,7 +185,7 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -210,7 +211,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -269,7 +270,7 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	itr.ID = uuid.NewV4()
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
@@ -285,7 +286,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationNotFound() {
 
 func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 	// given
-	itr := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	payload := app.UpdateIterationPayload{
 		Data: &app.Iteration{
 			Attributes: &app.IterationAttributes{},
@@ -300,7 +301,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
-	itr1 := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	assert.Equal(rest.T(), iteration.IterationStateNew, itr1.State)
 	startState := iteration.IterationStateStart
 	payload := app.UpdateIterationPayload{
@@ -345,7 +346,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	// given
-	itr1 := createSpaceAndIteration(rest.T(), rest.db)
+	_, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	var ri *iteration.Iteration
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
@@ -388,45 +389,51 @@ func getChildIterationPayload(name *string) *app.CreateChildIterationPayload {
 	}
 }
 
-func createSpaceAndIteration(t *testing.T, db application.DB) iteration.Iteration {
-	var itr iteration.Iteration
+func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space.Space, area.Area, iteration.Iteration, iteration.Iteration) {
+	var spaceObj space.Space
+	var areaObj area.Area
+	var rootIterationObj iteration.Iteration
+	var otherIterationObj iteration.Iteration
 	application.Transactional(db, func(app application.Application) error {
-		repo := app.Iterations()
-
-		newSpace := space.Space{
-			Name: "Test 1" + uuid.NewV4().String(),
+		spaceObj = space.Space{
+			Name: "Test 1-" + uuid.NewV4().String(),
 		}
-		p, err := app.Spaces().Create(context.Background(), &newSpace)
-		if err != nil {
-			t.Error(err)
+		_, err := app.Spaces().Create(context.Background(), &spaceObj)
+		require.Nil(t, err)
+		// create the root area
+		areaName := "Main Area-" + uuid.NewV4().String()
+		areaObj = area.Area{
+			Name:    areaName,
+			SpaceID: spaceObj.ID,
 		}
+		err = app.Areas().Create(context.Background(), &areaObj)
 		// above space should have a root iteration for itself
-		ri := iteration.Iteration{
-			Name:    newSpace.Name,
-			SpaceID: newSpace.ID,
+		rootIterationObj = iteration.Iteration{
+			Name:    spaceObj.Name,
+			SpaceID: spaceObj.ID,
 		}
-		repo.Create(context.Background(), &ri)
-
+		err = app.Iterations().Create(context.Background(), &rootIterationObj)
+		require.Nil(t, err)
 		start := time.Now()
 		end := start.Add(time.Hour * (24 * 8 * 3))
-		name := "Sprint #2"
-
-		i := iteration.Iteration{
+		iterationName := "Sprint #2"
+		otherIterationObj = iteration.Iteration{
 			Lifecycle: gormsupport.Lifecycle{
-				CreatedAt: p.CreatedAt,
-				UpdatedAt: p.UpdatedAt,
+				CreatedAt: spaceObj.CreatedAt,
+				UpdatedAt: spaceObj.UpdatedAt,
 			},
-			Name:    name,
-			SpaceID: p.ID,
+			Name:    iterationName,
+			SpaceID: spaceObj.ID,
 			StartAt: &start,
 			EndAt:   &end,
-			Path:    append(ri.Path, ri.ID),
+			Path:    append(rootIterationObj.Path, rootIterationObj.ID),
 		}
-		repo.Create(context.Background(), &i)
-		itr = i
+		err = app.Iterations().Create(context.Background(), &otherIterationObj)
+		require.Nil(t, err)
 		return nil
 	})
-	return itr
+	t.Log("Created space with ID=", spaceObj.ID.String(), "name=", spaceObj.Name)
+	return spaceObj, areaObj, rootIterationObj, otherIterationObj
 }
 
 func assertIterationLinking(t *testing.T, target *app.Iteration) {
