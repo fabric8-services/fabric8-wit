@@ -144,7 +144,81 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// next attempt should fail.
+	newUserName = identity.Username + uuid.NewV4().String()
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
 	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
+func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesOK() {
+
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	newUserName := identity.Username // new username = old userame
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+	// next attempt should PASS.
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+}
+
+func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
+	// create 2 users.
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	user2 := s.createRandomUser("OK2")
+	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
+	_, result2 := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity2.ID.String())
+	assert.Equal(s.T(), identity2.ID.String(), *result2.Data.ID)
+
+	// try updating using the username of an existing ( just created ) user.
+	secureService, secureController := s.SecuredController(identity2)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	newUserName := identity.Username
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
+func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
+	// create 2 users.
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String())
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	user2 := s.createRandomUser("OK2")
+	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
+	_, result2 := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity2.ID.String())
+	assert.Equal(s.T(), identity2.ID.String(), *result2.Data.ID)
+
+	// try updating using the email of an existing ( just created ) user.
+	secureService, secureController := s.SecuredController(identity2)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	newEmail := user.Email
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, nil, nil, nil, nil, nil, nil, contextInformation)
+	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
 func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
