@@ -170,7 +170,13 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
 		if updatedRegistratedCompleted != nil {
 			if *updatedRegistratedCompleted == false {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed")))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed for idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				log.Error(context.Background(), map[string]interface{}{
+					"registration_completed": *updatedRegistratedCompleted,
+					"user_id":                identity.UserID.UUID,
+					"idenitity_id":           identity.ID,
+				}, "invalid parameter assignment")
+
 				return ctx.BadRequest(jerrors)
 			}
 			identity.RegistrationCompleted = true
