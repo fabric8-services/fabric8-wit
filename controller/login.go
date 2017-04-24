@@ -106,6 +106,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		RedirectURL:  rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize"),
 	}
 
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist)
 }
 
@@ -170,6 +171,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		token.AccessToken = rpt
 	}
 
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return ctx.OK(convertToken(*token))
 }
 
@@ -275,7 +277,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx, profileEndpoint)
 	tokens = append(tokens, testuser)
 
-	// jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return ctx.OK(tokens)
 }
 
