@@ -236,7 +236,7 @@ func main() {
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
 	if configuration.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", configuration.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(configuration)

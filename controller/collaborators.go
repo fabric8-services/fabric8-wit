@@ -58,7 +58,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	}
 	page := s[offset : offset+limit]
 
-	data := make([]*app.IdentityData, len(s))
+	data := make([]*app.UserData, len(s))
 	for i, id := range page {
 		id = strings.Trim(id, "[]\"")
 		uID, err := uuid.FromString(id)
@@ -84,8 +84,8 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 				}, "unable to find the identity listed in the space policy")
 				return errors.New("Identity listed in the space policy not found")
 			}
-			appIdentity := ConvertUser(ctx.RequestData, identities[0], &identities[0].User)
-			data[i] = appIdentity.Data
+			appUser := ConvertToAppUser(ctx.RequestData, &identities[0].User, &identities[0])
+			data[i] = appUser.Data
 			return nil
 		})
 		if err != nil {
@@ -239,7 +239,7 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 					}, "unable to find the identity")
 					return errors.New("Identity not found")
 				}
-				identity = identities[0]
+				identity = &identities[0]
 				return nil
 			})
 			if err != nil {

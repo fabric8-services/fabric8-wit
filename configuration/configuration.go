@@ -346,6 +346,18 @@ func (c *ConfigurationData) GetCacheControlFilters() string {
 	return c.v.GetString(varCacheControlFilters)
 }
 
+// GetCacheControlUsers returns the value to set in the "Cache-Control" HTTP response header
+// when returning users.
+func (c *ConfigurationData) GetCacheControlUsers() string {
+	return c.v.GetString(varCacheControlUsers)
+}
+
+// GetCacheControlUser returns the value to set in the "Cache-Control" HTTP response header
+// when data for the current user.
+func (c *ConfigurationData) GetCacheControlUser() string {
+	return c.v.GetString(varCacheControlUser)
+}
+
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
 // that is used to sign the authentication token.
 func (c *ConfigurationData) GetTokenPrivateKey() []byte {

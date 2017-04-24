@@ -604,16 +604,16 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
-				valArr := val.([]interface{})
+				userID := val.([]interface{})
 				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: ConvertUsersSimple(request, valArr),
+					Data: ConvertUsersSimple(request, userID),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
-				valStr := val.(string)
+				userID := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, valStr),
+					Data: ConvertUserSimple(request, userID),
 				}
 			}
 		case workitem.SystemIteration:
