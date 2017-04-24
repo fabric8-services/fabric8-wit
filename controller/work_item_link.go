@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem/link"
 	"github.com/goadesign/goa"
+	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -259,6 +260,10 @@ func createWorkItemLink(ctx *workItemLinkContext, httpFuncs createWorkItemLinkFu
 	modelLink, err := ConvertLinkToModel(in)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(httpFuncs, err)
+	}
+	err = ValidateSingleParent(ctx, modelLink.TargetID, modelLink.LinkTypeID)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(httpFuncs, goa.ErrBadRequest(err.Error()))
 	}
 	createdModelLink, err := ctx.Application.WorkItemLinks().Create(ctx.Context, modelLink.SourceID, modelLink.TargetID, modelLink.LinkTypeID, *ctx.CurrentUserIdentityID)
 	if err != nil {
@@ -512,4 +517,15 @@ func ConvertLinkToModel(appLink app.WorkItemLinkSingle) (*link.WorkItemLink, err
 	}
 
 	return &modelLink, nil
+}
+
+func ValidateSingleParent(ctx *workItemLinkContext, targetID uint64, linkTypeID uuid.UUID) error {
+	result := link.WorkItemLink{}
+	var db *gorm.DB
+	db = db.Where("link_type_id=? AND target_id=?", linkTypeID, targetID).Find(&result)
+	if db.RecordNotFound() {
+		// not treating this as an error
+		return nil
+	}
+	return errors.NewInternalError(db.Error.Error())
 }
