@@ -171,7 +171,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 		"workspace_id": workspaceName,
 	}, "starting an existing workspace")
 
-	req, err := http.NewRequest("PATCH", cs.targetURL(fmt.Sprintf("workspace/%s", workspaceName), nil))
+	req, err := http.NewRequest("PATCH", cs.targetURL(fmt.Sprintf("workspace/%s", workspaceName)), nil)
 	if err != nil {
 		return nil, err
 	}
