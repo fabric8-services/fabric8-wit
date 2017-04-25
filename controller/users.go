@@ -160,7 +160,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil && *updatedUserName != identity.Username {
 			if identity.RegistrationCompleted {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for idenitity id %s ", *id)))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
 			}
 			isUnique, err := isUsernameUnique(appl, *updatedUserName, *identity)
@@ -174,6 +174,21 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			identity.Username = *updatedUserName
 			identity.RegistrationCompleted = true
 			keycloakUserProfile.Username = updatedUserName
+		}
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			if !*updatedRegistratedCompleted {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				log.Error(context.Background(), map[string]interface{}{
+					"registration_completed": *updatedRegistratedCompleted,
+					"user_id":                identity.UserID.UUID,
+					"identity_id":            identity.ID,
+				}, "invalid parameter assignment")
+
+				return ctx.BadRequest(jerrors)
+			}
+			identity.RegistrationCompleted = true
 		}
 
 		updatedBio := ctx.Payload.Data.Attributes.Bio

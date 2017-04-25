@@ -285,6 +285,9 @@ func GetMigrations() Migrations {
 	// Version 55
 	m = append(m, steps{ExecuteSQLFile("055-assign-root-area-if-missing.sql")})
 
+	// Version 56
+	m = append(m, steps{ExecuteSQLFile("056-assign-root-iteration-if-missing.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

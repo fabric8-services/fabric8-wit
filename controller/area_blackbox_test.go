@@ -295,7 +295,6 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 	var areaObj area.Area
 	var spaceObj space.Space
 	application.Transactional(db, func(app application.Application) error {
-		repo := app.Areas()
 		spaceObj = space.Space{
 			Name: "TestAreaREST-" + uuid.NewV4().String(),
 		}
@@ -306,7 +305,7 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 			Name:    name,
 			SpaceID: spaceObj.ID,
 		}
-		err = repo.Create(context.Background(), &areaObj)
+		err = app.Areas().Create(context.Background(), &areaObj)
 		require.Nil(t, err)
 		return nil
 	})
