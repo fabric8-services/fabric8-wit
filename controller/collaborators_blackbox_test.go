@@ -3,6 +3,7 @@ package controller_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"context"
 
@@ -112,7 +113,6 @@ func (rest *TestCollaboratorsREST) TearDownTest() {
 
 func (rest *TestCollaboratorsREST) SecuredController() (*goa.Service, *CollaboratorsController) {
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
-
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity1, &DummySpaceAuthzService{rest})
 	return svc, NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
 }
@@ -123,222 +123,341 @@ func (rest *TestCollaboratorsREST) UnSecuredController() (*goa.Service, *Collabo
 }
 
 func (rest *TestCollaboratorsREST) TestListCollaboratorsWithRandomSpaceIDNotFound() {
+	// given
 	svc, ctrl := rest.UnSecuredController()
-	test.ListCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+	// when/then
+	test.ListCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil, nil, nil)
 }
 
 func (rest *TestCollaboratorsREST) TestListCollaboratorsWithWrongSpaceIDFormatReturnsBadRequest() {
+	// given
 	svc, ctrl := rest.UnSecuredController()
-	test.ListCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, "wrongFormatID", nil, nil)
+	// when/then
+	test.ListCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, "wrongFormatID", nil, nil, nil, nil)
 }
 
-func (rest *TestCollaboratorsREST) TestListCollaboratorsOk() {
+func (rest *TestCollaboratorsREST) TestListCollaboratorsOK() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
-
+	// when
+	res, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+	// given
 	rest.policy.RemoveUserFromPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
+	// when
+	res, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCollaboratorsREST) TestListCollaboratorsOKUsingExpiredIfModifiedSinceHeader() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
+	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
+	// when
+	ifModifiedSince := app.ToHTTPTime(rest.testIdentity1.User.UpdatedAt.Add(-1 * time.Hour))
+	res, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, &ifModifiedSince, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCollaboratorsREST) TestListCollaboratorsOKUsingExpiredIfNoneMatchHeader() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
+	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
+	// when
+	ifNoneMatch := "foo"
+	res, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, &ifNoneMatch)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCollaboratorsREST) TestListCollaboratorsNotModifiedUsingIfModifiedSinceHeader() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
+	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
+	// when
+	ifModifiedSince := app.ToHTTPTime(rest.testIdentity1.UpdatedAt)
+	res := test.ListCollaboratorsNotModified(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, &ifModifiedSince, nil)
+	// then
+	assertResponseHeaders(rest.T(), res)
+}
+
+func (rest *TestCollaboratorsREST) TestListCollaboratorsNotModifiedUsingIfNoneMatchHeader() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
+	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
+	// when
+	ifNoneMatch := app.GenerateEntitiesTag([]app.ConditionalResponseEntity{
+		rest.testIdentity1.User,
+		rest.testIdentity2.User,
+	})
+	res := test.ListCollaboratorsNotModified(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, &ifNoneMatch)
+	// then
+	assertResponseHeaders(rest.T(), res)
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsWithRandomSpaceIDNotFound() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
+	// when/then
 	test.AddCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), uuid.NewV4().String())
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsWithRandomSpaceIDNotFound() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
 	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{}}
+	// when/then
 	test.AddManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), payload)
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
+	// when/then
 	test.AddCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, "wrongFormatID")
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
 	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: "wrongFormatID", Type: idnType}}}
+	// when/then
 	test.AddManyCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
-func (rest *TestCollaboratorsREST) TestAddCollaboratorsOk() {
+func (rest *TestCollaboratorsREST) TestAddCollaboratorsOK() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
-
+	// when
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()}, actualUsers)
+	// given
 	test.AddCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
+	// when
+	_, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
 }
 
-func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsOk() {
+func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsOK() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
-
+	// when
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()}, actualUsers)
+	// given
 	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}, {ID: rest.testIdentity2.ID.String(), Type: idnType}}}
 	test.AddManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
+	// when
+	_, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsUnauthorizedIfNoToken() {
+	// given
 	svc, ctrl := rest.UnSecuredController()
+	// when/then
 	test.AddCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsUnauthorizedIfNoToken() {
+	// given
 	svc, ctrl := rest.UnSecuredController()
 	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	// when/then
 	test.AddManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity2.ID.String()})
-
+	// when
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	// then
+	rest.checkCollaborators([]string{rest.testIdentity2.ID.String()}, actualUsers)
+	// when/then
 	test.AddCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity1.ID.String())
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity2.ID.String()})
-
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity2.ID.String()}, actualUsers)
 	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}}}
+	// when/then
 	test.AddManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfNoToken() {
+	// given
 	svc, ctrl := rest.UnSecuredController()
+	// when/then
 	test.RemoveCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfNoToken() {
+	// given
 	svc, ctrl := rest.UnSecuredController()
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	// when/then
 	test.RemoveManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
+	// given
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
 	ctrl := NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
-
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()}, actualUsers)
+	// when/then
 	test.RemoveCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsUnauthorizedIfCurrentUserIsNotCollaborator() {
+	// given
 	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	svc := testsupport.ServiceAsSpaceUser("Collaborators-Service", almtoken.NewManagerWithPrivateKey(priv), rest.testIdentity2, &DummySpaceAuthzService{rest})
 	ctrl := NewCollaboratorsController(svc, rest.db, rest.Configuration, &DummyPolicyManager{rest: rest})
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()}, actualUsers)
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
-
+	// when/then
 	test.RemoveManyCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsFailsIfTryToRemoveSpaceOwner() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
-
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
+	// when/then
 	test.RemoveCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity1.ID.String())
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsFailsIfTryToRemoveSpaceOwner() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}}}
-
+	// when/then
 	test.RemoveManyCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsWithRandomSpaceIDNotFound() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
+	// when/then
 	test.RemoveCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), uuid.NewV4().String())
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithRandomSpaceIDNotFound() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: uuid.NewV4().String(), Type: idnType}}}
-
+	// when/then
 	test.RemoveManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), payload)
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
+	// when/then
 	test.RemoveCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, "wrongFormatID")
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
+	// given
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: "wrongFormatID", Type: idnType}}}
-
+	// when/then
 	test.RemoveManyCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
-func (rest *TestCollaboratorsREST) checkCollaborators(userIDs []string) {
-	svc, ctrl := rest.UnSecuredController()
-
-	_, users := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil)
-	require.NotNil(rest.T(), users)
-	require.Equal(rest.T(), len(userIDs), len(users.Data))
-	for i, id := range userIDs {
-		require.NotNil(rest.T(), users.Data[i].ID)
-		require.Equal(rest.T(), id, *users.Data[i].ID)
-	}
-}
-
-func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsOk() {
+func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsOK() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
-
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
+	// when/then
 	test.RemoveCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
 }
 
-func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsOk() {
+func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsOK() {
+	// given
 	svc, ctrl := rest.SecuredController()
-
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
+	_, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil, nil, nil)
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()}, actualUsers)
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
-
+	// when/then
 	test.RemoveManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 }
 
+func (rest *TestCollaboratorsREST) checkCollaborators(expectedUserIDs []string, actualUsers *app.UserList) {
+	rest.T().Log("Checking collaborators: ")
+	rest.T().Log("  expecting: ")
+	for i := range expectedUserIDs {
+		rest.T().Log("  -", expectedUserIDs[i])
+	}
+	rest.T().Log("  got: ")
+	require.NotNil(rest.T(), actualUsers, "No 'actualUsers' to compare with")
+	require.NotNil(rest.T(), actualUsers.Data, "No 'actualUsers.Data' to compare with")
+	for i := range actualUsers.Data {
+		rest.T().Log("  -", *actualUsers.Data[i].ID)
+	}
+	require.Equal(rest.T(), len(expectedUserIDs), len(actualUsers.Data))
+	for i, id := range expectedUserIDs {
+		require.NotNil(rest.T(), actualUsers.Data[i].ID)
+		require.Equal(rest.T(), id, *actualUsers.Data[i].ID)
+	}
+}
+
 func (rest *TestCollaboratorsREST) createSpace() app.Space {
+	// given
 	svc, _ := rest.SecuredController()
 	spaceCtrl := NewSpaceController(svc, rest.db, rest.Configuration, &DummyResourceManager{})
 	require.NotNil(rest.T(), spaceCtrl)
