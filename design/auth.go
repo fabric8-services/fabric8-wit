@@ -139,9 +139,12 @@ var AuthToken = a.MediaType("application/vnd.authtoken+json", func() {
 
 var tokenData = a.Type("TokenData", func() {
 	a.Attribute("access_token", d.String, "Access token")
-	a.Attribute("expires_in", d.Integer, "Access token expires in seconds")
-	a.Attribute("refresh_expires_in", d.Integer, "Refresh token expires in seconds")
+	a.Attribute("expires_in", d.Any, "Access token expires in seconds")
+	a.Attribute("refresh_expires_in", d.Any, "Refresh token expires in seconds")
 	a.Attribute("refresh_token", d.String, "Refresh token")
 	a.Attribute("token_type", d.String, "Token type")
-	a.Attribute("not-before-policy", d.Integer, "Token is not valid if issued before this date")
+	a.Attribute("not-before-policy", d.Any, "Token is not valid if issued before this date")
+	a.Required("expires_in")
+	a.Required("refresh_expires_in")
+	a.Required("not-before-policy")
 })
