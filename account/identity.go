@@ -358,9 +358,9 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	// FIXME : returning the identities.id just for the sake of consistency with the other User APIs.
 	db = db.Select("count(*) over () as cnt2 ,identities.id as identity_id,identities.username,users.*")
 	db = db.Joins("LEFT JOIN users ON identities.user_id = users.id")
-	db = db.Where("LOWER(users.full_name) like ?", strings.ToLower(q)+"%")
-	db = db.Or("users.email like ?", strings.ToLower(q)+"%")
-	db = db.Or("identities.username like ?", strings.ToLower(q)+"%")
+	db = db.Where("LOWER(users.full_name) like ?", "%"+strings.ToLower(q)+"%")
+	db = db.Or("users.email like ?", "%"+strings.ToLower(q)+"%")
+	db = db.Or("identities.username like ?", "%"+strings.ToLower(q)+"%")
 	db = db.Group("identities.id,identities.username,users.id")
 	//db = db.Preload("user")
 
