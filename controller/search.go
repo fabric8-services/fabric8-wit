@@ -60,7 +60,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Error(ctx, map[string]interface{}{
@@ -86,7 +86,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 	q := ctx.Q
 	if q == "" {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Errorf("Empty search query not allowed")))
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Errorf("empty search query not allowed")))
 	} else if q == "*" {
 		q = "" // Allow empty query if * specified
 	}
@@ -105,7 +105,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case errors.BadParameterError:
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("Error listing spaces: %s", err.Error())))
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing spaces: %s", err.Error())))
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"query":  q,
@@ -137,7 +137,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 
 	q := ctx.Q
 	if q == "" {
-		return ctx.BadRequest(goa.ErrBadRequest(fmt.Errorf("Empty search query not allowed")))
+		return ctx.BadRequest(goa.ErrBadRequest(fmt.Errorf("empty search query not allowed")))
 	} else if q == "*" {
 		q = "" // Allow empty query if * specified
 	}
