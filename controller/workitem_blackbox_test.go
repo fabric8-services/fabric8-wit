@@ -2080,6 +2080,95 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	assert.Contains(s.T(), *fetchedWI.Data.Links.Doit, expectedURL)
 }
 
+// this test aims at checking different codebaseIDs for
+// two CodebaseContent with same Repository but in two different spaces
+func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
+	// create one space
+	spaceInstance, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
+	space1ID := spaceInstance.ID
+	assert.NotEqual(s.T(), uuid.Nil, space1ID)
+
+	// create a WI in above space
+	// this WI should get a new CodebaseID for itself
+	c := minimumRequiredCreatePayload()
+	title := "Solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
+	branch := "earth-recycle-101"
+	repo := "https://github.com/pranavgore09/go-tutorial"
+	file := "main.go"
+	line := 200
+	cbase := codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space1ID.String(), &c)
+	require.NotNil(s.T(), createdWI)
+	cb := createdWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	codebaseID1 := cb.CodebaseID
+	require.NotEmpty(s.T(), codebaseID1)
+
+	// create another space
+	spaceInstance2, _, _ := createSpaceWithDefaults(s.svc.Context, s.DB)
+	space2ID := spaceInstance2.ID
+	assert.NotEqual(s.T(), uuid.Nil, space2ID)
+
+	// create a WI in new space with same Repo value
+	// this WI should get a new CodebaseID for itself and not the same as before
+	c = minimumRequiredCreatePayload()
+	title = "Antoher solution on global warming"
+	branch = "earth-recycle-102"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
+		ID: &space2ID,
+	}}
+	cbase = codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	_, createdWI2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space2ID.String(), &c)
+	require.NotNil(s.T(), createdWI2)
+	cb2 := createdWI2.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	codebaseID2 := cb2.CodebaseID
+	require.NotEmpty(s.T(), codebaseID1)
+	// Repo name was same but two different Codebases are created for each
+	// because items are in different sapce.
+	assert.NotEqual(s.T(), codebaseID1, codebaseID2)
+
+	// create another work item in first space
+	// and check that it gets codebaseID equal to codebaseID1
+	c = minimumRequiredCreatePayload()
+	title = "One antoher solution on global warming"
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
+		ID: &space1ID,
+	}}
+	cbase = codebase.CodebaseContent{
+		Branch:     branch,
+		Repository: repo,
+		FileName:   file,
+		LineNumber: line,
+	}
+	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
+	_, createdWI3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space1ID.String(), &c)
+	require.NotNil(s.T(), createdWI3)
+	cb3 := createdWI3.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	codebaseID3 := cb3.CodebaseID
+	assert.Equal(s.T(), codebaseID3, codebaseID1)
+}
+
 func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	// given
 	c := minimumRequiredCreatePayload()
@@ -2416,4 +2505,41 @@ func (s *workItemChildSuite) TestWorkItemListFilterByNoParents() {
 		assert.Len(t, result2.Data, 3)
 	})
 
+}
+
+func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *iteration.Iteration, *area.Area) {
+	spaceRepo := space.NewRepository(db)
+	iterationRepo := iteration.NewIterationRepository(db)
+	areaRepo := area.NewAreaRepository(db)
+
+	newSpace := space.Space{
+		Name: fmt.Sprintf("The Space %v", uuid.NewV4()),
+	}
+	sp, err := spaceRepo.Create(ctx, &newSpace)
+	if err != nil {
+		fmt.Println("Failed to create space for area.")
+		return nil, nil, nil
+	}
+
+	// root area
+	ar := &area.Area{
+		Name:    sp.Name,
+		SpaceID: sp.ID,
+	}
+	err = areaRepo.Create(ctx, ar)
+	if err != nil {
+		fmt.Println("Failed to create area.")
+		return nil, nil, nil
+	}
+
+	itr := &iteration.Iteration{
+		Name:    sp.Name,
+		SpaceID: sp.ID,
+	}
+	err = iterationRepo.Create(ctx, itr)
+	if err != nil {
+		fmt.Println("Failed to create iteration.")
+		return nil, nil, nil
+	}
+	return sp, itr, ar
 }

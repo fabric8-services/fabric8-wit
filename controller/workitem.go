@@ -558,7 +558,7 @@ func setupCodebase(appl application.Application, cb *codebase.CodebaseContent, s
 			URL:     cb.Repository,
 			//TODO: We don't have the StackID here.
 		}
-		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), cb.Repository)
+		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), cb.Repository, spaceID)
 		if existingCB != nil {
 			cb.CodebaseID = existingCB.ID.String()
 			return nil

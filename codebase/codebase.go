@@ -140,7 +140,7 @@ type Repository interface {
 	//Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Codebase, error)
-	LoadByRepo(ctx context.Context, repository string) (*Codebase, error)
+	LoadByRepo(ctx context.Context, repository string, spaceID uuid.UUID) (*Codebase, error)
 }
 
 // NewCodebaseRepository creates a new storage type.
@@ -280,11 +280,11 @@ func (m *GormCodebaseRepository) Load(ctx context.Context, id uuid.UUID) (*Codeb
 }
 
 // LoadByRepo returns a single codebase found for input repository url
-func (m *GormCodebaseRepository) LoadByRepo(ctx context.Context, repository string) (*Codebase, error) {
+func (m *GormCodebaseRepository) LoadByRepo(ctx context.Context, repository string, spaceID uuid.UUID) (*Codebase, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "codebase", "loadbyrepository"}, time.Now())
 	var obj Codebase
 
-	tx := m.db.Where("url=?", repository).First(&obj)
+	tx := m.db.Where("url=? and space_id=?", repository, spaceID.String()).First(&obj)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("codebase url", repository)
 	}
