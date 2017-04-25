@@ -2,21 +2,57 @@ package controller_test
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
-	"testing"
-
 	"strings"
+	"testing"
 
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
+	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport/cleaner"
+	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
 )
+
+func TestRunSearchUser(t *testing.T) {
+	resource.Require(t, resource.Database)
+	pwd, err := os.Getwd()
+	require.Nil(t, err)
+	suite.Run(t, &TestSearchUserSearch{DBTestSuite: gormtestsupport.NewDBTestSuite(pwd + "/../config.yaml")})
+}
+
+type TestSearchUserSearch struct {
+	gormtestsupport.DBTestSuite
+	db         *gormapplication.GormDB
+	svc        *goa.Service
+	controller *SearchController
+	clean      func()
+}
+
+func (s *TestSearchUserSearch) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	s.svc = goa.New("test")
+	s.db = gormapplication.NewGormDB(s.DB)
+	s.controller = NewSearchController(s.svc, s.db, s.Configuration)
+}
+
+func (s *TestSearchUserSearch) SetupTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
+
+func (s *TestSearchUserSearch) TearDownTest() {
+	s.clean = cleaner.DeleteCreatedEntities(s.DB)
+}
 
 type userSearchTestArgs struct {
 	pageOffset *string
@@ -33,54 +69,46 @@ type okScenarioUserSearchTest struct {
 	userSearchTestExpects userSearchTestExpects
 }
 
-func TestUsersSearchOK(t *testing.T) {
-	resource.Require(t, resource.Database)
+func (s *TestSearchUserSearch) TestUsersSearchOK() {
 
-	idents := createTestData()
-	defer cleanTestData(idents)
+	idents := s.createTestData()
+	defer s.cleanTestData(idents)
 
 	tests := []okScenarioUserSearchTest{
-		{"With uppercase fullname query", userSearchTestArgs{offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{totalCount(1)}},
-		{"With uppercase fullname query", userSearchTestArgs{offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{totalCount(1)}},
-		{"With uppercase email query", userSearchTestArgs{offset("0"), limit(10), "EMAIL_TEST_AB"}, userSearchTestExpects{totalCount(1)}},
-		{"With lowercase email query", userSearchTestArgs{offset("0"), limit(10), "email_test_ab"}, userSearchTestExpects{totalCount(1)}},
-		{"with special chars", userSearchTestArgs{offset("0"), limit(10), "&:\n!#%?*"}, userSearchTestExpects{totalCount(0)}},
-		{"with * to list all", userSearchTestArgs{offset("0"), limit(10), "*"}, userSearchTestExpects{totalCountAtLeast(len(idents))}},
-		{"with multi page", userSearchTestArgs{offset("0"), limit(10), "TEST"}, userSearchTestExpects{hasLinks("Next")}},
-		{"with last page", userSearchTestArgs{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, userSearchTestExpects{hasNoLinks("Next"), hasLinks("Prev")}},
-		{"with different values", userSearchTestArgs{offset("0"), limit(10), "TEST"}, userSearchTestExpects{differentValues()}},
+		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With uppercase email query", userSearchTestArgs{s.offset("0"), limit(10), "EMAIL_TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With lowercase email query", userSearchTestArgs{s.offset("0"), limit(10), "email_test_ab"}, userSearchTestExpects{s.totalCount(1)}},
+		{"with special chars", userSearchTestArgs{s.offset("0"), limit(10), "&:\n!#%?*"}, userSearchTestExpects{s.totalCount(0)}},
+		{"with * to list all", userSearchTestArgs{s.offset("0"), limit(10), "*"}, userSearchTestExpects{s.totalCountAtLeast(len(idents))}},
+		{"with multi page", userSearchTestArgs{s.offset("0"), limit(10), "TEST"}, userSearchTestExpects{s.hasLinks("Next")}},
+		{"with last page", userSearchTestArgs{s.offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, userSearchTestExpects{s.hasNoLinks("Next"), s.hasLinks("Prev")}},
+		{"with different values", userSearchTestArgs{s.offset("0"), s.limit(10), "TEST"}, userSearchTestExpects{s.differentValues()}},
 	}
 
-	service := goa.New("TestUserSearch-Service")
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
-
 	for _, tt := range tests {
-		_, result := test.UsersSearchOK(t, context.Background(), service, controller, tt.userSearchTestArgs.pageLimit, tt.userSearchTestArgs.pageOffset, tt.userSearchTestArgs.q)
+		_, result := test.UsersSearchOK(s.T(), context.Background(), s.svc, s.controller, tt.userSearchTestArgs.pageLimit, tt.userSearchTestArgs.pageOffset, tt.userSearchTestArgs.q)
 		for _, userSearchTestExpect := range tt.userSearchTestExpects {
-			userSearchTestExpect(t, tt, result)
+			userSearchTestExpect(s.T(), tt, result)
 		}
 	}
 }
 
-func TestUsersSearchBadRequest(t *testing.T) {
-	resource.Require(t, resource.Database)
-
+func (s *TestSearchUserSearch) TestUsersSearchBadRequest() {
+	t := s.T()
 	tests := []struct {
 		name               string
 		userSearchTestArgs userSearchTestArgs
 	}{
-		{"with empty query", userSearchTestArgs{offset("0"), limit(10), ""}},
+		{"with empty query", userSearchTestArgs{s.offset("0"), limit(10), ""}},
 	}
 
-	service := goa.New("TestUserSearch-Service")
-	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
-
 	for _, tt := range tests {
-		test.UsersSearchBadRequest(t, context.Background(), service, controller, tt.userSearchTestArgs.pageLimit, tt.userSearchTestArgs.pageOffset, tt.userSearchTestArgs.q)
+		test.UsersSearchBadRequest(t, context.Background(), s.svc, s.controller, tt.userSearchTestArgs.pageLimit, tt.userSearchTestArgs.pageOffset, tt.userSearchTestArgs.q)
 	}
 }
 
-func createTestData() []account.Identity {
+func (s *TestSearchUserSearch) createTestData() []account.Identity {
 	names := []string{"TEST_A", "TEST_AB", "TEST_B", "TEST_C"}
 	for i := 0; i < 20; i++ {
 		names = append(names, "TEST_"+strconv.Itoa(i))
@@ -88,24 +116,25 @@ func createTestData() []account.Identity {
 
 	idents := []account.Identity{}
 
-	err := application.Transactional(gormapplication.NewGormDB(DB), func(app application.Application) error {
+	err := application.Transactional(s.db, func(app application.Application) error {
 		for _, name := range names {
-			ident := account.Identity{
+
+			user := account.User{
 				FullName: name,
 				ImageURL: "http://example.org/" + name + ".png",
-				Emails: []account.User{
-					account.User{
-						Email: strings.ToLower("email_" + name + "@" + name + ".org"),
-					},
-					account.User{
-						Email: strings.ToLower("email2_" + name + "@" + name + ".org"),
-					},
-				},
+				Email:    strings.ToLower("email_" + name + "@" + name + ".org"),
 			}
-			err := app.Identities().Create(context.Background(), &ident)
-			if err != nil {
-				return err
+			err := app.Users().Create(context.Background(), &user)
+			require.Nil(s.T(), err)
+
+			ident := account.Identity{
+				User:         user,
+				Username:     uuid.NewV4().String() + "test" + name,
+				ProviderType: "kc",
 			}
+			err = app.Identities().Create(context.Background(), &ident)
+			require.Nil(s.T(), err)
+
 			idents = append(idents, ident)
 		}
 		return nil
@@ -116,13 +145,13 @@ func createTestData() []account.Identity {
 	return idents
 }
 
-func cleanTestData(idents []account.Identity) {
-	err := application.Transactional(gormapplication.NewGormDB(DB), func(app application.Application) error {
+func (s *TestSearchUserSearch) cleanTestData(idents []account.Identity) {
+	err := application.Transactional(s.db, func(app application.Application) error {
 		db := app.(*gormapplication.GormTransaction).DB()
 		db = db.Unscoped()
 		for _, ident := range idents {
 			db.Delete(ident)
-			db.Delete(&account.User{}, "identity_id = ?", ident.ID)
+			db.Delete(&account.User{}, "id = ?", ident.User.ID)
 		}
 		return nil
 	})
@@ -131,7 +160,7 @@ func cleanTestData(idents []account.Identity) {
 	}
 }
 
-func totalCount(count int) userSearchTestExpect {
+func (s *TestSearchUserSearch) totalCount(count int) userSearchTestExpect {
 	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		if got := result.Meta["total-count"].(int); got != count {
 			t.Errorf("%s got = %v, want %v", scenario.name, got, count)
@@ -139,7 +168,7 @@ func totalCount(count int) userSearchTestExpect {
 	}
 }
 
-func totalCountAtLeast(count int) userSearchTestExpect {
+func (s *TestSearchUserSearch) totalCountAtLeast(count int) userSearchTestExpect {
 	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		got := result.Meta["total-count"].(int)
 		if !(got >= count) {
@@ -148,7 +177,7 @@ func totalCountAtLeast(count int) userSearchTestExpect {
 	}
 }
 
-func hasLinks(linkNames ...string) userSearchTestExpect {
+func (s *TestSearchUserSearch) hasLinks(linkNames ...string) userSearchTestExpect {
 	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		for _, linkName := range linkNames {
 			link := linkName
@@ -159,7 +188,7 @@ func hasLinks(linkNames ...string) userSearchTestExpect {
 	}
 }
 
-func hasNoLinks(linkNames ...string) userSearchTestExpect {
+func (s *TestSearchUserSearch) hasNoLinks(linkNames ...string) userSearchTestExpect {
 	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		for _, linkName := range linkNames {
 			if !reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(linkName).IsNil() {
@@ -169,17 +198,17 @@ func hasNoLinks(linkNames ...string) userSearchTestExpect {
 	}
 }
 
-func differentValues() userSearchTestExpect {
+func (s *TestSearchUserSearch) differentValues() userSearchTestExpect {
 	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
-		var prev *app.Users
+		var prev *app.UserData
 
 		for i := range result.Data {
 			u := result.Data[i]
 			if prev == nil {
 				prev = u
 			} else {
-				if *prev.Attributes.Fullname == *u.Attributes.Fullname {
-					t.Errorf("%s got equal Fullname, wanted different %s", scenario.name, *u.Attributes.Fullname)
+				if *prev.Attributes.FullName == *u.Attributes.FullName {
+					t.Errorf("%s got equal Fullname, wanted different %s", scenario.name, *u.Attributes.FullName)
 				}
 				if *prev.Attributes.ImageURL == *u.Attributes.ImageURL {
 					t.Errorf("%s got equal ImageURL, wanted different %s", scenario.name, *u.Attributes.ImageURL)
@@ -195,9 +224,9 @@ func differentValues() userSearchTestExpect {
 	}
 }
 
-func limit(n int) *int {
+func (s *TestSearchUserSearch) limit(n int) *int {
 	return &n
 }
-func offset(n string) *string {
+func (s *TestSearchUserSearch) offset(n string) *string {
 	return &n
 }
