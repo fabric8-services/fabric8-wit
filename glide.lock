@@ -33,7 +33,7 @@ imports:
   subpackages:
   - go-bindata-assetfs
 - name: github.com/fabric8io/fabric8-init-tenant
-  version: e492aecc52e027cfc9958e8d6085ca6fac039964
+  version: ccdddb03d80b9673229bd21ce6b402ecf6af30e8
   subpackages:
   - design
 - name: github.com/fatih/structs

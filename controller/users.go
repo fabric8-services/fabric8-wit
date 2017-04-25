@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
-	errs "github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
@@ -17,38 +19,43 @@ import (
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 
 	uuid "github.com/satori/go.uuid"
 )
-
-type usersConfiguration interface {
-	// add configuration specific to keycloak user profile api url
-	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
-}
 
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
 	db                 application.DB
-	configuration      usersConfiguration
+	config             UsersControllerConfiguration
 	userProfileService login.UserProfileService
 }
 
+// UsersControllerConfiguration the configuration for the UsersController
+type UsersControllerConfiguration interface {
+	GetCacheControlUsers() string
+	GetKeycloakAccountEndpoint(*goa.RequestData) (string, error)
+}
+
 // NewUsersController creates a users controller.
-func NewUsersController(service *goa.Service, db application.DB, configuration usersConfiguration, userProfileService login.UserProfileService) *UsersController {
-	return &UsersController{Controller: service.NewController("UsersController"), db: db, configuration: configuration, userProfileService: userProfileService}
+func NewUsersController(service *goa.Service, db application.DB, config UsersControllerConfiguration, userProfileService login.UserProfileService) *UsersController {
+	return &UsersController{
+		Controller:         service.NewController("UsersController"),
+		db:                 db,
+		config:             config,
+		userProfileService: userProfileService,
+	}
 }
 
 // Show runs the show action.
 func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		id, err := uuid.FromString(ctx.ID)
+		identityID, err := uuid.FromString(ctx.ID)
 		if err != nil {
-			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
-			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
+			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(errors.NewBadParameterError("identity_id", ctx.ID), err.Error()))
 		}
-		identity, err := appl.Identities().Load(ctx.Context, id)
+		identity, err := appl.Identities().Load(ctx.Context, identityID)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
@@ -58,10 +65,12 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 		if userID.Valid {
 			user, err = appl.Users().Load(ctx.Context, userID.UUID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("User ID %s not valid", userID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(fmt.Sprintf("User ID %s not valid", userID.UUID), err))
 			}
 		}
-		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
+		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUsers, func() error {
+			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
+		})
 	})
 }
 
@@ -111,14 +120,14 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if identity.UserID.Valid {
 			user, err = appl.Users().Load(ctx.Context, identity.UserID.UUID)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Can't load user with id %s", identity.UserID.UUID)))
 			}
 		}
 
 		// prepare for updating keycloak user profile
 		tokenString := goajwt.ContextJWT(ctx).Raw
 
-		accountAPIEndpoint, err := c.configuration.GetKeycloakAccountEndpoint(ctx.RequestData)
+		accountAPIEndpoint, err := c.config.GetKeycloakAccountEndpoint(ctx.RequestData)
 		keycloakUserExistingInfo, err := c.userProfileService.Get(tokenString, accountAPIEndpoint)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
@@ -138,7 +147,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if updatedEmail != nil {
 			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
 			}
 			if !isUnique {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("email address: %s is already in use", *updatedEmail)))
@@ -151,12 +160,12 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil && *updatedUserName != identity.Username {
 			if identity.RegistrationCompleted {
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for idenitity id %s ", *id)))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
 			}
 			isUnique, err := isUsernameUnique(appl, *updatedUserName, *identity)
 			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating idenitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
 			}
 			if !isUnique {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username : %s is already in use", *updatedUserName)))
@@ -165,6 +174,21 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			identity.Username = *updatedUserName
 			identity.RegistrationCompleted = true
 			keycloakUserProfile.Username = updatedUserName
+		}
+
+		updatedRegistratedCompleted := ctx.Payload.Data.Attributes.RegistrationCompleted
+		if updatedRegistratedCompleted != nil {
+			if !*updatedRegistratedCompleted {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				log.Error(context.Background(), map[string]interface{}{
+					"registration_completed": *updatedRegistratedCompleted,
+					"user_id":                identity.UserID.UUID,
+					"identity_id":            identity.ID,
+				}, "invalid parameter assignment")
+
+				return ctx.BadRequest(jerrors)
+			}
+			identity.RegistrationCompleted = true
 		}
 
 		updatedBio := ctx.Payload.Data.Attributes.Bio
@@ -247,7 +271,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			switch err.(type) {
 			default:
 				return ctx.BadRequest(jerrors)
-			case errs.BadParameterError:
+			case errors.BadParameterError:
 				return ctx.Conflict(jerrors)
 			}
 
@@ -264,7 +288,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 
 		c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
-		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
+		return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
 	})
 }
 
@@ -305,119 +329,117 @@ func isEmailUnique(appl application.Application, email string, user account.User
 // List runs the list action.
 func (c *UsersController) List(ctx *app.ListUsersContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
-		var err error
-		var identities []*account.Identity
-		var users []*account.User
-		var result *app.UserArray
-		identityFilters := []func(*gorm.DB) *gorm.DB{}
-		userFilters := []func(*gorm.DB) *gorm.DB{}
-
-		var appIdentities []*app.IdentityData
-
-		/*
-			There are 2 database tables we fetch the data from : identities , users
-			First, we filter on the attributes of identities table - providerType , username
-			After that we use the above result to cummulatively filter on users  - email , company
-		*/
-
-		/*** Start filtering on Identities table ****/
-
-		if ctx.FilterUsername != nil {
-			identityFilters = append(identityFilters, account.IdentityFilterByUsername(*ctx.FilterUsername))
+		users, identities, err := filterUsers(appl, ctx)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		if ctx.FilterRegistrationCompleted != nil {
-			identityFilters = append(identityFilters, account.IdentityFilterByRegistrationCompleted(*ctx.FilterRegistrationCompleted))
-		}
-		// Add more filters when needed , here. ..
-
-		if len(identityFilters) != 0 {
-			identityFilters = append(identityFilters, account.IdentityFilterByProviderType(account.KeycloakIDP))
-			identityFilters = append(identityFilters, account.IdentityWithUser())
-
-			// From a data model perspective, we are querying by identity ( and not user )
-			identities, err = appl.Identities().Query(identityFilters...)
-
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching identities with filter(s)"))
+		return ctx.ConditionalEntities(users, c.config.GetCacheControlUsers, func() error {
+			appUsers := make([]*app.UserData, len(users))
+			for i := range users {
+				appUser := ConvertToAppUser(ctx.RequestData, &users[i], &identities[i])
+				appUsers[i] = appUser.Data
 			}
-
-			// cumulatively filter out those not matcing the user-based filters.
-			for _, identity := range identities {
-				// this is where you keep trying all other filters one by one for 'user' fields like email.
-				if ctx.FilterEmail == nil || identity.User.Email == *ctx.FilterEmail {
-
-					// if one or more 'User' filters are present, check if it's satified, if Not, proceed with ConvertUser
-
-					appIdentity := ConvertUser(ctx.RequestData, identity, &identity.User)
-					appIdentities = append(appIdentities, appIdentity.Data)
-				}
-			}
-			result = &app.UserArray{Data: appIdentities}
-
-		} else {
-
-			/*** Start filtering on Users table ****/
-
-			if ctx.FilterEmail != nil {
-				userFilters = append(userFilters, account.UserFilterByEmail(*ctx.FilterEmail))
-			}
-			// .. Add other filters in future when needed into the userFilters slice in the above manner.
-
-			if len(userFilters) != 0 {
-				users, err = appl.Users().Query(userFilters...)
-			} else {
-				// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
-				// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
-				users, err = appl.Users().List(ctx.Context)
-			}
-
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching users"))
-			}
-			result, err = LoadKeyCloakIdentities(appl, ctx.RequestData, users)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, "error fetching keycloak identities"))
-			}
-		}
-		if result == nil {
-			result = &app.UserArray{Data: make([]*app.IdentityData, 0)}
-		}
-		return ctx.OK(result)
+			return ctx.OK(&app.UserArray{Data: appUsers})
+		})
 	})
 }
 
-// LoadKeyCloakIdentities loads keycloak identies for the users and converts the users into REST representation
-func LoadKeyCloakIdentities(appl application.Application, request *goa.RequestData, users []*account.User) (*app.UserArray, error) {
-	data := make([]*app.IdentityData, len(users))
-	for i, user := range users {
-		identity, err := loadKeyCloakIdentity(appl, user)
-		if err != nil {
-			return nil, err
-		}
-		appIdentity := ConvertUser(request, identity, user)
-		data[i] = appIdentity.Data
+func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]account.User, []account.Identity, error) {
+	var err error
+	var resultUsers []account.User
+	var resultIdentities []account.Identity
+	/*
+		There are 2 database tables we fetch the data from : identities , users
+		First, we filter on the attributes of identities table - providerType , username
+		After that we use the above result to cumulatively filter on users  - email , company
+	*/
+	identityFilters := []func(*gorm.DB) *gorm.DB{}
+	userFilters := []func(*gorm.DB) *gorm.DB{}
+	/*** Start filtering on Identities table ****/
+	if ctx.FilterUsername != nil {
+		identityFilters = append(identityFilters, account.IdentityFilterByUsername(*ctx.FilterUsername))
 	}
-	return &app.UserArray{Data: data}, nil
+	if ctx.FilterRegistrationCompleted != nil {
+		identityFilters = append(identityFilters, account.IdentityFilterByRegistrationCompleted(*ctx.FilterRegistrationCompleted))
+	}
+	// Add more filters when needed , here. ..
+	if len(identityFilters) != 0 {
+		identityFilters = append(identityFilters, account.IdentityFilterByProviderType(account.KeycloakIDP))
+		identityFilters = append(identityFilters, account.IdentityWithUser())
+		// From a data model perspective, we are querying by identity ( and not user )
+		filteredIdentities, err := appl.Identities().Query(identityFilters...)
+		if err != nil {
+			return nil, nil, errs.Wrap(err, "error fetching identities with filter(s)")
+		}
+		// cumulatively filter out those not matching the user-based filters.
+		for _, identity := range filteredIdentities {
+			// this is where you keep trying all other filters one by one for 'user' fields like email.
+			if ctx.FilterEmail == nil || identity.User.Email == *ctx.FilterEmail {
+				resultUsers = append(resultUsers, identity.User)
+				resultIdentities = append(resultIdentities, identity)
+			}
+		}
+	} else {
+		var filteredUsers []account.User
+		/*** Start filtering on Users table ****/
+		if ctx.FilterEmail != nil {
+			userFilters = append(userFilters, account.UserFilterByEmail(*ctx.FilterEmail))
+		}
+		// .. Add other filters in future when needed into the userFilters slice in the above manner.
+		if len(userFilters) != 0 {
+			filteredUsers, err = appl.Users().Query(userFilters...)
+		} else {
+			// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
+			// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
+			filteredUsers, err = appl.Users().List(ctx.Context)
+		}
+		if err != nil {
+			return nil, nil, errs.Wrap(err, "error fetching users")
+		}
+		resultUsers, resultIdentities, err = LoadKeyCloakIdentities(appl, filteredUsers)
+		if err != nil {
+			return nil, nil, errs.Wrap(err, "error fetching keycloak identities")
+		}
+	}
+	return resultUsers, resultIdentities, nil
 }
 
-func loadKeyCloakIdentity(appl application.Application, user *account.User) (*account.Identity, error) {
+// LoadKeyCloakIdentities loads keycloak identities for the users and returns the valid users along with their KC identities
+// (if a user is missing his/her KC identity, he/she is filtered out of the result array)
+func LoadKeyCloakIdentities(appl application.Application, users []account.User) ([]account.User, []account.Identity, error) {
+	var resultUsers []account.User
+	var resultIdentities []account.Identity
+	for _, user := range users {
+		identity, err := loadKeyCloakIdentity(appl, user)
+		// if we can't find the Keycloak identity
+		if err != nil {
+			logrus.Error(err)
+		} else {
+			resultUsers = append(resultUsers, user)
+			resultIdentities = append(resultIdentities, *identity)
+		}
+	}
+	return resultUsers, resultIdentities, nil
+}
+
+func loadKeyCloakIdentity(appl application.Application, user account.User) (*account.Identity, error) {
 	identities, err := appl.Identities().Query(account.IdentityFilterByUserID(user.ID))
 	if err != nil {
 		return nil, err
 	}
 	for _, identity := range identities {
 		if identity.ProviderType == account.KeycloakIDP {
-			return identity, nil
+			return &identity, nil
 		}
 	}
 	return nil, fmt.Errorf("Can't find Keycloak Identity for user %s", user.Email)
 }
 
-// ConvertUser converts a complete Identity object into REST representation
-func ConvertUser(request *goa.RequestData, identity *account.Identity, user *account.User) *app.Identity {
-	uuid := identity.ID
-	id := uuid.String()
-	fullName := identity.Username
+// ConvertToAppUser converts a complete Identity object into REST representation
+func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *account.Identity) *app.User {
+	userID := user.ID.String()
+	identityID := identity.ID.String()
+	fullName := user.FullName
 	userName := identity.Username
 	registrationCompleted := identity.RegistrationCompleted
 	providerType := identity.ProviderType
@@ -425,6 +447,8 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 	var bio string
 	var userURL string
 	var email string
+	var createdAt time.Time
+	var updatedAt time.Time
 	var company string
 	var contextInformation workitem.Fields
 
@@ -436,6 +460,9 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		email = user.Email
 		company = user.Company
 		contextInformation = user.ContextInformation
+		// CreatedAt and UpdatedAt fields in the resulting app.Identity are based on the 'user' entity
+		createdAt = user.CreatedAt
+		updatedAt = user.UpdatedAt
 	}
 
 	// The following will be used for ContextInformation.
@@ -447,23 +474,27 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 		Type: workitem.SimpleType{Kind: workitem.KindString},
 	}
 
-	converted := app.Identity{
-		Data: &app.IdentityData{
-			ID:   &id,
+	converted := app.User{
+		Data: &app.UserData{
+			ID:   &identityID,
 			Type: "identities",
-			Attributes: &app.IdentityDataAttributes{
+			Attributes: &app.UserDataAttributes{
+				CreatedAt:             &createdAt,
+				UpdatedAt:             &updatedAt,
 				Username:              &userName,
 				FullName:              &fullName,
 				ImageURL:              &imageURL,
 				Bio:                   &bio,
 				URL:                   &userURL,
+				UserID:                &userID,
+				IdentityID:            &identityID,
 				ProviderType:          &providerType,
 				Email:                 &email,
 				Company:               &company,
 				ContextInformation:    workitem.Fields{},
 				RegistrationCompleted: &registrationCompleted,
 			},
-			Links: createUserLinks(request, uuid),
+			Links: createUserLinks(request, &identity.ID),
 		},
 	}
 	for name, value := range contextInformation {
@@ -484,27 +515,27 @@ func ConvertUser(request *goa.RequestData, identity *account.Identity, user *acc
 }
 
 // ConvertUsersSimple converts a array of simple Identity IDs into a Generic Reletionship List
-func ConvertUsersSimple(request *goa.RequestData, ids []interface{}) []*app.GenericData {
+func ConvertUsersSimple(request *goa.RequestData, identityIDs []interface{}) []*app.GenericData {
 	ops := []*app.GenericData{}
-	for _, id := range ids {
-		ops = append(ops, ConvertUserSimple(request, id))
+	for _, identityID := range identityIDs {
+		ops = append(ops, ConvertUserSimple(request, identityID))
 	}
 	return ops
 }
 
 // ConvertUserSimple converts a simple Identity ID into a Generic Reletionship
-func ConvertUserSimple(request *goa.RequestData, id interface{}) *app.GenericData {
-	t := "identities"
-	i := fmt.Sprint(id)
+func ConvertUserSimple(request *goa.RequestData, identityID interface{}) *app.GenericData {
+	t := "users"
+	i := fmt.Sprint(identityID)
 	return &app.GenericData{
 		Type:  &t,
 		ID:    &i,
-		Links: createUserLinks(request, id),
+		Links: createUserLinks(request, identityID),
 	}
 }
 
-func createUserLinks(request *goa.RequestData, id interface{}) *app.GenericLinks {
-	selfURL := rest.AbsoluteURL(request, app.UsersHref(id))
+func createUserLinks(request *goa.RequestData, identityID interface{}) *app.GenericLinks {
+	selfURL := rest.AbsoluteURL(request, app.UsersHref(identityID))
 	return &app.GenericLinks{
 		Self: &selfURL,
 	}
