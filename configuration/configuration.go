@@ -66,6 +66,7 @@ const (
 	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
 	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
+	varKeycloakRhdURL                   = "keycloak.rhd.url"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
 	varHeaderMaxLength                  = "header.maxlength"
@@ -180,6 +181,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varKeycloakDomainPrefix, defaultKeycloakDomainPrefix)
 	c.v.SetDefault(varKeycloakTesUserName, defaultKeycloakTesUserName)
 	c.v.SetDefault(varKeycloakTesUserSecret, defaultKeycloakTesUserSecret)
+	c.v.SetDefault(varKeycloakRhdURL, defaultKeycloakRhdURL)
 
 	// HTTP Cache-Control/max-age default
 	c.v.SetDefault(varCacheControlWorkItems, "max-age=2") // very short life in cache, to allow for quick, repetitive updates.
@@ -519,6 +521,11 @@ func (c *ConfigurationData) GetKeycloakDevModeURL() string {
 	return devModeKeycloakURL
 }
 
+// GetKeycloakRhdURL returns Red Hat Developers SSO URL
+func (c *ConfigurationData) GetKeycloakRhdURL() string {
+	return c.v.GetString(varKeycloakRhdURL)
+}
+
 func (c *ConfigurationData) getKeycloakOpenIDConnectEndpoint(req *goa.RequestData, endpointVarName string, pathSufix string) (string, error) {
 	return c.getKeycloakEndpoint(req, endpointVarName, c.openIDConnectPath(pathSufix))
 }
@@ -689,6 +696,8 @@ vwIDAQAB
 
 	defaultOpenshiftTenantMasterURL = "https://tsrv.devshift.net:8443"
 	defaultCheStarterURL            = "che-server"
+
+	defaultKeycloakRhdURL = "https://developers.redhat.com/auth/realms/rhd"
 
 	// DefaultValidRedirectURLs is a regex to be used to whitelist redirect URL for auth
 	// If the ALMIGHTY_REDIRECT_VALID env var is not set then in Dev Mode all redirects allowed - *

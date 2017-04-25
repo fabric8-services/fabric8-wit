@@ -107,6 +107,7 @@ keycloak.testuser.name : testuser
 keycloak.testuser.secret : testuser
 keycloak.testuser2.name : testuser2
 keycloak.testuser2.secret : testuser2
+keycloak.rhd.url : https://developers.redhat.com/auth/realms/rhd
 
 # Uncomment if FQDN URL's should be used instead of relative URL's:
 # keycloak.url : https://sso.prod-preview.openshift.io

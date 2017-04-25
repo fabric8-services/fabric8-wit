@@ -42,11 +42,11 @@ func (s *TestLogoutSuite) TearDownSuite() {
 }
 
 func (s *TestLogoutSuite) TestLogoutRedirectsToKeycloakWithRedirectParam() {
-	s.checkRedirects("", "https://url.example.org/path", "https%3A%2F%2Furl.example.org%2Fpath")
+	s.checkRedirects("", "https://url.example.org/path", "https%3A%2F%2Fdevelopers.redhat.com%2Fauth%2Frealms%2Frhd%2Fprotocol%2Fopenid-connect%2Flogout%3Fredirect_uri%3Dhttps%253A%252F%252Furl.example.org%252Fpath")
 }
 
 func (s *TestLogoutSuite) TestLogoutRedirectsToKeycloakWithReferrer() {
-	s.checkRedirects("http://openshift.io/home", "https://url.example.org/path", "http%3A%2F%2Fopenshift.io%2Fhome")
+	s.checkRedirects("http://openshift.io/home", "https://url.example.org/path", "https%3A%2F%2Fdevelopers.redhat.com%2Fauth%2Frealms%2Frhd%2Fprotocol%2Fopenid-connect%2Flogout%3Fredirect_uri%3Dhttp%253A%252F%252Fopenshift.io%252Fhome")
 }
 
 func (s *TestLogoutSuite) checkRedirects(redirectParam string, referrerURL string, expectedRedirectParam string) {
@@ -75,7 +75,7 @@ func (s *TestLogoutSuite) checkRedirects(redirectParam string, referrerURL strin
 	validURLs, err := s.configuration.GetValidRedirectURLs(r)
 	require.Nil(s.T(), err)
 
-	err = s.logoutService.Logout(logoutCtx, logoutEndpoint, validURLs)
+	err = s.logoutService.Logout(logoutCtx, logoutEndpoint, validURLs, s.configuration.GetKeycloakRhdURL())
 
 	assert.Equal(s.T(), 307, rw.Code)
 	assert.Equal(s.T(), fmt.Sprintf("%s?redirect_uri=%s", logoutEndpoint, expectedRedirectParam), rw.Header().Get("Location"))

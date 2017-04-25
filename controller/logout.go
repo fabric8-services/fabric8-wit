@@ -12,6 +12,7 @@ import (
 type logoutConfiguration interface {
 	GetKeycloakEndpointLogout(*goa.RequestData) (string, error)
 	GetValidRedirectURLs(*goa.RequestData) (string, error)
+	GetKeycloakRhdURL() string
 }
 
 // LogoutController implements the logout resource.
@@ -39,5 +40,5 @@ func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
-	return c.logoutService.Logout(ctx, logoutEndpoint, whitelist)
+	return c.logoutService.Logout(ctx, logoutEndpoint, whitelist, c.configuration.GetKeycloakRhdURL())
 }
