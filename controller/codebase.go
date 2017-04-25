@@ -193,7 +193,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		Branch:     "master",
 		StackID:    cb.StackID,
 	}
-	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
+	workspaceResp, err := cheClient.StartExistingWorkspace(ctx, ctx.WorkspaceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
