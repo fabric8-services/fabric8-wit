@@ -1790,7 +1790,6 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	require.NotNil(s.T(), wiu.Data.Relationships.Area.Data)
 	// should be in the same space
 	assert.Equal(s.T(), testSpace.ID, *wiu.Data.Relationships.Space.Data.ID)
-	require.Nil(s.T(), err)
 	// should have been set to root area
 	assert.Equal(s.T(), rootArea.ID.String(), *wiu.Data.Relationships.Area.Data.ID)
 }
@@ -1815,7 +1814,7 @@ func (s *WorkItem2Suite) TestWI2CreateUnknownArea() {
 
 func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 	// given
-	iterationInstance := createSpaceAndIteration(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when
@@ -1843,7 +1842,7 @@ func (s *WorkItem2Suite) TestWI2CreateWithIteration() {
 
 func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	// given
-	iterationInstance := createSpaceAndIteration(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	c := minimumRequiredCreatePayload()
@@ -1878,10 +1877,67 @@ func (s *WorkItem2Suite) TestWI2UpdateWithIteration() {
 	assert.Equal(s.T(), itType, *wiu.Data.Relationships.Iteration.Data.Type)
 }
 
+func (s *WorkItem2Suite) TestWI2UpdateWithRootIterationIfMissing() {
+	// given
+	testSpace, _, rootIteration, otherIteration := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
+	iterationID := otherIteration.ID.String()
+	iterationType := iteration.APIStringTypeIteration
+	payload := app.CreateWorkitemPayload{
+		Data: &app.WorkItem{
+			Type: APIStringTypeWorkItem,
+			Attributes: map[string]interface{}{
+				workitem.SystemTitle: "Title",
+				workitem.SystemState: workitem.SystemStateNew,
+			},
+			Relationships: &app.WorkItemRelationships{
+				Space: app.NewSpaceRelation(testSpace.ID, rest.AbsoluteURL(&goa.RequestData{
+					Request: &http.Request{Host: "api.service.domain.org"},
+				}, app.SpaceHref(testSpace.ID.String()))),
+				BaseType: &app.RelationBaseType{
+					Data: &app.BaseTypeData{
+						Type: "workitemtypes",
+						ID:   workitem.SystemBug,
+					},
+				},
+				Iteration: &app.RelationGeneric{
+					Data: &app.GenericData{
+						Type: &iterationType,
+						ID:   &iterationID,
+					},
+				},
+			},
+		},
+	}
+	s.T().Log("Space ID:", testSpace.ID.String())
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, testSpace.ID.String(), &payload)
+	require.NotNil(s.T(), wi.Data.Relationships.Space)
+	require.NotNil(s.T(), wi.Data.Relationships.Space.Data.ID)
+	require.NotNil(s.T(), wi.Data.Relationships.Iteration)
+	require.NotNil(s.T(), wi.Data.Relationships.Iteration.Data.ID)
+	// when
+	u := minimumRequiredUpdatePayload()
+	u.Data.ID = wi.Data.ID
+	u.Data.Attributes[workitem.SystemTitle] = "Title"
+	u.Data.Attributes["version"] = wi.Data.Attributes["version"]
+	u.Data.Relationships = &app.WorkItemRelationships{
+		Iteration: &app.RelationGeneric{},
+	}
+	_, wiu := test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, wi.Data.Relationships.Space.Data.ID.String(), *wi.Data.ID, &u)
+	// then
+	require.NotNil(s.T(), wiu.Data.Relationships.Space)
+	require.NotNil(s.T(), wiu.Data.Relationships.Space.Data)
+	require.NotNil(s.T(), wiu.Data.Relationships.Iteration)
+	require.NotNil(s.T(), wiu.Data.Relationships.Iteration.Data)
+	// should be in the same space
+	assert.Equal(s.T(), testSpace.ID, *wiu.Data.Relationships.Space.Data.ID)
+	// should have been set to root iteration
+	assert.Equal(s.T(), rootIteration.ID.String(), *wiu.Data.Relationships.Iteration.Data.ID)
+}
+
 func (s *WorkItem2Suite) TestWI2UpdateRemoveIteration() {
 	s.T().Skip("iteration.data can't be sent as nil from client libs since it's optionall and is removed during json encoding")
 	// given
-	iterationInstance := createSpaceAndIteration(s.T(), gormapplication.NewGormDB(s.DB))
+	_, _, _, iterationInstance := createSpaceAndRootAreaAndIterations(s.T(), gormapplication.NewGormDB(s.DB))
 	iterationID := iterationInstance.ID.String()
 	itType := iteration.APIStringTypeIteration
 	// when

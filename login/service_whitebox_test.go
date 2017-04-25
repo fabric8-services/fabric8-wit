@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
-	"github.com/almighty/almighty-core/app"
+	"github.com/almighty/almighty-core/auth"
 	config "github.com/almighty/almighty-core/configuration"
 	"github.com/almighty/almighty-core/resource"
 	testtoken "github.com/almighty/almighty-core/test/token"
@@ -156,7 +156,9 @@ func TestEncodeTokenOK(t *testing.T) {
 	refreshToken := "refreshToken%@!/\\&?"
 	tokenType := "tokenType%@!/\\&?"
 	expiresIn := 1800
-	refreshExpiresIn := 1800
+	var refreshExpiresIn float64
+	refreshExpiresIn = 2.59e6
+
 	outhToken := &oauth2.Token{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -166,7 +168,7 @@ func TestEncodeTokenOK(t *testing.T) {
 		"expires_in":         expiresIn,
 		"refresh_expires_in": refreshExpiresIn,
 	}
-	err := encodeToken(referelURL, outhToken.WithExtra(extra))
+	err := encodeToken(context.Background(), referelURL, outhToken.WithExtra(extra))
 	assert.Nil(t, err)
 	encoded := referelURL.String()
 
@@ -174,15 +176,54 @@ func TestEncodeTokenOK(t *testing.T) {
 	values := referelURL.Query()
 	tJSON := values["token_json"]
 	b := []byte(tJSON[0])
-	tokenData := &app.TokenData{}
+	tokenData := &auth.Token{}
 	err = json.Unmarshal(b, tokenData)
 	assert.Nil(t, err)
 
 	assert.Equal(t, accessToken, *tokenData.AccessToken)
 	assert.Equal(t, refreshToken, *tokenData.RefreshToken)
 	assert.Equal(t, tokenType, *tokenData.TokenType)
-	assert.Equal(t, expiresIn, *tokenData.ExpiresIn)
-	assert.Equal(t, refreshExpiresIn, *tokenData.RefreshExpiresIn)
+	assert.Equal(t, int64(expiresIn), *tokenData.ExpiresIn)
+	assert.Equal(t, int64(refreshExpiresIn), *tokenData.RefreshExpiresIn)
+}
+
+func TestInt32ToInt64OK(t *testing.T) {
+	var i32 int32
+	i32 = 60
+	i, err := numberToInt(i32)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(i32), i)
+}
+
+func TestInt64ToInt64OK(t *testing.T) {
+	var i64 int64
+	i64 = 6000000000000000000
+	i, err := numberToInt(i64)
+	assert.Nil(t, err)
+	assert.Equal(t, i64, i)
+}
+
+func TestFloat32ToInt64OK(t *testing.T) {
+	var f32 float32
+	f32 = 0.1e1
+	i, err := numberToInt(f32)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(f32), i)
+}
+
+func TestFloat64ToInt64OK(t *testing.T) {
+	var f64 float64
+	f64 = 0.1e10
+	i, err := numberToInt(f64)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(f64), i)
+}
+
+func TestStringToInt64OK(t *testing.T) {
+	str := "2590000"
+	i, err := numberToInt(str)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(2590000), i)
 }
 
 func TestApprovedUserOK(t *testing.T) {

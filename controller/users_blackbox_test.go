@@ -102,7 +102,7 @@ func (s *TestUsersSuite) TestUpdateUserOK() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// then
@@ -140,12 +140,12 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 		"last_visited": "yesterday",
 	}
 
-	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// next attempt should fail.
 	newUserName = identity.Username + uuid.NewV4().String()
-	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
 	test.UpdateUsersForbidden(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
@@ -163,13 +163,85 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesOK() {
 		"last_visited": "yesterday",
 	}
 
-	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
 
 	// next attempt should PASS.
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+}
+
+func (s *TestUsersSuite) TestUpdateRegistrationCompletedOK() {
+	user := s.createRandomUser("OK")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+	// next attempt should PASS.
+	boolTrue := true
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, &boolTrue, contextInformation)
+	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
+func (s *TestUsersSuite) TestUpdateRegistrationCompletedBadRequest() {
+	user := s.createRandomUser("OKRegCompleted")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+	// next attempt should fail.
+	boolFalse := false
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, &boolFalse, contextInformation)
+	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+}
+
+func (s *TestUsersSuite) TestUpdateRegistrationCompletedAndUsernameOK() {
+
+	// In this test case, we send both registrationCompleted=True and an updated username
+	// as part of HTTP PATCH.
+
+	user := s.createRandomUser("OKRegCompleted")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	_, result := test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+	assert.Equal(s.T(), identity.ID.String(), *result.Data.ID)
+
+	secureService, secureController := s.SecuredController(identity)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+	}
+
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+	require.False(s.T(), *result.Data.Attributes.RegistrationCompleted)
+
+	boolTrue := true
+	newUserName := identity.Username + uuid.NewV4().String()
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, &boolTrue, contextInformation)
+	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 }
 
@@ -193,7 +265,7 @@ func (s *TestUsersSuite) TestUpdateExistingUsernameForbidden() {
 	}
 
 	newUserName := identity.Username
-	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
 	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
@@ -217,7 +289,7 @@ func (s *TestUsersSuite) TestUpdateExistingEmailForbidden() {
 	}
 
 	newEmail := user.Email
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, nil, nil, nil, nil, nil, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, nil, nil, nil, nil, nil, nil, nil, contextInformation)
 	test.UpdateUsersConflict(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
@@ -252,7 +324,7 @@ func (s *TestUsersSuite) TestUpdateUserVariableSpacesInNameOK() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, &newCompany, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -303,7 +375,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -326,7 +398,7 @@ func (s *TestUsersSuite) TestUpdateUserUnsetVariableInContextInfo() {
 		"count":        3,
 	}
 
-	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
+	updateUsersPayload = createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -385,7 +457,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 		"count":        3,
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, nil, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	// then
 	require.NotNil(s.T(), result)
@@ -407,7 +479,7 @@ func (s *TestUsersSuite) TestPatchUserContextInformation() {
 		"count": 5,
 	}
 
-	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, patchedContextInformation)
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, nil, nil, patchedContextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 	require.NotNil(s.T(), result)
 
@@ -446,7 +518,7 @@ func (s *TestUsersSuite) TestUpdateUserUnauthorized() {
 		"space":        "3d6dab8d-f204-42e8-ab29-cdb1c93130ad",
 	}
 	//secureController, secureService := createSecureController(t, identity)
-	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, contextInformation)
+	updateUsersPayload := createUpdateUsersPayload(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL, nil, nil, nil, contextInformation)
 	// when/then
 	test.UpdateUsersUnauthorized(s.T(), context.Background(), nil, s.controller, updateUsersPayload)
 }
@@ -802,19 +874,20 @@ func assertMultiUsersResponseHeaders(t *testing.T, res http.ResponseWriter, last
 	require.NotNil(t, res.Header()[app.ETag])
 }
 
-func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company, username *string, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
+func createUpdateUsersPayload(email, fullName, bio, imageURL, profileURL, company, username *string, registrationCompleted *bool, contextInformation map[string]interface{}) *app.UpdateUsersPayload {
 	return &app.UpdateUsersPayload{
 		Data: &app.UpdateUserData{
 			Type: "identities",
 			Attributes: &app.UpdateIdentityDataAttributes{
-				Email:              email,
-				FullName:           fullName,
-				Bio:                bio,
-				ImageURL:           imageURL,
-				URL:                profileURL,
-				Company:            company,
-				ContextInformation: contextInformation,
-				Username:           username,
+				Email:                 email,
+				FullName:              fullName,
+				Bio:                   bio,
+				ImageURL:              imageURL,
+				URL:                   profileURL,
+				Company:               company,
+				ContextInformation:    contextInformation,
+				Username:              username,
+				RegistrationCompleted: registrationCompleted,
 			},
 		},
 	}
