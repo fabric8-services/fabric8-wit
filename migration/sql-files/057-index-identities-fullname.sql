@@ -1,0 +1,1 @@
+create index idx_user_full_name on users (lower(full_name));

@@ -2,6 +2,7 @@ package account
 
 import (
 	"database/sql/driver"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -112,6 +113,7 @@ type IdentityRepository interface {
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error)
 	List(ctx context.Context) ([]Identity, error)
 	IsValid(context.Context, uuid.UUID) bool
+	Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -353,11 +355,14 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	db := m.db.Model(&Identity{})
 	db = db.Offset(start)
 	db = db.Limit(limit)
-	db = db.Select("count(*) over () as cnt2 , identities.*")
-	db = db.Joins("LEFT JOIN users ON identities.id = users.identity_id")
-	db = db.Where("LOWER(identities.full_name) like ?", strings.ToLower(q)+"%")
+	// FIXME : returning the identities.id just for the sake of consistency with the other User APIs.
+	db = db.Select("count(*) over () as cnt2 ,identities.id as identity_id,identities.username,users.*")
+	db = db.Joins("LEFT JOIN users ON identities.user_id = users.id")
+	db = db.Where("LOWER(users.full_name) like ?", strings.ToLower(q)+"%")
 	db = db.Or("users.email like ?", strings.ToLower(q)+"%")
-	db = db.Group("identities.id")
+	db = db.Or("identities.username like ?", strings.ToLower(q)+"%")
+	db = db.Group("identities.id,identities.username,users.id")
+	//db = db.Preload("user")
 
 	rows, err := db.Rows()
 	if err != nil {
@@ -374,6 +379,8 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 
 	// need to set up a result for Scan() in order to extract total count.
 	var count int
+	var identityID string
+	var identityUsername string
 	var ignore interface{}
 	columnValues := make([]interface{}, len(columns))
 
@@ -381,17 +388,36 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 		columnValues[index] = &ignore
 	}
 	columnValues[0] = &count
-	first := true
+	// FIXME When our User Profile endpoints start giving "user" response
+	// instead of "identity" response, the identity.ID would be less relevant.
+	//first := true
 
 	for rows.Next() {
-		db.ScanRows(rows, &value)
-		if first {
-			first = false
-			if err = rows.Scan(columnValues...); err != nil {
-				return nil, 0, errors.NewInternalError(err.Error())
-			}
+		columnValues[1] = &identityID
+		columnValues[2] = &identityUsername
+		db.ScanRows(rows, &value.User)
+
+		//if first {
+		//	first = false
+		//	if err = rows.Scan(columnValues...); err != nil {
+		//		return nil, 0, errors.NewInternalError(err.Error())
+		//	}
+		//}
+
+		if err = rows.Scan(columnValues...); err != nil {
+			return nil, 0, errors.NewInternalError(err.Error())
 		}
+
+		value.ID, err = uuid.FromString(identityID)
+		fmt.Println(fmt.Sprintf("Identity id : %s , user id %s ", identityID, &value.User.ID))
+		if err != nil {
+			return nil, 0, errors.NewInternalError(err.Error())
+		}
+
+		value.Username = identityUsername
+
 		result = append(result, value)
 	}
+
 	return result, count, nil
 }

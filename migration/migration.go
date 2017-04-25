@@ -288,8 +288,8 @@ func GetMigrations() Migrations {
 	// Version 56
 	m = append(m, steps{ExecuteSQLFile("056-assign-root-iteration-if-missing.sql")})
 
-	// Version 6
-	m = append(m, steps{executeSQLFile("006-index-identities-fullname.sql")})
+	// Version 57
+	m = append(m, steps{ExecuteSQLFile("057-index-identities-fullname.sql")})
 
 	// Version N
 	//

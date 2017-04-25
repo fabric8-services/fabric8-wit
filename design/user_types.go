@@ -121,10 +121,16 @@ var Users = a.Type("Users", func() {
 // UserAttributes is the JSONAPI store for all the "attributes" of a user.
 var UsersAttributes = a.Type("UserAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a user. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("fullname", d.String, "The users full name", func() {
-		a.Example("John Smith")
-	})
-	a.Attribute("image-url", d.String, "The avatar image for the user", func() {
-		a.Example("http://example.org/user/image.png")
-	})
+	a.Attribute("userID", d.String, "The id of the corresponding User")
+	a.Attribute("identityID", d.String, "The id of the corresponding Identity")
+	a.Attribute("created-at", d.DateTime, "The date of creation of the user")
+	a.Attribute("updated-at", d.DateTime, "The date of update of the user")
+	a.Attribute("fullName", d.String, "The user's full name")
+	a.Attribute("imageURL", d.String, "The avatar image for the user")
+	a.Attribute("username", d.String, "The username")
+	a.Attribute("email", d.String, "The email")
+	a.Attribute("bio", d.String, "The bio")
+	a.Attribute("url", d.String, "The url")
+	a.Attribute("company", d.String, "The company")
+	a.Attribute("providerType", d.String, "The IDP provided this identity")
 })

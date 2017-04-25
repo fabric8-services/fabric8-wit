@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -11,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/space"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -156,16 +158,27 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 		ctx.InternalServerError()
 	}
 
-	var users []*app.Users
+	var users []*app.UserData
 	for i := range result {
 		ident := result[i]
 		id := ident.ID.String()
-		users = append(users, &app.Users{
-			Type: "users",
+		userID := ident.User.ID.String()
+		users = append(users, &app.UserData{
+			// FIXME : should be "users" in the long term
+			Type: "identities",
 			ID:   &id,
-			Attributes: &app.UserAttributes{
-				Fullname: &ident.FullName,
-				ImageURL: &ident.ImageURL,
+			Attributes: &app.UserDataAttributes{
+				CreatedAt:  &ident.User.CreatedAt,
+				UpdatedAt:  &ident.User.UpdatedAt,
+				Username:   &ident.Username,
+				FullName:   &ident.User.FullName,
+				ImageURL:   &ident.User.ImageURL,
+				Bio:        &ident.User.Bio,
+				URL:        &ident.User.URL,
+				UserID:     &userID,
+				IdentityID: &id,
+				Email:      &ident.User.Email,
+				Company:    &ident.User.Company,
 			},
 		})
 	}

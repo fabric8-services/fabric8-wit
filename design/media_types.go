@@ -97,19 +97,3 @@ var TrackerQuery = a.MediaType("application/vnd.trackerquery+json", func() {
 var trackerQueryRelationships = a.Type("TrackerQueryRelationships", func() {
 	a.Attribute("space", relationSpaces, "This defines the owning space of this work item type.")
 })
-
-// SearchUserArray represents the result of a search for Users
-var SearchUserArray = a.MediaType("application/vnd.searchusers+json", func() {
-	a.TypeName("SearchResponseUsers")
-	a.Description("Holds the paginated response to a search request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("data", a.ArrayOf(Users))
-
-	a.View("default", func() {
-		a.Required("data")
-		a.Attribute("links")
-		a.Attribute("data")
-		a.Attribute("meta")
-	})
-})

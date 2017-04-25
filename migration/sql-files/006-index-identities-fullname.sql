@@ -1,1 +1,0 @@
-create index ident_full_name on identities (lower(full_name));
