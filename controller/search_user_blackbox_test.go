@@ -1,4 +1,4 @@
-package main_test
+package controller_test
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 
 	"strings"
 
-	. "github.com/almighty/almighty-core"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -19,19 +18,19 @@ import (
 	"golang.org/x/net/context"
 )
 
-type args struct {
+type userSearchTestArgs struct {
 	pageOffset *string
 	pageLimit  *int
 	q          string
 }
 
-type expect func(*testing.T, okScenario, *app.SearchResponseUsers)
-type expects []expect
+type userSearchTestExpect func(*testing.T, okScenarioUserSearchTest, *app.SearchResponseUsers)
+type userSearchTestExpects []userSearchTestExpect
 
-type okScenario struct {
-	name    string
-	args    args
-	expects expects
+type okScenarioUserSearchTest struct {
+	name                  string
+	userSearchTestArgs    userSearchTestArgs
+	userSearchTestExpects userSearchTestExpects
 }
 
 func TestUsersSearchOK(t *testing.T) {
@@ -40,25 +39,25 @@ func TestUsersSearchOK(t *testing.T) {
 	idents := createTestData()
 	defer cleanTestData(idents)
 
-	tests := []okScenario{
-		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
-		{"With uppercase fullname query", args{offset("0"), limit(10), "TEST_AB"}, expects{totalCount(1)}},
-		{"With uppercase email query", args{offset("0"), limit(10), "EMAIL_TEST_AB"}, expects{totalCount(1)}},
-		{"With lowercase email query", args{offset("0"), limit(10), "email_test_ab"}, expects{totalCount(1)}},
-		{"with special chars", args{offset("0"), limit(10), "&:\n!#%?*"}, expects{totalCount(0)}},
-		{"with * to list all", args{offset("0"), limit(10), "*"}, expects{totalCountAtLeast(len(idents))}},
-		{"with multi page", args{offset("0"), limit(10), "TEST"}, expects{hasLinks("Next")}},
-		{"with last page", args{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, expects{hasNoLinks("Next"), hasLinks("Prev")}},
-		{"with different values", args{offset("0"), limit(10), "TEST"}, expects{differentValues()}},
+	tests := []okScenarioUserSearchTest{
+		{"With uppercase fullname query", userSearchTestArgs{offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{totalCount(1)}},
+		{"With uppercase fullname query", userSearchTestArgs{offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{totalCount(1)}},
+		{"With uppercase email query", userSearchTestArgs{offset("0"), limit(10), "EMAIL_TEST_AB"}, userSearchTestExpects{totalCount(1)}},
+		{"With lowercase email query", userSearchTestArgs{offset("0"), limit(10), "email_test_ab"}, userSearchTestExpects{totalCount(1)}},
+		{"with special chars", userSearchTestArgs{offset("0"), limit(10), "&:\n!#%?*"}, userSearchTestExpects{totalCount(0)}},
+		{"with * to list all", userSearchTestArgs{offset("0"), limit(10), "*"}, userSearchTestExpects{totalCountAtLeast(len(idents))}},
+		{"with multi page", userSearchTestArgs{offset("0"), limit(10), "TEST"}, userSearchTestExpects{hasLinks("Next")}},
+		{"with last page", userSearchTestArgs{offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, userSearchTestExpects{hasNoLinks("Next"), hasLinks("Prev")}},
+		{"with different values", userSearchTestArgs{offset("0"), limit(10), "TEST"}, userSearchTestExpects{differentValues()}},
 	}
 
 	service := goa.New("TestUserSearch-Service")
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 
 	for _, tt := range tests {
-		_, result := test.UsersSearchOK(t, context.Background(), service, controller, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
-		for _, expect := range tt.expects {
-			expect(t, tt, result)
+		_, result := test.UsersSearchOK(t, context.Background(), service, controller, tt.userSearchTestArgs.pageLimit, tt.userSearchTestArgs.pageOffset, tt.userSearchTestArgs.q)
+		for _, userSearchTestExpect := range tt.userSearchTestExpects {
+			userSearchTestExpect(t, tt, result)
 		}
 	}
 }
@@ -67,17 +66,17 @@ func TestUsersSearchBadRequest(t *testing.T) {
 	resource.Require(t, resource.Database)
 
 	tests := []struct {
-		name string
-		args args
+		name               string
+		userSearchTestArgs userSearchTestArgs
 	}{
-		{"with empty query", args{offset("0"), limit(10), ""}},
+		{"with empty query", userSearchTestArgs{offset("0"), limit(10), ""}},
 	}
 
 	service := goa.New("TestUserSearch-Service")
 	controller := NewSearchController(service, gormapplication.NewGormDB(DB))
 
 	for _, tt := range tests {
-		test.UsersSearchBadRequest(t, context.Background(), service, controller, tt.args.pageLimit, tt.args.pageOffset, tt.args.q)
+		test.UsersSearchBadRequest(t, context.Background(), service, controller, tt.userSearchTestArgs.pageLimit, tt.userSearchTestArgs.pageOffset, tt.userSearchTestArgs.q)
 	}
 }
 
@@ -132,16 +131,16 @@ func cleanTestData(idents []account.Identity) {
 	}
 }
 
-func totalCount(count int) expect {
-	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
+func totalCount(count int) userSearchTestExpect {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		if got := result.Meta["total-count"].(int); got != count {
 			t.Errorf("%s got = %v, want %v", scenario.name, got, count)
 		}
 	}
 }
 
-func totalCountAtLeast(count int) expect {
-	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
+func totalCountAtLeast(count int) userSearchTestExpect {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		got := result.Meta["total-count"].(int)
 		if !(got >= count) {
 			t.Errorf("%s got %v, wanted at least %v", scenario.name, got, count)
@@ -149,8 +148,8 @@ func totalCountAtLeast(count int) expect {
 	}
 }
 
-func hasLinks(linkNames ...string) expect {
-	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
+func hasLinks(linkNames ...string) userSearchTestExpect {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		for _, linkName := range linkNames {
 			link := linkName
 			if reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(link).IsNil() {
@@ -160,8 +159,8 @@ func hasLinks(linkNames ...string) expect {
 	}
 }
 
-func hasNoLinks(linkNames ...string) expect {
-	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
+func hasNoLinks(linkNames ...string) userSearchTestExpect {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		for _, linkName := range linkNames {
 			if !reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(linkName).IsNil() {
 				t.Errorf("%s got link, wanted empty %s", scenario.name, linkName)
@@ -170,8 +169,8 @@ func hasNoLinks(linkNames ...string) expect {
 	}
 }
 
-func differentValues() expect {
-	return func(t *testing.T, scenario okScenario, result *app.SearchResponseUsers) {
+func differentValues() userSearchTestExpect {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
 		var prev *app.Users
 
 		for i := range result.Data {
