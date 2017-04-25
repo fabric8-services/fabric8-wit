@@ -1,7 +1,6 @@
 package controller_test
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"strconv"
@@ -139,9 +138,7 @@ func (s *TestSearchUserSearch) createTestData() []account.Identity {
 		}
 		return nil
 	})
-	if err != nil {
-		fmt.Println("Failed to insert testdata", err)
-	}
+	require.Nil(s.T(), err)
 	return idents
 }
 
@@ -155,9 +152,7 @@ func (s *TestSearchUserSearch) cleanTestData(idents []account.Identity) {
 		}
 		return nil
 	})
-	if err != nil {
-		fmt.Println("Failed to insert testdata", err)
-	}
+	require.Nil(s.T(), err)
 }
 
 func (s *TestSearchUserSearch) totalCount(count int) userSearchTestExpect {

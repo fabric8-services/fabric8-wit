@@ -153,7 +153,9 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 		return err
 	})
 	if err != nil {
-		fmt.Println(err)
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to run search query on users.")
 		ctx.InternalServerError()
 	}
 
