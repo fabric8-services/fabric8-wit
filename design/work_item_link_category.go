@@ -192,6 +192,7 @@ var _ = a.Resource("work_item_link_category", func() {
 			a.Media(workItemLinkCategory)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
