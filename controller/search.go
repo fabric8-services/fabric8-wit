@@ -138,8 +138,6 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 	q := ctx.Q
 	if q == "" {
 		return ctx.BadRequest(goa.ErrBadRequest(fmt.Errorf("empty search query not allowed")))
-	} else if q == "*" {
-		q = "" // Allow empty query if * specified
 	}
 
 	var result []account.Identity
