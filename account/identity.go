@@ -349,7 +349,7 @@ func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool
 	return true
 }
 
-// Search searches for Identites where FullNmae like q% or users.email like q%
+// Search searches for Identites where FullName like %q% or users.email like %q% or users.username like %q%
 func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error) {
 
 	db := m.db.Model(&Identity{})
