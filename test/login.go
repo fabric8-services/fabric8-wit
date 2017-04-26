@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/almighty/almighty-core/account"
-	tokencontext "github.com/almighty/almighty-core/login/token_context"
+	tokencontext "github.com/almighty/almighty-core/login/tokencontext"
 	"github.com/almighty/almighty-core/space/authz"
 	"github.com/almighty/almighty-core/token"
 
@@ -70,20 +70,20 @@ func service(serviceName string, tm token.Manager, key interface{}, u account.Id
 // ServiceAsUserWithAuthz creates a new service and fill the context with input Identity and resource authorization information
 func ServiceAsUserWithAuthz(serviceName string, tm token.Manager, key interface{}, u account.Identity, authorizationPayload authz.AuthorizationPayload) *goa.Service {
 	svc := service(serviceName, tm, key, u, &authorizationPayload)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeyclaokAuthzServiceManager{Service: &dummySpaceAuthzService{}})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
 	return svc
 }
 
 // ServiceAsUser creates a new service and fill the context with input Identity
 func ServiceAsUser(serviceName string, tm token.Manager, u account.Identity) *goa.Service {
 	svc := service(serviceName, tm, nil, u, nil)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeyclaokAuthzServiceManager{Service: &dummySpaceAuthzService{}})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: &dummySpaceAuthzService{}})
 	return svc
 }
 
 // ServiceAsSpaceUser creates a new service and fill the context with input Identity and space authz service
 func ServiceAsSpaceUser(serviceName string, tm token.Manager, u account.Identity, authzSrv authz.AuthzService) *goa.Service {
 	svc := service(serviceName, tm, nil, u, nil)
-	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeyclaokAuthzServiceManager{Service: authzSrv})
+	svc.Context = tokencontext.ContextWithSpaceAuthzService(svc.Context, &authz.KeycloakAuthzServiceManager{Service: authzSrv})
 	return svc
 }

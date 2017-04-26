@@ -279,6 +279,15 @@ func GetMigrations() Migrations {
 	// Version 53
 	m = append(m, steps{ExecuteSQLFile("053-edit-username.sql")})
 
+	// Version 54
+	m = append(m, steps{ExecuteSQLFile("054-add-stackid-to-codebase.sql")})
+
+	// Version 55
+	m = append(m, steps{ExecuteSQLFile("055-assign-root-area-if-missing.sql")})
+
+	// Version 56
+	m = append(m, steps{ExecuteSQLFile("056-assign-root-iteration-if-missing.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -426,10 +435,10 @@ func NewMigrationContext(ctx context.Context) context.Context {
 	params := url.Values{}
 	ctx = goa.NewContext(ctx, nil, req, params)
 	// set a random request ID for the context
-	var req_id string
-	ctx, req_id = client.ContextWithRequestID(ctx)
+	var reqID string
+	ctx, reqID = client.ContextWithRequestID(ctx)
 
-	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", req_id)
+	log.Debug(ctx, nil, "Initialized the migration context with Request ID: %v", reqID)
 
 	return ctx
 }
@@ -533,13 +542,13 @@ func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.U
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceId uuid.UUID) error {
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceID uuid.UUID) error {
 	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 
-	space, err := spaceRepo.Load(ctx, spaceId)
+	space, err := spaceRepo.Load(ctx, spaceID)
 	if err != nil {
 		return errs.WithStack(err)
 	}

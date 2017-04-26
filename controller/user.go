@@ -3,6 +3,8 @@ package controller
 import (
 	"fmt"
 
+	"golang.org/x/net/context"
+
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -18,11 +20,23 @@ type UserController struct {
 	*goa.Controller
 	db           application.DB
 	tokenManager token.Manager
+	config       UserControllerConfiguration
+	InitTenant   func(context.Context) error
+}
+
+// UserControllerConfiguration the configuration for the UserController
+type UserControllerConfiguration interface {
+	GetCacheControlUser() string
 }
 
 // NewUserController creates a user controller.
-func NewUserController(service *goa.Service, db application.DB, tokenManager token.Manager) *UserController {
-	return &UserController{Controller: service.NewController("UserController"), db: db, tokenManager: tokenManager}
+func NewUserController(service *goa.Service, db application.DB, tokenManager token.Manager, config UserControllerConfiguration) *UserController {
+	return &UserController{
+		Controller:   service.NewController("UserController"),
+		db:           db,
+		tokenManager: tokenManager,
+		config:       config,
+	}
 }
 
 // Show returns the authorized user based on the provided Token
@@ -42,7 +56,6 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrUnauthorized(fmt.Sprintf("Auth token contains id %s of unknown Identity\n", id)))
 			return ctx.Unauthorized(jerrors)
 		}
-
 		var user *account.User
 		userID := identity.UserID
 		if userID.Valid {
@@ -51,7 +64,13 @@ func (c *UserController) Show(ctx *app.ShowUserContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errors.Wrap(err, fmt.Sprintf("Can't load user with id %s", userID.UUID)))
 			}
 		}
-
-		return ctx.OK(ConvertUser(ctx.RequestData, identity, user))
+		return ctx.ConditionalEntity(*user, c.config.GetCacheControlUser, func() error {
+			if c.InitTenant != nil {
+				go func(ctx context.Context) {
+					c.InitTenant(ctx)
+				}(ctx)
+			}
+			return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
+		})
 	})
 }

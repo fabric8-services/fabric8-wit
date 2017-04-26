@@ -68,20 +68,16 @@ type GormAreaRepository struct {
 // Create creates a new record.
 func (m *GormAreaRepository) Create(ctx context.Context, u *Area) error {
 	defer goa.MeasureSince([]string{"goa", "db", "area", "create"}, time.Now())
-
 	u.ID = uuid.NewV4()
-
 	err := m.db.Create(u).Error
-
 	if err != nil {
 		// ( name, spaceID ,path ) needs to be unique
 		if gormsupport.IsUniqueViolation(err, "areas_name_space_id_path_unique") {
 			return errors.NewBadParameterError("name & space_id & path", u.Name+" & "+u.SpaceID.String()+" & "+u.Path.String()).Expected("unique")
 		}
-		goa.LogError(ctx, "error adding Area", "error", err.Error())
+		log.Error(ctx, map[string]interface{}{}, "error adding Area: %s", err.Error())
 		return err
 	}
-
 	return nil
 }
 

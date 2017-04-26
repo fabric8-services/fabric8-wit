@@ -9,6 +9,7 @@ import (
 
 	"github.com/almighty/almighty-core/criteria"
 	"github.com/almighty/almighty-core/errors"
+
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rendering"
 
@@ -36,7 +37,7 @@ type WorkItemRepository interface {
 	Reorder(ctx context.Context, direction DirectionType, targetID *string, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID string, suppressorID uuid.UUID) error
 	Create(ctx context.Context, spaceID uuid.UUID, typeID uuid.UUID, fields map[string]interface{}, creatorID uuid.UUID) (*WorkItem, error)
-	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, length *int) ([]WorkItem, uint64, error)
+	List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, length *int) ([]WorkItem, uint64, error)
 	Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error)
 	GetCountsPerIteration(ctx context.Context, spaceID uuid.UUID) (map[string]WICountsPerIteration, error)
 	GetCountsForIteration(ctx context.Context, iterationID uuid.UUID) (map[string]WICountsPerIteration, error)
@@ -244,26 +245,26 @@ func (r *GormWorkItemRepository) FindSecondItem(order *float64, secondItemDirect
 
 	if tx.RecordNotFound() {
 		// Item is placed at first or last position
-		ItemId := strconv.FormatUint(Item.ID, 10)
-		return &ItemId, nil, nil
+		ItemID := strconv.FormatUint(Item.ID, 10)
+		return &ItemID, nil, nil
 	}
 	if tx.Error != nil {
 		return nil, nil, errors.NewInternalError(tx.Error.Error())
 	}
 
-	ItemId := strconv.FormatUint(Item.ID, 10)
-	return &ItemId, &Item.ExecutionOrder, nil
+	ItemID := strconv.FormatUint(Item.ID, 10)
+	return &ItemID, &Item.ExecutionOrder, nil
 
 }
 
 // FindFirstItem returns the order of the target workitem
 func (r *GormWorkItemRepository) FindFirstItem(id string) (*float64, error) {
 	Item := WorkItemStorage{}
-	Id, err := strconv.ParseUint(id, 10, 64)
-	if err != nil || Id == 0 {
-		return nil, errors.NewNotFoundError("work item", string(Id))
+	ID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil || ID == 0 {
+		return nil, errors.NewNotFoundError("work item", string(ID))
 	}
-	tx := r.db.First(&Item, Id)
+	tx := r.db.First(&Item, ID)
 	if tx.RecordNotFound() {
 		return nil, errors.NewNotFoundError("work item", id)
 	}
@@ -309,15 +310,15 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		if aboveItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		belowItemId, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionAbove)
+		belowItemID, belowItemOrder, err := r.FindSecondItem(aboveItemOrder, DirectionAbove)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		if *belowItemId == "0" {
+		if *belowItemID == "0" {
 			// Item is placed at last position
 			belowItemOrder := float64(0)
 			order = r.CalculateOrder(aboveItemOrder, &belowItemOrder)
-		} else if *belowItemId == strconv.FormatUint(res.ID, 10) {
+		} else if *belowItemID == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
 			order = wi.Fields[SystemOrder].(float64)
 		} else {
@@ -329,14 +330,14 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 		if belowItemOrder == nil || err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		aboveItemId, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionBelow)
+		aboveItemID, aboveItemOrder, err := r.FindSecondItem(belowItemOrder, DirectionBelow)
 		if err != nil {
 			return nil, errors.NewNotFoundError("work item", *targetID)
 		}
-		if *aboveItemId == "0" {
+		if *aboveItemID == "0" {
 			// Item is placed at first position
 			order = *belowItemOrder + float64(orderValue)
-		} else if *aboveItemId == strconv.FormatUint(res.ID, 10) {
+		} else if *aboveItemID == strconv.FormatUint(res.ID, 10) {
 			// When same reorder request is made again
 			order = wi.Fields[SystemOrder].(float64)
 		} else {
@@ -553,13 +554,24 @@ func ConvertWorkItemStorageToModel(wiType *WorkItemType, wi *WorkItemStorage) (*
 
 // extracted this function from List() in order to close the rows object with "defer" for more readability
 // workaround for https://github.com/lib/pq/issues/81
-func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]WorkItemStorage, uint64, error) {
+func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItemStorage, uint64, error) {
 	where, parameters, compileError := Compile(criteria)
 	if compileError != nil {
 		return nil, 0, errors.NewBadParameterError("expression", criteria)
 	}
 	where = where + " AND space_id = ?"
 	parameters = append(parameters, spaceID)
+
+	if parentExists != nil && !*parentExists {
+		where += ` AND
+			id not in (
+				SELECT target_id FROM work_item_links
+				WHERE link_type_id IN (
+					SELECT id FROM work_item_link_types WHERE forward_name = 'parent of'
+				)
+			)`
+
+	}
 	db := r.db.Model(&WorkItemStorage{}).Where(where, parameters...)
 	orgDB := db
 	if start != nil {
@@ -628,8 +640,8 @@ func (r *GormWorkItemRepository) listItemsFromDB(ctx context.Context, spaceID uu
 }
 
 // List returns work item selected by the given criteria.Expression, starting with start (zero-based) and returning at most limit items
-func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, start *int, limit *int) ([]WorkItem, uint64, error) {
-	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, start, limit)
+func (r *GormWorkItemRepository) List(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression, parentExists *bool, start *int, limit *int) ([]WorkItem, uint64, error) {
+	result, count, err := r.listItemsFromDB(ctx, spaceID, criteria, parentExists, start, limit)
 	if err != nil {
 		return nil, 0, errs.WithStack(err)
 	}
@@ -665,7 +677,7 @@ func (r *GormWorkItemRepository) Count(ctx context.Context, spaceID uuid.UUID, c
 // Fetch fetches the (first) work item matching by the given criteria.Expression.
 func (r *GormWorkItemRepository) Fetch(ctx context.Context, spaceID uuid.UUID, criteria criteria.Expression) (*WorkItem, error) {
 	limit := 1
-	results, count, err := r.List(ctx, spaceID, criteria, nil, &limit)
+	results, count, err := r.List(ctx, spaceID, criteria, nil, nil, &limit)
 	if err != nil {
 		return nil, err
 	}
@@ -697,7 +709,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	}
 	countsMap := map[string]WICountsPerIteration{}
 	for _, iterationWithCount := range res {
-		countsMap[iterationWithCount.IterationId] = iterationWithCount
+		countsMap[iterationWithCount.IterationID] = iterationWithCount
 	}
 	return countsMap, nil
 }
@@ -719,7 +731,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, iter
 	}
 	countsMap := map[string]WICountsPerIteration{}
 	countsMap[iterationID.String()] = WICountsPerIteration{
-		IterationId: iterationID.String(),
+		IterationID: iterationID.String(),
 		Closed:      res.Closed,
 		Total:       res.Total,
 	}

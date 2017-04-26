@@ -1,6 +1,6 @@
-// Package token_context contains the code that extract token manager from the
+// Package tokencontext contains the code that extract token manager from the
 // context.
-package token_context
+package tokencontext
 
 import (
 	"golang.org/x/net/context"

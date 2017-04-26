@@ -36,7 +36,7 @@ type SpaceConfiguration interface {
 	GetKeycloakEndpointAdmin(*goa.RequestData) (string, error)
 	GetKeycloakClientID() string
 	GetKeycloakSecret() string
-	GetCacheControlSpace() string
+	GetCacheControlSpaces() string
 }
 
 // SpaceController implements the space resource.
@@ -201,7 +201,7 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		if err != nil {
 			return err
 		}
-		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpace, func() error {
+		entityErr := ctx.ConditionalEntities(spaces, c.config.GetCacheControlSpaces, func() error {
 			count := int(cnt)
 			spaceData, err := ConvertSpacesFromModel(ctx.Context, c.db, ctx.RequestData, spaces)
 			if err != nil {
@@ -217,15 +217,14 @@ func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
 		})
 		if entityErr != nil {
 			return entityErr
-		} else {
-			return nil
 		}
+
+		return nil
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	} else {
-		return ctx.OK(&response)
 	}
+	return ctx.OK(&response)
 }
 
 // Show runs the show action.
@@ -242,7 +241,7 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 			return err
 		}
 
-		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpace, func() error {
+		entityErr := ctx.ConditionalEntity(*s, c.config.GetCacheControlSpaces, func() error {
 			spaceData, err := ConvertSpaceFromModel(ctx.Context, c.db, ctx.RequestData, *s)
 			if err != nil {
 				return err
@@ -259,9 +258,8 @@ func (c *SpaceController) Show(ctx *app.ShowSpaceContext) error {
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	} else {
-		return ctx.OK(&result)
 	}
+	return ctx.OK(&result)
 }
 
 // Update runs the update action.
@@ -316,9 +314,9 @@ func (c *SpaceController) Update(ctx *app.UpdateSpaceContext) error {
 	})
 	if txnErr != nil {
 		return jsonapi.JSONErrorResponse(ctx, txnErr)
-	} else {
-		return ctx.OK(&response)
 	}
+
+	return ctx.OK(&response)
 }
 
 func validateCreateSpace(ctx *app.CreateSpaceContext) error {

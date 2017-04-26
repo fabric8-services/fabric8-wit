@@ -68,6 +68,7 @@ const (
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varHeaderMaxLength                  = "header.maxlength"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
 	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
@@ -84,6 +85,7 @@ const (
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
 	varLogLevel                         = "log.level"
+	varTenantServiceURL                 = "tenant.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -156,6 +158,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// HTTP
 	//-----
 	c.v.SetDefault(varHTTPAddress, "0.0.0.0:8080")
+	c.v.SetDefault(varHeaderMaxLength, defaultHeaderMaxLength)
 
 	//-----
 	// Misc
@@ -277,6 +280,12 @@ func (c *ConfigurationData) GetHTTPAddress() string {
 	return c.v.GetString(varHTTPAddress)
 }
 
+// GetHeaderMaxLength returns the max length of HTTP headers allowed in the system
+// For example it can be used to limit the size of bearer tokens returned by the api service
+func (c *ConfigurationData) GetHeaderMaxLength() int64 {
+	return c.v.GetInt64(varHeaderMaxLength)
+}
+
 // IsPostgresDeveloperModeEnabled returns if development related features (as set via default, config file, or environment variable),
 // e.g. token generation endpoint are enabled
 func (c *ConfigurationData) IsPostgresDeveloperModeEnabled() bool {
@@ -315,13 +324,13 @@ func (c *ConfigurationData) GetCacheControlAreas() string {
 
 // GetCacheControlSpaces returns the value to set in the "Cache-Control" HTTP response header
 // when returning spaces.
-func (c *ConfigurationData) GetCacheControlSpace() string {
+func (c *ConfigurationData) GetCacheControlSpaces() string {
 	return c.v.GetString(varCacheControlSpaces)
 }
 
 // GetCacheControlIterations returns the value to set in the "Cache-Control" HTTP response header
 // when returning iterations.
-func (c *ConfigurationData) GetCacheControlIteration() string {
+func (c *ConfigurationData) GetCacheControlIterations() string {
 	return c.v.GetString(varCacheControlIterations)
 }
 
@@ -335,6 +344,18 @@ func (c *ConfigurationData) GetCacheControlComments() string {
 // when returning comments.
 func (c *ConfigurationData) GetCacheControlFilters() string {
 	return c.v.GetString(varCacheControlFilters)
+}
+
+// GetCacheControlUsers returns the value to set in the "Cache-Control" HTTP response header
+// when returning users.
+func (c *ConfigurationData) GetCacheControlUsers() string {
+	return c.v.GetString(varCacheControlUsers)
+}
+
+// GetCacheControlUser returns the value to set in the "Cache-Control" HTTP response header
+// when data for the current user.
+func (c *ConfigurationData) GetCacheControlUser() string {
+	return c.v.GetString(varCacheControlUser)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
@@ -594,7 +615,14 @@ func (c *ConfigurationData) checkLocalhostRedirectException(req *goa.RequestData
 	return DefaultValidRedirectURLs, nil
 }
 
+// GetTenantServiceURL returns the URL for the Tenant service used by login to initialize OSO tenant space
+func (c *ConfigurationData) GetTenantServiceURL() string {
+	return c.v.GetString(varTenantServiceURL)
+}
+
 const (
+	defaultHeaderMaxLength = 5000 // bytes
+
 	// Auth-related defaults
 
 	// RSAPrivateKey for signing JWT Tokens
@@ -630,13 +658,13 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 	// RSAPublicKey for verifying JWT Tokens
 	// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
 	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlscGA2NfO4ZkGzJgZE8
-e/WGHCFANE28DzU1aftOssKi4jCn++umFWPDWxTwLfQdiwc8Bbhn9/8udPMXrZ84
-L8OgVNbDXOle37QE0+GEAX/DnzkvOg2sm7F0IzKck9YNvo3ZUYj7dyW9s2zatCwu
-QyUsHJmbMdwtDOueHBHwXiAiU0kprtUjNsvK4SBvascBdCmLLIWkhj2lu5S6BGrH
-gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
-51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
-ZwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvQ8p+HsTMrgcsuIMoOR1
+LXRhynL9YAU0qoDON6PLKCpdBv0Xy/jnsPjo5DrtUOijuJcID8CR7E0hYpY9MgK5
+H5pDFwC4lbUVENquHEVS/E0pQSKCIzSmORcIhjYW2+wKfDOVjeudZwdFBIxJ6KpI
+ty/aF78hlUJZuvghFVqoHQYTq/DZOmKjS+PAVLw8FKE3wa/3WU0EkpP+iovRMCkl
+lzxqrcLPIvx+T2gkwe0bn0kTvdMOhTLTN2tuvKrFpVUxVi8RM/V8PtgdKroxnES7
+SyUqK8rLO830jKJzAYrByQL+sdGuSqInIY/geahQHEGTwMI0CLj6zfhpjSgCflst
+vwIDAQAB
 -----END PUBLIC KEY-----`
 
 	defaultLogLevel = "info"
@@ -670,6 +698,7 @@ ZwIDAQAB
 	// Allow redirects to localhost when running in prod-preveiw
 	localhostRedirectURLs      = "(" + DefaultValidRedirectURLs + "|^(https|http)://([^/]+[.])?(localhost|127[.]0[.]0[.]1)(:\\d+)?(/.*)?$)" // *.openshift.io/* or localhost/* or 127.0.0.1/*
 	localhostRedirectException = "^(https|http)://([^/]+[.])?(?i:prod-preview[.]openshift[.]io)(:\\d+)?(/.*)?$"                             // *.prod-preview.openshift.io/*
+
 )
 
 // ActualToken is actual OAuth access token of github

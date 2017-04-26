@@ -53,9 +53,6 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 
 		return ctx.OK(&resp)
 	})
-
-	res := &app.SpaceSingle{}
-	return ctx.OK(res)
 }
 
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
@@ -100,7 +97,7 @@ func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Applic
 	}
 	for _, identity := range identities {
 		if identity.ProviderType == account.KeycloakIDP {
-			return identity, nil
+			return &identity, nil
 		}
 	}
 	log.Error(ctx, map[string]interface{}{

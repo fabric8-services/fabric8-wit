@@ -117,7 +117,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
-		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, &offset, &limit)
+		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, ctx.FilterParentexists, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
@@ -137,8 +137,23 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 	})
 }
 
+// Returns true if the user is the work item creator or space collaborator
+func authorizeWorkitemEditor(ctx context.Context, db application.DB, spaceID uuid.UUID, creatorID string, editorID string) (bool, error) {
+	if editorID == creatorID {
+		return true, nil
+	}
+	authorized, err := authz.Authorize(ctx, spaceID.String())
+	if err != nil {
+		return false, errors.NewUnauthorizedError(err.Error())
+	}
+	return authorized, nil
+}
+
 // Update does PATCH workitem
 func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
+	if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
+	}
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
@@ -147,25 +162,35 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	authorized, err := authz.Authorize(ctx, ctx.ID)
+
+	var wi *workitem.WorkItem
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		wi, err = appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data.ID)
+		if err != nil {
+			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID))
+		}
+		return nil
+	})
 	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+	creator := wi.Fields[workitem.SystemCreator]
+	if creator == nil {
+		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
+	}
+
+	authorized, err := authorizeWorkitemEditor(ctx, c.db, spaceID, creator.(string), currentUserIdentityID.String())
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 	if !authorized {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
-		}
-		wi, err := appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data.ID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID)))
-		}
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
-		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi)
+		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi, spaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -219,7 +244,7 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 
-			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi)
+			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi, spaceID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
@@ -249,13 +274,6 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	authorized, err := authz.Authorize(ctx, ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
-	}
-	if !authorized {
-		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	var wit *uuid.UUID
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil &&
@@ -292,7 +310,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
 		}
 
-		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi)
+		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi, spaceID)
 		// fetch root iteration for this space and assign it to WI if not present already
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
 			// no iteration set hence set to root iteration of its space
@@ -412,7 +430,7 @@ func findLastModified(wis []workitem.WorkItem) time.Time {
 
 // ConvertJSONAPIToWorkItem is responsible for converting given WorkItem model object into a
 // response resource object by jsonapi.org specifications
-func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem, target *workitem.WorkItem) error {
+func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem, target *workitem.WorkItem, spaceID uuid.UUID) error {
 	// construct default values from input WI
 	version, err := getVersion(source.Attributes["version"])
 	if err != nil {
@@ -440,7 +458,14 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 	}
 	if source.Relationships != nil && source.Relationships.Iteration != nil {
 		if source.Relationships.Iteration.Data == nil {
-			delete(target.Fields, workitem.SystemIteration)
+			log.Debug(nil, map[string]interface{}{
+				"wi_id": target.ID,
+			}, "assigning the work item to the root iteration of the space.")
+			rootIteration, err := appl.Iterations().Root(context.Background(), spaceID)
+			if err != nil {
+				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+			}
+			target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
 		} else {
 			d := source.Relationships.Iteration.Data
 			iterationUUID, err := uuid.FromString(*d.ID)
@@ -453,9 +478,17 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 			target.Fields[workitem.SystemIteration] = iterationUUID.String()
 		}
 	}
+
 	if source.Relationships != nil && source.Relationships.Area != nil {
 		if source.Relationships.Area.Data == nil {
-			delete(target.Fields, workitem.SystemArea)
+			log.Debug(nil, map[string]interface{}{
+				"wi_id": target.ID,
+			}, "assigning the work item to the root area of the space.")
+			rootArea, err := appl.Areas().Root(context.Background(), spaceID)
+			if err != nil {
+				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+			}
+			target.Fields[workitem.SystemArea] = rootArea.ID.String()
 		} else {
 			d := source.Relationships.Area.Data
 			areaUUID, err := uuid.FromString(*d.ID)
@@ -468,6 +501,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 			target.Fields[workitem.SystemArea] = areaUUID.String()
 		}
 	}
+
 	if source.Relationships != nil && source.Relationships.BaseType != nil {
 		if source.Relationships.BaseType.Data != nil {
 			target.Type = source.Relationships.BaseType.Data.ID
@@ -584,16 +618,16 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
-				valArr := val.([]interface{})
+				userID := val.([]interface{})
 				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: ConvertUsersSimple(request, valArr),
+					Data: ConvertUsersSimple(request, userID),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
-				valStr := val.(string)
+				userID := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, valStr),
+					Data: ConvertUserSimple(request, userID),
 				}
 			}
 		case workitem.SystemIteration:

@@ -107,6 +107,7 @@ type Codebase struct {
 	SpaceID uuid.UUID `sql:"type:uuid"`
 	Type    string
 	URL     string
+	StackID string
 }
 
 // Repository describes interactions with codebases

@@ -130,7 +130,7 @@ func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, 
 	err = application.Transactional(db, func(appl application.Application) error {
 		// Get the list of work items for the following criteria
 		var tc uint64
-		result, tc, err = appl.WorkItems().List(ctx, spaceID, backlogExp, offset, limit)
+		result, tc, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
 		count = int(tc)
 		if err != nil {
 			return errs.Wrap(err, "error listing backlog items")
