@@ -1134,7 +1134,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	// given
 	userType := "identities"
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
-	newUserId := newUser.ID.String()
+	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
@@ -1143,7 +1143,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 		Data: []*app.GenericData{
 			{
 				Type: &userType,
-				ID:   &newUserId,
+				ID:   &newUserID,
 			}},
 	}
 	// when
@@ -1227,6 +1227,51 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.Len(s.T(), list.Data, 1)
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
+}
+
+func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
+	// given
+	userType := "identities"
+	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
+	newUserID := newUser.ID.String()
+	c := minimumRequiredCreatePayload()
+	c.Data.Attributes[workitem.SystemTitle] = "Title"
+	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
+	c.Data.Relationships.Assignees = &app.RelationGenericList{
+		Data: []*app.GenericData{
+			{
+				Type: &userType,
+				ID:   &newUserID,
+			}},
+	}
+	assignee := "none"
+	_, list0 := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil)
+	assert.Len(s.T(), list0.Data, 1)
+	assert.True(s.T(), strings.Contains(*list0.Links.First, "filter[assignee]=none"))
+
+	// when
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	// then
+	assert.NotNil(s.T(), wi.Data)
+	assert.NotNil(s.T(), wi.Data.ID)
+	assert.NotNil(s.T(), wi.Data.Type)
+	assert.NotNil(s.T(), wi.Data.Attributes)
+	assert.NotNil(s.T(), wi.Data.Relationships.Assignees.Data)
+	assert.NotNil(s.T(), wi.Data.Relationships.Assignees.Data[0].ID)
+
+	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil)
+	assert.Len(s.T(), list.Data, 1)
+	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
+	assert.False(s.T(), strings.Contains(*list.Links.First, "filter[assignee]=none"))
+
+	_, list2 := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil)
+	assert.Len(s.T(), list2.Data, 1)
+	assert.True(s.T(), strings.Contains(*list2.Links.First, "filter[assignee]=none"))
+
+	_, list3 := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	assert.Len(s.T(), list3.Data, 2)
+	assert.False(s.T(), strings.Contains(*list3.Links.First, "filter[assignee]=none"))
 }
 
 func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
