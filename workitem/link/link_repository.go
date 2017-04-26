@@ -97,6 +97,30 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 	return nil
 }
 
+// CheckTopology returns error if there is an attempt to create more than 1 parent of a workitem.
+func (r *GormWorkItemLinkRepository) CheckTopology(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
+	const treeTopology = "tree"
+
+	// Fetch the link type
+	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
+	if err != nil {
+		return errs.WithStack(err)
+	}
+
+	if linkType.Topology == treeTopology {
+		result := WorkItemLink{}
+
+		// check if the same link type already exists for given target ID
+		db := r.db.Where("link_type_id=? AND target_id=?", linkTypeID, targetID).Find(&result)
+		if db.RecordNotFound() {
+			// not treating this as an error
+			return nil
+		}
+		return errors.NewInternalError(db.Error.Error())
+	}
+	return nil
+}
+
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
@@ -109,6 +133,9 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
+		return nil, errs.WithStack(err)
+	}
+	if err := r.CheckTopology(ctx, sourceID, targetID, linkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
 	db := r.db.Create(link)
