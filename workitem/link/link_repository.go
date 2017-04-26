@@ -97,8 +97,8 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 	return nil
 }
 
-// CheckTopology returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckTopology(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
+// CheckParentExist returns error if there is an attempt to create more than 1 parent of a workitem.
+func (r *GormWorkItemLinkRepository) CheckParentExist(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
 	const treeTopology = "tree"
 
 	// Fetch the link type
@@ -135,7 +135,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	if err := r.CheckTopology(ctx, sourceID, targetID, linkTypeID); err != nil {
+	if err := r.CheckParentExist(ctx, sourceID, targetID, linkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
 	db := r.db.Create(link)
