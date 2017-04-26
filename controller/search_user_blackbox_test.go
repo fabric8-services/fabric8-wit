@@ -73,13 +73,12 @@ func (s *TestSearchUserSearch) TestUsersSearchOK() {
 	defer s.cleanTestData(idents)
 
 	tests := []okScenarioUserSearchTest{
-		{"With lowercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "test_ab"}, userSearchTestExpects{s.totalCount(3)}},
-		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{s.totalCount(3)}},
-		{"With uppercase email query", userSearchTestArgs{s.offset("0"), limit(10), "EMAIL_TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
-		{"With lowercase email query", userSearchTestArgs{s.offset("0"), limit(10), "email_test_ab"}, userSearchTestExpects{s.totalCount(1)}},
-		{"With username query", userSearchTestArgs{s.offset("0"), limit(10), "test_c"}, userSearchTestExpects{s.totalCount(3)}},
+		{"With lowercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "x_test_ab"}, userSearchTestExpects{s.totalCount(3)}},
+		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "X_TEST_AB"}, userSearchTestExpects{s.totalCount(3)}},
+		{"With uppercase email query", userSearchTestArgs{s.offset("0"), limit(10), "EMAIL_X_TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With lowercase email query", userSearchTestArgs{s.offset("0"), limit(10), "email_x_test_ab"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With username query", userSearchTestArgs{s.offset("0"), limit(10), "x_test_c"}, userSearchTestExpects{s.totalCount(3)}},
 		{"with special chars", userSearchTestArgs{s.offset("0"), limit(10), "&:\n!#%?*"}, userSearchTestExpects{s.totalCount(0)}},
-		{"with * to list all", userSearchTestArgs{s.offset("0"), limit(10), "*"}, userSearchTestExpects{s.totalCountAtLeast(len(idents))}},
 		{"with multi page", userSearchTestArgs{s.offset("0"), limit(10), "TEST"}, userSearchTestExpects{s.hasLinks("Next")}},
 		{"with last page", userSearchTestArgs{s.offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, userSearchTestExpects{s.hasNoLinks("Next"), s.hasLinks("Prev")}},
 		{"with different values", userSearchTestArgs{s.offset("0"), s.limit(10), "TEST"}, userSearchTestExpects{s.differentValues()}},
@@ -108,9 +107,9 @@ func (s *TestSearchUserSearch) TestUsersSearchBadRequest() {
 }
 
 func (s *TestSearchUserSearch) createTestData() []account.Identity {
-	names := []string{"TEST_A", "TEST_AB", "TEST_B", "TEST_C"}
-	emails := []string{"email_test_ab@redhat.org", "email_test_a@redhat.org", "email_test_c@redhat.org", "email_test_b@redhat.org"}
-	usernames := []string{"test_b", "test_c", "test_a", "test_ab"}
+	names := []string{"X_TEST_A", "X_TEST_AB", "X_TEST_B", "X_TEST_C"}
+	emails := []string{"email_x_test_ab@redhat.org", "email_x_test_a@redhat.org", "email_x_test_c@redhat.org", "email_x_test_b@redhat.org"}
+	usernames := []string{"x_test_b", "x_test_c", "x_test_a", "x_test_ab"}
 	for i := 0; i < 20; i++ {
 		names = append(names, "TEST_"+strconv.Itoa(i))
 		emails = append(emails, "myemail"+strconv.Itoa(i))
