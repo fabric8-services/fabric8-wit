@@ -78,6 +78,7 @@ type TestCollaboratorsREST struct {
 	policy        *auth.KeycloakPolicy
 	testIdentity1 account.Identity
 	testIdentity2 account.Identity
+	testIdentity3 account.Identity
 	spaceID       string
 }
 
@@ -102,6 +103,9 @@ func (rest *TestCollaboratorsREST) SetupTest() {
 	testIdentity, err = testsupport.CreateTestIdentity(rest.DB, "TestCollaborators-"+uuid.NewV4().String(), "TestCollaborators")
 	require.Nil(rest.T(), err)
 	rest.testIdentity2 = testIdentity
+	testIdentity, err = testsupport.CreateTestIdentity(rest.DB, "TestCollaborators-"+uuid.NewV4().String(), "TestCollaborators")
+	require.Nil(rest.T(), err)
+	rest.testIdentity3 = testIdentity
 	space := rest.createSpace()
 	rest.spaceID = space.ID.String()
 }
@@ -168,6 +172,12 @@ func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsWithWrongUserIDFormat
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsOk() {
+	spaceUUID, err := uuid.FromString(rest.spaceID)
+	require.Nil(rest.T(), err)
+	appl := gormapplication.NewGormDB(rest.DB)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+
 	svc, ctrl := rest.SecuredController()
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
@@ -177,19 +187,34 @@ func (rest *TestCollaboratorsREST) TestAddCollaboratorsOk() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
+
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsOk() {
+	spaceUUID, err := uuid.FromString(rest.spaceID)
+	require.Nil(rest.T(), err)
+	appl := gormapplication.NewGormDB(rest.DB)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+
 	svc, ctrl := rest.SecuredController()
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String()})
 
-	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}, {ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity1.ID.String(), Type: idnType}, {ID: rest.testIdentity2.ID.String(), Type: idnType}, {ID: rest.testIdentity3.ID.String(), Type: idnType}}}
 	test.AddManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
+	rest.policy.AddUserToPolicy(rest.testIdentity3.ID.String())
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String(), rest.testIdentity3.ID.String()})
+
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsUnauthorizedIfNoToken() {
@@ -318,6 +343,12 @@ func (rest *TestCollaboratorsREST) checkCollaborators(userIDs []string) {
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsOk() {
+	spaceUUID, err := uuid.FromString(rest.spaceID)
+	require.Nil(rest.T(), err)
+	appl := gormapplication.NewGormDB(rest.DB)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+
 	svc, ctrl := rest.SecuredController()
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
@@ -325,17 +356,32 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsOk() {
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
 
 	test.RemoveCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
+
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsOk() {
+	spaceUUID, err := uuid.FromString(rest.spaceID)
+	require.Nil(rest.T(), err)
+	appl := gormapplication.NewGormDB(rest.DB)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+
 	svc, ctrl := rest.SecuredController()
 
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
-	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
-	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}}}
+	rest.policy.AddUserToPolicy(rest.testIdentity3.ID.String())
+	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String(), rest.testIdentity3.ID.String()})
+	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: rest.testIdentity2.ID.String(), Type: idnType}, {ID: rest.testIdentity3.ID.String(), Type: idnType}}}
 
 	test.RemoveManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
+
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	require.Nil(rest.T(), err)
+	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
 
 func (rest *TestCollaboratorsREST) createSpace() app.Space {
