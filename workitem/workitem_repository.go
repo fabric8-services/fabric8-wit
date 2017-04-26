@@ -725,8 +725,8 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceID.String(),
-			"err":     db.Error,
+			"space_id": spaceID.String(),
+			"err":      db.Error,
 		}, "unable to count WI for every iteration in a space")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
@@ -779,8 +779,8 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	db.Scan(&itrChildren)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"spaceID": spaceID.String(),
-			"err":     db.Error,
+			"space_id": spaceID.String(),
+			"err":      db.Error,
 		}, "unable to fetch children for every iteration in a space")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
@@ -851,7 +851,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
-			"iterationIDs`": whereClause,
+			"iteration_id`": whereClause,
 			"err":           db.Error,
 		}, "unable to count WI for an iteration")
 		return nil, errors.NewInternalError(db.Error.Error())
