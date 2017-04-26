@@ -99,15 +99,13 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 
 // CheckParentExist returns error if there is an attempt to create more than 1 parent of a workitem.
 func (r *GormWorkItemLinkRepository) CheckParentExist(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
-	const treeTopology = "tree"
-
 	// Fetch the link type
 	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 
-	if linkType.Topology == treeTopology {
+	if linkType.Topology == TopologyTree {
 		result := WorkItemLink{}
 
 		// check if the same link type already exists for given target ID
@@ -116,7 +114,10 @@ func (r *GormWorkItemLinkRepository) CheckParentExist(ctx context.Context, sourc
 			// not treating this as an error
 			return nil
 		}
-		return errors.NewInternalError(db.Error.Error())
+		log.Error(ctx, map[string]interface{}{
+			"link_type_id": linkTypeID,
+		}, "unable to create work item link")
+		return errors.NewBadParameterError("link_type_id", linkTypeID)
 	}
 	return nil
 }
