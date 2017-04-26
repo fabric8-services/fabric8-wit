@@ -38,7 +38,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 	var offset int
 	var limit int
 
-	offset, limit = computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit = computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	// ToDo : Keep URL registeration central somehow.
 	hostString := ctx.RequestData.Host
@@ -93,7 +93,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 	var count int
 	var err error
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var resultCount uint64

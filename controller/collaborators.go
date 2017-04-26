@@ -49,7 +49,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	s := strings.Split(userIDs, ",")
 	count := len(s)
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	if offset > len(s) {
 		offset = len(s)
 	}
