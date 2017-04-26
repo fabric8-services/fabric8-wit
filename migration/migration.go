@@ -291,6 +291,9 @@ func GetMigrations() Migrations {
 	// Version 57
 	m = append(m, steps{ExecuteSQLFile("057-add-last-used-workspace-to-codebase.sql")})
 
+	// Version 58
+	m = append(m, steps{ExecuteSQLFile("058-index-identities-fullname.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
