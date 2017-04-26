@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
@@ -10,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/search"
 	"github.com/almighty/almighty-core/space"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -58,7 +60,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case errors.BadParameterError:
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("Error listing work items: %s", err.Error())))
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("error listing work items: %s", err.Error())))
 				return ctx.BadRequest(jerrors)
 			default:
 				log.Error(ctx, map[string]interface{}{
@@ -84,7 +86,7 @@ func (c *SearchController) Show(ctx *app.ShowSearchContext) error {
 func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 	q := ctx.Q
 	if q == "" {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Errorf("Empty search query not allowed")))
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Errorf("empty search query not allowed")))
 	} else if q == "*" {
 		q = "" // Allow empty query if * specified
 	}
@@ -103,7 +105,7 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 			cause := errs.Cause(err)
 			switch cause.(type) {
 			case errors.BadParameterError:
-				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("Error listing spaces: %s", err.Error())))
+				return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(fmt.Sprintf("error listing spaces: %s", err.Error())))
 			default:
 				log.Error(ctx, map[string]interface{}{
 					"query":  q,
@@ -128,4 +130,69 @@ func (c *SearchController) Spaces(ctx *app.SpacesSearchContext) error {
 
 		return ctx.OK(&response)
 	})
+}
+
+// Users runs the user search action.
+func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
+
+	q := ctx.Q
+	if q == "" {
+		return ctx.BadRequest(goa.ErrBadRequest(fmt.Errorf("empty search query not allowed")))
+	}
+
+	var result []account.Identity
+	var count int
+	var err error
+
+	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		result, count, err = appl.Identities().Search(ctx, q, offset, limit)
+		return err
+	})
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "unable to run search query on users.")
+		ctx.InternalServerError()
+	}
+
+	var users []*app.UserData
+	for i := range result {
+		ident := result[i]
+		id := ident.ID.String()
+		userID := ident.User.ID.String()
+		users = append(users, &app.UserData{
+			// FIXME : should be "users" in the long term
+			Type: "identities",
+			ID:   &id,
+			Attributes: &app.UserDataAttributes{
+				CreatedAt:  &ident.User.CreatedAt,
+				UpdatedAt:  &ident.User.UpdatedAt,
+				Username:   &ident.Username,
+				FullName:   &ident.User.FullName,
+				ImageURL:   &ident.User.ImageURL,
+				Bio:        &ident.User.Bio,
+				URL:        &ident.User.URL,
+				UserID:     &userID,
+				IdentityID: &id,
+				Email:      &ident.User.Email,
+				Company:    &ident.User.Company,
+			},
+		})
+	}
+
+	// If there are no search results ensure that the 'data' section of the jsonapi
+	// response is not null, rather [] (empty array)
+	if users == nil {
+		users = []*app.UserData{}
+	}
+	response := app.UserList{
+		Data:  users,
+		Links: &app.PagingLinks{},
+		Meta:  &app.UserListMeta{TotalCount: count},
+	}
+	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
+
+	return ctx.OK(&response)
 }
