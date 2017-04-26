@@ -269,10 +269,11 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 		Type: codebaseType,
 		ID:   &codebase.ID,
 		Attributes: &app.CodebaseAttributes{
-			CreatedAt: &codebase.CreatedAt,
-			Type:      &codebase.Type,
-			URL:       &codebase.URL,
-			StackID:   &codebase.StackID,
+			CreatedAt:         &codebase.CreatedAt,
+			Type:              &codebase.Type,
+			URL:               &codebase.URL,
+			StackID:           &codebase.StackID,
+			LastUsedWorkspace: &codebase.LastUsedWorkspace,
 		},
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{
