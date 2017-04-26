@@ -95,12 +95,13 @@ func (test *TestCodebaseRepository) TearDownTest() {
 	test.clean()
 }
 
-func newCodebase(spaceID uuid.UUID, stackID, repotype, url string) *codebase.Codebase {
+func newCodebase(spaceID uuid.UUID, stackID, lastUsedWorkspace, repotype, url string) *codebase.Codebase {
 	return &codebase.Codebase{
-		SpaceID: spaceID,
-		Type:    repotype,
-		URL:     url,
-		StackID: stackID,
+		SpaceID:           spaceID,
+		Type:              repotype,
+		URL:               url,
+		StackID:           stackID,
+		LastUsedWorkspace: lastUsedWorkspace,
 	}
 }
 
@@ -133,12 +134,12 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase := newCodebase(spaceID, "golang-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 	test.createCodebase(codebase)
 	// when
 	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), codebase.ID, loadedCodebase.ID)
 	assert.Equal(test.T(), "golang-default", loadedCodebase.StackID)
-
+	assert.Equal(test.T(), "my-used-last-workspace", loadedCodebase.LastUsedWorkspace)
 }
