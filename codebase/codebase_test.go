@@ -115,8 +115,8 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase1 := newCodebase(spaceID, "golang-default", "git", "git@github.com:almighty/almighty-core.git")
-	codebase2 := newCodebase(spaceID, "python-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase1 := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:almighty/almighty-core.git")
+	codebase2 := newCodebase(spaceID, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 
 	test.createCodebase(codebase1)
 	test.createCodebase(codebase2)
