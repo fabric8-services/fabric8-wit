@@ -184,10 +184,15 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 		})
 	}
 
+	// If there are no search results ensure that the 'data' section of the jsonapi
+	// response is not null, rather [] (empty array)
+	if users == nil {
+		users = []*app.UserData{}
+	}
 	response := app.UserList{
 		Data:  users,
 		Links: &app.PagingLinks{},
-		Meta:  map[string]interface{}{"total-count": count},
+		Meta:  &app.UserListMeta{TotalCount: count},
 	}
 	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(result), offset, limit, count, "q="+q)
 

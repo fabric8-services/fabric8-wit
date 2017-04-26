@@ -59,7 +59,7 @@ type userSearchTestArgs struct {
 	q          string
 }
 
-type userSearchTestExpect func(*testing.T, okScenarioUserSearchTest, *app.SearchResponseUsers)
+type userSearchTestExpect func(*testing.T, okScenarioUserSearchTest, *app.UserList)
 type userSearchTestExpects []userSearchTestExpect
 
 type okScenarioUserSearchTest struct {
@@ -156,16 +156,16 @@ func (s *TestSearchUserSearch) cleanTestData(idents []account.Identity) {
 }
 
 func (s *TestSearchUserSearch) totalCount(count int) userSearchTestExpect {
-	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
-		if got := result.Meta["total-count"].(int); got != count {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.UserList) {
+		if got := result.Meta.TotalCount; got != count {
 			t.Errorf("%s got = %v, want %v", scenario.name, got, count)
 		}
 	}
 }
 
 func (s *TestSearchUserSearch) totalCountAtLeast(count int) userSearchTestExpect {
-	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
-		got := result.Meta["total-count"].(int)
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.UserList) {
+		got := result.Meta.TotalCount
 		if !(got >= count) {
 			t.Errorf("%s got %v, wanted at least %v", scenario.name, got, count)
 		}
@@ -173,7 +173,7 @@ func (s *TestSearchUserSearch) totalCountAtLeast(count int) userSearchTestExpect
 }
 
 func (s *TestSearchUserSearch) hasLinks(linkNames ...string) userSearchTestExpect {
-	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.UserList) {
 		for _, linkName := range linkNames {
 			link := linkName
 			if reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(link).IsNil() {
@@ -184,7 +184,7 @@ func (s *TestSearchUserSearch) hasLinks(linkNames ...string) userSearchTestExpec
 }
 
 func (s *TestSearchUserSearch) hasNoLinks(linkNames ...string) userSearchTestExpect {
-	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.UserList) {
 		for _, linkName := range linkNames {
 			if !reflect.Indirect(reflect.ValueOf(result.Links)).FieldByName(linkName).IsNil() {
 				t.Errorf("%s got link, wanted empty %s", scenario.name, linkName)
@@ -194,7 +194,7 @@ func (s *TestSearchUserSearch) hasNoLinks(linkNames ...string) userSearchTestExp
 }
 
 func (s *TestSearchUserSearch) differentValues() userSearchTestExpect {
-	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.SearchResponseUsers) {
+	return func(t *testing.T, scenario okScenarioUserSearchTest, result *app.UserList) {
 		var prev *app.UserData
 
 		for i := range result.Data {

@@ -105,6 +105,7 @@ var UpdateTrackerQueryAlternatePayload = a.Type("UpdateTrackerQueryAlternatePayl
 	a.Required("query", "schedule", "trackerID")
 })
 
+/*
 // Users represents a user object (TODO: add better description)
 var Users = a.Type("Users", func() {
 	a.Description(`JSONAPI store for the data of a user.  See also http://jsonapi.org/format/#document-resource-object`)
@@ -134,3 +135,4 @@ var UsersAttributes = a.Type("UserAttributes", func() {
 	a.Attribute("company", d.String, "The company")
 	a.Attribute("providerType", d.String, "The IDP provided this identity")
 })
+*/
