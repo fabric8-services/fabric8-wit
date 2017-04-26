@@ -114,6 +114,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration54", testMigration54)
 	t.Run("TestMigration55", testMigration55)
 	t.Run("TestMigration56", testMigration56)
+	t.Run("TestMigration57", testMigration57)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -293,6 +294,14 @@ func testMigration56(t *testing.T) {
 		err = rows.Scan(&rootIteration)
 		assert.NotEmpty(t, rootIteration)
 	}
+}
+
+func testMigration57(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+13)], (initialMigratedVersion + 13))
+
+	assert.True(t, dialect.HasColumn("codebases", "last_used_workspace"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "057-add-last-used-workspace-to-codebase.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
