@@ -251,10 +251,6 @@ func main() {
 	searchCtrl := controller.NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
 
-	// Mount "identity" controller
-	identityCtrl := controller.NewIdentityController(service, appDB)
-	app.MountIdentityController(service, identityCtrl)
-
 	// Mount "users" controller
 	keycloakProfileService := login.NewKeycloakUserProfileClient()
 	usersCtrl := controller.NewUsersController(service, appDB, configuration, keycloakProfileService)
