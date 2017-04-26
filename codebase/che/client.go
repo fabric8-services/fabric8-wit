@@ -98,7 +98,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 }
 
 // CreateWorkspace creates a new Che Workspace based on a repository
-func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceLink, error) {
+func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceResponse, error) {
 	body, err := json.Marshal(&workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -151,7 +151,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		return nil, &workspaceErr
 	}
 
-	workspaceResp := WorkspaceLink{}
+	workspaceResp := WorkspaceResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
