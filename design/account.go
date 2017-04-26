@@ -239,19 +239,3 @@ var identityDataAttributes = a.Type("IdentityDataAttributes", func() {
 	a.Attribute("username", d.String, "The username")
 	a.Attribute("providerType", d.String, "The IDP provided this identity")
 })
-
-// SearchUserArray represents the result of a search for Users
-var SearchUserArray = a.MediaType("application/vnd.searchusers+json", func() {
-	a.TypeName("SearchResponseUsers")
-	a.Description("Holds the paginated response to a search request")
-	a.Attribute("links", pagingLinks)
-	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("data", a.ArrayOf(userData))
-
-	a.View("default", func() {
-		a.Required("data")
-		a.Attribute("links")
-		a.Attribute("data")
-		a.Attribute("meta")
-	})
-})

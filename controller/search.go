@@ -184,7 +184,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 		})
 	}
 
-	response := app.SearchResponseUsers{
+	response := app.UserList{
 		Data:  users,
 		Links: &app.PagingLinks{},
 		Meta:  map[string]interface{}{"total-count": count},

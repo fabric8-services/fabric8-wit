@@ -72,7 +72,7 @@ var _ = a.Resource("search", func() {
 			a.Required("q")
 		})
 		a.Response(d.OK, func() {
-			a.Media(SearchUserArray)
+			a.Media(userList)
 		})
 
 		a.Response(d.BadRequest, func() {
