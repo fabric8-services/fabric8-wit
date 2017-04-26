@@ -27,10 +27,10 @@ var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Attribute("description", d.String, "Description of the iteration ", func() {
 		a.Example("Sprint #42 focusing on UI and build process improvements")
 	})
-	a.Attribute("createdAt", d.DateTime, "When the iteration was created", func() {
+	a.Attribute("created-at", d.DateTime, "When the iteration was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
-	a.Attribute("updatedAt", d.DateTime, "When the iteration was updated", func() {
+	a.Attribute("updated-at", d.DateTime, "When the iteration was updated", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
 	a.Attribute("startAt", d.DateTime, "When the iteration starts", func() {

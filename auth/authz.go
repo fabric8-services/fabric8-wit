@@ -68,9 +68,9 @@ type PolicyConfigData struct {
 // Token represents a Keycloak token response
 type Token struct {
 	AccessToken      *string `json:"access_token,omitempty"`
-	ExpiresIn        *int    `json:"expires_in,omitempty"`
-	NotBeforePolicy  *int    `json:"not-before-policy,omitempty"`
-	RefreshExpiresIn *int    `json:"refresh_expires_in,omitempty"`
+	ExpiresIn        *int64  `json:"expires_in,omitempty"`
+	NotBeforePolicy  *int64  `json:"not-before-policy,omitempty"`
+	RefreshExpiresIn *int64  `json:"refresh_expires_in,omitempty"`
 	RefreshToken     *string `json:"refresh_token,omitempty"`
 	TokenType        *string `json:"token_type,omitempty"`
 }

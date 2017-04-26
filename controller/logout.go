@@ -39,5 +39,7 @@ func (c *LogoutController) Logout(ctx *app.LogoutLogoutContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
+
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return c.logoutService.Logout(ctx, logoutEndpoint, whitelist)
 }
