@@ -4,7 +4,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -74,10 +73,11 @@ func (s *TestSearchUserSearch) TestUsersSearchOK() {
 	defer s.cleanTestData(idents)
 
 	tests := []okScenarioUserSearchTest{
-		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
-		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With lowercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "test_ab"}, userSearchTestExpects{s.totalCount(3)}},
+		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "TEST_AB"}, userSearchTestExpects{s.totalCount(3)}},
 		{"With uppercase email query", userSearchTestArgs{s.offset("0"), limit(10), "EMAIL_TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
 		{"With lowercase email query", userSearchTestArgs{s.offset("0"), limit(10), "email_test_ab"}, userSearchTestExpects{s.totalCount(1)}},
+		{"With username query", userSearchTestArgs{s.offset("0"), limit(10), "test_c"}, userSearchTestExpects{s.totalCount(3)}},
 		{"with special chars", userSearchTestArgs{s.offset("0"), limit(10), "&:\n!#%?*"}, userSearchTestExpects{s.totalCount(0)}},
 		{"with * to list all", userSearchTestArgs{s.offset("0"), limit(10), "*"}, userSearchTestExpects{s.totalCountAtLeast(len(idents))}},
 		{"with multi page", userSearchTestArgs{s.offset("0"), limit(10), "TEST"}, userSearchTestExpects{s.hasLinks("Next")}},
@@ -109,26 +109,30 @@ func (s *TestSearchUserSearch) TestUsersSearchBadRequest() {
 
 func (s *TestSearchUserSearch) createTestData() []account.Identity {
 	names := []string{"TEST_A", "TEST_AB", "TEST_B", "TEST_C"}
+	emails := []string{"email_test_ab@redhat.org", "email_test_a@redhat.org", "email_test_c@redhat.org", "email_test_b@redhat.org"}
+	usernames := []string{"test_b", "test_c", "test_a", "test_ab"}
 	for i := 0; i < 20; i++ {
 		names = append(names, "TEST_"+strconv.Itoa(i))
+		emails = append(emails, "myemail"+strconv.Itoa(i))
+		usernames = append(usernames, "myusernames"+strconv.Itoa(i))
 	}
 
 	idents := []account.Identity{}
 
 	err := application.Transactional(s.db, func(app application.Application) error {
-		for _, name := range names {
+		for i, name := range names {
 
 			user := account.User{
 				FullName: name,
 				ImageURL: "http://example.org/" + name + ".png",
-				Email:    strings.ToLower("email_" + name + "@" + name + ".org"),
+				Email:    emails[i],
 			}
 			err := app.Users().Create(context.Background(), &user)
 			require.Nil(s.T(), err)
 
 			ident := account.Identity{
 				User:         user,
-				Username:     uuid.NewV4().String() + "test" + name,
+				Username:     usernames[i] + uuid.NewV4().String(),
 				ProviderType: "kc",
 			}
 			err = app.Identities().Create(context.Background(), &ident)

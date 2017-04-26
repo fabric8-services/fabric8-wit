@@ -2,7 +2,6 @@ package account
 
 import (
 	"database/sql/driver"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -409,7 +408,6 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 		}
 
 		value.ID, err = uuid.FromString(identityID)
-		fmt.Println(fmt.Sprintf("Identity id : %s , user id %s ", identityID, &value.User.ID))
 		if err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
 		}
