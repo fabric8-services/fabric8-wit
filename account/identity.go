@@ -389,19 +389,11 @@ func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int
 	columnValues[0] = &count
 	// FIXME When our User Profile endpoints start giving "user" response
 	// instead of "identity" response, the identity.ID would be less relevant.
-	//first := true
 
 	for rows.Next() {
 		columnValues[1] = &identityID
 		columnValues[2] = &identityUsername
 		db.ScanRows(rows, &value.User)
-
-		//if first {
-		//	first = false
-		//	if err = rows.Scan(columnValues...); err != nil {
-		//		return nil, 0, errors.NewInternalError(err.Error())
-		//	}
-		//}
 
 		if err = rows.Scan(columnValues...); err != nil {
 			return nil, 0, errors.NewInternalError(err.Error())
