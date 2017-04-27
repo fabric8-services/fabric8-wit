@@ -115,9 +115,16 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		witModels, err := appl.WorkItemTypes().List(ctx.Context, spaceID, start, &limit)
+		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, spaceID, start, &limit)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
+		}
+		// Remove "planneritem" from the list of WITs
+		witModels := []workitem.WorkItemType{}
+		for _, wit := range witModelsOrig {
+			if wit.ID != workitem.SystemPlannerItem {
+				witModels = append(witModels, wit)
+			}
 		}
 		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
 			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
