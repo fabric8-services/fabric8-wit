@@ -103,17 +103,18 @@ func NewCodebaseContentFromValue(value interface{}) (*CodebaseContent, error) {
 // Codebase describes a single codebase
 type Codebase struct {
 	gormsupport.Lifecycle
-	ID      uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
-	SpaceID uuid.UUID `sql:"type:uuid"`
-	Type    string
-	URL     string
-	StackID string
+	ID                uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"` // This is the ID PK field
+	SpaceID           uuid.UUID `sql:"type:uuid"`
+	Type              string
+	URL               string
+	StackID           string
+	LastUsedWorkspace string
 }
 
 // Repository describes interactions with codebases
 type Repository interface {
 	Create(ctx context.Context, u *Codebase) error
-	//Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
+	Save(ctx context.Context, codebase *Codebase) (*Codebase, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]*Codebase, uint64, error)
 	Load(ctx context.Context, id uuid.UUID) (*Codebase, error)
 }

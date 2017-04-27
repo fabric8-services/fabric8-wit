@@ -42,7 +42,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
