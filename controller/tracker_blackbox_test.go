@@ -34,7 +34,7 @@ type TestTrackerREST struct {
 }
 
 func TestRunTrackerREST(t *testing.T) {
-	suite.Run(t, &TestTrackerREST{DBTestSuite: gormtestsupport.NewDBTestSuite("./tracker_config_test.yaml")})
+	suite.Run(t, &TestTrackerREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
 }
 
 func (rest *TestTrackerREST) SetupTest() {

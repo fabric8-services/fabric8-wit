@@ -15,7 +15,6 @@ import (
 
 type trackerConfiguration interface {
 	GetGithubAuthToken() string
-	GetFeatureWorkitemRemote() bool
 }
 
 // TrackerController implements the tracker resource.
@@ -41,9 +40,6 @@ func NewTrackerController(service *goa.Service, db application.DB, scheduler *re
 
 // Create runs the create action.
 func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
-	if !c.configuration.GetFeatureWorkitemRemote() {
-		return ctx.MethodNotAllowed()
-	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Create(ctx.Context, ctx.Payload.URL, ctx.Payload.Type)
 		if err != nil {
@@ -67,9 +63,6 @@ func (c *TrackerController) Create(ctx *app.CreateTrackerContext) error {
 
 // Delete runs the delete action.
 func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
-	if !c.configuration.GetFeatureWorkitemRemote() {
-		return ctx.MethodNotAllowed()
-	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.Trackers().Delete(ctx.Context, ctx.ID)
 		if err != nil {
@@ -92,9 +85,6 @@ func (c *TrackerController) Delete(ctx *app.DeleteTrackerContext) error {
 
 // Show runs the show action.
 func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
-	if !c.configuration.GetFeatureWorkitemRemote() {
-		return ctx.MethodNotAllowed()
-	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		t, err := appl.Trackers().Load(ctx.Context, ctx.ID)
 		if err != nil {
@@ -117,9 +107,6 @@ func (c *TrackerController) Show(ctx *app.ShowTrackerContext) error {
 
 // List runs the list action.
 func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
-	if !c.configuration.GetFeatureWorkitemRemote() {
-		return ctx.MethodNotAllowed()
-	}
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrBadRequest(fmt.Sprintf("could not parse filter: %s", err.Error())))
@@ -143,9 +130,6 @@ func (c *TrackerController) List(ctx *app.ListTrackerContext) error {
 
 // Update runs the update action.
 func (c *TrackerController) Update(ctx *app.UpdateTrackerContext) error {
-	if !c.configuration.GetFeatureWorkitemRemote() {
-		return ctx.MethodNotAllowed()
-	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.Tracker{
