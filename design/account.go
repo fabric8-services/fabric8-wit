@@ -44,22 +44,6 @@ var user = a.MediaType("application/vnd.user+json", func() {
 	})
 })
 
-// identityArray represents an array of identified user objects
-var identityArray = a.MediaType("application/vnd.identity-array+json", func() {
-	a.UseTrait("jsonapi-media-type")
-	a.TypeName("IdentityArray")
-	a.Description("ALM User Identity Array")
-	a.Attributes(func() {
-		a.Attribute("data", a.ArrayOf(identityData))
-		a.Required("data")
-
-	})
-	a.View("default", func() {
-		a.Attribute("data")
-		a.Required("data")
-	})
-})
-
 // userArray represents an array of user objects
 // Deprecated. Use userList instead
 var userArray = a.MediaType("application/vnd.user-array+json", func() {
@@ -103,22 +87,6 @@ var _ = a.Resource("user", func() {
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
-	})
-})
-
-var _ = a.Resource("identity", func() {
-	a.BasePath("/identities")
-
-	a.Action("list", func() {
-		a.Routing(
-			a.GET(""),
-		)
-		a.Description("List all identities.")
-		a.Response(d.OK, func() {
-			a.Media(identityArray)
-		})
-		a.Response(d.BadRequest, JSONAPIErrors)
-		a.Response(d.InternalServerError, JSONAPIErrors)
 	})
 })
 

@@ -24,6 +24,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const (
+	usersEndpoint = "/api/users"
+)
+
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
