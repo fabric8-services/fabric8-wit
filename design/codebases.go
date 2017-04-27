@@ -33,6 +33,9 @@ var codebaseAttributes = a.Type("CodebaseAttributes", func() {
 	a.Attribute("createdAt", d.DateTime, "When the codebase was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
+	a.Attribute("last_used_workspace", d.String, "The last used workspace name of the codebase ", func() {
+		a.Example("java-centos")
+	})
 })
 
 var codebaseLinks = a.Type("CodebaseLinks", func() {
