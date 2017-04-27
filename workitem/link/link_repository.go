@@ -97,12 +97,14 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 	return nil
 }
 
-// CheckParentExist returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckParentExist(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
+// CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) (*bool, error) {
+	var parentExists bool
+
 	// Fetch the link type
 	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
 	if err != nil {
-		return errs.WithStack(err)
+		return &parentExists, errs.WithStack(err)
 	}
 
 	if linkType.Topology == TopologyTree {
@@ -112,14 +114,16 @@ func (r *GormWorkItemLinkRepository) CheckParentExist(ctx context.Context, sourc
 		db := r.db.Where("link_type_id=? AND target_id=?", linkTypeID, targetID).Find(&result)
 		if db.RecordNotFound() {
 			// not treating this as an error
-			return nil
+			parentExists = false
+			return &parentExists, nil
 		}
 		log.Error(ctx, map[string]interface{}{
 			"link_type_id": linkTypeID,
 		}, "unable to create work item link")
-		return errors.NewBadParameterError("link_type_id", linkTypeID)
+		parentExists = true
+		return &parentExists, errors.NewBadParameterError("linkTypeID & targetID", fmt.Sprintf("%s + %s", linkTypeID, targetID)).Expected("single parent")
 	}
-	return nil
+	return &parentExists, nil
 }
 
 // Create creates a new work item link in the repository.
@@ -136,8 +140,9 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	if err := r.CheckParentExist(ctx, sourceID, targetID, linkTypeID); err != nil {
-		return nil, errs.WithStack(err)
+	_, err := r.CheckParentExists(ctx, sourceID, targetID, linkTypeID)
+	if err != nil {
+		return nil, err
 	}
 	db := r.db.Create(link)
 	if db.Error != nil {
