@@ -73,11 +73,11 @@ func (s *TestSearchUserSearch) TestUsersSearchOK() {
 	defer s.cleanTestData(idents)
 
 	tests := []okScenarioUserSearchTest{
-		{"With lowercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "x_test_ab"}, userSearchTestExpects{s.totalCount(3)}},
-		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "X_TEST_AB"}, userSearchTestExpects{s.totalCount(3)}},
-		{"With uppercase email query", userSearchTestArgs{s.offset("0"), limit(10), "EMAIL_X_TEST_AB"}, userSearchTestExpects{s.totalCount(1)}},
-		{"With lowercase email query", userSearchTestArgs{s.offset("0"), limit(10), "email_x_test_ab"}, userSearchTestExpects{s.totalCount(1)}},
-		{"With username query", userSearchTestArgs{s.offset("0"), limit(10), "x_test_c"}, userSearchTestExpects{s.totalCount(3)}},
+		{"With lowercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "x_test_ab"}, userSearchTestExpects{s.totalCountAtLeast(3)}},
+		{"With uppercase fullname query", userSearchTestArgs{s.offset("0"), limit(10), "X_TEST_AB"}, userSearchTestExpects{s.totalCountAtLeast(3)}},
+		{"With uppercase email query", userSearchTestArgs{s.offset("0"), limit(10), "EMAIL_X_TEST_AB"}, userSearchTestExpects{s.totalCountAtLeast(1)}},
+		{"With lowercase email query", userSearchTestArgs{s.offset("0"), limit(10), "email_x_test_ab"}, userSearchTestExpects{s.totalCountAtLeast(1)}},
+		{"With username query", userSearchTestArgs{s.offset("0"), limit(10), "x_test_c"}, userSearchTestExpects{s.totalCountAtLeast(3)}},
 		{"with special chars", userSearchTestArgs{s.offset("0"), limit(10), "&:\n!#%?*"}, userSearchTestExpects{s.totalCount(0)}},
 		{"with multi page", userSearchTestArgs{s.offset("0"), limit(10), "TEST"}, userSearchTestExpects{s.hasLinks("Next")}},
 		{"with last page", userSearchTestArgs{s.offset(strconv.Itoa(len(idents) - 1)), limit(10), "TEST"}, userSearchTestExpects{s.hasNoLinks("Next"), s.hasLinks("Prev")}},
