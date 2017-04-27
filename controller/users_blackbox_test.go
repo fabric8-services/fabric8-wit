@@ -596,14 +596,16 @@ func (s *TestUsersSuite) TestListUsersOK() {
 	// given user1
 	user1 := s.createRandomUser("TestListUsersOK1")
 	identity1 := s.createRandomIdentity(user1, account.KeycloakIDP)
-	s.createRandomIdentity(user1, "github-test")
+	s.createRandomIdentity(user1, account.KeycloakIDP)
 	// given user2
 	user2 := s.createRandomUser("TestListUsersOK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity1.Username, nil, nil)
 	// then
 	assertUser(s.T(), findUser(identity1.ID, result.Data), user1, identity1)
+
+	res, result = test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity2.Username, nil, nil)
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
 	assertMultiUsersResponseHeaders(s.T(), res, user2)
 }
@@ -617,7 +619,7 @@ func (s *TestUsersSuite) TestListUsersWithMissingKeycloakIdentityOK() {
 	user2 := s.createRandomUser("TestListUsersOK2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity2.Username, nil, nil)
 	// then
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
 	assertMultiUsersResponseHeaders(s.T(), res, user2)
@@ -627,15 +629,17 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfModifiedSinceHeader() {
 	// given user1
 	user1 := s.createRandomUser("TestListUsersOKUsingExpiredIfModifiedSinceHeader")
 	identity1 := s.createRandomIdentity(user1, account.KeycloakIDP)
-	s.createRandomIdentity(user1, "github-test")
+	s.createRandomIdentity(user1, account.KeycloakIDP)
 	// given user2
 	user2 := s.createRandomUser("TestListUsersOKUsingExpiredIfModifiedSinceHeader2")
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt.Add(-1 * time.Hour))
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, &ifModifiedSinceHeader, nil)
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity1.Username, &ifModifiedSinceHeader, nil)
 	// then
 	assertUser(s.T(), findUser(identity1.ID, result.Data), user1, identity1)
+
+	res, result = test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity2.Username, &ifModifiedSinceHeader, nil)
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
 	assertMultiUsersResponseHeaders(s.T(), res, user2)
 }

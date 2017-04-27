@@ -391,7 +391,9 @@ func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]acc
 		} else {
 			// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
 			// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
-			filteredUsers, err = appl.Users().List(ctx.Context)
+			resultUsers = []account.User{} //err = appl.Users().List(ctx.Context)
+			resultIdentities = []account.Identity{}
+			return resultUsers, resultIdentities, nil
 		}
 		if err != nil {
 			return nil, nil, errs.Wrap(err, "error fetching users")
