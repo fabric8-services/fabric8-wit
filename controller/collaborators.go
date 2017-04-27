@@ -49,7 +49,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	s := strings.Split(userIDs, ",")
 	count := len(s)
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	if offset > len(s) {
 		offset = len(s)
 	}
@@ -58,7 +58,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	}
 	page := s[offset : offset+limit]
 
-	data := make([]*app.IdentityData, len(s))
+	data := make([]*app.UserData, len(s))
 	for i, id := range page {
 		id = strings.Trim(id, "[]\"")
 		uID, err := uuid.FromString(id)
@@ -84,8 +84,8 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 				}, "unable to find the identity listed in the space policy")
 				return errors.New("Identity listed in the space policy not found")
 			}
-			appIdentity := ConvertUser(ctx.RequestData, identities[0], &identities[0].User)
-			data[i] = appIdentity.Data
+			appUser := ConvertToAppUser(ctx.RequestData, &identities[0].User, &identities[0])
+			data[i] = appUser.Data
 			return nil
 		})
 		if err != nil {
@@ -239,13 +239,13 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 					}, "unable to find the identity")
 					return errors.New("Identity not found")
 				}
-				identity = identities[0]
+				identity = &identities[0]
 				return nil
 			})
 			if err != nil {
 				return goa.ErrNotFound(err.Error())
 			}
-			updated = updated || update(policy, identityID)
+			updated = update(policy, identityID) || updated
 		}
 	}
 	if !updated {
@@ -258,8 +258,27 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 		return goa.ErrInternal(err.Error())
 	}
 
-	// TODO	We will need to update the resource when implementing http cache
-	// _, err = appl.SpaceResources().Save(ctx, resource)
+	// We need to update the resource to triger RPT token refreshing when users try to access this space
+	spaceUUID, err := uuid.FromString(spaceID)
+	if err != nil {
+		return goa.ErrInternal(err.Error())
+	}
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		resource, err := appl.SpaceResources().LoadBySpace(ctx, &spaceUUID)
+		_, err = appl.SpaceResources().Save(ctx, resource)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"resource":   resource,
+				"space_uuid": spaceUUID,
+				"err":        err,
+			}, "unable to update the space resource")
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return goa.ErrInternal(err.Error())
+	}
 
 	return nil
 }

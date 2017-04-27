@@ -82,7 +82,7 @@ func (rest *TestSpaceAreaREST) setupAreas() (area.Area, []uuid.UUID, []area.Area
 	*/
 	var createdAreas []area.Area
 	var createdAreaUuids []uuid.UUID
-	parentArea := createSpaceAndArea(rest.T(), rest.db)
+	_, parentArea := createSpaceAndArea(rest.T(), rest.db)
 	createdAreas = append(createdAreas, parentArea)
 	createdAreaUuids = append(createdAreaUuids, parentArea.ID)
 	parentID := parentArea.ID

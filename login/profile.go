@@ -12,9 +12,9 @@ import (
 	"github.com/almighty/almighty-core/rest"
 )
 
-const ImageURLAttributeName = "ImageURL"
-const BioAttributeName = "Bio"
-const URLAttributeName = "URL"
+const ImageURLAttributeName = "imageURL"
+const BioAttributeName = "bio"
+const URLAttributeName = "url"
 const CompanyAttributeName = "company"
 const ApprovedAttributeName = "approved"
 
@@ -22,7 +22,7 @@ const ApprovedAttributeName = "approved"
 type KeycloakUserProfile struct {
 	ID         *string                        `json:"id,omitempty"`
 	CreatedAt  int64                          `json:"createdTimestamp,omitempty"`
-	Username   *string                        `json:"id,omitempty"`
+	Username   *string                        `json:"username,omitempty"`
 	FirstName  *string                        `json:"firstName,omitempty"`
 	LastName   *string                        `json:"lastName,omitempty"`
 	Email      *string                        `json:"email,omitempty"`

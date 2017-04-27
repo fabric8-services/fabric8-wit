@@ -43,6 +43,7 @@ const (
 	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
 	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
 	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
+	varFeatureWorkitemRemote            = "feature.workitem.remote"
 	varPopulateCommonTypes              = "populate.commontypes"
 	varHTTPAddress                      = "http.address"
 	varDeveloperModeEnabled             = "developer.mode.enabled"
@@ -196,6 +197,9 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// but can only be kept in the client's local cache.
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
+	// Features
+	c.v.SetDefault(varFeatureWorkitemRemote, false)
+
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
@@ -210,6 +214,11 @@ func (c *ConfigurationData) GetPostgresHost() string {
 // GetPostgresPort returns the postgres port as set via default, config file, or environment variable
 func (c *ConfigurationData) GetPostgresPort() int64 {
 	return c.v.GetInt64(varPostgresPort)
+}
+
+// GetFeatureWorkitemRemote returns true if remote Work Item feaute is enabled
+func (c *ConfigurationData) GetFeatureWorkitemRemote() bool {
+	return c.v.GetBool(varFeatureWorkitemRemote)
 }
 
 // GetPostgresUser returns the postgres user as set via default, config file, or environment variable
@@ -344,6 +353,18 @@ func (c *ConfigurationData) GetCacheControlComments() string {
 // when returning comments.
 func (c *ConfigurationData) GetCacheControlFilters() string {
 	return c.v.GetString(varCacheControlFilters)
+}
+
+// GetCacheControlUsers returns the value to set in the "Cache-Control" HTTP response header
+// when returning users.
+func (c *ConfigurationData) GetCacheControlUsers() string {
+	return c.v.GetString(varCacheControlUsers)
+}
+
+// GetCacheControlUser returns the value to set in the "Cache-Control" HTTP response header
+// when data for the current user.
+func (c *ConfigurationData) GetCacheControlUser() string {
+	return c.v.GetString(varCacheControlUser)
 }
 
 // GetTokenPrivateKey returns the private key (as set via config file or environment variable)
@@ -646,13 +667,13 @@ OCCAgsB8g8yTB4qntAYyfofEoDiseKrngQT5DSdxd51A/jw7B8WyBK8=
 	// RSAPublicKey for verifying JWT Tokens
 	// openssl rsa -in alm_rsa -pubout -out alm_rsa.pub
 	defaultTokenPublicKey = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArlscGA2NfO4ZkGzJgZE8
-e/WGHCFANE28DzU1aftOssKi4jCn++umFWPDWxTwLfQdiwc8Bbhn9/8udPMXrZ84
-L8OgVNbDXOle37QE0+GEAX/DnzkvOg2sm7F0IzKck9YNvo3ZUYj7dyW9s2zatCwu
-QyUsHJmbMdwtDOueHBHwXiAiU0kprtUjNsvK4SBvascBdCmLLIWkhj2lu5S6BGrH
-gDDTv2JaguNwlgbHLFWU08D03j2F5Yj4TO8LexRJwCYrKp1icQrvC+WGhRAlttbx
-51MKRiCnqhFJ8LYtCbPt5Xm5+FR2fHFCMyCqQsScu+dwsx+mb4JGAsdVEaUdcmOF
-ZwIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvQ8p+HsTMrgcsuIMoOR1
+LXRhynL9YAU0qoDON6PLKCpdBv0Xy/jnsPjo5DrtUOijuJcID8CR7E0hYpY9MgK5
+H5pDFwC4lbUVENquHEVS/E0pQSKCIzSmORcIhjYW2+wKfDOVjeudZwdFBIxJ6KpI
+ty/aF78hlUJZuvghFVqoHQYTq/DZOmKjS+PAVLw8FKE3wa/3WU0EkpP+iovRMCkl
+lzxqrcLPIvx+T2gkwe0bn0kTvdMOhTLTN2tuvKrFpVUxVi8RM/V8PtgdKroxnES7
+SyUqK8rLO830jKJzAYrByQL+sdGuSqInIY/geahQHEGTwMI0CLj6zfhpjSgCflst
+vwIDAQAB
 -----END PUBLIC KEY-----`
 
 	defaultLogLevel = "info"

@@ -73,7 +73,7 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 
 // List runs the list action.
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	spaceID, err := uuid.FromString(ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))

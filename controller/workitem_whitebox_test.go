@@ -176,7 +176,7 @@ func TestConvertJSONAPIToWorkItemWithLegacyDescription(t *testing.T) {
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -193,7 +193,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup(t *testing.T) {
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -210,7 +210,7 @@ func TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup(t *testing.T) {
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -227,7 +227,7 @@ func TestConvertJSONAPIToWorkItemWithTitle(t *testing.T) {
 	}
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
-	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
 	require.Nil(t, err)
 	require.NotNil(t, target)
 	require.NotNil(t, target.Fields)
@@ -242,7 +242,7 @@ func TestConvertJSONAPIToWorkItemWithMissingTitle(t *testing.T) {
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
-	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
 	// then: no error expected at this level, even though the title is missing
 	require.Nil(t, err)
 }
@@ -256,7 +256,7 @@ func TestConvertJSONAPIToWorkItemWithEmptyTitle(t *testing.T) {
 	source := prepareWI2(attributes)
 	target := &workitem.WorkItem{Fields: map[string]interface{}{}}
 	// when
-	err := ConvertJSONAPIToWorkItem(*appl, source, target)
+	err := ConvertJSONAPIToWorkItem(*appl, source, target, space.SystemSpace)
 	// then: no error expected at this level, even though the title is missing
 	require.Nil(t, err)
 }

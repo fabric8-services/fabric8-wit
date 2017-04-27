@@ -112,6 +112,9 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration52", testMigration52)
 	t.Run("testMigration53", testMigration53)
 	t.Run("TestMigration54", testMigration54)
+	t.Run("TestMigration55", testMigration55)
+	t.Run("TestMigration56", testMigration56)
+	t.Run("TestMigration57", testMigration57)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -251,6 +254,54 @@ func testMigration54(t *testing.T) {
 	assert.True(t, dialect.HasColumn("codebases", "stack_id"))
 
 	assert.Nil(t, runSQLscript(sqlDB, "054-add-stackid-to-codebase.sql"))
+}
+
+func testMigration55(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+10)], (initialMigratedVersion + 10))
+	// fill DB with invalid data (ie, missing root area)
+	assert.Nil(t, runSQLscript(sqlDB, "055-assign-root-area-if-missing.sql"))
+	// then apply the fix
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	// and verify that the root area is available
+	rows, err := sqlDB.Query("select fields->>'system.area' from work_items where id = 12345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rootArea string
+		err = rows.Scan(&rootArea)
+		assert.NotEmpty(t, rootArea)
+	}
+}
+
+func testMigration56(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	// fill DB with invalid data (ie, missing root area)
+	assert.Nil(t, runSQLscript(sqlDB, "056-assign-root-iteration-if-missing.sql"))
+	// then apply the fix
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+12)], (initialMigratedVersion + 12))
+	// and verify that the root area is available
+	rows, err := sqlDB.Query("select fields->>'system.iteration' from work_items where id = 12346")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rootIteration string
+		err = rows.Scan(&rootIteration)
+		assert.NotEmpty(t, rootIteration)
+	}
+}
+
+func testMigration57(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+13)], (initialMigratedVersion + 13))
+
+	assert.True(t, dialect.HasColumn("codebases", "last_used_workspace"))
+
+	assert.Nil(t, runSQLscript(sqlDB, "057-add-last-used-workspace-to-codebase.sql"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

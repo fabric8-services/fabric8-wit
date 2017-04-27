@@ -14,7 +14,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	goajwt "github.com/goadesign/goa/middleware/security/jwt"
 )
@@ -153,14 +153,31 @@ func (c *CodebaseController) Create(ctx *app.CreateCodebaseContext) error {
 			"err":         err,
 		}, "unable to create workspaces")
 		if werr, ok := err.(*che.WorkspaceError); ok {
-			fmt.Println(werr.String())
+			log.Error(ctx, map[string]interface{}{
+				"codebase_id": cb.ID,
+				"stack_id":    stackID,
+				"err":         err,
+			}, "unable to create workspaces: %s", werr.String())
 		}
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		cb.LastUsedWorkspace = workspaceResp.Config.Name
+		_, err = appl.Codebases().Save(ctx, cb)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, err)
+	}
+
+	ideURL := workspaceResp.GetIDEURL()
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.HRef,
+			Open: &ideURL,
 		},
 	}
 	return ctx.OK(resp)
@@ -206,9 +223,19 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 
+	err = application.Transactional(c.db, func(appl application.Application) error {
+		cb.LastUsedWorkspace = ctx.WorkspaceID
+		_, err = appl.Codebases().Save(ctx, cb)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		return nil
+	})
+
+	ideURL := workspaceResp.GetIDEURL()
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.HRef,
+			Open: &ideURL,
 		},
 	}
 	return ctx.OK(resp)
@@ -242,10 +269,11 @@ func ConvertCodebase(request *goa.RequestData, codebase *codebase.Codebase, addi
 		Type: codebaseType,
 		ID:   &codebase.ID,
 		Attributes: &app.CodebaseAttributes{
-			CreatedAt: &codebase.CreatedAt,
-			Type:      &codebase.Type,
-			URL:       &codebase.URL,
-			StackID:   &codebase.StackID,
+			CreatedAt:         &codebase.CreatedAt,
+			Type:              &codebase.Type,
+			URL:               &codebase.URL,
+			StackID:           &codebase.StackID,
+			LastUsedWorkspace: &codebase.LastUsedWorkspace,
 		},
 		Relationships: &app.CodebaseRelations{
 			Space: &app.RelationGeneric{

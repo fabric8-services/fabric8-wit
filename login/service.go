@@ -168,7 +168,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
 
-		err = encodeToken(referrerURL, keycloakToken)
+		err = encodeToken(ctx, referrerURL, keycloakToken)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
@@ -556,16 +556,45 @@ func getProviderURL(req *goa.RequestData, state string, sessionState string, cli
 	return linkingURL.String(), nil
 }
 
-func encodeToken(referrer *url.URL, outhToken *oauth2.Token) error {
-	str := outhToken.Extra("expires_in")
-	expiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+func numberToInt(number interface{}) (int64, error) {
+	switch v := number.(type) {
+	case int32:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	case float32:
+		return int64(v), nil
+	case float64:
+		return int64(v), nil
+	}
+	result, err := strconv.ParseInt(fmt.Sprintf("%v", number), 10, 64)
 	if err != nil {
-		return errs.WithStack(errors.New("cant convert expires_in to integer " + err.Error()))
+		return 0, err
+	}
+	return result, nil
+}
+
+func encodeToken(ctx context.Context, referrer *url.URL, outhToken *oauth2.Token) error {
+	str := outhToken.Extra("expires_in")
+	var expiresIn interface{}
+	var refreshExpiresIn interface{}
+	var err error
+	expiresIn, err = numberToInt(str)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"expires_in": str,
+			"err":        err,
+		}, "unable to parse expires_in claim")
+		return errs.WithStack(errors.New("unable to parse expires_in claim to integer: " + err.Error()))
 	}
 	str = outhToken.Extra("refresh_expires_in")
-	refreshExpiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+	refreshExpiresIn, err = numberToInt(str)
 	if err != nil {
-		return errs.WithStack(errors.New("cant convert refresh_expires_in to integer " + err.Error()))
+		log.Error(ctx, map[string]interface{}{
+			"refresh_expires_in": str,
+			"err":                err,
+		}, "unable to parse expires_in claim")
+		return errs.WithStack(errors.New("unable to parse refresh_expires_in claim to integer: " + err.Error()))
 	}
 	tokenData := &app.TokenData{
 		AccessToken:      &outhToken.AccessToken,
@@ -652,7 +681,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
 	} else {
-		identity = identities[0]
+		identity = &identities[0]
 		user = &identity.User
 		if user.ID == uuid.Nil {
 			log.Error(ctx, map[string]interface{}{

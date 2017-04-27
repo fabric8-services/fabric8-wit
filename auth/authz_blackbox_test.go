@@ -246,7 +246,7 @@ func (s *TestAuthSuite) TestGetEntitlement() {
 
 func (s *TestAuthSuite) TestGetClientIDOK() {
 	id, _ := getClientIDAndEndpoint(s.T())
-	assert.Equal(s.T(), "65d23f35-c532-4493-a860-39e851abe397", id)
+	assert.Equal(s.T(), "239ed057-eec1-425b-a7eb-f4b338c94cdd", id)
 }
 
 func (s *TestAuthSuite) TestGetProtectedAPITokenOK() {
@@ -255,13 +255,13 @@ func (s *TestAuthSuite) TestGetProtectedAPITokenOK() {
 }
 
 func (s *TestAuthSuite) TestReadTokenOK() {
-	b := closer{bytes.NewBufferString("{\"access_token\":\"accToken\", \"expires_in\":1, \"refresh_expires_in\":2, \"refresh_token\":\"refToken\"}")}
+	b := closer{bytes.NewBufferString("{\"access_token\":\"accToken\", \"expires_in\":3000000, \"refresh_expires_in\":2, \"refresh_token\":\"refToken\"}")}
 	response := http.Response{Body: b}
 	token, err := auth.ReadToken(&response)
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), "accToken", *token.AccessToken)
-	assert.Equal(s.T(), 1, *token.ExpiresIn)
-	assert.Equal(s.T(), 2, *token.RefreshExpiresIn)
+	assert.Equal(s.T(), int64(3000000), *token.ExpiresIn)
+	assert.Equal(s.T(), int64(2), *token.RefreshExpiresIn)
 	assert.Equal(s.T(), "refToken", *token.RefreshToken)
 }
 
