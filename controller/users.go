@@ -389,9 +389,8 @@ func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]acc
 		if len(userFilters) != 0 {
 			filteredUsers, err = appl.Users().Query(userFilters...)
 		} else {
-			// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
-			// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
-			resultUsers = []account.User{} //err = appl.Users().List(ctx.Context)
+			// Soft-kill the API for listing all Users /api/users
+			resultUsers = []account.User{}
 			resultIdentities = []account.Identity{}
 			return resultUsers, resultIdentities, nil
 		}

@@ -654,11 +654,13 @@ func (s *TestUsersSuite) TestListUsersOKUsingExpiredIfNoneMatchHeader() {
 	identity2 := s.createRandomIdentity(user2, account.KeycloakIDP)
 	// when
 	ifNoneMatch := "foo"
-	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &ifNoneMatch)
-	s.T().Log(fmt.Sprintf("List of users: %v", result))
+	res, result := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity1.Username, nil, &ifNoneMatch)
 	// then
 	assertUser(s.T(), findUser(identity1.ID, result.Data), user1, identity1)
+
+	res, result = test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, &identity2.Username, nil, &ifNoneMatch)
 	assertUser(s.T(), findUser(identity2.ID, result.Data), user2, identity2)
+
 	assertMultiUsersResponseHeaders(s.T(), res, user2)
 }
 
@@ -673,22 +675,6 @@ func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfModifiedSinceHeader() {
 	// when
 	ifModifiedSinceHeader := app.ToHTTPTime(user2.UpdatedAt)
 	res := test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, &ifModifiedSinceHeader, nil)
-	// then
-	assertResponseHeaders(s.T(), res)
-}
-
-func (s *TestUsersSuite) TestListUsersNotModifiedUsingIfNoneMatchHeader() {
-	// given user1
-	user1 := s.createRandomUser("TestListUsersNotModifiedUsingIfNoneMatchHeader")
-	s.createRandomIdentity(user1, account.KeycloakIDP)
-	s.createRandomIdentity(user1, "github-test")
-	// given user2
-	user2 := s.createRandomUser("TestListUsersNotModifiedUsingIfNoneMatchHeader2")
-	s.createRandomIdentity(user2, account.KeycloakIDP)
-	_, allUsers := test.ListUsersOK(s.T(), nil, nil, s.controller, nil, nil, nil, nil, nil)
-	// when
-	ifNoneMatch := s.generateUsersTag(*allUsers)
-	res := test.ListUsersNotModified(s.T(), nil, nil, s.controller, nil, nil, nil, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
