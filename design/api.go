@@ -21,7 +21,7 @@ var _ = a.API("alm", func() {
 	})
 	a.Origin("/[.*almighty.io|localhost]/", func() {
 		a.Methods("GET", "POST", "PUT", "PATCH", "DELETE")
-		a.Headers("X-Request-Id", "Content-Type", "Authorization")
+		a.Headers("X-Request-Id", "Content-Type", "Authorization", "If-None-Match")
 		a.MaxAge(600)
 		a.Credentials()
 	})
