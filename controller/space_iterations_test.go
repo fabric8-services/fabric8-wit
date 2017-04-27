@@ -264,7 +264,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 	}
 	_, e := spaceRepo.Create(rest.ctx, &spaceInstance)
 	require.Nil(rest.T(), e)
-	fmt.Println("space id = ", spaceInstance.ID)
 	require.NotEqual(rest.T(), uuid.UUID{}, spaceInstance.ID)
 
 	iterationRepo := iteration.NewIterationRepository(rest.DB)
@@ -273,7 +272,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		SpaceID: spaceInstance.ID,
 	}
 	iterationRepo.Create(rest.ctx, &iteration1)
-	fmt.Println("iteration1 id = ", iteration1.ID)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration1.ID)
 
 	iteration2 := iteration.Iteration{
@@ -281,7 +279,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		SpaceID: spaceInstance.ID,
 	}
 	iterationRepo.Create(rest.ctx, &iteration2)
-	fmt.Println("iteration2 id = ", iteration2.ID)
 	assert.NotEqual(rest.T(), uuid.UUID{}, iteration2.ID)
 
 	childOfIteration2 := iteration.Iteration{
@@ -290,7 +287,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		Path:    append(iteration2.Path, iteration2.ID),
 	}
 	iterationRepo.Create(rest.ctx, &childOfIteration2)
-	fmt.Println("iteration2 id = ", childOfIteration2.ID)
 	require.NotEqual(rest.T(), uuid.Nil, childOfIteration2.ID)
 
 	grandChildOfIteration2 := iteration.Iteration{
@@ -299,7 +295,6 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		Path:    append(childOfIteration2.Path, childOfIteration2.ID),
 	}
 	iterationRepo.Create(rest.ctx, &grandChildOfIteration2)
-	fmt.Println("iteration2 id = ", grandChildOfIteration2.ID)
 	require.NotEqual(rest.T(), uuid.UUID{}, grandChildOfIteration2.ID)
 
 	wirepo := workitem.NewWorkItemRepository(rest.DB)

@@ -699,8 +699,8 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	var allItrations []uuid.UUID
-	db.Pluck("id", &allItrations)
+	var allIterations []uuid.UUID
+	db.Pluck("id", &allIterations)
 	iterationTable := iteration.Iteration{}
 	iterationTableName := iterationTable.TableName()
 	iterationWithWICount := fmt.Sprintf(`
@@ -741,7 +741,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	// put 0 count for iterations which are not in wiMap
 	// ToDo: Update count query to include non matching rows with 0 values
 	// Following operation can be skipped once above is done
-	for _, i := range allItrations {
+	for _, i := range allIterations {
 		if _, exists := wiMap[i.String()]; exists == false {
 			wiMap[i.String()] = WICountsPerIteration{
 				IterationID: i.String(),
@@ -823,7 +823,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
 	iterationTableName := iterationTable.TableName()
-	getIterationsOfSpace := fmt.Sprintf(`select id from %s where path <@ '%s'`, iterationTableName, pathOfIteration.Convert())
+	getIterationsOfSpace := fmt.Sprintf(`select id from %s where path <@ '%s' and space_id = %s`, iterationTableName, pathOfIteration.Convert(), itr.SpaceID.String())
 	db := r.db.Raw(getIterationsOfSpace)
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
