@@ -217,7 +217,7 @@ func GetMigrations() Migrations {
 	// Version 35
 	m = append(m, steps{ExecuteSQLFile("035-wit-to-use-uuid.sql",
 		workitem.SystemPlannerItem.String(),
-		workitem.SystemUserStory.String(),
+		workitem.SystemTask.String(),
 		workitem.SystemValueProposition.String(),
 		workitem.SystemFundamental.String(),
 		workitem.SystemExperience.String(),
@@ -611,27 +611,30 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, "User Story", "Desciption for User Story", "fa-map-marker", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
+
+	type witInfo struct {
+		id          uuid.UUID
+		name        string
+		description string
+		icon        string
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, "Value Proposition", "Description for value proposition", "fa-gift", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
+
+	info := []witInfo{
+		{workitem.SystemBug, "Bug", "", "fa fa-bug"},
+		{workitem.SystemTask, "Task", "", "fa fa-tasks"},
+		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece"},
+		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt"},
+		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
+		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
+		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
+		{workitem.SystemPapercut, "Papercut", "", "fa fa-scissors"},
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, "Fundamental", "Description for Fundamental", "fa-bank", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
+	for _, i := range info {
+		if err := createOrUpdatePlannerItemExtension(i.id, i.name, i.description, i.icon, ctx, witr, db, space.SystemSpace); err != nil {
+			return errs.Wrapf(err, "failed to create WIT with %+v", i)
+		}
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, "Experience", "Description for Experience", "fa-map", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, "Scenario", "Description for Scenario", "fa-adjust", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, "Feature", "Description for Feature", "fa-mouse-pointer", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, "Bug", "Description for Bug", "fa-bug", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
+
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
 	return nil
 }
@@ -641,7 +644,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
 	description := "Description for Planner Item"
-	icon := "fa-bookmark"
+	icon := "fa fa-bookmark"
 	workItemTypeFields := map[string]workitem.FieldDefinition{
 		workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
 		workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
