@@ -3,12 +3,12 @@ package account
 import (
 	"database/sql/driver"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
-
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -112,6 +112,7 @@ type IdentityRepository interface {
 	Query(funcs ...func(*gorm.DB) *gorm.DB) ([]Identity, error)
 	List(ctx context.Context) ([]Identity, error)
 	IsValid(context.Context, uuid.UUID) bool
+	Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error)
 }
 
 // TableName overrides the table name settings in Gorm to force a specific table name
@@ -345,4 +346,68 @@ func (m *GormIdentityRepository) IsValid(ctx context.Context, id uuid.UUID) bool
 		return false
 	}
 	return true
+}
+
+// Search searches for Identites where FullName like %q% or users.email like %q% or users.username like %q%
+func (m *GormIdentityRepository) Search(ctx context.Context, q string, start int, limit int) ([]Identity, int, error) {
+
+	db := m.db.Model(&Identity{})
+	db = db.Offset(start)
+	db = db.Limit(limit)
+	// FIXME : returning the identities.id just for the sake of consistency with the other User APIs.
+	db = db.Select("count(*) over () as cnt2 ,identities.id as identity_id,identities.username,users.*")
+	db = db.Joins("LEFT JOIN users ON identities.user_id = users.id")
+	db = db.Where("LOWER(users.full_name) like ?", "%"+strings.ToLower(q)+"%")
+	db = db.Or("users.email like ?", "%"+strings.ToLower(q)+"%")
+	db = db.Or("identities.username like ?", "%"+strings.ToLower(q)+"%")
+	db = db.Group("identities.id,identities.username,users.id")
+	//db = db.Preload("user")
+
+	rows, err := db.Rows()
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	result := []Identity{}
+	value := Identity{}
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, 0, errors.NewInternalError(err.Error())
+	}
+
+	// need to set up a result for Scan() in order to extract total count.
+	var count int
+	var identityID string
+	var identityUsername string
+	var ignore interface{}
+	columnValues := make([]interface{}, len(columns))
+
+	for index := range columnValues {
+		columnValues[index] = &ignore
+	}
+	columnValues[0] = &count
+	// FIXME When our User Profile endpoints start giving "user" response
+	// instead of "identity" response, the identity.ID would be less relevant.
+
+	for rows.Next() {
+		columnValues[1] = &identityID
+		columnValues[2] = &identityUsername
+		db.ScanRows(rows, &value.User)
+
+		if err = rows.Scan(columnValues...); err != nil {
+			return nil, 0, errors.NewInternalError(err.Error())
+		}
+
+		value.ID, err = uuid.FromString(identityID)
+		if err != nil {
+			return nil, 0, errors.NewInternalError(err.Error())
+		}
+
+		value.Username = identityUsername
+
+		result = append(result, value)
+	}
+
+	return result, count, nil
 }
