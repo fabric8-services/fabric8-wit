@@ -174,7 +174,8 @@ func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, space
 	return rows, nil
 }
 
-// List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
+// List returns work item types selected by the given criteria.Expression,
+// starting with start (zero-based) and returning at most "limit" item types.
 func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items
