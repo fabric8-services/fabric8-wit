@@ -37,7 +37,7 @@ type TestTrackerQueryREST struct {
 }
 
 func TestRunTrackerQueryREST(t *testing.T) {
-	suite.Run(t, &TestTrackerQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite("../config.yaml")})
+	suite.Run(t, &TestTrackerQueryREST{DBTestSuite: gormtestsupport.NewDBTestSuite("./tracker_config_test.yaml")})
 }
 
 func (rest *TestTrackerQueryREST) SetupTest() {

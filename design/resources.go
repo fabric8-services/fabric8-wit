@@ -35,6 +35,7 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(Tracker))
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -51,6 +52,7 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.OK, func() {
 			a.Media(Tracker)
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -66,6 +68,7 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.Created, "/trackers/.*", func() {
 			a.Media(Tracker)
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -80,6 +83,7 @@ var _ = a.Resource("tracker", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -96,6 +100,7 @@ var _ = a.Resource("tracker", func() {
 		a.Response(d.OK, func() {
 			a.Media(Tracker)
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -117,6 +122,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.OK, func() {
 			a.Media(TrackerQuery)
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -131,6 +137,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.Created, "/trackerqueries/.*", func() {
 			a.Media(TrackerQuery)
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -146,6 +153,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.OK, func() {
 			a.Media(TrackerQuery)
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
@@ -160,6 +168,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Params(func() {
 			a.Param("id", d.String, "id")
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
@@ -174,6 +183,7 @@ var _ = a.Resource("trackerquery", func() {
 		a.Response(d.OK, func() {
 			a.Media(a.CollectionOf(TrackerQuery))
 		})
+		a.Response(d.MethodNotAllowed)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)

@@ -15,6 +15,7 @@ import (
 
 type trackerQueryConfiguration interface {
 	GetGithubAuthToken() string
+	GetFeatureWorkitemRemote() bool
 }
 
 // TrackerqueryController implements the trackerquery resource.
@@ -40,6 +41,9 @@ func NewTrackerqueryController(service *goa.Service, db application.DB, schedule
 
 // Create runs the create action.
 func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) error {
+	if !c.configuration.GetFeatureWorkitemRemote() {
+		return ctx.MethodNotAllowed()
+	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Create(ctx.Context, ctx.Payload.Query, ctx.Payload.Schedule, ctx.Payload.TrackerID, *ctx.Payload.Relationships.Space.Data.ID)
 		if err != nil {
@@ -63,6 +67,9 @@ func (c *TrackerqueryController) Create(ctx *app.CreateTrackerqueryContext) erro
 
 // Show runs the show action.
 func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
+	if !c.configuration.GetFeatureWorkitemRemote() {
+		return ctx.MethodNotAllowed()
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		tq, err := appl.TrackerQueries().Load(ctx.Context, ctx.ID)
 		if err != nil {
@@ -84,6 +91,9 @@ func (c *TrackerqueryController) Show(ctx *app.ShowTrackerqueryContext) error {
 
 // Update runs the update action.
 func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) error {
+	if !c.configuration.GetFeatureWorkitemRemote() {
+		return ctx.MethodNotAllowed()
+	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
 
 		toSave := app.TrackerQuery{
@@ -115,6 +125,9 @@ func (c *TrackerqueryController) Update(ctx *app.UpdateTrackerqueryContext) erro
 
 // Delete runs the delete action.
 func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) error {
+	if !c.configuration.GetFeatureWorkitemRemote() {
+		return ctx.MethodNotAllowed()
+	}
 	result := application.Transactional(c.db, func(appl application.Application) error {
 		err := appl.TrackerQueries().Delete(ctx.Context, ctx.ID)
 		if err != nil {
@@ -137,6 +150,9 @@ func (c *TrackerqueryController) Delete(ctx *app.DeleteTrackerqueryContext) erro
 
 // List runs the list action.
 func (c *TrackerqueryController) List(ctx *app.ListTrackerqueryContext) error {
+	if !c.configuration.GetFeatureWorkitemRemote() {
+		return ctx.MethodNotAllowed()
+	}
 	return application.Transactional(c.db, func(appl application.Application) error {
 		result, err := appl.TrackerQueries().List(ctx.Context)
 		if err != nil {
