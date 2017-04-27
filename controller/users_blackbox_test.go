@@ -140,7 +140,13 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 		"last_visited": "yesterday",
 	}
 
+	// you can update username multiple times.
+	// also omit registrationCompleted
 	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+	boolTrue := true
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, &boolTrue, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// next attempt should fail.
