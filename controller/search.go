@@ -144,7 +144,7 @@ func (c *SearchController) Users(ctx *app.UsersSearchContext) error {
 	var count int
 	var err error
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	err = application.Transactional(c.db, func(appl application.Application) error {
 		result, count, err = appl.Identities().Search(ctx, q, offset, limit)
