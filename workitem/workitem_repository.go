@@ -705,11 +705,11 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	iterationTableName := iterationTable.TableName()
 	iterationWithWICount := fmt.Sprintf(`
 	SELECT count(*) AS Total,
-       count(CASE fields->>'system.state'
-                 WHEN 'closed' THEN '1'
-                 ELSE NULL
-             END) AS Closed,
-       fields->>'system.iteration' AS iterationID
+		count(CASE fields->>'system.state'
+					WHEN 'closed' THEN '1'
+					ELSE NULL
+				END) AS Closed,
+		fields->>'system.iteration' AS iterationID
 	FROM %s wi
 	WHERE fields->>'system.iteration' IN
 		(SELECT id::text
@@ -771,7 +771,7 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	WHERE path <@ PathResolver.pathself
 	AND space_id = '%s'
 	GROUP BY (PathResolver.pathself,
-          PathResolver.id)`,
+		PathResolver.id)`,
 		iterationTableName,
 		iterationTableName,
 		spaceID.String())
@@ -823,7 +823,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
 	iterationTableName := iterationTable.TableName()
-	getIterationsOfSpace := fmt.Sprintf(`select id from %s where path <@ '%s' and space_id = %s`, iterationTableName, pathOfIteration.Convert(), itr.SpaceID.String())
+	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ '%s' AND space_id = %s`, iterationTableName, pathOfIteration.Convert(), itr.SpaceID.String())
 	db := r.db.Raw(getIterationsOfSpace)
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
@@ -841,11 +841,14 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 		idsToLookFor = append(idsToLookFor, fmt.Sprintf("'%s'", x.String()))
 	}
 	whereClause := strings.Join(idsToLookFor, ",")
-	query := fmt.Sprintf(`SELECT count(*) as Total,
-						count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed
-						FROM %s wi
-						where fields->>'system.iteration' IN (%s)
-						and wi.deleted_at is null`,
+	query := fmt.Sprintf(`SELECT count(*) AS Total,
+						count(CASE fields->>'system.state'
+									WHEN 'closed' THEN '1'
+									ELSE NULL
+								END) AS Closed
+					FROM %s wi
+					WHERE fields->>'system.iteration' IN (%s)
+					AND wi.deleted_at IS NULL`,
 		workitemTableName, whereClause)
 	db = r.db.Raw(query)
 	db.Scan(&res)
