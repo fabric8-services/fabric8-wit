@@ -72,6 +72,7 @@ func (s *TestCodebaseREST) TestSuccessShowCodebaseWithoutAuth() {
 	assert.Equal(t, cb.ID, *cbresp.Data.ID)
 	assert.Equal(t, cb.Type, *cbresp.Data.Attributes.Type)
 	assert.Equal(t, cb.URL, *cbresp.Data.Attributes.URL)
+	assert.Equal(t, cb.LastUsedWorkspace, *cbresp.Data.Attributes.LastUsedWorkspace)
 
 }
 
@@ -87,10 +88,11 @@ func requireSpaceAndCodebase(t *testing.T, db *gormapplication.GormDB) *codebase
 			t.Error(err)
 		}
 		c = &codebase.Codebase{
-			SpaceID: p.ID,
-			Type:    "git",
-			URL:     "https://github.com/almighty/almighty-core.git",
-			StackID: "golang-default",
+			SpaceID:           p.ID,
+			Type:              "git",
+			URL:               "https://github.com/almighty/almighty-core.git",
+			StackID:           "golang-default",
+			LastUsedWorkspace: "my-last-used-workspace",
 		}
 		err = appl.Codebases().Create(context.Background(), c)
 		if err != nil {
