@@ -627,7 +627,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
 		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
 		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
-		{workitem.SystemPapercut, "Papercut", "", "fa fa-scissors"},
+		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
 	}
 	for _, i := range info {
 		if err := createOrUpdatePlannerItemExtension(i.id, i.name, i.description, i.icon, ctx, witr, db, space.SystemSpace); err != nil {

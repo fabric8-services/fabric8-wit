@@ -50,7 +50,7 @@ var (
 	SystemFeature          = uuid.FromStringOrNil("0a24d3c2-e0a6-4686-8051-ec0ea1915a28") // "feature"
 	SystemScenario         = uuid.FromStringOrNil("71171e90-6d35-498f-a6a7-2083b5267c18") // "scenario"
 	SystemBug              = uuid.FromStringOrNil("26787039-b68f-4e28-8814-c2f93be1ef4e") // "bug"
-	SystemPapercut         = uuid.FromStringOrNil("6d603ab4-7c5e-4c5f-bba8-a3ba9d370985") // "papercut"
+	SystemPapercuts        = uuid.FromStringOrNil("6d603ab4-7c5e-4c5f-bba8-a3ba9d370985") // "papercuts"
 )
 
 // WorkItemType represents a work item type as it is stored in the db
