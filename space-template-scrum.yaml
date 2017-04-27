@@ -1,0 +1,519 @@
+---
+# This document defines the Scrum space template. The document heavily uses
+# composition in order avoid repetitively entering the same things. For example,
+# fields that are shared by multiple work item types are outsourced into a
+# separate map and then merged into each work item type definition.
+#
+# We use the null value "~" (http://yaml.org/type/null.html) in some places like
+# this:
+#
+#    ~: &RemainingWork !!map
+#      remaining_work: !!map
+#        label: "Remaining work"
+#        description: "TBD"
+#        type: *KindFloat
+#        required: !!bool no
+#
+# This is done on purpose in order to indicate that the field is being reused by
+# referring to its anchor "RemainingWork" later in the document. By itself,
+# this field doesn't have any meaning.
+#
+# If we use top-level non-null keys chances are, that those are used required
+# entries for a space template.
+
+# These define the potential field types that can be used in the fields of work
+# item types. We've included them here so you can easier reference each field
+# type by using one of the &KindXY handles.
+~:
+  - &KindString "string"
+  - &KindInteger "integer"
+  - &KindFloat "float"
+  - &KindInstant "instant"
+  - &KindDuration "duration"
+  - &KindURL "url"
+  - &KindIteration "iteration"
+  - &KindWorkItemReference "workitem"
+  - &KindUser "user"
+  - &KindEnum "enum"
+  - &KindList "list"
+  - &KindMarkup "markup"
+  - &KindArea "area"
+  - &KindCodebase "codebase"
+  # TODO(kwk): This doesn't exist in core yet.
+  - &KindBool "boolean"
+
+~: &ChangedBy !!map
+  changed_by: !!map
+    label: "Changed by"
+    description: "..."
+    type: *KindUser
+    required: !!bool yes
+  changed_at: !!map
+    label: "Changed at"
+    description: "..."
+    type: *KindInstant
+    required: !!bool yes
+
+~: &ClosedBy !!map
+  closed_by: !!map
+    label: "Closed by"
+    description: "..."
+    type: *KindUser
+    required: !!bool no
+  closed_at: !!map
+    label: "Closed at"
+    description: "..."
+    type: *KindInstant
+    required: !!bool no
+
+~: &CreatedBy !!map
+  created_by: !!map
+    label: "Created by"
+    description: "..."
+    type: *KindUser
+    required: !!bool yes
+  created_at: !!map
+    label: "Created at"
+    description: "..."
+    type: *KindInstant
+    required: !!bool yes
+
+~: &ActivatedBy !!map
+  activated_by: !!map
+    label: "Activated by"
+    description: "..."
+    type: *KindUser
+    required: !!bool yes
+  activated_at: !!map
+    label: "Activated at"
+    description: "..."
+    type: *KindInstant
+    required: !!bool yes
+
+# TODO(kwk): Do we need to store the old and new value somehow?
+~: &StateChanged !!map
+  state_changed_by: !!map
+    label: "State changed by"
+    description: "..."
+    type: *KindUser
+    required: !!bool no
+  state_changed_at: !!map
+    label: "State changed at"
+    description: "..."
+    type: *KindInstant
+    required: !!bool no
+
+# A map of common fields in a work item type. Also note, that some fields are
+# implicitly defined for each work item such as an "id".
+#
+# TODO(kwk): We need to decide if we want to just map fields like "created_at"
+# and "updated_at" to the existing fields or if we just don't want to list them
+# in the space template at all. I prefer mapping them and have them listed here
+# for the sake of completeness.
+~: &CommonWorkItemTypeFields !!map 
+  # Merge in other fields defined outside
+  << : [ *ChangedBy, *CreatedBy, *ClosedBy, *StateChanged ]
+  title: !!map
+    label: "Title"
+    description: "A small text title that is displayed in lists and alike"
+    type: *KindString
+    required: !!bool yes
+  description: !!map
+    label: "Description"
+    description: "A longer text that is only displayed in places with more space"
+    type: *KindMarkup
+    required: !!bool no
+  assigned_to: !!map
+    label: "Assigned to"
+    description: "The timestamp of when the work item was created"
+    type: *KindUser
+    required: !!bool no
+  area_path: !!map
+    label: "Area path"
+    description: "TBD"
+    type: *KindString
+    required: !!bool no
+  iteration_path: !!map
+    label: "Iteration path"
+    description: "TBD"
+    type: *KindString
+    required: !!bool no
+  # Each work item type will probably have its own state which overwrites this
+  # default definition.
+  state: !!map
+    label: "State"
+    description: "A work item can have different states (e.g. new, open, or closed)."
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - new: !!map
+          label: "New"
+          description: "foobar"
+          icon: "fa fa-asterisk"
+      - closed: !!map
+          label: "Closed"
+          description: "foobar"
+          icon: "fa fa-check"
+  reason: !!map
+    label: "Reason"
+    description: "TBD"
+    type: *KindString
+    required: !!bool yes
+  stack_rank: !!map
+    label: "Stack rank"
+    description: "TBD"
+    type: *KindFloat
+    required: !!bool yes
+
+# Some fields are used by some but not all work item types, hence they are
+# outsourced individually.
+
+~: &RemainingWork !!map
+  remaining_work: !!map
+    label: "Remaining work"
+    description: "TBD"
+    type: *KindFloat
+    required: !!bool no
+
+~: &Effort !!map
+  effort: !!map
+    label: "Effort"
+    description: "TBD"
+    type: *KindFloat
+    required: !!bool no
+
+~: &Priority !!map
+  priority: !!map
+    label: "Priority"
+    description: "TBD"
+    type: *KindList
+    required: !!bool no
+    # TODO: the element type normally is only used for single value list/enum elements (here we have a map)
+    element_type: *KindInteger
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - 1: !!map
+          label: "Must fix"
+          description: "TBD"
+          icon: "pficon pficon-warning-triangle-o"
+      - 2: !!map
+          label: "Nice to have"
+          description: "TBD"
+          icon: "fa fa-star"
+      - 3: !!map
+          label: "Not very important"
+          description: "TBD"
+          icon: "pficon pficon-history"
+      - 4: !!map
+          label: "Unimportant"
+          description: "TBD"
+          icon: "fa fa-bomb"
+
+~: &AcceptanceCriteria !!map
+  acceptance_criteria: !!map
+    label: "Acceptance criteria"
+    description: "TBD"
+    type: *KindMarkup
+    required: !!bool no
+
+~: &TargetDate !!map
+  target_date: !!map
+    label: "Target date"
+    description: "TBD"
+    type: *KindInstant
+    required: !!bool no
+
+~: &BusinessValue !!map
+  business_value: !!map
+    label: "Business value"
+    description: "TBD"
+    type: *KindInteger
+    required: !!bool no
+
+~: &TimeCriticality !!map
+  time_criticality: !!map
+    label: "Time criticality"
+    description: >
+      Time Criticality captures how the business value decreases over
+      time for a Feature or Epic. Higher values indicate that the item
+      is inherently more time critical than those items with lower values.
+    type: *KindFloat
+    required: !!bool no
+
+# Define the layout of a the "Bug" work item type
+~: &BugFields !!map
+  # Merge in the fields shared by all or some work item type definition in this
+  # space template.
+  << : [ *CommonWorkItemTypeFields, *RemainingWork, *Priority, *Effort, *AcceptanceCriteria ]
+  state: !!map
+    label: "State"
+    description: "A bug can have different states."
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - new: !!map
+          label: "New"
+          description: "TBD"
+          icon: "fa fa-asterisk"
+      - approved: !!map
+          label: "Approved"
+          description: "TBD"
+          icon: "fa fa-question"
+      - committed: !!map
+          label: "Committed"
+          description: "TBD"
+          icon: "fa fa-question"
+      - done: !!map
+          label: "Done"
+          description: "TBD"
+          icon: "pficon pficon-resources-full"
+      - removed: !!map
+          label: "Removed"
+          description: "TBD"
+          icon: "fa fa-question"
+  system_info: !!map
+    label: "System info"
+    description: "TBD"
+    type: *KindMarkup
+    required: !!bool no
+  repro_steps: !!map
+    label: "Steps to reproduce"
+    description: "TBD"
+    type: *KindMarkup
+    required: !!bool no
+  severity: !!map
+    label: "Severity"
+    description: "TBD"
+    type: *KindList
+    required: !!bool no
+    # TODO: the element type normally is only used for single value list/enum elements (here we have a map)
+    element_type: *KindInteger
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - 1: !!map
+          label: "Critical"
+          description: "TBD"
+          icon: "pficon pficon-warning-triangle-o"
+      - 2: !!map
+          label: "High"
+          description: "TBD"
+          icon: "fa fa-star"
+      - 3: !!map
+          label: "Medium"
+          description: "TBD"
+          icon: "pficon pficon-history"
+      - 4: !!map
+          label: "Low"
+          description: "TBD"
+          icon: "fa fa-bomb"
+  found_in: !!map
+    label: "Found in"
+    description: "Good place for both users and automated tools to indicate where they found the bug (e.g. perhaps a build #)"
+    type: *KindString
+    required: !!bool no
+
+# Define the layout of the "Task" work item type
+~: &TaskFields !!map
+  # Merge in the fields shared by all or some work item type definition in this
+  # space template.
+  << : [ *CommonWorkItemTypeFields, *Priority, *RemainingWork ]
+  state: !!map
+    label: "State"
+    description: "TBD"
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - to_do: !!map
+          label: "To Do"
+          description: "TBD"
+          icon: "pficon pficon-resources-almost-empty"
+      - in_progress: !!map
+          label: "In Progress"
+          description: "TBD"
+          icon: "pficon pficon-resource-almost-full"
+      - done: !!map
+          label: "Done"
+          description: "TBD"
+          icon: "pficon pficon-resource-full"
+      - removed: !!map
+          label: "Removed"
+          description: "TBD"
+          icon: "fa fa-question"
+  blocked: !!map
+    label: "Acceptance criteria"
+    description: "TBD"
+    type: *KindBool
+    required: !!bool no
+
+# Define the layout of the "Epic" work item type
+~: &EpicFields !!map
+  # Merge in the fields shared by all or some work item type definition in this
+  # space template.
+  << : [ *CommonWorkItemTypeFields, *ActivatedBy, *Effort, *Priority, *AcceptanceCriteria, *TargetDate, *BusinessValue, *TimeCriticality ]
+  state: !!map
+    label: "State"
+    description: "TBD"
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - new: !!map
+          label: "New"
+          description: "TBD"
+          icon: "fa fa-asterisk"
+      - in_progress: !!map
+          label: "In Progress"
+          description: "TBD"
+          icon: "pficon pficon-resources-almost-full"
+      - done: !!map
+          label: "Done"
+          description: "TBD"
+          icon: "pficon pficon-resources-full"
+      - removed: !!map
+          label: "Removed"
+          description: "TBD"
+          icon: "fa fa-boquestionmb"
+
+# Define the layout of the "Feature" work item type
+~: &FeatureFields !!map
+  # Merge in the fields shared by all or some work item type definition in this
+  # space template.
+  << : [ *CommonWorkItemTypeFields, *ActivatedBy, *Priority, *TargetDate, *BusinessValue, *TimeCriticality, *Effort, *AcceptanceCriteria ]
+  state: !!map
+    label: "State"
+    description: "TBD"
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - new: !!map
+          label: "New"
+          description: "TBD"
+          icon: "fa fa-asterisk"
+      - in_progress: !!map
+          label: "In Progress"
+          description: "TBD"
+          icon: "pficon pficon-resources-almost-full"
+      - done: !!map
+          label: "Done"
+          description: "TBD"
+          icon: "pficon pficon-resources-full"
+      - removed: !!map
+          label: "Removed"
+          description: "TBD"
+          icon: "fa fa-question"
+
+# Define the layout of the "Impediment" work item type
+~: &ImpedimentFields !!map
+  # Merge in the fields shared by all or some work item type definition in this
+  # space template.
+  << : [ *CommonWorkItemTypeFields, *Priority ]
+  state: !!map
+    label: "State"
+    description: "TBD"
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - open: !!map
+          label: "Open"
+          description: "TBD"
+          icon: "fa fa-question"
+      - closed: !!map
+          label: "Closed"
+          description: "TBD"
+          icon: "fa fa-check"
+      - removed: !!map
+          label: "Removed"
+          description: "TBD"
+          icon: "fa fa-question"
+  resolution: !!map
+    label: "Resolution"
+    description: "TBD"
+    type: *KindMarkup
+    required: !!bool no
+
+# Define the layout of the "Product Backlog Item" work item type
+~: &ProductBacklogItemFields !!map
+  # Merge in the fields shared by all or some work item type definition in this
+  # space template.
+  << : [ *CommonWorkItemTypeFields, *BusinessValue, *Effort, *AcceptanceCriteria, *Priority ]
+  state: !!map
+    label: "State"
+    description: "TBD"
+    type: *KindList
+    # Introduce a state element maybe?
+    element_type: *KindString
+    required: !!bool yes
+    # First state in this ordered map is implicitly the default state
+    values: !!omap
+      - new: !!map
+          label: "New"
+          description: "TBD"
+          icon: "fa fa-asterisk"
+      - approved: !!map
+          label: "Approved"
+          description: "TBD"
+          icon: "fa fa-bomb"
+      - committed: !!map
+          label: "Committed"
+          description: "TBD"
+          icon: "fa fa-bomb"
+      - done: !!map
+          label: "Done"
+          description: "TBD"
+          icon: "pficon pficon-resources-full"
+      - removed: !!map
+          label: "Removed"
+          description: "TBD"
+          icon: "fa fa-bomb"
+
+# This map defines all the work item types that exist in a space. We re-use some
+# of the above states and lists in order share code between work item types.
+work_item_types: !!seq
+  - !!map
+    title: "Bug"
+    description: "TBD"
+    icon: "fa fa-bug"
+    fields:
+      << : *BugFields
+  - !!map
+    title: "Task"
+    description: "TBD"
+    icon: "fa fa-question"
+    fields:
+      << : *TaskFields
+  - !!map
+    title: "Epic"
+    description: "TBD"
+    icon: "fa fa-bolt"
+    fields:
+      << : *EpicFields
+  - !!map
+    title: "Impediment"
+    description: "TBD"
+    icon: "fa fa-question"
+    fields:
+      << : *ImpedimentFields
+  - !!map
+    title: "Product Backlog Item"
+    description: "TBD"
+    icon: "fa fa-bookmark"
+    fields:
+      << : *ProductBacklogItemFields
+...

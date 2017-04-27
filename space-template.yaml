@@ -1,0 +1,112 @@
+---
+# These define the potential field types that ca be used in the fields of work
+# item types.
+field_types:
+  - &string string
+  - &translatable_string translatable_string
+  - &list list
+  - &timestamp timestamp
+  - &user user
+
+# A map of common strings that can be used to denote states of a work item
+common_work_item_states: &common_work_item_states
+  &state_new new: "new"
+  &state_open open: "open"
+  &state_closed closed: "closed"
+  &state_resolved resolved: "resolved"
+  
+# A map of common fields in a work item type
+work_item_fields_bag:
+  title: &field_title
+    label: "title"
+    description: "A small text title that is displayed in lists and alike"
+    type: *string
+    required: true
+  description: &field_description
+    label: "Description"
+    description: "A longer text that is only displayed in places with more space"
+    type: *string
+    required: false
+  created_at: &field_created_at
+    label: "Created at"
+    description: "The timestamp of when the work item was created"
+    type: *timestamp
+    required: false
+  updated_at: &field_updated_at
+    label: "Updated at"
+    description: "The timestamp of when the work item was last updated"
+    type: *timestamp
+    required: false
+  state: &field_state
+    label: "State"
+    description: "A work item can have different states (e.g. new, open, or closed)."
+    type: *list
+    element_type: *translatable_string
+    default_value: *state_new
+    values: *common_work_item_states
+    required: false
+
+# If no other fields are required for your work item you can use this handy default
+common_work_item_fields: &common_work_item_fields
+  system_title: *field_title
+  system_description: *field_description
+  system_created_at: *field_created_at
+  system_updated_at: *field_updated_at
+  system_state: *field_state
+
+# This map defines all the work item types that exist in a space. We re-use some
+# of the above states and lists in order share code between work item types.
+work_item_types:
+  &wit_bug bug:
+    title: "Bug"
+    description: >
+      A software bug is an error, flaw, failure or fault in a computer program
+    fields: *common_work_item_fields
+  &wit_feature feature:
+    title: "Feature"
+    description: "TBD"
+    fields: *common_work_item_fields
+  &wit_epic epic:
+    title: "Epic"
+    description: "TBD"
+    fields: *common_work_item_fields
+  &wit_user_story user_story:
+    title: "User story"
+    description: >
+      A way to describe a scenario such that it has clear acceptance 
+      criteria and that unambiguously describes a user interaction , or the
+      interaction between two parts of a system. Team members tak a user story
+      and decompose it into tasks that satisfy the user story. Usually some
+      point value is assigned to a story that serves a way to measure the
+      rate of completing user stories.
+    fields: *common_work_item_fields
+  &wit_task task:
+    title: "Task"
+    description: "TBD"
+    fields: *common_work_item_fields
+  &wit_scenario scenario:
+    title: "Scenario"
+    description: >
+      A specific defined interaction/sequence of interactions with a
+      system to achieve a given goal
+    fields: *common_work_item_fields
+  &wit_experience experience:
+    title: "Experience"
+    description: "TBD"
+    fields: *common_work_item_fields
+
+work_item_categories:
+    requirements: [*wit_task, *wit_bug]
+    board: [*wit_user_story, *wit_task, *wit_bug]
+    root_level: [*wit_scenario, *wit_experience]
+    backlog: [ *wit_user_story, *wit_task, *wit_bug]
+
+link_types:
+    hierarchy:
+        - source: *wit_epic
+          target: *wit_user_story
+        - source: *wit_user_story
+          target: *wit_bug
+        - source: *wit_user_story
+          target: *wit_task
+...
