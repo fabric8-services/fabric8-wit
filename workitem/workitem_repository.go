@@ -823,7 +823,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
 	iterationTableName := iterationTable.TableName()
-	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ '%s' AND space_id = %s`, iterationTableName, pathOfIteration.Convert(), itr.SpaceID.String())
+	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ '%s' and space_id = '%s'`, iterationTableName, pathOfIteration.Convert(), itr.SpaceID.String())
 	db := r.db.Raw(getIterationsOfSpace)
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
