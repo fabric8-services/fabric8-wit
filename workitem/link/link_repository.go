@@ -117,11 +117,8 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sour
 			parentExists = false
 			return &parentExists, nil
 		}
-		log.Error(ctx, map[string]interface{}{
-			"link_type_id": linkTypeID,
-		}, "unable to create work item link")
 		parentExists = true
-		return &parentExists, errors.NewBadParameterError("linkTypeID & targetID", fmt.Sprintf("%s + %s", linkTypeID, targetID)).Expected("single parent")
+		return &parentExists, nil
 	}
 	return &parentExists, nil
 }
@@ -140,9 +137,17 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	_, err := r.CheckParentExists(ctx, sourceID, targetID, linkTypeID)
+	parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkTypeID)
 	if err != nil {
 		return nil, err
+	} else {
+		if *parentExists == true {
+			log.Error(ctx, map[string]interface{}{
+				"link_type_id": linkTypeID,
+			}, "unable to create work item link")
+			return nil, errors.NewBadParameterError("linkTypeID & targetID", fmt.Sprintf("%s + %s", linkTypeID, targetID)).Expected("single parent")
+
+		}
 	}
 	db := r.db.Create(link)
 	if db.Error != nil {
