@@ -98,13 +98,11 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 }
 
 // CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) (*bool, error) {
-	var parentExists bool
-
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) (bool, error) {
 	// Fetch the link type
 	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
 	if err != nil {
-		return &parentExists, errs.WithStack(err)
+		return false, errs.WithStack(err)
 	}
 
 	if linkType.Topology == TopologyTree {
@@ -114,13 +112,11 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sour
 		db := r.db.Where("link_type_id=? AND target_id=?", linkTypeID, targetID).Find(&result)
 		if db.RecordNotFound() {
 			// not treating this as an error
-			parentExists = false
-			return &parentExists, nil
+			return false, nil
 		}
-		parentExists = true
-		return &parentExists, nil
+		return true, nil
 	}
-	return &parentExists, nil
+	return false, nil
 }
 
 // Create creates a new work item link in the repository.
@@ -140,14 +136,13 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkTypeID)
 	if err != nil {
 		return nil, err
-	} else {
-		if *parentExists == true {
-			log.Error(ctx, map[string]interface{}{
-				"link_type_id": linkTypeID,
-			}, "unable to create work item link")
-			return nil, errors.NewBadParameterError("linkTypeID & targetID", fmt.Sprintf("%s + %s", linkTypeID, targetID)).Expected("single parent")
+	}
+	if parentExists == true {
+		log.Error(ctx, map[string]interface{}{
+			"link_type_id": linkTypeID,
+		}, "unable to create work item link")
+		return nil, errors.NewBadParameterError("linkTypeID & targetID", fmt.Sprintf("%s + %s", linkTypeID, targetID)).Expected("single parent")
 
-		}
 	}
 	db := r.db.Create(link)
 	if db.Error != nil {
