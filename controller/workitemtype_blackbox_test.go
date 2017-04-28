@@ -393,7 +393,7 @@ func (s *workItemTypeSuite) TestListWorkItemType200OK() {
 	assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
 	// make sure the planneritem work item type is not included
 	for _, wit := range witCollection.Data {
-		require.NotEqual(s.T(), workitem.SystemPlannerItem, *wit.ID, "planner item must not be returned")
+		require.False(s.T(), uuid.Equal(workitem.SystemPlannerItem, *wit.ID), "planner item must not be returned")
 	}
 }
 

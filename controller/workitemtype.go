@@ -148,7 +148,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 func stripBaseWorkItemTypes(wits []workitem.WorkItemType) []workitem.WorkItemType {
 	res := []workitem.WorkItemType{}
 	for _, wit := range wits {
-		if wit.ID != workitem.SystemPlannerItem {
+		if !uuid.Equal(wit.ID, workitem.SystemPlannerItem) {
 			res = append(res, wit)
 		}
 	}
