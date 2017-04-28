@@ -169,3 +169,18 @@ func TestConvertFieldTypeToModel(t *testing.T) {
 	_, err := convertFieldTypeToModel(app.FieldType{Kind: "DefinitivelyNotAType"})
 	assert.NotNil(t, err)
 }
+
+func TestStripBaseWorkItemTypes(t *testing.T) {
+	// given
+	wits := []workitem.WorkItemType{
+		{ID: workitem.SystemBug},
+		{ID: workitem.SystemPlannerItem},
+		{ID: workitem.SystemFeature},
+	}
+	// when
+	stripped := stripBaseWorkItemTypes(wits)
+	// then
+	require.Len(t, stripped, 2)
+	require.Equal(t, workitem.WorkItemType{ID: workitem.SystemBug}, stripped[0])
+	require.Equal(t, workitem.WorkItemType{ID: workitem.SystemFeature}, stripped[1])
+}

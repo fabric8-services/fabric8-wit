@@ -120,12 +120,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
 		// Remove "planneritem" from the list of WITs
-		witModels := []workitem.WorkItemType{}
-		for _, wit := range witModelsOrig {
-			if wit.ID != workitem.SystemPlannerItem {
-				witModels = append(witModels, wit)
-			}
-		}
+		witModels := stripBaseWorkItemTypes(witModelsOrig)
 		return ctx.ConditionalEntities(witModels, c.config.GetCacheControlWorkItemTypes, func() error {
 			// TEMP!!!!! Until Space Template can setup a Space, redirect to SystemSpace WITs if non are found
 			// for the space.
@@ -145,6 +140,19 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 			return ctx.OK(result)
 		})
 	})
+}
+
+// stripBaseWorkItemTypes finds base types (e.g. "planneritem") in a slice of
+// given work item types and returns a slice without those base types that shall
+// not appear in the UI.
+func stripBaseWorkItemTypes(wits []workitem.WorkItemType) []workitem.WorkItemType {
+	res := []workitem.WorkItemType{}
+	for _, wit := range wits {
+		if wit.ID != workitem.SystemPlannerItem {
+			res = append(res, wit)
+		}
+	}
+	return res
 }
 
 // ListSourceLinkTypes runs the list-source-link-types action.

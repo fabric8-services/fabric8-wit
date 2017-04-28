@@ -391,6 +391,10 @@ func (s *workItemTypeSuite) TestListWorkItemType200OK() {
 	assert.NotNil(s.T(), res.Header()[app.CacheControl][0])
 	require.NotNil(s.T(), res.Header()[app.ETag])
 	assert.Equal(s.T(), generateWorkItemTypesTag(*witCollection), res.Header()[app.ETag][0])
+	// make sure the planneritem work item type is not included
+	for _, wit := range witCollection.Data {
+		require.NotEqual(s.T(), workitem.SystemPlannerItem, *wit.ID, "planner item must not be returned")
+	}
 }
 
 // TestListWorkItemType200UsingExpiredIfModifiedSinceHeader tests if we can find the work item types
