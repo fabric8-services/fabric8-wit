@@ -63,11 +63,7 @@ type GormWorkItemLinkRepository struct {
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
-func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
-	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
-	if err != nil {
-		return errs.WithStack(err)
-	}
+func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkType *WorkItemLinkType) error {
 	// Fetch the source work item
 	source, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(sourceID, 10))
 	if err != nil {
@@ -98,25 +94,19 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 }
 
 // CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
-func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) (bool, error) {
-	// Fetch the link type
-	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
-	if err != nil {
-		return false, errs.WithStack(err)
-	}
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) (bool, error) {
+	// TOOD(kwk): find a safer way to format an SQL query to get rid of this
+	// warning: "SQL string formatting,MEDIUM,HIGH (gas)"
+	row := r.db.CommonDB().QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM %[1]s WHERE link_type_id='%[2]s' AND target_id=%[3]d AND deleted_at IS NULL)",
+		WorkItemLink{}.TableName(),
+		linkType.ID,
+		targetID))
 
-	if linkType.Topology == TopologyTree {
-		result := WorkItemLink{}
-
-		// check if the same link type already exists for given target ID
-		db := r.db.Where("link_type_id=? AND target_id=?", linkTypeID, targetID).Find(&result)
-		if db.RecordNotFound() {
-			// not treating this as an error
-			return false, nil
-		}
-		return true, nil
+	var exists bool
+	if err := row.Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
 	}
-	return false, nil
+	return exists, nil
 }
 
 // Create creates a new work item link in the repository.
@@ -130,19 +120,33 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := link.CheckValidForCreation(); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
+
+	// Fetch the link type
+	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load link type")
+	}
+
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkType); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	parentExists, err := r.CheckParentExists(ctx, sourceID, targetID, linkTypeID)
-	if err != nil {
-		return nil, err
-	}
-	if parentExists == true {
-		log.Error(ctx, map[string]interface{}{
-			"link_type_id": linkTypeID,
-		}, "unable to create work item link")
-		return nil, errors.NewBadParameterError("linkTypeID & targetID", fmt.Sprintf("%s + %s", linkTypeID, targetID)).Expected("single parent")
 
+	if linkType.Topology == TopologyTree {
+		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"link_type_id": linkTypeID,
+				"target_id":    targetID,
+			}, "failed to check if the work item %s has a parent work item", targetID)
+			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
+		}
+		if parentExists {
+			log.Info(ctx, map[string]interface{}{
+				"link_type_id": linkTypeID,
+				"target_id":    targetID,
+			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
+			return nil, errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkTypeID, targetID)).Expected("single parent in tree topology")
+		}
 	}
 	db := r.db.Create(link)
 	if db.Error != nil {
