@@ -138,7 +138,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 				"link_type_id": linkTypeID,
 				"target_id":    targetID,
 			}, "failed to check if the work item %s has a parent work item", targetID)
-			return nil, errors.NewInternalError(errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID).Error())
+			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
 		}
 		if parentExists {
 			log.Info(ctx, map[string]interface{}{
