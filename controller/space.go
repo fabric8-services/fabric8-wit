@@ -193,7 +193,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 // List runs the list action.
 func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	var response app.SpaceList
 	txnErr := application.Transactional(c.db, func(appl application.Application) error {
