@@ -1231,7 +1231,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 	assert.True(s.T(), strings.Contains(*list.Links.First, "filter[assignee]"))
 }
 
-func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
+func (s *WorkItem2Suite) TestWI2ListByTypeFilter() {
 	// given
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1253,42 +1253,100 @@ func (s *WorkItem2Suite) TestWI2ListByWorkitemtypeFilter() {
 	}
 }
 
-func (s *WorkItem2Suite) TestWI2ListByWorkitemstateFilter() {
-	// given
+func (s *WorkItem2Suite) createWorkItem(title, state string) app.WorkItemSingle {
 	c := minimumRequiredCreatePayload()
-	c.Data.Attributes[workitem.SystemTitle] = "Title"
-	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c.Data.Attributes[workitem.SystemTitle] = title
+	c.Data.Attributes[workitem.SystemState] = state
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	l := minimumRequiredCreatePayload()
-	l.Data.Attributes[workitem.SystemTitle] = "Title"
-	l.Data.Attributes[workitem.SystemState] = workitem.SystemStateInProgress
-	l.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemBug)
-	// when
-	_, expected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
-	_, notExpected := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, l.Data.Relationships.Space.Data.ID.String(), &l)
-	// then
-	assert.NotNil(s.T(), expected.Data)
-	require.NotNil(s.T(), expected.Data.ID)
-	require.NotNil(s.T(), expected.Data.Type)
-	require.NotNil(s.T(), expected.Data.Attributes)
-	var dataArray []*app.WorkItemSingle
-	dataArray = append(dataArray, notExpected)
-	dataArray = append(dataArray, expected)
-	wiNew := workitem.SystemStateNew
-	// var foundExpected bool
-	_, actual := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, nil, &wiNew, nil, nil, nil, nil, nil)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+	require.NotNil(s.T(), wi.Data)
+	require.NotNil(s.T(), wi.Data.ID)
+	require.NotNil(s.T(), wi.Data.Type)
+	require.NotNil(s.T(), wi.Data.Attributes)
+	return *wi
+}
 
-	require.NotNil(s.T(), actual)
-	require.True(s.T(), len(actual.Data) > 1)
-	assert.Contains(s.T(), *actual.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
-	for _, actualWI := range actual.Data {
-		assert.Equal(s.T(), expected.Data.Attributes[workitem.SystemState], actualWI.Attributes[workitem.SystemState])
+func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
+	// given
+	_ = s.createWorkItem("title", workitem.SystemStateNew)
+	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
+	// when
+	stateNew := workitem.SystemStateNew
+	_, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	// then
+	require.NotNil(s.T(), actualWIs)
+	require.True(s.T(), len(actualWIs.Data) > 1)
+	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	for _, actualWI := range actualWIs.Data {
 		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
-		// if *expected.Data.ID == *actualWI.ID {
-		// 	foundExpected = true
-		// }
+		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
+		assert.NotEqual(s.T(), *inprogressWI.Data.ID, *actualWI.ID)
 	}
-	// assert.True(s.T(), foundExpected, "did not find expected work item in filtered list response")
+}
+
+// see https://github.com/almighty/almighty-core/issues/1268
+func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
+	// given
+	_ = s.createWorkItem("title", workitem.SystemStateNew)
+	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
+	// when
+	stateNew := workitem.SystemStateNew
+	res, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	// then
+	require.NotNil(s.T(), actualWIs)
+	require.True(s.T(), len(actualWIs.Data) > 1)
+	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	for _, actualWI := range actualWIs.Data {
+		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
+		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
+		assert.NotEqual(s.T(), *inprogressWI.Data.ID, *actualWI.ID)
+	}
+	// retain conditional headers in response and submit the request again
+	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
+	// when calling again
+	res = test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	// then
+	assertResponseHeaders(s.T(), res)
+}
+
+// see https://github.com/almighty/almighty-core/issues/1268
+func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfModifiedSinceHeaders() {
+	// given
+	_ = s.createWorkItem("title", workitem.SystemStateNew)
+	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
+	// when
+	stateNew := workitem.SystemStateNew
+	res, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	// then
+	require.NotNil(s.T(), actualWIs)
+	require.True(s.T(), len(actualWIs.Data) > 1)
+	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	for _, actualWI := range actualWIs.Data {
+		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
+		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
+		assert.NotEqual(s.T(), *inprogressWI.Data.ID, *actualWI.ID)
+	}
+	// retain conditional headers in response and submit the request again
+	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
+	// modify the state of the inprogressWI
+	update := minimumRequiredUpdatePayload()
+	update.Data.ID = inprogressWI.Data.ID
+	update.Data.Type = inprogressWI.Data.Type
+	update.Data.Attributes[workitem.SystemTitle] = inprogressWI.Data.Attributes[workitem.SystemTitle]
+	update.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	update.Data.Attributes["version"] = inprogressWI.Data.Attributes["version"]
+	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), *inprogressWI.Data.ID, &update)
+	// when calling again (with expired validation headers)
+	res, actualWIs = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	// then expect the new data
+	assertResponseHeaders(s.T(), res)
+	require.NotNil(s.T(), actualWIs)
+	require.True(s.T(), len(actualWIs.Data) > 2)
+	assert.Contains(s.T(), *actualWIs.Links.First, fmt.Sprintf("filter[workitemstate]=%s", workitem.SystemStateNew))
+	for _, actualWI := range actualWIs.Data {
+		require.NotNil(s.T(), actualWI.Attributes[workitem.SystemState])
+		assert.Equal(s.T(), stateNew, actualWI.Attributes[workitem.SystemState])
+	}
 }
 
 func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (string, string, *app.WorkItemSingle) {
@@ -1319,6 +1377,8 @@ func (s *WorkItem2Suite) setupAreaWorkItem(createWorkItem bool) (string, string,
 }
 
 func assertAreaWorkItems(t *testing.T, areaID string, workitems *app.WorkItemList) {
+	require.NotNil(t, workitems)
+	require.NotNil(t, workitems.Data)
 	require.Len(t, workitems.Data, 1)
 	assert.Equal(t, areaID, *workitems.Data[0].Relationships.Area.Data.ID)
 	assert.True(t, strings.Contains(*workitems.Links.First, "filter[area]"))
@@ -1565,10 +1625,14 @@ func assertSingleWorkItem(t *testing.T, createdWI app.WorkItemSingle, fetchedWI 
 	assert.NotNil(t, fetchedWI.Data.Relationships.BaseType.Data.ID)
 }
 
-func assertResponseHeaders(t *testing.T, res http.ResponseWriter) {
-	assert.NotNil(t, res.Header()[app.LastModified])
-	assert.NotNil(t, res.Header()[app.ETag])
-	assert.NotNil(t, res.Header()[app.CacheControl])
+func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, string, string) {
+	lastModified := res.Header()[app.LastModified]
+	etag := res.Header()[app.ETag]
+	cacheControl := res.Header()[app.CacheControl]
+	assert.NotEmpty(t, lastModified)
+	assert.NotEmpty(t, etag)
+	assert.NotEmpty(t, cacheControl)
+	return etag[0], lastModified[0], cacheControl[0]
 }
 
 // Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
