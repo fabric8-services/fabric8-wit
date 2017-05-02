@@ -302,7 +302,7 @@ func (r *GormRepository) LoadByOwner(ctx context.Context, userID *uuid.UUID, sta
 
 func (r *GormRepository) LoadByOwnerAndName(ctx context.Context, userID *uuid.UUID, spaceName *string) (*Space, error) {
 	res := Space{}
-	tx := r.db.Where("spaces.owner_id=? AND spaces.name=?", *userID, *spaceName).First(&res)
+	tx := r.db.Where("spaces.owner_id="+(*userID).String()+" AND LOWER(name) LIKE ?", "%"+strings.ToLower(*spaceName)+"%")
 	if tx.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"space_name": *spaceName,

@@ -1,6 +1,7 @@
 package controller_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -96,6 +97,11 @@ func (rest *TestNamedSpaceREST) TestSuccessQuerySpace() {
 	assert.Equal(t, created.Data.Attributes.Name, namedspace.Data.Attributes.Name)
 	assert.Equal(t, created.Data.Attributes.Description, namedspace.Data.Attributes.Description)
 	assert.Equal(t, created.Data.Links.Self, namedspace.Data.Links.Self)
+
+	// test that show namedspaces operation is not case sensitive for the space name
+	_, namedspace = test.ShowNamedspacesOK(t, namedSpaceSvc.Context, namedSpaceSvc, namedSpacectrl, testsupport.TestIdentity.Username, strings.ToLower(name))
+	assert.NotNil(t, namedspace)
+	assert.Equal(t, created.Data.Attributes.Name, namedspace.Data.Attributes.Name)
 }
 
 func (rest *TestNamedSpaceREST) TestSuccessListSpaces() {
