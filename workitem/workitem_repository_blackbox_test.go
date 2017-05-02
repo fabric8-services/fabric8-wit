@@ -271,7 +271,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	// given
 	title := "solution on global warming"
 	branch := "earth-recycle-101"
-	repo := "https://github.com/pranavgore09/go-tutorial"
+	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
 	cbase := codebase.CodebaseContent{
@@ -296,8 +296,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))
 	require.NotNil(s.T(), wi.Fields[workitem.SystemCodebase])
 	cb := wi.Fields[workitem.SystemCodebase].(codebase.CodebaseContent)
-	expectedRepo := repo + ".git"
-	assert.Equal(s.T(), expectedRepo, cb.Repository)
+	assert.Equal(s.T(), repo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
 	assert.Equal(s.T(), line, cb.LineNumber)

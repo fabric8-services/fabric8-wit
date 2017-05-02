@@ -2113,7 +2113,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
 	branch := "earth-recycle-101"
-	repo := "https://github.com/pranavgore09/go-tutorial"
+	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
 	cbase := codebase.CodebaseContent{
@@ -2132,8 +2132,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
 	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
 	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
-	expectedRepo := repo + ".git"
-	assert.Equal(s.T(), expectedRepo, cb.Repository)
+	assert.Equal(s.T(), repo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
 	assert.Equal(s.T(), line, cb.LineNumber)
@@ -2161,7 +2160,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
 	c.Data.Relationships.Space = app.NewSpaceRelation(space1ID, "")
 	branch := "earth-recycle-101"
-	repo := "https://github.com/pranavgore09/go-tutorial"
+	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
 	cbase := codebase.CodebaseContent{
@@ -2234,7 +2233,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 }
 
 func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
-	// given
+	// try creating WI without `Repo` : should fail
 	c := minimumRequiredCreatePayload()
 	title := "Solution on global warming"
 	c.Data.Attributes[workitem.SystemTitle] = title
@@ -2245,8 +2244,22 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 		Branch: branch,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
-	// when/then
 	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), &c)
+
+	// try creating WI with invalid GIT Repo : should fail
+	c2 := minimumRequiredCreatePayload()
+	title2 := "Solution on global warming"
+	c2.Data.Attributes[workitem.SystemTitle] = title2
+	c2.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
+	c2.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
+	branch2 := "earth-recycle-101"
+	repo2 := "git://non-git.com/pranav/someproject"
+	cbase2 := codebase.CodebaseContent{
+		Branch:     branch2,
+		Repository: repo2,
+	}
+	c2.Data.Attributes[workitem.SystemCodebase] = cbase2.ToMap()
+	test.CreateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c2.Data.Relationships.Space.Data.ID.String(), &c2)
 }
 
 func (s *WorkItem2Suite) TestCreateWorkItemWithInferredSpace() {

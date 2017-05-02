@@ -49,7 +49,7 @@ func TestNewCodebase(t *testing.T) {
 
 	// test for all values in codebase
 	branch := "task-101"
-	repo := "https://github.com/pranavgore09/go-tutorial"
+	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
 	codebaseMap = map[string]interface{}{
@@ -60,8 +60,7 @@ func TestNewCodebase(t *testing.T) {
 	}
 	cb, err = codebase.NewCodebaseContent(codebaseMap)
 	require.Nil(t, err)
-	expectedRepo := repo + ".git"
-	assert.Equal(t, expectedRepo, cb.Repository)
+	assert.Equal(t, repo, cb.Repository)
 	assert.Equal(t, branch, cb.Branch)
 	assert.Equal(t, file, cb.FileName)
 	assert.Equal(t, line, cb.LineNumber)
@@ -69,7 +68,7 @@ func TestNewCodebase(t *testing.T) {
 
 func TestIsValid(t *testing.T) {
 	cb := codebase.CodebaseContent{
-		Repository: "https://github.com/pranavgore09/go-tutorial",
+		Repository: "https://github.com/pranavgore09/go-tutorial.git",
 	}
 	assert.Nil(t, cb.IsValid())
 
@@ -82,9 +81,77 @@ func TestInvalidRepo(t *testing.T) {
 		Repository: "https://other-than-github.com/pranavgore09/go-tutorial",
 	}
 	assert.NotNil(t, cb.IsValid())
+}
 
-	// cb = codebase.CodebaseContent{}
-	// assert.NotNil(t, cb.IsValid())
+func TestRepoValidURL(t *testing.T) {
+	// following list is taken from
+	// https://github.com/jonschlinkert/is-git-url/blob/master/test.js
+	validURLs := []string{
+		"git://github.com/ember-cli/ember-cli.git#ff786f9f",
+		"git://github.com/ember-cli/ember-cli.git#gh-pages",
+		"git://github.com/ember-cli/ember-cli.git#master",
+		"git://github.com/ember-cli/ember-cli.git#Quick-Fix",
+		"git://github.com/ember-cli/ember-cli.git#quick_fix",
+		"git://github.com/ember-cli/ember-cli.git#v0.1.0",
+		"git://host.xz/path/to/repo.git/",
+		"git://host.xz/~user/path/to/repo.git/",
+		"git@192.168.101.127:user/project.git",
+		"git@github.com:user/project.git",
+		"git@github.com:user/some-project.git",
+		"git@github.com:user/some-project.git",
+		"git@github.com:user/some_project.git",
+		"git@github.com:user/some_project.git",
+		"http://192.168.101.127/user/project.git",
+		"http://github.com/user/project.git",
+		"http://host.xz/path/to/repo.git/",
+		"https://192.168.101.127/user/project.git",
+		"https://github.com/user/project.git",
+		"https://host.xz/path/to/repo.git/",
+		"https://username::;*%$:@github.com/username/repository.git",
+		"https://username:$fooABC@:@github.com/username/repository.git",
+		"https://username:password@github.com/username/repository.git",
+		"ssh://host.xz/path/to/repo.git/",
+		"ssh://host.xz/path/to/repo.git/",
+		"ssh://host.xz/~/path/to/repo.git",
+		"ssh://host.xz/~user/path/to/repo.git/",
+		"ssh://host.xz:port/path/to/repo.git/",
+		"ssh://user@host.xz/path/to/repo.git/",
+		"ssh://user@host.xz/path/to/repo.git/",
+		"ssh://user@host.xz/~/path/to/repo.git",
+		"ssh://user@host.xz/~user/path/to/repo.git/",
+		"ssh://user@host.xz:port/path/to/repo.git/",
+	}
+
+	for _, url := range validURLs {
+		cb := codebase.CodebaseContent{
+			Repository: url,
+		}
+		assert.True(t, cb.IsRepoValidURL())
+	}
+
+	invalidURLs := []string{
+		"",
+		"/path/to/repo.git/",
+		"file:///path/to/repo.git/",
+		"file://~/path/to/repo.git/",
+		"git@github.com:user/some_project.git/foo",
+		"git@github.com:user/some_project.gitfoo",
+		"host.xz:/path/to/repo.git/",
+		"host.xz:path/to/repo.git",
+		"host.xz:~user/path/to/repo.git/",
+		"path/to/repo.git/",
+		"rsync://host.xz/path/to/repo.git/",
+		"user@host.xz:/path/to/repo.git/",
+		"user@host.xz:path/to/repo.git",
+		"user@host.xz:~user/path/to/repo.git/",
+		"~/path/to/repo.git",
+	}
+	for _, url := range invalidURLs {
+		cb := codebase.CodebaseContent{
+			Repository: url,
+		}
+		assert.False(t, cb.IsRepoValidURL())
+	}
 }
 
 type TestCodebaseRepository struct {

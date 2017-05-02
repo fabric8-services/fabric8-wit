@@ -2,10 +2,11 @@ package codebase
 
 import (
 	"log"
-	"strings"
 	"time"
 
 	"golang.org/x/net/context"
+
+	"regexp"
 
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
@@ -44,16 +45,13 @@ func (c *CodebaseContent) ToMap() map[string]interface{} {
 	return res
 }
 
-// validateURL makes sure Repo is valid GIT URL
-func validateURL(repo string) (string, bool) {
-	validPrefixes := []string{"https://github.com/", "git@github.com:"}
-	if strings.HasPrefix(repo, validPrefixes[0]) || strings.HasPrefix(repo, validPrefixes[1]) {
-		if strings.HasSuffix(repo, ".git") == false {
-			return repo + ".git", true
-		}
-		return repo, true
+// IsRepoValidURL makes sure Repo is valid GIT URL
+func (c *CodebaseContent) IsRepoValidURL() bool {
+	r, err := regexp.Compile(`(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$`)
+	if err != nil {
+		return false
 	}
-	return "", false
+	return r.MatchString(c.Repository)
 }
 
 // IsValid perform following checks
@@ -62,11 +60,9 @@ func (c *CodebaseContent) IsValid() error {
 	if c.Repository == "" {
 		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is mandatory")
 	}
-	repo, valid := validateURL(c.Repository)
-	if valid == false {
+	if c.IsRepoValidURL() == false {
 		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is not valid git url")
 	}
-	c.Repository = repo
 	return nil
 }
 
