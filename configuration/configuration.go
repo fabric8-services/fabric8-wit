@@ -69,6 +69,7 @@ const (
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varAuthNotApprovedRedirect          = "auth.notapproved.redirect"
 	varHeaderMaxLength                  = "header.maxlength"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
@@ -377,6 +378,12 @@ func (c *ConfigurationData) GetTokenPrivateKey() []byte {
 // that is used to decrypt the authentication token.
 func (c *ConfigurationData) GetTokenPublicKey() []byte {
 	return []byte(c.v.GetString(varTokenPublicKey))
+}
+
+// GetAuthNotApprovedRedirect returns the URL to redirect to if the user is not approved
+// May return empty string which means an unauthorized error should be returned instead of redirecting the user
+func (c *ConfigurationData) GetAuthNotApprovedRedirect() string {
+	return c.v.GetString(varAuthNotApprovedRedirect)
 }
 
 // GetGithubAuthToken returns the actual Github OAuth Access Token
