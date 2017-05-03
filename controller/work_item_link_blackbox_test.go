@@ -438,6 +438,7 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkNotFound() {
 }
 
 func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
+	// given
 	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
@@ -447,11 +448,32 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 		Data: workItemLink.Data,
 	}
 	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
+	// when
 	_, l := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
+	// then
 	require.NotNil(s.T(), l.Data)
 	require.NotNil(s.T(), l.Data.Relationships)
 	require.NotNil(s.T(), l.Data.Relationships.Target.Data)
 	require.Equal(s.T(), strconv.FormatUint(s.bug3ID, 10), l.Data.Relationships.Target.Data.ID)
+}
+
+func (s *workItemLinkSuite) TestUpdateWorkItemLinkVersionConflict() {
+	// given
+	createPayload := CreateWorkItemLink(s.bug1ID, s.bug2ID, s.bugBlockerLinkTypeID)
+	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
+	require.NotNil(s.T(), workItemLink)
+	// Specify new description for link type that we just created
+	// Wrap data portion in an update payload instead of a create payload
+	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
+		Data: workItemLink.Data,
+	}
+	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
+	// force a different version of the entity
+	previousVersion := *updateLinkPayload.Data.Attributes.Version - 1
+	updateLinkPayload.Data.Attributes.Version = &previousVersion
+	// when/then
+	test.UpdateWorkItemLinkConflict(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
+	// then
 }
 
 func (s *workItemLinkSuite) createWorkItemLink() *app.WorkItemLinkSingle {
