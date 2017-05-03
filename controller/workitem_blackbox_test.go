@@ -26,6 +26,7 @@ import (
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rendering"
@@ -2594,7 +2595,9 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	sp, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
-		logrus.Error("Failed to create space for area.")
+		log.Error(ctx, map[string]interface{}{
+			"err": err,
+		}, "Failed to create space")
 		return nil, nil, nil
 	}
 
@@ -2605,7 +2608,10 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	err = areaRepo.Create(ctx, ar)
 	if err != nil {
-		logrus.Error("Failed to create area.")
+		log.Error(ctx, map[string]interface{}{
+			"space_id": sp.ID,
+			"err":      err,
+		}, "Failed to create root area for space.")
 		return nil, nil, nil
 	}
 
@@ -2615,7 +2621,10 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	err = iterationRepo.Create(ctx, itr)
 	if err != nil {
-		logrus.Error("Failed to create iteration.")
+		log.Error(ctx, map[string]interface{}{
+			"space_id": sp.ID,
+			"err":      err,
+		}, "Failed to create root iteration for space.")
 		return nil, nil, nil
 	}
 	return sp, itr, ar
