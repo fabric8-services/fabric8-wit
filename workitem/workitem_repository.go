@@ -714,13 +714,12 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	WHERE fields->>'system.iteration' IN
 		(SELECT id::text
 		FROM %s
-		WHERE space_id='%s')
+		WHERE space_id=?)
 	AND wi.deleted_at IS NULL
 	GROUP BY fields->>'system.iteration'`,
 		workitemTableName,
-		iterationTableName,
-		spaceID.String())
-	db = r.db.Raw(iterationWithWICount)
+		iterationTableName)
+	db = r.db.Raw(iterationWithWICount, spaceID.String())
 	var res []WICountsPerIteration
 	db.Scan(&res)
 	if db.Error != nil {
@@ -769,13 +768,12 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	FROM %s,
 		PathResolver
 	WHERE path <@ PathResolver.pathself
-	AND space_id = '%s'
+	AND space_id = ?
 	GROUP BY (PathResolver.pathself,
 		PathResolver.id)`,
 		iterationTableName,
-		iterationTableName,
-		spaceID.String())
-	db = r.db.Raw(queryIterationWithChildren)
+		iterationTableName)
+	db = r.db.Raw(queryIterationWithChildren, spaceID.String())
 	db.Scan(&itrChildren)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -822,9 +820,9 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	// get child IDs of the iteration
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
-	iterationTableName := iterationTable.TableName()
-	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ '%s' and space_id = '%s'`, iterationTableName, pathOfIteration.Convert(), itr.SpaceID.String())
-	db := r.db.Raw(getIterationsOfSpace)
+	db := r.db
+	db.Model(iterationTable).Select("id")
+	db.Where("path <@ ? and space_id = ?", pathOfIteration.Convert(), itr.SpaceID.String())
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -847,10 +845,10 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 									ELSE NULL
 								END) AS Closed
 					FROM %s wi
-					WHERE fields->>'system.iteration' IN (%s)
+					WHERE fields->>'system.iteration' IN (?)
 					AND wi.deleted_at IS NULL`,
-		workitemTableName, whereClause)
-	db = r.db.Raw(query)
+		workitemTableName)
+	db = r.db.Raw(query, whereClause)
 	db.Scan(&res)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
