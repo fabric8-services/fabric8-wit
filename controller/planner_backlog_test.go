@@ -5,7 +5,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -13,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -72,11 +72,11 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 		_, err := spacesRepo.Create(rest.ctx, testSpace)
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), testSpace.ID)
-		logrus.Info("Created space with ID=", testSpace.ID)
+		log.Logger().Infoln("Created space with ID=", testSpace.ID)
 		workitemTypesRepo := app.WorkItemTypes()
 		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		require.Nil(rest.T(), err)
-		logrus.Info("Created workitem type with ID=", workitemType.ID)
+		log.Logger().Infoln("Created workitem type with ID=", workitemType.ID)
 
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
@@ -85,7 +85,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 			State:   iteration.IterationStateNew,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
-		logrus.Info("Created parent iteration with ID=", parentIteration.ID)
+		log.Logger().Infoln("Created parent iteration with ID=", parentIteration.ID)
 
 		childIteration := &iteration.Iteration{
 			Name:    "Child Iteration",
@@ -94,7 +94,7 @@ func (rest *TestPlannerBacklogREST) setupPlannerBacklogWorkItems() (testSpace *s
 			State:   iteration.IterationStateStart,
 		}
 		iterationsRepo.Create(rest.ctx, childIteration)
-		logrus.Info("Created child iteration with ID=", childIteration.ID)
+		log.Logger().Infoln("Created child iteration with ID=", childIteration.ID)
 
 		fields := map[string]interface{}{
 			workitem.SystemTitle:     "parentIteration Test",

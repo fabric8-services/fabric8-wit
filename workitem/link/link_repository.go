@@ -7,11 +7,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -235,7 +235,9 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error) {
-	logrus.Info(fmt.Sprintf("saving workitem link with type =  %s", linkToSave.LinkTypeID))
+	log.Info(ctx, map[string]interface{}{
+		"wil_id": linkToSave.LinkTypeID,
+	}, "Saving workitem link with type =  %s", linkToSave.LinkTypeID)
 	existingLink := WorkItemLink{}
 	db := r.db.Model(&existingLink).Where("id=?", linkToSave.ID).First(&existingLink)
 	if db.RecordNotFound() {
