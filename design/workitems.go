@@ -16,7 +16,7 @@ in which the current work item can be used in the source part of the link`)
 	a.Attribute("targetLinkTypes", d.String, `URL to those work item link types
 in which the current work item can be used in the target part of the link`)
 	a.Attribute("meta", a.HashOf(d.String, d.Any))
-	a.Attribute("doit", d.String, "URL to generate Che-editor's link based on values of codebase field")
+	a.Attribute("editCodebase", d.String, "URL to generate Che-editor's link based on values of codebase field")
 })
 
 // workItem defines how an update payload will look like

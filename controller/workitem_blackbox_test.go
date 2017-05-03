@@ -2140,7 +2140,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 
 	require.NotNil(s.T(), fetchedWI.Data.Links)
 	expectedURL := fmt.Sprintf("/api/codebases/%s/edit", cb.CodebaseID)
-	assert.Contains(s.T(), *fetchedWI.Data.Links.Doit, expectedURL)
+	assert.Contains(s.T(), *fetchedWI.Data.Links.EditCodebase, expectedURL)
 }
 
 // this test aims at checking different codebaseIDs for

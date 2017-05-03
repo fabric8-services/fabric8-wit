@@ -683,7 +683,7 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 				// TODO: Following format is TBD and hence commented out
 				cb := val.(codebase.CodebaseContent)
 				editURL := rest.AbsoluteURL(request, app.CodebaseHref(cb.CodebaseID)+"/edit")
-				op.Links.Doit = &editURL
+				op.Links.EditCodebase = &editURL
 			}
 		default:
 			op.Attributes[name] = val
