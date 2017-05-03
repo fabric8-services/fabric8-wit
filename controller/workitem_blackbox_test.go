@@ -2594,7 +2594,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	sp, err := spaceRepo.Create(ctx, &newSpace)
 	if err != nil {
-		fmt.Println("Failed to create space for area.")
+		logrus.Error("Failed to create space for area.")
 		return nil, nil, nil
 	}
 
@@ -2605,7 +2605,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	err = areaRepo.Create(ctx, ar)
 	if err != nil {
-		fmt.Println("Failed to create area.")
+		logrus.Error("Failed to create area.")
 		return nil, nil, nil
 	}
 
@@ -2615,7 +2615,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	}
 	err = iterationRepo.Create(ctx, itr)
 	if err != nil {
-		fmt.Println("Failed to create iteration.")
+		logrus.Error("Failed to create iteration.")
 		return nil, nil, nil
 	}
 	return sp, itr, ar
