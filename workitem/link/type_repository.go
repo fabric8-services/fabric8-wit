@@ -24,10 +24,10 @@ type WorkItemLinkTypeRepository interface {
 	Save(ctx context.Context, linkCat WorkItemLinkType) (*WorkItemLinkType, error)
 	// ListSourceLinkTypes returns the possible link types for where the given
 	// WIT can be used in the source.
-	ListSourceLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error)
-	// ListSourceLinkTypes returns the possible link types for where the given
+	ListSourceLinkTypes(ctx context.Context, spaceID, witID uuid.UUID) ([]WorkItemLinkType, error)
+	// ListTargetLinkTypes returns the possible link types for where the given
 	// WIT can be used in the target.
-	ListTargetLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error)
+	ListTargetLinkTypes(ctx context.Context, spaceID, witID uuid.UUID) ([]WorkItemLinkType, error)
 }
 
 // NewWorkItemLinkTypeRepository creates a work item link type repository based on gorm
@@ -130,8 +130,9 @@ func (r *GormWorkItemLinkTypeRepository) Delete(ctx context.Context, spaceID uui
 	return nil
 }
 
-// Save updates the given work item link type in storage. Version must be the same as the one int the stored version.
-// returns NotFoundError, VersionConflictError, ConversionError or InternalError
+// Save updates the given work item link type in storage. Version must be the
+// same as the one int the stored version. returns NotFoundError,
+// VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave WorkItemLinkType) (*WorkItemLinkType, error) {
 	existingModel := WorkItemLinkType{}
 	db := r.db.Model(&existingModel).Where("id=?", modelToSave.ID).First(&existingModel)
@@ -145,7 +146,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id": modelToSave.ID,
 			"err":     db.Error,
-		}, "unable to find work item link type repository")
+		}, "unable to find work item link type")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	if existingModel.Version != modelToSave.Version {
@@ -158,7 +159,7 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 			"wilt_id": existingModel.ID,
 			"wilt":    existingModel,
 			"err":     db.Error,
-		}, "unable to save work item link type repository")
+		}, "unable to save work item link type")
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
 	log.Info(ctx, map[string]interface{}{
@@ -168,48 +169,72 @@ func (r *GormWorkItemLinkTypeRepository) Save(ctx context.Context, modelToSave W
 	return &modelToSave, nil
 }
 
-func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error) {
+// ListSourceLinkTypes returns all the link types where the given work item type
+// can be used in the source of the link type. It does so by analysing the type
+// combinations that are associated with the given link type.
+func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context, spaceID, witID uuid.UUID) ([]WorkItemLinkType, error) {
 	db := r.db.Model(WorkItemLinkType{})
-	query := fmt.Sprintf(`
+	where := fmt.Sprintf(`
 			-- Get link types we can use with a specific WIT if the WIT is at the
 			-- source of the link.
-			(SELECT path FROM %[2]s WHERE id = %[1]s.source_type_id LIMIT 1)
-			@>
-			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
-		WorkItemLinkType{}.TableName(),
+			space_id IN (? /* The current space */, ? /* The system space (NOTE: Keep this even with space templates!!!) */)
+			AND id IN (
+				SELECT link_type_id FROM %[1]s /* work_item_link_type_combinations */ AS combi
+				WHERE
+					combi.space_id IN (? /* The current space */, ? /* The system space (TODO(kwk): Not needed when space templates are in) */)
+					AND
+					(SELECT path FROM %[2]s /* work_item_types */ WHERE id = combi.source_type_id LIMIT 1)
+					@>
+					(SELECT path FROM %[2]s /* work_item_types */ WHERE id = ? LIMIT 1)
+			)`,
+		WorkItemLinkTypeCombination{}.TableName(),
 		workitem.WorkItemType{}.TableName(),
 	)
-	db = db.Where(query, witID)
+	db = db.Where(where,
+		spaceID,
+		space.SystemSpace,
+		spaceID,
+		space.SystemSpace, /*TODO(kwk): not needed when space templates are in*/
+		witID)
 	var rows []WorkItemLinkType
 	db = db.Find(&rows)
 	if db.RecordNotFound() {
 		return nil, nil
 	}
-	if db.Error != nil {
-		return nil, errs.WithStack(db.Error)
-	}
-	return rows, nil
+	return rows, errs.WithStack(db.Error)
 }
 
-func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, witID uuid.UUID) ([]WorkItemLinkType, error) {
+// ListTargetLinkTypes returns all the link types where the given work item type
+// can be used in the target of the link type. It does so by analysing the type
+// combinations that are associated with the given link type.
+func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context, spaceID, witID uuid.UUID) ([]WorkItemLinkType, error) {
 	db := r.db.Model(WorkItemLinkType{})
-	query := fmt.Sprintf(`
+	where := fmt.Sprintf(`
 			-- Get link types we can use with a specific WIT if the WIT is at the
 			-- target of the link.
-			(SELECT path FROM %[2]s WHERE id = %[1]s.target_type_id LIMIT 1)
-			@>
-			(SELECT path FROM %[2]s WHERE id = ? LIMIT 1)`,
-		WorkItemLinkType{}.TableName(),
+			space_id IN (? /* The current space */, ? /* The system space (NOTE: Keep this even with space templates!!!) */)
+			AND id IN (
+				SELECT link_type_id FROM %[1]s /* work_item_link_type_combinations */ AS combi
+				WHERE
+					combi.space_id IN (? /* The current space */, ? /* The system space (TODO(kwk): Not needed when space templates are in) */)
+					AND
+					(SELECT path FROM %[2]s /* work_item_types */ WHERE id = combi.target_type_id LIMIT 1)
+					@>
+					(SELECT path FROM %[2]s /* work_item_types */ WHERE id = ? LIMIT 1)
+			)`,
+		WorkItemLinkTypeCombination{}.TableName(),
 		workitem.WorkItemType{}.TableName(),
 	)
-	db = db.Where(query, witID)
+	db = db.Where(where,
+		spaceID,
+		space.SystemSpace,
+		spaceID,
+		space.SystemSpace, /*TODO(kwk): not needed when space templates are in*/
+		witID)
 	var rows []WorkItemLinkType
 	db = db.Find(&rows)
 	if db.RecordNotFound() {
 		return nil, nil
 	}
-	if db.Error != nil {
-		return nil, errs.WithStack(db.Error)
-	}
-	return rows, nil
+	return rows, errs.WithStack(db.Error)
 }

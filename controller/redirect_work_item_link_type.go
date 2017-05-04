@@ -36,6 +36,12 @@ func (c *RedirectWorkItemLinkTypeController) List(ctx *app.ListRedirectWorkItemL
 	return ctx.MovedPermanently()
 }
 
+// ListTypeCombinations runs the list-type-combinations action.
+func (c *RedirectWorkItemLinkTypeController) ListTypeCombinations(ctx *app.ListTypeCombinationsRedirectWorkItemLinkTypeContext) error {
+	ctx.ResponseData.Header().Set("Location", redirectWorkItemLinkTypesURL(ctx.RequestURI))
+	return ctx.MovedPermanently()
+}
+
 // Show runs the show action.
 func (c *RedirectWorkItemLinkTypeController) Show(ctx *app.ShowRedirectWorkItemLinkTypeContext) error {
 	ctx.ResponseData.Header().Set("Location", redirectWorkItemLinkTypesURL(ctx.RequestURI))

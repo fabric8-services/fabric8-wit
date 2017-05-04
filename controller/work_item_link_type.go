@@ -18,8 +18,9 @@ import (
 // WorkItemLinkTypeController implements the work-item-link-type resource.
 type WorkItemLinkTypeController struct {
 	*goa.Controller
-	db     application.DB
-	config WorkItemLinkTypeControllerConfiguration
+	db           application.DB
+	config       WorkItemLinkTypeControllerConfiguration
+	configCombis WorkItemLinkTypeCombinationControllerConfiguration
 }
 
 // WorkItemLinkTypeControllerConfiguration the configuration for the WorkItemLinkTypeController
@@ -222,6 +223,26 @@ func (c *WorkItemLinkTypeController) List(ctx *app.ListWorkItemLinkTypeContext) 
 	})
 }
 
+// ListTypeCombinations runs the list-type-combinations action.
+func (c *WorkItemLinkTypeController) ListTypeCombinations(ctx *app.ListTypeCombinationsWorkItemLinkTypeContext) error {
+	return application.Transactional(c.db, func(appl application.Application) error {
+		m, err := appl.WorkItemLinkTypeCombinations().List(ctx, ctx.WiltID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		return ctx.ConditionalEntities(m, c.configCombis.GetCacheControlWorkItemLinkTypeCombinations, func() error {
+			convertedToApp, err := ConvertWorkItemLinkTypeCombinationsFromModel(appl, ctx.RequestData, m)
+			if err != nil {
+				return jsonapi.JSONErrorResponse(ctx, err)
+			}
+			res := &app.WorkItemLinkTypeCombinationList{
+				Data: convertedToApp,
+			}
+			return ctx.OK(res)
+		})
+	})
+}
+
 // Show runs the show action.
 func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) error {
 	spaceID, err := uuid.FromString(ctx.ID)
@@ -230,12 +251,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 	}
 	// WorkItemLinkTypeController_Show: start_implement
 	return application.Transactional(c.db, func(appl application.Application) error {
-		wiltID, err := uuid.FromString(ctx.WiltID)
-		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("work item link type ID", ctx.WiltID))
-		}
-
-		modelLinkType, err := appl.WorkItemLinkTypes().Load(ctx.Context, wiltID)
+		modelLinkType, err := appl.WorkItemLinkTypes().Load(ctx.Context, ctx.WiltID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -303,8 +319,6 @@ func (c *WorkItemLinkTypeController) Update(ctx *app.UpdateWorkItemLinkTypeConte
 // ConvertWorkItemLinkTypeFromModel converts a work item link type from model to REST representation
 func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType link.WorkItemLinkType) app.WorkItemLinkTypeSingle {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(modelLinkType.SpaceID.String()))
-	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
-	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(modelLinkType.SpaceID.String(), modelLinkType.SourceTypeID.String()))
 	linkCategorySelfURL := rest.AbsoluteURL(request, app.WorkItemLinkCategoryHref(modelLinkType.LinkCategoryID.String()))
 
 	var converted = app.WorkItemLinkTypeSingle{
@@ -329,24 +343,6 @@ func ConvertWorkItemLinkTypeFromModel(request *goa.RequestData, modelLinkType li
 					},
 					Links: &app.GenericLinks{
 						Self: &linkCategorySelfURL,
-					},
-				},
-				SourceType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: link.EndpointWorkItemTypes,
-						ID:   modelLinkType.SourceTypeID,
-					},
-					Links: &app.GenericLinks{
-						Self: &witSourceSelfURL,
-					},
-				},
-				TargetType: &app.RelationWorkItemType{
-					Data: &app.RelationWorkItemTypeData{
-						Type: link.EndpointWorkItemTypes,
-						ID:   modelLinkType.TargetTypeID,
-					},
-					Links: &app.GenericLinks{
-						Self: &witTargetSelfURL,
 					},
 				},
 				Space: app.NewSpaceRelation(modelLinkType.SpaceID, spaceSelfURL),
@@ -420,12 +416,6 @@ func ConvertWorkItemLinkTypeToModel(appLinkType app.WorkItemLinkTypeSingle) (*li
 
 	if rel != nil && rel.LinkCategory != nil && rel.LinkCategory.Data != nil {
 		modelLinkType.LinkCategoryID = rel.LinkCategory.Data.ID
-	}
-	if rel != nil && rel.SourceType != nil && rel.SourceType.Data != nil {
-		modelLinkType.SourceTypeID = rel.SourceType.Data.ID
-	}
-	if rel != nil && rel.TargetType != nil && rel.TargetType.Data != nil {
-		modelLinkType.TargetTypeID = rel.TargetType.Data.ID
 	}
 	if rel != nil && rel.Space != nil && rel.Space.Data != nil {
 		modelLinkType.SpaceID = *rel.Space.Data.ID

@@ -327,6 +327,11 @@ func (g *GormTestBase) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
 	return nil
 }
 
+// WorkItemLinkTypeCombinations returns a work item link type repository
+func (g *GormTestBase) WorkItemLinkTypeCombinations() link.WorkItemLinkTypeCombinationRepository {
+	return nil
+}
+
 // WorkItemLinks returns a work item link repository
 func (g *GormTestBase) WorkItemLinks() link.WorkItemLinkRepository {
 	return nil

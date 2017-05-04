@@ -18,6 +18,7 @@ var cache = NewWorkItemTypeCache()
 
 // WorkItemTypeRepository encapsulates storage & retrieval of work item types
 type WorkItemTypeRepository interface {
+	Exists(ctx context.Context, id uuid.UUID) (bool, error)
 	Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error)
 	Create(ctx context.Context, spaceID uuid.UUID, id *uuid.UUID, extendedTypeID *uuid.UUID, name string, description *string, icon string, fields map[string]FieldDefinition) (*WorkItemType, error)
 	List(ctx context.Context, spaceID uuid.UUID, start *int, length *int) ([]WorkItemType, error)
@@ -42,6 +43,42 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 		return nil, errs.WithStack(err)
 	}
 	return res, nil
+}
+
+// Exists returns true if the work item with the given ID exists
+
+// TODO(kwk): Implement tests for this and use more performant query. Currently
+// the logic is borrowed from the Load function except the space check which
+// MUST NOT be in here because without space templates we're creating WIs from
+// WITs out of the system space but in their own space.
+func (r *GormWorkItemTypeRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
+	log.Info(ctx, map[string]interface{}{
+		"wit_id": id,
+	}, "Checking if work item type exists")
+	found := false
+	res, ok := cache.Get(id)
+	if !ok {
+		log.Info(ctx, map[string]interface{}{
+			"wit_id": id,
+		}, "Work item type doesn't exist in the cache. Loading from DB...")
+		res = WorkItemType{}
+
+		db := r.db.Model(&res).Where("id=?", id).First(&res)
+		if db.RecordNotFound() {
+			log.Error(ctx, map[string]interface{}{
+				"wit_id": id,
+			}, "work item type not found")
+			return false, nil
+		}
+		if err := db.Error; err != nil {
+			return false, errors.NewInternalError(err.Error())
+		}
+		cache.Put(res)
+		found = true
+	} else {
+		found = true
+	}
+	return found, nil
 }
 
 // Load returns the work item for the given spaceID and id

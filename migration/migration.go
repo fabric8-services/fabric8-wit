@@ -302,6 +302,9 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategorySystemID.String(),
 		link.SystemWorkItemLinkCategoryUserID.String())})
 
+	// Version 60
+	m = append(m, steps{ExecuteSQLFile("060-link-system-update.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -464,7 +467,7 @@ func NewMigrationContext(ctx context.Context) context.Context {
 }
 
 // BootstrapWorkItemLinking makes sure the database is populated with the correct work item link stuff (e.g. category and some basic types)
-func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository) error {
+func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, spaceRepo *space.GormRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, typeCombiRepo *link.GormWorkItemLinkTypeCombinationRepository) error {
 	populateLocker.Lock()
 	defer populateLocker.Unlock()
 	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
@@ -493,54 +496,90 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	}
 
 	// create work item link types
-	blockerDesc := "One bug blocks a planner item."
+	blockerDesc := "One work item blocks another one."
 	blockerWILT := link.WorkItemLinkType{
 		ID:             link.SystemWorkItemLinkTypeBugBlockerID,
-		Name:           "Bug blocker",
+		Name:           "Blocker",
 		Description:    &blockerDesc,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "blocks",
 		ReverseName:    "blocked by",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &blockerWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	relatedDesc := "One planner item or a subtype of it relates to another one."
+	relatedDesc := "One work item relates to another one."
 	relatedWILT := link.WorkItemLinkType{
 		ID:             link.SystemWorkItemLinkPlannerItemRelatedID,
-		Name:           "Related planner item",
+		Name:           "Relation",
 		Description:    &relatedDesc,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "relates to",
 		ReverseName:    "is related to",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &relatedWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	parentingDesc := "One planner item or a subtype of it which is a parent of another one."
+	parentingDesc := "One work item is a parent of another one."
 	parentingWILT := link.WorkItemLinkType{
 		ID:             link.SystemWorkItemLinkTypeParentChildID,
-		Name:           "Parent child item",
+		Name:           "Parenting",
 		Description:    &parentingDesc,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",
-		SourceTypeID:   workitem.SystemPlannerItem,
-		TargetTypeID:   workitem.SystemPlannerItem,
 		LinkCategoryID: systemCat.ID,
 		SpaceID:        space.SystemSpace,
 	}
 	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &parentingWILT); err != nil {
 		return errs.WithStack(err)
 	}
+	deliveryDesc := "One work item delivers another one."
+	deliveryWILT := link.WorkItemLinkType{
+		ID:             link.SystemWorkItemLinkTypeDeliveryID,
+		Name:           "Delivery",
+		Description:    &deliveryDesc,
+		Topology:       link.TopologyNetwork,
+		ForwardName:    "delivers",
+		ReverseName:    "delivered by",
+		LinkCategoryID: systemCat.ID,
+		SpaceID:        space.SystemSpace,
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &deliveryWILT); err != nil {
+		return errs.WithStack(err)
+	}
+	// Create the link type combination for the system space
+	combis := []link.WorkItemLinkTypeCombination{
+		{SourceTypeID: workitem.SystemScenario, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemValueProposition},
+		{SourceTypeID: workitem.SystemScenario, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemExperience},
+		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemFeature},
+		{SourceTypeID: workitem.SystemFeature, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemFeature},
+		{SourceTypeID: workitem.SystemFeature, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemTask},
+		{SourceTypeID: workitem.SystemTask, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemTask},
+		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemBug},
+		{SourceTypeID: workitem.SystemScenario, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
+		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
+		{SourceTypeID: workitem.SystemFeature, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
+		{SourceTypeID: workitem.SystemTask, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
+		{SourceTypeID: workitem.SystemBug, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemImpediment},
+		{SourceTypeID: workitem.SystemExperience, LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, TargetTypeID: workitem.SystemValueProposition},
+		{SourceTypeID: workitem.SystemValueProposition, LinkTypeID: link.SystemWorkItemLinkTypeDeliveryID, TargetTypeID: workitem.SystemExperience},
+		{SourceTypeID: workitem.SystemFundamental, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemValueProposition},
+		{SourceTypeID: workitem.SystemFundamental, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemExperience},
+		{SourceTypeID: workitem.SystemPapercuts, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemValueProposition},
+		{SourceTypeID: workitem.SystemPapercuts, LinkTypeID: link.SystemWorkItemLinkTypeParentChildID, TargetTypeID: workitem.SystemExperience},
+	}
+	for _, combi := range combis {
+		combi.SpaceID = space.SystemSpace
+		if err := createOrUpdateWorkItemLinkTypeCombination(ctx, typeCombiRepo, &combi); err != nil {
+			return errs.WithStack(err)
+		}
+	}
+
 	return nil
 }
 
@@ -626,9 +665,7 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 	switch cause.(type) {
 	case errors.NotFoundError:
 		_, err := linkTypeRepo.Create(ctx, linkType)
-		if err != nil {
-			return errs.WithStack(err)
-		}
+		return errs.WithStack(err)
 	case nil:
 		log.Info(ctx, map[string]interface{}{
 			"wilt": linkType.Name,
@@ -637,6 +674,20 @@ func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormW
 		linkType.Version = existingLinkType.Version
 		_, err = linkTypeRepo.Save(ctx, *linkType)
 		return errs.WithStack(err)
+	}
+	return nil
+}
+
+func createOrUpdateWorkItemLinkTypeCombination(ctx context.Context, typeCombiRepo *link.GormWorkItemLinkTypeCombinationRepository, combi *link.WorkItemLinkTypeCombination) error {
+	_, err := typeCombiRepo.Load(ctx, combi.ID)
+	cause := errs.Cause(err)
+	switch cause.(type) {
+	case errors.NotFoundError:
+		// TODO(kwk): Handle unique violation and ignore it because that is fine ;)
+		_, err = typeCombiRepo.Create(ctx, combi)
+		return errs.WithStack(err)
+	case nil:
+		// We don't allow updating possible combinations for now
 	}
 	return nil
 }
@@ -669,6 +720,7 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
 		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
 		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
+		{workitem.SystemImpediment, "Impediment", "", "fa fa-question"},
 	}
 	for _, i := range info {
 		if err := createOrUpdatePlannerItemExtension(ctx, i.id, i.name, i.description, i.icon, witr, db, space.SystemSpace); err != nil {

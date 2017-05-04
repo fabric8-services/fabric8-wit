@@ -20,11 +20,12 @@ import (
 
 // End points
 const (
-	EndpointWorkItemTypes          = "workitemtypes"
-	EndpointWorkItems              = "workitems"
-	EndpointWorkItemLinkCategories = "workitemlinkcategories"
-	EndpointWorkItemLinkTypes      = "workitemlinktypes"
-	EndpointWorkItemLinks          = "workitemlinks"
+	EndpointWorkItemTypes                = "workitemtypes"
+	EndpointWorkItems                    = "workitems"
+	EndpointWorkItemLinkCategories       = "workitemlinkcategories"
+	EndpointWorkItemLinkTypes            = "workitemlinktypes"
+	EndpointWorkItemLinks                = "workitemlinks"
+	EndpointWorkItemLinkTypeCombinations = "workitemlinktypecombinations"
 )
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
@@ -48,6 +49,7 @@ func NewWorkItemLinkRepository(db *gorm.DB) *GormWorkItemLinkRepository {
 		workItemTypeRepo:     workitem.NewWorkItemTypeRepository(db),
 		workItemLinkTypeRepo: NewWorkItemLinkTypeRepository(db),
 		revisionRepo:         NewRevisionRepository(db),
+		typeCombinationRepo:  NewWorkItemLinkTypeCombinationRepository(db),
 	}
 }
 
@@ -58,16 +60,22 @@ type GormWorkItemLinkRepository struct {
 	workItemTypeRepo     *workitem.GormWorkItemTypeRepository
 	workItemLinkTypeRepo *GormWorkItemLinkTypeRepository
 	revisionRepo         *GormWorkItemLinkRevisionRepository
+	typeCombinationRepo  *GormWorkItemLinkTypeCombinationRepository
 }
 
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
 func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
-	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
+	_, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
+
+	// TODO(kwk): Respect the link category (e.g. "user" or "system") in order
+	// to only allow creation of links only in the "user" category if the
+	// current user is not the system user.
+
 	// Fetch the source work item
 	source, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(sourceID, 10))
 	if err != nil {
@@ -88,16 +96,28 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 		return errs.WithStack(err)
 	}
 	// Check type paths
-	if !sourceWorkItemType.IsTypeOrSubtypeOf(linkType.SourceTypeID) {
-		return errors.NewBadParameterError("source work item type", source.Type)
+	typeCombinations, err := r.typeCombinationRepo.List(ctx, linkTypeID)
+	if err != nil {
+		return errs.Wrapf(err, "failed to list link type combinations for link type %s", linkTypeID)
 	}
-	if !targetWorkItemType.IsTypeOrSubtypeOf(linkType.TargetTypeID) {
-		return errors.NewBadParameterError("target work item type", target.Type)
+	foundWorkingCombination := false
+	for i := 0; i < len(typeCombinations) && !foundWorkingCombination; i++ {
+		tc := typeCombinations[i]
+		if sourceWorkItemType.IsTypeOrSubtypeOf(tc.SourceTypeID) && targetWorkItemType.IsTypeOrSubtypeOf(tc.TargetTypeID) {
+			foundWorkingCombination = true
+			//return errors.NewBadParameterError("source work item type", source.Type)
+		}
+		// if !targetWorkItemType.IsTypeOrSubtypeOf(tc.TargetTypeID) {
+		// 	return errors.NewBadParameterError("target work item type", target.Type)
+		// }
+	}
+	if !foundWorkingCombination {
+		return errors.NewBadParameterError("source and target work item type", source.Type.String()+"+"+target.Type.String())
 	}
 	return nil
 }
 
-// Create creates a new work item link in the repository.
+// Create creates a new work item link in the repository.s
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
 	link := &WorkItemLink{

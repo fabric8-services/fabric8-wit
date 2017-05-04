@@ -133,7 +133,12 @@ func main() {
 			}, "failed to populate common types")
 		}
 		if err := models.Transactional(db, func(tx *gorm.DB) error {
-			return migration.BootstrapWorkItemLinking(ctx, link.NewWorkItemLinkCategoryRepository(tx), space.NewRepository(tx), link.NewWorkItemLinkTypeRepository(tx))
+			return migration.BootstrapWorkItemLinking(
+				ctx,
+				link.NewWorkItemLinkCategoryRepository(tx),
+				space.NewRepository(tx),
+				link.NewWorkItemLinkTypeRepository(tx),
+				link.NewWorkItemLinkTypeCombinationRepository(tx))
 		}); err != nil {
 			log.Panic(ctx, map[string]interface{}{
 				"err": err,

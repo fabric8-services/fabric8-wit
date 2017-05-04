@@ -58,6 +58,9 @@ func (db *MockDB) WorkItemLinkCategories() link.WorkItemLinkCategoryRepository {
 func (db *MockDB) WorkItemLinkTypes() link.WorkItemLinkTypeRepository {
 	return nil
 }
+func (g *MockDB) WorkItemLinkTypeCombinations() link.WorkItemLinkTypeCombinationRepository {
+	return nil
+}
 func (db *MockDB) WorkItemLinks() link.WorkItemLinkRepository {
 	return nil
 }

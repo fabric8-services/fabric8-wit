@@ -12,6 +12,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
+	"github.com/almighty/almighty-core/application"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormtestsupport"
@@ -39,14 +40,15 @@ import (
 // It implements these interfaces from the suite package: SetupAllSuite, SetupTestSuite, TearDownAllSuite, TearDownTestSuite
 type workItemLinkSuite struct {
 	gormtestsupport.DBTestSuite
-	svc                      *goa.Service
-	workItemLinkTypeCtrl     *WorkItemLinkTypeController
-	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
-	workItemLinkCtrl         *WorkItemLinkController
-	workItemCtrl             *WorkitemController
-	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
-	spaceCtrl                *SpaceController
-	typeCtrl                 *WorkitemtypeController
+	svc                             *goa.Service
+	workItemLinkTypeCtrl            *WorkItemLinkTypeController
+	workItemLinkTypeCombinationCtrl *WorkItemLinkTypeCombinationController
+	workItemLinkCategoryCtrl        *WorkItemLinkCategoryController
+	workItemLinkCtrl                *WorkItemLinkController
+	workItemCtrl                    *WorkitemController
+	workItemRelsLinksCtrl           *WorkItemRelationshipsLinksController
+	spaceCtrl                       *SpaceController
+	typeCtrl                        *WorkitemtypeController
 	// These IDs can safely be used by all tests
 	bug1ID               uint64
 	bug2ID               uint64
@@ -94,10 +96,15 @@ func (s *workItemLinkSuite) SetupTest() {
 	s.cleanup()
 	priv, err := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
 	require.Nil(s.T(), err)
+
 	svc := goa.New("TestWorkItemLinkType-Service")
 	require.NotNil(s.T(), svc)
 	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
+
+	svc = goa.New("TestWorkItemLinkTypeCombination-Service")
+	s.workItemLinkTypeCombinationCtrl = NewWorkItemLinkTypeCombinationController(svc, gormapplication.NewGormDB(s.DB), s.Configuration)
+	require.NotNil(s.T(), s.workItemLinkTypeCombinationCtrl)
 
 	svc = goa.New("TestWorkItemLinkCategory-Service")
 	require.NotNil(s.T(), svc)
@@ -175,17 +182,22 @@ func (s *workItemLinkSuite) SetupTest() {
 	createLinkCategoryPayload := CreateWorkItemLinkCategory("test-user")
 	_, workItemLinkCategory := test.CreateWorkItemLinkCategoryCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCategoryCtrl, createLinkCategoryPayload)
 	require.NotNil(s.T(), workItemLinkCategory)
-	//s.deleteWorkItemLinkCategories = append(s.deleteWorkItemLinkCategories, *workItemLinkCategory.Data.ID)
 	s.userLinkCategoryID = *workItemLinkCategory.Data.ID
 	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", *wit.Data.ID, *wit.Data.ID, s.userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := CreateWorkItemLinkType("test-bug-blocker", s.userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID.String(), createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
-	//s.deleteWorkItemLinkTypes = append(s.deleteWorkItemLinkTypes, *workItemLinkType.Data.ID)
 	s.bugBlockerLinkTypeID = *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+
+	// Create work item link type combination payload
+	createLinkTypeCombinationPayload, err := CreateWorkItemLinkTypeCombination(s.userSpaceID, *workItemLinkType.Data.ID, *wit.Data.ID, *wit.Data.ID)
+	require.Nil(s.T(), err)
+	_, workItemLinkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCombinationCtrl, s.userSpaceID.String(), createLinkTypeCombinationPayload)
+	require.NotNil(s.T(), workItemLinkTypeCombination)
+	s.T().Logf("Created link type combination with ID: %s\n", *workItemLinkTypeCombination.Data.ID)
 
 }
 
@@ -246,13 +258,11 @@ func CreateWorkItem(spaceID uuid.UUID, workItemType uuid.UUID, title string) *ap
 }
 
 // CreateWorkItemLinkType defines a work item link type
-func CreateWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func CreateWorkItemLinkType(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
 		Topology:       link.TopologyNetwork,
 		ForwardName:    "forward name string for " + name,
 		ReverseName:    "reverse name string for " + name,
@@ -267,6 +277,29 @@ func CreateWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID,
 	return &app.CreateWorkItemLinkTypePayload{
 		Data: payload.Data,
 	}
+}
+
+// CreateWorkItemLinkTypeCombination defines a work item link type combination
+func CreateWorkItemLinkTypeCombination(spaceID, linkTypeID, sourceTypeID, targetTypeID uuid.UUID) (*app.CreateWorkItemLinkTypeCombinationPayload, error) {
+	appl := new(application.Application)
+	tc := link.WorkItemLinkTypeCombination{
+		SpaceID:      spaceID,
+		LinkTypeID:   linkTypeID,
+		SourceTypeID: sourceTypeID,
+		TargetTypeID: targetTypeID,
+	}
+	reqLong := &goa.RequestData{
+		Request: &http.Request{Host: "api.service.domain.org"},
+	}
+	payload, err := ConvertWorkItemLinkTypeCombinationFromModel(*appl, reqLong, tc)
+	if err != nil {
+		return nil, err
+	}
+	// The create payload is required during creation. Simply copy data over.
+	res := &app.CreateWorkItemLinkTypeCombinationPayload{
+		Data: payload,
+	}
+	return res, nil
 }
 
 // CreateWorkItemLink defines a work item link

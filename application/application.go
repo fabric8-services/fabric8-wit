@@ -23,6 +23,7 @@ type Application interface {
 	Identities() account.IdentityRepository
 	WorkItemLinkCategories() link.WorkItemLinkCategoryRepository
 	WorkItemLinkTypes() link.WorkItemLinkTypeRepository
+	WorkItemLinkTypeCombinations() link.WorkItemLinkTypeCombinationRepository
 	WorkItemLinks() link.WorkItemLinkRepository
 	Comments() comment.Repository
 	Spaces() space.Repository

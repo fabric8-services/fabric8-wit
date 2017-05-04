@@ -84,16 +84,17 @@ func init() {
 	}
 	// model structures and their corresponding package alias
 	structPackages = map[string]string{
-		"WorkItem":         "workitemdsl",
-		"WorkItemType":     "workitemdsl",
-		"WorkItemLink":     "workitemlinkdsl",
-		"WorkItemLinkType": "workitemlinkdsl",
-		"Space":            "spacedsl",
-		"Iteration":        "iterationdsl",
-		"User":             "accountdsl",
-		"Identity":         "accountdsl",
-		"Area":             "areadsl",
-		"Comment":          "commentdsl",
+		"WorkItem":                    "workitemdsl",
+		"WorkItemType":                "workitemdsl",
+		"WorkItemLink":                "workitemlinkdsl",
+		"WorkItemLinkType":            "workitemlinkdsl",
+		"WorkItemLinkTypeCombination": "workitemlinkdsl",
+		"Space":     "spacedsl",
+		"Iteration": "iterationdsl",
+		"User":      "accountdsl",
+		"Identity":  "accountdsl",
+		"Area":      "areadsl",
+		"Comment":   "commentdsl",
 	}
 	// structures to ignore during code generation (mostly because they correspond to model structures which were already taken into account)
 	ignoredStructs = []string{

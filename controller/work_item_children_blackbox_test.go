@@ -33,14 +33,15 @@ import (
 type workItemChildSuite struct {
 	gormtestsupport.DBTestSuite
 
-	workItemLinkTypeCtrl     *WorkItemLinkTypeController
-	workItemLinkCategoryCtrl *WorkItemLinkCategoryController
-	workItemLinkCtrl         *WorkItemLinkController
-	workItemCtrl             *WorkitemController
-	workItemRelsLinksCtrl    *WorkItemRelationshipsLinksController
-	spaceCtrl                *SpaceController
-	svc                      *goa.Service
-	typeCtrl                 *WorkitemtypeController
+	workItemLinkTypeCtrl            *WorkItemLinkTypeController
+	workItemLinkTypeCombinationCtrl *WorkItemLinkTypeCombinationController
+	workItemLinkCategoryCtrl        *WorkItemLinkCategoryController
+	workItemLinkCtrl                *WorkItemLinkController
+	workItemCtrl                    *WorkitemController
+	workItemRelsLinksCtrl           *WorkItemRelationshipsLinksController
+	spaceCtrl                       *SpaceController
+	svc                             *goa.Service
+	typeCtrl                        *WorkitemtypeController
 	// These IDs can safely be used by all tests
 	bug1        *app.WorkItemSingle
 	bug1ID      uint64
@@ -78,6 +79,11 @@ func (s *workItemChildSuite) SetupSuite() {
 	require.NotNil(s.T(), svc)
 	s.workItemLinkTypeCtrl = NewWorkItemLinkTypeController(svc, s.db, s.Configuration)
 	require.NotNil(s.T(), s.workItemLinkTypeCtrl)
+
+	svc = testsupport.ServiceAsUser("WorkItemLinkTypeCombination-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
+	require.NotNil(s.T(), svc)
+	s.workItemLinkTypeCombinationCtrl = NewWorkItemLinkTypeCombinationController(svc, s.db, s.Configuration)
+	require.NotNil(s.T(), s.workItemLinkTypeCombinationCtrl)
 
 	svc = testsupport.ServiceAsUser("WorkItemLinkCategory-Service", almtoken.NewManagerWithPrivateKey(priv), s.testIdentity)
 	require.NotNil(s.T(), svc)
@@ -173,11 +179,17 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created link category with ID: %s\n", *workItemLinkCategory.Data.ID)
 
 	// Create work item link type payload
-	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", workitem.SystemBug, workitem.SystemBug, userLinkCategoryID, s.userSpaceID)
+	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", userLinkCategoryID, s.userSpaceID)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID.String(), createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	bugBlockerLinkTypeID := *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
+
+	// Create type combination for link type
+	createLinkTypeCombiPayload, err := CreateWorkItemLinkTypeCombination(s.userSpaceID, *workItemLinkType.Data.ID, workitem.SystemBug, workitem.SystemBug)
+	require.Nil(s.T(), err)
+	_, workItemLinkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCombinationCtrl, s.userSpaceID.String(), createLinkTypeCombiPayload)
+	require.NotNil(s.T(), workItemLinkTypeCombination)
 
 	createPayload := CreateWorkItemLink(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
@@ -201,13 +213,11 @@ func (s *workItemChildSuite) TearDownTest() {
 //-----------------------------------------------------------------------------
 
 // createParentChildWorkItemLinkType defines a work item link type
-func createParentChildWorkItemLinkType(name string, sourceTypeID, targetTypeID, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
+func createParentChildWorkItemLinkType(name string, categoryID, spaceID uuid.UUID) *app.CreateWorkItemLinkTypePayload {
 	description := "Specify that one bug blocks another one."
 	lt := link.WorkItemLinkType{
 		Name:           name,
 		Description:    &description,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
 		Topology:       link.TopologyTree,
 		ForwardName:    "parent of",
 		ReverseName:    "child of",

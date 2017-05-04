@@ -33,62 +33,63 @@ const (
 	// Constants for viper variable names. Will be used to set
 	// default values as well as to get each value
 
-	varPostgresHost                     = "postgres.host"
-	varPostgresPort                     = "postgres.port"
-	varPostgresUser                     = "postgres.user"
-	varPostgresDatabase                 = "postgres.database"
-	varPostgresPassword                 = "postgres.password"
-	varPostgresSSLMode                  = "postgres.sslmode"
-	varPostgresConnectionTimeout        = "postgres.connection.timeout"
-	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
-	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
-	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
-	varFeatureWorkitemRemote            = "feature.workitem.remote"
-	varPopulateCommonTypes              = "populate.commontypes"
-	varHTTPAddress                      = "http.address"
-	varDeveloperModeEnabled             = "developer.mode.enabled"
-	varGithubAuthToken                  = "github.auth.token"
-	varKeycloakSecret                   = "keycloak.secret"
-	varKeycloakClientID                 = "keycloak.client.id"
-	varKeycloakDomainPrefix             = "keycloak.domain.prefix"
-	varKeycloakRealm                    = "keycloak.realm"
-	varKeycloakTesUserName              = "keycloak.testuser.name"
-	varKeycloakTesUserSecret            = "keycloak.testuser.secret"
-	varKeycloakTesUser2Name             = "keycloak.testuser2.name"
-	varKeycloakTesUser2Secret           = "keycloak.testuser2.secret"
-	varKeycloakURL                      = "keycloak.url"
-	varKeycloakEndpointAdmin            = "keycloak.endpoint.admin"
-	varKeycloakEndpointAuth             = "keycloak.endpoint.auth"
-	varKeycloakEndpointToken            = "keycloak.endpoint.token"
-	varKeycloakEndpointUserinfo         = "keycloak.endpoint.userinfo"
-	varKeycloakEndpointAuthzResourceset = "keycloak.endpoint.authz.resourceset"
-	varKeycloakEndpointClients          = "keycloak.endpoint.clients"
-	varKeycloakEndpointEntitlement      = "keycloak.endpoint.entitlement"
-	varKeycloakEndpointBroker           = "keycloak.endpoint.broker"
-	varKeycloakEndpointAccount          = "keycloak.endpoint.account"
-	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
-	varTokenPublicKey                   = "token.publickey"
-	varTokenPrivateKey                  = "token.privatekey"
-	varAuthNotApprovedRedirect          = "auth.notapproved.redirect"
-	varHeaderMaxLength                  = "header.maxlength"
-	varCacheControlWorkItems            = "cachecontrol.workitems"
-	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
-	varCacheControlWorkItemLinks        = "cachecontrol.workitemLinks"
-	varCacheControlWorkItemLinkTypes    = "cachecontrol.workitemlinktypes"
-	varCacheControlSpaces               = "cachecontrol.spaces"
-	varCacheControlIterations           = "cachecontrol.iterations"
-	varCacheControlAreas                = "cachecontrol.areas"
-	varCacheControlComments             = "cachecontrol.comments"
-	varCacheControlFilters              = "cachecontrol.filters"
-	varCacheControlUsers                = "cachecontrol.users"
-	varCacheControlUser                 = "cachecontrol.user"
-	defaultConfigFile                   = "config.yaml"
-	varOpenshiftTenantMasterURL         = "openshift.tenant.masterurl"
-	varCheStarterURL                    = "chestarterurl"
-	varValidRedirectURLs                = "redirect.valid"
-	varLogLevel                         = "log.level"
-	varLogJSON                          = "log.json"
-	varTenantServiceURL                 = "tenant.serviceurl"
+	varPostgresHost                             = "postgres.host"
+	varPostgresPort                             = "postgres.port"
+	varPostgresUser                             = "postgres.user"
+	varPostgresDatabase                         = "postgres.database"
+	varPostgresPassword                         = "postgres.password"
+	varPostgresSSLMode                          = "postgres.sslmode"
+	varPostgresConnectionTimeout                = "postgres.connection.timeout"
+	varPostgresConnectionRetrySleep             = "postgres.connection.retrysleep"
+	varPostgresConnectionMaxIdle                = "postgres.connection.maxidle"
+	varPostgresConnectionMaxOpen                = "postgres.connection.maxopen"
+	varFeatureWorkitemRemote                    = "feature.workitem.remote"
+	varPopulateCommonTypes                      = "populate.commontypes"
+	varHTTPAddress                              = "http.address"
+	varDeveloperModeEnabled                     = "developer.mode.enabled"
+	varGithubAuthToken                          = "github.auth.token"
+	varKeycloakSecret                           = "keycloak.secret"
+	varKeycloakClientID                         = "keycloak.client.id"
+	varKeycloakDomainPrefix                     = "keycloak.domain.prefix"
+	varKeycloakRealm                            = "keycloak.realm"
+	varKeycloakTesUserName                      = "keycloak.testuser.name"
+	varKeycloakTesUserSecret                    = "keycloak.testuser.secret"
+	varKeycloakTesUser2Name                     = "keycloak.testuser2.name"
+	varKeycloakTesUser2Secret                   = "keycloak.testuser2.secret"
+	varKeycloakURL                              = "keycloak.url"
+	varKeycloakEndpointAdmin                    = "keycloak.endpoint.admin"
+	varKeycloakEndpointAuth                     = "keycloak.endpoint.auth"
+	varKeycloakEndpointToken                    = "keycloak.endpoint.token"
+	varKeycloakEndpointUserinfo                 = "keycloak.endpoint.userinfo"
+	varKeycloakEndpointAuthzResourceset         = "keycloak.endpoint.authz.resourceset"
+	varKeycloakEndpointClients                  = "keycloak.endpoint.clients"
+	varKeycloakEndpointEntitlement              = "keycloak.endpoint.entitlement"
+	varKeycloakEndpointBroker                   = "keycloak.endpoint.broker"
+	varKeycloakEndpointAccount                  = "keycloak.endpoint.account"
+	varKeycloakEndpointLogout                   = "keycloak.endpoint.logout"
+	varTokenPublicKey                           = "token.publickey"
+	varTokenPrivateKey                          = "token.privatekey"
+	varAuthNotApprovedRedirect                  = "auth.notapproved.redirect"
+	varHeaderMaxLength                          = "header.maxlength"
+	varCacheControlWorkItems                    = "cachecontrol.workitems"
+	varCacheControlWorkItemTypes                = "cachecontrol.workitemtypes"
+	varCacheControlWorkItemLinks                = "cachecontrol.workitemLinks"
+	varCacheControlWorkItemLinkTypes            = "cachecontrol.workitemlinktypes"
+	varCacheControlWorkItemLinkTypeCombinations = "cachecontrol.workitemlinktypecombinations"
+	varCacheControlSpaces                       = "cachecontrol.spaces"
+	varCacheControlIterations                   = "cachecontrol.iterations"
+	varCacheControlAreas                        = "cachecontrol.areas"
+	varCacheControlComments                     = "cachecontrol.comments"
+	varCacheControlFilters                      = "cachecontrol.filters"
+	varCacheControlUsers                        = "cachecontrol.users"
+	varCacheControlUser                         = "cachecontrol.user"
+	defaultConfigFile                           = "config.yaml"
+	varOpenshiftTenantMasterURL                 = "openshift.tenant.masterurl"
+	varCheStarterURL                            = "chestarterurl"
+	varValidRedirectURLs                        = "redirect.valid"
+	varLogLevel                                 = "log.level"
+	varLogJSON                                  = "log.json"
+	varTenantServiceURL                         = "tenant.serviceurl"
 )
 
 // ConfigurationData encapsulates the Viper configuration object which stores the configuration data in-memory.
@@ -189,6 +190,7 @@ func (c *ConfigurationData) setConfigDefaults() {
 	c.v.SetDefault(varCacheControlWorkItemTypes, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinks, "max-age=2")
 	c.v.SetDefault(varCacheControlWorkItemLinkTypes, "max-age=2")
+	c.v.SetDefault(varCacheControlWorkItemLinkTypeCombinations, "max-age=2")
 	c.v.SetDefault(varCacheControlSpaces, "max-age=2")
 	c.v.SetDefault(varCacheControlIterations, "max-age=2")
 	c.v.SetDefault(varCacheControlAreas, "max-age=2")
@@ -313,6 +315,12 @@ func (c *ConfigurationData) GetCacheControlWorkItemTypes() string {
 // when returning a work item type (or a list of).
 func (c *ConfigurationData) GetCacheControlWorkItemLinkTypes() string {
 	return c.v.GetString(varCacheControlWorkItemLinkTypes)
+}
+
+// GetCacheControlWorkItemLinkTypeCombinations returns the value to set in the "Cache-Control" HTTP response header
+// when returning a work item type combination (or a list of).
+func (c *ConfigurationData) GetCacheControlWorkItemLinkTypeCombinations() string {
+	return c.v.GetString(varCacheControlWorkItemLinkTypeCombinations)
 }
 
 // GetCacheControlWorkItems returns the value to set in the "Cache-Control" HTTP response header
