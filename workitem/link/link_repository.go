@@ -131,6 +131,7 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 
+	// check to disallow multiple parents in tree topology
 	if linkType.Topology == TopologyTree {
 		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
 		if err != nil {
@@ -292,9 +293,35 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	linkToSave.Version = linkToSave.Version + 1
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, existingLink.SourceID, existingLink.TargetID, existingLink.LinkTypeID); err != nil {
+
+	linkTypeToSave, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkToSave.LinkTypeID)
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load link type")
+	}
+
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, linkToSave.SourceID, linkToSave.TargetID, linkTypeToSave); err != nil {
 		return nil, errs.WithStack(err)
 	}
+
+	// check to disallow multiple parents in tree topology
+	if linkTypeToSave.Topology == TopologyTree {
+		parentExists, err := r.CheckParentExists(ctx, linkToSave.TargetID, linkTypeToSave)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"link_type_id": linkTypeToSave.ID,
+				"target_id":    linkToSave.TargetID,
+			}, "failed to check if the work item %s has a parent work item", linkToSave.TargetID)
+			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", linkToSave.TargetID)
+		}
+		if parentExists {
+			log.Info(ctx, map[string]interface{}{
+				"link_type_id": linkTypeToSave.ID,
+				"target_id":    linkToSave.TargetID,
+			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, linkTypeToSave.ID)
+			return nil, errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkTypeToSave.ID, linkToSave.TargetID)).Expected("single parent in tree topology")
+		}
+	}
+
 	// save
 	db = r.db.Save(&linkToSave)
 	if db.Error != nil {
