@@ -556,7 +556,8 @@ func setupCodebase(appl application.Application, cb *codebase.CodebaseContent, s
 			SpaceID: spaceID,
 			Type:    "git",
 			URL:     cb.Repository,
-			//TODO: We don't have the StackID here.
+			StackID: "java-centos",
+			//TODO: Think of making stackID dynamic value (from analyzer)
 		}
 		existingCB, err := appl.Codebases().LoadByRepo(context.Background(), spaceID, cb.Repository)
 		if existingCB != nil {
