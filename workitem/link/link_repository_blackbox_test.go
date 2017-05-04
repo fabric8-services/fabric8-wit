@@ -26,7 +26,7 @@ type linkRepoBlackBoxTest struct {
 	ctx                context.Context
 	testSpace          uuid.UUID
 	testIdentity       account.Identity
-	TestTreeLinkTypeID uuid.UUID
+	testTreeLinkTypeID uuid.UUID
 }
 
 // SetupSuite overrides the DBTestSuite's function but calls it before doing anything else
@@ -52,7 +52,7 @@ func (s *linkRepoBlackBoxTest) SetupTest() {
 
 	// create a space
 	spaceRepository := space.NewRepository(s.DB)
-	spaceName := "test-space" + uuid.NewV4().String()
+	spaceName := testsupport.CreateRandomValidTestName("test-space")
 	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
 		Name: spaceName,
 	})
@@ -107,13 +107,13 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
 	TestTreeLinkType, err := linkTypeRepository.Create(s.ctx, "TestTreeLinkType", nil, workitem.SystemBug, workitem.SystemBug, "foo", "foo", "tree", linkCategory.ID, s.testSpace)
 	require.Nil(s.T(), err)
-	s.TestTreeLinkTypeID = TestTreeLinkType.ID
+	s.testTreeLinkTypeID = TestTreeLinkType.ID
 
 	// create a work item link
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
-	_, err = linkRepository.Create(s.ctx, Parent1ID, ChildID, s.TestTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, Parent1ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.Nil(s.T(), err)
 
-	_, err = linkRepository.Create(s.ctx, Parent2ID, ChildID, s.TestTreeLinkTypeID, s.testIdentity.ID)
+	_, err = linkRepository.Create(s.ctx, Parent2ID, ChildID, s.testTreeLinkTypeID, s.testIdentity.ID)
 	require.NotNil(s.T(), err)
 }

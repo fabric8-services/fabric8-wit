@@ -136,15 +136,17 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"link_type_id": linkTypeID,
-				"target_id":    targetID,
+				"wilt_id":   linkTypeID,
+				"target_id": targetID,
+				"err":       err,
 			}, "failed to check if the work item %s has a parent work item", targetID)
 			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
 		}
 		if parentExists {
-			log.Info(ctx, map[string]interface{}{
-				"link_type_id": linkTypeID,
-				"target_id":    targetID,
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":   linkTypeID,
+				"target_id": targetID,
+				"err":       err,
 			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
 			return nil, errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkTypeID, targetID)).Expected("single parent in tree topology")
 		}
@@ -308,15 +310,17 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 		parentExists, err := r.CheckParentExists(ctx, linkToSave.TargetID, linkTypeToSave)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
-				"link_type_id": linkTypeToSave.ID,
-				"target_id":    linkToSave.TargetID,
+				"wilt_id":   linkTypeToSave.ID,
+				"target_id": linkToSave.TargetID,
+				"err":       err,
 			}, "failed to check if the work item %s has a parent work item", linkToSave.TargetID)
 			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", linkToSave.TargetID)
 		}
 		if parentExists {
-			log.Info(ctx, map[string]interface{}{
-				"link_type_id": linkTypeToSave.ID,
-				"target_id":    linkToSave.TargetID,
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":   linkTypeToSave.ID,
+				"target_id": linkToSave.TargetID,
+				"err":       err,
 			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, linkTypeToSave.ID)
 			return nil, errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkTypeToSave.ID, linkToSave.TargetID)).Expected("single parent in tree topology")
 		}
