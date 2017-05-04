@@ -95,13 +95,15 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 
 // CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
 func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) (bool, error) {
-	// TOOD(kwk): find a safer way to format an SQL query to get rid of this
-	// warning: "SQL string formatting,MEDIUM,HIGH (gas)"
-	row := r.db.CommonDB().QueryRow(fmt.Sprintf("SELECT EXISTS (SELECT 1 FROM %[1]s WHERE link_type_id='%[2]s' AND target_id=%[3]d AND deleted_at IS NULL)",
-		WorkItemLink{}.TableName(),
-		linkType.ID,
-		targetID))
-
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				link_type_id=?
+				AND target_id=? 
+				AND deleted_at IS NULL
+		)`, WorkItemLink{}.TableName())
+	row := r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
 		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
