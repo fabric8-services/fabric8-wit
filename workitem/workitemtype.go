@@ -43,13 +43,14 @@ const (
 var (
 	// base item type with common fields for planner item types like userstory, experience, bug, feature, etc.
 	SystemPlannerItem      = uuid.FromStringOrNil("86af5178-9b41-469b-9096-57e5155c3f31") // "planneritem"
-	SystemUserStory        = uuid.FromStringOrNil("bbf35418-04b6-426c-a60b-7f80beb0b624") // "userstory"
+	SystemTask             = uuid.FromStringOrNil("bbf35418-04b6-426c-a60b-7f80beb0b624") // "task"
 	SystemValueProposition = uuid.FromStringOrNil("3194ab60-855b-4155-9005-9dce4a05f1eb") // "valueproposition"
 	SystemFundamental      = uuid.FromStringOrNil("ee7ca005-f81d-4eea-9b9b-1965df0988d0") // "fundamental"
 	SystemExperience       = uuid.FromStringOrNil("b9a71831-c803-4f66-8774-4193fffd1311") // "experience"
 	SystemFeature          = uuid.FromStringOrNil("0a24d3c2-e0a6-4686-8051-ec0ea1915a28") // "feature"
 	SystemScenario         = uuid.FromStringOrNil("71171e90-6d35-498f-a6a7-2083b5267c18") // "scenario"
 	SystemBug              = uuid.FromStringOrNil("26787039-b68f-4e28-8814-c2f93be1ef4e") // "bug"
+	SystemPapercuts        = uuid.FromStringOrNil("6d603ab4-7c5e-4c5f-bba8-a3ba9d370985") // "papercuts"
 )
 
 // WorkItemType represents a work item type as it is stored in the db

@@ -154,13 +154,6 @@ func main() {
 
 	service.WithLogger(goalogrus.New(log.Logger()))
 
-	// Scheduler to fetch and import remote tracker items
-	scheduler = remoteworkitem.NewScheduler(db)
-	defer scheduler.Stop()
-
-	accessTokens := controller.GetAccessTokens(configuration)
-	scheduler.ScheduleAllQueries(service.Context, accessTokens)
-
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
@@ -223,13 +216,22 @@ func main() {
 	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
-	// Mount "tracker" controller
-	c5 := controller.NewTrackerController(service, appDB, scheduler, configuration)
-	app.MountTrackerController(service, c5)
+	if !configuration.GetFeatureWorkitemRemote() {
+		// Scheduler to fetch and import remote tracker items
+		scheduler = remoteworkitem.NewScheduler(db)
+		defer scheduler.Stop()
 
-	// Mount "trackerquery" controller
-	c6 := controller.NewTrackerqueryController(service, appDB, scheduler, configuration)
-	app.MountTrackerqueryController(service, c6)
+		accessTokens := controller.GetAccessTokens(configuration)
+		scheduler.ScheduleAllQueries(service.Context, accessTokens)
+
+		// Mount "tracker" controller
+		c5 := controller.NewTrackerController(service, appDB, scheduler, configuration)
+		app.MountTrackerController(service, c5)
+
+		// Mount "trackerquery" controller
+		c6 := controller.NewTrackerqueryController(service, appDB, scheduler, configuration)
+		app.MountTrackerqueryController(service, c6)
+	}
 
 	// Mount "space" controller
 	spaceCtrl := controller.NewSpaceController(service, appDB, configuration, auth.NewKeycloakResourceManager(configuration))
@@ -250,10 +252,6 @@ func main() {
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
-
-	// Mount "identity" controller
-	identityCtrl := controller.NewIdentityController(service, appDB)
-	app.MountIdentityController(service, identityCtrl)
 
 	// Mount "users" controller
 	keycloakProfileService := login.NewKeycloakUserProfileClient()

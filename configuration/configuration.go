@@ -43,6 +43,7 @@ const (
 	varPostgresConnectionRetrySleep     = "postgres.connection.retrysleep"
 	varPostgresConnectionMaxIdle        = "postgres.connection.maxidle"
 	varPostgresConnectionMaxOpen        = "postgres.connection.maxopen"
+	varFeatureWorkitemRemote            = "feature.workitem.remote"
 	varPopulateCommonTypes              = "populate.commontypes"
 	varHTTPAddress                      = "http.address"
 	varDeveloperModeEnabled             = "developer.mode.enabled"
@@ -68,6 +69,7 @@ const (
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varAuthNotApprovedRedirect          = "auth.notapproved.redirect"
 	varHeaderMaxLength                  = "header.maxlength"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
@@ -196,6 +198,9 @@ func (c *ConfigurationData) setConfigDefaults() {
 	// but can only be kept in the client's local cache.
 	c.v.SetDefault(varCacheControlUser, "private,max-age=2")
 
+	// Features
+	c.v.SetDefault(varFeatureWorkitemRemote, false)
+
 	c.v.SetDefault(varKeycloakTesUser2Name, defaultKeycloakTesUser2Name)
 	c.v.SetDefault(varKeycloakTesUser2Secret, defaultKeycloakTesUser2Secret)
 	c.v.SetDefault(varOpenshiftTenantMasterURL, defaultOpenshiftTenantMasterURL)
@@ -210,6 +215,11 @@ func (c *ConfigurationData) GetPostgresHost() string {
 // GetPostgresPort returns the postgres port as set via default, config file, or environment variable
 func (c *ConfigurationData) GetPostgresPort() int64 {
 	return c.v.GetInt64(varPostgresPort)
+}
+
+// GetFeatureWorkitemRemote returns true if remote Work Item feaute is enabled
+func (c *ConfigurationData) GetFeatureWorkitemRemote() bool {
+	return c.v.GetBool(varFeatureWorkitemRemote)
 }
 
 // GetPostgresUser returns the postgres user as set via default, config file, or environment variable
@@ -368,6 +378,12 @@ func (c *ConfigurationData) GetTokenPrivateKey() []byte {
 // that is used to decrypt the authentication token.
 func (c *ConfigurationData) GetTokenPublicKey() []byte {
 	return []byte(c.v.GetString(varTokenPublicKey))
+}
+
+// GetAuthNotApprovedRedirect returns the URL to redirect to if the user is not approved
+// May return empty string which means an unauthorized error should be returned instead of redirecting the user
+func (c *ConfigurationData) GetAuthNotApprovedRedirect() string {
+	return c.v.GetString(varAuthNotApprovedRedirect)
 }
 
 // GetGithubAuthToken returns the actual Github OAuth Access Token

@@ -308,12 +308,16 @@ func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalRespon
 	ctx.setLastModified(lastModified)
 	ctx.setETag(eTag)
 	ctx.setCacheControl(cacheControl)
-	if !modifiedSince(ctx, lastModified) {
+	// check the 'If-None-Match' header first.
+	found, match := matchesETag(ctx, eTag)
+	if found && match {
 		return ctx.NotModified()
-	}
-	// check the ETag
-	if matchesETag(ctx, eTag) {
-		return ctx.NotModified()
+	} else if !found {
+		// check the 'If-Modified-Since' header only if no 'If-None-Match' header was provided
+		found, modified := modifiedSince(ctx, lastModified)
+		if found && !modified {
+			return ctx.NotModified()
+		}
 	}
 	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
 	return nonConditionalCallback()
@@ -337,12 +341,16 @@ func doConditionalEntities(ctx ConditionalRequestContext, entities []Conditional
 	ctx.setETag(eTag)
 	cacheControl := cacheControlConfig()
 	ctx.setCacheControl(cacheControl)
-	if !modifiedSince(ctx, lastModified) {
+	// check the 'If-None-Match' header first.
+	found, match := matchesETag(ctx, eTag)
+	if found && match {
 		return ctx.NotModified()
-	}
-	// check the ETag
-	if matchesETag(ctx, eTag) {
-		return ctx.NotModified()
+	} else if !found {
+		// check the 'If-Modified-Since' header only if no 'If-None-Match' header was provided
+		found, modified := modifiedSince(ctx, lastModified)
+		if found && !modified {
+			return ctx.NotModified()
+		}
 	}
 	// call the 'nonConditionalCallback' if the entity was modified since the client's last call
 	return nonConditionalCallback()
@@ -450,22 +458,34 @@ func (ctx *{{$resp.Name}}) getIfNoneMatch() *string {
 }`
 
 	matchesETag = `
-// matchesETag returns 'true' the given 'etag' argument matches with the context's 'IfNoneMatch' value.
-func matchesETag(ctx ConditionalRequestContext, etag string) bool {
-	if ctx.getIfNoneMatch() != nil && *ctx.getIfNoneMatch() == etag {
-		return true
+// matchesETag compares the given 'etag' argument matches with the context's 'IfNoneMatch' value.
+func matchesETag(ctx ConditionalRequestContext, etag string) (bool, bool) {
+	if ctx.getIfNoneMatch() != nil {
+		if *ctx.getIfNoneMatch() == etag {
+			// 'If-None-Match' field was found and matched with given 'etag' argument
+			return true, true
+		}
+		// 'If-None-Match' field was found and but did not match with given 'etag' argument
+		return true, false
 	}
-	return false
+	// 'If-None-Match' field was not found
+	return false, false
 }`
 
 	modifiedSince = `
-// modifiedSince returns 'true' if the given context's 'IfModifiedSince' value is before the given 'lastModified' argument
-func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) bool {
+// modifiedSince compares the given context's 'IfModifiedSince' value is before the given 'lastModified' argument
+func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) (bool, bool) {
 	if ctx.getIfModifiedSince() != nil {
 		ifModifiedSince := *ctx.getIfModifiedSince()
-		return ifModifiedSince.UTC().Truncate(time.Second).Before(lastModified.UTC().Truncate(time.Second))
+		// 'If-Modified' field was found and matched with given 'lastModified' argument
+		if ifModifiedSince.UTC().Truncate(time.Second).Before(lastModified.UTC().Truncate(time.Second)) {
+			return true, true
+		}
+		// 'If-Modified' field was found but did not match with given 'lastModified' argument
+		return true, false
 	}
-	return true
+	// 'If-Modified' field was not found
+	return false, false
 }`
 	getIfModifiedSince = `
 {{ $resp := . }}
