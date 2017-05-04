@@ -46,6 +46,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+const none = "none"
+
 func TestSuiteWorkItem1(t *testing.T) {
 	resource.Require(t, resource.Database)
 	suite.Run(t, new(WorkItemSuite))
@@ -1132,7 +1134,7 @@ func (s *WorkItem2Suite) TestWI2FailCreateWithEmptyTitle() {
 
 func (s *WorkItem2Suite) TestWI2SuccessCreateWithAssigneeRelation() {
 	// given
-	userType := "identities"
+	userType := APIStringTypeUser
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1231,7 +1233,7 @@ func (s *WorkItem2Suite) TestWI2ListByAssigneeFilter() {
 
 func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	// given
-	userType := "identities"
+	userType := APIStringTypeUser
 	newUser := createOneRandomUserIdentity(s.svc.Context, s.DB)
 	newUserID := newUser.ID.String()
 	c := minimumRequiredCreatePayload()
@@ -1245,8 +1247,9 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 				ID:   &newUserID,
 			}},
 	}
-	assignee := "none"
+	assignee := none
 	_, list0 := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil)
+	// data coming from test fixture
 	assert.Len(s.T(), list0.Data, 1)
 	assert.True(s.T(), strings.Contains(*list0.Links.First, "filter[assignee]=none"))
 
@@ -1262,6 +1265,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 
 	_, list := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil)
 	assert.Len(s.T(), list.Data, 1)
+	require.NotNil(s.T(), *list.Data[0].Relationships.Assignees.Data[0])
 	assert.Equal(s.T(), newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
 	assert.False(s.T(), strings.Contains(*list.Links.First, "filter[assignee]=none"))
 
