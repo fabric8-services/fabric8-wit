@@ -55,7 +55,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string) error
+	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string, userNotApprovedRedirectURL string) error
 	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error)
 	Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
 	LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
@@ -89,7 +89,7 @@ const (
 )
 
 // Perform performs authentication
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string, userNotApprovedRedirectURL string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 
@@ -144,6 +144,13 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			}, "failed to create a user and KeyCloak identity using the access token")
 			switch err.(type) {
 			case coreerrors.UnauthorizedError:
+				if userNotApprovedRedirectURL != "" {
+					log.Debug(ctx, map[string]interface{}{
+						"user_not_approved_redirect_url": userNotApprovedRedirectURL,
+					}, "user not approved; redirecting to registration app")
+					ctx.ResponseData.Header().Set("Location", userNotApprovedRedirectURL)
+					return ctx.TemporaryRedirect()
+				}
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 			}
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -725,7 +732,17 @@ func checkApproved(ctx context.Context, profileService UserProfileService, acces
 	}
 	b, err := strconv.ParseBool(approved[0])
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      err,
+			"username": profile.Username,
+			"approved": approved[0],
+		}, "unable to parse 'approved' attribute of the user's profile")
 		return false, err
+	}
+	if !b {
+		log.Warn(ctx, map[string]interface{}{
+			"username": profile.Username,
+		}, "approved attribute found but set to false")
 	}
 	return b, nil
 }

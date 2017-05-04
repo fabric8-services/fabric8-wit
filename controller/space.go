@@ -193,7 +193,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 // List runs the list action.
 func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	var response app.SpaceList
 	txnErr := application.Transactional(c.db, func(appl application.Application) error {
@@ -408,7 +408,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, sp.OwnerId.String()))
+	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
 	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
 

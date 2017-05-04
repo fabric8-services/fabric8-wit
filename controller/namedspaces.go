@@ -56,7 +56,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 }
 
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	if ctx.UserName == "" {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 	}

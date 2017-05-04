@@ -18,7 +18,7 @@ const (
 	pageSizeMax     = 100
 )
 
-func computePagingLimts(offsetParam *string, limitParam *int) (offset int, limit int) {
+func computePagingLimits(offsetParam *string, limitParam *int) (offset int, limit int) {
 	if offsetParam == nil {
 		offset = 0
 	} else {

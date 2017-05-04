@@ -42,7 +42,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 	}
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
@@ -95,7 +95,7 @@ func generateBacklogExpression(ctx context.Context, db application.DB, spaceID u
 		var expWits criteria.Expression
 		wits, err := appl.WorkItemTypes().ListPlannerItems(ctx, spaceID)
 		if err != nil {
-			return errs.Wrap(err, "unable to fetch work item types that derives of planner item")
+			return errs.Wrap(err, "unable to fetch work item types that derive from planner item")
 		}
 		if len(wits) >= 1 {
 			expWits = criteria.Equals(criteria.Field("Type"), criteria.Literal(wits[0].ID.String()))

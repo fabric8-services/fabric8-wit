@@ -24,6 +24,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+const (
+	usersEndpoint = "/api/users"
+)
+
 // UsersController implements the users resource.
 type UsersController struct {
 	*goa.Controller
@@ -389,9 +393,10 @@ func filterUsers(appl application.Application, ctx *app.ListUsersContext) ([]acc
 		if len(userFilters) != 0 {
 			filteredUsers, err = appl.Users().Query(userFilters...)
 		} else {
-			// Not breaking the existing API - If no filters were passed, we fall back on the good old 'list everything'.
-			// FIXME We should remove this when fabric8io/fabric8-planner#1538 is fixed
-			filteredUsers, err = appl.Users().List(ctx.Context)
+			// Soft-kill the API for listing all Users /api/users
+			resultUsers = []account.User{}
+			resultIdentities = []account.Identity{}
+			return resultUsers, resultIdentities, nil
 		}
 		if err != nil {
 			return nil, nil, errs.Wrap(err, "error fetching users")
