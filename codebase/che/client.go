@@ -166,7 +166,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 }
 
 // StartExistingWorkspace starts an existing Che Workspace based on a repository
-func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceName string) (*WorkspaceLink, error) {
+func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceName string) (*WorkspaceResponse, error) {
 	log.Debug(ctx, map[string]interface{}{
 		"workspace_id": workspaceName,
 	}, "starting an existing workspace")
@@ -208,7 +208,7 @@ func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceNa
 		return nil, &workspaceErr
 	}
 
-	workspaceResp := WorkspaceLink{}
+	workspaceResp := WorkspaceResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

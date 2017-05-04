@@ -226,9 +226,10 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		return nil
 	})
 
+	ideURL := workspaceResp.HRef()
 	resp := &app.WorkspaceOpen{
 		Links: &app.WorkspaceOpenLinks{
-			Open: &workspaceResp.HRef,
+			Open: &ideURL,
 		},
 	}
 	return ctx.OK(resp)
