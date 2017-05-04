@@ -47,7 +47,7 @@ func (c *SpaceAreasController) List(ctx *app.ListSpaceAreasContext) error {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		for _, a := range areas {
-			log.Info(ctx, map[string]interface{}{"area_id": a.ID.String()}, "Found space area with id %s", a.ID.String())
+			log.Info(ctx, map[string]interface{}{"area_id": a.ID}, "Found space area with id %s", a.ID)
 		}
 		return ctx.ConditionalEntities(areas, c.config.GetCacheControlAreas, func() error {
 			res := &app.AreaList{}

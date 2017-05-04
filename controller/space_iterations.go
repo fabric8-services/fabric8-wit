@@ -82,7 +82,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
 		log.Info(ctx, map[string]interface{}{
-			"iteration_id": newItr.ID.String(),
+			"iteration_id": newItr.ID,
 			"wiCounts":     wiCounts,
 		}, "wicounts for created iteration %s -> %v", newItr.ID.String(), wiCounts)
 
@@ -134,9 +134,9 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			// fetch extra information(counts of WI in each iteration of the space) to be added in response
 			wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
 			log.Info(ctx, map[string]interface{}{
-				"space_id": spaceID.String(),
+				"space_id": spaceID,
 				"wiCounts": wiCounts,
-			}, "Retrieving wicounts for spaceID %s -> %v", spaceID.String(), wiCounts)
+			}, "Retrieving wicounts for spaceID %s -> %v", spaceID, wiCounts)
 
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
