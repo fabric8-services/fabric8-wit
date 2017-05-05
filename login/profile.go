@@ -16,7 +16,6 @@ const ImageURLAttributeName = "imageURL"
 const BioAttributeName = "bio"
 const URLAttributeName = "url"
 const CompanyAttributeName = "company"
-const RegistrationCompletedAttributeName = "registrationCompleted"
 const ApprovedAttributeName = "approved"
 
 // KeycloakUserProfile represents standard Keycloak User profile api request payload
