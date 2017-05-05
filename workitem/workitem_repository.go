@@ -820,9 +820,9 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	// get child IDs of the iteration
 	var childIDs []uuid.UUID
 	iterationTable := iteration.Iteration{}
-	db := r.db
-	db.Model(iterationTable).Select("id")
-	db.Where("path <@ ? and space_id = ?", pathOfIteration.Convert(), itr.SpaceID.String())
+	iterationTableName := iterationTable.TableName()
+	getIterationsOfSpace := fmt.Sprintf(`SELECT id FROM %s WHERE path <@ ? and space_id = ?`, iterationTableName)
+	db := r.db.Raw(getIterationsOfSpace, pathOfIteration.Convert(), itr.SpaceID.String())
 	db.Pluck("id", &childIDs)
 	if db.Error != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -836,7 +836,7 @@ func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr 
 	// build where clause usig above ID list
 	idsToLookFor := []string{}
 	for _, x := range childIDs {
-		idsToLookFor = append(idsToLookFor, fmt.Sprintf("'%s'", x.String()))
+		idsToLookFor = append(idsToLookFor, x.String())
 	}
 	whereClause := strings.Join(idsToLookFor, ",")
 	query := fmt.Sprintf(`SELECT count(*) AS Total,
