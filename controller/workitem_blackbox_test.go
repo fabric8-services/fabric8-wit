@@ -2597,7 +2597,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"err": err,
-		}, "Failed to create space")
+		}, "failed to create space")
 		return nil, nil, nil
 	}
 
@@ -2611,7 +2611,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 		log.Error(ctx, map[string]interface{}{
 			"space_id": sp.ID,
 			"err":      err,
-		}, "Failed to create root area for space.")
+		}, "failed to create root area for space.")
 		return nil, nil, nil
 	}
 
@@ -2624,7 +2624,7 @@ func createSpaceWithDefaults(ctx context.Context, db *gorm.DB) (*space.Space, *i
 		log.Error(ctx, map[string]interface{}{
 			"space_id": sp.ID,
 			"err":      err,
-		}, "Failed to create root iteration for space.")
+		}, "failed to create root iteration for space.")
 		return nil, nil, nil
 	}
 	return sp, itr, ar
