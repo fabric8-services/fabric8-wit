@@ -22,6 +22,9 @@ var area = a.Type("Area", func() {
 var areaAttributes = a.Type("AreaAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a Area. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
 	a.Attribute("name", d.String, "The Area name", func() {
+		a.MaxLength(62) // maximum area name length is 62 characters
+		a.MinLength(1)  // minimum area name length is 1 characters
+		a.Pattern("^[^_|-].*")
 		a.Example("Area for Build related stuff")
 	})
 	a.Attribute("created-at", d.DateTime, "When the area was created", func() {
