@@ -1,7 +1,6 @@
 package jsonapi
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -34,7 +33,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var title, code string
 	var statusCode int
 	var id *string
-	log.Logger().Infoln(fmt.Sprintf("Error occurred: %s (%T)", cause.Error(), cause))
+	log.Info(nil, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound

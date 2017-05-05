@@ -58,6 +58,6 @@ func CreateTestIdentity(db *gorm.DB, username, providerType string) (account.Ide
 	err := models.Transactional(db, func(tx *gorm.DB) error {
 		return identityRepository.Create(context.Background(), &testIdentity)
 	})
-	log.Logger().Infoln("Created identity with id=", testIdentity.ID.String())
+	log.Info(nil, map[string]interface{}{"identity_id": testIdentity.ID}, "created identity")
 	return testIdentity, err
 }

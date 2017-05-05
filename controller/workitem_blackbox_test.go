@@ -1793,7 +1793,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
 	testSpace, rootArea := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
-	log.Logger().Infoln("Creating child area...")
+	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
 		Name:    "Child Area of " + rootArea.Name,
 		SpaceID: testSpace.ID,
@@ -1802,7 +1802,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	areaRepo := area.NewAreaRepository(s.DB)
 	err := areaRepo.Create(s.ctx, &childArea)
 	require.Nil(s.T(), err)
-	log.Logger().Infoln("Child area created")
+	log.Info(nil, nil, "child area created")
 	childAreaID := childArea.ID.String()
 	childAreaType := area.APIStringTypeAreas
 	payload := app.CreateWorkitemPayload{

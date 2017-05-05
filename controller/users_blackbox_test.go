@@ -911,7 +911,7 @@ func (s *TestUsersSuite) generateUsersTag(allUsers app.UserArray) string {
 			},
 		}
 	}
-	log.Logger().Infoln("Users: ", len(allUsers.Data), " -> ETag: ", app.GenerateEntitiesTag(entities))
+	log.Info(nil, map[string]interface{}{"users": len(allUsers.Data), "etag": app.GenerateEntitiesTag(entities)}, "generate users tag")
 	return app.GenerateEntitiesTag(entities)
 }
 
