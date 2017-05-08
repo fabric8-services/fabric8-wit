@@ -99,11 +99,11 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
-				link_type_id=?
-				AND target_id=? 
+				link_type_id='%[2]s'
+				AND target_id=%[3]d
 				AND deleted_at IS NULL
-		)`, WorkItemLink{}.TableName())
-	row := r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
+		)`, WorkItemLink{}.TableName(), linkType.ID, targetID)
+	row := r.db.CommonDB().QueryRow(query)
 	var exists bool
 	if err := row.Scan(&exists); err != nil {
 		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
