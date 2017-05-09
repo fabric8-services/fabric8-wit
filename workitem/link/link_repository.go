@@ -64,7 +64,7 @@ type GormWorkItemLinkRepository struct {
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
 func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
-	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
+	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
