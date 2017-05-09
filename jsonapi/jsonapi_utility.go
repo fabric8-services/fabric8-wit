@@ -20,6 +20,7 @@ const (
 	ErrorCodeConversionError   = "conversion_error"
 	ErrorCodeInternalError     = "internal_error"
 	ErrorCodeUnauthorizedError = "unauthorized_error"
+	ErrorCodeForbiddenError    = "forbidden_error"
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
 )
 
@@ -59,6 +60,10 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 		code = ErrorCodeUnauthorizedError
 		title = "Unauthorized error"
 		statusCode = http.StatusUnauthorized
+	case errors.ForbiddenError:
+		code = ErrorCodeForbiddenError
+		title = "Forbidden error"
+		statusCode = http.StatusForbidden
 	default:
 		code = ErrorCodeUnknownError
 		title = "Unknown error"
