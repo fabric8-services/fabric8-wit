@@ -78,7 +78,7 @@ func main() {
 	}
 
 	// Initialized developer mode flag and log level for the logger
-	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled(), configuration.GetLogLevel())
+	log.InitializeLogger(configuration.IsLogJSON(), configuration.GetLogLevel())
 
 	printUserInfo()
 
