@@ -1,15 +1,16 @@
 package controller
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 )
@@ -80,7 +81,10 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
-		logrus.Info("wicounts for created iteration ", newItr.ID.String(), " -> ", wiCounts)
+		log.Info(ctx, map[string]interface{}{
+			"iteration_id": newItr.ID,
+			"wiCounts":     wiCounts,
+		}, "wicounts for created iteration %s -> %v", newItr.ID.String(), wiCounts)
 
 		var responseData *app.Iteration
 		if newItr.Path.IsEmpty() == false {
@@ -129,7 +133,11 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 			}
 			// fetch extra information(counts of WI in each iteration of the space) to be added in response
 			wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
-			logrus.Info("Retrieving wicounts for spaceID ", spaceID.String(), " -> ", wiCounts)
+			log.Info(ctx, map[string]interface{}{
+				"space_id": spaceID,
+				"wiCounts": wiCounts,
+			}, "Retrieving wicounts for spaceID %s -> %v", spaceID, wiCounts)
+
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

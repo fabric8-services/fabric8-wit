@@ -12,7 +12,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
-	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/auth"
@@ -67,7 +66,7 @@ func main() {
 
 	configuration, err := config.NewConfigurationData(configFilePath)
 	if err != nil {
-		logrus.Panic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,
 			"err":              err,
 		}, "failed to setup the configuration")

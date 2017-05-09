@@ -4,11 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"fmt"
-
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -34,7 +33,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var title, code string
 	var statusCode int
 	var id *string
-	logrus.Info(fmt.Sprintf("Error occurred: %s (%T)", cause.Error(), cause))
+	log.Info(nil, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound
