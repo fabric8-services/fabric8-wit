@@ -8,24 +8,24 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
-
 	"testing"
+	"time"
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/area"
 	"github.com/almighty/almighty-core/codebase"
+	"github.com/almighty/almighty-core/configuration"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/path"
 	"github.com/almighty/almighty-core/rendering"
@@ -36,7 +36,6 @@ import (
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
 
-	"github.com/almighty/almighty-core/configuration"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
@@ -1794,7 +1793,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithArea() {
 func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	// given
 	testSpace, rootArea := createSpaceAndArea(s.T(), gormapplication.NewGormDB(s.DB))
-	logrus.Info("Creating child area...")
+	log.Info(nil, nil, "creating child area...")
 	childArea := area.Area{
 		Name:    "Child Area of " + rootArea.Name,
 		SpaceID: testSpace.ID,
@@ -1803,7 +1802,7 @@ func (s *WorkItem2Suite) TestWI2UpdateWithRootAreaIfMissing() {
 	areaRepo := area.NewAreaRepository(s.DB)
 	err := areaRepo.Create(s.ctx, &childArea)
 	require.Nil(s.T(), err)
-	logrus.Info("Child area created")
+	log.Info(nil, nil, "child area created")
 	childAreaID := childArea.ID.String()
 	childAreaType := area.APIStringTypeAreas
 	payload := app.CreateWorkitemPayload{
