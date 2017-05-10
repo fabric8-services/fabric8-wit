@@ -23,9 +23,8 @@ var (
 	}
 )
 
-// InitializeLogger creates a default logger whose ouput format, log level differs
-// depending of whether the developer mode flag is enable/disabled.
-func InitializeLogger(developerModeFlag bool, lvl string) {
+// InitializeLogger creates a default logger with the given ouput format and log level
+func InitializeLogger(logJSON bool, lvl string) {
 	logger = log.New()
 
 	logLevel, err := log.ParseLevel(lvl)
@@ -36,18 +35,18 @@ func InitializeLogger(developerModeFlag bool, lvl string) {
 	log.SetLevel(logLevel)
 	logger.Level = logLevel
 
-	if developerModeFlag {
-		customFormatter := new(log.TextFormatter)
-		customFormatter.FullTimestamp = true
-		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-		log.SetFormatter(customFormatter)
-		logger.Formatter = customFormatter
-	} else {
+	if logJSON {
 		customFormatter := new(log.JSONFormatter)
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 
 		log.SetFormatter(customFormatter)
 		customFormatter.DisableTimestamp = false
+		logger.Formatter = customFormatter
+	} else {
+		customFormatter := new(log.TextFormatter)
+		customFormatter.FullTimestamp = true
+		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+		log.SetFormatter(customFormatter)
 		logger.Formatter = customFormatter
 	}
 
@@ -55,8 +54,8 @@ func InitializeLogger(developerModeFlag bool, lvl string) {
 }
 
 // NewCustomizedLogger creates a custom logger specifying the desired log level
-// and the developer mode flag. Returns the logger object and the error.
-func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, error) {
+// and the log format flag. Returns the logger object and the error.
+func NewCustomizedLogger(level string, logJSON bool) (*log.Logger, error) {
 	logger := log.New()
 
 	lv, err := log.ParseLevel(level)
@@ -65,16 +64,7 @@ func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, err
 	}
 	logger.Level = lv
 
-	if developerModeFlag {
-		customFormatter := new(log.TextFormatter)
-		customFormatter.FullTimestamp = true
-		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
-		log.SetFormatter(customFormatter)
-
-		log.SetLevel(log.DebugLevel)
-		logger.Level = lv
-		logger.Formatter = customFormatter
-	} else {
+	if logJSON {
 		customFormatter := new(log.JSONFormatter)
 		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
 
@@ -82,6 +72,15 @@ func NewCustomizedLogger(level string, developerModeFlag bool) (*log.Logger, err
 		customFormatter.DisableTimestamp = false
 
 		log.SetLevel(log.InfoLevel)
+		logger.Level = lv
+		logger.Formatter = customFormatter
+	} else {
+		customFormatter := new(log.TextFormatter)
+		customFormatter.FullTimestamp = true
+		customFormatter.TimestampFormat = "2006-01-02 15:04:05"
+		log.SetFormatter(customFormatter)
+
+		log.SetLevel(log.DebugLevel)
 		logger.Level = lv
 		logger.Formatter = customFormatter
 	}
