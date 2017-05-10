@@ -195,7 +195,7 @@ func WriteNames(api *design.APIDefinition, outDir string) ([]string, error) {
 		codegen.SimpleImport("time"),
 		codegen.SimpleImport("reflect"),
 		codegen.SimpleImport("github.com/almighty/almighty-core/configuration"),
-		codegen.SimpleImport("github.com/Sirupsen/logrus"),
+		codegen.SimpleImport("github.com/almighty/almighty-core/log"),
 		codegen.NewImport("uuid", "github.com/satori/go.uuid"),
 	}
 	// add imports for domain packages
@@ -291,14 +291,14 @@ type ConditionalRequestContext interface {
 	conditionalResponseEntity = `
 	// ConditionalResponseEntity interface with methods for the response entities
 type ConditionalResponseEntity interface {
-	// returns the time of last update 
+	// returns the time of last update
 	GetLastModified() time.Time
 	// returns the values to use to generate the ETag
 	GetETagData() []interface{}
 }`
 
 	cacheControlConfig = `
-   type CacheControlConfig func() string 
+   type CacheControlConfig func() string
    `
 	doConditionals = `
 func doConditionalEntity(ctx ConditionalRequestContext, entity ConditionalResponseEntity, cacheControlConfig CacheControlConfig, nonConditionalCallback func() error) error {
@@ -434,7 +434,7 @@ func generateETagValue(data []interface{}) string {
 		case *uuid.UUID:
 			buffer.WriteString(d.String())
 		default:
-			logrus.Error("Unexpected etag fragment format", reflect.TypeOf(d).String())
+			log.Logger().Errorln("Unexpected etag fragment format ", reflect.TypeOf(d).String())
 		}
 		if i < len(data)-1 {
 			buffer.WriteString("|")
