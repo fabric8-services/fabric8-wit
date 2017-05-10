@@ -4,11 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"fmt"
-
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/errors"
+	"github.com/almighty/almighty-core/log"
+
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
 )
@@ -21,6 +20,7 @@ const (
 	ErrorCodeConversionError   = "conversion_error"
 	ErrorCodeInternalError     = "internal_error"
 	ErrorCodeUnauthorizedError = "unauthorized_error"
+	ErrorCodeForbiddenError    = "forbidden_error"
 	ErrorCodeJWTSecurityError  = "jwt_security_error"
 )
 
@@ -34,7 +34,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	var title, code string
 	var statusCode int
 	var id *string
-	logrus.Info(fmt.Sprintf("Error occurred: %s (%T)", cause.Error(), cause))
+	log.Info(nil, map[string]interface{}{"err": cause, "error_message": cause.Error()}, "an error occurred in our api")
 	switch cause.(type) {
 	case errors.NotFoundError:
 		code = ErrorCodeNotFound
@@ -51,7 +51,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	case errors.VersionConflictError:
 		code = ErrorCodeVersionConflict
 		title = "Version conflict error"
-		statusCode = http.StatusBadRequest
+		statusCode = http.StatusConflict
 	case errors.InternalError:
 		code = ErrorCodeInternalError
 		title = "Internal error"
@@ -60,6 +60,10 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 		code = ErrorCodeUnauthorizedError
 		title = "Unauthorized error"
 		statusCode = http.StatusUnauthorized
+	case errors.ForbiddenError:
+		code = ErrorCodeForbiddenError
+		title = "Forbidden error"
+		statusCode = http.StatusForbidden
 	default:
 		code = ErrorCodeUnknownError
 		title = "Unknown error"
@@ -123,6 +127,11 @@ type Forbidden interface {
 	Forbidden(*app.JSONAPIErrors) error
 }
 
+// Conflict represent a Context that can return a Conflict HTTP status
+type Conflict interface {
+	Conflict(*app.JSONAPIErrors) error
+}
+
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
 func JSONErrorResponse(x InternalServerError, err error) error {
@@ -143,6 +152,10 @@ func JSONErrorResponse(x InternalServerError, err error) error {
 	case http.StatusForbidden:
 		if ctx, ok := x.(Forbidden); ok {
 			return errs.WithStack(ctx.Forbidden(jsonErr))
+		}
+	case http.StatusConflict:
+		if ctx, ok := x.(Conflict); ok {
+			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
 		return errs.WithStack(x.InternalServerError(jsonErr))

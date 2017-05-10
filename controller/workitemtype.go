@@ -3,11 +3,11 @@ package controller
 import (
 	"fmt"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/space"
 	"github.com/almighty/almighty-core/workitem"
@@ -109,7 +109,7 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 	if err != nil {
 		return errors.NewNotFoundError("spaceID", ctx.ID)
 	}
-	logrus.Info("spaceID:", spaceID)
+	log.Info(ctx, map[string]interface{}{"space_id": spaceID}, "Listing work item types per space")
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
