@@ -206,6 +206,7 @@ var _ = a.Resource("workitem", func() {
 			a.Media(workItemSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
