@@ -29,6 +29,15 @@ func TestAndOr(t *testing.T) {
 	expect(t, Or(Equals(Field("foo"), Literal("abcd")), Equals(Literal(true), Literal(false))), "((Fields@>'{\"foo\" : \"abcd\"}') or (? = ?))", []interface{}{true, false})
 }
 
+func TestIsNull(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	expect(t, IsNull("system.assignees"), "(Fields->>'system.assignees' IS NULL)", []interface{}{})
+	expect(t, IsNull("ID"), "(ID IS NULL)", []interface{}{})
+	expect(t, IsNull("Type"), "(Type IS NULL)", []interface{}{})
+	expect(t, IsNull("Version"), "(Version IS NULL)", []interface{}{})
+}
+
 func expect(t *testing.T, expr Expression, expectedClause string, expectedParameters []interface{}) {
 	clause, parameters, err := Compile(expr)
 	if len(err) > 0 {
