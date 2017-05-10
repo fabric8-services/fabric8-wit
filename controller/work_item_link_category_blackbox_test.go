@@ -248,7 +248,7 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueT
 	}
 	newVersion := *linkCatSystem.Data.Attributes.Version + 42 // This will cause a version conflict error
 	updatePayload.Data.Attributes.Version = &newVersion
-	test.UpdateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
+	test.UpdateWorkItemLinkCategoryConflict(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {

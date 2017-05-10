@@ -175,7 +175,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				return ctx.Conflict(jerrors)
 			}
 			identity.Username = *updatedUserName
-			identity.RegistrationCompleted = true
 			keycloakUserProfile.Username = updatedUserName
 		}
 

@@ -51,7 +51,7 @@ func ErrorToJSONAPIError(err error) (app.JSONAPIError, int) {
 	case errors.VersionConflictError:
 		code = ErrorCodeVersionConflict
 		title = "Version conflict error"
-		statusCode = http.StatusBadRequest
+		statusCode = http.StatusConflict
 	case errors.InternalError:
 		code = ErrorCodeInternalError
 		title = "Internal error"
@@ -127,6 +127,11 @@ type Forbidden interface {
 	Forbidden(*app.JSONAPIErrors) error
 }
 
+// Conflict represent a Context that can return a Conflict HTTP status
+type Conflict interface {
+	Conflict(*app.JSONAPIErrors) error
+}
+
 // JSONErrorResponse auto maps the provided error to the correct response type
 // If all else fails, InternalServerError is returned
 func JSONErrorResponse(x InternalServerError, err error) error {
@@ -147,6 +152,10 @@ func JSONErrorResponse(x InternalServerError, err error) error {
 	case http.StatusForbidden:
 		if ctx, ok := x.(Forbidden); ok {
 			return errs.WithStack(ctx.Forbidden(jsonErr))
+		}
+	case http.StatusConflict:
+		if ctx, ok := x.(Conflict); ok {
+			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
 		return errs.WithStack(x.InternalServerError(jsonErr))
