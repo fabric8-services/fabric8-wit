@@ -811,9 +811,16 @@ func (r *GormWorkItemRepository) GetCountsPerIteration(ctx context.Context, spac
 	return countsMap, nil
 }
 
-// GetCountsForIteration returns Closed and Total counts of WI for given iteration
-// It executes
-// SELECT count(*) as Total, count( case fields->>'system.state' when 'closed' then '1' else null end ) as Closed FROM "work_items" where fields@> concat('{"system.iteration": "%s"}')::jsonb and work_items.deleted_at is null
+// GetCountsForIteration returns Closed and Total counts of WIs for given iteration
+// It fetches all child iterations of input iteration and then uses list to counts work items
+// SELECT count(*) AS Total,
+//        count(CASE fields->>'system.state'
+//                  WHEN 'closed' THEN '1'
+//                  ELSE NULL
+//              END) AS Closed
+// FROM work_items wi
+// WHERE fields->>'system.iteration' IN ('input iteration ID + children IDs')
+//   AND wi.deleted_at IS NULL
 func (r *GormWorkItemRepository) GetCountsForIteration(ctx context.Context, itr *iteration.Iteration) (map[string]WICountsPerIteration, error) {
 	var res WICountsPerIteration
 	pathOfIteration := append(itr.Path, itr.ID)
