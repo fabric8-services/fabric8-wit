@@ -3,7 +3,8 @@ package workitem
 import (
 	"time"
 
-	"github.com/Sirupsen/logrus"
+	"github.com/almighty/almighty-core/log"
+
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -40,7 +41,7 @@ func (wi WorkItem) GetLastModified() time.Time {
 		case time.Time:
 			return updatedAt
 		default:
-			logrus.Info("'system.update_at' field value is not a valid time for work item with ID=" + wi.ID)
+			log.Info(nil, map[string]interface{}{"wi_id": wi.ID}, "'system.update_at' field value is not a valid time for work item with ID=%v", wi.ID)
 		}
 	}
 	// fallback value if none/no valid data was found.

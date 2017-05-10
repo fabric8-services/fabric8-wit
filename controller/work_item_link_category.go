@@ -58,12 +58,13 @@ func (c *WorkItemLinkCategoryController) Create(ctx *app.CreateWorkItemLinkCateg
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		modelCategory, err := appl.WorkItemLinkCategories().Create(ctx.Context, ctx.Payload.Data.Attributes.Name, ctx.Payload.Data.Attributes.Description)
+		modelCategory := convertLinkCategoryToModel(app.WorkItemLinkCategorySingle{Data: ctx.Payload.Data})
+		_, err := appl.WorkItemLinkCategories().Create(ctx.Context, &modelCategory)
 		if err != nil {
 			jerrors, httpStatusCode := jsonapi.ErrorToJSONAPIErrors(err)
 			return ctx.ResponseData.Service.Send(ctx.Context, httpStatusCode, jerrors)
 		}
-		appCategory := convertLinkCategoryFromModel(*modelCategory)
+		appCategory := convertLinkCategoryFromModel(modelCategory)
 		linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, app.WorkItemLinkCategoryHref, currentUserIdentityID)
 		err = enrichLinkCategorySingle(linkCtx, appCategory)
 		if err != nil {

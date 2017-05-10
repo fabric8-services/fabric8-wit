@@ -13,7 +13,7 @@ func LogAndAssertJSON(t *testing.T, log func(), assertions func(fields logrus.Fi
 	var buffer bytes.Buffer
 	var fields logrus.Fields
 
-	InitializeLogger(false, "debug")
+	InitializeLogger(true, "debug")
 	logger.Out = &buffer
 	logger.Level = logrus.DebugLevel
 	log()

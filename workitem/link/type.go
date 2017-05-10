@@ -16,13 +16,13 @@ const (
 	TopologyDirectedNetwork = "directed_network"
 	TopologyDependency      = "dependency"
 	TopologyTree            = "tree"
+)
 
-	// The names of a work item link type are basically the "system.title" field
-	// as in work items. The actual linking is done with UUIDs. Hence, the names
-	// hare are more human-readable.
-	SystemWorkItemLinkTypeBugBlocker     = "Bug blocker"
-	SystemWorkItemLinkPlannerItemRelated = "Related planner item"
-	SystemWorkItemLinkTypeParentChild    = "Parent child item"
+// Never ever change these UUIDs!!!
+var (
+	SystemWorkItemLinkTypeBugBlockerID     = uuid.FromStringOrNil("2CEA3C79-3B79-423B-90F4-1E59174C8F43")
+	SystemWorkItemLinkPlannerItemRelatedID = uuid.FromStringOrNil("9B631885-83B1-4ABB-A340-3A9EDE8493FA")
+	SystemWorkItemLinkTypeParentChildID    = uuid.FromStringOrNil("25C326A7-6D03-4F5A-B23B-86A9EE4171E9")
 )
 
 // returns true if the left hand and right hand side string
