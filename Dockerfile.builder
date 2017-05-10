@@ -1,5 +1,5 @@
 FROM centos:7
-MAINTAINER "Devtools <devtools@redhat.com>"
+LABEL maintainer "Devtools <devtools@redhat.com>"
 ENV LANG=en_US.utf8
 
 # Some packages might seem weird but they are required by the RVM installer.
