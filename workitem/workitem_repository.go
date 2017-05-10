@@ -103,40 +103,52 @@ func (r *GormWorkItemRepository) LoadByID(ctx context.Context, ID string) (*Work
 // Load returns the work item for the given spaceID and item id
 // returns NotFoundError, ConversionError or InternalError
 func (r *GormWorkItemRepository) Load(ctx context.Context, spaceID uuid.UUID, workitemID string) (*WorkItem, error) {
+	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, workitemID, false)
+	if err != nil {
+		return nil, err
+	}
+	return ConvertWorkItemStorageToModel(wiType, wiStorage)
+}
+
+func (r *GormWorkItemRepository) loadWorkItemStorage(ctx context.Context, spaceID uuid.UUID, workitemID string, selectForUpdate bool) (*WorkItemStorage, *WorkItemType, error) {
 	id, err := strconv.ParseUint(workitemID, 10, 64)
 	if err != nil || id == 0 {
 		// treating this as a not found error: the fact that we're using number internal is implementation detail
-		return nil, errors.NewNotFoundError("work item", workitemID)
+		return nil, nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	log.Info(nil, map[string]interface{}{
 		"wi_id":    workitemID,
 		"space_id": spaceID,
 	}, "Loading work item")
-
-	res := WorkItemStorage{}
-	tx := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
+	wiStorage := &WorkItemStorage{}
+	// SELECT ... FOR UPDATE will lock the row to prevent concurrent update while until surrounding transaction ends.
+	tx := r.db
+	if selectForUpdate {
+		tx = tx.Set("gorm:query_option", "FOR UPDATE")
+	}
+	tx = tx.Model(wiStorage).Where("id=? AND space_id=?", id, spaceID).First(wiStorage)
 	if tx.RecordNotFound() {
 		log.Error(nil, map[string]interface{}{
 			"wi_id":    workitemID,
 			"space_id": spaceID,
 		}, "work item not found")
-		tx = r.db.Model(&res).Where("id=?", id).First(&res)
+		tx = r.db.Model(wiStorage).Where("id=?", id).First(wiStorage)
 		if tx.RecordNotFound() {
 			log.Error(nil, map[string]interface{}{
 				"wi_id":    workitemID,
-				"space_id": res.SpaceID,
-			}, "work item not found but found by id")
+				"space_id": spaceID,
+			}, "work item with id=<wi_id> does not belong to space with id=<space_id>")
 		}
-		return nil, errors.NewNotFoundError("work item", workitemID)
+		return nil, nil, errors.NewNotFoundError("work item", workitemID)
 	}
 	if tx.Error != nil {
-		return nil, errors.NewInternalError(tx.Error.Error())
+		return nil, nil, errors.NewInternalError(tx.Error.Error())
 	}
-	wiType, err := r.witr.LoadTypeFromDB(ctx, res.Type)
+	wiType, err := r.witr.LoadTypeFromDB(ctx, wiStorage.Type)
 	if err != nil {
-		return nil, errors.NewInternalError(err.Error())
+		return nil, nil, errors.NewInternalError(err.Error())
 	}
-	return ConvertWorkItemStorageToModel(wiType, &res)
+	return wiStorage, wiType, nil
 }
 
 // LoadTopWorkitem returns top most work item of the list. Top most workitem has the Highest order.
@@ -406,75 +418,52 @@ func (r *GormWorkItemRepository) Reorder(ctx context.Context, direction Directio
 
 // Save updates the given work item in storage. Version must be the same as the one int the stored version
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, wi WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
-	res := WorkItemStorage{}
-	id, err := strconv.ParseUint(wi.ID, 10, 64)
-	if err != nil || id == 0 {
-		return nil, errors.NewNotFoundError("work item", wi.ID)
+func (r *GormWorkItemRepository) Save(ctx context.Context, spaceID uuid.UUID, updatedWorkItem WorkItem, modifierID uuid.UUID) (*WorkItem, error) {
+	wiStorage, wiType, err := r.loadWorkItemStorage(ctx, spaceID, updatedWorkItem.ID, true)
+	if err != nil {
+		return nil, err
 	}
-
-	log.Info(ctx, map[string]interface{}{
-		"wi_id":    wi.ID,
-		"space_id": spaceID,
-	}, "Looking for id for the work item repository")
-	tx := r.db.Model(&res).Where("id=? AND space_id=?", id, spaceID).First(&res)
-	if tx.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"wi_id":    wi.ID,
-			"space_id": spaceID,
-		}, "work item repository not found")
-		return nil, errors.NewNotFoundError("work item", wi.ID)
-	}
-	if tx.Error != nil {
-		return nil, errors.NewInternalError(err.Error())
-	}
-	if res.Version != wi.Version {
+	if wiStorage.Version != updatedWorkItem.Version {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
-
-	wiType, err := r.witr.LoadTypeFromDB(ctx, wi.Type)
-	if err != nil {
-		return nil, errors.NewBadParameterError("Type", wi.Type)
-	}
-
-	res.Version = res.Version + 1
-	res.Type = wi.Type
-	res.Fields = Fields{}
-	res.ExecutionOrder = wi.Fields[SystemOrder].(float64)
+	wiStorage.Version = wiStorage.Version + 1
+	wiStorage.Type = updatedWorkItem.Type
+	wiStorage.Fields = Fields{}
+	wiStorage.ExecutionOrder = updatedWorkItem.Fields[SystemOrder].(float64)
 	for fieldName, fieldDef := range wiType.Fields {
 		if fieldName == SystemCreatedAt || fieldName == SystemUpdatedAt || fieldName == SystemOrder {
 			continue
 		}
-		fieldValue := wi.Fields[fieldName]
+		fieldValue := updatedWorkItem.Fields[fieldName]
 		var err error
-		res.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
+		wiStorage.Fields[fieldName], err = fieldDef.ConvertToModel(fieldName, fieldValue)
 		if err != nil {
 			return nil, errors.NewBadParameterError(fieldName, fieldValue)
 		}
 	}
-
-	tx = tx.Where("Version = ?", wi.Version).Save(&res)
+	tx := r.db.Where("Version = ?", updatedWorkItem.Version).Save(&wiStorage)
 	if err := tx.Error; err != nil {
 		log.Error(ctx, map[string]interface{}{
-			"wi_id":    wi.ID,
+			"wi_id":    updatedWorkItem.ID,
 			"space_id": spaceID,
+			"version":  updatedWorkItem.Version,
 			"err":      err,
-		}, "unable to save the work item repository")
+		}, "unable to save new version of the work item")
 		return nil, errors.NewInternalError(err.Error())
 	}
 	if tx.RowsAffected == 0 {
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	// store a revision of the modified work item
-	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, res)
+	err = r.wirr.Create(context.Background(), modifierID, RevisionTypeUpdate, *wiStorage)
 	if err != nil {
 		return nil, errs.Wrapf(err, "error while saving work item")
 	}
 	log.Info(ctx, map[string]interface{}{
-		"wi_id":    wi.ID,
+		"wi_id":    updatedWorkItem.ID,
 		"space_id": spaceID,
 	}, "Updated work item repository")
-	return ConvertWorkItemStorageToModel(wiType, &res)
+	return ConvertWorkItemStorageToModel(wiType, wiStorage)
 }
 
 // Create creates a new work item in the repository
