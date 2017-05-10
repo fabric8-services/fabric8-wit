@@ -2173,7 +2173,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	repo := "golang-project"
 	file := "main.go"
 	line := 200
-	cbase := codebase.CodebaseContent{
+	cbase := codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -2188,7 +2188,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	require.NotNil(s.T(), fetchedWI.Data)
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
 	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
-	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	assert.Equal(s.T(), repo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
@@ -2209,7 +2209,7 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
 	branch := "earth-recycle-101"
-	cbase := codebase.CodebaseContent{
+	cbase := codebase.Content{
 		Branch: branch,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
