@@ -60,6 +60,14 @@ func TestErrorToJSONAPIError(t *testing.T) {
 	require.Equal(t, jsonapi.ErrorCodeUnauthorizedError, *jerr.Code)
 	require.Equal(t, strconv.Itoa(httpStatus), *jerr.Status)
 
+	// test forbidden error
+	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(errors.NewForbiddenError("foo"))
+	require.Equal(t, http.StatusForbidden, httpStatus)
+	require.NotNil(t, jerr.Code)
+	require.NotNil(t, jerr.Status)
+	require.Equal(t, jsonapi.ErrorCodeForbiddenError, *jerr.Code)
+	require.Equal(t, strconv.Itoa(httpStatus), *jerr.Status)
+
 	// test unspecified error
 	jerr, httpStatus = jsonapi.ErrorToJSONAPIError(fmt.Errorf("foobar"))
 	require.Equal(t, http.StatusInternalServerError, httpStatus)

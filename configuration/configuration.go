@@ -87,6 +87,7 @@ const (
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
 	varLogLevel                         = "log.level"
+	varLogJSON                          = "log.json"
 	varTenantServiceURL                 = "tenant.serviceurl"
 )
 
@@ -602,6 +603,17 @@ func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 // GetLogLevel returns the loggging level (as set via config file or environment variable)
 func (c *ConfigurationData) GetLogLevel() string {
 	return c.v.GetString(varLogLevel)
+}
+
+// IsLogJSON returns if we should log json format (as set via config file or environment variable)
+func (c *ConfigurationData) IsLogJSON() bool {
+	if c.v.IsSet(varLogJSON) {
+		return c.v.GetBool(varLogJSON)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return false
+	}
+	return true
 }
 
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests

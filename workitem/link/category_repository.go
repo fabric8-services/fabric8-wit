@@ -11,7 +11,7 @@ import (
 
 // WorkItemLinkCategoryRepository encapsulates storage & retrieval of work item link categories
 type WorkItemLinkCategoryRepository interface {
-	Create(ctx context.Context, name *string, description *string) (*WorkItemLinkCategory, error)
+	Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkCategory, error)
 	List(ctx context.Context) ([]WorkItemLinkCategory, error)
 	Delete(ctx context.Context, ID uuid.UUID) error
@@ -30,20 +30,18 @@ type GormWorkItemLinkCategoryRepository struct {
 
 // Create creates a new work item link category in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, name *string, description *string) (*WorkItemLinkCategory, error) {
-	if name == nil || *name == "" {
-		return nil, errors.NewBadParameterError("name", name)
+func (r *GormWorkItemLinkCategoryRepository) Create(ctx context.Context, linkCat *WorkItemLinkCategory) (*WorkItemLinkCategory, error) {
+	if linkCat.Name == "" {
+		return nil, errors.NewBadParameterError("name", linkCat.Name)
 	}
-	created := WorkItemLinkCategory{
-		// Omit "lifecycle" and "ID" fields as they will be filled by the DB
-		Name:        *name,
-		Description: description,
-	}
-	db := r.db.Create(&created)
+	db := r.db.Create(linkCat)
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())
 	}
-	return &created, nil
+	log.Info(ctx, map[string]interface{}{
+		"wilc_id": linkCat.ID,
+	}, "work item link category created")
+	return linkCat, nil
 }
 
 // Load returns the work item link category for the given ID.
@@ -59,26 +57,6 @@ func (r *GormWorkItemLinkCategoryRepository) Load(ctx context.Context, ID uuid.U
 			"wilc_id": ID,
 		}, "work item link category not found by id ", ID)
 		return nil, errors.NewNotFoundError("work item link category", ID.String())
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &result, nil
-}
-
-// LoadCategoryFromDB return work item link category for the name
-func (r *GormWorkItemLinkCategoryRepository) LoadCategoryFromDB(ctx context.Context, name string) (*WorkItemLinkCategory, error) {
-	log.Info(ctx, map[string]interface{}{
-		"categoryName": name,
-	}, "Loading work item link category: %s", name)
-
-	result := WorkItemLinkCategory{}
-	db := r.db.Model(&result).Where("name=?", name).First(&result)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"wilcName": name,
-		}, "work item link category not found")
-		return nil, errors.NewNotFoundError("work item link category", name)
 	}
 	if db.Error != nil {
 		return nil, errors.NewInternalError(db.Error.Error())

@@ -66,7 +66,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 	s.testIdentity3 = testIdentity3
 	// create a space
 	spaceRepository := space.NewRepository(s.DB)
-	spaceName := "test-space" + uuid.NewV4().String()
+	spaceName := testsupport.CreateRandomValidTestName("test-space")
 	testSpace, err := spaceRepository.Create(s.ctx, &space.Space{
 		Name: spaceName,
 	})
@@ -96,16 +96,40 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 
 	// Create a work item link category
 	linkCategoryRepository := link.NewWorkItemLinkCategoryRepository(s.DB)
-	categoryName := "test-category" + uuid.NewV4().String()
+	categoryName := testsupport.CreateRandomValidTestName("test-category")
 	categoryDescription := "testing work item link revisions"
-	linkCategory, err := linkCategoryRepository.Create(s.ctx, &categoryName, &categoryDescription)
+	linkCategory := link.WorkItemLinkCategory{
+		Name:        categoryName,
+		Description: &categoryDescription,
+	}
+	_, err = linkCategoryRepository.Create(s.ctx, &linkCategory)
 	require.Nil(s.T(), err)
 	// create link types
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
-	linkType1, err := linkTypeRepository.Create(s.ctx, "test link type 1", nil, workitem.SystemBug, workitem.SystemBug, "foo", "foo", "dependency", linkCategory.ID, testSpace.ID)
+	linkTypeModel1 := link.WorkItemLinkType{
+		Name:           "test link type 1",
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemBug,
+		ForwardName:    "foo",
+		ReverseName:    "foo",
+		Topology:       "dependency",
+		LinkCategoryID: linkCategory.ID,
+		SpaceID:        testSpace.ID,
+	}
+	linkType1, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
 	require.Nil(s.T(), err)
 	s.testLinkType1ID = linkType1.ID
-	linkType2, err := linkTypeRepository.Create(s.ctx, "test link type 2", nil, workitem.SystemBug, workitem.SystemBug, "bar", "bar", "dependency", linkCategory.ID, testSpace.ID)
+	linkTypeModel2 := link.WorkItemLinkType{
+		Name:           "test link type 2",
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemBug,
+		ForwardName:    "bar",
+		ReverseName:    "bar",
+		Topology:       "dependency",
+		LinkCategoryID: linkCategory.ID,
+		SpaceID:        testSpace.ID,
+	}
+	linkType2, err := linkTypeRepository.Create(s.ctx, &linkTypeModel2)
 	require.Nil(s.T(), err)
 	s.testLinkType2ID = linkType2.ID
 }

@@ -16,6 +16,7 @@ objects:
     keycloak.realm: ZmFicmljOAo=
     keycloak.secret: Cg==
     token.publickey: Cg==
+    tenantsvc.url: aHR0cDovL2Y4dGVuYW50Ojgw
 - apiVersion: v1
   kind: ConfigMap
   metadata:

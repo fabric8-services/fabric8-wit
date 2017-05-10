@@ -32,6 +32,7 @@ const (
 	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"
 	APIStringTypeWorkItemType = "workitemtypes"
+	none                      = "none"
 )
 
 // WorkitemController implements the workitem resource.
@@ -72,8 +73,14 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
 	if ctx.FilterAssignee != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
-		additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
+		if *ctx.FilterAssignee == none {
+			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
+			additionalQuery = append(additionalQuery, "filter[assignee]=none")
+
+		} else {
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+			additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
+		}
 	}
 	if ctx.FilterIteration != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
