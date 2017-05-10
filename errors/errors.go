@@ -31,6 +31,11 @@ func NewUnauthorizedError(msg string) UnauthorizedError {
 	return UnauthorizedError{simpleError{msg}}
 }
 
+// NewForbiddenError returns the custom defined error of type ForbiddenError.
+func NewForbiddenError(msg string) ForbiddenError {
+	return ForbiddenError{simpleError{msg}}
+}
+
 // InternalError means that the operation failed for some internal, unexpected reason
 type InternalError struct {
 	simpleError
@@ -38,6 +43,11 @@ type InternalError struct {
 
 // UnauthorizedError means that the operation is unauthorized
 type UnauthorizedError struct {
+	simpleError
+}
+
+// ForbiddenError means that the operation is forbidden
+type ForbiddenError struct {
 	simpleError
 }
 

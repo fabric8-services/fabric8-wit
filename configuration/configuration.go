@@ -69,6 +69,7 @@ const (
 	varKeycloakEndpointLogout           = "keycloak.endpoint.logout"
 	varTokenPublicKey                   = "token.publickey"
 	varTokenPrivateKey                  = "token.privatekey"
+	varAuthNotApprovedRedirect          = "auth.notapproved.redirect"
 	varHeaderMaxLength                  = "header.maxlength"
 	varCacheControlWorkItems            = "cachecontrol.workitems"
 	varCacheControlWorkItemTypes        = "cachecontrol.workitemtypes"
@@ -86,6 +87,7 @@ const (
 	varCheStarterURL                    = "chestarterurl"
 	varValidRedirectURLs                = "redirect.valid"
 	varLogLevel                         = "log.level"
+	varLogJSON                          = "log.json"
 	varTenantServiceURL                 = "tenant.serviceurl"
 )
 
@@ -379,6 +381,12 @@ func (c *ConfigurationData) GetTokenPublicKey() []byte {
 	return []byte(c.v.GetString(varTokenPublicKey))
 }
 
+// GetAuthNotApprovedRedirect returns the URL to redirect to if the user is not approved
+// May return empty string which means an unauthorized error should be returned instead of redirecting the user
+func (c *ConfigurationData) GetAuthNotApprovedRedirect() string {
+	return c.v.GetString(varAuthNotApprovedRedirect)
+}
+
 // GetGithubAuthToken returns the actual Github OAuth Access Token
 func (c *ConfigurationData) GetGithubAuthToken() string {
 	return c.v.GetString(varGithubAuthToken)
@@ -595,6 +603,17 @@ func (c *ConfigurationData) GetOpenshiftTenantMasterURL() string {
 // GetLogLevel returns the loggging level (as set via config file or environment variable)
 func (c *ConfigurationData) GetLogLevel() string {
 	return c.v.GetString(varLogLevel)
+}
+
+// IsLogJSON returns if we should log json format (as set via config file or environment variable)
+func (c *ConfigurationData) IsLogJSON() bool {
+	if c.v.IsSet(varLogJSON) {
+		return c.v.GetBool(varLogJSON)
+	}
+	if c.IsPostgresDeveloperModeEnabled() {
+		return false
+	}
+	return true
 }
 
 // GetValidRedirectURLs returns the RegEx of valid redirect URLs for auth requests
