@@ -99,6 +99,11 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 		}, "Unable to update Keycloak user profile")
 		return errors.NewInternalError(err.Error())
 	} else if resp != nil {
+		log.Info(context.Background(), map[string]interface{}{
+			"keycloak_user_profile_url": keycloakProfileURL,
+			"err": err,
+		}, "Successfully updated Keycloak user profile")
+
 		defer resp.Body.Close()
 	}
 
@@ -142,6 +147,12 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 		}, "Unable to fetch Keycloak user profile")
 		return nil, errors.NewInternalError(err.Error())
 	} else if resp != nil {
+
+		log.Info(context.Background(), map[string]interface{}{
+			"keycloak_user_profile_url": keycloakProfileURL,
+			"err": err,
+		}, "Successfully fetched Keycloak user profile")
+
 		defer resp.Body.Close()
 	}
 
