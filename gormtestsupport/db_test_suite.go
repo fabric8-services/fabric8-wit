@@ -3,8 +3,8 @@ package gormtestsupport
 import (
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	config "github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/models"
 	"github.com/almighty/almighty-core/resource"
@@ -37,7 +37,7 @@ func (s *DBTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Database)
 	configuration, err := config.NewConfigurationData(s.configFile)
 	if err != nil {
-		logrus.Panic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
 	}
@@ -45,7 +45,7 @@ func (s *DBTestSuite) SetupSuite() {
 	if _, c := os.LookupEnv(resource.Database); c != false {
 		s.DB, err = gorm.Open("postgres", s.Configuration.GetPostgresConfigString())
 		if err != nil {
-			logrus.Panic(nil, map[string]interface{}{
+			log.Panic(nil, map[string]interface{}{
 				"err":             err,
 				"postgres_config": configuration.GetPostgresConfigString(),
 			}, "failed to connect to the database")
@@ -59,7 +59,7 @@ func (s *DBTestSuite) PopulateDBTestSuite(ctx context.Context) {
 		if err := models.Transactional(s.DB, func(tx *gorm.DB) error {
 			return migration.PopulateCommonTypes(ctx, tx, workitem.NewWorkItemTypeRepository(tx))
 		}); err != nil {
-			logrus.Panic(nil, map[string]interface{}{
+			log.Panic(nil, map[string]interface{}{
 				"err":             err,
 				"postgres_config": s.Configuration.GetPostgresConfigString(),
 			}, "failed to populate the database with common types")
