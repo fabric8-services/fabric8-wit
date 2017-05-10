@@ -39,6 +39,10 @@ func (i *postOrderIterator) Not(exp *NotExpression) interface{} {
 	return i.binary(exp)
 }
 
+func (i *postOrderIterator) IsNull(exp *IsNullExpression) interface{} {
+	return i.visit(exp)
+}
+
 func (i *postOrderIterator) binary(exp BinaryExpression) bool {
 	if exp.Left().Accept(i) == false {
 		return false
