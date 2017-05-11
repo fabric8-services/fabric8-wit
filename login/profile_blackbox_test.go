@@ -21,7 +21,6 @@ import (
 	"github.com/almighty/almighty-core/login"
 
 	"github.com/almighty/almighty-core/resource"
-	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"

@@ -50,6 +50,7 @@ import:
 - package: github.com/pilu/config
 - package: github.com/jinzhu/gorm
   version: c1b9cf186e4bcd8e5d566ef43f2ae2dfe22dc34e
+- package: gopkg.in/jackc/pgx.v2
 - package: github.com/mattn/go-isatty
   version: ^0.0.1
 - package: github.com/axw/gocov

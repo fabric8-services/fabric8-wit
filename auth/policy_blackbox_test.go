@@ -11,8 +11,6 @@ import (
 	"github.com/satori/go.uuid"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-
-	_ "github.com/lib/pq"
 )
 
 func TestPolicy(t *testing.T) {

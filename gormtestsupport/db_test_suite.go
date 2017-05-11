@@ -11,9 +11,9 @@ import (
 	"github.com/almighty/almighty-core/workitem"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq" // need to import postgres driver
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/net/context"
+	_ "gopkg.in/jackc/pgx.v2" // need to import postgres driver
 )
 
 var _ suite.SetupAllSuite = &DBTestSuite{}

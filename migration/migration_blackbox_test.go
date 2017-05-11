@@ -14,10 +14,10 @@ import (
 	"github.com/almighty/almighty-core/resource"
 
 	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
 	errs "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	_ "gopkg.in/jackc/pgx.v2"
 )
 
 // fn defines the type of function that can be part of a migration steps

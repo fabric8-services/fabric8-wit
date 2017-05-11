@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-
-	_ "github.com/lib/pq"
 )
 
 func TestLogout(t *testing.T) {
