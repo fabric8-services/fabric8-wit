@@ -179,7 +179,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
 	}
-
 	authorized, err := authorizeWorkitemEditor(ctx, c.db, spaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -557,7 +556,7 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 // setupCodebase is the link between CodebaseContent & Codebase
 // setupCodebase creates a codebase and saves it's ID in CodebaseContent
 // for future use
-func setupCodebase(appl application.Application, cb *codebase.CodebaseContent, spaceID uuid.UUID) error {
+func setupCodebase(appl application.Application, cb *codebase.Content, spaceID uuid.UUID) error {
 	if cb.CodebaseID == "" {
 		newCodeBase := codebase.Codebase{
 			SpaceID: spaceID,
@@ -689,7 +688,7 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 			if val != nil {
 				op.Attributes[name] = val
 				// TODO: Following format is TBD and hence commented out
-				cb := val.(codebase.CodebaseContent)
+				cb := val.(codebase.Content)
 				editURL := rest.AbsoluteURL(request, app.CodebaseHref(cb.CodebaseID)+"/edit")
 				op.Links.EditCodebase = &editURL
 			}

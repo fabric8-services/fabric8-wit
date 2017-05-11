@@ -459,13 +459,16 @@ func (ctx *{{$resp.Name}}) getIfNoneMatch() *string {
 
 	matchesETag = `
 // matchesETag compares the given 'etag' argument matches with the context's 'IfNoneMatch' value.
+// Returns 'true, true' if the 'If-None-Match' field was found and matched given 'etag' argument
+// Returns 'true, false' if the 'If-None-Match' field was found but did not match given 'etag' argument
+// Returns 'false, false' if the 'If-None-Match' field was not found
 func matchesETag(ctx ConditionalRequestContext, etag string) (bool, bool) {
 	if ctx.getIfNoneMatch() != nil {
 		if *ctx.getIfNoneMatch() == etag {
-			// 'If-None-Match' field was found and matched with given 'etag' argument
+			// 'If-None-Match' field was found and matched the given 'etag' argument
 			return true, true
 		}
-		// 'If-None-Match' field was found and but did not match with given 'etag' argument
+		// 'If-None-Match' field was found and but did not match the given 'etag' argument
 		return true, false
 	}
 	// 'If-None-Match' field was not found
@@ -474,10 +477,13 @@ func matchesETag(ctx ConditionalRequestContext, etag string) (bool, bool) {
 
 	modifiedSince = `
 // modifiedSince compares the given context's 'IfModifiedSince' value is before the given 'lastModified' argument
+// Returns 'true, true' if the 'If-Modified' field was found and matched the given 'lastModified' argument
+// Returns 'true, false' if the 'If-Modified' field was found but did not match with given 'lastModified' argument
+// Returns 'false, false' if the 'If-Modified' field was not found
 func modifiedSince(ctx ConditionalRequestContext, lastModified time.Time) (bool, bool) {
 	if ctx.getIfModifiedSince() != nil {
 		ifModifiedSince := *ctx.getIfModifiedSince()
-		// 'If-Modified' field was found and matched with given 'lastModified' argument
+		// 'If-Modified' field was found and matched the given 'lastModified' argument
 		if ifModifiedSince.UTC().Truncate(time.Second).Before(lastModified.UTC().Truncate(time.Second)) {
 			return true, true
 		}

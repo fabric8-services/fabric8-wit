@@ -16,8 +16,8 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// CodebaseContent defines all parameters those are useful to associate Che Editor's window to a WI
-type CodebaseContent struct {
+// Content defines all parameters those are useful to associate Che Editor's window to a WI
+type Content struct {
 	Repository string `json:"repository"`
 	Branch     string `json:"branch"`
 	FileName   string `json:"filename"`
@@ -34,8 +34,8 @@ const (
 	CodebaseIDKey = "codebaseid"
 )
 
-// ToMap converts CodebaseContent to a map of string->Interface{}
-func (c *CodebaseContent) ToMap() map[string]interface{} {
+// ToMap converts Content to a map of string->Interface{}
+func (c *Content) ToMap() map[string]interface{} {
 	res := make(map[string]interface{})
 	res[RepositoryKey] = c.Repository
 	res[BranchKey] = c.Branch
@@ -46,7 +46,7 @@ func (c *CodebaseContent) ToMap() map[string]interface{} {
 }
 
 // IsRepoValidURL makes sure Repo is valid GIT URL
-func (c *CodebaseContent) IsRepoValidURL() bool {
+func (c *Content) IsRepoValidURL() bool {
 	r, err := regexp.Compile(`(?:git|ssh|https?|git@[-\w.]+):(\/\/)?(.*?)(\.git)(\/?|\#[-\d\w._]+?)$`)
 	if err != nil {
 		return false
@@ -56,7 +56,7 @@ func (c *CodebaseContent) IsRepoValidURL() bool {
 
 // IsValid perform following checks
 // Repository value is mandatory
-func (c *CodebaseContent) IsValid() error {
+func (c *Content) IsValid() error {
 	if c.Repository == "" {
 		return errors.NewBadParameterError("system.codebase", RepositoryKey+" is mandatory")
 	}
@@ -66,9 +66,9 @@ func (c *CodebaseContent) IsValid() error {
 	return nil
 }
 
-// NewCodebaseContent builds CodebaseContent instance from input Map.
-func NewCodebaseContent(value map[string]interface{}) (CodebaseContent, error) {
-	cb := CodebaseContent{}
+// NewCodebaseContent builds Content instance from input Map.
+func NewCodebaseContent(value map[string]interface{}) (Content, error) {
+	cb := Content{}
 	validKeys := []string{RepositoryKey, BranchKey, FileNameKey,
 		LineNumberKey, CodebaseIDKey}
 	for _, key := range validKeys {
@@ -100,14 +100,14 @@ func NewCodebaseContent(value map[string]interface{}) (CodebaseContent, error) {
 	return cb, nil
 }
 
-// NewCodebaseContentFromValue builds CodebaseContent from interface{}
-func NewCodebaseContentFromValue(value interface{}) (*CodebaseContent, error) {
+// NewCodebaseContentFromValue builds Content from interface{}
+func NewCodebaseContentFromValue(value interface{}) (*Content, error) {
 	if value == nil {
 		return nil, nil
 	}
 	switch value.(type) {
-	case CodebaseContent:
-		result := value.(CodebaseContent)
+	case Content:
+		result := value.(Content)
 		return &result, nil
 	case map[string]interface{}:
 		result, err := NewCodebaseContent(value.(map[string]interface{}))

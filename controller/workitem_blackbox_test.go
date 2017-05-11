@@ -796,10 +796,12 @@ func (s *WorkItem2Suite) TestWI2UpdateOnlyState() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
+	// given
 	s.minimumPayload.Data.Attributes[workitem.SystemTitle] = "Test title"
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = 2398475203
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
+	// when/then
+	test.UpdateWorkitemConflict(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
@@ -953,7 +955,7 @@ func (s *WorkItem2Suite) TestWI2UpdateMultipleScenarios() {
 	// update to wrong version
 	correctVersion := updatedWI.Data.Attributes["version"]
 	s.minimumPayload.Data.Attributes["version"] = 12453972348
-	test.UpdateWorkitemBadRequest(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
+	test.UpdateWorkitemConflict(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, s.wi.Relationships.Space.Data.ID.String(), *s.wi.ID, s.minimumPayload)
 	s.minimumPayload.Data.Attributes["version"] = correctVersion
 
 	// Add test to remove assignee for WI
@@ -2171,7 +2173,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
-	cbase := codebase.CodebaseContent{
+	cbase := codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -2186,7 +2188,7 @@ func (s *WorkItem2Suite) TestCreateWIWithCodebase() {
 	require.NotNil(s.T(), fetchedWI.Data)
 	require.NotNil(s.T(), fetchedWI.Data.Attributes)
 	assert.Equal(s.T(), title, fetchedWI.Data.Attributes[workitem.SystemTitle])
-	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	cb := fetchedWI.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	assert.Equal(s.T(), repo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)
@@ -2218,7 +2220,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	repo := "https://github.com/pranavgore09/go-tutorial.git"
 	file := "main.go"
 	line := 200
-	cbase := codebase.CodebaseContent{
+	cbase := codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -2227,7 +2229,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
 	_, createdWI := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space1ID.String(), &c)
 	require.NotNil(s.T(), createdWI)
-	cb := createdWI.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	cb := createdWI.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID1 := cb.CodebaseID
 	require.NotEmpty(s.T(), codebaseID1)
 
@@ -2247,7 +2249,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space2ID,
 	}}
-	cbase = codebase.CodebaseContent{
+	cbase = codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -2256,7 +2258,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
 	_, createdWI2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space2ID.String(), &c)
 	require.NotNil(s.T(), createdWI2)
-	cb2 := createdWI2.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	cb2 := createdWI2.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID2 := cb2.CodebaseID
 	require.NotEmpty(s.T(), codebaseID1)
 	// Repo name was same but two different Codebases are created for each
@@ -2273,7 +2275,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Relationships.Space = &app.RelationSpaces{Data: &app.RelationSpacesData{
 		ID: &space1ID,
 	}}
-	cbase = codebase.CodebaseContent{
+	cbase = codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -2282,7 +2284,7 @@ func (s *WorkItem2Suite) TestCodebaseWithSameRepoAcrossSpace() {
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
 	_, createdWI3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space1ID.String(), &c)
 	require.NotNil(s.T(), createdWI3)
-	cb3 := createdWI3.Data.Attributes[workitem.SystemCodebase].(codebase.CodebaseContent)
+	cb3 := createdWI3.Data.Attributes[workitem.SystemCodebase].(codebase.Content)
 	codebaseID3 := cb3.CodebaseID
 	assert.Equal(s.T(), codebaseID3, codebaseID1)
 }
@@ -2295,7 +2297,7 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	c.Data.Attributes[workitem.SystemState] = workitem.SystemStateNew
 	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
 	branch := "earth-recycle-101"
-	cbase := codebase.CodebaseContent{
+	cbase := codebase.Content{
 		Branch: branch,
 	}
 	c.Data.Attributes[workitem.SystemCodebase] = cbase.ToMap()
@@ -2309,7 +2311,7 @@ func (s *WorkItem2Suite) TestFailToCreateWIWithCodebase() {
 	c2.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, workitem.SystemPlannerItem)
 	branch2 := "earth-recycle-101"
 	repo2 := "git://non-git.com/pranav/someproject"
-	cbase2 := codebase.CodebaseContent{
+	cbase2 := codebase.Content{
 		Branch:     branch2,
 		Repository: repo2,
 	}
