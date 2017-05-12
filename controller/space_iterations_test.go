@@ -78,6 +78,13 @@ func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIte
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
+func (rest *TestSpaceIterationREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *SpaceIterationsController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
+}
+
 func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceIterationsController) {
 	svc := goa.New("Iteration-Service")
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
@@ -91,7 +98,8 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := space.Space{
-			Name: "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			OwnerId: testsupport.TestIdentity.ID,
 		}
 		createdSpace, err := repo.Create(rest.ctx, &newSpace)
 		p = createdSpace
@@ -132,7 +140,8 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		testSpace := space.Space{
-			Name: "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
+			Name:    "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
+			OwnerId: testsupport.TestIdentity.ID,
 		}
 		p, _ = repo.Create(rest.ctx, &testSpace)
 		// create Root iteration for above space
@@ -327,6 +336,67 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			assert.Equal(rest.T(), 0, iterationItem.Relationships.Workitems.Meta["closed"])
 		}
 	}
+}
+
+func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
+	var p *space.Space
+	var rootItr *iteration.Iteration
+	identityRepo := account.NewIdentityRepository(rest.DB)
+	spaceOwner := &account.Identity{
+		ID:           uuid.NewV4(),
+		Username:     "space-owner-identity",
+		ProviderType: account.KeycloakIDP}
+	errInCreateOwner := identityRepo.Create(rest.ctx, spaceOwner)
+	require.Nil(rest.T(), errInCreateOwner)
+
+	ci := createSpaceIteration("Sprint #21", nil)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Spaces()
+		newSpace := space.Space{
+			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			OwnerId: spaceOwner.ID,
+		}
+		createdSpace, err := repo.Create(rest.ctx, &newSpace)
+		p = createdSpace
+		if err != nil {
+			return err
+		}
+		// create Root iteration for above space
+		rootItr = &iteration.Iteration{
+			SpaceID: newSpace.ID,
+			Name:    newSpace.Name,
+		}
+		iterationRepo := app.Iterations()
+		err = iterationRepo.Create(rest.ctx, rootItr)
+		return err
+	})
+	require.Nil(rest.T(), err)
+
+	spaceOwner, errInLoad := identityRepo.Load(rest.ctx, p.OwnerId)
+	require.Nil(rest.T(), errInLoad)
+
+	svc, ctrl := rest.SecuredControllerWithIdentity(spaceOwner)
+
+	// try creating iteration with space-owner. should pass
+	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
+	require.NotNil(rest.T(), c.Data.ID)
+	require.NotNil(rest.T(), c.Data.Relationships.Space)
+	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(rest.T(), iteration.IterationStateNew, *c.Data.Attributes.State)
+	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
+	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta["closed"])
+
+	otherIdentity := &account.Identity{
+		ID:           uuid.NewV4(),
+		Username:     "non-space-owner-identity",
+		ProviderType: account.KeycloakIDP}
+	errInCreateOther := identityRepo.Create(rest.ctx, otherIdentity)
+	require.Nil(rest.T(), errInCreateOther)
+
+	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+	test.CreateSpaceIterationsUnauthorized(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
 }
 
 func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsPayload {
