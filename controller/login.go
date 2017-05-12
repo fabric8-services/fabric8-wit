@@ -135,6 +135,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("Error when obtaining token "+err.Error()))
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case 200:
 		// OK
@@ -310,7 +311,7 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 	if err != nil {
 		return nil, errors.NewInternalError("error when obtaining token " + err.Error())
 	}
-
+	defer res.Body.Close()
 	token, err := auth.ReadToken(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
