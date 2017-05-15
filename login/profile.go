@@ -117,6 +117,12 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 
 		return errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
+	log.Info(context.Background(), map[string]interface{}{
+		"response_status":           resp.Status,
+		"response_body":             rest.ReadBody(resp.Body),
+		"keycloak_user_profile_url": keycloakProfileURL,
+	}, "Successfully updated Keycloak user profile")
+
 	return nil
 }
 
