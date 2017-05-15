@@ -21,12 +21,7 @@ var iteration = a.Type("Iteration", func() {
 
 var iterationAttributes = a.Type("IterationAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a iteration. +See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "The iteration name", func() {
-		a.MaxLength(62) // maximum iteration name length is 62 characters
-		a.MinLength(1)  // minimum iteration name length is 1 characters
-		a.Pattern("^[^_|-].*")
-		a.Example("Sprint #24")
-	})
+	a.Attribute("name", d.String, "The iteration name", nameValidationFunction)
 	a.Attribute("description", d.String, "Description of the iteration ", func() {
 		a.Example("Sprint #42 focusing on UI and build process improvements")
 	})
