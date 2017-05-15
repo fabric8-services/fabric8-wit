@@ -7,11 +7,11 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
 	errs "github.com/pkg/errors"
@@ -63,7 +63,11 @@ type GormWorkItemLinkRepository struct {
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
-func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkType *WorkItemLinkType) error {
+func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
+	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
+	if err != nil {
+		return errs.WithStack(err)
+	}
 	// Fetch the source work item
 	source, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(sourceID, 10))
 	if err != nil {
@@ -99,13 +103,8 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 		SELECT EXISTS (
 			SELECT 1 FROM %[1]s
 			WHERE
-<<<<<<< HEAD
 				link_type_id=$1
 				AND target_id=$2
-=======
-				link_type_id=?
-				AND target_id=? 
->>>>>>> parent of 293b465... Modifies the query statement by replacing '?' with %[1] type parameter holder
 				AND deleted_at IS NULL
 		)`, WorkItemLink{}.TableName())
 	row := r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
@@ -282,7 +281,9 @@ func (r *GormWorkItemLinkRepository) deleteLink(ctx context.Context, lnk WorkIte
 // Save updates the given work item link in storage. Version must be the same as the one int the stored version.
 // returns NotFoundError, VersionConflictError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error) {
-	logrus.Info(fmt.Sprintf("saving workitem link with type =  %s", linkToSave.LinkTypeID))
+	log.Info(ctx, map[string]interface{}{
+		"wil_id": linkToSave.LinkTypeID,
+	}, "Saving workitem link with type =  %s", linkToSave.LinkTypeID)
 	existingLink := WorkItemLink{}
 	db := r.db.Model(&existingLink).Where("id=?", linkToSave.ID).First(&existingLink)
 	if db.RecordNotFound() {
