@@ -87,7 +87,7 @@
 # mode can be: set, count, or atomic
 COVERAGE_MODE ?= set
 
-# By default all go test calls will use the -v switch when running go test.
+# By default all go test calls will use the -v switch when running tests.
 # But if you want you can disable that by unsetting GO_TEST_VERBOSITY_SWITCH=
 # in the terminal and don't use the switch. This will hide all testing.T.Log() outputs.
 GO_TEST_VERBOSITY_SWITCH ?= -v
