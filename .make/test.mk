@@ -87,6 +87,11 @@
 # mode can be: set, count, or atomic
 COVERAGE_MODE ?= set
 
+# By default all go test calls with use the -v switch when running go test.
+# But if you want you can disable that by unsetting GO_TEST_VERBOSITY_SWITCH=
+# in the terminal and don't use the switch. This will hide all testing.T.Log() outputs.
+GO_TEST_VERBOSITY_SWITCH ?= -v
+
 # By default use the "localhost" or specify manually during make invocation:
 #
 # 	ALMIGHTY_POSTGRES_HOST=somehost make test-integration
@@ -139,7 +144,7 @@ test-unit: prebuild-check clean-coverage-unit $(COV_PATH_UNIT)
 test-unit-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test $(GO_TEST_VERBOSITY_SWITCH) $(TEST_PACKAGES)
 
 .PHONY: test-integration
 ## Runs the integration tests and produces coverage files for each package.
@@ -152,7 +157,7 @@ test-integration: prebuild-check clean-coverage-integration migrate-database $(C
 test-integration-no-coverage: prebuild-check migrate-database $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_DATABASE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_SWITCH) $(TEST_PACKAGES)
 
 .PHONY: test-remote
 ## Runs the remote tests and produces coverage files for each package.
@@ -163,7 +168,7 @@ test-remote: prebuild-check clean-coverage-remote $(COV_PATH_REMOTE)
 test-remote-no-coverage: prebuild-check $(SOURCES)
 	$(call log-info,"Running test: $@")
 	$(eval TEST_PACKAGES:=$(shell go list ./... | grep -v $(ALL_PKGS_EXCLUDE_PATTERN)))
-	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_REMOTE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test -v $(TEST_PACKAGES)
+	ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_REMOTE=1 ALMIGHTY_RESOURCE_UNIT_TEST=0 go test $(GO_TEST_VERBOSITY_SWITCH) $(TEST_PACKAGES)
 
 .PHONY: test-migration
 ## Runs the migration tests and should be executed before running the integration tests
@@ -408,7 +413,7 @@ $(eval ALL_PKGS_COMMA_SEPARATED := $(6))
 $(eval COV_OUT_FILE := $(COV_DIR)/$(PACKAGE_NAME)/coverage.$(TEST_NAME).mode-$(COVERAGE_MODE))
 @$(ENV_VAR) ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_POSTGRES_HOST=$(ALMIGHTY_POSTGRES_HOST) \
 	go test $(PACKAGE_NAME) \
-		-v \
+		$(GO_TEST_VERBOSITY_SWITCH) \
 		-coverprofile $(COV_OUT_FILE) \
 		-coverpkg $(ALL_PKGS_COMMA_SEPARATED) \
 		-covermode=$(COVERAGE_MODE) \
