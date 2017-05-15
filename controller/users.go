@@ -77,12 +77,12 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	})
 }
 
-func (c *UsersController) copyExistingKeycloakUserProfileInfo(keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) *login.KeycloakUserProfile {
+func (c *UsersController) copyExistingKeycloakUserProfileInfo(keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfile, error) {
 
 	// avoid multiple calls to KC
 
 	if keycloakUserProfile != nil {
-		return keycloakUserProfile
+		return keycloakUserProfile, nil
 	}
 
 	// The keycloak API doesn't support PATCH, hence the entire info needs
@@ -94,7 +94,7 @@ func (c *UsersController) copyExistingKeycloakUserProfileInfo(keycloakUserProfil
 
 	existingProfile, err := c.getKeycloakProfileInformation(tokenString, accountAPIEndpoint)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	if existingProfile.FirstName != nil {
@@ -114,7 +114,7 @@ func (c *UsersController) copyExistingKeycloakUserProfileInfo(keycloakUserProfil
 	if existingProfile.Username != nil {
 		keycloakUserProfile.Username = existingProfile.Username
 	}
-	return keycloakUserProfile
+	return keycloakUserProfile, nil
 }
 
 func (c *UsersController) getKeycloakProfileInformation(tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfileResponse, error) {
@@ -171,7 +171,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				return ctx.Conflict(jerrors)
 			}
 			user.Email = *updatedEmail
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
@@ -194,7 +194,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				return ctx.Conflict(jerrors)
 			}
 			identity.Username = *updatedUserName
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
@@ -220,7 +220,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedBio := ctx.Payload.Data.Attributes.Bio
 		if updatedBio != nil && *updatedBio != user.Bio {
 			user.Bio = *updatedBio
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
@@ -239,7 +239,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			if len(nameComponents) > 1 {
 				lastName = strings.Join(nameComponents[1:], " ")
 			}
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
@@ -250,7 +250,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
 		if updatedImageURL != nil && *updatedImageURL != user.ImageURL {
 			user.ImageURL = *updatedImageURL
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
@@ -260,7 +260,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updateURL := ctx.Payload.Data.Attributes.URL
 		if updateURL != nil && *updateURL != user.URL {
 			user.URL = *updateURL
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
@@ -270,7 +270,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		updatedCompany := ctx.Payload.Data.Attributes.Company
 		if updatedCompany != nil && *updatedCompany != user.Company {
 			user.Company = *updatedCompany
-			keycloakUserProfile = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
+			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(keycloakUserProfile, tokenString, accountAPIEndpoint)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
