@@ -17,9 +17,8 @@ import (
 
 // WorkItemLinkTypeRepository encapsulates storage & retrieval of work item link types
 type WorkItemLinkTypeRepository interface {
-	Create(ctx context.Context, name string, description *string, sourceTypeID, targetTypeID uuid.UUID, forwardName, reverseName, topology string, linkCategory, spaceID uuid.UUID) (*WorkItemLinkType, error)
-	Load(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) (*WorkItemLinkType, error)
-	LoadByID(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
+	Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error)
+	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error)
 	List(ctx context.Context, spaceID uuid.UUID) ([]WorkItemLinkType, error)
 	Delete(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLinkType) (*WorkItemLinkType, error)
@@ -43,22 +42,10 @@ type GormWorkItemLinkTypeRepository struct {
 
 // Create creates a new work item link type in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string, description *string, sourceTypeID, targetTypeID uuid.UUID, forwardName, reverseName, topology string, linkCategoryID, spaceID uuid.UUID) (*WorkItemLinkType, error) {
-	linkType := &WorkItemLinkType{
-		Name:           name,
-		Description:    description,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
-		ForwardName:    forwardName,
-		ReverseName:    reverseName,
-		Topology:       topology,
-		LinkCategoryID: linkCategoryID,
-		SpaceID:        spaceID,
-	}
+func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, linkType *WorkItemLinkType) (*WorkItemLinkType, error) {
 	if err := linkType.CheckValidForCreation(); err != nil {
 		return nil, errs.WithStack(err)
 	}
-
 	// Check link category exists
 	linkCategory := WorkItemLinkCategory{}
 	db := r.db.Where("id=?", linkType.LinkCategoryID).Find(&linkCategory)
@@ -87,79 +74,15 @@ func (r *GormWorkItemLinkTypeRepository) Create(ctx context.Context, name string
 
 // Load returns the work item link type for the given ID.
 // Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) LoadByID(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error) {
+func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error) {
 	log.Info(ctx, map[string]interface{}{
 		"wilt_id": ID,
-	}, "Loading work item link type")
+	}, "loading work item link type")
 	modelLinkType := WorkItemLinkType{}
 	db := r.db.Model(&modelLinkType).Where("id=?", ID).First(&modelLinkType)
 	if db.RecordNotFound() {
 		log.Error(ctx, map[string]interface{}{
 			"wilt_id": ID,
-		}, "work item link type not found")
-		return nil, errors.NewNotFoundError("work item link type", ID.String())
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &modelLinkType, nil
-}
-
-// Load returns the work item link type for the given spaceID and ID.
-// Returns NotFoundError, ConversionError or InternalError
-func (r *GormWorkItemLinkTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, ID uuid.UUID) (*WorkItemLinkType, error) {
-	log.Info(ctx, map[string]interface{}{
-		"wilt_id":  ID,
-		"space_id": spaceID,
-	}, "Loading work item link type")
-	modelLinkType := WorkItemLinkType{}
-	db := r.db.Model(&modelLinkType).Where("id=? AND space_id=?", ID, spaceID.String()).First(&modelLinkType)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"wilt_id": ID,
-		}, "work item link type not found")
-		return nil, errors.NewNotFoundError("work item link type", ID.String())
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &modelLinkType, nil
-}
-
-// LoadTypeFromDB return work item link type for the given name in the correct link category
-// NOTE: Two link types can coexist with different categoryIDs.
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByNameAndCategory(ctx context.Context, name string, categoryID uuid.UUID) (*WorkItemLinkType, error) {
-	log.Info(ctx, map[string]interface{}{
-		"wiltName":   name,
-		"categoryId": categoryID.String(),
-	}, "Loading work item link type by name and category")
-
-	modelLinkType := WorkItemLinkType{}
-	db := r.db.Model(&modelLinkType).Where("name=? AND link_category_id=?", name, categoryID.String()).First(&modelLinkType)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"wiltName":   name,
-			"categoryId": categoryID.String(),
-		}, "work item link type not found")
-		return nil, errors.NewNotFoundError("work item link type", name)
-	}
-	if db.Error != nil {
-		return nil, errors.NewInternalError(db.Error.Error())
-	}
-	return &modelLinkType, nil
-}
-
-// LoadTypeFromDB return work item link type for the given ID
-func (r *GormWorkItemLinkTypeRepository) LoadTypeFromDBByID(ctx context.Context, ID uuid.UUID) (*WorkItemLinkType, error) {
-	log.Info(ctx, map[string]interface{}{
-		"wilt_id": ID.String(),
-	}, "Loading work item link type by ID ")
-
-	modelLinkType := WorkItemLinkType{}
-	db := r.db.Model(&modelLinkType).Where("ID=?", ID.String()).First(&modelLinkType)
-	if db.RecordNotFound() {
-		log.Error(ctx, map[string]interface{}{
-			"wilt_id": ID.String(),
 		}, "work item link type not found")
 		return nil, errors.NewNotFoundError("work item link type", ID.String())
 	}

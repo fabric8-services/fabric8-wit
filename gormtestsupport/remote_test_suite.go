@@ -1,9 +1,10 @@
 package gormtestsupport
 
 import (
-	"github.com/Sirupsen/logrus"
 	config "github.com/almighty/almighty-core/configuration"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/resource"
+
 	"github.com/stretchr/testify/suite"
 )
 
@@ -27,7 +28,7 @@ func (s *RemoteTestSuite) SetupSuite() {
 	resource.Require(s.T(), resource.Remote)
 	configuration, err := config.NewConfigurationData(s.configFile)
 	if err != nil {
-		logrus.Panic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"err": err,
 		}, "failed to setup the configuration")
 	}

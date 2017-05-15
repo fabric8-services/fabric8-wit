@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
@@ -176,7 +175,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				return ctx.Conflict(jerrors)
 			}
 			identity.Username = *updatedUserName
-			identity.RegistrationCompleted = true
 			keycloakUserProfile.Username = updatedUserName
 		}
 
@@ -418,7 +416,7 @@ func LoadKeyCloakIdentities(appl application.Application, users []account.User) 
 		identity, err := loadKeyCloakIdentity(appl, user)
 		// if we can't find the Keycloak identity
 		if err != nil {
-			logrus.Error(err)
+			log.Error(nil, map[string]interface{}{"user": user, "err": err}, "unable to load user keycloak identity")
 		} else {
 			resultUsers = append(resultUsers, user)
 			resultIdentities = append(resultIdentities, *identity)
