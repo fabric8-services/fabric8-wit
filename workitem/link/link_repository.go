@@ -128,12 +128,12 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	}
 
 	// Fetch the link type
-	linkType, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkTypeID)
+	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
 
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkType); err != nil {
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkType.ID); err != nil {
 		return nil, errs.WithStack(err)
 	}
 
@@ -304,12 +304,12 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 	}
 	linkToSave.Version = linkToSave.Version + 1
 
-	linkTypeToSave, err := r.workItemLinkTypeRepo.LoadTypeFromDBByID(ctx, linkToSave.LinkTypeID)
+	linkTypeToSave, err := r.workItemLinkTypeRepo.Load(ctx, linkToSave.LinkTypeID)
 	if err != nil {
 		return nil, errs.Wrap(err, "failed to load link type")
 	}
 
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, linkToSave.SourceID, linkToSave.TargetID, linkTypeToSave); err != nil {
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, linkToSave.SourceID, linkToSave.TargetID, linkTypeToSave.ID); err != nil {
 		return nil, errs.WithStack(err)
 	}
 

@@ -100,12 +100,26 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	linkCategoryRepository := link.NewWorkItemLinkCategoryRepository(s.DB)
 	categoryName := "test" + uuid.NewV4().String()
 	categoryDescription := "Test Link Category"
-	linkCategory, err := linkCategoryRepository.Create(s.ctx, &categoryName, &categoryDescription)
+	linkCategoryModel1 := link.WorkItemLinkCategory{
+		Name:        categoryName,
+		Description: &categoryDescription,
+	}
+	linkCategory, err := linkCategoryRepository.Create(s.ctx, &linkCategoryModel1)
 	require.Nil(s.T(), err)
 
 	// create tree topology link type
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
-	TestTreeLinkType, err := linkTypeRepository.Create(s.ctx, "TestTreeLinkType", nil, workitem.SystemBug, workitem.SystemBug, "foo", "foo", "tree", linkCategory.ID, s.testSpace)
+	linkTypeModel1 := link.WorkItemLinkType{
+		Name:           "TestTreeLinkType",
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemBug,
+		ForwardName:    "foo",
+		ReverseName:    "foo",
+		Topology:       "tree",
+		LinkCategoryID: linkCategory.ID,
+		SpaceID:        s.testSpace,
+	}
+	TestTreeLinkType, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
 	require.Nil(s.T(), err)
 	s.testTreeLinkTypeID = TestTreeLinkType.ID
 
