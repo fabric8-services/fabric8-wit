@@ -149,13 +149,13 @@ func JSONErrorResponse(x InternalServerError, err error) error {
 		if ctx, ok := x.(Unauthorized); ok {
 			return errs.WithStack(ctx.Unauthorized(jsonErr))
 		}
-	case http.StatusConflict:
-		if ctx, ok := x.(Conflict); ok {
-			return errs.WithStack(ctx.Conflict(jsonErr))
-		}
 	case http.StatusForbidden:
 		if ctx, ok := x.(Forbidden); ok {
 			return errs.WithStack(ctx.Forbidden(jsonErr))
+		}
+	case http.StatusConflict:
+		if ctx, ok := x.(Conflict); ok {
+			return errs.WithStack(ctx.Conflict(jsonErr))
 		}
 	default:
 		return errs.WithStack(x.InternalServerError(jsonErr))
