@@ -192,6 +192,37 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
 	assert.NotNil(rest.T(), created.Data.Links.Self)
 }
 
+func (rest *TestSpaceREST) TestFailDeleteSpaceDifferentOwner() {
+	// given
+	name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+	description := "Space for TestFailDeleteSpaceDifferentOwner"
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	// when
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
+	_, errors := test.DeleteSpaceForbidden(rest.T(), svc2.Context, svc2, ctrl2, created.Data.ID.String())
+	// then
+	assert.NotEmpty(rest.T(), errors.Errors)
+	assert.Contains(rest.T(), errors.Errors[0].Detail, "user is not the space owner")
+}
+
+func (rest *TestSpaceREST) TestSuccessDeleteSpaceSameOwner() {
+	// given
+	name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+	description := "Space for TestFailDeleteSpaceDifferentOwner"
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	// when
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity)
+	test.DeleteSpaceOK(rest.T(), svc2.Context, svc2, ctrl2, created.Data.ID.String())
+}
+
 func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 	// given
 	name := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace-")

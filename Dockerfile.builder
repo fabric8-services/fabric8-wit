@@ -1,5 +1,6 @@
 FROM centos:7
-MAINTAINER "Konrad Kleine <kkleine@redhat.com>"
+LABEL maintainer "Devtools <devtools@redhat.com>"
+LABEL author "Konrad Kleine <kkleine@redhat.com>"
 ENV LANG=en_US.utf8
 
 # Some packages might seem weird but they are required by the RVM installer.
