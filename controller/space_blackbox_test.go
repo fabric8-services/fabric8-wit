@@ -225,7 +225,7 @@ func (rest *TestSpaceREST) TestSuccessDeleteSpaceSameOwner() {
 	test.DeleteSpaceOK(rest.T(), svc2.Context, svc2, ctrl2, created.Data.ID.String())
 }
 
-func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
+func (rest *TestSpaceREST) TestUpdateSpaceOK() {
 	// given
 	name := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace-")
 	description := "Space for TestSuccessUpdateSpace"
@@ -246,6 +246,28 @@ func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 	// then
 	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
 	assert.Equal(rest.T(), newDescription, *updated.Data.Attributes.Description)
+}
+
+func (rest *TestSpaceREST) TestUpdateSpaceConflict() {
+	// given
+	name := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace-")
+	description := "Space for TestSuccessUpdateSpace"
+	newName := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace")
+	newDescription := "Space for TestSuccessUpdateSpace2"
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	u := minimumRequiredUpdateSpace()
+	u.Data.ID = created.Data.ID
+	u.Data.Attributes.Version = created.Data.Attributes.Version
+	u.Data.Attributes.Name = &newName
+	u.Data.Attributes.Description = &newDescription
+	version := 123456
+	u.Data.Attributes.Version = &version
+	// when/then
+	test.UpdateSpaceConflict(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
