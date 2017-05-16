@@ -43,12 +43,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 var workItemLinkTypeAttributes = a.Type("WorkItemLinkTypeAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a work item link type.
 See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "Name of the work item link type (required on creation, optional on update)", func() {
-		a.MaxLength(62) // maximum work item link type name length is 62 characters
-		a.MinLength(1)  // minimum work item link type name length is 1 characters
-		a.Pattern("^[^_|-].*")
-		a.Example("tested-by-link-type")
-	})
+	a.Attribute("name", d.String, "Name of the work item link type (required on creation, optional on update)", nameValidationFunction)
 	a.Attribute("description", d.String, "Description of the work item link type (optional)", func() {
 		a.Example("A test work item can 'test' if a the code in a pull request passes the tests.")
 	})
