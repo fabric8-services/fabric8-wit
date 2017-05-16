@@ -20,6 +20,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -252,22 +253,35 @@ func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequestDueT
 }
 
 func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryOK() {
+	// given
 	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
 	require.NotNil(s.T(), linkCatSystem)
-
 	description := "New description for work item link category \"system\"."
 	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{}
 	updatePayload.Data = linkCatSystem.Data
 	updatePayload.Data.Attributes.Description = &description
-
+	// when
 	_, newLinkCat := test.UpdateWorkItemLinkCategoryOK(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
-
+	// then
 	// Test that description was updated and version got incremented
 	require.NotNil(s.T(), newLinkCat.Data.Attributes.Description)
-	require.Equal(s.T(), description, *newLinkCat.Data.Attributes.Description)
-
+	assert.Equal(s.T(), description, *newLinkCat.Data.Attributes.Description)
 	require.NotNil(s.T(), newLinkCat.Data.Attributes.Version)
-	require.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
+	assert.Equal(s.T(), *linkCatSystem.Data.Attributes.Version+1, *newLinkCat.Data.Attributes.Version)
+}
+
+func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryConflict() {
+	// given
+	_, linkCatSystem := s.createWorkItemLinkCategorySystem()
+	require.NotNil(s.T(), linkCatSystem)
+	description := "New description for work item link category \"system\"."
+	updatePayload := &app.UpdateWorkItemLinkCategoryPayload{}
+	updatePayload.Data = linkCatSystem.Data
+	updatePayload.Data.Attributes.Description = &description
+	version := 123456
+	updatePayload.Data.Attributes.Version = &version
+	// when/then
+	test.UpdateWorkItemLinkCategoryConflict(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, *linkCatSystem.Data.ID, updatePayload)
 }
 
 //func (s *workItemLinkCategorySuite) TestUpdateWorkItemLinkCategoryBadRequest() {
