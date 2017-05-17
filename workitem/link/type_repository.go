@@ -177,11 +177,17 @@ func (r *GormWorkItemLinkTypeRepository) ListSourceLinkTypes(ctx context.Context
 	where := fmt.Sprintf(`
 			-- Get link types we can use with a specific WIT if the WIT is at the
 			-- source of the link.
-			space_id IN (? /* The current space */, ? /* The system space (NOTE: Keep this even with space templates!!!) */)
+			
+			-- filter by the current space and the system space
+			-- NOTE(kwk): Keep filtering by system space even with space templates!!!
+			space_id IN (?, ?)
+			
 			AND id IN (
 				SELECT link_type_id FROM %[1]s /* work_item_link_type_combinations */ AS combi
 				WHERE
-					combi.space_id IN (? /* The current space */, ? /* The system space (TODO(kwk): Not needed when space templates are in) */)
+					-- filter by the current space and the system space
+					-- TODO(kwk): Not need to filter by system space when space templates are in
+					combi.space_id IN (?, ?)
 					AND
 					(SELECT path FROM %[2]s /* work_item_types */ WHERE id = combi.source_type_id LIMIT 1)
 					@>
@@ -212,11 +218,17 @@ func (r *GormWorkItemLinkTypeRepository) ListTargetLinkTypes(ctx context.Context
 	where := fmt.Sprintf(`
 			-- Get link types we can use with a specific WIT if the WIT is at the
 			-- target of the link.
-			space_id IN (? /* The current space */, ? /* The system space (NOTE: Keep this even with space templates!!!) */)
+
+			-- filter by the current space and the system space
+			-- NOTE(kwk): Keep filtering by system space even with space templates!!!
+			space_id IN (?, ?)
+
 			AND id IN (
 				SELECT link_type_id FROM %[1]s /* work_item_link_type_combinations */ AS combi
 				WHERE
-					combi.space_id IN (? /* The current space */, ? /* The system space (TODO(kwk): Not needed when space templates are in) */)
+					-- filter by the current space and the system space
+					-- TODO(kwk): Not need to filter by system space when space templates are in
+					combi.space_id IN (?, ?)
 					AND
 					(SELECT path FROM %[2]s /* work_item_types */ WHERE id = combi.target_type_id LIMIT 1)
 					@>
