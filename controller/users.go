@@ -553,7 +553,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 		}
 		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
 		if err != nil {
-			log.Error(ctx, map[string]interface{}{
+			log.Error(nil, map[string]interface{}{
 				"err": err,
 			}, "Unable to convert user context field %s ", name)
 			converted.Data.Attributes.ContextInformation[name] = nil
