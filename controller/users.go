@@ -206,7 +206,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if updatedRegistratedCompleted != nil {
 			if !*updatedRegistratedCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				log.Error(nil, map[string]interface{}{
+				log.Error(ctx, map[string]interface{}{
 					"registration_completed": *updatedRegistratedCompleted,
 					"user_id":                identity.UserID.UUID,
 					"identity_id":            identity.ID,
@@ -553,7 +553,7 @@ func ConvertToAppUser(request *goa.RequestData, user *account.User, identity *ac
 		}
 		convertedValue, err := simpleFieldDefinition.ConvertFromModel(name, value)
 		if err != nil {
-			log.Error(nil, map[string]interface{}{
+			log.Error(ctx, map[string]interface{}{
 				"err": err,
 			}, "Unable to convert user context field %s ", name)
 			converted.Data.Attributes.ContextInformation[name] = nil
