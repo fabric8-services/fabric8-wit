@@ -206,7 +206,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if updatedRegistratedCompleted != nil {
 			if !*updatedRegistratedCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to registration_completed for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
-				log.Error(context.Background(), map[string]interface{}{
+				log.Error(nil, map[string]interface{}{
 					"registration_completed": *updatedRegistratedCompleted,
 					"user_id":                identity.UserID.UUID,
 					"identity_id":            identity.ID,
@@ -343,7 +343,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 func isUsernameUnique(appl application.Application, username string, identity account.Identity) (bool, error) {
 	usersWithSameUserName, err := appl.Identities().Query(account.IdentityFilterByUsername(username), account.IdentityFilterByProviderType(account.KeycloakIDP))
 	if err != nil {
-		log.Error(context.Background(), map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"user_name": username,
 			"err":       err,
 		}, "error fetching users with username filter")
@@ -360,7 +360,7 @@ func isUsernameUnique(appl application.Application, username string, identity ac
 func isEmailUnique(appl application.Application, email string, user account.User) (bool, error) {
 	usersWithSameEmail, err := appl.Users().Query(account.UserFilterByEmail(email))
 	if err != nil {
-		log.Error(context.Background(), map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"email": email,
 			"err":   err,
 		}, "error fetching identities with email filter")
