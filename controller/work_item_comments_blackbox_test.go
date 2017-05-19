@@ -24,9 +24,9 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
-
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -132,7 +132,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithMarkup() {
 	markup := rendering.SystemMarkupMarkdown
 	p := rest.newCreateWorkItemCommentsPayload("Test", &markup)
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
 	// then
 	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", markup)
 }
@@ -143,7 +143,7 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 	// when
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
+	_, c := test.CreateWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
 	// then
 	assertComment(rest.T(), c.Data, rest.testIdentity, "Test", rendering.SystemMarkupDefault)
 }
@@ -177,7 +177,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOK() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 3
-	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, nil)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, nil)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
 	assertResponseHeaders(rest.T(), res)
@@ -191,7 +191,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKUsingExpiredIfMod
 	offset := "0"
 	limit := 3
 	ifModifiedSince := app.ToHTTPTime(comments[3].UpdatedAt.Add(-1 * time.Hour))
-	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, &ifModifiedSince, nil)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
 	assertResponseHeaders(rest.T(), res)
@@ -205,7 +205,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemOKUsingExpiredIfNon
 	offset := "0"
 	limit := 3
 	ifNoneMatch := "foo"
-	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, &ifNoneMatch)
+	res, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertComments(rest.T(), rest.testIdentity, cs)
 	assertResponseHeaders(rest.T(), res)
@@ -219,7 +219,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfM
 	offset := "0"
 	limit := 3
 	ifModifiedSince := app.ToHTTPTime(comments[3].UpdatedAt)
-	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, &ifModifiedSince, nil)
+	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -236,7 +236,7 @@ func (rest *TestCommentREST) TestListCommentsByParentWorkItemNotModifiedUsingIfN
 		comments[1],
 		comments[0],
 	})
-	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, &ifNoneMatch)
+	res := test.ListWorkItemCommentsNotModified(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -248,7 +248,7 @@ func (rest *TestCommentREST) TestEmptyListCommentsByParentWorkItem() {
 	svc, ctrl := rest.UnSecuredController()
 	offset := "0"
 	limit := 1
-	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, &limit, &offset, nil, nil)
+	_, cs := test.ListWorkItemCommentsOK(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, &limit, &offset, nil, nil)
 	// then
 	assert.Equal(rest.T(), 0, len(cs.Data))
 }
@@ -258,7 +258,7 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	// when/then
 	svc, ctrl := rest.SecuredController()
-	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, "0000000", "0000000", p)
+	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), "0000000", p)
 }
 
 func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
@@ -267,7 +267,7 @@ func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
 	// when/then
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateWorkItemCommentsUnauthorized(rest.T(), svc.Context, svc, ctrl, wi.SpaceID.String(), wi.ID, p)
+	test.CreateWorkItemCommentsUnauthorized(rest.T(), svc.Context, svc, ctrl, wi.SpaceID, wi.ID, p)
 }
 
 // Can not be tested via normal Goa testing framework as setting empty body on CreateCommentAttributes is
@@ -288,5 +288,5 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	// when/then
 	offset := "0"
 	limit := 1
-	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, "0000000", "0000000", &limit, &offset, nil, nil)
+	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), "0000000", &limit, &offset, nil, nil)
 }

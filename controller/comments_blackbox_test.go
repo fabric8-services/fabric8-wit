@@ -111,7 +111,7 @@ func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
 		},
 	}
 	userSvc, workitemCtrl, _, _ := s.securedControllers(identity)
-	_, wi := test.CreateWorkitemCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, createWorkitemPayload.Data.Relationships.Space.Data.ID.String(), &createWorkitemPayload)
+	_, wi := test.CreateWorkitemCreated(s.T(), userSvc.Context, userSvc, workitemCtrl, *createWorkitemPayload.Data.Relationships.Space.Data.ID, &createWorkitemPayload)
 	wID := *wi.Data.ID
 	s.T().Log(fmt.Sprintf("Created workitem with id %v", wID))
 	return wID
@@ -145,7 +145,7 @@ func (s *CommentsSuite) newUpdateCommentsPayload(body string, markup *string) *a
 func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wID string, body string, markup *string) app.CommentSingle {
 	createWorkItemCommentPayload := s.newCreateWorkItemCommentsPayload(body, markup)
 	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
-	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace.String(), wID, createWorkItemCommentPayload)
+	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wID, createWorkItemCommentPayload)
 	s.T().Log(fmt.Sprintf("Created comment with id %v", *c.Data.ID))
 	return *c
 }

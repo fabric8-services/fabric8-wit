@@ -83,7 +83,7 @@ func (rest *TestSpaceCodebaseREST) TestSuccessCreateCodebase() {
 		return nil
 	})
 	svc, ctrl := rest.SecuredController()
-	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, p.ID.String(), ci)
+	_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, p.ID, ci)
 	require.NotNil(t, c.Data.ID)
 	require.NotNil(t, c.Data.Relationships.Space)
 	assert.Equal(t, p.ID.String(), *c.Data.Relationships.Space.Data.ID)
@@ -127,7 +127,7 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 	for i := 0; i < 3; i++ {
 		repoURL := strings.Replace(repo, "core", "core"+strconv.Itoa(i), -1)
 		spaceCodebaseContext := createSpaceCodebase(repoURL)
-		_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, spaceId.String(), spaceCodebaseContext)
+		_, c := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, spaceId, spaceCodebaseContext)
 		require.NotNil(t, c.Data.ID)
 		require.NotNil(t, c.Data.Relationships.Space)
 		createdSpacesUuids1 = append(createdSpacesUuids1, *c.Data.ID)
@@ -135,20 +135,20 @@ func (rest *TestSpaceCodebaseREST) TestListCodebase() {
 
 	otherRepo := "https://github.com/fabric8io/fabric8-planner.git"
 	anotherSpaceCodebaseContext := createSpaceCodebase(otherRepo)
-	_, createdCodebase := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, anotherSpaceId.String(), anotherSpaceCodebaseContext)
+	_, createdCodebase := test.CreateSpaceCodebasesCreated(t, svc.Context, svc, ctrl, anotherSpaceId, anotherSpaceCodebaseContext)
 	require.NotNil(t, createdCodebase)
 
 	offset := "0"
 	limit := 100
 
 	svc, ctrl = rest.UnSecuredController()
-	_, codebaseList := test.ListSpaceCodebasesOK(t, svc.Context, svc, ctrl, spaceId.String(), &limit, &offset)
+	_, codebaseList := test.ListSpaceCodebasesOK(t, svc.Context, svc, ctrl, spaceId, &limit, &offset)
 	assert.Len(t, codebaseList.Data, 3)
 	for i := 0; i < len(createdSpacesUuids1); i++ {
 		assert.NotNil(t, searchInCodebaseSlice(createdSpacesUuids1[i], codebaseList))
 	}
 
-	_, anotherCodebaseList := test.ListSpaceCodebasesOK(t, svc.Context, svc, ctrl, anotherSpaceId.String(), &limit, &offset)
+	_, anotherCodebaseList := test.ListSpaceCodebasesOK(t, svc.Context, svc, ctrl, anotherSpaceId, &limit, &offset)
 	require.Len(t, anotherCodebaseList.Data, 1)
 	assert.Equal(t, anotherCodebaseList.Data[0].ID, createdCodebase.Data.ID)
 
@@ -161,7 +161,7 @@ func (rest *TestSpaceCodebaseREST) TestCreateCodebaseMissingSpace() {
 	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git")
 
 	svc, ctrl := rest.SecuredController()
-	test.CreateSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	test.CreateSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
 }
 
 func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
@@ -171,7 +171,7 @@ func (rest *TestSpaceCodebaseREST) TestFailCreateCodebaseNotAuthorized() {
 	ci := createSpaceCodebase("https://github.com/fabric8io/fabric8-planner.git")
 
 	svc, ctrl := rest.UnSecuredController()
-	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	test.CreateSpaceCodebasesUnauthorized(t, svc.Context, svc, ctrl, uuid.NewV4(), ci)
 }
 
 func (rest *TestSpaceCodebaseREST) TestFailListCodebaseByMissingSpace() {
@@ -182,7 +182,7 @@ func (rest *TestSpaceCodebaseREST) TestFailListCodebaseByMissingSpace() {
 	limit := 100
 
 	svc, ctrl := rest.UnSecuredController()
-	test.ListSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4().String(), &limit, &offset)
+	test.ListSpaceCodebasesNotFound(t, svc.Context, svc, ctrl, uuid.NewV4(), &limit, &offset)
 }
 
 func searchInCodebaseSlice(searchKey uuid.UUID, codebaseList *app.CodebaseList) *app.Codebase {
