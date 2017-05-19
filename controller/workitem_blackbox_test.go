@@ -392,28 +392,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Create Work Item API with different parameters
 			{
 				method:             http.MethodPost,
-				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331"),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPost,
-				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331"),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPost,
-				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331"),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodPost,
-				url:                fmt.Sprintf(endpointWorkItems, "1234"),
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331"),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
@@ -422,28 +422,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Update Work Item API with different parameters
 			{
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
@@ -452,28 +452,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Delete Work Item API with different parameters
 			{
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
@@ -483,7 +483,7 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// We do not have security on GET hence this should return 404 not found
 			{
 				method:             http.MethodGet,
-				url:                fmt.Sprintf(endpointWorkItems, "1234") + "/088481764871",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/088481764871",
 				expectedStatusCode: http.StatusNotFound,
 				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 				payload:            nil,
