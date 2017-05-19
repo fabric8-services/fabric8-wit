@@ -83,7 +83,7 @@ func getTypesOfLinks(ctx *workItemLinkContext, linksDataArr []*app.WorkItemLinkD
 	// Now include the optional link type data in the work item link "included" array
 	linkTypeModels := []link.WorkItemLinkType{}
 	for typeID := range typeIDMap {
-		linkTypeModel, err := ctx.Application.WorkItemLinkTypes().LoadByID(ctx.Context, typeID)
+		linkTypeModel, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, typeID)
 		if err != nil {
 			return nil, errs.WithStack(err)
 		}
@@ -141,7 +141,7 @@ func getCategoriesOfLinkTypes(ctx *workItemLinkContext, linkTypeDataArr []*app.W
 // enrichLinkSingle includes related resources in the link's "included" array
 func enrichLinkSingle(ctx *workItemLinkContext, appLinks *app.WorkItemLinkSingle) error {
 	// include link type
-	modelLinkType, err := ctx.Application.WorkItemLinkTypes().LoadByID(ctx.Context, appLinks.Data.Relationships.LinkType.Data.ID)
+	modelLinkType, err := ctx.Application.WorkItemLinkTypes().Load(ctx.Context, appLinks.Data.Relationships.LinkType.Data.ID)
 	if err != nil {
 		return errs.WithStack(err)
 	}

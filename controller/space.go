@@ -153,7 +153,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 // Delete runs the delete action.
 func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -165,10 +165,23 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	var permissionID string
 	var policyID string
 	err = application.Transactional(c.db, func(appl application.Application) error {
+		s, err := appl.Spaces().Load(ctx.Context, id)
+		if err != nil {
+			return err
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     id,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return errors.NewForbiddenError("user is not the space owner")
+		}
+
 		// Delete associated space resource
 		resource, err := appl.SpaceResources().LoadBySpace(ctx, &id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		resourceID = resource.ResourceID
 		permissionID = resource.PermissionID
@@ -176,7 +189,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 		appl.SpaceResources().Delete(ctx, resource.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return appl.Spaces().Delete(ctx.Context, id)
 	})

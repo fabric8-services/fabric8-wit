@@ -6,23 +6,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
-
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
-
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
 	"github.com/almighty/almighty-core/gormsupport"
-	"github.com/almighty/almighty-core/login"
-
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
-
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/resource"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -140,7 +137,13 @@ func (s *TestUsersSuite) TestUpdateUserNameMulitpleTimesForbidden() {
 		"last_visited": "yesterday",
 	}
 
+	// you can update username multiple times.
+	// also omit registrationCompleted
 	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, nil, contextInformation)
+	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+
+	boolTrue := true
+	updateUsersPayload = createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &newUserName, &boolTrue, contextInformation)
 	_, result = test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 
 	// next attempt should fail.
@@ -914,7 +917,7 @@ func (s *TestUsersSuite) generateUsersTag(allUsers app.UserArray) string {
 			},
 		}
 	}
-	logrus.Info("Users: ", len(allUsers.Data), " -> ETag: ", app.GenerateEntitiesTag(entities))
+	log.Info(nil, map[string]interface{}{"users": len(allUsers.Data), "etag": app.GenerateEntitiesTag(entities)}, "generate users tag")
 	return app.GenerateEntitiesTag(entities)
 }
 

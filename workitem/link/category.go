@@ -6,9 +6,10 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-const (
-	SystemWorkItemLinkCategorySystem = "system"
-	SystemWorkItemLinkCategoryUser   = "user"
+// Never ever change these UUIDs!!!
+var (
+	SystemWorkItemLinkCategorySystemID = uuid.FromStringOrNil("B1482C65-A64D-4058-BEB0-62F7198CB0F4")
+	SystemWorkItemLinkCategoryUserID   = uuid.FromStringOrNil("2F24724F-797C-4073-8B16-4BB8CE9E84A6")
 )
 
 // WorkItemLinkCategory represents the category of a work item link as it is stored in the db
