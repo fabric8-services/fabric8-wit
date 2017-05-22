@@ -11,6 +11,7 @@ import (
 	"github.com/almighty/almighty-core/auth"
 	"github.com/almighty/almighty-core/jsonapi"
 	"github.com/almighty/almighty-core/log"
+	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/space/authz"
 	"github.com/goadesign/goa"
 	"github.com/satori/go.uuid"
@@ -40,6 +41,10 @@ func NewCollaboratorsController(service *goa.Service, db application.DB, config 
 
 // List collaborators for the given space ID.
 func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error {
+	_, err := login.ContextIdentity(ctx)
+	if err != nil {
+		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
+	}
 	policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.ID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)

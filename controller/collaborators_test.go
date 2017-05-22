@@ -127,12 +127,16 @@ func (rest *TestCollaboratorsREST) UnSecuredController() (*goa.Service, *Collabo
 }
 
 func (rest *TestCollaboratorsREST) TestListCollaboratorsWithRandomSpaceIDNotFound() {
-	svc, ctrl := rest.UnSecuredController()
+	svc, ctrl := rest.SecuredController()
 	test.ListCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
 }
 
-func (rest *TestCollaboratorsREST) TestListCollaboratorsWithWrongSpaceIDFormatReturnsBadRequest() {
+func (rest *TestCollaboratorsREST) TestListCollaboratorsWithRandomSpaceIDNotFoundUnAuthorized() {
 	svc, ctrl := rest.UnSecuredController()
+	test.ListCollaboratorsUnauthorized(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+}
+func (rest *TestCollaboratorsREST) TestListCollaboratorsWithWrongSpaceIDFormatReturnsBadRequest() {
+	svc, ctrl := rest.SecuredController()
 	test.ListCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, "wrongFormatID", nil, nil)
 }
 
@@ -331,7 +335,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithWrongUserIDFor
 }
 
 func (rest *TestCollaboratorsREST) checkCollaborators(userIDs []string) {
-	svc, ctrl := rest.UnSecuredController()
+	svc, ctrl := rest.SecuredController()
 
 	_, users := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, nil, nil)
 	require.NotNil(rest.T(), users)

@@ -84,6 +84,13 @@ func (rest *TestSpaceREST) UnSecuredController() (*goa.Service, *SpaceController
 	return svc, NewSpaceController(svc, rest.db, spaceConfiguration, &DummyResourceManager{})
 }
 
+func (rest *TestSpaceREST) TestListSpaceUnauthorized() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	// when/then
+	test.ListSpaceUnauthorized(rest.T(), svc.Context, svc, ctrl, nil, nil, nil, nil)
+}
+
 func (rest *TestSpaceREST) TestFailCreateSpaceUnsecure() {
 	// given
 	p := minimumRequiredCreateSpace()

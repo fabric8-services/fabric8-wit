@@ -10,6 +10,7 @@ var _ = a.Resource("collaborators", func() {
 	a.BasePath("/collaborators")
 
 	a.Action("list", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)
@@ -22,6 +23,7 @@ var _ = a.Resource("collaborators", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("add-many", func() {
