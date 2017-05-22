@@ -302,6 +302,9 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategorySystemID.String(),
 		link.SystemWorkItemLinkCategoryUserID.String())})
 
+	// Version 60
+	m = append(m, steps{ExecuteSQLFile("060-fixed-identities-username-idx.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
