@@ -147,7 +147,7 @@ func (c *WorkItemLinkTypeController) Create(ctx *app.CreateWorkItemLinkTypeConte
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, modelLinkType.Name, modelLinkType.Description, modelLinkType.SourceTypeID, modelLinkType.TargetTypeID, modelLinkType.ForwardName, modelLinkType.ReverseName, modelLinkType.Topology, modelLinkType.LinkCategoryID, modelLinkType.SpaceID)
+		createdModelLinkType, err := appl.WorkItemLinkTypes().Create(ctx.Context, modelLinkType)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -235,7 +235,7 @@ func (c *WorkItemLinkTypeController) Show(ctx *app.ShowWorkItemLinkTypeContext) 
 			return jsonapi.JSONErrorResponse(ctx, errors.NewNotFoundError("work item link type ID", ctx.WiltID))
 		}
 
-		modelLinkType, err := appl.WorkItemLinkTypes().Load(ctx.Context, spaceID, wiltID)
+		modelLinkType, err := appl.WorkItemLinkTypes().Load(ctx.Context, wiltID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}

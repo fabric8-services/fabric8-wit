@@ -153,7 +153,7 @@ func (c *SpaceController) Create(ctx *app.CreateSpaceContext) error {
 
 // Delete runs the delete action.
 func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -165,10 +165,23 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 	var permissionID string
 	var policyID string
 	err = application.Transactional(c.db, func(appl application.Application) error {
+		s, err := appl.Spaces().Load(ctx.Context, id)
+		if err != nil {
+			return err
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     id,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return errors.NewForbiddenError("user is not the space owner")
+		}
+
 		// Delete associated space resource
 		resource, err := appl.SpaceResources().LoadBySpace(ctx, &id)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		resourceID = resource.ResourceID
 		permissionID = resource.PermissionID
@@ -176,7 +189,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 		appl.SpaceResources().Delete(ctx, resource.ID)
 		if err != nil {
-			return jsonapi.JSONErrorResponse(ctx, err)
+			return err
 		}
 		return appl.Spaces().Delete(ctx.Context, id)
 	})
@@ -193,7 +206,7 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 // List runs the list action.
 func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	var response app.SpaceList
 	txnErr := application.Transactional(c.db, func(appl application.Application) error {
@@ -408,7 +421,7 @@ func ConvertSpaceFromModel(ctx context.Context, db application.DB, request *goa.
 	relatedWorkItemList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitems", spaceIDStr))
 	relatedWorkItemTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemtypes", spaceIDStr))
 	relatedWorkItemLinkTypeList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/workitemlinktypes", spaceIDStr))
-	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", identitiesEndpoint, sp.OwnerId.String()))
+	relatedOwnerByLink := rest.AbsoluteURL(request, fmt.Sprintf("%s/%s", usersEndpoint, sp.OwnerId.String()))
 	relatedCollaboratorList := rest.AbsoluteURL(request, fmt.Sprintf("/api/spaces/%s/collaborators", spaceIDStr))
 	relatedFilterList := rest.AbsoluteURL(request, "/api/filters")
 

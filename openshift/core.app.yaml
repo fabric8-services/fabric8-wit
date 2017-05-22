@@ -80,6 +80,11 @@ objects:
               configMapKeyRef:
                 name: core
                 key: postgres.connection.maxopen
+          - name: ALMIGHTY_AUTH_NOTAPPROVED_REDIRECT
+            valueFrom:
+              configMapKeyRef:
+                name: core
+                key: auth_notapproved_redirect
           - name: ALMIGHTY_TENANT_SERVICEURL
             valueFrom:
               secretKeyRef:

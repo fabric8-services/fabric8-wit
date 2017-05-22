@@ -55,7 +55,7 @@ type KeycloakOAuthProvider struct {
 
 // KeycloakOAuthService represents keycloak OAuth service interface
 type KeycloakOAuthService interface {
-	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string) error
+	Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string, userNotApprovedRedirectURL string) error
 	CreateOrUpdateKeycloakUser(accessToken string, ctx context.Context, profileEndpoint string) (*account.Identity, *account.User, error)
 	Link(ctx *app.LinkLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
 	LinkSession(ctx *app.LinksessionLoginContext, brokerEndpoint string, clientID string, validRedirectURL string) error
@@ -89,7 +89,7 @@ const (
 )
 
 // Perform performs authentication
-func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string) error {
+func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, config *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string, userNotApprovedRedirectURL string) error {
 	state := ctx.Params.Get("state")
 	code := ctx.Params.Get("code")
 
@@ -144,6 +144,13 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			}, "failed to create a user and KeyCloak identity using the access token")
 			switch err.(type) {
 			case coreerrors.UnauthorizedError:
+				if userNotApprovedRedirectURL != "" {
+					log.Debug(ctx, map[string]interface{}{
+						"user_not_approved_redirect_url": userNotApprovedRedirectURL,
+					}, "user not approved; redirecting to registration app")
+					ctx.ResponseData.Header().Set("Location", userNotApprovedRedirectURL)
+					return ctx.TemporaryRedirect()
+				}
 				return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 			}
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
@@ -168,7 +175,7 @@ func (keycloak *KeycloakOAuthProvider) Perform(ctx *app.AuthorizeLoginContext, c
 			return redirectWithError(ctx, knownReferrer, err.Error())
 		}
 
-		err = encodeToken(referrerURL, keycloakToken)
+		err = encodeToken(ctx, referrerURL, keycloakToken)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"err": err,
@@ -344,6 +351,7 @@ func (keycloak *KeycloakOAuthProvider) checkFederatedIdentity(ctx context.Contex
 		}, "Unable to obtain a federated identity token")
 		return false, er.NewInternalError("Unable to obtain a federated identity token " + err.Error())
 	}
+	defer res.Body.Close()
 	return res.StatusCode == http.StatusOK, nil
 }
 
@@ -556,16 +564,45 @@ func getProviderURL(req *goa.RequestData, state string, sessionState string, cli
 	return linkingURL.String(), nil
 }
 
-func encodeToken(referrer *url.URL, outhToken *oauth2.Token) error {
-	str := outhToken.Extra("expires_in")
-	expiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+func numberToInt(number interface{}) (int64, error) {
+	switch v := number.(type) {
+	case int32:
+		return int64(v), nil
+	case int64:
+		return v, nil
+	case float32:
+		return int64(v), nil
+	case float64:
+		return int64(v), nil
+	}
+	result, err := strconv.ParseInt(fmt.Sprintf("%v", number), 10, 64)
 	if err != nil {
-		return errs.WithStack(errors.New("cant convert expires_in to integer " + err.Error()))
+		return 0, err
+	}
+	return result, nil
+}
+
+func encodeToken(ctx context.Context, referrer *url.URL, outhToken *oauth2.Token) error {
+	str := outhToken.Extra("expires_in")
+	var expiresIn interface{}
+	var refreshExpiresIn interface{}
+	var err error
+	expiresIn, err = numberToInt(str)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"expires_in": str,
+			"err":        err,
+		}, "unable to parse expires_in claim")
+		return errs.WithStack(errors.New("unable to parse expires_in claim to integer: " + err.Error()))
 	}
 	str = outhToken.Extra("refresh_expires_in")
-	refreshExpiresIn, err := strconv.Atoi(fmt.Sprintf("%v", str))
+	refreshExpiresIn, err = numberToInt(str)
 	if err != nil {
-		return errs.WithStack(errors.New("cant convert refresh_expires_in to integer " + err.Error()))
+		log.Error(ctx, map[string]interface{}{
+			"refresh_expires_in": str,
+			"err":                err,
+		}, "unable to parse expires_in claim")
+		return errs.WithStack(errors.New("unable to parse refresh_expires_in claim to integer: " + err.Error()))
 	}
 	tokenData := &app.TokenData{
 		AccessToken:      &outhToken.AccessToken,
@@ -652,7 +689,7 @@ func (keycloak *KeycloakOAuthProvider) CreateOrUpdateKeycloakUser(accessToken st
 			return nil, nil, errors.New("Cant' create user/identity " + err.Error())
 		}
 	} else {
-		identity = identities[0]
+		identity = &identities[0]
 		user = &identity.User
 		if user.ID == uuid.Nil {
 			log.Error(ctx, map[string]interface{}{
@@ -696,7 +733,17 @@ func checkApproved(ctx context.Context, profileService UserProfileService, acces
 	}
 	b, err := strconv.ParseBool(approved[0])
 	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"err":      err,
+			"username": profile.Username,
+			"approved": approved[0],
+		}, "unable to parse 'approved' attribute of the user's profile")
 		return false, err
+	}
+	if !b {
+		log.Warn(ctx, map[string]interface{}{
+			"username": profile.Username,
+		}, "approved attribute found but set to false")
 	}
 	return b, nil
 }

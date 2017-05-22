@@ -22,7 +22,7 @@ func TestCodebaseToMap(t *testing.T) {
 	repo := "golang-project"
 	file := "main.go"
 	line := 200
-	cb := codebase.CodebaseContent{
+	cb := codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -67,12 +67,12 @@ func TestNewCodebase(t *testing.T) {
 }
 
 func TestIsValid(t *testing.T) {
-	cb := codebase.CodebaseContent{
+	cb := codebase.Content{
 		Repository: "hello",
 	}
 	assert.Nil(t, cb.IsValid())
 
-	cb = codebase.CodebaseContent{}
+	cb = codebase.Content{}
 	assert.NotNil(t, cb.IsValid())
 }
 
@@ -95,12 +95,13 @@ func (test *TestCodebaseRepository) TearDownTest() {
 	test.clean()
 }
 
-func newCodebase(spaceID uuid.UUID, stackID, repotype, url string) *codebase.Codebase {
+func newCodebase(spaceID uuid.UUID, stackID, lastUsedWorkspace, repotype, url string) *codebase.Codebase {
 	return &codebase.Codebase{
-		SpaceID: spaceID,
-		Type:    repotype,
-		URL:     url,
-		StackID: stackID,
+		SpaceID:           spaceID,
+		Type:              repotype,
+		URL:               url,
+		StackID:           stackID,
+		LastUsedWorkspace: lastUsedWorkspace,
 	}
 }
 
@@ -114,8 +115,8 @@ func (test *TestCodebaseRepository) TestListCodebases() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase1 := newCodebase(spaceID, "golang-default", "git", "git@github.com:almighty/almighty-core.git")
-	codebase2 := newCodebase(spaceID, "python-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase1 := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:almighty/almighty-core.git")
+	codebase2 := newCodebase(spaceID, "python-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 
 	test.createCodebase(codebase1)
 	test.createCodebase(codebase2)
@@ -133,12 +134,12 @@ func (test *TestCodebaseRepository) TestLoadCodebase() {
 	// given
 	spaceID := space.SystemSpace
 	repo := codebase.NewCodebaseRepository(test.DB)
-	codebase := newCodebase(spaceID, "golang-default", "git", "git@github.com:aslakknutsen/almighty-core.git")
+	codebase := newCodebase(spaceID, "golang-default", "my-used-last-workspace", "git", "git@github.com:aslakknutsen/almighty-core.git")
 	test.createCodebase(codebase)
 	// when
 	loadedCodebase, err := repo.Load(context.Background(), codebase.ID)
 	require.Nil(test.T(), err)
 	assert.Equal(test.T(), codebase.ID, loadedCodebase.ID)
 	assert.Equal(test.T(), "golang-default", loadedCodebase.StackID)
-
+	assert.Equal(test.T(), "my-used-last-workspace", loadedCodebase.LastUsedWorkspace)
 }

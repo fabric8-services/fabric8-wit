@@ -56,3 +56,12 @@ func TestNewUnauthorizedError(t *testing.T) {
 
 	assert.Equal(t, msg, err.Error())
 }
+
+func TestNewForbiddenError(t *testing.T) {
+	t.Parallel()
+	resource.Require(t, resource.UnitTest)
+	msg := "Forbidden"
+	err := errors.NewForbiddenError(msg)
+
+	assert.Equal(t, msg, err.Error())
+}

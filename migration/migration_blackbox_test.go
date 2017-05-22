@@ -112,7 +112,11 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration52", testMigration52)
 	t.Run("testMigration53", testMigration53)
 	t.Run("TestMigration54", testMigration54)
+	t.Run("TestMigration55", testMigration55)
 	t.Run("TestMigration56", testMigration56)
+	t.Run("TestMigration57", testMigration57)
+	t.Run("TestMigration60", testMigration60)
+	t.Run("TestMigration61", testMigration61)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -254,24 +258,58 @@ func testMigration54(t *testing.T) {
 	assert.Nil(t, runSQLscript(sqlDB, "054-add-stackid-to-codebase.sql"))
 }
 
+func testMigration55(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+10)], (initialMigratedVersion + 10))
+	// fill DB with invalid data (ie, missing root area)
+	assert.Nil(t, runSQLscript(sqlDB, "055-assign-root-area-if-missing.sql"))
+	// then apply the fix
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	// and verify that the root area is available
+	rows, err := sqlDB.Query("select fields->>'system.area' from work_items where id = 12345")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rootArea string
+		err = rows.Scan(&rootArea)
+		assert.NotEmpty(t, rootArea)
+	}
+}
+
 func testMigration56(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+11)], (initialMigratedVersion + 11))
+	// fill DB with invalid data (ie, missing root area)
+	assert.Nil(t, runSQLscript(sqlDB, "056-assign-root-iteration-if-missing.sql"))
+	// then apply the fix
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+12)], (initialMigratedVersion + 12))
+	// and verify that the root area is available
+	rows, err := sqlDB.Query("select fields->>'system.iteration' from work_items where id = 12346")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var rootIteration string
+		err = rows.Scan(&rootIteration)
+		assert.NotEmpty(t, rootIteration)
+	}
+}
 
-	assert.True(t, gormDB.HasTable("categories"))
-	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
-	assert.True(t, dialect.HasIndex("categories", "categories_name_idx"))
+func testMigration57(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+13)], (initialMigratedVersion + 13))
 
-	assert.True(t, gormDB.HasTable("workitemtype_categories"))
-	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_id_idx"))
-	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_idx"))
+	assert.True(t, dialect.HasColumn("codebases", "last_used_workspace"))
 
-	assert.True(t, dialect.HasColumn("workitemtype_categories", "category_id"))
-	assert.True(t, dialect.HasColumn("workitemtype_categories", "workitemtype_id"))
+	assert.Nil(t, runSQLscript(sqlDB, "057-add-last-used-workspace-to-codebase.sql"))
+}
 
-	// These script execution has to fail
-	assert.NotNil(t, runSQLscript(sqlDB, "055-insert-category-no-name-fail.sql"))
-	assert.NotNil(t, runSQLscript(sqlDB, "056-unique-idx-failed-insert-category.sql"))
+func testMigration60(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
 
+	assert.True(t, dialect.HasIndex("identities", "idx_identities_username"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
@@ -294,6 +332,25 @@ func runSQLscript(db *sql.DB, sqlFilename string) error {
 	}
 
 	return nil
+}
+
+func testMigration56(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+12)], (initialMigratedVersion + 12))
+
+	assert.True(t, gormDB.HasTable("categories"))
+	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
+	assert.True(t, dialect.HasIndex("categories", "categories_name_idx"))
+
+	assert.True(t, gormDB.HasTable("workitemtype_categories"))
+	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_id_idx"))
+	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_idx"))
+
+	assert.True(t, dialect.HasColumn("workitemtype_categories", "category_id"))
+	assert.True(t, dialect.HasColumn("workitemtype_categories", "workitemtype_id"))
+
+	// These script execution has to fail
+	assert.NotNil(t, runSQLscript(sqlDB, "055-insert-category-no-name-fail.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "056-unique-idx-failed-insert-category.sql"))
 }
 
 // executeSQLTestFile loads the given filename from the packaged SQL files and

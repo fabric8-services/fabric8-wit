@@ -8,7 +8,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/category"
@@ -34,6 +33,7 @@ const (
 	APIStringTypeUser         = "identities"
 	APIStringTypeWorkItem     = "workitems"
 	APIStringTypeWorkItemType = "workitemtypes"
+	none                      = "none"
 )
 
 // WorkitemController implements the workitem resource.
@@ -74,8 +74,14 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
 	}
 	if ctx.FilterAssignee != nil {
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
-		additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
+		if *ctx.FilterAssignee == none {
+			exp = criteria.And(exp, criteria.IsNull("system.assignees"))
+			additionalQuery = append(additionalQuery, "filter[assignee]=none")
+
+		} else {
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("system.assignees"), criteria.Literal([]string{*ctx.FilterAssignee})))
+			additionalQuery = append(additionalQuery, "filter[assignee]="+*ctx.FilterAssignee)
+		}
 	}
 	if ctx.FilterIteration != nil {
 		exp = criteria.And(exp, criteria.Equals(criteria.Field(workitem.SystemIteration), criteria.Literal(string(*ctx.FilterIteration))))
@@ -130,7 +136,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 		additionalQuery = append(additionalQuery, "filter[category]="+ctx.FilterCategory.String())
 	}
 
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
 		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, ctx.FilterParentexists, &offset, &limit)
 		count := int(tc)
@@ -193,7 +199,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
 	}
-
 	authorized, err := authorizeWorkitemEditor(ctx, c.db, spaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
@@ -473,7 +478,14 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 	}
 	if source.Relationships != nil && source.Relationships.Iteration != nil {
 		if source.Relationships.Iteration.Data == nil {
-			delete(target.Fields, workitem.SystemIteration)
+			log.Debug(nil, map[string]interface{}{
+				"wi_id": target.ID,
+			}, "assigning the work item to the root iteration of the space.")
+			rootIteration, err := appl.Iterations().Root(context.Background(), spaceID)
+			if err != nil {
+				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
+			}
+			target.Fields[workitem.SystemIteration] = rootIteration.ID.String()
 		} else {
 			d := source.Relationships.Iteration.Data
 			iterationUUID, err := uuid.FromString(*d.ID)
@@ -489,7 +501,9 @@ func ConvertJSONAPIToWorkItem(appl application.Application, source app.WorkItem,
 
 	if source.Relationships != nil && source.Relationships.Area != nil {
 		if source.Relationships.Area.Data == nil {
-			logrus.Debug("assigning the work item to the root area of the space.")
+			log.Debug(nil, map[string]interface{}{
+				"wi_id": target.ID,
+			}, "assigning the work item to the root area of the space.")
 			rootArea, err := appl.Areas().Root(context.Background(), spaceID)
 			if err != nil {
 				return errors.NewBadParameterError("space", spaceID).Expected("valid space ID")
@@ -624,16 +638,16 @@ func ConvertWorkItem(request *goa.RequestData, wi workitem.WorkItem, additional 
 		switch name {
 		case workitem.SystemAssignees:
 			if val != nil {
-				valArr := val.([]interface{})
+				userID := val.([]interface{})
 				op.Relationships.Assignees = &app.RelationGenericList{
-					Data: ConvertUsersSimple(request, valArr),
+					Data: ConvertUsersSimple(request, userID),
 				}
 			}
 		case workitem.SystemCreator:
 			if val != nil {
-				valStr := val.(string)
+				userID := val.(string)
 				op.Relationships.Creator = &app.RelationGeneric{
-					Data: ConvertUserSimple(request, valStr),
+					Data: ConvertUserSimple(request, userID),
 				}
 			}
 		case workitem.SystemIteration:

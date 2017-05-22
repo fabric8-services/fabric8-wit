@@ -68,9 +68,9 @@ type PolicyConfigData struct {
 // Token represents a Keycloak token response
 type Token struct {
 	AccessToken      *string `json:"access_token,omitempty"`
-	ExpiresIn        *int    `json:"expires_in,omitempty"`
-	NotBeforePolicy  *int    `json:"not-before-policy,omitempty"`
-	RefreshExpiresIn *int    `json:"refresh_expires_in,omitempty"`
+	ExpiresIn        *int64  `json:"expires_in,omitempty"`
+	NotBeforePolicy  *int64  `json:"not-before-policy,omitempty"`
+	RefreshExpiresIn *int64  `json:"refresh_expires_in,omitempty"`
 	RefreshToken     *string `json:"refresh_token,omitempty"`
 	TokenType        *string `json:"token_type,omitempty"`
 }
@@ -198,6 +198,7 @@ func CreateResource(ctx context.Context, resource KeycloakResource, authzEndpoin
 		}, "Unable to create a Keycloak resource")
 		return "", errors.NewInternalError("Unable to create a Keycloak resource " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"resource":        resource,
@@ -245,6 +246,7 @@ func GetClientID(ctx context.Context, clientsEndpoint string, publicClientID str
 		}, "Unable to obtain keycloak client ID")
 		return "", errors.NewInternalError("Unable to obtain keycloak client ID " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{
 			"public_client_id": publicClientID,
@@ -305,6 +307,7 @@ func CreatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "Unable to crete the Keycloak policy")
 		return "", errors.NewInternalError("Unable to create the Keycloak policy " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"client_id":       clientID,
@@ -359,6 +362,7 @@ func CreatePermission(ctx context.Context, clientsEndpoint string, clientID stri
 		}, "Unable to crete the Keycloak permission")
 		return "", errors.NewInternalError("Unable to create the Keycloak permission " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"client_id":       clientID,
@@ -410,6 +414,7 @@ func DeleteResource(ctx context.Context, kcResourceID string, authzEndpoint stri
 		}, "Unable to delete the Keycloak resource")
 		return errors.NewInternalError("Unable to delete the Keycloak resource " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
 			"kc_resource_id":  kcResourceID,
@@ -448,6 +453,7 @@ func DeletePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "Unable to delete the Keycloak policy")
 		return errors.NewInternalError("Unable to delete the Keycloak policy " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
 			"policy_id":       policyID,
@@ -486,6 +492,7 @@ func DeletePermission(ctx context.Context, clientsEndpoint string, clientID stri
 		}, "Unable to delete the Keycloak permission")
 		return errors.NewInternalError("Unable to delete the Keycloak permission " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusNoContent {
 		log.Error(ctx, map[string]interface{}{
 			"permission_id":   permissionID,
@@ -525,6 +532,7 @@ func GetPolicy(ctx context.Context, clientsEndpoint string, clientID string, pol
 		}, "Unable to obtain a Keycloak policy")
 		return nil, errors.NewInternalError("Unable to obtain a Keycloak policy " + err.Error())
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusOK:
 		// OK
@@ -592,6 +600,7 @@ func UpdatePolicy(ctx context.Context, clientsEndpoint string, clientID string, 
 		}, "Unable to update the Keycloak policy")
 		return errors.NewInternalError("unable to update the Keycloak policy " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusCreated {
 		log.Error(ctx, map[string]interface{}{
 			"client_id":       clientID,
@@ -642,6 +651,7 @@ func GetEntitlement(ctx context.Context, entitlementEndpoint string, entitlement
 		}, "Unable to obtain entitlement resource")
 		return nil, errors.NewInternalError("unable to obtain entitlement resource " + err.Error())
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusOK:
 		// OK
@@ -687,6 +697,7 @@ func GetUserInfo(ctx context.Context, userInfoEndpoint string, userAccessToken s
 		}, "Unable to get user info from Keycloak")
 		return nil, errors.NewInternalError("Unable to get user info from Keycloak " + err.Error())
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
 		log.Error(ctx, map[string]interface{}{}, "Unable to get user info from Keycloak")
 		return nil, errors.NewInternalError("Unable to get user info from Keycloak. Response status: " + res.Status + ". Responce body: " + rest.ReadBody(res.Body))
@@ -720,6 +731,7 @@ func ValidateKeycloakUser(ctx context.Context, adminEndpoint string, userID, pro
 		}, "Unable to get user from Keycloak")
 		return false, errors.NewInternalError("Unable to get user from Keycloak " + err.Error())
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusOK:
 		return true, nil
@@ -744,6 +756,7 @@ func GetProtectedAPIToken(openidConnectTokenURL string, clientID string, clientS
 	if err != nil {
 		return "", errors.NewInternalError("Error when obtaining token " + err.Error())
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusOK:
 		// OK
@@ -767,7 +780,6 @@ func ReadToken(res *http.Response) (*Token, error) {
 	// Read the json out of the response body
 	buf := new(bytes.Buffer)
 	io.Copy(buf, res.Body)
-	res.Body.Close()
 	jsonString := strings.TrimSpace(buf.String())
 
 	var token Token

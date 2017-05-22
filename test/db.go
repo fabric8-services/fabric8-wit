@@ -43,6 +43,7 @@ func (db *MockDB) Trackers() application.TrackerRepository {
 func (db *MockDB) TrackerQueries() application.TrackerQueryRepository {
 	return nil
 }
+
 func (db *MockDB) SearchItems() application.SearchRepository {
 	return nil
 }

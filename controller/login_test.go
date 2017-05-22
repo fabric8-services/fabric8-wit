@@ -18,6 +18,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	"github.com/almighty/almighty-core/token"
 	almtoken "github.com/almighty/almighty-core/token"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +83,9 @@ func (rest *TestLoginREST) TestTestUserTokenObtainedFromKeycloakOK() {
 	t := rest.T()
 	resource.Require(t, resource.UnitTest)
 	service, controller := rest.SecuredController()
-	_, result := test.GenerateLoginOK(t, service.Context, service, controller)
+	resp, result := test.GenerateLoginOK(t, service.Context, service, controller)
+
+	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
 	assert.Len(t, result, 2, "The size of token array is not 2")
 	for _, data := range result {
 		validateToken(t, data, controller)
@@ -100,7 +103,9 @@ func (rest *TestLoginREST) TestRefreshTokenUsingValidRefreshTokenOK() {
 	refreshToken := result[0].Token.RefreshToken
 
 	payload := &app.RefreshToken{RefreshToken: refreshToken}
-	_, newToken := test.RefreshLoginOK(t, service.Context, service, controller, payload)
+	resp, newToken := test.RefreshLoginOK(t, service.Context, service, controller, payload)
+
+	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
 	validateToken(t, newToken, controller)
 }
 
@@ -130,8 +135,9 @@ func (rest *TestLoginREST) TestLinkIdPWithoutTokenFails() {
 	resource.Require(t, resource.UnitTest)
 	service, controller := rest.SecuredController()
 
-	_, err := test.LinkLoginUnauthorized(t, service.Context, service, controller, nil, nil)
+	resp, err := test.LinkLoginUnauthorized(t, service.Context, service, controller, nil, nil)
 	assert.NotNil(t, err)
+	assert.Equal(t, resp.Header().Get("Cache-Control"), "no-cache")
 }
 
 func (rest *TestLoginREST) TestLinkIdPWithTokenRedirects() {
@@ -161,7 +167,7 @@ func validateToken(t *testing.T, token *app.AuthToken, controler *LoginControlle
 
 type TestLoginService struct{}
 
-func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, oauth *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string) error {
+func (t TestLoginService) Perform(ctx *app.AuthorizeLoginContext, oauth *oauth2.Config, brokerEndpoint string, entitlementEndpoint string, profileEndpoint string, validRedirectURL string, userNotApprovedRedirectURL string) error {
 	return ctx.TemporaryRedirect()
 }
 

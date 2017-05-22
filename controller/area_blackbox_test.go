@@ -6,21 +6,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -295,7 +295,6 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 	var areaObj area.Area
 	var spaceObj space.Space
 	application.Transactional(db, func(app application.Application) error {
-		repo := app.Areas()
 		spaceObj = space.Space{
 			Name: "TestAreaREST-" + uuid.NewV4().String(),
 		}
@@ -306,10 +305,10 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 			Name:    name,
 			SpaceID: spaceObj.ID,
 		}
-		err = repo.Create(context.Background(), &areaObj)
+		err = app.Areas().Create(context.Background(), &areaObj)
 		require.Nil(t, err)
 		return nil
 	})
-	logrus.Info("Space and root area created")
+	log.Info(nil, nil, "Space and root area created")
 	return spaceObj, areaObj
 }

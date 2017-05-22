@@ -38,6 +38,7 @@ type loginConfiguration interface {
 	GetKeycloakTestUser2Secret() string
 	GetValidRedirectURLs(*goa.RequestData) (string, error)
 	GetHeaderMaxLength() int64
+	GetAuthNotApprovedRedirect() string
 }
 
 // LoginController implements the login resource.
@@ -106,7 +107,8 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 		RedirectURL:  rest.AbsoluteURL(ctx.RequestData, "/api/login/authorize"),
 	}
 
-	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist)
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
+	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist, c.configuration.GetAuthNotApprovedRedirect())
 }
 
 // Refresh obtain a new access token using the refresh token.
@@ -133,6 +135,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("Error when obtaining token "+err.Error()))
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case 200:
 		// OK
@@ -170,6 +173,7 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 		token.AccessToken = rpt
 	}
 
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return ctx.OK(convertToken(*token))
 }
 
@@ -199,6 +203,7 @@ func (c *LoginController) Link(ctx *app.LinkLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
 
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return c.auth.Link(ctx, brokerEndpoint, clientID, whitelist)
 }
 
@@ -217,6 +222,7 @@ func (c *LoginController) Linksession(ctx *app.LinksessionLoginContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(err.Error()))
 	}
 
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return c.auth.LinkSession(ctx, brokerEndpoint, clientID, whitelist)
 }
 
@@ -231,6 +237,7 @@ func (c *LoginController) Linkcallback(ctx *app.LinkcallbackLoginContext) error 
 	}
 	clientID := c.configuration.GetKeycloakClientID()
 
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return c.auth.LinkCallback(ctx, brokerEndpoint, clientID)
 }
 
@@ -275,7 +282,7 @@ func (c *LoginController) Generate(ctx *app.GenerateLoginContext) error {
 	c.auth.CreateOrUpdateKeycloakUser(*testuser.Token.AccessToken, ctx, profileEndpoint)
 	tokens = append(tokens, testuser)
 
-	// jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("unable to get Keycloak token endpoint URL "+err.Error()))
+	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
 	return ctx.OK(tokens)
 }
 
@@ -304,7 +311,7 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 	if err != nil {
 		return nil, errors.NewInternalError("error when obtaining token " + err.Error())
 	}
-
+	defer res.Body.Close()
 	token, err := auth.ReadToken(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

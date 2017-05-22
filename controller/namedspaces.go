@@ -56,7 +56,7 @@ func (c *NamedspacesController) Show(ctx *app.ShowNamedspacesContext) error {
 }
 
 func (c *NamedspacesController) List(ctx *app.ListNamedspacesContext) error {
-	offset, limit := computePagingLimts(ctx.PageOffset, ctx.PageLimit)
+	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	if ctx.UserName == "" {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(fmt.Sprintf("not found, userName=%v", ctx.UserName)))
 	}
@@ -97,7 +97,7 @@ func loadKeyCloakIdentityByUserName(ctx context.Context, appl application.Applic
 	}
 	for _, identity := range identities {
 		if identity.ProviderType == account.KeycloakIDP {
-			return identity, nil
+			return &identity, nil
 		}
 	}
 	log.Error(ctx, map[string]interface{}{

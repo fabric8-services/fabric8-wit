@@ -12,7 +12,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
-	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/auth"
@@ -67,7 +66,7 @@ func main() {
 
 	configuration, err := config.NewConfigurationData(configFilePath)
 	if err != nil {
-		logrus.Panic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,
 			"err":              err,
 		}, "failed to setup the configuration")
@@ -78,7 +77,7 @@ func main() {
 	}
 
 	// Initialized developer mode flag and log level for the logger
-	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled(), configuration.GetLogLevel())
+	log.InitializeLogger(configuration.IsLogJSON(), configuration.GetLogLevel())
 
 	printUserInfo()
 
@@ -154,13 +153,6 @@ func main() {
 
 	service.WithLogger(goalogrus.New(log.Logger()))
 
-	// Scheduler to fetch and import remote tracker items
-	scheduler = remoteworkitem.NewScheduler(db)
-	defer scheduler.Stop()
-
-	accessTokens := controller.GetAccessTokens(configuration)
-	scheduler.ScheduleAllQueries(service.Context, accessTokens)
-
 	publicKey, err := token.ParsePublicKey(configuration.GetTokenPublicKey())
 	if err != nil {
 		log.Panic(nil, map[string]interface{}{
@@ -223,33 +215,42 @@ func main() {
 	commentsCtrl := controller.NewCommentsController(service, appDB, configuration)
 	app.MountCommentsController(service, commentsCtrl)
 
-	// Mount "tracker" controller
-	c5 := controller.NewTrackerController(service, appDB, scheduler, configuration)
-	app.MountTrackerController(service, c5)
+	if !configuration.GetFeatureWorkitemRemote() {
+		// Scheduler to fetch and import remote tracker items
+		scheduler = remoteworkitem.NewScheduler(db)
+		defer scheduler.Stop()
 
-	// Mount "trackerquery" controller
-	c6 := controller.NewTrackerqueryController(service, appDB, scheduler, configuration)
-	app.MountTrackerqueryController(service, c6)
+		accessTokens := controller.GetAccessTokens(configuration)
+		scheduler.ScheduleAllQueries(service.Context, accessTokens)
+
+		// Mount "tracker" controller
+		c5 := controller.NewTrackerController(service, appDB, scheduler, configuration)
+		app.MountTrackerController(service, c5)
+
+		// Mount "trackerquery" controller
+		c6 := controller.NewTrackerqueryController(service, appDB, scheduler, configuration)
+		app.MountTrackerqueryController(service, c6)
+	}
 
 	// Mount "space" controller
 	spaceCtrl := controller.NewSpaceController(service, appDB, configuration, auth.NewKeycloakResourceManager(configuration))
 	app.MountSpaceController(service, spaceCtrl)
 
 	// Mount "user" controller
-	userCtrl := controller.NewUserController(service, appDB, tokenManager)
+	userCtrl := controller.NewUserController(service, appDB, tokenManager, configuration)
 	if configuration.GetTenantServiceURL() != "" {
 		log.Logger().Infof("Enabling Init Tenant service %v", configuration.GetTenantServiceURL())
 		userCtrl.InitTenant = account.NewInitTenant(configuration)
 	}
 	app.MountUserController(service, userCtrl)
 
+	userServiceCtrl := controller.NewUserServiceController(service)
+	userServiceCtrl.UpdateTenant = account.NewUpdateTenant(configuration)
+	app.MountUserServiceController(service, userServiceCtrl)
+
 	// Mount "search" controller
 	searchCtrl := controller.NewSearchController(service, appDB, configuration)
 	app.MountSearchController(service, searchCtrl)
-
-	// Mount "identity" controller
-	identityCtrl := controller.NewIdentityController(service, appDB)
-	app.MountIdentityController(service, identityCtrl)
 
 	// Mount "users" controller
 	keycloakProfileService := login.NewKeycloakUserProfileClient()
