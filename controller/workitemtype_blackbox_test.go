@@ -270,6 +270,73 @@ func (s *workItemTypeSuite) TestCreateWorkItemType() {
 	_, _ = s.createWorkItemTypePerson()
 }
 
+func (s *workItemTypeSuite) TestFailValidationIterationNameLength() {
+	// given
+	nameFieldDef := app.FieldDefinition{
+		Required: true,
+		Type: &app.FieldType{
+			Kind: "string",
+		},
+	}
+
+	// Use the goa generated code to create a work item type
+	desc := "Description for 'person'"
+	id := personID
+	payload := app.CreateWorkitemtypePayload{
+		Data: &app.WorkItemTypeData{
+			ID:   &id,
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Name:        testsupport.TestOversizedNameObj,
+				Description: &desc,
+				Icon:        "fa-user",
+				Fields: map[string]*app.FieldDefinition{
+					"name": &nameFieldDef,
+				},
+			},
+		},
+	}
+
+	err := payload.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+}
+
+func (s *workItemTypeSuite) TestFailValidationWorkItemTypeNameStartWith() {
+	// Create the type for the "color" field
+	nameFieldDef := app.FieldDefinition{
+		Required: true,
+		Type: &app.FieldType{
+			Kind: "string",
+		},
+	}
+
+	// Use the goa generated code to create a work item type
+	desc := "Description for 'person'"
+	id := personID
+	payload := app.CreateWorkitemtypePayload{
+		Data: &app.WorkItemTypeData{
+			ID:   &id,
+			Type: "workitemtypes",
+			Attributes: &app.WorkItemTypeAttributes{
+				Name:        "_person",
+				Description: &desc,
+				Icon:        "fa-user",
+				Fields: map[string]*app.FieldDefinition{
+					"name": &nameFieldDef,
+				},
+			},
+		},
+	}
+
+	err := payload.Validate()
+
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+}
+
 // TestShowWorkItemType200OK tests if we can fetch the work item type "animal".
 func (s *workItemTypeSuite) TestShowWorkItemType200OK() {
 	// given
