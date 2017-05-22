@@ -206,10 +206,6 @@ func (c *SpaceController) Delete(ctx *app.DeleteSpaceContext) error {
 
 // List runs the list action.
 func (c *SpaceController) List(ctx *app.ListSpaceContext) error {
-	_, err := login.ContextIdentity(ctx)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
-	}
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 
 	var response app.SpaceList
