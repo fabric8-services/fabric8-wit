@@ -396,7 +396,7 @@ func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
 	require.Nil(rest.T(), errInCreateOther)
 
 	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
-	test.CreateSpaceIterationsUnauthorized(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
+	test.CreateSpaceIterationsForbidden(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
 }
 
 func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsPayload {

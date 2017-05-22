@@ -64,7 +64,7 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 				"space_owner":  s.OwnerId,
 				"current_user": *currentUser,
 			}, "user is not the space owner")
-			return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not the space owner"))
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 		// Put iteration under root iteration
 		rootIteration, err := appl.Iterations().Root(ctx, spaceID)
