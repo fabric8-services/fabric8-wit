@@ -312,6 +312,25 @@ func testMigration60(t *testing.T) {
 	assert.True(t, dialect.HasIndex("identities", "idx_identities_username"))
 }
 
+func testMigration61(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+17)], (initialMigratedVersion + 17))
+
+	assert.True(t, gormDB.HasTable("categories"))
+	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
+	assert.True(t, dialect.HasIndex("categories", "categories_name_idx"))
+
+	assert.True(t, gormDB.HasTable("workitemtype_categories"))
+	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_id_idx"))
+	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_idx"))
+
+	assert.True(t, dialect.HasColumn("workitemtype_categories", "category_id"))
+	assert.True(t, dialect.HasColumn("workitemtype_categories", "workitemtype_id"))
+
+	// These script execution has to fail
+	assert.NotNil(t, runSQLscript(sqlDB, "055-insert-category-no-name-fail.sql"))
+	assert.NotNil(t, runSQLscript(sqlDB, "056-unique-idx-failed-insert-category.sql"))
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -332,25 +351,6 @@ func runSQLscript(db *sql.DB, sqlFilename string) error {
 	}
 
 	return nil
-}
-
-func testMigration56(t *testing.T) {
-	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+12)], (initialMigratedVersion + 12))
-
-	assert.True(t, gormDB.HasTable("categories"))
-	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
-	assert.True(t, dialect.HasIndex("categories", "categories_name_idx"))
-
-	assert.True(t, gormDB.HasTable("workitemtype_categories"))
-	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_id_idx"))
-	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_idx"))
-
-	assert.True(t, dialect.HasColumn("workitemtype_categories", "category_id"))
-	assert.True(t, dialect.HasColumn("workitemtype_categories", "workitemtype_id"))
-
-	// These script execution has to fail
-	assert.NotNil(t, runSQLscript(sqlDB, "055-insert-category-no-name-fail.sql"))
-	assert.NotNil(t, runSQLscript(sqlDB, "056-unique-idx-failed-insert-category.sql"))
 }
 
 // executeSQLTestFile loads the given filename from the packaged SQL files and

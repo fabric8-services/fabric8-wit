@@ -1252,7 +1252,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	assignee := none
 
 	s.T().Run("default work item created in fixture", func(t *testing.T) {
-		_, list0 := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list0 := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		// data coming from test fixture
 		assert.Len(t, list0.Data, 1)
 		assert.True(t, strings.Contains(*list0.Links.First, "filter[assignee]=none"))
@@ -1267,7 +1267,7 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 		assert.NotNil(t, wi.Data.Relationships.Assignees.Data)
 		assert.NotNil(t, wi.Data.Relationships.Assignees.Data[0].ID)
 
-		_, list := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &newUserID, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list.Data, 1)
 		require.NotNil(t, *list.Data[0].Relationships.Assignees.Data[0])
 		assert.Equal(t, newUser.ID.String(), *list.Data[0].Relationships.Assignees.Data[0].ID)
@@ -1275,13 +1275,13 @@ func (s *WorkItem2Suite) TestWI2ListByNoAssigneeFilter() {
 	})
 
 	s.T().Run("work item with assignee value as none", func(t *testing.T) {
-		_, list2 := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list2 := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, &assignee, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list2.Data, 1)
 		assert.True(t, strings.Contains(*list2.Links.First, "filter[assignee]=none"))
 	})
 
 	s.T().Run("work item without specifying assignee", func(t *testing.T) {
-		_, list3 := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		_, list3 := test.ListWorkitemOK(t, s.svc.Context, s.svc, s.wi2Ctrl, c.Data.Relationships.Space.Data.ID.String(), nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 		assert.Len(t, list3.Data, 2)
 		assert.False(t, strings.Contains(*list3.Links.First, "filter[assignee]=none"))
 	})
@@ -1328,7 +1328,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOK() {
 	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
 	// when
 	stateNew := workitem.SystemStateNew
-	_, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	_, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.True(s.T(), len(actualWIs.Data) > 1)
@@ -1415,7 +1415,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.True(s.T(), len(actualWIs.Data) > 1)
@@ -1428,7 +1428,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterNotModifiedUsingIfNoneMatchIfMo
 	// retain conditional headers in response and submit the request again
 	etag, lastModified, _ := assertResponseHeaders(s.T(), res)
 	// when calling again
-	res = test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res = test.ListWorkitemNotModified(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
 	// then
 	assertResponseHeaders(s.T(), res)
 }
@@ -1440,7 +1440,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	inprogressWI := s.createWorkItem("title", workitem.SystemStateInProgress)
 	// when
 	stateNew := workitem.SystemStateNew
-	res, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
+	res, actualWIs := test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, nil, nil)
 	// then
 	require.NotNil(s.T(), actualWIs)
 	require.True(s.T(), len(actualWIs.Data) > 1)
@@ -1461,7 +1461,7 @@ func (s *WorkItem2Suite) TestWI2ListByStateFilterOKModifiedUsingIfNoneMatchIfMod
 	update.Data.Attributes["version"] = inprogressWI.Data.Attributes["version"]
 	test.UpdateWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), *inprogressWI.Data.ID, &update)
 	// when calling again (with expired validation headers)
-	res, actualWIs = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
+	res, actualWIs = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace.String(), nil, nil, nil, nil, nil, nil, &stateNew, nil, nil, nil, &lastModified, &etag)
 	// then expect the new data
 	assertResponseHeaders(s.T(), res)
 	require.NotNil(s.T(), actualWIs)
