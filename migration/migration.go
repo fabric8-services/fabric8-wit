@@ -307,7 +307,10 @@ func GetMigrations() Migrations {
 	m = append(m, steps{ExecuteSQLFile("060-fixed-identities-username-idx.sql")})
 
 	// Version 61
-	m = append(m, steps{ExecuteSQLFile("061-categories.sql")})
+	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
+
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-categories.sql")})
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the

@@ -63,11 +63,6 @@ func NewWorkitemController(service *goa.Service, db application.DB, config WorkI
 // Prev and Next links will be present only when there actually IS a next or previous page.
 // Last will always be present. Total Item count needs to be computed from the "Last" link.
 func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	var additionalQuery []string
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
@@ -138,7 +133,7 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
 	return application.Transactional(c.db, func(tx application.Application) error {
-		workitems, tc, err := tx.WorkItems().List(ctx.Context, spaceID, exp, ctx.FilterParentexists, &offset, &limit)
+		workitems, tc, err := tx.WorkItems().List(ctx.Context, ctx.SpaceID, exp, ctx.FilterParentexists, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work items"))
@@ -175,10 +170,6 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if ctx.Payload == nil || ctx.Payload.Data == nil || ctx.Payload.Data.ID == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("missing data.ID element in request", nil))
 	}
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -186,7 +177,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 	var wi *workitem.WorkItem
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		wi, err = appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data.ID)
+		wi, err = appl.WorkItems().Load(ctx, ctx.SpaceID, *ctx.Payload.Data.ID)
 		if err != nil {
 			return errs.Wrap(err, fmt.Sprintf("Failed to load work item with id %v", *ctx.Payload.Data.ID))
 		}
@@ -199,7 +190,7 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 	if creator == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("work item doesn't have creator"))
 	}
-	authorized, err := authorizeWorkitemEditor(ctx, c.db, spaceID, creator.(string), currentUserIdentityID.String())
+	authorized, err := authorizeWorkitemEditor(ctx, c.db, ctx.SpaceID, creator.(string), currentUserIdentityID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -210,12 +201,12 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 		// Type changes of WI are not allowed which is why we overwrite it the
 		// type with the old one after the WI has been converted.
 		oldType := wi.Type
-		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi, spaceID)
+		err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, wi, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
 		wi.Type = oldType
-		wi, err = appl.WorkItems().Save(ctx, spaceID, *wi, *currentUserIdentityID)
+		wi, err = appl.WorkItems().Save(ctx, ctx.SpaceID, *wi, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error updating work item"))
 		}
@@ -235,16 +226,11 @@ func (c *WorkitemController) Update(ctx *app.UpdateWorkitemContext) error {
 
 // Reorder does PATCH workitem
 func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	authorized, err := authz.Authorize(ctx, ctx.ID)
+	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -259,12 +245,12 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 
 		// Reorder workitems in the array one by one
 		for i := 0; i < len(ctx.Payload.Data); i++ {
-			wi, err := appl.WorkItems().Load(ctx, spaceID, *ctx.Payload.Data[i].ID)
+			wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, *ctx.Payload.Data[i].ID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
 
-			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi, spaceID)
+			err = ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data[i], wi, ctx.SpaceID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "failed to reorder work item"))
 			}
@@ -286,11 +272,6 @@ func (c *WorkitemController) Reorder(ctx *app.ReorderWorkitemContext) error {
 
 // Create does POST workitem
 func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
@@ -307,8 +288,8 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	// Set the space to the Payload
 	if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 		// We overwrite or use the space ID in the URL to set the space of this WI
-		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
-		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(spaceID, spaceSelfURL)
+		spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(ctx.SpaceID.String()))
+		ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 	}
 	wi := workitem.WorkItem{
 		Fields: make(map[string]interface{}),
@@ -316,21 +297,21 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		spaceInstance, spaceLoadErr := appl.Spaces().Load(ctx, spaceID)
+		spaceInstance, spaceLoadErr := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if spaceLoadErr != nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 		}
 
 		if _, ok := wi.Fields[workitem.SystemArea]; ok == false {
 			// no area assigned yet hence set root area
-			rootArea, err := appl.Areas().Root(ctx, spaceID)
+			rootArea, err := appl.Areas().Root(ctx, ctx.SpaceID)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching root area")))
 			}
 			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
 		}
 
-		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi, spaceID)
+		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
 		// fetch root iteration for this space and assign it to WI if not present already
 		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
 			// no iteration set hence set to root iteration of its space
@@ -343,7 +324,7 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
 
-		wi, err := appl.WorkItems().Create(ctx, spaceID, *wit, wi.Fields, *currentUserIdentityID)
+		wi, err := appl.WorkItems().Create(ctx, ctx.SpaceID, *wit, wi.Fields, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
@@ -363,15 +344,10 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 
 // Show does GET workitem
 func (c *WorkitemController) Show(ctx *app.ShowWorkitemContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		comments := workItemIncludeCommentsAndTotal(ctx, c.db, ctx.WiID)
 		hasChildren := workItemIncludeHasChildren(appl, ctx)
-		wi, err := appl.WorkItems().Load(ctx, spaceID, ctx.WiID)
+		wi, err := appl.WorkItems().Load(ctx, ctx.SpaceID, ctx.WiID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Fail to load work item with id %v", ctx.WiID)))
 		}
@@ -393,15 +369,11 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 	if true {
 		return ctx.MethodNotAllowed()
 	}
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
 	currentUserIdentityID, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
-	authorized, err := authz.Authorize(ctx, ctx.ID)
+	authorized, err := authz.Authorize(ctx, ctx.SpaceID.String())
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(err.Error()))
 	}
@@ -409,7 +381,7 @@ func (c *WorkitemController) Delete(ctx *app.DeleteWorkitemContext) error {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError("user is not authorized to access the space"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		err := appl.WorkItems().Delete(ctx, spaceID, ctx.WiID, *currentUserIdentityID)
+		err := appl.WorkItems().Delete(ctx, ctx.SpaceID, ctx.WiID, *currentUserIdentityID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrapf(err, "error deleting work item %s", ctx.WiID))
 		}

@@ -52,9 +52,7 @@ See also http://jsonapi.org/format/#document-resource-object`)
 var workItemLinkCategoryAttributes = a.Type("WorkItemLinkCategoryAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a work item link category.
 See also http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "Name of the work item link category (required on creation, optional on update)", func() {
-		a.Example("system")
-	})
+	a.Attribute("name", d.String, "Name of the work item link category (required on creation, optional on update)", nameValidationFunction)
 	a.Attribute("description", d.String, "Description of the work item link category (optional)", func() {
 		a.Example("A work item link category that is meant only for work item link types goverened by the system alone.")
 	})

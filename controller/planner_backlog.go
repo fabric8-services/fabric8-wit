@@ -37,13 +37,7 @@ func NewPlannerBacklogController(service *goa.Service, db application.DB, config
 }
 
 func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-
 	exp, err := query.Parse(ctx.Filter)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("could not parse filter", err))
@@ -59,7 +53,7 @@ func (c *PlannerBacklogController) List(ctx *app.ListPlannerBacklogContext) erro
 	}
 
 	// Get the list of work items for the following criteria
-	result, count, err := getBacklogItems(ctx.Context, c.db, spaceID, exp, &offset, &limit)
+	result, count, err := getBacklogItems(ctx.Context, c.db, ctx.SpaceID, exp, &offset, &limit)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -131,16 +125,15 @@ func getBacklogItems(ctx context.Context, db application.DB, spaceID uuid.UUID, 
 		// Get the list of work items for the following criteria
 		var tc uint64
 		result, tc, err = appl.WorkItems().List(ctx, spaceID, backlogExp, nil, offset, limit)
-		count = int(tc)
 		if err != nil {
 			return errs.Wrap(err, "error listing backlog items")
 		}
+		count = int(tc)
 		return nil
 	})
 	if err != nil {
 		return result, count, err
 	}
-
 	return result, count, nil
 }
 

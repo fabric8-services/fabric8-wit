@@ -37,10 +37,7 @@ var workItemTypeAttributes = a.Type("WorkItemTypeAttributes", func() {
 	a.Attribute("version", d.Integer, "Version for optimistic concurrency control")
 	a.Attribute("created-at", d.DateTime, "timestamp of entity creation")
 	a.Attribute("updated-at", d.DateTime, "timestamp of last entity update")
-	a.Attribute("name", d.String, "The human readable name of the work item type", func() {
-		a.Example("User story")
-		a.MinLength(1)
-	})
+	a.Attribute("name", d.String, "The human readable name of the work item type", nameValidationFunction)
 	a.Attribute("description", d.String, "A human readable description for the work item type", func() {
 		a.Example(`A user story encapsulates the action of one function making it possible for software developers to create a vertical slice of their work.`)
 	})

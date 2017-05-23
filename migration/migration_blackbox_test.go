@@ -117,6 +117,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration57", testMigration57)
 	t.Run("TestMigration60", testMigration60)
 	t.Run("TestMigration61", testMigration61)
+	t.Run("TestMigration62", testMigration62)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -314,6 +315,12 @@ func testMigration60(t *testing.T) {
 
 func testMigration61(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+17)], (initialMigratedVersion + 17))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
+}
+
+func testMigration62(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+18)], (initialMigratedVersion + 18))
 
 	assert.True(t, gormDB.HasTable("categories"))
 	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
