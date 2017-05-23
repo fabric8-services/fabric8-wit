@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"runtime"
 	"time"
 
 	"golang.org/x/net/context"
@@ -320,6 +321,8 @@ func main() {
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
 	log.Logger().Infoln("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
+	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
+	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))
