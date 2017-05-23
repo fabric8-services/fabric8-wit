@@ -79,7 +79,7 @@ type TestCollaboratorsREST struct {
 	testIdentity1 account.Identity
 	testIdentity2 account.Identity
 	testIdentity3 account.Identity
-	spaceID       string
+	spaceID       uuid.UUID
 }
 
 func TestRunCollaboratorsREST(t *testing.T) {
@@ -107,7 +107,7 @@ func (rest *TestCollaboratorsREST) SetupTest() {
 	require.Nil(rest.T(), err)
 	rest.testIdentity3 = testIdentity
 	space := rest.createSpace()
-	rest.spaceID = space.ID.String()
+	rest.spaceID = *space.ID
 }
 
 func (rest *TestCollaboratorsREST) TearDownTest() {
@@ -128,12 +128,7 @@ func (rest *TestCollaboratorsREST) UnSecuredController() (*goa.Service, *Collabo
 
 func (rest *TestCollaboratorsREST) TestListCollaboratorsWithRandomSpaceIDNotFound() {
 	svc, ctrl := rest.UnSecuredController()
-	test.ListCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
-}
-
-func (rest *TestCollaboratorsREST) TestListCollaboratorsWithWrongSpaceIDFormatReturnsBadRequest() {
-	svc, ctrl := rest.UnSecuredController()
-	test.ListCollaboratorsBadRequest(rest.T(), svc.Context, svc, ctrl, "wrongFormatID", nil, nil)
+	test.ListCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
 }
 
 func (rest *TestCollaboratorsREST) TestListCollaboratorsOk() {
@@ -148,14 +143,14 @@ func (rest *TestCollaboratorsREST) TestListCollaboratorsOk() {
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsWithRandomSpaceIDNotFound() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
-	test.AddCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), uuid.NewV4().String())
+	test.AddCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4().String())
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsWithRandomSpaceIDNotFound() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
 	payload := &app.AddManyCollaboratorsPayload{Data: []*app.UpdateUserID{}}
-	test.AddManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), payload)
+	test.AddManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), payload)
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
@@ -172,10 +167,8 @@ func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsWithWrongUserIDFormat
 }
 
 func (rest *TestCollaboratorsREST) TestAddCollaboratorsOk() {
-	spaceUUID, err := uuid.FromString(rest.spaceID)
-	require.Nil(rest.T(), err)
 	appl := gormapplication.NewGormDB(rest.DB)
-	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 
 	svc, ctrl := rest.SecuredController()
@@ -188,16 +181,14 @@ func (rest *TestCollaboratorsREST) TestAddCollaboratorsOk() {
 	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String()})
 
-	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
 
 func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsOk() {
-	spaceUUID, err := uuid.FromString(rest.spaceID)
-	require.Nil(rest.T(), err)
 	appl := gormapplication.NewGormDB(rest.DB)
-	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 
 	svc, ctrl := rest.SecuredController()
@@ -212,7 +203,7 @@ func (rest *TestCollaboratorsREST) TestAddManyCollaboratorsOk() {
 	rest.policy.AddUserToPolicy(rest.testIdentity3.ID.String())
 	rest.checkCollaborators([]string{rest.testIdentity1.ID.String(), rest.testIdentity2.ID.String(), rest.testIdentity3.ID.String()})
 
-	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
@@ -305,7 +296,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsFailsIfTryToRemove
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsWithRandomSpaceIDNotFound() {
 	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
 	svc, ctrl := rest.SecuredController()
-	test.RemoveCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), uuid.NewV4().String())
+	test.RemoveCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4().String())
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithRandomSpaceIDNotFound() {
@@ -313,7 +304,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsWithRandomSpaceIDN
 	svc, ctrl := rest.SecuredController()
 	payload := &app.RemoveManyCollaboratorsPayload{Data: []*app.UpdateUserID{{ID: uuid.NewV4().String(), Type: idnType}}}
 
-	test.RemoveManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), payload)
+	test.RemoveManyCollaboratorsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), payload)
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsWithWrongUserIDFormatReturnsBadRequest() {
@@ -343,10 +334,8 @@ func (rest *TestCollaboratorsREST) checkCollaborators(userIDs []string) {
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsOk() {
-	spaceUUID, err := uuid.FromString(rest.spaceID)
-	require.Nil(rest.T(), err)
 	appl := gormapplication.NewGormDB(rest.DB)
-	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 
 	svc, ctrl := rest.SecuredController()
@@ -357,16 +346,14 @@ func (rest *TestCollaboratorsREST) TestRemoveCollaboratorsOk() {
 
 	test.RemoveCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, rest.testIdentity2.ID.String())
 
-	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }
 
 func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsOk() {
-	spaceUUID, err := uuid.FromString(rest.spaceID)
-	require.Nil(rest.T(), err)
 	appl := gormapplication.NewGormDB(rest.DB)
-	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	resource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 
 	svc, ctrl := rest.SecuredController()
@@ -379,7 +366,7 @@ func (rest *TestCollaboratorsREST) TestRemoveManyCollaboratorsOk() {
 
 	test.RemoveManyCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, payload)
 
-	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &spaceUUID)
+	updatedResource, err := appl.SpaceResources().LoadBySpace(context.Background(), &rest.spaceID)
 	require.Nil(rest.T(), err)
 	require.True(rest.T(), resource.UpdatedAt.Before(updatedResource.UpdatedAt))
 }

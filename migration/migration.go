@@ -303,7 +303,13 @@ func GetMigrations() Migrations {
 		link.SystemWorkItemLinkCategoryUserID.String())})
 
 	// Version 60
-	m = append(m, steps{ExecuteSQLFile("060-link-system-update.sql")})
+	m = append(m, steps{ExecuteSQLFile("060-fixed-identities-username-idx.sql")})
+
+	// Version 61
+	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
+
+	// Version 62
+	m = append(m, steps{ExecuteSQLFile("062-link-system-update.sql")})
 
 	// Version N
 	//

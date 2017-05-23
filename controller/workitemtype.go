@@ -14,7 +14,6 @@ import (
 
 	"github.com/goadesign/goa"
 	errs "github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 )
 
 const (
@@ -44,13 +43,8 @@ func NewWorkitemtypeController(service *goa.Service, db application.DB, config W
 
 // Show runs the show action.
 func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
-		witModel, err := appl.WorkItemTypes().Load(ctx.Context, spaceID, ctx.WitID)
+		witModel, err := appl.WorkItemTypes().Load(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -64,11 +58,6 @@ func (c *WorkitemtypeController) Show(ctx *app.ShowWorkitemtypeContext) error {
 
 // Create runs the create action.
 func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		var fields = map[string]app.FieldDefinition{}
 		for key, fd := range ctx.Payload.Data.Attributes.Fields {
@@ -77,8 +66,8 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 		// Set the space to the Payload
 		if ctx.Payload.Data != nil && ctx.Payload.Data.Relationships != nil {
 			// We overwrite or use the space ID in the URL to set the space of this WI
-			spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(spaceID.String()))
-			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(spaceID, spaceSelfURL)
+			spaceSelfURL := rest.AbsoluteURL(ctx.RequestData, app.SpaceHref(ctx.SpaceID.String()))
+			ctx.Payload.Data.Relationships.Space = app.NewSpaceRelation(ctx.SpaceID, spaceSelfURL)
 		}
 		modelFields, err := ConvertFieldDefinitionsToModel(fields)
 		if err != nil {
@@ -105,17 +94,13 @@ func (c *WorkitemtypeController) Create(ctx *app.CreateWorkitemtypeContext) erro
 
 // List runs the list action
 func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-	log.Info(ctx, map[string]interface{}{"space_id": spaceID}, "Listing work item types per space")
+	log.Debug(ctx, map[string]interface{}{"space_id": ctx.SpaceID}, "Listing work item types per space")
 	start, limit, err := parseLimit(ctx.Page)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Could not parse paging"))
 	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, spaceID, start, &limit)
+		witModelsOrig, err := appl.WorkItemTypes().List(ctx.Context, ctx.SpaceID, start, &limit)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, "Error listing work item types"))
 		}
@@ -149,11 +134,6 @@ func (c *WorkitemtypeController) List(ctx *app.ListWorkitemtypeContext) error {
 
 // ListSourceLinkTypes runs the list-source-link-types action.
 func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkTypesWorkitemtypeContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
 		exists, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID)
@@ -165,7 +145,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// source of the link
-		modelLinkTypes, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, spaceID, ctx.WitID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().ListSourceLinkTypes(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -177,7 +157,7 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 			}
 			// Enrich link types
 			hrefFunc := func(obj interface{}) string {
-				return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 			err = enrichLinkTypeList(linkCtx, appLinkTypes)
@@ -191,11 +171,6 @@ func (c *WorkitemtypeController) ListSourceLinkTypes(ctx *app.ListSourceLinkType
 
 // ListTargetLinkTypes runs the list-target-link-types action.
 func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkTypesWorkitemtypeContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return errors.NewNotFoundError("spaceID", ctx.ID)
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
 		// Test that work item type exists
 		exists, err := appl.WorkItemTypes().Exists(ctx.Context, ctx.WitID)
@@ -207,7 +182,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 		}
 		// Fetch all link types where this work item type can be used in the
 		// target of the linkg
-		modelLinkTypes, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, spaceID, ctx.WitID)
+		modelLinkTypes, err := appl.WorkItemLinkTypes().ListTargetLinkTypes(ctx.Context, ctx.SpaceID, ctx.WitID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -218,7 +193,7 @@ func (c *WorkitemtypeController) ListTargetLinkTypes(ctx *app.ListTargetLinkType
 			}
 			// Enrich link types
 			hrefFunc := func(obj interface{}) string {
-				return fmt.Sprintf(app.WorkItemLinkTypeHref(spaceID, "%v"), obj)
+				return fmt.Sprintf(app.WorkItemLinkTypeHref(ctx.SpaceID, "%v"), obj)
 			}
 			linkCtx := newWorkItemLinkContext(ctx.Context, appl, c.db, ctx.RequestData, ctx.ResponseData, hrefFunc, nil)
 			err = enrichLinkTypeList(linkCtx, appLinkTypes)

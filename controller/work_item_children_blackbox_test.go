@@ -143,7 +143,7 @@ func (s *workItemChildSuite) SetupTest() {
 
 	// Create 3 work items (bug1, bug2, and bug3)
 	bug1Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug1")
-	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug1Payload)
+	_, bug1 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, bug1Payload)
 	require.NotNil(s.T(), bug1)
 	checkChildrenRelationship(s.T(), bug1.Data, &hasNoChildren)
 
@@ -153,7 +153,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
 	bug2Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug2")
-	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug2Payload)
+	_, bug2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, bug2Payload)
 	require.NotNil(s.T(), bug2)
 	checkChildrenRelationship(s.T(), bug2.Data, &hasNoChildren)
 
@@ -162,7 +162,7 @@ func (s *workItemChildSuite) SetupTest() {
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
 	bug3Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug3")
-	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), bug3Payload)
+	_, bug3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, bug3Payload)
 	require.NotNil(s.T(), bug3)
 	checkChildrenRelationship(s.T(), bug3.Data, &hasNoChildren)
 
@@ -180,7 +180,7 @@ func (s *workItemChildSuite) SetupTest() {
 
 	// Create work item link type payload
 	createLinkTypePayload := createParentChildWorkItemLinkType("test-bug-blocker", userLinkCategoryID, s.userSpaceID)
-	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID.String(), createLinkTypePayload)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCtrl, s.userSpaceID, createLinkTypePayload)
 	require.NotNil(s.T(), workItemLinkType)
 	bugBlockerLinkTypeID := *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
@@ -188,14 +188,14 @@ func (s *workItemChildSuite) SetupTest() {
 	// Create type combination for link type
 	createLinkTypeCombiPayload, err := CreateWorkItemLinkTypeCombination(s.userSpaceID, *workItemLinkType.Data.ID, workitem.SystemBug, workitem.SystemBug)
 	require.Nil(s.T(), err)
-	_, workItemLinkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCombinationCtrl, s.userSpaceID.String(), createLinkTypeCombiPayload)
+	_, workItemLinkTypeCombination := test.CreateWorkItemLinkTypeCombinationCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkTypeCombinationCtrl, s.userSpaceID, createLinkTypeCombiPayload)
 	require.NotNil(s.T(), workItemLinkTypeCombination)
 
 	createPayload := CreateWorkItemLink(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 	// Check that the bug1 now hasChildren
-	_, workItemAfterLinked := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *bug1.Data.ID, nil, nil)
+	_, workItemAfterLinked := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *bug1.Data.ID, nil, nil)
 	checkChildrenRelationship(s.T(), workItemAfterLinked.Data, &hasChildren)
 
 	createPayload2 := CreateWorkItemLink(s.bug1ID, bug3ID, bugBlockerLinkTypeID)
@@ -280,16 +280,16 @@ func (s *workItemChildSuite) TestChildren() {
 	hasNoChildren := false
 
 	s.T().Run("show action has children", func(t *testing.T) {
-		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *s.bug1.Data.ID, nil, nil)
+		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, nil, nil)
 		checkChildrenRelationship(t, workItem.Data, &hasChildren)
 	})
 	s.T().Run("show action has no children", func(t *testing.T) {
-		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), *s.bug3.Data.ID, nil, nil)
+		_, workItem := test.ShowWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug3.Data.ID, nil, nil)
 		checkChildrenRelationship(t, workItem.Data, &hasNoChildren)
 	})
 	s.T().Run("list ok", func(t *testing.T) {
 		// when
-		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
+		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, nil)
 		// then
 		assertWorkItemList(t, workItemList)
 		assertResponseHeaders(t, res)
@@ -297,7 +297,7 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("using expired if modified since header", func(t *testing.T) {
 		// when
 		ifModifiedSince := app.ToHTTPTime(s.bug1.Data.Attributes[workitem.SystemUpdatedAt].(time.Time).Add(-1 * time.Hour))
-		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, &ifModifiedSince, nil)
+		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, &ifModifiedSince, nil)
 		// then
 		assertWorkItemList(t, workItemList)
 		assertResponseHeaders(t, res)
@@ -305,7 +305,7 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("using expired if none match header", func(t *testing.T) {
 		// when
 		ifNoneMatch := "foo"
-		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, &ifNoneMatch)
+		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, &ifNoneMatch)
 		// then
 		assertWorkItemList(t, workItemList)
 		assertResponseHeaders(t, res)
@@ -313,15 +313,15 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("not modified using if modified since header", func(t *testing.T) {
 		// when
 		ifModifiedSince := app.ToHTTPTime(s.bug3.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, &ifModifiedSince, nil)
+		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, &ifModifiedSince, nil)
 		// then
 		assertResponseHeaders(t, res)
 	})
 	s.T().Run("not modified using if none match header", func(t *testing.T) {
-		_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, nil)
+		_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, nil)
 		// when
 		ifNoneMatch := generateWorkitemsTag(workItemList)
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID.String(), workItemID1, nil, &ifNoneMatch)
+		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, &ifNoneMatch)
 		// then
 		assertResponseHeaders(t, res)
 	})
