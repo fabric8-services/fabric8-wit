@@ -274,7 +274,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	repo := "golang-project"
 	file := "main.go"
 	line := 200
-	cbase := codebase.CodebaseContent{
+	cbase := codebase.Content{
 		Branch:     branch,
 		Repository: repo,
 		FileName:   file,
@@ -295,7 +295,7 @@ func (s *workItemRepoBlackBoxTest) TestCodebaseAttributes() {
 	require.Nil(s.T(), err)
 	assert.Equal(s.T(), title, wi.Fields[workitem.SystemTitle].(string))
 	require.NotNil(s.T(), wi.Fields[workitem.SystemCodebase])
-	cb := wi.Fields[workitem.SystemCodebase].(codebase.CodebaseContent)
+	cb := wi.Fields[workitem.SystemCodebase].(codebase.Content)
 	assert.Equal(s.T(), repo, cb.Repository)
 	assert.Equal(s.T(), branch, cb.Branch)
 	assert.Equal(s.T(), file, cb.FileName)

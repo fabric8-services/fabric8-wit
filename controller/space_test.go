@@ -29,8 +29,6 @@ import (
 
 var spaceConfiguration *configuration.ConfigurationData
 
-var testOversizedSpaceName = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 type DummyResourceManager struct {
 }
 
@@ -95,7 +93,7 @@ func (rest *TestSpaceREST) TestFailCreateSpaceUnsecure() {
 func (rest *TestSpaceREST) TestFailValidationSpaceNameLength() {
 	// given
 	p := minimumRequiredCreateSpace()
-	p.Data.Attributes.Name = &testOversizedSpaceName
+	p.Data.Attributes.Name = &testsupport.TestOversizedNameObj
 
 	err := p.Validate()
 	// Validate payload function returns an error
@@ -156,8 +154,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	require.NotNil(rest.T(), created.Data)
 	spaceAreaSvc, spaceAreaCtrl := rest.SecuredSpaceAreaController(testsupport.TestIdentity)
-	createdID := created.Data.ID.String()
-	_, areaList := test.ListSpaceAreasOK(rest.T(), spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, createdID, nil, nil)
+	_, areaList := test.ListSpaceAreasOK(rest.T(), spaceAreaSvc.Context, spaceAreaSvc, spaceAreaCtrl, *created.Data.ID, nil, nil)
 	// then
 	// only 1 default gets created.
 	assert.Len(rest.T(), areaList.Data, 1)
@@ -165,7 +162,7 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceAndDefaultArea() {
 
 	// verify if root iteration is created or not
 	spaceIterationSvc, spaceIterationCtrl := rest.SecuredSpaceIterationController(testsupport.TestIdentity)
-	_, iterationList := test.ListSpaceIterationsOK(rest.T(), spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, createdID, nil, nil)
+	_, iterationList := test.ListSpaceIterationsOK(rest.T(), spaceIterationSvc.Context, spaceIterationSvc, spaceIterationCtrl, *created.Data.ID, nil, nil)
 	require.Len(rest.T(), iterationList.Data, 1)
 	assert.Equal(rest.T(), name, *iterationList.Data[0].Attributes.Name)
 
@@ -194,6 +191,37 @@ func (rest *TestSpaceREST) TestSuccessCreateSpaceWithDescription() {
 	assert.NotNil(rest.T(), created.Data.Links.Self)
 }
 
+func (rest *TestSpaceREST) TestFailDeleteSpaceDifferentOwner() {
+	// given
+	name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+	description := "Space for TestFailDeleteSpaceDifferentOwner"
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	// when
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
+	_, errors := test.DeleteSpaceForbidden(rest.T(), svc2.Context, svc2, ctrl2, *created.Data.ID)
+	// then
+	assert.NotEmpty(rest.T(), errors.Errors)
+	assert.Contains(rest.T(), errors.Errors[0].Detail, "user is not the space owner")
+}
+
+func (rest *TestSpaceREST) TestSuccessDeleteSpaceSameOwner() {
+	// given
+	name := testsupport.CreateRandomValidTestName("TestFailDeleteSpaceDifferentOwner-")
+	description := "Space for TestFailDeleteSpaceDifferentOwner"
+	p := minimumRequiredCreateSpace()
+	p.Data.Attributes.Name = &name
+	p.Data.Attributes.Description = &description
+	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
+	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
+	// when
+	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity)
+	test.DeleteSpaceOK(rest.T(), svc2.Context, svc2, ctrl2, *created.Data.ID)
+}
+
 func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 	// given
 	name := testsupport.CreateRandomValidTestName("TestSuccessUpdateSpace-")
@@ -211,7 +239,7 @@ func (rest *TestSpaceREST) TestSuccessUpdateSpace() {
 	u.Data.Attributes.Name = &newName
 	u.Data.Attributes.Description = &newDescription
 	// when
-	_, updated := test.UpdateSpaceOK(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	_, updated := test.UpdateSpaceOK(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, u)
 	// then
 	assert.Equal(rest.T(), newName, *updated.Data.Attributes.Name)
 	assert.Equal(rest.T(), newDescription, *updated.Data.Attributes.Description)
@@ -228,10 +256,10 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
 	u := minimumRequiredUpdateSpace()
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Version = created.Data.Attributes.Version
-	p.Data.Attributes.Name = &testOversizedSpaceName
+	p.Data.Attributes.Name = &testsupport.TestOversizedNameObj
 	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
 
-	test.UpdateSpaceBadRequest(rest.T(), svc2.Context, svc2, ctrl2, created.Data.ID.String(), u)
+	test.UpdateSpaceBadRequest(rest.T(), svc2.Context, svc2, ctrl2, *created.Data.ID, u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceDifferentOwner() {
@@ -252,7 +280,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceDifferentOwner() {
 	u.Data.Attributes.Name = &newName
 	u.Data.Attributes.Description = &newDescription
 	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
-	_, errors := test.UpdateSpaceForbidden(rest.T(), svc2.Context, svc2, ctrl2, created.Data.ID.String(), u)
+	_, errors := test.UpdateSpaceForbidden(rest.T(), svc2.Context, svc2, ctrl2, *created.Data.ID, u)
 	// then
 	assert.NotEmpty(rest.T(), errors.Errors)
 	assert.Contains(rest.T(), errors.Errors[0].Detail, "User is not the space owner")
@@ -263,7 +291,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceUnSecure() {
 	u := minimumRequiredUpdateSpace()
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	test.UpdateSpaceUnauthorized(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), u)
+	test.UpdateSpaceUnauthorized(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
@@ -277,7 +305,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNotFound() {
 	u.Data.ID = &id
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	// when/then
-	test.UpdateSpaceNotFound(rest.T(), svc.Context, svc, ctrl, id.String(), u)
+	test.UpdateSpaceNotFound(rest.T(), svc.Context, svc, ctrl, id, u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceMissingName() {
@@ -291,7 +319,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceMissingName() {
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Version = created.Data.Attributes.Version
 	// when/then
-	test.UpdateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	test.UpdateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceMissingVersion() {
@@ -306,7 +334,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceMissingVersion() {
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Name = &newName
 	// when/then
-	test.UpdateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	test.UpdateSpaceBadRequest(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, u)
 }
 
 func (rest *TestSpaceREST) TestShowSpaceOK() {
@@ -319,7 +347,7 @@ func (rest *TestSpaceREST) TestShowSpaceOK() {
 	svc, ctrl := rest.SecuredController(testsupport.TestIdentity)
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when
-	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, nil)
+	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, nil, nil)
 	// then
 	assert.Equal(rest.T(), created.Data.ID, fetched.Data.ID)
 	assert.Equal(rest.T(), *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
@@ -354,7 +382,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfModifiedSinceHeader() {
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when
 	ifModifiedSince := app.ToHTTPTime(created.Data.Attributes.UpdatedAt.Add(-1 * time.Hour))
-	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), &ifModifiedSince, nil)
+	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, &ifModifiedSince, nil)
 	// then
 	assert.Equal(rest.T(), created.Data.ID, fetched.Data.ID)
 	assert.Equal(rest.T(), *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
@@ -379,7 +407,7 @@ func (rest *TestSpaceREST) TestShowSpaceOKUsingExpiredIfNoneMatchHeader() {
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when
 	ifNoneMatch := "foo_etag"
-	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
+	res, fetched := test.ShowSpaceOK(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, nil, &ifNoneMatch)
 	// then
 	assert.Equal(rest.T(), created.Data.ID, fetched.Data.ID)
 	assert.Equal(rest.T(), *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
@@ -404,7 +432,7 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfModifiedSinceHeader() 
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when/then
 	ifModifiedSince := app.ToHTTPTime(getSpaceUpdatedAt(*created))
-	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), &ifModifiedSince, nil)
+	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, &ifModifiedSince, nil)
 }
 
 func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
@@ -418,11 +446,10 @@ func (rest *TestSpaceREST) TestShowSpaceNotModifiedUsingIfNoneMatchHeader() {
 	_, created := test.CreateSpaceCreated(rest.T(), svc.Context, svc, ctrl, p)
 	// when/then
 	ifNoneMatch := generateSpaceTag(*created)
-	// test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
-	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), nil, &ifNoneMatch)
+	test.ShowSpaceNotModified(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, nil, &ifNoneMatch)
 
 	t := rest.T()
-	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, created.Data.ID.String(), nil, nil)
+	_, fetched := test.ShowSpaceOK(t, svc.Context, svc, ctrl, *created.Data.ID, nil, nil)
 	assert.Equal(t, created.Data.ID, fetched.Data.ID)
 	assert.Equal(t, *created.Data.Attributes.Name, *fetched.Data.Attributes.Name)
 	assert.Equal(t, *created.Data.Attributes.Description, *fetched.Data.Attributes.Description)
@@ -463,14 +490,7 @@ func (rest *TestSpaceREST) TestFailShowSpaceNotFound() {
 	// given
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	test.ShowSpaceNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
-}
-
-func (rest *TestSpaceREST) TestFailShowSpaceNotFoundBadID() {
-	// given
-	svc, ctrl := rest.UnSecuredController()
-	// when/then
-	test.ShowSpaceNotFound(rest.T(), svc.Context, svc, ctrl, "asfasfsaf", nil, nil)
+	test.ShowSpaceNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
 }
 
 func (rest *TestSpaceREST) TestListSpacesOK() {

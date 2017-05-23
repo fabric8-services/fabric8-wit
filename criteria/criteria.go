@@ -44,6 +44,7 @@ type ExpressionVisitor interface {
 	Parameter(v *ParameterExpression) interface{}
 	Literal(c *LiteralExpression) interface{}
 	Not(e *NotExpression) interface{}
+	IsNull(e *IsNullExpression) interface{}
 }
 
 type expression struct {
@@ -200,6 +201,24 @@ func Equals(left Expression, right Expression) Expression {
 	return reparent(&EqualsExpression{binaryExpression{expression{}, left, right}})
 }
 
+// IS NULL
+
+// IsNullExpression represents the IS operator with NULL value
+type IsNullExpression struct {
+	expression
+	FieldName string
+}
+
+// IsNull constructs an NullExpression
+func IsNull(name string) Expression {
+	return &IsNullExpression{expression{}, name}
+}
+
+// Accept implements ExpressionVisitor
+func (t *IsNullExpression) Accept(visitor ExpressionVisitor) interface{} {
+	return visitor.IsNull(t)
+}
+
 // Not
 
 // NotExpression represents the negation operator
@@ -212,7 +231,7 @@ func (t *NotExpression) Accept(visitor ExpressionVisitor) interface{} {
 	return visitor.Not(t)
 }
 
-// And constructs a NotExpression
+// Not constructs a NotExpression
 func Not(left Expression, right Expression) Expression {
 	return reparent(&NotExpression{binaryExpression{expression{}, left, right}})
 }

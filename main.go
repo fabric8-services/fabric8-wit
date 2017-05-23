@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"runtime"
 	"time"
 
 	"golang.org/x/net/context"
@@ -12,7 +13,6 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
-	logrus "github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/auth"
@@ -67,7 +67,7 @@ func main() {
 
 	configuration, err := config.NewConfigurationData(configFilePath)
 	if err != nil {
-		logrus.Panic(nil, map[string]interface{}{
+		log.Panic(nil, map[string]interface{}{
 			"config_file_path": configFilePath,
 			"err":              err,
 		}, "failed to setup the configuration")
@@ -78,7 +78,7 @@ func main() {
 	}
 
 	// Initialized developer mode flag and log level for the logger
-	log.InitializeLogger(configuration.IsPostgresDeveloperModeEnabled(), configuration.GetLogLevel())
+	log.InitializeLogger(configuration.IsLogJSON(), configuration.GetLogLevel())
 
 	printUserInfo()
 
@@ -320,6 +320,8 @@ func main() {
 	log.Logger().Infoln("UTC Build Time: ", controller.BuildTime)
 	log.Logger().Infoln("UTC Start Time: ", controller.StartTime)
 	log.Logger().Infoln("Dev mode:       ", configuration.IsPostgresDeveloperModeEnabled())
+	log.Logger().Infoln("GOMAXPROCS:     ", runtime.GOMAXPROCS(-1))
+	log.Logger().Infoln("NumCPU:         ", runtime.NumCPU())
 
 	http.Handle("/api/", service.Mux)
 	http.Handle("/", http.FileServer(assetFS()))

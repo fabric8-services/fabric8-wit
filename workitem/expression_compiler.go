@@ -103,6 +103,13 @@ func (c *expressionCompiler) Equals(e *criteria.EqualsExpression) interface{} {
 	return c.binary(e, "=")
 }
 
+func (c *expressionCompiler) IsNull(e *criteria.IsNullExpression) interface{} {
+	if isJSONField(e.FieldName) {
+		return "(Fields->>'" + e.FieldName + "' IS NULL)"
+	}
+	return "(" + e.FieldName + " IS NULL)"
+}
+
 func (c *expressionCompiler) Not(e *criteria.NotExpression) interface{} {
 	if isInJSONContext(e.Left()) {
 		condition := c.binary(e, ":")

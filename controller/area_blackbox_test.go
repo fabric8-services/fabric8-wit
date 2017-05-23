@@ -6,21 +6,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/area"
 	. "github.com/almighty/almighty-core/controller"
 	"github.com/almighty/almighty-core/gormapplication"
+	"github.com/almighty/almighty-core/gormsupport"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
-
-	"github.com/almighty/almighty-core/gormsupport"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
+
 	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
@@ -135,6 +135,27 @@ func (rest *TestAreaREST) TestFailCreateChildAreaNotAuthorized() {
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
 	test.CreateChildAreaUnauthorized(rest.T(), svc.Context, svc, ctrl, parentID.String(), createChildAreaPayload)
+}
+
+func (rest *TestAreaREST) TestFailValidationAreaNameLength() {
+	// given
+	ci := getCreateChildAreaPayload(&testsupport.TestOversizedNameObj)
+
+	err := ci.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(rest.T(), err)
+	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+}
+
+func (rest *TestAreaREST) TestFailValidationAreaNameStartWith() {
+	// given
+	name := "_TestSuccessCreateChildArea"
+	ci := getCreateChildAreaPayload(&name)
+
+	err := ci.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(rest.T(), err)
+	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
 }
 
 func (rest *TestAreaREST) TestFailShowAreaNotFound() {
@@ -309,6 +330,6 @@ func createSpaceAndArea(t *testing.T, db *gormapplication.GormDB) (space.Space, 
 		require.Nil(t, err)
 		return nil
 	})
-	logrus.Info("Space and root area created")
+	log.Info(nil, nil, "Space and root area created")
 	return spaceObj, areaObj
 }
