@@ -105,11 +105,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 		tc := typeCombinations[i]
 		if sourceWorkItemType.IsTypeOrSubtypeOf(tc.SourceTypeID) && targetWorkItemType.IsTypeOrSubtypeOf(tc.TargetTypeID) {
 			foundWorkingCombination = true
-			//return errors.NewBadParameterError("source work item type", source.Type)
 		}
-		// if !targetWorkItemType.IsTypeOrSubtypeOf(tc.TargetTypeID) {
-		// 	return errors.NewBadParameterError("target work item type", target.Type)
-		// }
 	}
 	if !foundWorkingCombination {
 		return errors.NewBadParameterError("source and target work item type", source.Type.String()+"+"+target.Type.String())
