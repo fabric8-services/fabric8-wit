@@ -113,7 +113,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 			// Observed that a 500 is returned whenever username/email is not unique
 			return errors.NewBadParameterError("username or email", fmt.Sprintf("%s , %s", *keycloakUserProfile.Email, *keycloakUserProfile.Username))
 		}
-		if resp.StatusCode == 403 || resp.StatusCode == 400 {
+		if resp.StatusCode == 400 {
 			return errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
 		}
 
