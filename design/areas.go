@@ -21,9 +21,7 @@ var area = a.Type("Area", func() {
 
 var areaAttributes = a.Type("AreaAttributes", func() {
 	a.Description(`JSONAPI store for all the "attributes" of a Area. See also see http://jsonapi.org/format/#document-resource-object-attributes`)
-	a.Attribute("name", d.String, "The Area name", func() {
-		a.Example("Area for Build related stuff")
-	})
+	a.Attribute("name", d.String, "The Area name", nameValidationFunction)
 	a.Attribute("created-at", d.DateTime, "When the area was created", func() {
 		a.Example("2016-11-29T23:18:14Z")
 	})
