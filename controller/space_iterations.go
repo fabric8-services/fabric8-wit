@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/goadesign/goa"
 )
@@ -34,7 +35,7 @@ func NewSpaceIterationsController(service *goa.Service, db application.DB, confi
 
 // Create runs the create action.
 func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -48,9 +49,17 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
+		s, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     ctx.SpaceID,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 		// Put iteration under root iteration
 		rootIteration, err := appl.Iterations().Root(ctx, ctx.SpaceID)
