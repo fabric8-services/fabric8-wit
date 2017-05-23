@@ -87,10 +87,11 @@ func LogRequest(verbose bool) goa.Middleware {
 			err = h(ctx, rw, req)
 			resp := goa.ContextResponse(ctx)
 
+			timeInMilli := time.Since(startedAt).Seconds() * 1e3
 			reqCompletedProperties := map[string]interface{}{
 				"status": resp.Status,
 				"bytes":  resp.Length,
-				"time":   fmt.Sprintf("%v", time.Since(startedAt).Seconds()),
+				"time":   fmt.Sprintf("%vms", timeInMilli),
 				"ctrl":   goa.ContextController(ctx),
 				"action": goa.ContextAction(ctx),
 			}
