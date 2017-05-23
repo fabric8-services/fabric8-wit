@@ -29,8 +29,6 @@ import (
 
 var spaceConfiguration *configuration.ConfigurationData
 
-var testOversizedSpaceName = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 type DummyResourceManager struct {
 }
 
@@ -95,7 +93,7 @@ func (rest *TestSpaceREST) TestFailCreateSpaceUnsecure() {
 func (rest *TestSpaceREST) TestFailValidationSpaceNameLength() {
 	// given
 	p := minimumRequiredCreateSpace()
-	p.Data.Attributes.Name = &testOversizedSpaceName
+	p.Data.Attributes.Name = &testsupport.TestOversizedNameObj
 
 	err := p.Validate()
 	// Validate payload function returns an error
@@ -258,7 +256,7 @@ func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
 	u := minimumRequiredUpdateSpace()
 	u.Data.ID = created.Data.ID
 	u.Data.Attributes.Version = created.Data.Attributes.Version
-	p.Data.Attributes.Name = &testOversizedSpaceName
+	p.Data.Attributes.Name = &testsupport.TestOversizedNameObj
 	svc2, ctrl2 := rest.SecuredController(testsupport.TestIdentity2)
 
 	test.UpdateSpaceBadRequest(rest.T(), svc2.Context, svc2, ctrl2, *created.Data.ID, u)
