@@ -116,6 +116,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration56", testMigration56)
 	t.Run("TestMigration57", testMigration57)
 	t.Run("TestMigration60", testMigration60)
+	t.Run("TestMigration61", testMigration61)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -309,6 +310,12 @@ func testMigration60(t *testing.T) {
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
 
 	assert.True(t, dialect.HasIndex("identities", "idx_identities_username"))
+}
+
+func testMigration61(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+17)], (initialMigratedVersion + 17))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

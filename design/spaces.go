@@ -111,11 +111,11 @@ var _ = a.Resource("space", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:spaceID"),
 		)
 		a.Description("Retrieve space (as JSONAPI) for the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "ID of the space")
+			a.Param("spaceID", d.UUID, "ID of the space")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, spaceSingle)
@@ -159,11 +159,11 @@ var _ = a.Resource("space", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:id"),
+			a.DELETE("/:spaceID"),
 		)
-		a.Description("Delete a space with given id.")
+		a.Description("Delete a space with the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("spaceID", d.UUID, "ID of the space to delete")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
@@ -175,11 +175,11 @@ var _ = a.Resource("space", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:spaceID"),
 		)
-		a.Description("Update the space with given id.")
+		a.Description("Update the space with the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("spaceID", d.UUID, "ID of the space to update")
 		})
 		a.Payload(spaceSingle)
 		a.Response(d.OK, func() {
