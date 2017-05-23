@@ -121,7 +121,7 @@ func (rest *TestSpaceAreaREST) TestListAreasOK() {
 	// given
 	parentArea, createdAreaUuids, _ := rest.setupAreas()
 	// when
-	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), nil, nil)
+	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, nil)
 	// then
 	assertSpaceAreas(rest.T(), areaList, createdAreaUuids)
 	assertResponseHeaders(rest.T(), res)
@@ -132,7 +132,7 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfModifiedSinceHeader(
 	parentArea, createdAreaUuids, _ := rest.setupAreas()
 	// when
 	ifModifiedSince := app.ToHTTPTime(parentArea.UpdatedAt.Add(-1 * time.Hour))
-	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), &ifModifiedSince, nil)
+	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, &ifModifiedSince, nil)
 	// then
 	assertSpaceAreas(rest.T(), areaList, createdAreaUuids)
 	assertResponseHeaders(rest.T(), res)
@@ -143,7 +143,7 @@ func (rest *TestSpaceAreaREST) TestListAreasOKUsingExpiredIfNoneMatchHeader() {
 	parentArea, createdAreaUuids, _ := rest.setupAreas()
 	// when
 	ifNoneMatch := "foo"
-	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), nil, &ifNoneMatch)
+	res, areaList := test.ListSpaceAreasOK(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
 	// then
 	assertSpaceAreas(rest.T(), areaList, createdAreaUuids)
 	assertResponseHeaders(rest.T(), res)
@@ -154,7 +154,7 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfModifiedSinceHeade
 	parentArea, _, areas := rest.setupAreas()
 	// when
 	ifModifiedSince := app.ToHTTPTime(areas[len(areas)-1].UpdatedAt)
-	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), &ifModifiedSince, nil)
+	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -168,7 +168,7 @@ func (rest *TestSpaceAreaREST) TestListAreasNotModifiedUsingIfNoneMatchHeader() 
 		createdAreas[1],
 		createdAreas[2],
 	})
-	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID.String(), nil, &ifNoneMatch)
+	res := test.ListSpaceAreasNotModified(rest.T(), rest.svcSpaceAreas.Context, rest.svcSpaceAreas, rest.ctrlSpaceAreas, parentArea.SpaceID, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }

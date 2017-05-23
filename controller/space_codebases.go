@@ -9,7 +9,6 @@ import (
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
-	uuid "github.com/satori/go.uuid"
 )
 
 // SpaceCodebasesController implements the space-codebases resource.
@@ -29,11 +28,6 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	// Validate Request
 	if ctx.Payload.Data == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data", nil).Expected("not nil"))
@@ -47,13 +41,13 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		_, err = appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 
 		newCodeBase := codebase.Codebase{
-			SpaceID: spaceID,
+			SpaceID: ctx.SpaceID,
 			Type:    *reqIter.Attributes.Type,
 			URL:     *reqIter.Attributes.URL,
 			//TODO: We don't have the StackID here.
@@ -74,12 +68,8 @@ func (c *SpaceCodebasesController) Create(ctx *app.CreateSpaceCodebasesContext) 
 // List runs the list action.
 func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) error {
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
@@ -87,7 +77,7 @@ func (c *SpaceCodebasesController) List(ctx *app.ListSpaceCodebasesContext) erro
 		res := &app.CodebaseList{}
 		res.Data = []*app.Codebase{}
 
-		codebases, tc, err := appl.Codebases().List(ctx, spaceID, &offset, &limit)
+		codebases, tc, err := appl.Codebases().List(ctx, ctx.SpaceID, &offset, &limit)
 		count := int(tc)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
