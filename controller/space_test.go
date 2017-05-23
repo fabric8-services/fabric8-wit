@@ -518,6 +518,13 @@ func (rest *TestSpaceREST) TestListSpacesOK() {
 	require.NotEmpty(rest.T(), list.Data)
 }
 
+func (rest *TestSpaceREST) TestListSpacesUnauthorized() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	// then
+	test.ListSpaceUnauthorized(rest.T(), svc.Context, svc, ctrl, nil, nil, nil, nil)
+}
+
 func (rest *TestSpaceREST) TestListSpacesOKUsingExpiredIfModifiedSinceHeader() {
 	// given
 	name := testsupport.CreateRandomValidTestName("TestListSpacesOKUsingExpiredIfModifiedSinceHeader-")
