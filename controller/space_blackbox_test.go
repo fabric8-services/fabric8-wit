@@ -264,7 +264,7 @@ func (rest *TestSpaceREST) TestUpdateSpaceConflict() {
 	version := 123456
 	u.Data.Attributes.Version = &version
 	// when/then
-	test.UpdateSpaceConflict(rest.T(), svc.Context, svc, ctrl, created.Data.ID.String(), u)
+	test.UpdateSpaceConflict(rest.T(), svc.Context, svc, ctrl, *created.Data.ID, u)
 }
 
 func (rest *TestSpaceREST) TestFailUpdateSpaceNameLength() {
