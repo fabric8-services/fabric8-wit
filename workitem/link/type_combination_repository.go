@@ -19,7 +19,6 @@ type WorkItemLinkTypeCombinationRepository interface {
 	Create(ctx context.Context, tc *WorkItemLinkTypeCombination) (*WorkItemLinkTypeCombination, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLinkTypeCombination, error)
 	List(ctx context.Context, linkTypeID uuid.UUID) ([]WorkItemLinkTypeCombination, error)
-	// Save(ctx context.Context, tc *WorkItemLinkTypeCombination) (*WorkItemLinkTypeCombination, error)
 }
 
 // NewWorkItemLinkTypeCombinationRepository creates a work item link WorkItemLinkTypeCombination repository based on gorm
@@ -110,41 +109,3 @@ func (r *GormWorkItemLinkTypeCombinationRepository) List(ctx context.Context, li
 	}
 	return modelWorkItemLinkTypeCombinations, nil
 }
-
-// // Save updates the given work item link type combination in storage. Version must be the same as the one int the stored version.
-// // returns NotFoundError, VersionConflictError, ConversionError or InternalError
-// func (r *GormWorkItemLinkTypeCombinationRepository) Save(ctx context.Context, modelToSave WorkItemLinkTypeCombination) (*WorkItemLinkTypeCombination, error) {
-// 	existingModel := WorkItemLinkTypeCombination{}
-// 	db := r.db.Model(&existingModel).Where("id=?", modelToSave.ID).First(&existingModel)
-// 	if db.RecordNotFound() {
-// 		log.Error(ctx, map[string]interface{}{
-// 			"type_combination_id": modelToSave.ID,
-// 		}, "work item link type combination not found")
-// 		return nil, errors.NewNotFoundError("work item link type combination", modelToSave.ID.String())
-// 	}
-// 	if db.Error != nil {
-// 		log.Error(ctx, map[string]interface{}{
-// 			"type_combination_id": modelToSave.ID,
-// 			"err": db.Error,
-// 		}, "unable to find work item link type combination")
-// 		return nil, errors.NewInternalError(db.Error.Error())
-// 	}
-// 	if existingModel.Version != modelToSave.Version {
-// 		return nil, errors.NewVersionConflictError("version conflict")
-// 	}
-// 	modelToSave.Version = modelToSave.Version + 1
-// 	db = db.Save(&modelToSave)
-// 	if db.Error != nil {
-// 		log.Error(ctx, map[string]interface{}{
-// 			"type_combination_id": existingModel.ID,
-// 			"type_combination":    existingModel,
-// 			"err":                 db.Error,
-// 		}, "unable to save work item link type combination")
-// 		return nil, errors.NewInternalError(db.Error.Error())
-// 	}
-// 	log.Info(ctx, map[string]interface{}{
-// 		"type_combination_id": existingModel.ID,
-// 		"type_combination":    existingModel,
-// 	}, "Work item link type combination updated %v", modelToSave)
-// 	return &modelToSave, nil
-// }
