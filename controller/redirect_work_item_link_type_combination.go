@@ -24,12 +24,6 @@ func (c *RedirectWorkItemLinkTypeCombinationController) Create(ctx *app.CreateRe
 	return ctx.MovedPermanently()
 }
 
-// // List runs the list action.
-// func (c *RedirectWorkItemLinkTypeCombinationController) List(ctx *app.ListRedirectWorkItemLinkTypeCombinationContext) error {
-// 	ctx.ResponseData.Header().Set("Location", redirectWorkItemLinkTypeCombinationsURL(ctx.RequestURI))
-// 	return ctx.MovedPermanently()
-// }
-
 // Show runs the show action.
 func (c *RedirectWorkItemLinkTypeCombinationController) Show(ctx *app.ShowRedirectWorkItemLinkTypeCombinationContext) error {
 	ctx.ResponseData.Header().Set("Location", redirectWorkItemLinkTypeCombinationsURL(ctx.RequestURI))
