@@ -17,7 +17,7 @@ coverage:
     # changes tells us if there are unexpected code coverage changes in other files
     # which were not changed by the diff
     changes: yes
-    
+
   # See http://docs.codecov.io/docs/ignoring-paths
   ignore:
    - "*/bindata_assetfs.go"
@@ -28,10 +28,17 @@ coverage:
    - "swagger/*"
    - "tool/cli/*"
 
+# See https://docs.codecov.io/docs/flags
+flags:
+  integration_tests: {}
+  unit_tests: {}
+  remote_tests: {}
+
 # See http://docs.codecov.io/docs/pull-request-comments-1
 comment:
   layout: "header, diff, tree"
-  behavior: # defualt = posts once then update, posts new if delete
-            # once = post once then updates
-            # new = delete old, post new
-            # spammy = post new
+  behavior: default
+  # defualt = posts once then update, posts new if delete
+  # once = post once then updates
+  # new = delete old, post new
+  # spammy = post new

@@ -76,27 +76,39 @@ function check_postgres_healthiness(){
 }
 
 function run_tests_with_coverage() {
-  # Run the unit tests that generate coverage information
+  CODECOV_TOKEN=ad12dad7-ebdc-47bc-a016-8c05fa7356bc
+
+  # Run the unit tests that generate coverage information and upload the
+  # results.
   make docker-test-unit
+  cp tmp/$(ls --hide=*tmp tmp/coverage.unit.mode-*) coverage-unit_tests.txt
+  bash <(curl -s https://codecov.io/bash) -X search -f coverage-unit_tests.txt -t $CODECOV_TOKEN -F unit_tests
+
   make integration-test-env-prepare
   trap cleanup_env EXIT
 
   # Check that postgresql container is healthy
   check_postgres_healthiness
 
-  # Run the integration tests that generate coverage information
+  # Run the integration tests that generate coverage information and upload the
+  # results.
   make docker-test-migration
   make docker-test-integration
+  cp tmp/$(ls --hide=*tmp tmp/coverage.integration.mode-*) coverage-integration_tests.txt 
+  bash <(curl -s https://codecov.io/bash) -X search -f coverage-integration_tests.txt -t $CODECOV_TOKEN -F integration_tests
 
-  # Run the remote tests that generate coverage information
+  # Run the remote tests that generate coverage information and upload the
+  # results.
   make docker-test-remote
+  cp tmp/$(ls --hide=*tmp tmp/coverage.remote.mode-*) coverage-remote_tests.txt
+  bash <(curl -s https://codecov.io/bash) -X search -f coverage-remote_tests.txt -t $CODECOV_TOKEN -F remote_tests
 
   # Output coverage
   make docker-coverage-all
 
-  # Upload coverage to codecov.io
-  cp tmp/coverage.mode* coverage.txt
-  bash <(curl -s https://codecov.io/bash) -X search -f coverage.txt -t ad12dad7-ebdc-47bc-a016-8c05fa7356bc #-X fix
+  # Upload overall coverage to codecov.io
+  cp tmp/coverage.mode* coverage-all.txt
+  bash <(curl -s https://codecov.io/bash) -X search -f coverage-all.txt -t $CODECOV_TOKEN #-X fix
 
   echo "CICO: ran tests and uploaded coverage"
 }
