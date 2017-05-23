@@ -62,7 +62,7 @@ func lookupIdentities(ctx context.Context, db *gorm.DB, remoteWorkItem RemoteWor
 	identityRepository := account.NewIdentityRepository(db)
 	//spaceSelfURL := rest.AbsoluteURL(goa.ContextRequest(ctx), app.SpaceHref(spaceID.String()))
 	workItem := workitem.WorkItem{
-		ID:      remoteWorkItem.ID,
+		// ID:      remoteWorkItem.ID,
 		Type:    remoteWorkItem.Type,
 		Fields:  make(map[string]interface{}),
 		SpaceID: spaceID,
@@ -120,7 +120,7 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 	// Get the remote item identifier ( which is currently the url ) to check if the work item exists in the database.
 	workItemRemoteID := workItem.Fields[workitem.SystemRemoteItemID]
 	log.Info(nil, map[string]interface{}{
-		"wi_id": workItemRemoteID,
+		"space_id": workItem.SpaceID,
 	}, "Upsert on workItemRemoteID=%s", workItemRemoteID)
 	// Querying the database to fetch the work item (if it exists)
 	sqlExpression := criteria.Equals(criteria.Field(workitem.SystemRemoteItemID), criteria.Literal(workItemRemoteID))
@@ -129,6 +129,13 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 		return nil, errors.WithStack(err)
 	}
 	var resultWorkItem *workitem.WorkItem
+	c := workItem.Fields[workitem.SystemCreator]
+	var creator uuid.UUID
+	if c != nil {
+		if creator, err = uuid.FromString(c.(string)); err != nil {
+			return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
+		}
+	}
 	if existingWorkItem != nil {
 		log.Info(nil, map[string]interface{}{
 			"wi_id": existingWorkItem.ID,
@@ -136,20 +143,12 @@ func upsert(ctx context.Context, db *gorm.DB, workItem workitem.WorkItem) (*work
 		for key, value := range workItem.Fields {
 			existingWorkItem.Fields[key] = value
 		}
-		//TODO: we should probably assign the change author to a specific identity...
-		resultWorkItem, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, uuid.Nil)
+		resultWorkItem, err = wir.Save(ctx, existingWorkItem.SpaceID, *existingWorkItem, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
 	} else {
 		log.Info(nil, nil, "Workitem does not exist, will be created")
-		c := workItem.Fields[workitem.SystemCreator]
-		var creator uuid.UUID
-		if c != nil {
-			if creator, err = uuid.FromString(c.(string)); err != nil {
-				return nil, errors.Wrapf(err, "Failed to convert creator id into a UUID: %s", err.Error())
-			}
-		}
 		resultWorkItem, err = wir.Create(ctx, workItem.SpaceID, workitem.SystemBug, workItem.Fields, creator)
 		if err != nil {
 			return nil, errors.WithStack(err)

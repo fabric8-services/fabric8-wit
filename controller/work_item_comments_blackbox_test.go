@@ -24,6 +24,7 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
+
 	"github.com/goadesign/goa"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -151,10 +152,10 @@ func (rest *TestCommentREST) TestSuccessCreateSingleCommentWithDefaultMarkup() {
 func (rest *TestCommentREST) setupComments() (workitem.WorkItem, []*comment.Comment) {
 	wi := rest.createDefaultWorkItem()
 	comments := make([]*comment.Comment, 4)
-	comments[0] = &comment.Comment{ParentID: wi.ID, Body: "Test 1", CreatedBy: rest.testIdentity.ID}
-	comments[1] = &comment.Comment{ParentID: wi.ID, Body: "Test 2", CreatedBy: rest.testIdentity.ID}
-	comments[2] = &comment.Comment{ParentID: wi.ID, Body: "Test 3", CreatedBy: rest.testIdentity.ID}
-	comments[3] = &comment.Comment{ParentID: wi.ID + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[0] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 1", CreatedBy: rest.testIdentity.ID}
+	comments[1] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 2", CreatedBy: rest.testIdentity.ID}
+	comments[2] = &comment.Comment{ParentID: wi.ID.String(), Body: "Test 3", CreatedBy: rest.testIdentity.ID}
+	comments[3] = &comment.Comment{ParentID: wi.ID.String() + "_other", Body: "Test 1", CreatedBy: rest.testIdentity.ID}
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Comments()
 		for _, c := range comments {
@@ -258,7 +259,7 @@ func (rest *TestCommentREST) TestCreateSingleCommentMissingWorkItem() {
 	p := rest.newCreateWorkItemCommentsPayload("Test", nil)
 	// when/then
 	svc, ctrl := rest.SecuredController()
-	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), "0000000", p)
+	test.CreateWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4(), p)
 }
 
 func (rest *TestCommentREST) TestCreateSingleNoAuthorized() {
@@ -288,5 +289,5 @@ func (rest *TestCommentREST) TestListCommentsByMissingParentWorkItem() {
 	// when/then
 	offset := "0"
 	limit := 1
-	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), "0000000", &limit, &offset, nil, nil)
+	test.ListWorkItemCommentsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), uuid.NewV4(), &limit, &offset, nil, nil)
 }

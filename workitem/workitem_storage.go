@@ -13,7 +13,10 @@ import (
 // WorkItemStorage represents a work item as it is stored in the database
 type WorkItemStorage struct {
 	gormsupport.Lifecycle
-	ID uint64 `gorm:"primary_key"`
+	// unique id per installation (used for references at the DB level)
+	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
+	// unique number per _space_
+	Number int
 	// Id of the type of this work item
 	Type uuid.UUID `sql:"type:uuid"`
 	// Version for optimistic concurrency control

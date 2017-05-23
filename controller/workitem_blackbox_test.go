@@ -242,29 +242,28 @@ func (s *WorkItemSuite) TestReorderWorkitemBottomOK() {
 // TestReorderMultipleWorkitem is positive test which tests successful reorder by providing valid input
 // This case reorders two workitems -> result3 and result4 and places them above result2
 func (s *WorkItemSuite) TestReorderMultipleWorkitems() {
+	// given
 	payload := minimumRequiredCreateWithType(workitem.SystemBug)
 	payload.Data.Attributes[workitem.SystemTitle] = "Reorder Test WI"
 	payload.Data.Attributes[workitem.SystemState] = workitem.SystemStateClosed
-
 	test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
 	_, result2 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
 	_, result3 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
 	_, result4 := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, s.controller, *payload.Data.Relationships.Space.Data.ID, &payload)
 	payload2 := minimumRequiredReorderPayload()
-
 	var dataArray []*app.WorkItem // dataArray contains the workitems that have to be reordered
 	dataArray = append(dataArray, result3.Data, result4.Data)
 	payload2.Data = dataArray
 	payload2.Position.ID = result2.Data.ID // Position.ID specifies the workitem ID above or below which the workitem(s) should be placed
 	payload2.Position.Direction = string(workitem.DirectionAbove)
-
+	// when
 	_, reordered1 := test.ReorderWorkitemOK(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2) // Returns the workitems which are reordered
-
+	// then
+	require.NotNil(s.T(), reordered1)
+	require.NotNil(s.T(), reordered1.Data)
 	require.Len(s.T(), reordered1.Data, 2) // checks the correct number of workitems reordered
-
 	assert.Equal(s.T(), result3.Data.Attributes["version"].(int)+1, reordered1.Data[0].Attributes["version"])
 	assert.Equal(s.T(), result4.Data.Attributes["version"].(int)+1, reordered1.Data[1].Attributes["version"])
-
 	assert.Equal(s.T(), *result3.Data.ID, *reordered1.Data[0].ID)
 	assert.Equal(s.T(), *result4.Data.ID, *reordered1.Data[1].ID)
 }
@@ -303,7 +302,7 @@ func (s *WorkItemSuite) TestReorderWorkitemNotFoundOK() {
 	var dataArray []*app.WorkItem
 	dataArray = append(dataArray, result1.Data)
 	payload2.Data = dataArray
-	randomID := "78"
+	randomID := uuid.NewV4()
 	payload2.Position.ID = &randomID
 	payload2.Position.Direction = string(workitem.DirectionAbove)
 	test.ReorderWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.controller, space.SystemSpace, &payload2)
@@ -422,28 +421,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Update Work Item API with different parameters
 			{
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodPatch,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            createWIPayloadString,
@@ -452,28 +451,28 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// Delete Work Item API with different parameters
 			{
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getExpiredAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getMalformedAuthHeader(t, privatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
 				jwtToken:           getValidAuthHeader(t, differentPrivatekey),
 			}, {
 				method:             http.MethodDelete,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/12345",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusUnauthorized,
 				expectedErrorCode:  jsonapi.ErrorCodeJWTSecurityError,
 				payload:            nil,
@@ -483,7 +482,7 @@ func getWorkItemTestDataFunc(config configuration.ConfigurationData) func(t *tes
 			// We do not have security on GET hence this should return 404 not found
 			{
 				method:             http.MethodGet,
-				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/088481764871",
+				url:                fmt.Sprintf(endpointWorkItems, "5b5faa94-7478-4a35-9fdd-e1b5278df331") + "/" + uuid.NewV4().String(),
 				expectedStatusCode: http.StatusNotFound,
 				expectedErrorCode:  jsonapi.ErrorCodeNotFound,
 				payload:            nil,
@@ -507,7 +506,7 @@ func (s *WorkItemSuite) TestUnauthorizeWorkItemCUD() {
 func createPagingTest(t *testing.T, ctx context.Context, controller *WorkitemController, repo *testsupport.WorkItemRepository, spaceID uuid.UUID, totalCount int) func(start int, limit int, first string, last string, prev string, next string) {
 	return func(start int, limit int, first string, last string, prev string, next string) {
 		count := computeCount(totalCount, int(start), int(limit))
-		repo.ListReturns(makeWorkItems(count), uint64(totalCount), nil)
+		repo.ListReturns(makeWorkItems(count), totalCount, nil)
 		offset := strconv.Itoa(start)
 
 		_, response := test.ListWorkitemOK(t, ctx, nil, controller, spaceID, nil, nil, nil, nil, nil, nil, nil, &limit, &offset, nil, nil)
@@ -547,7 +546,7 @@ func makeWorkItems(count int) []workitem.WorkItem {
 	res := make([]workitem.WorkItem, count)
 	for index := range res {
 		res[index] = workitem.WorkItem{
-			ID:   fmt.Sprintf("id%d", index),
+			ID:   uuid.NewV4(),
 			Type: uuid.NewV4(), // used to be "foobar"
 			Fields: map[string]interface{}{
 				workitem.SystemUpdatedAt: time.Now(),
@@ -805,17 +804,9 @@ func (s *WorkItem2Suite) TestWI2UpdateVersionConflict() {
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateWithNonExistentID() {
-	id := "2398475203"
+	id := uuid.NewV4()
 	s.minimumPayload.Data.ID = &id
 	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.minimumPayload.Data.Relationships.Space.Data.ID, id, s.minimumPayload)
-}
-
-func (s *WorkItem2Suite) TestWI2UpdateWithInvalidID() {
-	id := "some non-int ID"
-	s.minimumPayload.Data.ID = &id
-	// pass*s.wi.ID below, because that creates a route to the controller
-	// if do not pass*s.wi.ID then we will be testing goa's code and not ours
-	test.UpdateWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *s.minimumPayload.Data.Relationships.Space.Data.ID, *s.wi.ID, s.minimumPayload)
 }
 
 func (s *WorkItem2Suite) TestWI2UpdateSetBaseType() {
@@ -982,6 +973,7 @@ func (s *WorkItem2Suite) TestWI2SuccessCreateWorkItem() {
 	assert.NotNil(s.T(), wi.Data.Type)
 	require.NotNil(s.T(), wi.Data.Attributes)
 	assert.Equal(s.T(), "Title", wi.Data.Attributes[workitem.SystemTitle])
+	assert.NotNil(s.T(), wi.Data.Attributes[workitem.SystemNumber])
 	assert.NotNil(s.T(), wi.Data.Relationships.BaseType.Data.ID)
 	assert.NotNil(s.T(), wi.Data.Relationships.Comments.Links.Self)
 	assert.NotNil(s.T(), wi.Data.Relationships.Area.Data.ID)
@@ -1691,11 +1683,6 @@ func assertResponseHeaders(t *testing.T, res http.ResponseWriter) (string, strin
 }
 
 // Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
-func (s *WorkItem2Suite) xTestWI2FailShowMissing() {
-	test.ShowWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, "00000000", nil, nil)
-}
-
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
 func (s *WorkItem2Suite) TestWI2FailOnDelete() {
 	c := minimumRequiredCreatePayload()
 	c.Data.Attributes[workitem.SystemTitle] = "Title"
@@ -1751,11 +1738,7 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 	require.NotNil(s.T(), linkType)
 
 	// Create link between wi1 and wi2
-	id1, err := strconv.ParseUint(*wi1.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
-	id2, err := strconv.ParseUint(*wi2.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
-	linkPayload := CreateWorkItemLink(id1, id2, *linkType.Data.ID)
+	linkPayload := CreateWorkItemLink(*wi1.Data.ID, *wi2.Data.ID, *linkType.Data.ID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.linkCtrl, linkPayload)
 	require.NotNil(s.T(), workItemLink)
 
@@ -1767,11 +1750,6 @@ func (s *WorkItem2Suite) xTestWI2DeleteLinksOnWIDeletionOK() {
 
 	// Check that we can query for wi2 without problems
 	test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, *wi2.Data.Relationships.Space.Data.ID, *wi2.Data.ID, nil, nil)
-}
-
-// Temporarly disabled, See https://github.com/almighty/almighty-core/issues/1036
-func (s *WorkItem2Suite) xTestWI2FailMissingDelete() {
-	test.DeleteWorkitemNotFound(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, "00000000")
 }
 
 func (s *WorkItem2Suite) TestWI2CreateWithArea() {

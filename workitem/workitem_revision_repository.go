@@ -18,7 +18,7 @@ type RevisionRepository interface {
 	// Create stores a new revision for the given work item.
 	Create(ctx context.Context, modifierID uuid.UUID, revisionType RevisionType, workitem WorkItemStorage) error
 	// List retrieves all revisions for a given work item
-	List(ctx context.Context, workitemID string) ([]Revision, error)
+	List(ctx context.Context, workitemID uuid.UUID) ([]Revision, error)
 }
 
 // NewRevisionRepository creates a GormRevisionRepository
@@ -60,7 +60,7 @@ func (r *GormRevisionRepository) Create(ctx context.Context, modifierID uuid.UUI
 }
 
 // List retrieves all revisions for a given work item
-func (r *GormRevisionRepository) List(ctx context.Context, workitemID string) ([]Revision, error) {
+func (r *GormRevisionRepository) List(ctx context.Context, workitemID uuid.UUID) ([]Revision, error) {
 	log.Debug(nil, map[string]interface{}{}, "List all revisions for work item with ID=%v", workitemID)
 	revisions := make([]Revision, 0)
 	if err := r.db.Where("work_item_id = ?", workitemID).Order("revision_time asc").Find(&revisions).Error; err != nil {

@@ -24,8 +24,8 @@ var workItem = a.Type("WorkItem", func() {
 	a.Attribute("type", d.String, func() {
 		a.Enum("workitems")
 	})
-	a.Attribute("id", d.String, "ID of the work item which is being updated", func() {
-		a.Example("42")
+	a.Attribute("id", d.UUID, "ID of the work item which is being updated", func() {
+		a.Example("abcd1234-1234-5678-cafe-0123456789ab")
 	})
 	a.Attribute("attributes", a.HashOf(d.String, d.Any), func() {
 		a.Example(map[string]interface{}{"version": "1", "system.state": "new", "system.title": "Example story"})
@@ -111,11 +111,11 @@ var _ = a.Resource("workitem", func() {
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:wiId"),
+			a.GET("/:wiID"),
 		)
 		a.Description("Retrieve work item with given id.")
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of a work item")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemSingle)
@@ -148,11 +148,11 @@ var _ = a.Resource("workitem", func() {
 	})
 	a.Action("list-children", func() {
 		a.Routing(
-			a.GET("/:wiId/children"),
+			a.GET("/:wiID/children"),
 		)
 		a.Description("List children associated with the given work item")
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of the work item to look-up")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, workItemList)
@@ -179,11 +179,11 @@ var _ = a.Resource("workitem", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:wiId"),
+			a.DELETE("/:wiID"),
 		)
-		a.Description("Delete work item with given id.")
+		a.Description("Delete work item with given its id.")
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of the work item to delete")
 		})
 		a.Response(d.MethodNotAllowed)
 		a.Response(d.OK)
@@ -195,11 +195,11 @@ var _ = a.Resource("workitem", func() {
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:wiId"),
+			a.PATCH("/:wiID"),
 		)
-		a.Description("update the work item with the given id.")
+		a.Description("update the work item with the given natural id.")
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of the work item to update")
 		})
 		a.Payload(workItemSingle)
 		a.Response(d.OK, func() {
@@ -233,10 +233,10 @@ var _ = a.Resource("redirect_workitem", func() {
 	a.BasePath("/workitems")
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:wiId"),
+			a.GET("/:wiID"),
 		)
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of the work item to show")
 		})
 		a.Response(d.MovedPermanently)
 	})
@@ -266,19 +266,19 @@ var _ = a.Resource("redirect_workitem", func() {
 	})
 	a.Action("delete", func() {
 		a.Routing(
-			a.DELETE("/:wiId"),
+			a.DELETE("/:wiID"),
 		)
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of the work item to delete")
 		})
 		a.Response(d.MovedPermanently)
 	})
 	a.Action("update", func() {
 		a.Routing(
-			a.PATCH("/:wiId"),
+			a.PATCH("/:wiID"),
 		)
 		a.Params(func() {
-			a.Param("wiId", d.String, "wiId")
+			a.Param("wiID", d.UUID, "ID of the work item to update")
 		})
 		a.Response(d.MovedPermanently)
 	})

@@ -3,7 +3,6 @@ package controller_test
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -43,7 +42,6 @@ type workItemChildSuite struct {
 	typeCtrl                 *WorkitemtypeController
 	// These IDs can safely be used by all tests
 	bug1        *app.WorkItemSingle
-	bug1ID      uint64
 	bug3        *app.WorkItemSingle
 	userSpaceID uuid.UUID
 
@@ -142,8 +140,6 @@ func (s *workItemChildSuite) SetupTest() {
 	checkChildrenRelationship(s.T(), bug1.Data, &hasNoChildren)
 
 	s.bug1 = bug1
-	s.bug1ID, err = strconv.ParseUint(*bug1.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
 	s.T().Logf("Created bug1 with ID: %s\n", *bug1.Data.ID)
 
 	bug2Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug2")
@@ -151,8 +147,6 @@ func (s *workItemChildSuite) SetupTest() {
 	require.NotNil(s.T(), bug2)
 	checkChildrenRelationship(s.T(), bug2.Data, &hasNoChildren)
 
-	bug2ID, err := strconv.ParseUint(*bug2.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
 	s.T().Logf("Created bug2 with ID: %s\n", *bug2.Data.ID)
 
 	bug3Payload := CreateWorkItem(s.userSpaceID, workitem.SystemBug, "bug3")
@@ -161,8 +155,6 @@ func (s *workItemChildSuite) SetupTest() {
 	checkChildrenRelationship(s.T(), bug3.Data, &hasNoChildren)
 
 	s.bug3 = bug3
-	bug3ID, err := strconv.ParseUint(*bug3.Data.ID, 10, 64)
-	require.Nil(s.T(), err)
 	s.T().Logf("Created bug3 with ID: %s\n", *bug3.Data.ID)
 
 	// Create a work item link category
@@ -179,14 +171,14 @@ func (s *workItemChildSuite) SetupTest() {
 	bugBlockerLinkTypeID := *workItemLinkType.Data.ID
 	s.T().Logf("Created link type with ID: %s\n", *workItemLinkType.Data.ID)
 
-	createPayload := CreateWorkItemLink(s.bug1ID, bug2ID, bugBlockerLinkTypeID)
+	createPayload := CreateWorkItemLink(*s.bug1.Data.ID, *bug2.Data.ID, bugBlockerLinkTypeID)
 	_, workItemLink := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload)
 	require.NotNil(s.T(), workItemLink)
 	// Check that the bug1 now hasChildren
 	_, workItemAfterLinked := test.ShowWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *bug1.Data.ID, nil, nil)
 	checkChildrenRelationship(s.T(), workItemAfterLinked.Data, &hasChildren)
 
-	createPayload2 := CreateWorkItemLink(s.bug1ID, bug3ID, bugBlockerLinkTypeID)
+	createPayload2 := CreateWorkItemLink(*s.bug1.Data.ID, *bug3.Data.ID, bugBlockerLinkTypeID)
 	_, workItemLink2 := test.CreateWorkItemLinkCreated(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, createPayload2)
 	require.NotNil(s.T(), workItemLink2)
 }
@@ -265,7 +257,6 @@ func TestSuiteWorkItemChildren(t *testing.T) {
 
 func (s *workItemChildSuite) TestChildren() {
 	// given
-	workItemID1 := strconv.FormatUint(s.bug1ID, 10)
 	hasChildren := true
 	hasNoChildren := false
 
@@ -279,7 +270,7 @@ func (s *workItemChildSuite) TestChildren() {
 	})
 	s.T().Run("list ok", func(t *testing.T) {
 		// when
-		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, nil)
+		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, nil, nil)
 		// then
 		assertWorkItemList(t, workItemList)
 		assertResponseHeaders(t, res)
@@ -287,7 +278,7 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("using expired if modified since header", func(t *testing.T) {
 		// when
 		ifModifiedSince := app.ToHTTPTime(s.bug1.Data.Attributes[workitem.SystemUpdatedAt].(time.Time).Add(-1 * time.Hour))
-		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, &ifModifiedSince, nil)
+		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, &ifModifiedSince, nil)
 		// then
 		assertWorkItemList(t, workItemList)
 		assertResponseHeaders(t, res)
@@ -295,7 +286,7 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("using expired if none match header", func(t *testing.T) {
 		// when
 		ifNoneMatch := "foo"
-		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, &ifNoneMatch)
+		res, workItemList := test.ListChildrenWorkitemOK(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, nil, &ifNoneMatch)
 		// then
 		assertWorkItemList(t, workItemList)
 		assertResponseHeaders(t, res)
@@ -303,15 +294,15 @@ func (s *workItemChildSuite) TestChildren() {
 	s.T().Run("not modified using if modified since header", func(t *testing.T) {
 		// when
 		ifModifiedSince := app.ToHTTPTime(s.bug3.Data.Attributes[workitem.SystemUpdatedAt].(time.Time))
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, &ifModifiedSince, nil)
+		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, &ifModifiedSince, nil)
 		// then
 		assertResponseHeaders(t, res)
 	})
 	s.T().Run("not modified using if none match header", func(t *testing.T) {
-		_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, nil)
+		_, workItemList := test.ListChildrenWorkitemOK(s.T(), s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, nil, nil)
 		// when
 		ifNoneMatch := generateWorkitemsTag(workItemList)
-		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, workItemID1, nil, &ifNoneMatch)
+		res := test.ListChildrenWorkitemNotModified(t, s.svc.Context, s.svc, s.workItemCtrl, s.userSpaceID, *s.bug1.Data.ID, nil, &ifNoneMatch)
 		// then
 		assertResponseHeaders(t, res)
 	})

@@ -14,6 +14,7 @@ import (
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 )
 
 // CommentsController implements the comments resource.
@@ -204,7 +205,11 @@ type HrefFunc func(id interface{}) string
 func CommentIncludeParentWorkItem(ctx context.Context, appl application.Application, c *comment.Comment) (CommentConvertFunc, error) {
 	// NOTE: This function assumes that the comment is bound to a WorkItem. Therefore,
 	// we can extract the space out of this WI.
-	wi, err := appl.WorkItems().LoadByID(ctx, c.ParentID)
+	wiID, err := uuid.FromString(c.ParentID)
+	if err != nil {
+		return nil, err
+	}
+	wi, err := appl.WorkItems().LoadByID(ctx, wiID)
 	if err != nil {
 		return nil, err
 	}

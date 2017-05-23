@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -175,10 +176,10 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 				s.T().Fatal("Couldnt create test data")
 			}
 
-			defer wir.Delete(ctx, createdWorkItem.SpaceID, createdWorkItem.ID, s.modifierID)
+			//defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
 
 			// create the URL and use it in the search string
-			workItemURLInSearchString = workItemURLInSearchString + createdWorkItem.ID
+			workItemURLInSearchString = workItemURLInSearchString + strconv.Itoa(createdWorkItem.Number)
 
 			// had to dynamically create this since I didn't now the URL/ID of the workitem
 			// till the test data was created.
@@ -198,16 +199,16 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 				// no point checking further, we got what we wanted.
 				continue
 			} else if len(workItemList) < minimumResults {
-				s.T().Fatalf("At least %d search results was expected ", minimumResults)
+				s.T().Fatalf("At least %d search result(s) was|were expected ", minimumResults)
 			}
 
 			// These keywords need a match in the textual part.
 			allKeywords := strings.Fields(searchString)
-			allKeywords = append(allKeywords, createdWorkItem.ID)
+			allKeywords = append(allKeywords, strconv.Itoa(createdWorkItem.Number))
 			//[]string{workItemURLInSearchString, createdWorkItem.ID, `"Sbose"`, `"deScription"`, `'12345678asdfgh'`}
 
 			// These keywords need a match optionally either as URL string or ID
-			optionalKeywords := []string{workItemURLInSearchString, createdWorkItem.ID}
+			optionalKeywords := []string{workItemURLInSearchString, strconv.Itoa(createdWorkItem.Number)}
 
 			// We will now check the legitimacy of the search results.
 			// Iterate through all search results and see whether they meet the criteria
@@ -226,16 +227,20 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByText() {
 						descriptionField := workItemValue.Fields[workitem.SystemDescription].(rendering.MarkupContent)
 						workItemDescription = strings.ToLower(descriptionField.Content)
 					}
+					workItemNumber := 0
+					if workItemValue.Fields[workitem.SystemNumber] != nil {
+						workItemNumber = workItemValue.Fields[workitem.SystemNumber].(int)
+					}
 					keyWord = strings.ToLower(keyWord)
 
 					if strings.Contains(workItemTitle, keyWord) || strings.Contains(workItemDescription, keyWord) {
 						// Check if the search keyword is present as text in the title/description
 						s.T().Logf("Found keyword %s in workitem %s", keyWord, workItemValue.ID)
-					} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, workItemValue.ID) {
+					} else if stringInSlice(keyWord, optionalKeywords) && strings.Contains(keyWord, strconv.Itoa(workItemValue.Number)) {
 						// If not present in title/description then it should be a URL or ID
-						s.T().Logf("Found keyword %s as ID %s from the URL", keyWord, workItemValue.ID)
+						s.T().Logf("Found keyword '%s' as number '%s' from the URL", keyWord, strconv.Itoa(workItemValue.Number))
 					} else {
-						s.T().Errorf("%s neither found in title %s nor in the description: %s", keyWord, workItemTitle, workItemDescription)
+						s.T().Errorf("'%s' neither found in title '%s' nor in the description: '%s' for workitem number %d", keyWord, workItemTitle, workItemDescription, workItemNumber)
 					}
 				}
 				//defer wir.Delete(context.Background(), workItemValue.ID)
@@ -279,12 +284,12 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
 		}
-		defer wir.Delete(ctx, createdWorkItem.SpaceID, createdWorkItem.ID, s.modifierID)
+		defer wir.Delete(ctx, createdWorkItem.ID, s.modifierID)
 
 		// Create a new workitem to have the ID in it's title. This should not come
 		// up in search results
 
-		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID
+		workItem.Fields[workitem.SystemTitle] = "Search test sbose " + createdWorkItem.ID.String()
 		_, err = wir.Create(ctx, space.SystemSpace, workitem.SystemBug, workItem.Fields, s.modifierID)
 		if err != nil {
 			s.T().Fatalf("Couldn't create test data: %+v", err)
@@ -293,7 +298,7 @@ func (s *searchRepositoryWhiteboxTest) TestSearchByID() {
 		sr := NewGormSearchRepository(tx)
 
 		var start, limit int = 0, 100
-		searchString := "id:" + createdWorkItem.ID
+		searchString := "number:" + strconv.Itoa(createdWorkItem.Number)
 		workItemList, _, err := sr.SearchFullText(ctx, searchString, &start, &limit, nil)
 		if err != nil {
 			s.T().Fatal("Error gettig search result ", err)
@@ -313,8 +318,8 @@ func TestGenerateSQLSearchStringText(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := searchKeyword{
-		id:    []string{"10", "99"},
-		words: []string{"username", "title_substr", "desc_substr"},
+		number: []string{"10", "99"},
+		words:  []string{"username", "title_substr", "desc_substr"},
 	}
 	expectedSQLParameter := "10 & 99 & username & title_substr & desc_substr"
 
@@ -326,8 +331,8 @@ func TestGenerateSQLSearchStringIdOnly(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
 	input := searchKeyword{
-		id:    []string{"10"},
-		words: []string{},
+		number: []string{"10"},
+		words:  []string{},
 	}
 	expectedSQLParameter := "10"
 
@@ -338,12 +343,13 @@ func TestGenerateSQLSearchStringIdOnly(t *testing.T) {
 func TestParseSearchString(t *testing.T) {
 	t.Parallel()
 	resource.Require(t, resource.UnitTest)
-	input := "user input for search string with some ids like id:99 and id:400 but this is not id like 800"
+	input := "user input for search string with some ids like number:99 and number:400 but this is not id like 800"
 	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
-		id:    []string{"99:*A", "400:*A"},
-		words: []string{"user:*", "input:*", "for:*", "search:*", "string:*", "with:*", "some:*", "ids:*", "like:*", "and:*", "but:*", "this:*", "is:*", "not:*", "id:*", "like:*", "800:*"},
+		number: []string{"99:*A", "400:*A"},
+		words:  []string{"user:*", "input:*", "for:*", "search:*", "string:*", "with:*", "some:*", "ids:*", "like:*", "and:*", "but:*", "this:*", "is:*", "not:*", "id:*", "like:*", "800:*"},
 	}
+	t.Log("Parsed search string: ", op)
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
 
@@ -358,14 +364,14 @@ func TestParseSearchStringURL(t *testing.T) {
 	inputSet := []searchTestData{{
 		query: "http://demo.almighty.io/work-item/list/detail/100",
 		expected: searchKeyword{
-			id:    nil,
-			words: []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
+			number: nil,
+			words:  []string{"(100:* | demo.almighty.io/work-item/list/detail/100:*)"},
 		},
 	}, {
 		query: "http://demo.almighty.io/work-item/board/detail/100",
 		expected: searchKeyword{
-			id:    nil,
-			words: []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
+			number: nil,
+			words:  []string{"(100:* | demo.almighty.io/work-item/board/detail/100:*)"},
 		},
 	}}
 
@@ -381,14 +387,14 @@ func TestParseSearchStringURLWithouID(t *testing.T) {
 	inputSet := []searchTestData{{
 		query: "http://demo.almighty.io/work-item/list/detail/",
 		expected: searchKeyword{
-			id:    nil,
-			words: []string{"demo.almighty.io/work-item/list/detail:*"},
+			number: nil,
+			words:  []string{"demo.almighty.io/work-item/list/detail:*"},
 		},
 	}, {
 		query: "http://demo.almighty.io/work-item/board/detail/",
 		expected: searchKeyword{
-			id:    nil,
-			words: []string{"demo.almighty.io/work-item/board/detail:*"},
+			number: nil,
+			words:  []string{"demo.almighty.io/work-item/board/detail:*"},
 		},
 	}}
 
@@ -405,8 +411,8 @@ func TestParseSearchStringDifferentURL(t *testing.T) {
 	input := "http://demo.redhat.io"
 	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
-		id:    nil,
-		words: []string{"demo.redhat.io:*"},
+		number: nil,
+		words:  []string{"demo.redhat.io:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }
@@ -416,11 +422,11 @@ func TestParseSearchStringCombination(t *testing.T) {
 	resource.Require(t, resource.UnitTest)
 	// do combination of ID, full text and URLs
 	// check if it works as expected.
-	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 id:300 golang book and           id:900 \t \n unwanted"
+	input := "http://general.url.io http://demo.almighty.io/work-item/list/detail/100 number:300 golang book and           number:900 \t \n unwanted"
 	op, _ := parseSearchString(input)
 	expectedSearchRes := searchKeyword{
-		id:    []string{"300:*A", "900:*A"},
-		words: []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
+		number: []string{"300:*A", "900:*A"},
+		words:  []string{"general.url.io:*", "(100:* | demo.almighty.io/work-item/list/detail/100:*)", "golang:*", "book:*", "and:*", "unwanted:*"},
 	}
 	assert.True(t, assert.ObjectsAreEqualValues(expectedSearchRes, op))
 }

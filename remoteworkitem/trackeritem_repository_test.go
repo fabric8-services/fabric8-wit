@@ -10,6 +10,7 @@ import (
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
+	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/rendering"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -35,6 +36,14 @@ type TrackerItemRepositorySuite struct {
 	clean        func()
 	trackerQuery TrackerQuery
 	ctx          context.Context
+}
+
+// The SetupSuite method will run before the tests in the suite are run.
+// It sets up a database connection for all the tests in this suite without polluting global space.
+func (s *TrackerItemRepositorySuite) SetupSuite() {
+	s.DBTestSuite.SetupSuite()
+	ctx := migration.NewMigrationContext(context.Background())
+	s.DBTestSuite.PopulateDBTestSuite(ctx)
 }
 
 func (s *TrackerItemRepositorySuite) SetupTest() {
@@ -253,7 +262,7 @@ func (s *TrackerItemRepositorySuite) TestConvertExistingWorkItem() {
 		Content: []byte(`
 			{
 				"title": "linking-updated",
-				"url": "http://github.com/api/testonly/1",
+				"url": "http://github.com/sbose/api/testonly/1",
 				"state": "closed",
 				"body": "body of issue",
 				"user.login": "jdoe3",

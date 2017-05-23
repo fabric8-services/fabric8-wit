@@ -345,12 +345,12 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
-	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
+	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%d", customHost, wi.Data.Attributes[workitem.SystemNumber])
 	s.verifySearchByKnownURLs(wi, customHost, queryString)
 
 	// Search by `board view URL` of newly created item
 	customHost2 := "own.domain.two"
-	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%s", customHost2, *wi.Data.ID)
+	queryString2 := fmt.Sprintf("http://%s/work-item/board/detail/%d", customHost2, wi.Data.Attributes[workitem.SystemNumber])
 	s.verifySearchByKnownURLs(wi, customHost2, queryString2)
 }
 

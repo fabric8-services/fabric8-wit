@@ -24,8 +24,8 @@ import (
 	testsupport "github.com/almighty/almighty-core/test"
 	almtoken "github.com/almighty/almighty-core/token"
 	"github.com/almighty/almighty-core/workitem"
-
 	"github.com/goadesign/goa"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -83,7 +83,7 @@ func (s *CommentsSuite) securedControllers(identity account.Identity) (*goa.Serv
 }
 
 // createWorkItem creates a workitem that will be used to perform the comment operations during the tests.
-func (s *CommentsSuite) createWorkItem(identity account.Identity) string {
+func (s *CommentsSuite) createWorkItem(identity account.Identity) uuid.UUID {
 	spaceSelfURL := rest.AbsoluteURL(&goa.RequestData{
 		Request: &http.Request{Host: "api.service.domain.org"},
 	}, app.SpaceHref(space.SystemSpace.String()))
@@ -142,7 +142,7 @@ func (s *CommentsSuite) newUpdateCommentsPayload(body string, markup *string) *a
 }
 
 // createWorkItemComment creates a workitem comment that will be used to perform the comment operations during the tests.
-func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wID string, body string, markup *string) app.CommentSingle {
+func (s *CommentsSuite) createWorkItemComment(identity account.Identity, wID uuid.UUID, body string, markup *string) app.CommentSingle {
 	createWorkItemCommentPayload := s.newCreateWorkItemCommentsPayload(body, markup)
 	userSvc, _, workitemCommentsCtrl, _ := s.securedControllers(identity)
 	_, c := test.CreateWorkItemCommentsOK(s.T(), userSvc.Context, userSvc, workitemCommentsCtrl, space.SystemSpace, wID, createWorkItemCommentPayload)

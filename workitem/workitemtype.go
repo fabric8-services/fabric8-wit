@@ -1,7 +1,6 @@
 package workitem
 
 import (
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +16,10 @@ const (
 	// pathSep specifies the symbol used to concatenate WIT names to form a so called "path"
 	pathSep = "."
 
+	SystemVersion = "version"
+
 	SystemRemoteItemID        = "system.remote_item_id"
+	SystemNumber              = "system.number"
 	SystemTitle               = "system.title"
 	SystemDescription         = "system.description"
 	SystemDescriptionMarkup   = "system.description.markup"
@@ -164,11 +166,12 @@ func (wit WorkItemType) Equal(u convert.Equaler) bool {
 // ConvertWorkItemStorageToModel converts a workItem from the storage/persistence layer into a workItem of the model domain layer
 func (wit WorkItemType) ConvertWorkItemStorageToModel(workItem WorkItemStorage) (*WorkItem, error) {
 	result := WorkItem{
-		ID:      strconv.FormatUint(workItem.ID, 10),
+		ID:      workItem.ID,
 		Type:    workItem.Type,
 		Version: workItem.Version,
 		Fields:  map[string]interface{}{},
 		SpaceID: workItem.SpaceID,
+		Number:  workItem.Number,
 	}
 
 	for name, field := range wit.Fields {

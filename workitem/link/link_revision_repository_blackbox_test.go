@@ -3,7 +3,6 @@ package link_test
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/almighty/almighty-core/account"
@@ -36,8 +35,8 @@ type revisionRepositoryBlackBoxTest struct {
 	testIdentity1      account.Identity
 	testIdentity2      account.Identity
 	testIdentity3      account.Identity
-	sourceWorkItemID   uint64
-	targetWorkItemID   uint64
+	sourceWorkItemID   uuid.UUID
+	targetWorkItemID   uuid.UUID
 	testLinkType1ID    uuid.UUID
 	testLinkType2ID    uuid.UUID
 }
@@ -80,9 +79,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
-	sourceWorkItemID, err := strconv.ParseUint(wi.ID, 10, 64)
-	require.Nil(s.T(), err)
-	s.sourceWorkItemID = sourceWorkItemID
+	s.sourceWorkItemID = wi.ID
 	wi, err = workitemRepository.Create(
 		s.ctx, testSpace.ID, workitem.SystemBug,
 		map[string]interface{}{
@@ -90,9 +87,7 @@ func (s *revisionRepositoryBlackBoxTest) SetupTest() {
 			workitem.SystemState: workitem.SystemStateNew,
 		}, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
-	targetWorkItemID, err := strconv.ParseUint(wi.ID, 10, 64)
-	require.Nil(s.T(), err)
-	s.targetWorkItemID = targetWorkItemID
+	s.targetWorkItemID = wi.ID
 
 	// Create a work item link category
 	linkCategoryRepository := link.NewWorkItemLinkCategoryRepository(s.DB)
@@ -190,8 +185,7 @@ func (s *revisionRepositoryBlackBoxTest) TestStoreWorkItemLinkRevisionsWhenDelet
 	workitemLink, err := linkRepository.Create(s.ctx, s.sourceWorkItemID, s.targetWorkItemID, s.testLinkType1ID, s.testIdentity1.ID)
 	require.Nil(s.T(), err)
 	// delete the source work item
-	sourceWorkItemID := strconv.FormatUint(s.sourceWorkItemID, 10)
-	err = linkRepository.DeleteRelatedLinks(s.ctx, sourceWorkItemID, s.testIdentity3.ID)
+	err = linkRepository.DeleteRelatedLinks(s.ctx, s.sourceWorkItemID, s.testIdentity3.ID)
 	require.Nil(s.T(), err)
 	// when
 	workitemLinkRevisions, err := s.revisionRepository.List(s.ctx, workitemLink.ID)

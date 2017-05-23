@@ -16,8 +16,8 @@ type WorkItemLink struct {
 	ID uuid.UUID `sql:"type:uuid default uuid_generate_v4()" gorm:"primary_key"`
 	// Version for optimistic concurrency control
 	Version    int
-	SourceID   uint64
-	TargetID   uint64
+	SourceID   uuid.UUID `sql:"type:uuid"`
+	TargetID   uuid.UUID `sql:"type:uuid"`
 	LinkTypeID uuid.UUID `sql:"type:uuid"`
 }
 

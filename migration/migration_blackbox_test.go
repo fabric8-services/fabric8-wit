@@ -13,6 +13,7 @@ import (
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 
+	"github.com/goadesign/goa/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	errs "github.com/pkg/errors"
@@ -117,6 +118,7 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration57", testMigration57)
 	t.Run("TestMigration60", testMigration60)
 	t.Run("TestMigration61", testMigration61)
+	t.Run("TestMigration62", testMigration62)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -318,6 +320,37 @@ func testMigration61(t *testing.T) {
 	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
 }
 
+func testMigration62(t *testing.T) {
+	// migrate to previous version
+	migrateToVersion(sqlDB, migrations[:62], 62)
+	// fill DB with data (ie, work items, links, comments, etc on different spaces)
+	assert.Nil(t, runSQLscript(sqlDB, "062-workitem-id-unique-per-space.sql"))
+	// then apply the change
+	migrateToVersion(sqlDB, migrations[:63], 63)
+	// and verify that the work item id sequence table is filled as expected
+	type WorkItemSequence struct {
+		SpaceID    uuid.UUID `sql:"type:UUID"`
+		CurrentVal int
+	}
+	space1, err := uuid.FromString("11111111-0000-0000-0000-000000000000")
+	require.Nil(t, err)
+	space2, err := uuid.FromString("22222222-0000-0000-0000-000000000000")
+	require.Nil(t, err)
+	expectations := make(map[uuid.UUID]int)
+	expectations[space1] = 12348
+	expectations[space2] = 12350
+	for spaceID, expectedCurrentVal := range expectations {
+		var currentVal int
+		stmt, err := sqlDB.Prepare("select current_val from work_item_number_sequences where space_id = $1")
+		require.Nil(t, err)
+		err = stmt.QueryRow(spaceID.String()).Scan(&currentVal)
+		require.Nil(t, err)
+		require.NotNil(t, currentVal)
+		t.Log(fmt.Sprintf("Found %d (/%d) for space %v", currentVal, expectedCurrentVal, spaceID))
+		assert.Equal(t, expectedCurrentVal, currentVal)
+	}
+}
+
 // runSQLscript loads the given filename from the packaged SQL test files and
 // executes it on the given database. Golang text/template module is used
 // to handle all the optional arguments passed to the sql test files
@@ -328,9 +361,9 @@ func runSQLscript(db *sql.DB, sqlFilename string) error {
 		return errs.New(fmt.Sprintf("Failed to start transaction: %s\n", err))
 	}
 	if err := executeSQLTestFile(sqlFilename)(tx); err != nil {
-		log.Warn(nil, nil, "Failed to execute data insertion of version: %s\n", err)
+		log.Warn(nil, nil, "Failed to execute data insertion using '%s': %s\n", sqlFilename, err)
 		if err = tx.Rollback(); err != nil {
-			return errs.New(fmt.Sprintf("error while rolling back transaction: ", err))
+			return errs.New(fmt.Sprintf("error while rolling back transaction: %s", err))
 		}
 	}
 	if err = tx.Commit(); err != nil {
@@ -345,6 +378,7 @@ func runSQLscript(db *sql.DB, sqlFilename string) error {
 // to handle all the optional arguments passed to the sql test files
 func executeSQLTestFile(filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
+		log.Info(nil, nil, "Executing SQL test script '%s'", filename)
 		data, err := Asset(filename)
 		if err != nil {
 			return errs.WithStack(err)
@@ -384,7 +418,7 @@ func migrateToVersion(db *sql.DB, m migration.Migrations, version int64) {
 
 		if err = migration.MigrateToNextVersion(tx, &nextVersion, m, databaseName); err != nil {
 			if err = tx.Rollback(); err != nil {
-				panic(fmt.Errorf("error while rolling back transaction: ", err))
+				panic(fmt.Errorf("error while rolling back transaction: %v", err))
 			}
 			panic(fmt.Errorf("Failed to migrate to version after rolling back"))
 		}

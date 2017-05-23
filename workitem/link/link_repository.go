@@ -2,7 +2,6 @@ package link
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"golang.org/x/net/context"
@@ -29,15 +28,15 @@ const (
 
 // WorkItemLinkRepository encapsulates storage & retrieval of work item links
 type WorkItemLinkRepository interface {
-	Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error)
+	Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error)
 	Load(ctx context.Context, ID uuid.UUID) (*WorkItemLink, error)
 	List(ctx context.Context) ([]WorkItemLink, error)
-	ListByWorkItemID(ctx context.Context, wiIDStr string) ([]WorkItemLink, error)
-	DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error
+	ListByWorkItem(ctx context.Context, wiID uuid.UUID) ([]WorkItemLink, error)
+	DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error
 	Delete(ctx context.Context, ID uuid.UUID, suppressorID uuid.UUID) error
 	Save(ctx context.Context, linkCat WorkItemLink, modifierID uuid.UUID) (*WorkItemLink, error)
-	ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error)
-	WorkItemHasChildren(ctx context.Context, parent string) (bool, error)
+	ListWorkItemChildren(ctx context.Context, parentID uuid.UUID) ([]workitem.WorkItem, error)
+	WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error)
 }
 
 // NewWorkItemLinkRepository creates a work item link repository based on gorm
@@ -63,18 +62,18 @@ type GormWorkItemLinkRepository struct {
 // ValidateCorrectSourceAndTargetType returns an error if the Path of
 // the source WIT as defined by the work item link type is not part of
 // the actual source's WIT; the same applies for the target.
-func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID) error {
+func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID) error {
 	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	// Fetch the source work item
-	source, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(sourceID, 10))
+	source, err := r.workItemRepo.LoadFromDB(ctx, sourceID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
 	// Fetch the target work item
-	target, err := r.workItemRepo.LoadFromDB(ctx, strconv.FormatUint(targetID, 10))
+	target, err := r.workItemRepo.LoadFromDB(ctx, targetID)
 	if err != nil {
 		return errs.WithStack(err)
 	}
@@ -99,7 +98,7 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
-func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
 	link := &WorkItemLink{
 		SourceID:   sourceID,
 		TargetID:   targetID,
@@ -146,11 +145,11 @@ func (r *GormWorkItemLinkRepository) Load(ctx context.Context, ID uuid.UUID) (*W
 	return &result, nil
 }
 
-// ListByWorkItemID returns the work item links that have wiID as source or target.
+// ListByWorkItem returns the work item links that have wiID as source or target.
 // TODO: Handle pagination
-func (r *GormWorkItemLinkRepository) ListByWorkItemID(ctx context.Context, wiIDStr string) ([]WorkItemLink, error) {
+func (r *GormWorkItemLinkRepository) ListByWorkItem(ctx context.Context, wiID uuid.UUID) ([]WorkItemLink, error) {
 	var modelLinks []WorkItemLink
-	wi, err := r.workItemRepo.LoadFromDB(ctx, wiIDStr)
+	wi, err := r.workItemRepo.LoadFromDB(ctx, wiID)
 	if err != nil {
 		return nil, errs.WithStack(err)
 	}
@@ -188,16 +187,11 @@ func (r *GormWorkItemLinkRepository) Delete(ctx context.Context, linkID uuid.UUI
 
 // DeleteRelatedLinks deletes all links in which the source or target equals the
 // given work item ID.
-func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiIDStr string, suppressorID uuid.UUID) error {
+func (r *GormWorkItemLinkRepository) DeleteRelatedLinks(ctx context.Context, wiID uuid.UUID, suppressorID uuid.UUID) error {
 	log.Info(ctx, map[string]interface{}{
-		"workitem_id": wiIDStr,
+		"wi_id": wiID,
 	}, "Deleting the links related to work item")
 
-	wiID, err := strconv.ParseUint(wiIDStr, 10, 64)
-	if err != nil {
-		// treat as not found: clients don't know it must be a uint64
-		return errors.NewNotFoundError("work item link", wiIDStr)
-	}
 	var workitemLinks = []WorkItemLink{}
 	r.db.Where("? in (source_id, target_id)", wiID).Find(&workitemLinks)
 	// delete one by one to trigger the creation of a new work item link revision
@@ -280,9 +274,8 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 }
 
 // ListWorkItemChildren get all child work items
-func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parent string) ([]workitem.WorkItem, error) {
+func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, parentID uuid.UUID) ([]workitem.WorkItem, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "children", "query"}, time.Now())
-
 	where := fmt.Sprintf(`
 	id in (
 		SELECT target_id FROM %s
@@ -290,7 +283,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 			SELECT id FROM %s WHERE forward_name = 'parent of'
 		)
 	)`, WorkItemLink{}.TableName(), WorkItemLinkType{}.TableName())
-	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parent)
+	db := r.db.Model(&workitem.WorkItemStorage{}).Where(where, parentID.String())
 	rows, err := db.Rows()
 	if err != nil {
 		return nil, err
@@ -322,7 +315,7 @@ func (r *GormWorkItemLinkRepository) ListWorkItemChildren(ctx context.Context, p
 
 // WorkItemHasChildren returns true if the given parent work item has children;
 // otherwise false is returned
-func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, parent string) (bool, error) {
+func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, parentID uuid.UUID) (bool, error) {
 	defer goa.MeasureSince([]string{"goa", "db", "workitem", "has", "children"}, time.Now())
 	query := fmt.Sprintf(`
 		SELECT EXISTS (
@@ -343,9 +336,9 @@ func (r *GormWorkItemLinkRepository) WorkItemHasChildren(ctx context.Context, pa
 		return false, errs.Wrapf(err, "failed prepare statement: %s", query)
 	}
 	defer stmt.Close()
-	err = stmt.QueryRow(parent).Scan(&hasChildren)
+	err = stmt.QueryRow(parentID.String()).Scan(&hasChildren)
 	if err != nil {
-		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parent, query)
+		return false, errs.Wrapf(err, "failed to check if work item %s has children: %s", parentID.String(), query)
 	}
 	return hasChildren, nil
 }
