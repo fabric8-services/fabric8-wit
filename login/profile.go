@@ -159,7 +159,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 			"response_body":             rest.ReadBody(resp.Body),
 			"keycloak_user_profile_url": keycloakProfileURL,
 		}, "Unable to fetch Keycloak user profile")
-		if resp.StatusCode == 403 || resp.StatusCode == 400 {
+		if resp.StatusCode == 400 {
 			return nil, errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
 		}
 		return nil, errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while fetching keycloak user profile %s", resp.Status, keycloakProfileURL))
