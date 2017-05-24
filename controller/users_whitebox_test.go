@@ -54,12 +54,12 @@ func TestCopyExistingKeycloakUserProfileInfo(t *testing.T) {
 	// ensure URL is updated to the same value
 
 	retrievedURL := (*mergedProfile.Attributes)[login.URLAttributeName]
-	require.NotNil(t, retrievedURL)
+	require.NotEmpty(t, retrievedURL)
 	assert.Equal(t, retrievedURL[0], URL)
 
 	// ensure existing attributes dont get changed
 	retrievedBio := (*mergedProfile.Attributes)[login.BioAttributeName]
-	require.NotNil(t, retrievedBio)
+	require.NotEmpty(t, retrievedBio)
 	assert.Equal(t, retrievedBio[0], Bio)
 
 }
