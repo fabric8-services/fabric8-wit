@@ -2,7 +2,6 @@ package login
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -93,7 +92,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 	resp, err := userProfileClient.client.Do(req)
 
 	if err != nil {
-		log.Error(context.Background(), map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"keycloak_user_profile_url": keycloakProfileURL,
 			"err": err,
 		}, "Unable to update Keycloak user profile")
@@ -104,7 +103,7 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 
 	if resp.StatusCode != http.StatusOK {
 
-		log.Error(context.Background(), map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"response_status":           resp.Status,
 			"response_body":             rest.ReadBody(resp.Body),
 			"keycloak_user_profile_url": keycloakProfileURL,
@@ -114,9 +113,18 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 			// Observed that a 500 is returned whenever username/email is not unique
 			return errors.NewBadParameterError("username or email", fmt.Sprintf("%s , %s", *keycloakUserProfile.Email, *keycloakUserProfile.Username))
 		}
+		if resp.StatusCode == 400 {
+			return errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
+		}
 
 		return errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
+	log.Info(nil, map[string]interface{}{
+		"response_status":           resp.Status,
+		"response_body":             rest.ReadBody(resp.Body),
+		"keycloak_user_profile_url": keycloakProfileURL,
+	}, "Successfully updated Keycloak user profile")
+
 	return nil
 }
 
@@ -136,7 +144,7 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	resp, err := userProfileClient.client.Do(req)
 
 	if err != nil {
-		log.Error(context.Background(), map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"keycloak_user_profile_url": keycloakProfileURL,
 			"err": err,
 		}, "Unable to fetch Keycloak user profile")
@@ -146,11 +154,14 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error(context.Background(), map[string]interface{}{
+		log.Error(nil, map[string]interface{}{
 			"response_status":           resp.Status,
 			"response_body":             rest.ReadBody(resp.Body),
 			"keycloak_user_profile_url": keycloakProfileURL,
 		}, "Unable to fetch Keycloak user profile")
+		if resp.StatusCode == 400 {
+			return nil, errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
+		}
 		return nil, errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while fetching keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 
