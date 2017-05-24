@@ -50,7 +50,7 @@ func TestCopyExistingKeycloakUserProfileInfo(t *testing.T) {
 	// ensure last name is updated
 	assert.Equal(t, *mergedProfile.LastName, LastName)
 
-	// ensure URL is unchanged
+	// ensure URL is updated to the same value
 	retrievedURL := (*mergedProfile.Attributes)[login.URLAttributeName]
 	assert.Equal(t, retrievedURL[0], URL)
 
