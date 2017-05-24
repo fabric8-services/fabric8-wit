@@ -277,29 +277,12 @@ func (c *WorkitemController) Create(ctx *app.CreateWorkitemContext) error {
 	return application.Transactional(c.db, func(appl application.Application) error {
 		//verify spaceID:
 		// To be removed once we have endpoint like - /api/space/{spaceID}/workitems
-		spaceInstance, spaceLoadErr := appl.Spaces().Load(ctx, ctx.SpaceID)
+		_, spaceLoadErr := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if spaceLoadErr != nil {
 			return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("space", "string").Expected("valid space ID"))
 		}
 
-		if _, ok := wi.Fields[workitem.SystemArea]; ok == false {
-			// no area assigned yet hence set root area
-			rootArea, err := appl.Areas().Root(ctx, ctx.SpaceID)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error fetching root area")))
-			}
-			wi.Fields[workitem.SystemArea] = rootArea.ID.String()
-		}
-
 		err := ConvertJSONAPIToWorkItem(appl, *ctx.Payload.Data, &wi, ctx.SpaceID)
-		// fetch root iteration for this space and assign it to WI if not present already
-		if _, ok := wi.Fields[workitem.SystemIteration]; ok == false {
-			// no iteration set hence set to root iteration of its space
-			rootItr, rootItrErr := appl.Iterations().Root(ctx, spaceInstance.ID)
-			if rootItrErr == nil {
-				wi.Fields[workitem.SystemIteration] = rootItr.ID.String()
-			}
-		}
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("Error creating work item")))
 		}
