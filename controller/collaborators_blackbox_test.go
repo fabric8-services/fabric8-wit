@@ -151,6 +151,66 @@ func (rest *TestCollaboratorsREST) TestListCollaboratorsOK() {
 	assertResponseHeaders(rest.T(), res)
 }
 
+func (rest *TestCollaboratorsREST) TestListCollaboratorsByPagesOK() {
+	// given
+	svc, ctrl := rest.UnSecuredController()
+	rest.policy.AddUserToPolicy(rest.testIdentity1.ID.String())
+	rest.policy.AddUserToPolicy(rest.testIdentity2.ID.String())
+	rest.policy.AddUserToPolicy(rest.testIdentity3.ID.String())
+	offset := "0"
+	limit := 3
+	// when
+	res, actualUsers := test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, &limit, &offset, nil, nil)
+	// then
+	rest.checkCollaborators([]uuid.UUID{rest.testIdentity1.ID, rest.testIdentity2.ID, rest.testIdentity3.ID}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+
+	// given
+	offset = "0"
+	limit = 5
+	// when
+	res, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, &limit, &offset, nil, nil)
+	// then
+	rest.checkCollaborators([]uuid.UUID{rest.testIdentity1.ID, rest.testIdentity2.ID, rest.testIdentity3.ID}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+
+	// given
+	offset = "1"
+	limit = 1
+	// when
+	res, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, &limit, &offset, nil, nil)
+	// then
+	rest.checkCollaborators([]uuid.UUID{rest.testIdentity2.ID}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+
+	// given
+	offset = "1"
+	limit = 10
+	// when
+	res, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, &limit, &offset, nil, nil)
+	// then
+	rest.checkCollaborators([]uuid.UUID{rest.testIdentity2.ID, rest.testIdentity3.ID}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+
+	// given
+	offset = "2"
+	limit = 1
+	// when
+	res, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, &limit, &offset, nil, nil)
+	// then
+	rest.checkCollaborators([]uuid.UUID{rest.testIdentity3.ID}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+
+	// given
+	offset = "3"
+	limit = 10
+	// when
+	res, actualUsers = test.ListCollaboratorsOK(rest.T(), svc.Context, svc, ctrl, rest.spaceID, &limit, &offset, nil, nil)
+	// then
+	rest.checkCollaborators([]uuid.UUID{}, actualUsers)
+	assertResponseHeaders(rest.T(), res)
+}
+
 func (rest *TestCollaboratorsREST) TestListCollaboratorsOKUsingExpiredIfModifiedSinceHeader() {
 	// given
 	svc, ctrl := rest.UnSecuredController()
