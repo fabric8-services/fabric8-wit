@@ -51,15 +51,18 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	count := len(s)
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+
+	pageOffset := offset
+	pageLimit := offset + limit
 	if offset > len(s) {
-		offset = len(s)
+		pageOffset = len(s)
 	}
 	if offset+limit > len(s) {
-		limit = len(s)
+		pageLimit = len(s)
 	}
-	page := s[offset : offset+limit]
-	resultIdentities := make([]account.Identity, len(s))
-	resultUsers := make([]account.User, len(s))
+	page := s[pageOffset:pageLimit]
+	resultIdentities := make([]account.Identity, len(page))
+	resultUsers := make([]account.User, len(page))
 	for i, id := range page {
 		id = strings.Trim(id, "[]\"")
 		uID, err := uuid.FromString(id)
@@ -95,7 +98,7 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	}
 
 	return ctx.ConditionalEntities(resultUsers, c.config.GetCacheControlCollaborators, func() error {
-		data := make([]*app.UserData, len(s))
+		data := make([]*app.UserData, len(page))
 		for i := range resultUsers {
 			appUser := ConvertToAppUser(ctx.RequestData, &resultUsers[i], &resultIdentities[i])
 			data[i] = appUser.Data
