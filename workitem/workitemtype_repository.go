@@ -47,7 +47,10 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 // Load returns the work item for the given spaceID and id
 // returns NotFoundError, InternalError
 func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID, id uuid.UUID) (*WorkItemType, error) {
-	log.Logger().Infoln("Loading work item type", id)
+	log.Info(ctx, map[string]interface{}{
+		"wit_id":   id,
+		"space_id": spaceID,
+	}, "Loading work item type")
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
@@ -74,7 +77,9 @@ func (r *GormWorkItemTypeRepository) Load(ctx context.Context, spaceID uuid.UUID
 
 // LoadTypeFromDB return work item type for the given id
 func (r *GormWorkItemTypeRepository) LoadTypeFromDB(ctx context.Context, id uuid.UUID) (*WorkItemType, error) {
-	log.Logger().Infoln("Loading work item type", id)
+	log.Info(ctx, map[string]interface{}{
+		"wit_id": id,
+	}, "Loading work item type")
 	res, ok := cache.Get(id)
 	if !ok {
 		log.Info(ctx, map[string]interface{}{
@@ -174,7 +179,8 @@ func (r *GormWorkItemTypeRepository) ListPlannerItems(ctx context.Context, space
 	return rows, nil
 }
 
-// List returns work item types selected by the given criteria.Expression, starting with start (zero-based) and returning at most "limit" item types
+// List returns work item types selected by the given criteria.Expression,
+// starting with start (zero-based) and returning at most "limit" item types.
 func (r *GormWorkItemTypeRepository) List(ctx context.Context, spaceID uuid.UUID, start *int, limit *int) ([]WorkItemType, error) {
 	// Currently we don't implement filtering here, so leave this empty
 	// TODO: (kwk) implement criteria parsing just like for work items

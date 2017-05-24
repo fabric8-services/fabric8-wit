@@ -6,7 +6,6 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
@@ -16,6 +15,7 @@ import (
 	"github.com/almighty/almighty-core/gormsupport/cleaner"
 	"github.com/almighty/almighty-core/gormtestsupport"
 	"github.com/almighty/almighty-core/iteration"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/migration"
 	"github.com/almighty/almighty-core/resource"
 	"github.com/almighty/almighty-core/space"
@@ -75,11 +75,11 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 		_, err := spacesRepo.Create(rest.ctx, testSpace)
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), testSpace.ID)
-		logrus.Info("Created space with ID=", testSpace.ID)
+		log.Info(nil, map[string]interface{}{"space_id": testSpace.ID}, "created space")
 		workitemTypesRepo := app.WorkItemTypes()
 		workitemType, err := workitemTypesRepo.Create(rest.ctx, testSpace.ID, nil, &workitem.SystemPlannerItem, "foo_bar", nil, "fa-bomb", map[string]workitem.FieldDefinition{})
 		require.Nil(rest.T(), err)
-		logrus.Info("Created workitem type with ID=", workitemType.ID)
+		log.Info(nil, map[string]interface{}{"wit_id": workitemType.ID}, "created workitem type")
 
 		iterationsRepo := app.Iterations()
 		parentIteration = &iteration.Iteration{
@@ -88,7 +88,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			State:   iteration.IterationStateNew,
 		}
 		iterationsRepo.Create(rest.ctx, parentIteration)
-		logrus.Info("Created parent iteration with ID=", parentIteration.ID)
+		log.Info(nil, map[string]interface{}{"parent_iteration_id": parentIteration.ID}, "created parent iteration")
 
 		childIteration := &iteration.Iteration{
 			Name:    "Child Iteration",
@@ -97,7 +97,7 @@ func (rest *TestPlannerBacklogBlackboxREST) setupPlannerBacklogWorkItems() (test
 			State:   iteration.IterationStateStart,
 		}
 		iterationsRepo.Create(rest.ctx, childIteration)
-		logrus.Info("Created child iteration with ID=", childIteration.ID)
+		log.Info(nil, map[string]interface{}{"child_iteration_id": childIteration.ID}, "created child iteration")
 
 		fields := map[string]interface{}{
 			workitem.SystemTitle:     "parentIteration Test",
@@ -153,7 +153,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() 
 	offset := "0"
 	filter := ""
 	limit := -1
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
 	assertResponseHeaders(rest.T(), res)
@@ -162,13 +162,14 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() 
 func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
+	rest.T().Log("Test Space: " + testSpace.ID.String())
 	svc, ctrl := rest.UnSecuredController()
 	// when
 	offset := "0"
 	filter := ""
 	limit := -1
 	ifModifiedSince := app.ToHTTPTime(parentIteration.UpdatedAt.Add(-1 * time.Hour))
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
+	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
 	assertResponseHeaders(rest.T(), res)
@@ -183,7 +184,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOkUsi
 	filter := ""
 	limit := -1
 	ifNoneMatch := "foo"
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
+	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
 	assertResponseHeaders(rest.T(), res)
@@ -198,7 +199,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	filter := ""
 	limit := -1
 	ifModifiedSince := app.ToHTTPTime(lastWorkItem.Fields[workitem.SystemUpdatedAt].(time.Time))
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
+	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -210,10 +211,10 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// when
 	ifNoneMatch := generateWorkitemsTag(workitems)
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
+	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -253,15 +254,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// The list has to be empty
 	assert.Len(rest.T(), workitems.Data, 0)
-}
-
-func (rest *TestPlannerBacklogBlackboxREST) TestFailListPlannerBacklogByMissingSpace() {
-	svc, ctrl := rest.UnSecuredController()
-	offset := "0"
-	filter := ""
-	limit := 2
-	test.ListPlannerBacklogNotFound(rest.T(), svc.Context, svc, ctrl, "xxxxx", &filter, nil, nil, nil, &limit, &offset, nil, nil)
 }

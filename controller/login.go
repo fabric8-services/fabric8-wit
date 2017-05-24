@@ -38,6 +38,7 @@ type loginConfiguration interface {
 	GetKeycloakTestUser2Secret() string
 	GetValidRedirectURLs(*goa.RequestData) (string, error)
 	GetHeaderMaxLength() int64
+	GetAuthNotApprovedRedirect() string
 }
 
 // LoginController implements the login resource.
@@ -107,7 +108,7 @@ func (c *LoginController) Authorize(ctx *app.AuthorizeLoginContext) error {
 	}
 
 	ctx.ResponseData.Header().Set("Cache-Control", "no-cache")
-	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist)
+	return c.auth.Perform(ctx, oauth, brokerEndpoint, entitlementEndpoint, profileEndpoint, whitelist, c.configuration.GetAuthNotApprovedRedirect())
 }
 
 // Refresh obtain a new access token using the refresh token.
@@ -134,13 +135,14 @@ func (c *LoginController) Refresh(ctx *app.RefreshLoginContext) error {
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError("Error when obtaining token "+err.Error()))
 	}
+	defer res.Body.Close()
 	switch res.StatusCode {
 	case 200:
 		// OK
 	case 401:
 		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(res.Status+" "+rest.ReadBody(res.Body)))
 	case 400:
-		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError(rest.ReadBody(res.Body), nil))
+		return jsonapi.JSONErrorResponse(ctx, errors.NewUnauthorizedError(res.Status+" "+rest.ReadBody(res.Body)))
 	default:
 		return jsonapi.JSONErrorResponse(ctx, errors.NewInternalError(res.Status+" "+rest.ReadBody(res.Body)))
 	}
@@ -309,7 +311,7 @@ func GenerateUserToken(ctx context.Context, tokenEndpoint string, configuration 
 	if err != nil {
 		return nil, errors.NewInternalError("error when obtaining token " + err.Error())
 	}
-
+	defer res.Body.Close()
 	token, err := auth.ReadToken(res)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{

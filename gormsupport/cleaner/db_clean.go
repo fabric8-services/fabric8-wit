@@ -3,7 +3,6 @@ package cleaner
 import (
 	"database/sql"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/workitem"
 	uuid "github.com/satori/go.uuid"
@@ -53,7 +52,7 @@ func DeleteCreatedEntities(db *gorm.DB) func() {
 		hookName += "-" + uuid.NewV4().String()
 	}
 	db.Callback().Create().After("gorm:create").Register(hookName, func(scope *gorm.Scope) {
-		logrus.Debug(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
+		log.Logger().Debugln(fmt.Sprintf("Inserted entities from %s with %s=%v", scope.TableName(), scope.PrimaryKey(), scope.PrimaryKeyValue()))
 		entires = append(entires, entity{table: scope.TableName(), keyname: scope.PrimaryKey(), key: scope.PrimaryKeyValue()})
 	})
 	return func() {

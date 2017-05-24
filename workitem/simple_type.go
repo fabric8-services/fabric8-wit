@@ -96,8 +96,8 @@ func (fieldType SimpleType) ConvertToModel(value interface{}) (interface{}, erro
 		}
 	case KindCodebase:
 		switch value.(type) {
-		case codebase.CodebaseContent:
-			cb := value.(codebase.CodebaseContent)
+		case codebase.Content:
+			cb := value.(codebase.Content)
 			return cb.ToMap(), nil
 		default:
 			return nil, errs.Errorf("value %v should be %s, but is %s", value, "CodebaseContent", valueType)

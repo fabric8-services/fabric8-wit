@@ -98,7 +98,7 @@ func (cs *StarterClient) ListWorkspaces(ctx context.Context, repository string) 
 }
 
 // CreateWorkspace creates a new Che Workspace based on a repository
-func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceLink, error) {
+func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace WorkspaceRequest) (*WorkspaceResponse, error) {
 	body, err := json.Marshal(&workspace)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -151,7 +151,7 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 		return nil, &workspaceErr
 	}
 
-	workspaceResp := WorkspaceLink{}
+	workspaceResp := WorkspaceResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
@@ -160,6 +160,61 @@ func (cs *StarterClient) CreateWorkspace(ctx context.Context, workspace Workspac
 			"workspace":          workspace,
 			"err":                err,
 		}, "failed to decode response from create workspace for repository")
+		return nil, err
+	}
+	return &workspaceResp, nil
+}
+
+// StartExistingWorkspace starts an existing Che Workspace based on a repository
+func (cs *StarterClient) StartExistingWorkspace(ctx context.Context, workspaceName string) (*WorkspaceResponse, error) {
+	log.Debug(ctx, map[string]interface{}{
+		"workspace_id": workspaceName,
+	}, "starting an existing workspace")
+
+	req, err := http.NewRequest("PATCH", cs.targetURL(fmt.Sprintf("workspace/%s", workspaceName)), nil)
+	if err != nil {
+		return nil, err
+	}
+	cs.setHeaders(ctx, req)
+
+	if log.IsDebug() {
+		b, _ := httputil.DumpRequest(req, true)
+		log.Debug(ctx, map[string]interface{}{
+			"request": string(b),
+		}, "request object")
+	}
+
+	resp, err := cs.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
+		workspaceErr := WorkspaceError{}
+		err = json.NewDecoder(resp.Body).Decode(&workspaceErr)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"workspace_id": workspaceName,
+				"err":          err,
+			}, "failed to decode error response from starting an existing workspace for repository")
+			return nil, err
+		}
+		log.Error(ctx, map[string]interface{}{
+			"workspace_id": workspaceName,
+			"err":          workspaceErr.String(),
+		}, "failed to execute start existing workspace for repository")
+		return nil, &workspaceErr
+	}
+
+	workspaceResp := WorkspaceResponse{}
+	err = json.NewDecoder(resp.Body).Decode(&workspaceResp)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"workspace_id": workspaceName,
+			"err":          err,
+		}, "failed to decode response from starting an existing workspace for repository")
 		return nil, err
 	}
 	return &workspaceResp, nil

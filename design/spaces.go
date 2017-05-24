@@ -57,11 +57,7 @@ var spaceOwnedBy = a.Type("SpaceOwnedBy", func() {
 })
 
 var spaceAttributes = a.Type("SpaceAttributes", func() {
-	a.Attribute("name", d.String, "Name for the space", func() {
-		a.MaxLength(62) // maximum space name length is 62 characters
-		a.MinLength(1)  // minimum space name length is 1 characters
-		a.Pattern("^[^_|-].*")
-	})
+	a.Attribute("name", d.String, "Name for the space", nameValidationFunction)
 	a.Attribute("description", d.String, "Description for the space", func() {
 		a.Example("This is the foobar collaboration space")
 	})
@@ -115,11 +111,11 @@ var _ = a.Resource("space", func() {
 
 	a.Action("show", func() {
 		a.Routing(
-			a.GET("/:id"),
+			a.GET("/:spaceID"),
 		)
 		a.Description("Retrieve space (as JSONAPI) for the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "ID of the space")
+			a.Param("spaceID", d.UUID, "ID of the space")
 		})
 		a.UseTrait("conditional")
 		a.Response(d.OK, spaceSingle)
@@ -130,6 +126,7 @@ var _ = a.Resource("space", func() {
 	})
 
 	a.Action("list", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)
@@ -143,6 +140,7 @@ var _ = a.Resource("space", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -163,32 +161,34 @@ var _ = a.Resource("space", func() {
 	a.Action("delete", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.DELETE("/:id"),
+			a.DELETE("/:spaceID"),
 		)
-		a.Description("Delete a space with given id.")
+		a.Description("Delete a space with the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("spaceID", d.UUID, "ID of the space to delete")
 		})
 		a.Response(d.OK)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
+		a.Response(d.Forbidden, JSONAPIErrors)
 	})
 	a.Action("update", func() {
 		a.Security("jwt")
 		a.Routing(
-			a.PATCH("/:id"),
+			a.PATCH("/:spaceID"),
 		)
-		a.Description("Update the space with given id.")
+		a.Description("Update the space with the given ID.")
 		a.Params(func() {
-			a.Param("id", d.String, "id")
+			a.Param("spaceID", d.UUID, "ID of the space to update")
 		})
 		a.Payload(spaceSingle)
 		a.Response(d.OK, func() {
 			a.Media(spaceSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)

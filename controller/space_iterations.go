@@ -1,17 +1,18 @@
 package controller
 
 import (
-	"github.com/Sirupsen/logrus"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/application"
 	"github.com/almighty/almighty-core/errors"
 	"github.com/almighty/almighty-core/iteration"
 	"github.com/almighty/almighty-core/jsonapi"
+	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/login"
 	"github.com/almighty/almighty-core/rest"
 	"github.com/almighty/almighty-core/workitem"
-	"github.com/goadesign/goa"
 	uuid "github.com/satori/go.uuid"
+
+	"github.com/goadesign/goa"
 )
 
 // SpaceIterationsControllerConfiguration configuration for the SpaceIterationsController
@@ -34,15 +35,10 @@ func NewSpaceIterationsController(service *goa.Service, db application.DB, confi
 
 // Create runs the create action.
 func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	// Validate Request
 	if ctx.Payload.Data == nil {
 		return jsonapi.JSONErrorResponse(ctx, errors.NewBadParameterError("data", nil).Expected("not nil"))
@@ -53,18 +49,26 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 	}
 
 	return application.Transactional(c.db, func(appl application.Application) error {
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		s, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     ctx.SpaceID,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
+		}
 		// Put iteration under root iteration
-		rootIteration, err := appl.Iterations().Root(ctx, spaceID)
+		rootIteration, err := appl.Iterations().Root(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
 		childPath := append(rootIteration.Path, rootIteration.ID)
 		newItr := iteration.Iteration{
-			SpaceID: spaceID,
+			SpaceID: ctx.SpaceID,
 			Name:    *reqIter.Attributes.Name,
 			StartAt: reqIter.Attributes.StartAt,
 			EndAt:   reqIter.Attributes.EndAt,
@@ -80,7 +84,10 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 		// For create, count will always be zero hence no need to query
 		// by passing empty map, updateIterationsWithCounts will be able to put zero values
 		wiCounts := make(map[string]workitem.WICountsPerIteration)
-		logrus.Info("wicounts for created iteration ", newItr.ID.String(), " -> ", wiCounts)
+		log.Info(ctx, map[string]interface{}{
+			"iteration_id": newItr.ID,
+			"wiCounts":     wiCounts,
+		}, "wicounts for created iteration %s -> %v", newItr.ID.String(), wiCounts)
 
 		var responseData *app.Iteration
 		if newItr.Path.IsEmpty() == false {
@@ -107,18 +114,12 @@ func (c *SpaceIterationsController) Create(ctx *app.CreateSpaceIterationsContext
 
 // List runs the list action.
 func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) error {
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
-	}
-
 	return application.Transactional(c.db, func(appl application.Application) error {
-
-		_, err = appl.Spaces().Load(ctx, spaceID)
+		_, err := appl.Spaces().Load(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
 		}
-		iterations, err := appl.Iterations().List(ctx, spaceID)
+		iterations, err := appl.Iterations().List(ctx, ctx.SpaceID)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -128,8 +129,12 @@ func (c *SpaceIterationsController) List(ctx *app.ListSpaceIterationsContext) er
 				itrMap[itr.ID] = itr
 			}
 			// fetch extra information(counts of WI in each iteration of the space) to be added in response
-			wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, spaceID)
-			logrus.Info("Retrieving wicounts for spaceID ", spaceID.String(), " -> ", wiCounts)
+			wiCounts, err := appl.WorkItems().GetCountsPerIteration(ctx, ctx.SpaceID)
+			log.Info(ctx, map[string]interface{}{
+				"space_id": ctx.SpaceID.String(),
+				"wiCounts": wiCounts,
+			}, "Retrieving wicounts for spaceID %s -> %v", ctx.SpaceID.String(), wiCounts)
+
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}

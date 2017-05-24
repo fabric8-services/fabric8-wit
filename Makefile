@@ -193,7 +193,7 @@ clean-generated:
 	-rm -f ./bindata_assetfs.go
 	-rm -f ./migration/sqlbindata.go
 	-rm -f ./migration/sqlbindata_test.go
-	-rm -f ./account/tenant
+	-rm -rf ./account/tenant
 
 CLEAN_TARGETS += clean-vendor
 .PHONY: clean-vendor

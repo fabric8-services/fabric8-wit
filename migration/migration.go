@@ -35,7 +35,7 @@ type fn func(tx *sql.Tx) error
 // steps defines a collection of all the functions that make up a version
 type steps []fn
 
-// migrations defines all a collection of all the steps
+// Migrations defines all a collection of all the steps
 type Migrations []steps
 
 // mutex variable to lock/unlock the population of common types
@@ -217,7 +217,7 @@ func GetMigrations() Migrations {
 	// Version 35
 	m = append(m, steps{ExecuteSQLFile("035-wit-to-use-uuid.sql",
 		workitem.SystemPlannerItem.String(),
-		workitem.SystemUserStory.String(),
+		workitem.SystemTask.String(),
 		workitem.SystemValueProposition.String(),
 		workitem.SystemFundamental.String(),
 		workitem.SystemExperience.String(),
@@ -288,6 +288,26 @@ func GetMigrations() Migrations {
 	// Version 56
 	m = append(m, steps{ExecuteSQLFile("056-assign-root-iteration-if-missing.sql")})
 
+	// Version 57
+	m = append(m, steps{ExecuteSQLFile("057-add-last-used-workspace-to-codebase.sql")})
+
+	// Version 58
+	m = append(m, steps{ExecuteSQLFile("058-index-identities-fullname.sql")})
+
+	// Version 59
+	m = append(m, steps{ExecuteSQLFile("059-fixed-ids-for-system-link-types-and-categories.sql",
+		link.SystemWorkItemLinkTypeBugBlockerID.String(),
+		link.SystemWorkItemLinkPlannerItemRelatedID.String(),
+		link.SystemWorkItemLinkTypeParentChildID.String(),
+		link.SystemWorkItemLinkCategorySystemID.String(),
+		link.SystemWorkItemLinkCategoryUserID.String())})
+
+	// Version 60
+	m = append(m, steps{ExecuteSQLFile("060-fixed-identities-username-idx.sql")})
+
+	// Version 61
+	m = append(m, steps{ExecuteSQLFile("061-replace-index-space-name.sql")})
+
 	// Version N
 	//
 	// In order to add an upgrade, simply append an array of MigrationFunc to the
@@ -322,25 +342,31 @@ func ExecuteSQLFile(filename string, args ...string) fn {
 	return func(db *sql.Tx) error {
 		data, err := Asset(filename)
 		if err != nil {
-			return errs.WithStack(err)
+			return errs.Wrapf(err, "failed to find filename: %s", filename)
 		}
 
 		if len(args) > 0 {
 			tmpl, err := template.New("sql").Parse(string(data))
 			if err != nil {
-				return errs.WithStack(err)
+				return errs.Wrap(err, "failed to parse SQL template")
 			}
 			var sqlScript bytes.Buffer
 			writer := bufio.NewWriter(&sqlScript)
 			err = tmpl.Execute(writer, args)
 			if err != nil {
-				return errs.WithStack(err)
+				return errs.Wrap(err, "failed to execute SQL template")
 			}
 			// We need to flush the content of the writer
 			writer.Flush()
 			_, err = db.Exec(sqlScript.String())
+			if err != nil {
+				log.Error(context.Background(), map[string]interface{}{}, "failed to execute this query: \n\n%s\n\n", sqlScript.String())
+			}
 		} else {
 			_, err = db.Exec(string(data))
+			if err != nil {
+				log.Error(context.Background(), map[string]interface{}{}, "failed to execute this query: \n\n%s\n\n", string(data))
+			}
 		}
 
 		return errs.WithStack(err)
@@ -450,43 +476,101 @@ func BootstrapWorkItemLinking(ctx context.Context, linkCatRepo *link.GormWorkIte
 	if err := createOrUpdateSpace(ctx, spaceRepo, space.SystemSpace, "The system space is reserved for spaces that can to be manipulated by the user."); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategorySystem, "The system category is reserved for link types that are to be manipulated by the system only."); err != nil {
+	// create link categories
+	systemCatDesc := "The system category is reserved for link types that are to be manipulated by the system only."
+	systemCat := link.WorkItemLinkCategory{
+		ID:          link.SystemWorkItemLinkCategorySystemID,
+		Name:        "system",
+		Description: &systemCatDesc,
+	}
+	_, err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, &systemCat)
+	if err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, link.SystemWorkItemLinkCategoryUser, "The user category is reserved for link types that can to be manipulated by the user."); err != nil {
+	userCatDesc := "The user category is reserved for link types that can to be manipulated by the user."
+	userCat := link.WorkItemLinkCategory{
+		ID:          link.SystemWorkItemLinkCategoryUserID,
+		Name:        "user",
+		Description: &userCatDesc,
+	}
+	_, err = createOrUpdateWorkItemLinkCategory(ctx, linkCatRepo, &userCat)
+	if err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeBugBlocker, "One bug blocks a planner item.", link.TopologyNetwork, "blocks", "blocked by", workitem.SystemBug, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
+
+	// create work item link types
+	blockerDesc := "One bug blocks a planner item."
+	blockerWILT := link.WorkItemLinkType{
+		ID:             link.SystemWorkItemLinkTypeBugBlockerID,
+		Name:           "Bug blocker",
+		Description:    &blockerDesc,
+		Topology:       link.TopologyNetwork,
+		ForwardName:    "blocks",
+		ReverseName:    "blocked by",
+		SourceTypeID:   workitem.SystemBug,
+		TargetTypeID:   workitem.SystemPlannerItem,
+		LinkCategoryID: systemCat.ID,
+		SpaceID:        space.SystemSpace,
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &blockerWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkPlannerItemRelated, "One planner item or a subtype of it relates to another one.", link.TopologyNetwork, "relates to", "is related to", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
+	relatedDesc := "One planner item or a subtype of it relates to another one."
+	relatedWILT := link.WorkItemLinkType{
+		ID:             link.SystemWorkItemLinkPlannerItemRelatedID,
+		Name:           "Related planner item",
+		Description:    &relatedDesc,
+		Topology:       link.TopologyNetwork,
+		ForwardName:    "relates to",
+		ReverseName:    "is related to",
+		SourceTypeID:   workitem.SystemPlannerItem,
+		TargetTypeID:   workitem.SystemPlannerItem,
+		LinkCategoryID: systemCat.ID,
+		SpaceID:        space.SystemSpace,
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &relatedWILT); err != nil {
 		return errs.WithStack(err)
 	}
-	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, link.SystemWorkItemLinkTypeParentChild, "One planner item or a subtype of it which is a parent of another one.", link.TopologyTree, "parent of", "child of", workitem.SystemPlannerItem, workitem.SystemPlannerItem, link.SystemWorkItemLinkCategorySystem, space.SystemSpace); err != nil {
+	parentingDesc := "One planner item or a subtype of it which is a parent of another one."
+	parentingWILT := link.WorkItemLinkType{
+		ID:             link.SystemWorkItemLinkTypeParentChildID,
+		Name:           "Parent child item",
+		Description:    &parentingDesc,
+		Topology:       link.TopologyNetwork,
+		ForwardName:    "parent of",
+		ReverseName:    "child of",
+		SourceTypeID:   workitem.SystemPlannerItem,
+		TargetTypeID:   workitem.SystemPlannerItem,
+		LinkCategoryID: systemCat.ID,
+		SpaceID:        space.SystemSpace,
+	}
+	if err := createOrUpdateWorkItemLinkType(ctx, linkCatRepo, linkTypeRepo, spaceRepo, &parentingWILT); err != nil {
 		return errs.WithStack(err)
 	}
 	return nil
 }
 
-func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, name string, description string) error {
-	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, name)
+func createOrUpdateWorkItemLinkCategory(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkCat *link.WorkItemLinkCategory) (*link.WorkItemLinkCategory, error) {
+	cat, err := linkCatRepo.Load(ctx, linkCat.ID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkCatRepo.Create(ctx, &name, &description)
+		cat, err = linkCatRepo.Create(ctx, linkCat)
 		if err != nil {
-			return errs.WithStack(err)
+			return nil, errs.WithStack(err)
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"category": name,
-		}, "Work item link category %s exists, will update/overwrite the description", name)
+			"category": linkCat,
+		}, "Work item link category %s exists, will update/overwrite the description", linkCat.Name)
 
-		cat.Description = &description
-		_, err = linkCatRepo.Save(ctx, *cat)
-		return errs.WithStack(err)
+		cat.Description = linkCat.Description
+		cat, err = linkCatRepo.Save(ctx, *cat)
+		if err != nil {
+			return nil, errs.WithStack(err)
+		}
 	}
-	return nil
+	return cat, nil
 }
 
 func createOrUpdateSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.UUID, description string) error {
@@ -542,53 +626,22 @@ func createSpace(ctx context.Context, spaceRepo *space.GormRepository, id uuid.U
 	return nil
 }
 
-func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, name, description, topology, forwardName, reverseName string, sourceTypeID, targetTypeID uuid.UUID, linkCatName string, spaceID uuid.UUID) error {
-	cat, err := linkCatRepo.LoadCategoryFromDB(ctx, linkCatName)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-
-	space, err := spaceRepo.Load(ctx, spaceID)
-	if err != nil {
-		return errs.WithStack(err)
-	}
-
-	existingLinkType, err := linkTypeRepo.LoadTypeFromDBByNameAndCategory(ctx, name, cat.ID)
-	linkType := link.WorkItemLinkType{
-		Name:           name,
-		Description:    &description,
-		Topology:       topology,
-		ForwardName:    forwardName,
-		ReverseName:    reverseName,
-		SourceTypeID:   sourceTypeID,
-		TargetTypeID:   targetTypeID,
-		LinkCategoryID: cat.ID,
-		SpaceID:        space.ID,
-	}
-
+func createOrUpdateWorkItemLinkType(ctx context.Context, linkCatRepo *link.GormWorkItemLinkCategoryRepository, linkTypeRepo *link.GormWorkItemLinkTypeRepository, spaceRepo *space.GormRepository, linkType *link.WorkItemLinkType) error {
+	existingLinkType, err := linkTypeRepo.Load(ctx, linkType.ID)
 	cause := errs.Cause(err)
 	switch cause.(type) {
 	case errors.NotFoundError:
-		_, err := linkTypeRepo.Create(ctx,
-			linkType.Name,
-			linkType.Description,
-			linkType.SourceTypeID,
-			linkType.TargetTypeID,
-			linkType.ForwardName,
-			linkType.ReverseName,
-			linkType.Topology,
-			linkType.LinkCategoryID,
-			linkType.SpaceID)
+		_, err := linkTypeRepo.Create(ctx, linkType)
 		if err != nil {
 			return errs.WithStack(err)
 		}
 	case nil:
 		log.Info(ctx, map[string]interface{}{
-			"wilt": name,
-		}, "Work item link type %s exists, will update/overwrite all fields", name)
+			"wilt": linkType.Name,
+		}, "Work item link type %s exists, will update/overwrite all fields", linkType.Name)
 		linkType.ID = existingLinkType.ID
 		linkType.Version = existingLinkType.Version
-		_, err = linkTypeRepo.Save(ctx, linkType)
+		_, err = linkTypeRepo.Save(ctx, *linkType)
 		return errs.WithStack(err)
 	}
 	return nil
@@ -605,27 +658,30 @@ func PopulateCommonTypes(ctx context.Context, db *gorm.DB, witr *workitem.GormWo
 		return errs.WithStack(err)
 	}
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemUserStory, "User Story", "Desciption for User Story", "fa-map-marker", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
+
+	type witInfo struct {
+		id          uuid.UUID
+		name        string
+		description string
+		icon        string
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemValueProposition, "Value Proposition", "Description for value proposition", "fa-gift", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
+
+	info := []witInfo{
+		{workitem.SystemBug, "Bug", "", "fa fa-bug"},
+		{workitem.SystemTask, "Task", "", "fa fa-tasks"},
+		{workitem.SystemFeature, "Feature", "", "fa fa-puzzle-piece"},
+		{workitem.SystemScenario, "Scenario", "", "fa fa-bolt"},
+		{workitem.SystemValueProposition, "Value Proposition", "", "fa fa-diamond"},
+		{workitem.SystemExperience, "Experience", "", "fa fa-map"},
+		{workitem.SystemFundamental, "Fundamental", "", "fa fa-university"},
+		{workitem.SystemPapercuts, "Papercuts", "", "fa fa-scissors"},
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFundamental, "Fundamental", "Description for Fundamental", "fa-bank", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
+	for _, i := range info {
+		if err := createOrUpdatePlannerItemExtension(ctx, i.id, i.name, i.description, i.icon, witr, db, space.SystemSpace); err != nil {
+			return errs.Wrapf(err, "failed to create WIT with %+v", i)
+		}
 	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemExperience, "Experience", "Description for Experience", "fa-map", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemScenario, "Scenario", "Description for Scenario", "fa-adjust", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemFeature, "Feature", "Description for Feature", "fa-mouse-pointer", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
-	if err := createOrUpdatePlannerItemExtension(workitem.SystemBug, "Bug", "Description for Bug", "fa-bug", ctx, witr, db, space.SystemSpace); err != nil {
-		return errs.WithStack(err)
-	}
+
 	workitem.ClearGlobalWorkItemTypeCache() // Clear the WIT cache after updating existing WITs
 	return nil
 }
@@ -635,7 +691,7 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 	typeID := workitem.SystemPlannerItem
 	typeName := "Planner Item"
 	description := "Description for Planner Item"
-	icon := "fa-bookmark"
+	icon := "fa fa-bookmark"
 	workItemTypeFields := map[string]workitem.FieldDefinition{
 		workitem.SystemTitle:        {Type: workitem.SimpleType{Kind: "string"}, Required: true, Label: "Title", Description: "The title text of the work item"},
 		workitem.SystemDescription:  {Type: workitem.SimpleType{Kind: "markup"}, Required: false, Label: "Description", Description: "A descriptive text of the work item"},
@@ -673,16 +729,16 @@ func createOrUpdateSystemPlannerItemType(ctx context.Context, witr *workitem.Gor
 			Description: "The state of the work item",
 		},
 	}
-	return createOrUpdateType(typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, ctx, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, typeName, description, nil, workItemTypeFields, icon, witr, db)
 }
 
-func createOrUpdatePlannerItemExtension(typeID uuid.UUID, name string, description string, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
+func createOrUpdatePlannerItemExtension(ctx context.Context, typeID uuid.UUID, name string, description string, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB, spaceID uuid.UUID) error {
 	workItemTypeFields := map[string]workitem.FieldDefinition{}
 	extTypeName := workitem.SystemPlannerItem
-	return createOrUpdateType(typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, ctx, witr, db)
+	return createOrUpdateType(ctx, typeID, spaceID, name, description, &extTypeName, workItemTypeFields, icon, witr, db)
 }
 
-func createOrUpdateType(typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, ctx context.Context, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
+func createOrUpdateType(ctx context.Context, typeID uuid.UUID, spaceID uuid.UUID, name string, description string, extendedTypeID *uuid.UUID, fields map[string]workitem.FieldDefinition, icon string, witr *workitem.GormWorkItemTypeRepository, db *gorm.DB) error {
 	log.Info(ctx, nil, "Creating or updating planner item types...")
 	wit, err := witr.LoadTypeFromDB(ctx, typeID)
 	cause := errs.Cause(err)

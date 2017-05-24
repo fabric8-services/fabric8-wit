@@ -88,6 +88,33 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
 }
 
+func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
+	// given
+	_, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	require.Nil(rest.T(), err)
+	ci := getChildIterationPayload(&testsupport.TestOversizedNameObj)
+
+	err = ci.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(rest.T(), err)
+	assert.Contains(rest.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+}
+
+func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
+	// given
+	_, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	_, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
+	require.Nil(rest.T(), err)
+	name := "_Sprint #21"
+	ci := getChildIterationPayload(&name)
+
+	err = ci.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(rest.T(), err)
+	assert.Contains(rest.T(), err.Error(), "response.name must match the regexp")
+}
+
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
 	// given
 	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
