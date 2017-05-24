@@ -166,7 +166,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil && *updatedEmail != user.Email {
-			isValid := isUsernameValid(*updatedEmail)
+			isValid := isEmailValid(*updatedEmail)
 			if !isValid {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to email for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
 				return ctx.BadRequest(jerrors)
