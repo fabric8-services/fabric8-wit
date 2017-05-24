@@ -20,11 +20,10 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/goadesign/goa"
 	"github.com/jinzhu/gorm"
+	uuid "github.com/satori/go.uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // In order for 'go test' to run this suite, we need to create
@@ -172,7 +171,55 @@ func (s *workItemLinkCategorySuite) TestCreateWorkItemLinkCategoryBadRequest() {
 			},
 		},
 	}
-	test.CreateWorkItemLinkCategoryBadRequest(s.T(), s.svc.Context, s.svc, s.linkCatCtrl, payload)
+	err := payload.Validate()
+
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
+}
+
+func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameLength() {
+	// given
+	description := "New description for work item link category."
+	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
+	payload := &app.CreateWorkItemLinkCategoryPayload{
+		Data: &app.WorkItemLinkCategoryData{
+			ID:   &id,
+			Type: link.EndpointWorkItemLinkCategories,
+			Attributes: &app.WorkItemLinkCategoryAttributes{
+				Name:        &testsupport.TestOversizedNameObj,
+				Description: &description,
+			},
+		},
+	}
+
+	err := payload.Validate()
+
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "length of response.name must be less than or equal to than 62")
+}
+
+func (s *workItemLinkCategorySuite) TestFailValidationWorkItemLinkCategoryNameStartWith() {
+	// given
+	description := "New description for work item link category."
+	name := "_Name" // This will lead to a bad parameter error
+	id := uuid.FromStringOrNil("88727441-4a21-4b35-aabe-007f8273cdBB")
+	payload := &app.CreateWorkItemLinkCategoryPayload{
+		Data: &app.WorkItemLinkCategoryData{
+			ID:   &id,
+			Type: link.EndpointWorkItemLinkCategories,
+			Attributes: &app.WorkItemLinkCategoryAttributes{
+				Name:        &name,
+				Description: &description,
+			},
+		},
+	}
+
+	err := payload.Validate()
+	// Validate payload function returns an error
+	assert.NotNil(s.T(), err)
+	assert.Contains(s.T(), err.Error(), "response.name must match the regexp")
 }
 
 func (s *workItemLinkCategorySuite) TestDeleteWorkItemLinkCategoryNotFound() {
