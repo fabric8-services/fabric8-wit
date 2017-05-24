@@ -313,9 +313,26 @@ func testMigration60(t *testing.T) {
 }
 
 func testMigration61(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
+
+	// Add on purpose a duplicate to verify that we can successfully run this migration
+	assert.Nil(t, runSQLscript(sqlDB, "061-add-duplicate-space-owner-name.sql"))
+
 	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+17)], (initialMigratedVersion + 17))
 
 	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
+
+	rows, err := sqlDB.Query("SELECT COUNT(*) FROM spaces WHERE name='test.space.one-renamed'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		err = rows.Scan(&count)
+		assert.True(t, count == 1)
+	}
+
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and
