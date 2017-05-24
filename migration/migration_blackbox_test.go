@@ -115,6 +115,8 @@ func TestMigrations(t *testing.T) {
 	t.Run("TestMigration55", testMigration55)
 	t.Run("TestMigration56", testMigration56)
 	t.Run("TestMigration57", testMigration57)
+	t.Run("TestMigration60", testMigration60)
+	t.Run("TestMigration61", testMigration61)
 
 	// Perform the migration
 	if err := migration.Migrate(sqlDB, databaseName); err != nil {
@@ -302,6 +304,35 @@ func testMigration57(t *testing.T) {
 	assert.True(t, dialect.HasColumn("codebases", "last_used_workspace"))
 
 	assert.Nil(t, runSQLscript(sqlDB, "057-add-last-used-workspace-to-codebase.sql"))
+}
+
+func testMigration60(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
+
+	assert.True(t, dialect.HasIndex("identities", "idx_identities_username"))
+}
+
+func testMigration61(t *testing.T) {
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+16)], (initialMigratedVersion + 16))
+
+	// Add on purpose a duplicate to verify that we can successfully run this migration
+	assert.Nil(t, runSQLscript(sqlDB, "061-add-duplicate-space-owner-name.sql"))
+
+	migrateToVersion(sqlDB, migrations[:(initialMigratedVersion+17)], (initialMigratedVersion + 17))
+
+	assert.True(t, dialect.HasIndex("spaces", "spaces_name_idx"))
+
+	rows, err := sqlDB.Query("SELECT COUNT(*) FROM spaces WHERE name='test.space.one-renamed'")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var count int
+		err = rows.Scan(&count)
+		assert.True(t, count == 1)
+	}
+
 }
 
 // runSQLscript loads the given filename from the packaged SQL test files and

@@ -153,7 +153,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() 
 	offset := "0"
 	filter := ""
 	limit := -1
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// then
 	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
 	assertResponseHeaders(rest.T(), res)
@@ -162,13 +162,14 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOK() 
 func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOkUsingExpiredIfModifiedSinceHeader() {
 	// given
 	testSpace, parentIteration, _ := rest.setupPlannerBacklogWorkItems()
+	rest.T().Log("Test Space: " + testSpace.ID.String())
 	svc, ctrl := rest.UnSecuredController()
 	// when
 	offset := "0"
 	filter := ""
 	limit := -1
 	ifModifiedSince := app.ToHTTPTime(parentIteration.UpdatedAt.Add(-1 * time.Hour))
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
+	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
 	assertResponseHeaders(rest.T(), res)
@@ -183,7 +184,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsOkUsi
 	filter := ""
 	limit := -1
 	ifNoneMatch := "foo"
-	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
+	res, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertPlannerBacklogWorkItems(rest.T(), workitems, testSpace, parentIteration)
 	assertResponseHeaders(rest.T(), res)
@@ -198,7 +199,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	filter := ""
 	limit := -1
 	ifModifiedSince := app.ToHTTPTime(lastWorkItem.Fields[workitem.SystemUpdatedAt].(time.Time))
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
+	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, &ifModifiedSince, nil)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -210,10 +211,10 @@ func (rest *TestPlannerBacklogBlackboxREST) TestListPlannerBacklogWorkItemsNotMo
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// when
 	ifNoneMatch := generateWorkitemsTag(workitems)
-	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID.String(), &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
+	res := test.ListPlannerBacklogNotModified(rest.T(), svc.Context, svc, ctrl, testSpace.ID, &filter, nil, nil, nil, &limit, &offset, nil, &ifNoneMatch)
 	// then
 	assertResponseHeaders(rest.T(), res)
 }
@@ -253,15 +254,7 @@ func (rest *TestPlannerBacklogBlackboxREST) TestSuccessEmptyListPlannerBacklogWo
 	offset := "0"
 	filter := ""
 	limit := -1
-	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &filter, nil, nil, nil, &limit, &offset, nil, nil)
+	_, workitems := test.ListPlannerBacklogOK(rest.T(), svc.Context, svc, ctrl, spaceID, &filter, nil, nil, nil, &limit, &offset, nil, nil)
 	// The list has to be empty
 	assert.Len(rest.T(), workitems.Data, 0)
-}
-
-func (rest *TestPlannerBacklogBlackboxREST) TestFailListPlannerBacklogByMissingSpace() {
-	svc, ctrl := rest.UnSecuredController()
-	offset := "0"
-	filter := ""
-	limit := 2
-	test.ListPlannerBacklogNotFound(rest.T(), svc.Context, svc, ctrl, "xxxxx", &filter, nil, nil, nil, &limit, &offset, nil, nil)
 }
