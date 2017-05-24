@@ -99,21 +99,22 @@ func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Contex
 		return nil, err
 	}
 
-	if existingProfile.FirstName != nil && keycloakUserProfile.FirstName != nil {
+	// If the *new* FirstName has already been set, we won't be updating it with the *existing* value
+	if existingProfile.FirstName != nil && keycloakUserProfile.FirstName == nil {
 		keycloakUserProfile.FirstName = existingProfile.FirstName
 	}
-	if existingProfile.LastName != nil && keycloakUserProfile.LastName != nil {
+	if existingProfile.LastName != nil && keycloakUserProfile.LastName == nil {
 		keycloakUserProfile.LastName = existingProfile.LastName
 	}
-	if existingProfile.Email != nil && keycloakUserProfile.Email != nil {
+	if existingProfile.Email != nil && keycloakUserProfile.Email == nil {
 		keycloakUserProfile.Email = existingProfile.Email
 	}
-	if existingProfile.Attributes != nil && keycloakUserProfile.Attributes != nil {
+	if existingProfile.Attributes != nil && keycloakUserProfile.Attributes == nil {
 		// If there are existing attributes, we overwite only those
 		// handled by the Users service in platform.
 		keycloakUserProfile.Attributes = existingProfile.Attributes
 	}
-	if existingProfile.Username != nil && keycloakUserProfile.Username != nil {
+	if existingProfile.Username != nil && keycloakUserProfile.Username == nil {
 		keycloakUserProfile.Username = existingProfile.Username
 	}
 	return keycloakUserProfile, nil
