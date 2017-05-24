@@ -445,6 +445,52 @@ func (s *TestUsersSuite) TestUpdateUserOKWithoutContextInfo() {
 	test.UpdateUsersOK(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
 }
 
+/*
+	Pass " " as email in HTTP PATCH  /api/Users
+*/
+
+func (s *TestUsersSuite) TestUpdateUserWithInvalidEmail() {
+	// given
+	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+
+	// when
+	newEmail := " "
+	newFullName := "TestUpdateUserOKWithoutContextInfo"
+	newImageURL := "http://new.image.io/imageurl"
+	newBio := "new bio"
+	newProfileURL := "http://new.profile.url/url"
+	secureService, secureController := s.SecuredController(identity)
+
+	//then
+	updateUsersPayload := createUpdateUsersPayloadWithoutContextInformation(&newEmail, &newFullName, &newBio, &newImageURL, &newProfileURL)
+	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
+/*
+	Pass " " as username in HTTP PATCH  /api/Users
+*/
+
+func (s *TestUsersSuite) TestUpdateUserWithInvalidUsername() {
+	// given
+	user := s.createRandomUser("TestUpdateUserOKWithoutContextInfo")
+	identity := s.createRandomIdentity(user, account.KeycloakIDP)
+	test.ShowUsersOK(s.T(), nil, nil, s.controller, identity.ID.String(), nil, nil)
+
+	contextInformation := map[string]interface{}{
+		"last_visited": "yesterday",
+		"count":        3,
+	}
+	//when
+	username := " "
+	secureService, secureController := s.SecuredController(identity)
+	updateUsersPayload := createUpdateUsersPayload(nil, nil, nil, nil, nil, nil, &username, nil, contextInformation)
+
+	//then
+	test.UpdateUsersBadRequest(s.T(), secureService.Context, secureService, secureController, updateUsersPayload)
+}
+
 func (s *TestUsersSuite) TestPatchUserContextInformation() {
 
 	// given
