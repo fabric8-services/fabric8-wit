@@ -342,7 +342,7 @@ func (s *searchBlackBoxTest) TestAutoRegisterHostURL() {
 	wiCtrl := NewWorkitemController(s.svc, gormapplication.NewGormDB(s.DB), s.Configuration)
 	// create a WI, search by `list view URL` of newly created item
 	newWI := s.getWICreatePayload()
-	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, newWI.Data.Relationships.Space.Data.ID.String(), newWI)
+	_, wi := test.CreateWorkitemCreated(s.T(), s.svc.Context, s.svc, wiCtrl, *newWI.Data.Relationships.Space.Data.ID, newWI)
 	require.NotNil(s.T(), wi)
 	customHost := "own.domain.one"
 	queryString := fmt.Sprintf("http://%s/work-item/list/detail/%s", customHost, *wi.Data.ID)
