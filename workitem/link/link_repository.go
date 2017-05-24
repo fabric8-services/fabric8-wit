@@ -115,6 +115,30 @@ func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targ
 	return exists, nil
 }
 
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) error {
+	// check to disallow multiple parents in tree topology
+	if linkType.Topology == TopologyTree {
+		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":   linkType.ID,
+				"target_id": targetID,
+				"err":       err,
+			}, "failed to check if the work item %s has a parent work item", targetID)
+			return errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
+		}
+		if parentExists {
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":   linkType.ID,
+				"target_id": targetID,
+				"err":       err,
+			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
+			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
+		}
+	}
+	return nil
+}
+
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uint64, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
@@ -137,26 +161,10 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 		return nil, errs.WithStack(err)
 	}
 
-	// check to disallow multiple parents in tree topology
-	if linkType.Topology == TopologyTree {
-		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"wilt_id":   linkTypeID,
-				"target_id": targetID,
-				"err":       err,
-			}, "failed to check if the work item %s has a parent work item", targetID)
-			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
-		}
-		if parentExists {
-			log.Error(ctx, map[string]interface{}{
-				"wilt_id":   linkTypeID,
-				"target_id": targetID,
-				"err":       err,
-			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
-			return nil, errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkTypeID, targetID)).Expected("single parent in tree topology")
-		}
+	if err := r.ValidateTopology(ctx, targetID, linkType); err != nil {
+		return nil, errs.WithStack(err)
 	}
+
 	db := r.db.Create(link)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_links_unique_idx") {
@@ -313,25 +321,8 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 		return nil, errs.WithStack(err)
 	}
 
-	// check to disallow multiple parents in tree topology
-	if linkTypeToSave.Topology == TopologyTree {
-		parentExists, err := r.CheckParentExists(ctx, linkToSave.TargetID, linkTypeToSave)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"wilt_id":   linkTypeToSave.ID,
-				"target_id": linkToSave.TargetID,
-				"err":       err,
-			}, "failed to check if the work item %s has a parent work item", linkToSave.TargetID)
-			return nil, errs.Wrapf(err, "failed to check if the work item %s has a parent work item", linkToSave.TargetID)
-		}
-		if parentExists {
-			log.Error(ctx, map[string]interface{}{
-				"wilt_id":   linkTypeToSave.ID,
-				"target_id": linkToSave.TargetID,
-				"err":       err,
-			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, linkTypeToSave.ID)
-			return nil, errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkTypeToSave.ID, linkToSave.TargetID)).Expected("single parent in tree topology")
-		}
+	if err := r.ValidateTopology(ctx, linkToSave.TargetID, linkTypeToSave); err != nil {
+		return nil, errs.WithStack(err)
 	}
 
 	// save
