@@ -166,6 +166,11 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil && *updatedEmail != user.Email {
+			isValid := isUsernameValid(*updatedEmail)
+			if !isValid {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to email for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				return ctx.BadRequest(jerrors)
+			}
 			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
@@ -181,6 +186,11 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil && *updatedUserName != identity.Username {
+			isValid := isUsernameValid(*updatedUserName)
+			if !isValid {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to username for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				return ctx.BadRequest(jerrors)
+			}
 			if identity.RegistrationCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
@@ -327,6 +337,21 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		}
 	}
 	return returnResponse
+}
+
+func isEmailValid(email string) bool {
+	// TODO: Add regex to verify email format, later
+	if len(strings.TrimSpace(email)) > 0 {
+		return true
+	}
+	return false
+}
+
+func isUsernameValid(username string) bool {
+	if len(strings.TrimSpace(username)) > 0 {
+		return true
+	}
+	return false
 }
 
 func isUsernameUnique(appl application.Application, username string, identity account.Identity) (bool, error) {
