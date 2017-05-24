@@ -1,0 +1,810 @@
+ALMIGHTY_DEVELOPER_MODE_ENABLED=1 ALMIGHTY_RESOURCE_UNIT_TEST=1 go test -v github.com/almighty/almighty-core github.com/almighty/almighty-core/account github.com/almighty/almighty-core/account/tenant github.com/almighty/almighty-core/area github.com/almighty/almighty-core/auth github.com/almighty/almighty-core/codebase github.com/almighty/almighty-core/codebase/che github.com/almighty/almighty-core/comment github.com/almighty/almighty-core/configuration github.com/almighty/almighty-core/controller github.com/almighty/almighty-core/convert github.com/almighty/almighty-core/criteria github.com/almighty/almighty-core/errors github.com/almighty/almighty-core/goasupport github.com/almighty/almighty-core/goasupport/conditional_request github.com/almighty/almighty-core/goasupport/helper_function github.com/almighty/almighty-core/gormsupport github.com/almighty/almighty-core/gormsupport/cleaner github.com/almighty/almighty-core/iteration github.com/almighty/almighty-core/jsonapi github.com/almighty/almighty-core/log github.com/almighty/almighty-core/login github.com/almighty/almighty-core/login/tokencontext github.com/almighty/almighty-core/migration github.com/almighty/almighty-core/models github.com/almighty/almighty-core/path github.com/almighty/almighty-core/query/simple github.com/almighty/almighty-core/remoteworkitem github.com/almighty/almighty-core/rendering github.com/almighty/almighty-core/resource github.com/almighty/almighty-core/rest github.com/almighty/almighty-core/search github.com/almighty/almighty-core/space github.com/almighty/almighty-core/space/authz github.com/almighty/almighty-core/token github.com/almighty/almighty-core/tool/alm-cli github.com/almighty/almighty-core/workitem github.com/almighty/almighty-core/workitem/link
+?   	github.com/almighty/almighty-core	[no test files]
+=== RUN   TestRunIdentityBlackBoxTest
+--- SKIP: TestRunIdentityBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunUserBlackBoxTest
+--- SKIP: TestRunUserBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/account	0.181s
+?   	github.com/almighty/almighty-core/account/tenant	[no test files]
+=== RUN   TestRunAreaRepository
+--- SKIP: TestRunAreaRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/area	0.243s
+=== RUN   TestAuth
+--- SKIP: TestAuth (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_REMOTE is no set.
+=== RUN   TestPolicy
+--- SKIP: TestPolicy (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_REMOTE is no set.
+=== RUN   TestRunStateBlackBoxTest
+--- SKIP: TestRunStateBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/auth	0.140s
+=== RUN   TestCodebaseToMap
+--- PASS: TestCodebaseToMap (0.00s)
+=== RUN   TestNewCodebase
+--- PASS: TestNewCodebase (0.00s)
+=== RUN   TestIsValid
+--- PASS: TestIsValid (0.00s)
+=== RUN   TestRunCodebaseRepository
+--- SKIP: TestRunCodebaseRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/codebase	0.169s
+?   	github.com/almighty/almighty-core/codebase/che	[no test files]
+=== RUN   TestRunCommentRepository
+--- SKIP: TestRunCommentRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunCommentRevisionRepositoryBlackBoxTest
+--- SKIP: TestRunCommentRevisionRepositoryBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/comment	0.216s
+=== RUN   TestOpenIDConnectPathOK
+=== RUN   TestGetKeycloakURLOK
+=== RUN   TestGetKeycloakHttpsURLOK
+=== RUN   TestGetKeycloakURLForTooShortHostFails
+=== RUN   TestKeycloakRealmInDevModeCanBeOverridden
+--- PASS: TestKeycloakRealmInDevModeCanBeOverridden (0.00s)
+=== RUN   TestGetLogLevelOK
+--- PASS: TestGetLogLevelOK (0.00s)
+=== RUN   TestValidRedirectURLsInDevModeCanBeOverridden
+--- PASS: TestValidRedirectURLsInDevModeCanBeOverridden (0.00s)
+=== RUN   TestRedirectURLsForLocalhostRequestAreExcepted
+=== RUN   TestGetKeycloakEndpointSetByUrlEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointSetByUrlEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointAdminDevModeOK
+=== RUN   TestGetKeycloakEndpointAdminSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointAdminSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointAuthzResourcesetDevModeOK
+=== RUN   TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointAuthzResourcesetSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointClientsDevModeOK
+=== RUN   TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpoinClientsSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointAuthDevModeOK
+=== RUN   TestGetKeycloakEndpointAuthSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointAuthSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointLogoutDevModeOK
+=== RUN   TestGetKeycloakEndpointLogoutSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointLogoutSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointTokenOK
+=== RUN   TestGetKeycloakEndpointTokenSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointTokenSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointUserInfoOK
+=== RUN   TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointUserInfoSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointEntitlementOK
+=== RUN   TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointEntitlementSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakEndpointBrokerOK
+=== RUN   TestGetKeycloakEndpointBrokerSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakEndpointBrokerSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetKeycloakUserInfoEndpointOK
+=== RUN   TestGetKeycloakUserInfoEndpointOKrSetByEnvVaribaleOK
+--- PASS: TestGetKeycloakUserInfoEndpointOKrSetByEnvVaribaleOK (0.00s)
+=== RUN   TestGetTokenPrivateKeyFromConfigFile
+--- PASS: TestGetTokenPrivateKeyFromConfigFile (0.00s)
+=== RUN   TestGetTokenPublicKeyFromConfigFile
+--- PASS: TestGetTokenPublicKeyFromConfigFile (0.00s)
+=== RUN   TestGetMaxHeaderSizeUsingDefaults
+--- PASS: TestGetMaxHeaderSizeUsingDefaults (0.00s)
+=== RUN   TestGetMaxHeaderSizeSetByEnvVaribaleOK
+--- PASS: TestGetMaxHeaderSizeSetByEnvVaribaleOK (0.00s)
+--- PASS: TestOpenIDConnectPathOK (0.00s)
+--- PASS: TestGetKeycloakUserInfoEndpointOK (0.00s)
+--- PASS: TestGetKeycloakEndpointBrokerOK (0.00s)
+--- PASS: TestGetKeycloakEndpointEntitlementOK (0.00s)
+--- PASS: TestGetKeycloakEndpointUserInfoOK (0.00s)
+--- PASS: TestGetKeycloakEndpointTokenOK (0.00s)
+--- PASS: TestGetKeycloakEndpointLogoutDevModeOK (0.00s)
+--- PASS: TestGetKeycloakEndpointAuthDevModeOK (0.00s)
+--- PASS: TestGetKeycloakEndpointClientsDevModeOK (0.00s)
+--- PASS: TestGetKeycloakEndpointAuthzResourcesetDevModeOK (0.00s)
+--- PASS: TestGetKeycloakEndpointAdminDevModeOK (0.00s)
+--- PASS: TestGetKeycloakHttpsURLOK (0.00s)
+--- PASS: TestGetKeycloakURLForTooShortHostFails (0.00s)
+--- PASS: TestGetKeycloakURLOK (0.00s)
+--- PASS: TestRedirectURLsForLocalhostRequestAreExcepted (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/configuration	0.197s
+=== RUN   TestUpdateIterationsWithCounts
+--- PASS: TestUpdateIterationsWithCounts (0.00s)
+=== RUN   TestRunLoginREST
+--- SKIP: TestRunLoginREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunLogoutREST
+=== RUN   TestLogoutRedirects
+time="2017-05-24T16:43:30+05:30" level=info msg="Got Request to logout!" identity_id=cd065783-2e9e-47b9-aef4-a8b691a14ea5 pkg=login redirect=0xc42031e310 referrer= req_id= 
+--- PASS: TestLogoutRedirects (0.00s)
+=== RUN   TestLogoutWithoutReffererAndRedirectParamsBadRequest
+time="2017-05-24T16:43:30+05:30" level=error msg="Failed to logout. Referer Header and redirect param are both empty." file="/Users/shoubhikbose/dev/alm-core-sbose/src/github.com/almighty/almighty-core/login/logout.go" func="github.com/almighty/almighty-core/login.(*KeycloakLogoutService).Logout" identity_id=cd065783-2e9e-47b9-aef4-a8b691a14ea5 line=28 pid=6538 pkg=login req_id= 
+time="2017-05-24T16:43:30+05:30" level=info msg="an error occurred in our api" err="[jG+tv+mL] 400 bad_request: referer Header and redirect param are both empty (at least one should be specified)" error_message="[jG+tv+mL] 400 bad_request: referer Header and redirect param are both empty (at least one should be specified)" pkg=jsonapi 
+--- PASS: TestLogoutWithoutReffererAndRedirectParamsBadRequest (0.00s)
+--- PASS: TestRunLogoutREST (0.00s)
+=== RUN   TestRunPlannerBacklogREST
+--- SKIP: TestRunPlannerBacklogREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestCopyExistingKeycloakUserProfileInfo
+=== RUN   TestWorkItemLinkCategory_ConvertLinkCategoryFromModel
+=== RUN   TestNewWorkitemController
+=== RUN   TestParseInts
+=== RUN   TestParseLimit
+=== RUN   TestSetPagingLinks
+--- PASS: TestSetPagingLinks (0.00s)
+=== RUN   TestConvertWorkItemWithDescription
+--- PASS: TestConvertWorkItemWithDescription (0.00s)
+=== RUN   TestConvertWorkItemWithoutDescription
+--- PASS: TestConvertWorkItemWithoutDescription (0.00s)
+=== RUN   TestConvertJSONAPIToWorkItemWithLegacyDescription
+--- PASS: TestConvertJSONAPIToWorkItemWithLegacyDescription (0.00s)
+=== RUN   TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup
+--- PASS: TestConvertJSONAPIToWorkItemWithDescriptionContentNoMarkup (0.00s)
+=== RUN   TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup
+--- PASS: TestConvertJSONAPIToWorkItemWithDescriptionContentAndMarkup (0.00s)
+=== RUN   TestConvertJSONAPIToWorkItemWithTitle
+--- PASS: TestConvertJSONAPIToWorkItemWithTitle (0.00s)
+=== RUN   TestConvertJSONAPIToWorkItemWithMissingTitle
+--- PASS: TestConvertJSONAPIToWorkItemWithMissingTitle (0.00s)
+=== RUN   TestConvertJSONAPIToWorkItemWithEmptyTitle
+--- PASS: TestConvertJSONAPIToWorkItemWithEmptyTitle (0.00s)
+=== RUN   TestConvertTypeFromModel
+=== RUN   TestConvertFieldTypes
+=== RUN   TestConvertFieldTypeToModel
+=== RUN   TestRunAreaREST
+--- SKIP: TestRunAreaREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunCodebasesTest
+--- SKIP: TestRunCodebasesTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunCollaboratorsREST
+--- SKIP: TestRunCollaboratorsREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuiteComments
+--- SKIP: TestSuiteComments (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunFiltersREST
+--- SKIP: TestRunFiltersREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunIterationREST
+--- SKIP: TestRunIterationREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunNamedSpacesREST
+--- SKIP: TestRunNamedSpacesREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunPlannerBacklogBlackboxREST
+--- SKIP: TestRunPlannerBacklogBlackboxREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuiteMarkupRendering
+--- SKIP: TestSuiteMarkupRendering (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSearchTests
+--- SKIP: TestRunSearchTests (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSearchSpacesREST
+--- SKIP: TestRunSearchSpacesREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSearchUser
+--- SKIP: TestRunSearchUser (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSpaceAreaREST
+--- SKIP: TestRunSpaceAreaREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSpaceREST
+--- SKIP: TestRunSpaceREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSpaceCodebaseREST
+--- SKIP: TestRunSpaceCodebaseREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunSpaceIterationREST
+--- SKIP: TestRunSpaceIterationREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunStatusREST
+--- SKIP: TestRunStatusREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunTrackerREST
+--- SKIP: TestRunTrackerREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunTrackerQueryREST
+--- SKIP: TestRunTrackerQueryREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestUsers
+--- SKIP: TestUsers (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuiteWorkItemChildren
+--- SKIP: TestSuiteWorkItemChildren (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunCommentREST
+--- SKIP: TestRunCommentREST (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuiteWorkItemLink
+--- SKIP: TestSuiteWorkItemLink (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestNewWorkItemLinkControllerDBNull
+--- PASS: TestNewWorkItemLinkControllerDBNull (0.00s)
+=== RUN   TestNewWorkItemRelationshipsLinksControllerDBNull
+--- PASS: TestNewWorkItemRelationshipsLinksControllerDBNull (0.00s)
+=== RUN   TestSuiteWorkItemLinkCategory
+--- SKIP: TestSuiteWorkItemLinkCategory (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestNewWorkItemLinkCategoryControllerDBNull
+--- PASS: TestNewWorkItemLinkCategoryControllerDBNull (0.00s)
+=== RUN   TestSuiteWorkItemLinkType
+--- SKIP: TestSuiteWorkItemLinkType (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestNewWorkItemLinkTypeControllerDBNull
+--- PASS: TestNewWorkItemLinkTypeControllerDBNull (0.00s)
+=== RUN   TestSuiteWorkItem1
+--- SKIP: TestSuiteWorkItem1 (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuiteWorkItem2
+--- SKIP: TestSuiteWorkItem2 (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuitePaging
+=== RUN   TestPagingDefaultAndMaxSize
+--- PASS: TestPagingDefaultAndMaxSize (0.00s)
+=== RUN   TestPagingErrors
+--- PASS: TestPagingErrors (0.01s)
+=== RUN   TestPagingLinks
+--- PASS: TestPagingLinks (0.00s)
+=== RUN   TestPagingLinksHasAbsoluteURL
+--- PASS: TestPagingLinksHasAbsoluteURL (0.00s)
+--- PASS: TestSuitePaging (0.01s)
+=== RUN   TestSuiteWorkItemType
+--- SKIP: TestSuiteWorkItemType (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+--- PASS: TestCopyExistingKeycloakUserProfileInfo (0.00s)
+	users_whitebox_test.go:56: hi
+--- PASS: TestParseInts (0.00s)
+--- PASS: TestNewWorkitemController (0.00s)
+--- PASS: TestConvertFieldTypeToModel (0.00s)
+--- PASS: TestWorkItemLinkCategory_ConvertLinkCategoryFromModel (0.00s)
+--- PASS: TestConvertTypeFromModel (0.00s)
+--- PASS: TestConvertFieldTypes (0.00s)
+	workitemtype_whitebox_test.go:132: testing type {integer}
+	workitemtype_whitebox_test.go:132: testing type {{list} {string}}
+	workitemtype_whitebox_test.go:132: testing type {{enum} {string} [foo bar]}
+--- PASS: TestParseLimit (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/controller	0.175s
+=== RUN   TestDummyEqualerEqual
+--- PASS: TestDummyEqualerEqual (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/convert	0.134s
+=== RUN   TestGetParent
+--- PASS: TestGetParent (0.00s)
+=== RUN   TestIterator
+--- PASS: TestIterator (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/criteria	0.372s
+=== RUN   TestSimpleError_Error
+=== RUN   TestBadParameterError_Error
+=== RUN   TestNotFoundError_Error
+=== RUN   TestNewInternalError
+=== RUN   TestNewConversionError
+=== RUN   TestNewBadParameterError
+=== RUN   TestNewNotFoundError
+=== RUN   TestNewUnauthorizedError
+=== RUN   TestNewForbiddenError
+--- PASS: TestSimpleError_Error (0.00s)
+--- PASS: TestNewInternalError (0.00s)
+	errors_blackbox_test.go:18: System disk could not be read
+--- PASS: TestNewForbiddenError (0.00s)
+--- PASS: TestBadParameterError_Error (0.00s)
+--- PASS: TestNewConversionError (0.00s)
+	errors_blackbox_test.go:27: Couldn't convert workitem
+--- PASS: TestNewUnauthorizedError (0.00s)
+--- PASS: TestNewNotFoundError (0.00s)
+--- PASS: TestNewBadParameterError (0.00s)
+--- PASS: TestNotFoundError_Error (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/errors	0.153s
+?   	github.com/almighty/almighty-core/goasupport	[no test files]
+?   	github.com/almighty/almighty-core/goasupport/conditional_request	[no test files]
+?   	github.com/almighty/almighty-core/goasupport/helper_function	[no test files]
+=== RUN   TestLifecycle_Equal
+--- PASS: TestLifecycle_Equal (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/gormsupport	0.167s
+?   	github.com/almighty/almighty-core/gormsupport/cleaner	[no test files]
+=== RUN   TestRunIterationRepository
+--- SKIP: TestRunIterationRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/iteration	0.189s
+=== RUN   TestErrorToJSONAPIError
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err="foo with id 'bar' not found" error_message="foo with id 'bar' not found" pkg=jsonapi 
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err=foo error_message=foo pkg=jsonapi 
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err="Bad value for parameter 'foo': 'bar'" error_message="Bad value for parameter 'foo': 'bar'" pkg=jsonapi 
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err=foo error_message=foo pkg=jsonapi 
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err=foo error_message=foo pkg=jsonapi 
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err=foo error_message=foo pkg=jsonapi 
+time="2017-05-24T16:43:13+05:30" level=info msg="an error occurred in our api" err=foobar error_message=foobar pkg=jsonapi 
+--- PASS: TestErrorToJSONAPIError (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/jsonapi	0.171s
+=== RUN   TestInfo
+--- PASS: TestInfo (0.00s)
+=== RUN   TestInfoWithFields
+--- PASS: TestInfoWithFields (0.00s)
+=== RUN   TestWarn
+--- PASS: TestWarn (0.00s)
+=== RUN   TestDebug
+--- PASS: TestDebug (0.00s)
+=== RUN   TestDebugMsgFieldHasPrefix
+--- PASS: TestDebugMsgFieldHasPrefix (0.00s)
+=== RUN   TestInfoMsgFieldHasPrefix
+--- PASS: TestInfoMsgFieldHasPrefix (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/log	0.242s
+=== RUN   TestValidOAuthAccessToken
+--- PASS: TestValidOAuthAccessToken (0.01s)
+=== RUN   TestInvalidOAuthAccessToken
+--- PASS: TestInvalidOAuthAccessToken (0.00s)
+=== RUN   TestCheckClaimsOK
+=== RUN   TestCheckClaimsFails
+=== RUN   TestGravatarURLGeneration
+=== RUN   TestEncodeTokenOK
+=== RUN   TestInt32ToInt64OK
+--- PASS: TestInt32ToInt64OK (0.00s)
+=== RUN   TestInt64ToInt64OK
+--- PASS: TestInt64ToInt64OK (0.00s)
+=== RUN   TestFloat32ToInt64OK
+--- PASS: TestFloat32ToInt64OK (0.00s)
+=== RUN   TestFloat64ToInt64OK
+--- PASS: TestFloat64ToInt64OK (0.00s)
+=== RUN   TestStringToInt64OK
+--- PASS: TestStringToInt64OK (0.00s)
+=== RUN   TestApprovedUserOK
+=== RUN   TestNotApprovedUserFails
+=== RUN   TestFillUserDoesntOverwriteExistingImageURL
+=== RUN   TestLogout
+=== RUN   TestLogoutRedirectsToKeycloakWithRedirectParam
+time="2017-05-24T16:43:17+05:30" level=info msg="Got Request to logout!" pkg=login redirect=0xc42033abb0 referrer="https://url.example.org/path" req_id= 
+--- PASS: TestLogoutRedirectsToKeycloakWithRedirectParam (0.00s)
+=== RUN   TestLogoutRedirectsToKeycloakWithReferrer
+time="2017-05-24T16:43:17+05:30" level=info msg="Got Request to logout!" pkg=login redirect=0xc42033b070 referrer="https://url.example.org/path" req_id= 
+--- PASS: TestLogoutRedirectsToKeycloakWithReferrer (0.00s)
+--- PASS: TestLogout (0.00s)
+=== RUN   TestRunProfileBlackBoxTest
+--- SKIP: TestRunProfileBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_REMOTE is no set.
+=== RUN   TestRunServiceBlackBoxTest
+--- SKIP: TestRunServiceBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+--- PASS: TestCheckClaimsOK (0.00s)
+--- PASS: TestCheckClaimsFails (0.00s)
+--- PASS: TestApprovedUserOK (0.00s)
+--- PASS: TestFillUserDoesntOverwriteExistingImageURL (0.00s)
+--- PASS: TestGravatarURLGeneration (0.00s)
+time="2017-05-24T16:43:17+05:30" level=warning msg="no attributes found in the user's profile" file="/Users/shoubhikbose/dev/alm-core-sbose/src/github.com/almighty/almighty-core/login/service.go" func="github.com/almighty/almighty-core/login.checkApproved" pkg=login req_id= username=<nil> 
+time="2017-05-24T16:43:17+05:30" level=warning msg="no approved attribute found in the user's profile or the value is empty" file="/Users/shoubhikbose/dev/alm-core-sbose/src/github.com/almighty/almighty-core/login/service.go" func="github.com/almighty/almighty-core/login.checkApproved" pkg=login req_id= username=<nil> 
+time="2017-05-24T16:43:17+05:30" level=warning msg="approved attribute found but set to false" file="/Users/shoubhikbose/dev/alm-core-sbose/src/github.com/almighty/almighty-core/login/service.go" func="github.com/almighty/almighty-core/login.checkApproved" pkg=login req_id= username=<nil> 
+--- PASS: TestEncodeTokenOK (0.00s)
+time="2017-05-24T16:43:17+05:30" level=error msg="unable to parse 'approved' attribute of the user's profile" approved=blahblah err="strconv.ParseBool: parsing \"blahblah\": invalid syntax" file="/Users/shoubhikbose/dev/alm-core-sbose/src/github.com/almighty/almighty-core/login/service.go" func="github.com/almighty/almighty-core/login.checkApproved" line=740 pid=6502 pkg=login req_id= username=<nil> 
+--- PASS: TestNotApprovedUserFails (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/login	0.172s
+?   	github.com/almighty/almighty-core/login/tokencontext	[no test files]
+=== RUN   TestConcurrentMigrations
+--- SKIP: TestConcurrentMigrations (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestMigrations
+--- SKIP: TestMigrations (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/migration	0.248s
+?   	github.com/almighty/almighty-core/models	[no test files]
+=== RUN   TestIsEmpty
+=== RUN   TestThis
+=== RUN   TestConvert
+=== RUN   TestToString
+=== RUN   TestRoot
+=== RUN   TestParent
+=== RUN   TestValuerImplementation
+=== RUN   TestScannerImplementation
+=== RUN   TestToExpression
+--- PASS: TestIsEmpty (0.00s)
+--- PASS: TestParent (0.00s)
+--- PASS: TestRoot (0.00s)
+--- PASS: TestToString (0.00s)
+--- PASS: TestConvert (0.00s)
+--- PASS: TestThis (0.00s)
+--- PASS: TestScannerImplementation (0.00s)
+--- PASS: TestValuerImplementation (0.00s)
+--- PASS: TestToExpression (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/path	0.305s
+?   	github.com/almighty/almighty-core/query/simple	[no test files]
+=== RUN   TestFlattenMap
+--- PASS: TestFlattenMap (0.00s)
+=== RUN   TestConvertArrayToMap
+--- PASS: TestConvertArrayToMap (0.00s)
+=== RUN   TestGithubFetch
+--- PASS: TestGithubFetch (0.00s)
+=== RUN   TestGithubFetchWithRateLimit
+--- PASS: TestGithubFetchWithRateLimit (0.00s)
+=== RUN   TestGithubFetchWithRecording
+time="2017-05-24T16:43:18+05:30" level=warning msg="reached rate limit when listing Github issues" file="/Users/shoubhikbose/dev/alm-core-sbose/src/github.com/almighty/almighty-core/remoteworkitem/github.go" func="github.com/almighty/almighty-core/remoteworkitem.(*GithubTracker).fetch.func1" opts=&{  false {0 20}} pkg="remoteworkitem.(*GithubTracker).fetch" query= 
+--- PASS: TestGithubFetchWithRecording (0.00s)
+=== RUN   TestJiraFetch
+--- PASS: TestJiraFetch (0.00s)
+=== RUN   TestJiraFetchWithRecording
+--- PASS: TestJiraFetchWithRecording (0.03s)
+=== RUN   TestWorkItemMapping
+--- PASS: TestWorkItemMapping (0.00s)
+=== RUN   TestGitHubIssueMapping
+--- PASS: TestGitHubIssueMapping (0.00s)
+	remoteworkitem_test.go:110: Mapping  system.creator.login
+	remoteworkitem_test.go:110: Mapping  system.creator.profile_url
+	remoteworkitem_test.go:110: Mapping  system.assignees.login
+	remoteworkitem_test.go:110: Mapping  system.assignees.profile_url
+	remoteworkitem_test.go:110: Mapping  system.title
+	remoteworkitem_test.go:110: Mapping  system.description
+	remoteworkitem_test.go:110: Mapping  system.state
+	remoteworkitem_test.go:110: Mapping  system.remote_item_id
+	remoteworkitem_test.go:110: Mapping  system.creator.login
+	remoteworkitem_test.go:110: Mapping  system.creator.profile_url
+	remoteworkitem_test.go:110: Mapping  system.assignees.login
+	remoteworkitem_test.go:110: Mapping  system.assignees.profile_url
+	remoteworkitem_test.go:110: Mapping  system.title
+	remoteworkitem_test.go:110: Mapping  system.description
+	remoteworkitem_test.go:110: Mapping  system.state
+	remoteworkitem_test.go:110: Mapping  system.remote_item_id
+=== RUN   TestJiraIssueMapping
+--- PASS: TestJiraIssueMapping (0.02s)
+	remoteworkitem_test.go:110: Mapping  system.remote_item_id
+	remoteworkitem_test.go:110: Mapping  system.creator.login
+	remoteworkitem_test.go:110: Mapping  system.creator.profile_url
+	remoteworkitem_test.go:110: Mapping  system.assignees.login
+	remoteworkitem_test.go:110: Mapping  system.assignees.profile_url
+	remoteworkitem_test.go:110: Mapping  system.title
+	remoteworkitem_test.go:110: Mapping  system.description
+	remoteworkitem_test.go:110: Mapping  system.state
+	remoteworkitem_test.go:110: Mapping  system.creator.profile_url
+	remoteworkitem_test.go:110: Mapping  system.assignees.login
+	remoteworkitem_test.go:110: Mapping  system.assignees.profile_url
+	remoteworkitem_test.go:110: Mapping  system.title
+	remoteworkitem_test.go:110: Mapping  system.description
+	remoteworkitem_test.go:110: Mapping  system.state
+	remoteworkitem_test.go:110: Mapping  system.remote_item_id
+	remoteworkitem_test.go:110: Mapping  system.creator.login
+=== RUN   TestFlattenGithubResponseMap
+--- PASS: TestFlattenGithubResponseMap (0.00s)
+	remoteworkitem_test.go:217: 	 'user.login'='sbose78' (expected=true)
+	remoteworkitem_test.go:217: 	 'user.url'='https://api.github.com/users/sbose78' (expected=true)
+	remoteworkitem_test.go:217: 	 'assignees.0.login'='sbose78' (expected=true)
+	remoteworkitem_test.go:217: 	 'assignees.0.url'='https://api.github.com/users/sbose78' (expected=true)
+	remoteworkitem_test.go:217: 	 'title'='map flatten : test case : with assignee' (expected=true)
+	remoteworkitem_test.go:217: 	 'body'='desc' (expected=true)
+	remoteworkitem_test.go:217: 	 'state'='open' (expected=true)
+	remoteworkitem_test.go:217: 	 'url'='https://api.github.com/repos/almighty-test/almighty-test-uni' (expected=true)
+	remoteworkitem_test.go:217: 	 'user.url'='https://api.github.com/users/Ritsyy' (expected=true)
+	remoteworkitem_test.go:217: 	 'assignees.0.login'='Ritsyy' (expected=true)
+	remoteworkitem_test.go:217: 	 'assignees.0.url'='https://api.github.com/users/Ritsyy' (expected=true)
+	remoteworkitem_test.go:217: 	 'title'='alm-test case' (expected=true)
+	remoteworkitem_test.go:217: 	 'body'='sample test' (expected=true)
+	remoteworkitem_test.go:217: 	 'state'='open' (expected=true)
+	remoteworkitem_test.go:217: 	 'url'='https://api.github.com/repos/almighty-unit-test/almighty-tes' (expected=true)
+	remoteworkitem_test.go:217: 	 'user.login'='Ritsyy' (expected=true)
+=== RUN   TestFlattenJiraResponseMap
+--- PASS: TestFlattenJiraResponseMap (0.00s)
+	remoteworkitem_test.go:217: 	 'self'='https://jira.atlassian.com/rest/api/latest/issue/10142' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.key'='mike@atlassian.com' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.self'='https://jira.atlassian.com/rest/api/2/user?username=mike%40a' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.assignee.key'='mike@atlassian.com' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.assignee.self'='https://jira.atlassian.com/rest/api/2/user?username=mike%40a' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.summary'='ObjectNotFoundException editing issue version' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.description'='"when you 'edit' an issue, and it doesn't have a version num' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.status.name'='Resolved' (expected=true)
+=== RUN   TestFlattenGithubResponseMapWithoutAssignee
+--- PASS: TestFlattenGithubResponseMapWithoutAssignee (0.00s)
+	remoteworkitem_test.go:217: 	 'state'='open' (expected=true)
+	remoteworkitem_test.go:217: 	 'url'='https://api.github.com/repos/almighty-test/almighty-test-uni' (expected=true)
+	remoteworkitem_test.go:217: 	 'user.login'='Ritsyy' (expected=true)
+	remoteworkitem_test.go:217: 	 'user.url'='https://api.github.com/users/Ritsyy' (expected=true)
+	remoteworkitem_test.go:217: 	 'title'='map flatten: test case: with labels' (expected=true)
+	remoteworkitem_test.go:217: 	 'body'='sample description' (expected=true)
+=== RUN   TestFlattenJiraResponseMapWithoutAssignee
+--- PASS: TestFlattenJiraResponseMapWithoutAssignee (0.04s)
+	remoteworkitem_test.go:217: 	 'fields.summary'='User Preference: User Time Zones' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.description'='Add time zones to user profile.     That way the dates displ' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.status.name'='Closed' (expected=true)
+	remoteworkitem_test.go:217: 	 'self'='https://jira.atlassian.com/rest/api/latest/issue/10148' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.key'='mike@atlassian.com' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.self'='https://jira.atlassian.com/rest/api/2/user?username=mike%40a' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.summary'='User Preference: User Time Zones' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.description'='Add time zones to user profile.     That way the dates displ' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.status.name'='Closed' (expected=true)
+	remoteworkitem_test.go:217: 	 'self'='https://jira.atlassian.com/rest/api/latest/issue/10148' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.key'='mike@atlassian.com' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.self'='https://jira.atlassian.com/rest/api/2/user?username=mike%40a' (expected=true)
+	remoteworkitem_test.go:217: 	 'self'='https://jira.atlassian.com/rest/api/latest/issue/12632' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.key'='scott@atlassian.com' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.creator.self'='https://jira.atlassian.com/rest/api/2/user?username=scott%40' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.summary'='Create wizard-like interface for admin tasks' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.description'='Some tasks take more than one admin screen to do, so provide' (expected=true)
+	remoteworkitem_test.go:217: 	 'fields.status.name'='Closed' (expected=true)
+=== RUN   TestNewGitHubRemoteWorkItem
+--- PASS: TestNewGitHubRemoteWorkItem (0.00s)
+=== RUN   TestNewJiraRemoteWorkItem
+--- PASS: TestNewJiraRemoteWorkItem (0.00s)
+=== RUN   TestRemoteWorkItemImplRegistry
+--- PASS: TestRemoteWorkItemImplRegistry (0.00s)
+=== RUN   TestPatternConverter
+--- PASS: TestPatternConverter (0.00s)
+=== RUN   TestPatternConverterWithNoValue
+--- PASS: TestPatternConverterWithNoValue (0.00s)
+=== RUN   TestListConverter
+--- PASS: TestListConverter (0.00s)
+=== RUN   TestListConverterWithNoValue
+--- PASS: TestListConverterWithNoValue (0.00s)
+=== RUN   TestLookupProvider
+--- PASS: TestLookupProvider (0.00s)
+=== RUN   TestRunTrackerRepository
+--- SKIP: TestRunTrackerRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestSuiteTrackerItemRepository
+--- SKIP: TestSuiteTrackerItemRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunTrackerItemRepository
+--- SKIP: TestRunTrackerItemRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunTrackerQueryRepository
+--- SKIP: TestRunTrackerQueryRepository (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunTrackerRepoBlackBoxTest
+--- SKIP: TestRunTrackerRepoBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunTrackerQueryRepoBlackBoxTest
+--- SKIP: TestRunTrackerQueryRepoBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/remoteworkitem	0.303s
+=== RUN   TestGetDefaultMarkupFromNil
+--- PASS: TestGetDefaultMarkupFromNil (0.00s)
+=== RUN   TestGetMarkupFromValue
+--- PASS: TestGetMarkupFromValue (0.00s)
+=== RUN   TestGetMarkupFromEmptyValue
+--- PASS: TestGetMarkupFromEmptyValue (0.00s)
+=== RUN   TestRenderMarkdownContent
+--- PASS: TestRenderMarkdownContent (0.00s)
+	markup_render_test.go:15: <p>Hello, <code>World</code>!</p>
+		
+=== RUN   TestRenderMarkdownContentWithFence
+--- PASS: TestRenderMarkdownContentWithFence (0.00s)
+	markup_render_test.go:23: <pre><code class="prettyprint language-go"><span class="kwd">func</span> <span class="pln">getTrue</span><span class="pun">(</span><span class="pun">)</span> <span class="kwd">bool</span> <span class="pun">{</span><span class="kwd">return</span> <span class="kwd">true</span><span class="pun">}</span>
+		</code></pre>
+		
+=== RUN   TestRenderMarkdownContentWithFenceHighlighter
+--- PASS: TestRenderMarkdownContentWithFenceHighlighter (0.00s)
+	markup_render_test.go:31: <pre><code class="prettyprint language-go"><span class="kwd">func</span> <span class="pln">getTrue</span><span class="pun">(</span><span class="pun">)</span> <span class="kwd">bool</span> <span class="pun">{</span><span class="kwd">return</span> <span class="kwd">true</span><span class="pun">}</span>
+		</code></pre>
+		
+=== RUN   TestIsMarkupSupported
+--- PASS: TestIsMarkupSupported (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/rendering	0.109s
+?   	github.com/almighty/almighty-core/resource	[no test files]
+=== RUN   TestAbsoluteURLOK
+=== RUN   TestAbsoluteURLOKWithProxyForward
+=== RUN   TestReplaceDomainPrefixOK
+=== RUN   TestReplaceDomainPrefixInTooShortHostFails
+--- PASS: TestAbsoluteURLOK (0.00s)
+--- PASS: TestReplaceDomainPrefixOK (0.00s)
+--- PASS: TestReplaceDomainPrefixInTooShortHostFails (0.00s)
+--- PASS: TestAbsoluteURLOKWithProxyForward (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/rest	0.130s
+=== RUN   TestRunSearchRepositoryWhiteboxTest
+--- SKIP: TestRunSearchRepositoryWhiteboxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestGenerateSQLSearchStringText
+=== RUN   TestGenerateSQLSearchStringIdOnly
+=== RUN   TestParseSearchString
+=== RUN   TestParseSearchStringURL
+=== RUN   TestParseSearchStringURLWithouID
+=== RUN   TestParseSearchStringDifferentURL
+=== RUN   TestParseSearchStringCombination
+=== RUN   TestRegisterAsKnownURL
+--- PASS: TestRegisterAsKnownURL (0.00s)
+=== RUN   TestIsKnownURL
+--- PASS: TestIsKnownURL (0.00s)
+=== RUN   TestGetSearchQueryFromURLPattern
+--- PASS: TestGetSearchQueryFromURLPattern (0.00s)
+=== RUN   TestGetSearchQueryFromURLString
+--- PASS: TestGetSearchQueryFromURLString (0.00s)
+=== RUN   TestRunSearchRepositoryBlackboxTest
+--- SKIP: TestRunSearchRepositoryBlackboxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+--- PASS: TestGenerateSQLSearchStringText (0.00s)
+--- PASS: TestGenerateSQLSearchStringIdOnly (0.00s)
+--- PASS: TestParseSearchString (0.00s)
+--- PASS: TestParseSearchStringDifferentURL (0.00s)
+--- PASS: TestParseSearchStringURL (0.00s)
+--- PASS: TestParseSearchStringCombination (0.00s)
+--- PASS: TestParseSearchStringURLWithouID (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/search	0.209s
+=== RUN   TestRunResourceRepoBBTest
+--- SKIP: TestRunResourceRepoBBTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunRepoBBTest
+--- SKIP: TestRunRepoBBTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+PASS
+ok  	github.com/almighty/almighty-core/space	0.120s
+=== RUN   TestAuthz
+=== RUN   TestFailsIfNoTokenInContext
+--- PASS: TestFailsIfNoTokenInContext (0.00s)
+=== RUN   TestUserAmongSpaceCollaboratorsOK
+--- PASS: TestUserAmongSpaceCollaboratorsOK (0.01s)
+=== RUN   TestUserIsNotAmongSpaceCollaboratorsFails
+--- PASS: TestUserIsNotAmongSpaceCollaboratorsFails (0.01s)
+--- PASS: TestAuthz (0.02s)
+PASS
+ok  	github.com/almighty/almighty-core/space/authz	0.216s
+=== RUN   TestExtractToken
+--- PASS: TestExtractToken (0.01s)
+=== RUN   TestExtractWithInvalidToken
+--- PASS: TestExtractWithInvalidToken (0.02s)
+=== RUN   TestLocateTokenInContex
+--- PASS: TestLocateTokenInContex (0.00s)
+=== RUN   TestLocateMissingTokenInContext
+--- PASS: TestLocateMissingTokenInContext (0.00s)
+=== RUN   TestLocateMissingUUIDInTokenInContext
+--- PASS: TestLocateMissingUUIDInTokenInContext (0.00s)
+=== RUN   TestLocateInvalidUUIDInTokenInContext
+--- PASS: TestLocateInvalidUUIDInTokenInContext (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/token	0.273s
+?   	github.com/almighty/almighty-core/tool/alm-cli	[no test files]
+=== RUN   TestEnumTypeContains
+=== RUN   TestCompatibleFields
+=== RUN   TestConvertList
+=== RUN   TestConvertAnyToKind
+=== RUN   TestConvertStringToKind
+=== RUN   TestEnumType_Equal
+=== RUN   TestField
+=== RUN   TestAndOr
+=== RUN   TestIsNull
+=== RUN   TestArray
+--- PASS: TestArray (0.00s)
+=== RUN   TestListFieldDefMarshalling
+=== RUN   TestSimpleTypeConversion
+=== RUN   TestEnumTypeConversion
+=== RUN   TestListTypeConversion
+=== RUN   TestListType_Equal
+=== RUN   TestNewMarkupContentFromMapWithValidMarkup
+--- PASS: TestNewMarkupContentFromMapWithValidMarkup (0.00s)
+=== RUN   TestNewMarkupContentFromMapWithInvalidMarkup
+--- PASS: TestNewMarkupContentFromMapWithInvalidMarkup (0.00s)
+=== RUN   TestNewMarkupContentFromMapWithMissingMarkup
+--- PASS: TestNewMarkupContentFromMapWithMissingMarkup (0.00s)
+=== RUN   TestNewMarkupContentFromMapWithEmptyMarkup
+--- PASS: TestNewMarkupContentFromMapWithEmptyMarkup (0.00s)
+=== RUN   TestSimpleTypeEqual
+=== RUN   TestConvertToModel
+=== RUN   TestWorkItem_Equal
+=== RUN   TestRunWorkTypeRepoBlackBoxTest
+--- SKIP: TestRunWorkTypeRepoBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestRunRevisionRepositoryBlackBoxTest
+--- SKIP: TestRunRevisionRepositoryBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestJsonMarshalListType
+=== RUN   TestMarshalEnumType
+=== RUN   TestWorkItemType_Equal
+=== RUN   TestMarshalFieldDef
+=== RUN   TestMarshalArray
+=== RUN   TestWorkItemTypeIsTypeOrSubtypeOf
+=== RUN   TestGetNotExistingTypeReturnsNotOk
+=== RUN   TestGetReturnsPreviouslyPutWIT
+=== RUN   TestGetReturnNotOkAfterClear
+=== RUN   TestNoFailuresWithConcurrentMapReadAndMapWrite
+=== RUN   TestRunWorkItemTypeRepoBlackBoxTest
+--- SKIP: TestRunWorkItemTypeRepoBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+--- PASS: TestEnumTypeContains (0.00s)
+--- PASS: TestIsNull (0.00s)
+--- PASS: TestSimpleTypeEqual (0.00s)
+--- PASS: TestAndOr (0.00s)
+--- PASS: TestField (0.00s)
+--- PASS: TestEnumType_Equal (0.00s)
+bytes are {"Required":true,"Label":"Salt","Description":"Put it in your soup","Type":{"Kind":"list","ComponentType":{"Kind":"string"}}}--- PASS: TestConvertStringToKind (0.00s)
+--- PASS: TestConvertAnyToKind (0.00s)
+--- PASS: TestWorkItemTypeIsTypeOrSubtypeOf (0.00s)
+--- PASS: TestGetReturnsPreviouslyPutWIT (0.00s)
+--- PASS: TestGetNotExistingTypeReturnsNotOk (0.00s)
+--- PASS: TestWorkItem_Equal (0.00s)
+--- PASS: TestListType_Equal (0.00s)
+--- PASS: TestConvertList (0.00s)
+--- PASS: TestListFieldDefMarshalling (0.00s)
+--- PASS: TestMarshalArray (0.00s)
+time="2017-05-24T16:43:17+05:30" level=info msg="Clearing work item cache" pkg=workitem 
+--- PASS: TestGetReturnNotOkAfterClear (0.00s)
+--- PASS: TestEnumTypeConversion (0.00s)
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [new triaged WIP QA done]} string <nil> true}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [new triaged WIP QA done]} triaged triaged false}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [new triaged WIP QA done]} done done false}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [new triaged WIP QA done]}  <nil> true}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [new triaged WIP QA done]} 100 <nil> true}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [100 1.1 hello]} abcd <nil> true}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [100 1.1 hello]} 100 100 false}
+	fieldtype_blackbox_test.go:138: test pass for input:  {{{} {enum} [100 1.1 hello]} hello hello false}
+--- PASS: TestConvertToModel (0.00s)
+=== RUN   TestCompatibleFields/compatible_field_definition
+--- PASS: TestMarshalFieldDef (0.00s)
+--- PASS: TestWorkItemType_Equal (0.00s)
+=== RUN   TestCompatibleFields/incompatible_field_definition_(incompatible_fields)
+--- PASS: TestMarshalEnumType (0.00s)
+=== RUN   TestCompatibleFields/incompatible_field_definition_(different_required_field)
+--- PASS: TestCompatibleFields (0.00s)
+    --- PASS: TestCompatibleFields/compatible_field_definition (0.00s)
+    --- PASS: TestCompatibleFields/incompatible_field_definition_(different_required_field) (0.00s)
+    --- PASS: TestCompatibleFields/incompatible_field_definition_(incompatible_fields) (0.00s)
+--- PASS: TestListTypeConversion (0.00s)
+	fieldtype_blackbox_test.go:175: test pass for input:  {{{list} {integer}} [11 2] array/slice false}
+	fieldtype_blackbox_test.go:175: test pass for input:  {{{list} {integer}} [11 2] <nil> true}
+	fieldtype_blackbox_test.go:175: test pass for input:  {{{list} {string}} [11 2] array/slice false}
+	fieldtype_blackbox_test.go:175: test pass for input:  {{{list} {string}} [11 2] <nil> true}
+--- PASS: TestJsonMarshalListType (0.00s)
+--- PASS: TestSimpleTypeConversion (0.00s)
+	fieldtype_blackbox_test.go:94: test pass for input:  {{string} hello world hello world false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{string}   false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{string} 100 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{string} 1.9 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{iteration} 3434 3434 false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{iteration}   false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{iteration} 1 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{iteration} 1.9 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{iteration} true <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{area} 1233-2333 1233-2333 false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{area}   false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{area} 1 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{area} 1.9 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{area} true <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{integer} 100 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{integer} 100 100 false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{integer} 100 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{integer} true <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{float} 1.1 1.1 false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{float} 1 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{float} a <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{duration} 0 0 false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{duration} 1.1 <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{duration} duration <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{url} http://www.google.com http://www.google.com false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{url}  <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{url} google <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{url} http://google.com http://google.com false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{list} [1 2 3 4] [1 2 3 4] false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{list} [1 2] [1 2] false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{list}  <nil> true}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{markup} {## description PlainText} map[content:## description markup:PlainText] false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{markup} {## description Markdown} map[content:## description markup:Markdown] false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{markup} <nil> <nil> false}
+	fieldtype_blackbox_test.go:94: test pass for input:  {{markup} 1 <nil> true}
+--- PASS: TestNoFailuresWithConcurrentMapReadAndMapWrite (0.01s)
+PASS
+ok  	github.com/almighty/almighty-core/workitem	0.168s
+=== RUN   TestWorkItemLinkCategory_Equal
+=== RUN   TestWorkItemLink_Equal
+=== RUN   TestWorkItemLinkCheckValidForCreation
+=== RUN   TestRunWorkItemLinkRevisionRepositoryBlackBoxTest
+--- SKIP: TestRunWorkItemLinkRevisionRepositoryBlackBoxTest (0.00s)
+	require.go:53: Skipping test because environment variable ALMIGHTY_RESOURCE_DATABASE is no set.
+=== RUN   TestWorkItemLinkType_Equal
+=== RUN   TestWorkItemLinkTypeCheckValidForCreation
+--- PASS: TestWorkItemLinkCategory_Equal (0.00s)
+--- PASS: TestWorkItemLink_Equal (0.00s)
+--- PASS: TestWorkItemLinkType_Equal (0.00s)
+--- PASS: TestWorkItemLinkTypeCheckValidForCreation (0.00s)
+--- PASS: TestWorkItemLinkCheckValidForCreation (0.00s)
+PASS
+ok  	github.com/almighty/almighty-core/workitem/link	0.151s

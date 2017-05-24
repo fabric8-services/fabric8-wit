@@ -77,21 +77,7 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	})
 }
 
-func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfile, error) {
-
-	// The keycloak API doesn't support PATCH, hence the entire info needs
-	// to be sent over for User profile updation in Keycloak. So the POST request to KC needs
-	// to have everything - whatever we are updating, and whatever are not.
-
-	if keycloakUserProfile == nil {
-		keycloakUserProfile = &login.KeycloakUserProfile{}
-		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
-	}
-
-	existingProfile, err := c.getKeycloakProfileInformation(ctx, tokenString, accountAPIEndpoint)
-	if err != nil {
-		return nil, err
-	}
+func mergeKeycloakUserProfileInfo(keycloakUserProfile *login.KeycloakUserProfile, existingProfile *login.KeycloakUserProfileResponse) *login.KeycloakUserProfile {
 
 	// If the *new* FirstName has already been set, we won't be updating it with the *existing* value
 	if existingProfile.FirstName != nil && keycloakUserProfile.FirstName == nil {
@@ -133,6 +119,28 @@ func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Contex
 	if existingProfile.Username != nil && keycloakUserProfile.Username == nil {
 		keycloakUserProfile.Username = existingProfile.Username
 	}
+
+	return keycloakUserProfile
+}
+
+func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfile, error) {
+
+	// The keycloak API doesn't support PATCH, hence the entire info needs
+	// to be sent over for User profile updation in Keycloak. So the POST request to KC needs
+	// to have everything - whatever we are updating, and whatever are not.
+
+	if keycloakUserProfile == nil {
+		keycloakUserProfile = &login.KeycloakUserProfile{}
+		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+	}
+
+	existingProfile, err := c.getKeycloakProfileInformation(ctx, tokenString, accountAPIEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	keycloakUserProfile = mergeKeycloakUserProfileInfo(keycloakUserProfile, existingProfile)
+
 	return keycloakUserProfile, nil
 }
 
