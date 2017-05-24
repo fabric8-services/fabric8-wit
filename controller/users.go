@@ -79,12 +79,6 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 
 func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfile, error) {
 
-	// avoid multiple calls to KC
-
-	//if keycloakUserProfile != nil {
-	//	return keycloakUserProfile, nil
-	//}
-
 	// The keycloak API doesn't support PATCH, hence the entire info needs
 	// to be sent over for User profile updation in Keycloak. So the POST request to KC needs
 	// to have everything - whatever we are updating, and whatever are not.
@@ -109,11 +103,33 @@ func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Contex
 	if existingProfile.Email != nil && keycloakUserProfile.Email == nil {
 		keycloakUserProfile.Email = existingProfile.Email
 	}
-	if existingProfile.Attributes != nil && keycloakUserProfile.Attributes == nil {
+
+	if existingProfile.Attributes != nil && keycloakUserProfile.Attributes != nil {
+
 		// If there are existing attributes, we overwite only those
-		// handled by the Users service in platform.
+		// handled by the Users service in platform. The value would be non-nil if they
+		// they are to be updated by the PATCH request.
+
+		if (*keycloakUserProfile.Attributes)[login.ImageURLAttributeName] != nil {
+			(*existingProfile.Attributes)[login.ImageURLAttributeName] = (*keycloakUserProfile.Attributes)[login.ImageURLAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.BioAttributeName] != nil {
+			(*existingProfile.Attributes)[login.BioAttributeName] = (*keycloakUserProfile.Attributes)[login.BioAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.URLAttributeName] != nil {
+			(*existingProfile.Attributes)[login.URLAttributeName] = (*keycloakUserProfile.Attributes)[login.URLAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.CompanyAttributeName] != nil {
+			(*existingProfile.Attributes)[login.CompanyAttributeName] = (*keycloakUserProfile.Attributes)[login.CompanyAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.ApprovedAttributeName] != nil {
+			(*existingProfile.Attributes)[login.ApprovedAttributeName] = (*keycloakUserProfile.Attributes)[login.ApprovedAttributeName]
+		}
+
+		// Copy over the rest of the attributes as well.
 		keycloakUserProfile.Attributes = existingProfile.Attributes
 	}
+
 	if existingProfile.Username != nil && keycloakUserProfile.Username == nil {
 		keycloakUserProfile.Username = existingProfile.Username
 	}
