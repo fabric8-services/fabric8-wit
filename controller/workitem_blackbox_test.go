@@ -751,6 +751,7 @@ type WorkItem2Suite struct {
 
 func (s *WorkItem2Suite) SetupSuite() {
 	s.DBTestSuite.SetupSuite()
+	s.DBTestSuite.PopulateDBTestSuite(s.ctx)
 }
 
 func (s *WorkItem2Suite) SetupTest() {

@@ -236,6 +236,7 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 // }
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
+	// given
 	createPayload := s.createDemoLinkType(s.linkTypeName)
 	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
 	require.NotNil(s.T(), workItemLinkType)
@@ -246,7 +247,9 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	}
 	newDescription := "Lalala this is a new description for the work item type"
 	updateLinkTypePayload.Data.Attributes.Description = &newDescription
+	// when
 	_, lt := test.UpdateWorkItemLinkTypeOK(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
+	// then
 	require.NotNil(s.T(), lt.Data)
 	require.NotNil(s.T(), lt.Data.Attributes)
 	require.NotNil(s.T(), lt.Data.Attributes.Description)
@@ -256,11 +259,28 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	categoryData, ok := lt.Included[0].(*app.WorkItemLinkCategoryData)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), s.categoryName, *categoryData.Attributes.Name, "The work item link type's category should have the name 'test-user'.")
-
 	// Check that the link spaces are included in the response in the "included" array
 	spaceData, ok := lt.Included[1].(*app.Space)
 	require.True(s.T(), ok)
 	require.Equal(s.T(), s.spaceName, *spaceData.Attributes.Name, "The work item link type's space should have the name 'test-space'.")
+}
+
+func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeConflict() {
+	// given
+	createPayload := s.createDemoLinkType(s.linkTypeName)
+	_, workItemLinkType := test.CreateWorkItemLinkTypeCreated(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *createPayload.Data.Relationships.Space.Data.ID, createPayload)
+	require.NotNil(s.T(), workItemLinkType)
+	// Specify new description for link type that we just created
+	// Wrap data portion in an update payload instead of a create payload
+	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
+		Data: workItemLinkType.Data,
+	}
+	newDescription := "Lalala this is a new description for the work item type"
+	updateLinkTypePayload.Data.Attributes.Description = &newDescription
+	version := 123456
+	updateLinkTypePayload.Data.Attributes.Version = &version
+	// when/then
+	test.UpdateWorkItemLinkTypeConflict(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 }
 
 // func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {

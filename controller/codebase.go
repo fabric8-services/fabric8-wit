@@ -204,13 +204,7 @@ func (c *CodebaseController) Open(ctx *app.OpenCodebaseContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrInternal(err.Error()))
 	}
 	cheClient := che.NewStarterClient(c.config.GetCheStarterURL(), c.config.GetOpenshiftTenantMasterURL(), getNamespace(ctx))
-	workspace := che.WorkspaceRequest{
-		Name:       ctx.WorkspaceID,
-		Repository: cb.URL,
-		Branch:     "master",
-		StackID:    cb.StackID,
-	}
-	workspaceResp, err := cheClient.CreateWorkspace(ctx, workspace)
+	workspaceResp, err := cheClient.StartExistingWorkspace(ctx, ctx.WorkspaceID)
 	if err != nil {
 		log.Error(ctx, map[string]interface{}{
 			"codebase_id": cb.ID,
