@@ -595,9 +595,15 @@ func minimumRequiredReorderPayload() app.ReorderWorkitemPayload {
 	}
 }
 
-func minimumRequiredCreateWithType(wit uuid.UUID) app.CreateWorkitemPayload {
+func minimumRequiredCreateWithType(witID uuid.UUID) app.CreateWorkitemPayload {
 	c := minimumRequiredCreatePayload()
-	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, wit)
+	c.Data.Relationships.BaseType = newRelationBaseType(space.SystemSpace, witID)
+	return c
+}
+
+func minimumRequiredCreateWithTypeAndSpace(witID uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemPayload {
+	c := minimumRequiredCreatePayload()
+	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, witID)
 	return c
 }
 
@@ -2381,12 +2387,6 @@ func (s *WorkItem2Suite) TestWI2ListForChildIteration() {
 	// list workitems for childIteraiton
 	_, list = test.ListWorkitemOK(s.T(), s.svc.Context, s.svc, s.wi2Ctrl, space.SystemSpace, nil, nil, nil, &childIteraitonID, nil, nil, nil, nil, nil, nil, nil)
 	require.Len(s.T(), list.Data, 2)
-}
-
-func minimumRequiredCreateWithTypeAndSpace(wit uuid.UUID, spaceID uuid.UUID) app.CreateWorkitemPayload {
-	c := minimumRequiredCreatePayloadWithSpace(spaceID)
-	c.Data.Relationships.BaseType = newRelationBaseType(spaceID, wit)
-	return c
 }
 
 func minimumRequiredCreatePayloadWithSpace(spaceID uuid.UUID) app.CreateWorkitemPayload {

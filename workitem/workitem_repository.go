@@ -443,6 +443,8 @@ func (r *GormWorkItemRepository) Create(ctx context.Context, spaceID uuid.UUID, 
 	}
 	// retrieve the current issue number in the given space
 	numberSequence := WorkItemNumberSequence{}
+	r.db.LogMode(true)
+	defer r.db.LogMode(false)
 	tx := r.db.Model(&WorkItemNumberSequence{}).Where("space_id = ?", spaceID).Set("gorm:query_option", "FOR UPDATE").First(&numberSequence)
 	if tx.RecordNotFound() {
 		numberSequence.SpaceID = spaceID

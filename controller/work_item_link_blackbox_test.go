@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"strconv"
 	"testing"
 	"time"
 
@@ -444,7 +443,7 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkOK() {
 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
 		Data: workItemLink.Data,
 	}
-	updateLinkPayload.Data.Relationships.Target.Data.ID = s.bug3ID.String()
+	updateLinkPayload.Data.Relationships.Target.Data.ID = s.bug3ID
 	// when
 	_, l := test.UpdateWorkItemLinkOK(s.T(), s.svc.Context, s.svc, s.workItemLinkCtrl, *updateLinkPayload.Data.ID, updateLinkPayload)
 	// then
@@ -464,7 +463,7 @@ func (s *workItemLinkSuite) TestUpdateWorkItemLinkVersionConflict() {
 	updateLinkPayload := &app.UpdateWorkItemLinkPayload{
 		Data: workItemLink.Data,
 	}
-	updateLinkPayload.Data.Relationships.Target.Data.ID = strconv.FormatUint(s.bug3ID, 10)
+	updateLinkPayload.Data.Relationships.Target.Data.ID = s.bug3ID
 	// force a different version of the entity
 	previousVersion := *updateLinkPayload.Data.Attributes.Version - 1
 	updateLinkPayload.Data.Attributes.Version = &previousVersion
