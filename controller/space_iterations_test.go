@@ -78,6 +78,13 @@ func (rest *TestSpaceIterationREST) SecuredController() (*goa.Service, *SpaceIte
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
 }
 
+func (rest *TestSpaceIterationREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *SpaceIterationsController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
+}
+
 func (rest *TestSpaceIterationREST) UnSecuredController() (*goa.Service, *SpaceIterationsController) {
 	svc := goa.New("Iteration-Service")
 	return svc, NewSpaceIterationsController(svc, rest.db, rest.Configuration)
@@ -91,7 +98,8 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		newSpace := space.Space{
-			Name: "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			OwnerId: testsupport.TestIdentity.ID,
 		}
 		createdSpace, err := repo.Create(rest.ctx, &newSpace)
 		p = createdSpace
@@ -110,7 +118,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIteration() {
 	require.Nil(rest.T(), err)
 	svc, ctrl := rest.SecuredController()
 	// when
-	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
+	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
 	// then
 	require.NotNil(rest.T(), c.Data.ID)
 	require.NotNil(rest.T(), c.Data.Relationships.Space)
@@ -132,7 +140,8 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Spaces()
 		testSpace := space.Space{
-			Name: "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
+			Name:    "TestSuccessCreateIterationWithOptionalValues-" + uuid.NewV4().String(),
+			OwnerId: testsupport.TestIdentity.ID,
 		}
 		p, _ = repo.Create(rest.ctx, &testSpace)
 		// create Root iteration for above space
@@ -147,7 +156,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	})
 	svc, ctrl := rest.SecuredController()
 	// when
-	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
+	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
 	// then
 	assert.NotNil(rest.T(), c.Data.ID)
 	assert.NotNil(rest.T(), c.Data.Relationships.Space)
@@ -158,7 +167,7 @@ func (rest *TestSpaceIterationREST) TestSuccessCreateIterationWithOptionalValues
 	// create another Iteration with nil description
 	iterationName2 := "Sprint #23"
 	ci = createSpaceIteration(iterationName2, nil)
-	_, c = test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID.String(), ci)
+	_, c = test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
 	assert.Equal(rest.T(), *c.Data.Attributes.Name, iterationName2)
 	assert.Nil(rest.T(), c.Data.Attributes.Description)
 }
@@ -168,7 +177,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOK() {
 	spaceID, fatherIteration, childIteration, grandChildIteration := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()
 	// when
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), nil, nil)
+	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, nil, nil)
 	// then
 	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
 }
@@ -179,7 +188,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfMod
 	svc, ctrl := rest.UnSecuredController()
 	// when
 	idModifiedSince := app.ToHTTPTime(fatherIteration.UpdatedAt.Add(-1 * time.Hour))
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &idModifiedSince, nil)
+	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, &idModifiedSince, nil)
 	// then
 	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
 }
@@ -190,7 +199,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceOKUsingExpiredIfNon
 	svc, ctrl := rest.UnSecuredController()
 	// when
 	idNoneMatch := "foo"
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), nil, &idNoneMatch)
+	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, nil, &idNoneMatch)
 	// then
 	assertIterations(rest.T(), cs.Data, fatherIteration, childIteration, grandChildIteration)
 }
@@ -201,7 +210,7 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfM
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
 	idModifiedSince := app.ToHTTPTime(grandChildIteration.UpdatedAt)
-	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID.String(), &idModifiedSince, nil)
+	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID, &idModifiedSince, nil)
 }
 
 func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfNoneMatchSinceHeader() {
@@ -209,10 +218,10 @@ func (rest *TestSpaceIterationREST) TestListIterationsBySpaceNotModifiedUsingIfN
 	spaceID, _, _, _ := rest.createIterations()
 	svc, ctrl := rest.UnSecuredController()
 	// here we need to get all iterations for the spaceId
-	_, iterations := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID.String(), nil, nil)
+	_, iterations := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceID, nil, nil)
 	// when/then
 	idNoneMatch := generateIterationsTag(*iterations)
-	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID.String(), nil, &idNoneMatch)
+	test.ListSpaceIterationsNotModified(rest.T(), svc.Context, svc, ctrl, spaceID, nil, &idNoneMatch)
 }
 
 func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {
@@ -220,7 +229,7 @@ func (rest *TestSpaceIterationREST) TestCreateIterationMissingSpace() {
 	ci := createSpaceIteration("Sprint #21", nil)
 	svc, ctrl := rest.SecuredController()
 	// when/then
-	test.CreateSpaceIterationsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	test.CreateSpaceIterationsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), ci)
 }
 
 func (rest *TestSpaceIterationREST) TestFailCreateIterationNotAuthorized() {
@@ -228,14 +237,14 @@ func (rest *TestSpaceIterationREST) TestFailCreateIterationNotAuthorized() {
 	ci := createSpaceIteration("Sprint #21", nil)
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	test.CreateSpaceIterationsUnauthorized(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), ci)
+	test.CreateSpaceIterationsUnauthorized(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), ci)
 }
 
 func (rest *TestSpaceIterationREST) TestFailListIterationsByMissingSpace() {
 	// given
 	svc, ctrl := rest.UnSecuredController()
 	// when/then
-	test.ListSpaceIterationsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4().String(), nil, nil)
+	test.ListSpaceIterationsNotFound(rest.T(), svc.Context, svc, ctrl, uuid.NewV4(), nil, nil)
 }
 
 // Following is behaviour of the test that verifies the WI Count in an iteration
@@ -343,7 +352,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 
 	svc, ctrl := rest.UnSecuredController()
 	// when
-	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID.String(), nil, nil)
+	_, cs := test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
 	// then
 	require.Len(rest.T(), cs.Data, 4)
 	for _, iterationItem := range cs.Data {
@@ -393,7 +402,7 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 		require.Nil(rest.T(), err)
 	}
 	// when
-	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID.String(), nil, nil)
+	_, cs = test.ListSpaceIterationsOK(rest.T(), svc.Context, svc, ctrl, spaceInstance.ID, nil, nil)
 	// then
 	require.Len(rest.T(), cs.Data, 4)
 	for _, iterationItem := range cs.Data {
@@ -420,6 +429,67 @@ func (rest *TestSpaceIterationREST) TestWICountsWithIterationListBySpace() {
 			assert.Equal(rest.T(), expectedClosed, iterationItem.Relationships.Workitems.Meta["closed"])
 		}
 	}
+}
+
+func (rest *TestSpaceIterationREST) TestOnlySpaceOwnerCreateIteration() {
+	var p *space.Space
+	var rootItr *iteration.Iteration
+	identityRepo := account.NewIdentityRepository(rest.DB)
+	spaceOwner := &account.Identity{
+		ID:           uuid.NewV4(),
+		Username:     "space-owner-identity",
+		ProviderType: account.KeycloakIDP}
+	errInCreateOwner := identityRepo.Create(rest.ctx, spaceOwner)
+	require.Nil(rest.T(), errInCreateOwner)
+
+	ci := createSpaceIteration("Sprint #21", nil)
+	err := application.Transactional(rest.db, func(app application.Application) error {
+		repo := app.Spaces()
+		newSpace := space.Space{
+			Name:    "TestSuccessCreateIteration" + uuid.NewV4().String(),
+			OwnerId: spaceOwner.ID,
+		}
+		createdSpace, err := repo.Create(rest.ctx, &newSpace)
+		p = createdSpace
+		if err != nil {
+			return err
+		}
+		// create Root iteration for above space
+		rootItr = &iteration.Iteration{
+			SpaceID: newSpace.ID,
+			Name:    newSpace.Name,
+		}
+		iterationRepo := app.Iterations()
+		err = iterationRepo.Create(rest.ctx, rootItr)
+		return err
+	})
+	require.Nil(rest.T(), err)
+
+	spaceOwner, errInLoad := identityRepo.Load(rest.ctx, p.OwnerId)
+	require.Nil(rest.T(), errInLoad)
+
+	svc, ctrl := rest.SecuredControllerWithIdentity(spaceOwner)
+
+	// try creating iteration with space-owner. should pass
+	_, c := test.CreateSpaceIterationsCreated(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
+	require.NotNil(rest.T(), c.Data.ID)
+	require.NotNil(rest.T(), c.Data.Relationships.Space)
+	assert.Equal(rest.T(), p.ID.String(), *c.Data.Relationships.Space.Data.ID)
+	assert.Equal(rest.T(), iteration.IterationStateNew, *c.Data.Attributes.State)
+	assert.Equal(rest.T(), "/"+rootItr.ID.String(), *c.Data.Attributes.ParentPath)
+	require.NotNil(rest.T(), c.Data.Relationships.Workitems.Meta)
+	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta["total"])
+	assert.Equal(rest.T(), 0, c.Data.Relationships.Workitems.Meta["closed"])
+
+	otherIdentity := &account.Identity{
+		ID:           uuid.NewV4(),
+		Username:     "non-space-owner-identity",
+		ProviderType: account.KeycloakIDP}
+	errInCreateOther := identityRepo.Create(rest.ctx, otherIdentity)
+	require.Nil(rest.T(), errInCreateOther)
+
+	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+	test.CreateSpaceIterationsForbidden(rest.T(), svc.Context, svc, ctrl, p.ID, ci)
 }
 
 func createSpaceIteration(name string, desc *string) *app.CreateSpaceIterationsPayload {

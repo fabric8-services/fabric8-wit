@@ -7,6 +7,8 @@ import (
 
 const maxValidNameLength = 62
 
+var TestOversizedNameObj = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
 // CreateRandomValidTestName functions creates a valid lenght name
 func CreateRandomValidTestName(name string) string {
 	randomName := name + uuid.NewV4().String()
