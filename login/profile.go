@@ -113,6 +113,9 @@ func (userProfileClient *KeycloakUserProfileClient) Update(keycloakUserProfile *
 			// Observed that a 500 is returned whenever username/email is not unique
 			return errors.NewBadParameterError("username or email", fmt.Sprintf("%s , %s", *keycloakUserProfile.Email, *keycloakUserProfile.Username))
 		}
+		if resp.StatusCode == 400 {
+			return errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
+		}
 
 		return errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while updating keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
@@ -156,6 +159,9 @@ func (userProfileClient *KeycloakUserProfileClient) Get(accessToken string, keyc
 			"response_body":             rest.ReadBody(resp.Body),
 			"keycloak_user_profile_url": keycloakProfileURL,
 		}, "Unable to fetch Keycloak user profile")
+		if resp.StatusCode == 400 {
+			return nil, errors.NewUnauthorizedError(rest.ReadBody(resp.Body))
+		}
 		return nil, errors.NewInternalError(fmt.Sprintf("Received a non-200 response %s while fetching keycloak user profile %s", resp.Status, keycloakProfileURL))
 	}
 

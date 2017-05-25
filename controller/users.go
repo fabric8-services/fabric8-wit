@@ -77,43 +77,70 @@ func (c *UsersController) Show(ctx *app.ShowUsersContext) error {
 	})
 }
 
-func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfile, error) {
+func mergeKeycloakUserProfileInfo(keycloakUserProfile *login.KeycloakUserProfile, existingProfile *login.KeycloakUserProfileResponse) *login.KeycloakUserProfile {
 
-	// avoid multiple calls to KC
-
-	if keycloakUserProfile != nil {
-		return keycloakUserProfile, nil
+	// If the *new* FirstName has already been set, we won't be updating it with the *existing* value
+	if existingProfile.FirstName != nil && keycloakUserProfile.FirstName == nil {
+		keycloakUserProfile.FirstName = existingProfile.FirstName
 	}
+	if existingProfile.LastName != nil && keycloakUserProfile.LastName == nil {
+		keycloakUserProfile.LastName = existingProfile.LastName
+	}
+	if existingProfile.Email != nil && keycloakUserProfile.Email == nil {
+		keycloakUserProfile.Email = existingProfile.Email
+	}
+
+	if existingProfile.Attributes != nil && keycloakUserProfile.Attributes != nil {
+
+		// If there are existing attributes, we overwite only those
+		// handled by the Users service in platform. The value would be non-nil if they
+		// they are to be updated by the PATCH request.
+
+		if (*keycloakUserProfile.Attributes)[login.ImageURLAttributeName] != nil {
+			(*existingProfile.Attributes)[login.ImageURLAttributeName] = (*keycloakUserProfile.Attributes)[login.ImageURLAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.BioAttributeName] != nil {
+			(*existingProfile.Attributes)[login.BioAttributeName] = (*keycloakUserProfile.Attributes)[login.BioAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.URLAttributeName] != nil {
+			(*existingProfile.Attributes)[login.URLAttributeName] = (*keycloakUserProfile.Attributes)[login.URLAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.CompanyAttributeName] != nil {
+			(*existingProfile.Attributes)[login.CompanyAttributeName] = (*keycloakUserProfile.Attributes)[login.CompanyAttributeName]
+		}
+		if (*keycloakUserProfile.Attributes)[login.ApprovedAttributeName] != nil {
+			(*existingProfile.Attributes)[login.ApprovedAttributeName] = (*keycloakUserProfile.Attributes)[login.ApprovedAttributeName]
+		}
+
+		// Copy over the rest of the attributes as well.
+		keycloakUserProfile.Attributes = existingProfile.Attributes
+	}
+
+	if existingProfile.Username != nil && keycloakUserProfile.Username == nil {
+		keycloakUserProfile.Username = existingProfile.Username
+	}
+
+	return keycloakUserProfile
+}
+
+func (c *UsersController) copyExistingKeycloakUserProfileInfo(ctx context.Context, keycloakUserProfile *login.KeycloakUserProfile, tokenString string, accountAPIEndpoint string) (*login.KeycloakUserProfile, error) {
 
 	// The keycloak API doesn't support PATCH, hence the entire info needs
 	// to be sent over for User profile updation in Keycloak. So the POST request to KC needs
 	// to have everything - whatever we are updating, and whatever are not.
 
-	keycloakUserProfile = &login.KeycloakUserProfile{}
-	keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+	if keycloakUserProfile == nil {
+		keycloakUserProfile = &login.KeycloakUserProfile{}
+		keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+	}
 
 	existingProfile, err := c.getKeycloakProfileInformation(ctx, tokenString, accountAPIEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
-	if existingProfile.FirstName != nil {
-		keycloakUserProfile.FirstName = existingProfile.FirstName
-	}
-	if existingProfile.LastName != nil {
-		keycloakUserProfile.LastName = existingProfile.LastName
-	}
-	if existingProfile.Email != nil {
-		keycloakUserProfile.Email = existingProfile.Email
-	}
-	if existingProfile.Attributes != nil {
-		// If there are existing attributes, we overwite only those
-		// handled by the Users service in platform.
-		keycloakUserProfile.Attributes = existingProfile.Attributes
-	}
-	if existingProfile.Username != nil {
-		keycloakUserProfile.Username = existingProfile.Username
-	}
+	keycloakUserProfile = mergeKeycloakUserProfileInfo(keycloakUserProfile, existingProfile)
+
 	return keycloakUserProfile, nil
 }
 
@@ -136,7 +163,15 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
 
-	return application.Transactional(c.db, func(appl application.Application) error {
+	keycloakUserProfile := &login.KeycloakUserProfile{}
+	keycloakUserProfile.Attributes = &login.KeycloakUserProfileAttributes{}
+
+	var isKeycloakUserProfileUpdateNeeded bool
+	// prepare for updating keycloak user profile
+	tokenString := goajwt.ContextJWT(ctx).Raw
+	accountAPIEndpoint, err := c.config.GetKeycloakAccountEndpoint(ctx.RequestData)
+
+	returnResponse := application.Transactional(c.db, func(appl application.Application) error {
 		identity, err := appl.Identities().Load(ctx, *id)
 		if err != nil || identity == nil {
 			log.Error(ctx, map[string]interface{}{
@@ -154,14 +189,13 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 
-		// prepare for updating keycloak user profile
-		tokenString := goajwt.ContextJWT(ctx).Raw
-		accountAPIEndpoint, err := c.config.GetKeycloakAccountEndpoint(ctx.RequestData)
-
-		var keycloakUserProfile *login.KeycloakUserProfile
-
 		updatedEmail := ctx.Payload.Data.Attributes.Email
 		if updatedEmail != nil && *updatedEmail != user.Email {
+			isValid := isEmailValid(*updatedEmail)
+			if !isValid {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to email for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				return ctx.BadRequest(jerrors)
+			}
 			isUnique, err := isEmailUnique(appl, *updatedEmail, *user)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, errs.Wrap(err, fmt.Sprintf("error updating identitity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
@@ -171,16 +205,17 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				return ctx.Conflict(jerrors)
 			}
 			user.Email = *updatedEmail
-			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-
+			isKeycloakUserProfileUpdateNeeded = true
 			keycloakUserProfile.Email = updatedEmail
 		}
 
 		updatedUserName := ctx.Payload.Data.Attributes.Username
 		if updatedUserName != nil && *updatedUserName != identity.Username {
+			isValid := isUsernameValid(*updatedUserName)
+			if !isValid {
+				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("invalid value assigned to username for identity with id %s and user with id %s", identity.ID, identity.UserID.UUID)))
+				return ctx.BadRequest(jerrors)
+			}
 			if identity.RegistrationCompleted {
 				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(goa.ErrInvalidRequest(fmt.Sprintf("username cannot be updated more than once for identity id %s ", *id)))
 				return ctx.Forbidden(jerrors)
@@ -194,11 +229,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 				return ctx.Conflict(jerrors)
 			}
 			identity.Username = *updatedUserName
-			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-
+			isKeycloakUserProfileUpdateNeeded = true
 			keycloakUserProfile.Username = updatedUserName
 		}
 
@@ -224,7 +255,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)
 			}
-
+			isKeycloakUserProfileUpdateNeeded = true
 			(*keycloakUserProfile.Attributes)[login.BioAttributeName] = []string{*updatedBio}
 		}
 		updatedFullName := ctx.Payload.Data.Attributes.FullName
@@ -239,31 +270,22 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			if len(nameComponents) > 1 {
 				lastName = strings.Join(nameComponents[1:], " ")
 			}
-			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
-
+			isKeycloakUserProfileUpdateNeeded = true
 			keycloakUserProfile.FirstName = &firstName
 			keycloakUserProfile.LastName = &lastName
 		}
 		updatedImageURL := ctx.Payload.Data.Attributes.ImageURL
 		if updatedImageURL != nil && *updatedImageURL != user.ImageURL {
 			user.ImageURL = *updatedImageURL
-			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
+			isKeycloakUserProfileUpdateNeeded = true
 			(*keycloakUserProfile.Attributes)[login.ImageURLAttributeName] = []string{*updatedImageURL}
 
 		}
 		updateURL := ctx.Payload.Data.Attributes.URL
 		if updateURL != nil && *updateURL != user.URL {
 			user.URL = *updateURL
-			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
+			isKeycloakUserProfileUpdateNeeded = true
+
 			(*keycloakUserProfile.Attributes)[login.URLAttributeName] = []string{*updateURL}
 		}
 
@@ -271,9 +293,7 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 		if updatedCompany != nil && *updatedCompany != user.Company {
 			user.Company = *updatedCompany
 			keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
-			if err != nil {
-				return jsonapi.JSONErrorResponse(ctx, err)
-			}
+			isKeycloakUserProfileUpdateNeeded = true
 			(*keycloakUserProfile.Attributes)[login.CompanyAttributeName] = []string{*updatedCompany}
 		}
 
@@ -298,34 +318,6 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 			}
 		}
 
-		// The update of the keycloak needs to be attempted first because if that fails,
-		// we should't update the platform db since that would leave things in an
-		// inconsistent state.
-		if keycloakUserProfile != nil {
-			err = c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
-
-			if err != nil {
-				log.Error(ctx, map[string]interface{}{
-					"user_name": keycloakUserProfile.Username,
-					"email":     keycloakUserProfile.Email,
-					"err":       err,
-				}, "failed to update keycloak account")
-
-				jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
-
-				// We have mapped keycloak's 500 InternalServerError to our errors.BadParameterError
-				// because this scenario is directly associated with attempts to update
-				// duplicate email and/or username.
-				switch err.(type) {
-				default:
-					return ctx.BadRequest(jerrors)
-				case errors.BadParameterError:
-					return ctx.Conflict(jerrors)
-				}
-
-			}
-		}
-
 		err = appl.Users().Save(ctx, user)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
@@ -338,6 +330,53 @@ func (c *UsersController) Update(ctx *app.UpdateUsersContext) error {
 
 		return ctx.OK(ConvertToAppUser(ctx.RequestData, user, identity))
 	})
+
+	if isKeycloakUserProfileUpdateNeeded {
+		keycloakUserProfile, err = c.copyExistingKeycloakUserProfileInfo(ctx, keycloakUserProfile, tokenString, accountAPIEndpoint)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+
+		err = c.userProfileService.Update(keycloakUserProfile, tokenString, accountAPIEndpoint)
+
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"user_name": keycloakUserProfile.Username,
+				"email":     keycloakUserProfile.Email,
+				"err":       err,
+			}, "failed to update keycloak account")
+
+			jerrors, _ := jsonapi.ErrorToJSONAPIErrors(err)
+
+			// We have mapped keycloak's 500 InternalServerError to our errors.BadParameterError
+			// because this scenario is directly associated with attempts to update
+			// duplicate email and/or username.
+			switch err.(type) {
+			default:
+				return ctx.BadRequest(jerrors)
+			case errors.BadParameterError:
+				return ctx.Conflict(jerrors)
+			case errors.UnauthorizedError:
+				return ctx.Unauthorized(jerrors)
+			}
+		}
+	}
+	return returnResponse
+}
+
+func isEmailValid(email string) bool {
+	// TODO: Add regex to verify email format, later
+	if len(strings.TrimSpace(email)) > 0 {
+		return true
+	}
+	return false
+}
+
+func isUsernameValid(username string) bool {
+	if len(strings.TrimSpace(username)) > 0 {
+		return true
+	}
+	return false
 }
 
 func isUsernameUnique(appl application.Application, username string, identity account.Identity) (bool, error) {

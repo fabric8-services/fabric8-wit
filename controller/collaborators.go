@@ -13,7 +13,7 @@ import (
 	"github.com/almighty/almighty-core/log"
 	"github.com/almighty/almighty-core/space/authz"
 	"github.com/goadesign/goa"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
 )
 
 // CollaboratorsController implements the collaborators resource.
@@ -26,6 +26,7 @@ type CollaboratorsController struct {
 
 type collaboratorsConfiguration interface {
 	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetCacheControlCollaborators() string
 }
 
 type collaboratorContext interface {
@@ -40,7 +41,7 @@ func NewCollaboratorsController(service *goa.Service, db application.DB, config 
 
 // List collaborators for the given space ID.
 func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error {
-	policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.ID)
+	policy, _, err := c.getPolicy(ctx, ctx.RequestData, ctx.SpaceID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -50,15 +51,18 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	count := len(s)
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+
+	pageOffset := offset
+	pageLimit := offset + limit
 	if offset > len(s) {
-		offset = len(s)
+		pageOffset = len(s)
 	}
 	if offset+limit > len(s) {
-		limit = len(s)
+		pageLimit = len(s)
 	}
-	page := s[offset : offset+limit]
-
-	data := make([]*app.UserData, len(s))
+	page := s[pageOffset:pageLimit]
+	resultIdentities := make([]account.Identity, len(page))
+	resultUsers := make([]account.User, len(page))
 	for i, id := range page {
 		id = strings.Trim(id, "[]\"")
 		uID, err := uuid.FromString(id)
@@ -84,8 +88,8 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 				}, "unable to find the identity listed in the space policy")
 				return errors.New("Identity listed in the space policy not found")
 			}
-			appUser := ConvertToAppUser(ctx.RequestData, &identities[0].User, &identities[0])
-			data[i] = appUser.Data
+			resultIdentities[i] = identities[0]
+			resultUsers[i] = identities[0].User
 			return nil
 		})
 		if err != nil {
@@ -93,19 +97,26 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 		}
 	}
 
-	response := app.UserList{
-		Links: &app.PagingLinks{},
-		Meta:  &app.UserListMeta{TotalCount: count},
-		Data:  data,
-	}
-	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(page), offset, limit, count)
-	return ctx.OK(&response)
+	return ctx.ConditionalEntities(resultUsers, c.config.GetCacheControlCollaborators, func() error {
+		data := make([]*app.UserData, len(page))
+		for i := range resultUsers {
+			appUser := ConvertToAppUser(ctx.RequestData, &resultUsers[i], &resultIdentities[i])
+			data[i] = appUser.Data
+		}
+		response := app.UserList{
+			Links: &app.PagingLinks{},
+			Meta:  &app.UserListMeta{TotalCount: count},
+			Data:  data,
+		}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(page), offset, limit, count)
+		return ctx.OK(&response)
+	})
 }
 
 // Add user's identity to the list of space collaborators.
 func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
-	err := c.updatePolicy(ctx, ctx.RequestData, ctx.ID, identityIDs, c.policyManager.AddUserToPolicy)
+	err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.AddUserToPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -115,7 +126,7 @@ func (c *CollaboratorsController) Add(ctx *app.AddCollaboratorsContext) error {
 // AddMany adds user's identities to the list of space collaborators.
 func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) error {
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
-		err := c.updatePolicy(ctx, ctx.RequestData, ctx.ID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
+		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.AddUserToPolicy)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -126,20 +137,13 @@ func (c *CollaboratorsController) AddMany(ctx *app.AddManyCollaboratorsContext) 
 // Remove user from the list of space collaborators.
 func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) error {
 	// Don't remove the space owner
-	spaceID, err := uuid.FromString(ctx.ID)
-	if err != nil {
-		log.Error(ctx, map[string]interface{}{
-			"space_id": ctx.ID,
-		}, "unable to convert the space ID to uuid v4")
-		return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
-	}
-	err = c.checkSpaceOwner(ctx, spaceID, ctx.IdentityID)
+	err := c.checkSpaceOwner(ctx, ctx.SpaceID, ctx.IdentityID)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
 
 	identityIDs := []*app.UpdateUserID{{ID: ctx.IdentityID}}
-	err = c.updatePolicy(ctx, ctx.RequestData, ctx.ID, identityIDs, c.policyManager.RemoveUserFromPolicy)
+	err = c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, identityIDs, c.policyManager.RemoveUserFromPolicy)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, err)
 	}
@@ -150,22 +154,15 @@ func (c *CollaboratorsController) Remove(ctx *app.RemoveCollaboratorsContext) er
 func (c *CollaboratorsController) RemoveMany(ctx *app.RemoveManyCollaboratorsContext) error {
 	if ctx.Payload != nil && ctx.Payload.Data != nil {
 		// Don't remove the space owner
-		spaceID, err := uuid.FromString(ctx.ID)
-		if err != nil {
-			log.Error(ctx, map[string]interface{}{
-				"space_id": ctx.ID,
-			}, "unable to convert the space ID to uuid v4")
-			return jsonapi.JSONErrorResponse(ctx, goa.ErrBadRequest(err.Error()))
-		}
 		for _, idn := range ctx.Payload.Data {
 			if idn != nil {
-				err := c.checkSpaceOwner(ctx, spaceID, idn.ID)
+				err := c.checkSpaceOwner(ctx, ctx.SpaceID, idn.ID)
 				if err != nil {
 					return jsonapi.JSONErrorResponse(ctx, err)
 				}
 			}
 		}
-		err = c.updatePolicy(ctx, ctx.RequestData, ctx.ID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy)
+		err := c.updatePolicy(ctx, ctx.RequestData, ctx.SpaceID, ctx.Payload.Data, c.policyManager.RemoveUserFromPolicy)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
@@ -197,9 +194,9 @@ func (c *CollaboratorsController) checkSpaceOwner(ctx context.Context, spaceID u
 	return nil
 }
 
-func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID string, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
+func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa.RequestData, spaceID uuid.UUID, identityIDs []*app.UpdateUserID, update func(policy *auth.KeycloakPolicy, identityID string) bool) error {
 	// Authorize current user
-	authorized, err := authz.Authorize(ctx, spaceID)
+	authorized, err := authz.Authorize(ctx, spaceID.String())
 	if err != nil {
 		return goa.ErrUnauthorized(err.Error())
 	}
@@ -259,17 +256,13 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 	}
 
 	// We need to update the resource to triger RPT token refreshing when users try to access this space
-	spaceUUID, err := uuid.FromString(spaceID)
-	if err != nil {
-		return goa.ErrInternal(err.Error())
-	}
 	err = application.Transactional(c.db, func(appl application.Application) error {
-		resource, err := appl.SpaceResources().LoadBySpace(ctx, &spaceUUID)
+		resource, err := appl.SpaceResources().LoadBySpace(ctx, &spaceID)
 		_, err = appl.SpaceResources().Save(ctx, resource)
 		if err != nil {
 			log.Error(ctx, map[string]interface{}{
 				"resource":   resource,
-				"space_uuid": spaceUUID,
+				"space_uuid": spaceID.String(),
 				"err":        err,
 			}, "unable to update the space resource")
 			return err
@@ -283,15 +276,11 @@ func (c *CollaboratorsController) updatePolicy(ctx collaboratorContext, req *goa
 	return nil
 }
 
-func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.RequestData, spaceID string) (*auth.KeycloakPolicy, *string, error) {
-	spaceUUID, err := uuid.FromString(spaceID)
-	if err != nil {
-		return nil, nil, goa.ErrBadRequest(err.Error())
-	}
+func (c *CollaboratorsController) getPolicy(ctx collaboratorContext, req *goa.RequestData, spaceID uuid.UUID) (*auth.KeycloakPolicy, *string, error) {
 	var policyID string
-	err = application.Transactional(c.db, func(appl application.Application) error {
+	err := application.Transactional(c.db, func(appl application.Application) error {
 		// Load associated space resource
-		resource, err := appl.SpaceResources().LoadBySpace(ctx, &spaceUUID)
+		resource, err := appl.SpaceResources().LoadBySpace(ctx, &spaceID)
 		if err != nil {
 			return err
 		}
