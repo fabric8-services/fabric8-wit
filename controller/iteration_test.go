@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/almighty/almighty-core/account"
 	"github.com/almighty/almighty-core/app"
 	"github.com/almighty/almighty-core/app/test"
 	"github.com/almighty/almighty-core/application"
@@ -59,6 +60,13 @@ func (rest *TestIterationREST) SecuredController() (*goa.Service, *IterationCont
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
 }
 
+func (rest *TestIterationREST) SecuredControllerWithIdentity(idn *account.Identity) (*goa.Service, *IterationController) {
+	priv, _ := almtoken.ParsePrivateKey([]byte(almtoken.RSAPrivateKey))
+
+	svc := testsupport.ServiceAsUser("Iteration-Service", almtoken.NewManagerWithPrivateKey(priv), *idn)
+	return svc, NewIterationController(svc, rest.db, rest.Configuration)
+}
+
 func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationController) {
 	svc := goa.New("Iteration-Service")
 	return svc, NewIterationController(svc, rest.db, rest.Configuration)
@@ -66,13 +74,15 @@ func (rest *TestIterationREST) UnSecuredController() (*goa.Service, *IterationCo
 
 func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	// given
-	_, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	sp, _, _, parent := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	ri, err := rest.db.Iterations().Root(context.Background(), parent.SpaceID)
 	require.Nil(rest.T(), err)
 	parentID := parent.ID
 	name := "Sprint #21"
 	ci := getChildIterationPayload(&name)
-	svc, ctrl := rest.SecuredController()
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, created := test.CreateChildIterationCreated(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 	// then
@@ -86,6 +96,17 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 	require.NotNil(rest.T(), created.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["total"])
 	assert.Equal(rest.T(), 0, created.Data.Relationships.Workitems.Meta["closed"])
+
+	// try to create child iteration with some other user
+	otherIdentity := &account.Identity{
+		ID:           uuid.NewV4(),
+		Username:     "non-space-owner-identity",
+		ProviderType: account.KeycloakIDP,
+	}
+	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
+	require.Nil(rest.T(), errInCreateOther)
+	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+	test.CreateChildIterationForbidden(rest.T(), svc.Context, svc, ctrl, parentID.String(), ci)
 }
 
 func (rest *TestIterationREST) TestFailValidationIterationNameLength() {
@@ -116,11 +137,11 @@ func (rest *TestIterationREST) TestFailValidationIterationNameStartWith() {
 }
 
 func (rest *TestIterationREST) TestFailCreateChildIterationMissingName() {
-	// given
-	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	sp, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	ci := getChildIterationPayload(nil)
-	svc, ctrl := rest.SecuredController()
-	// when/then
+	owner, err := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), err)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	test.CreateChildIterationBadRequest(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), ci)
 }
 
@@ -422,8 +443,16 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 	var rootIterationObj iteration.Iteration
 	var otherIterationObj iteration.Iteration
 	application.Transactional(db, func(app application.Application) error {
+		owner := &account.Identity{
+			ID:           uuid.NewV4(),
+			Username:     "new-space-owner-identity",
+			ProviderType: account.KeycloakIDP,
+		}
+		errCreateOwner := app.Identities().Create(context.Background(), owner)
+		require.Nil(t, errCreateOwner)
 		spaceObj = space.Space{
-			Name: "Test 1-" + uuid.NewV4().String(),
+			Name:    "Test 1-" + uuid.NewV4().String(),
+			OwnerId: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
 		require.Nil(t, err)
