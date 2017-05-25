@@ -145,7 +145,7 @@ func (c *IterationController) Show(ctx *app.ShowIterationContext) error {
 
 // Update runs the update action.
 func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
-	_, err := login.ContextIdentity(ctx)
+	currentUser, err := login.ContextIdentity(ctx)
 	if err != nil {
 		return jsonapi.JSONErrorResponse(ctx, goa.ErrUnauthorized(err.Error()))
 	}
@@ -158,6 +158,18 @@ func (c *IterationController) Update(ctx *app.UpdateIterationContext) error {
 		itr, err := appl.Iterations().Load(ctx.Context, id)
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
+		}
+		s, err := appl.Spaces().Load(ctx, itr.SpaceID)
+		if err != nil {
+			return jsonapi.JSONErrorResponse(ctx, goa.ErrNotFound(err.Error()))
+		}
+		if !uuid.Equal(*currentUser, s.OwnerId) {
+			log.Warn(ctx, map[string]interface{}{
+				"space_id":     s.ID,
+				"space_owner":  s.OwnerId,
+				"current_user": *currentUser,
+			}, "user is not the space owner")
+			return jsonapi.JSONErrorResponse(ctx, errors.NewForbiddenError("user is not the space owner"))
 		}
 		if ctx.Payload.Data.Attributes.Name != nil {
 			itr.Name = *ctx.Payload.Data.Attributes.Name

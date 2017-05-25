@@ -233,7 +233,7 @@ func (rest *TestIterationREST) TestFailShowIterationMissing() {
 
 func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	// given
-	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	sp, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -246,7 +246,9 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	svc, ctrl := rest.SecuredController()
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 	// then
@@ -255,11 +257,22 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 	require.NotNil(rest.T(), updated.Data.Relationships.Workitems.Meta)
 	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta["total"])
 	assert.Equal(rest.T(), 0, updated.Data.Relationships.Workitems.Meta["closed"])
+
+	// try update using some other user
+	otherIdentity := &account.Identity{
+		ID:           uuid.NewV4(),
+		Username:     "non-space-owner-identity",
+		ProviderType: account.KeycloakIDP,
+	}
+	errInCreateOther := rest.db.Identities().Create(context.Background(), otherIdentity)
+	require.Nil(rest.T(), errInCreateOther)
+	svc, ctrl = rest.SecuredControllerWithIdentity(otherIdentity)
+	test.UpdateIterationForbidden(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 }
 
 func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 	// given
-	_, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	sp, _, _, itr := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	newName := "Sprint 1001"
 	newDesc := "New Description"
 	payload := app.UpdateIterationPayload{
@@ -304,7 +317,9 @@ func (rest *TestIterationREST) TestSuccessUpdateIterationWithWICounts() {
 		require.Nil(rest.T(), err)
 		require.NotNil(rest.T(), wi)
 	}
-	svc, ctrl := rest.SecuredController()
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	// when
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr.ID.String(), &payload)
 	// then
@@ -349,7 +364,7 @@ func (rest *TestIterationREST) TestFailUpdateIterationUnauthorized() {
 
 func (rest *TestIterationREST) TestIterationStateTransitions() {
 	// given
-	_, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	sp, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	assert.Equal(rest.T(), iteration.IterationStateNew, itr1.State)
 	startState := iteration.IterationStateStart
 	payload := app.UpdateIterationPayload{
@@ -361,7 +376,9 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	svc, ctrl := rest.SecuredController()
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	_, updated := test.UpdateIterationOK(rest.T(), svc.Context, svc, ctrl, itr1.ID.String(), &payload)
 	assert.Equal(rest.T(), startState, *updated.Data.Attributes.State)
 	// create another iteration in same space and then change State to start
@@ -394,7 +411,7 @@ func (rest *TestIterationREST) TestIterationStateTransitions() {
 
 func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 	// given
-	_, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
+	sp, _, _, itr1 := createSpaceAndRootAreaAndIterations(rest.T(), rest.db)
 	var ri *iteration.Iteration
 	err := application.Transactional(rest.db, func(app application.Application) error {
 		repo := app.Iterations()
@@ -415,7 +432,9 @@ func (rest *TestIterationREST) TestRootIterationCanNotStart() {
 			Type: iteration.APIStringTypeIteration,
 		},
 	}
-	svc, ctrl := rest.SecuredController()
+	owner, errIdn := rest.db.Identities().Load(context.Background(), sp.OwnerId)
+	require.Nil(rest.T(), errIdn)
+	svc, ctrl := rest.SecuredControllerWithIdentity(owner)
 	test.UpdateIterationBadRequest(rest.T(), svc.Context, svc, ctrl, ri.ID.String(), &payload)
 }
 
