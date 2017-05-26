@@ -18,14 +18,16 @@ import (
 // WorkItemLinkTypeController implements the work-item-link-type resource.
 type WorkItemLinkTypeController struct {
 	*goa.Controller
-	db           application.DB
-	config       WorkItemLinkTypeControllerConfiguration
-	configCombis WorkItemLinkTypeCombinationControllerConfiguration
+	db     application.DB
+	config WorkItemLinkTypeControllerConfiguration
 }
 
-// WorkItemLinkTypeControllerConfiguration the configuration for the WorkItemLinkTypeController
+// WorkItemLinkTypeControllerConfiguration the configuration for the
+// WorkItemLinkTypeController and for the
+// NewWorkItemLinkTypeCombinationController
 type WorkItemLinkTypeControllerConfiguration interface {
 	GetCacheControlWorkItemLinkTypes() string
+	GetCacheControlWorkItemLinkTypeCombinations() string
 }
 
 // NewWorkItemLinkTypeController creates a work-item-link-type controller.
@@ -218,7 +220,7 @@ func (c *WorkItemLinkTypeController) ListTypeCombinations(ctx *app.ListTypeCombi
 		if err != nil {
 			return jsonapi.JSONErrorResponse(ctx, err)
 		}
-		return ctx.ConditionalEntities(m, c.configCombis.GetCacheControlWorkItemLinkTypeCombinations, func() error {
+		return ctx.ConditionalEntities(m, c.config.GetCacheControlWorkItemLinkTypeCombinations, func() error {
 			convertedToApp, err := ConvertWorkItemLinkTypeCombinationsFromModel(appl, ctx.RequestData, m)
 			if err != nil {
 				return jsonapi.JSONErrorResponse(ctx, err)

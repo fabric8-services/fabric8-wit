@@ -14,16 +14,11 @@ import (
 type WorkItemLinkTypeCombinationController struct {
 	*goa.Controller
 	db     application.DB
-	config WorkItemLinkTypeCombinationControllerConfiguration
-}
-
-// WorkItemLinkTypeCombinationControllerConfiguration the configuration for the WorkItemLinkTypeController
-type WorkItemLinkTypeCombinationControllerConfiguration interface {
-	GetCacheControlWorkItemLinkTypeCombinations() string
+	config WorkItemLinkTypeControllerConfiguration
 }
 
 // NewWorkItemLinkTypeCombinationController creates a work_item_link_type_combination controller.
-func NewWorkItemLinkTypeCombinationController(service *goa.Service, db application.DB, config WorkItemLinkTypeCombinationControllerConfiguration) *WorkItemLinkTypeCombinationController {
+func NewWorkItemLinkTypeCombinationController(service *goa.Service, db application.DB, config WorkItemLinkTypeControllerConfiguration) *WorkItemLinkTypeCombinationController {
 	if db == nil {
 		panic("db must not be nil")
 	}
