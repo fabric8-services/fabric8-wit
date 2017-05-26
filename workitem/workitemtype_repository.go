@@ -46,39 +46,27 @@ func (r *GormWorkItemTypeRepository) LoadByID(ctx context.Context, id uuid.UUID)
 }
 
 // Exists returns true if the work item with the given ID exists
-
-// TODO(kwk): Implement tests for this and use more performant query. Currently
-// the logic is borrowed from the Load function except the space check which
-// MUST NOT be in here because without space templates we're creating WIs from
-// WITs out of the system space but in their own space.
 func (r *GormWorkItemTypeRepository) Exists(ctx context.Context, id uuid.UUID) (bool, error) {
 	log.Info(ctx, map[string]interface{}{
 		"wit_id": id,
 	}, "Checking if work item type exists")
-	found := false
-	res, ok := cache.Get(id)
-	if !ok {
-		log.Info(ctx, map[string]interface{}{
-			"wit_id": id,
-		}, "Work item type doesn't exist in the cache. Loading from DB...")
-		res = WorkItemType{}
-
-		db := r.db.Model(&res).Where("id=?", id).First(&res)
-		if db.RecordNotFound() {
-			log.Error(ctx, map[string]interface{}{
-				"wit_id": id,
-			}, "work item type not found")
-			return false, nil
-		}
-		if err := db.Error; err != nil {
-			return false, errors.NewInternalError(err.Error())
-		}
-		cache.Put(res)
-		found = true
-	} else {
-		found = true
+	_, exists := cache.Get(id)
+	if exists {
+		return true, nil
 	}
-	return found, nil
+	log.Info(ctx, map[string]interface{}{
+		"wit_id": id,
+	}, "Work item type doesn't exist in the cache. Checking in DB...")
+	query := fmt.Sprintf("SELECT EXISTS(SELECT id FROM %s WHERE id=$1 AND deleted_at IS NULL)", WorkItemType{}.TableName())
+	err := r.db.CommonDB().QueryRow(query, id.String()).Scan(&exists)
+	if err != nil {
+		log.Error(ctx, map[string]interface{}{
+			"wit_id": id,
+			"err":    err,
+		}, "failed to check if work item type exists")
+		return false, errs.Wrap(err, "failed to check if work item type exists")
+	}
+	return exists, nil
 }
 
 // Load returns the work item for the given spaceID and id
