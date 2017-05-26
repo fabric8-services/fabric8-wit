@@ -119,24 +119,6 @@ var _ = a.Resource("work_item_link_type_combination", func() {
 		a.Response(d.NotFound, JSONAPIErrors)
 	})
 
-	// a.Action("list", func() {
-	// 	a.Routing(
-	// 		a.GET(""),
-	// 	)
-	// 	a.Routing(
-	// 		a.GET("/:wiltId"),
-	// 	)
-	// 	a.Description("Retrieve work item link type combination (as JSONAPI) for the given link type ID.")
-	// 	a.Params(func() {
-	// 		a.Param("wiltId", d.UUID, "ID of the work item link type")
-	// 	})
-	// 	a.UseTrait("conditional")
-	// 	a.Response(d.OK, workItemLinkTypeCombinationList)
-	// 	a.Response(d.NotModified)
-	// 	a.Response(d.BadRequest, JSONAPIErrors)
-	// 	a.Response(d.InternalServerError, JSONAPIErrors)
-	// })
-
 	a.Action("create", func() {
 		a.Security("jwt")
 		a.Routing(
