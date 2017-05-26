@@ -111,8 +111,6 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	linkTypeRepository := link.NewWorkItemLinkTypeRepository(s.DB)
 	linkTypeModel1 := link.WorkItemLinkType{
 		Name:           "TestTreeLinkType",
-		SourceTypeID:   workitem.SystemBug,
-		TargetTypeID:   workitem.SystemBug,
 		ForwardName:    "foo",
 		ReverseName:    "foo",
 		Topology:       "tree",
@@ -122,6 +120,17 @@ func (s *linkRepoBlackBoxTest) TestDisallowMultipleParents() {
 	TestTreeLinkType, err := linkTypeRepository.Create(s.ctx, &linkTypeModel1)
 	require.Nil(s.T(), err)
 	s.testTreeLinkTypeID = TestTreeLinkType.ID
+
+	// Create link type combination
+	combiRepo := link.NewWorkItemLinkTypeCombinationRepository(s.DB)
+	combi := link.WorkItemLinkTypeCombination{
+		LinkTypeID:   TestTreeLinkType.ID,
+		SourceTypeID: workitem.SystemBug,
+		TargetTypeID: workitem.SystemBug,
+		SpaceID:      s.testSpace,
+	}
+	_, err = combiRepo.Create(s.ctx, &combi)
+	require.Nil(s.T(), err)
 
 	// create a work item link
 	linkRepository := link.NewWorkItemLinkRepository(s.DB)
