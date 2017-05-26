@@ -99,7 +99,6 @@ func (rest *TestIterationREST) TestSuccessCreateChildIteration() {
 
 	// try to create child iteration with some other user
 	otherIdentity := &account.Identity{
-		ID:           uuid.NewV4(),
 		Username:     "non-space-owner-identity",
 		ProviderType: account.KeycloakIDP,
 	}
@@ -260,7 +259,6 @@ func (rest *TestIterationREST) TestSuccessUpdateIteration() {
 
 	// try update using some other user
 	otherIdentity := &account.Identity{
-		ID:           uuid.NewV4(),
 		Username:     "non-space-owner-identity",
 		ProviderType: account.KeycloakIDP,
 	}
@@ -463,14 +461,13 @@ func createSpaceAndRootAreaAndIterations(t *testing.T, db application.DB) (space
 	var otherIterationObj iteration.Iteration
 	application.Transactional(db, func(app application.Application) error {
 		owner := &account.Identity{
-			ID:           uuid.NewV4(),
 			Username:     "new-space-owner-identity",
 			ProviderType: account.KeycloakIDP,
 		}
 		errCreateOwner := app.Identities().Create(context.Background(), owner)
 		require.Nil(t, errCreateOwner)
 		spaceObj = space.Space{
-			Name:    "Test 1-" + uuid.NewV4().String(),
+			Name:    testsupport.CreateRandomValidTestName("CreateSpaceAndRootAreaAndIterations-"),
 			OwnerId: owner.ID,
 		}
 		_, err := app.Spaces().Create(context.Background(), &spaceObj)
