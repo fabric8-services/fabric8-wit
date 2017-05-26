@@ -26,6 +26,7 @@ type CollaboratorsController struct {
 
 type collaboratorsConfiguration interface {
 	GetKeycloakEndpointEntitlement(*goa.RequestData) (string, error)
+	GetCacheControlCollaborators() string
 }
 
 type collaboratorContext interface {
@@ -50,15 +51,18 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 	count := len(s)
 
 	offset, limit := computePagingLimits(ctx.PageOffset, ctx.PageLimit)
+
+	pageOffset := offset
+	pageLimit := offset + limit
 	if offset > len(s) {
-		offset = len(s)
+		pageOffset = len(s)
 	}
 	if offset+limit > len(s) {
-		limit = len(s)
+		pageLimit = len(s)
 	}
-	page := s[offset : offset+limit]
-
-	data := make([]*app.UserData, len(s))
+	page := s[pageOffset:pageLimit]
+	resultIdentities := make([]account.Identity, len(page))
+	resultUsers := make([]account.User, len(page))
 	for i, id := range page {
 		id = strings.Trim(id, "[]\"")
 		uID, err := uuid.FromString(id)
@@ -84,8 +88,8 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 				}, "unable to find the identity listed in the space policy")
 				return errors.New("Identity listed in the space policy not found")
 			}
-			appUser := ConvertToAppUser(ctx.RequestData, &identities[0].User, &identities[0])
-			data[i] = appUser.Data
+			resultIdentities[i] = identities[0]
+			resultUsers[i] = identities[0].User
 			return nil
 		})
 		if err != nil {
@@ -93,13 +97,20 @@ func (c *CollaboratorsController) List(ctx *app.ListCollaboratorsContext) error 
 		}
 	}
 
-	response := app.UserList{
-		Links: &app.PagingLinks{},
-		Meta:  &app.UserListMeta{TotalCount: count},
-		Data:  data,
-	}
-	setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(page), offset, limit, count)
-	return ctx.OK(&response)
+	return ctx.ConditionalEntities(resultUsers, c.config.GetCacheControlCollaborators, func() error {
+		data := make([]*app.UserData, len(page))
+		for i := range resultUsers {
+			appUser := ConvertToAppUser(ctx.RequestData, &resultUsers[i], &resultIdentities[i])
+			data[i] = appUser.Data
+		}
+		response := app.UserList{
+			Links: &app.PagingLinks{},
+			Meta:  &app.UserListMeta{TotalCount: count},
+			Data:  data,
+		}
+		setPagingLinks(response.Links, buildAbsoluteURL(ctx.RequestData), len(page), offset, limit, count)
+		return ctx.OK(&response)
+	})
 }
 
 // Add user's identity to the list of space collaborators.

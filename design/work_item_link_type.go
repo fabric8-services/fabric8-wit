@@ -221,6 +221,7 @@ var _ = a.Resource("work_item_link_type", func() {
 		a.Payload(updateWorkItemLinkTypePayload)
 		a.Response(d.OK, workItemLinkType)
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
