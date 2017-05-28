@@ -343,12 +343,12 @@ func testMigration62(t *testing.T) {
 	assert.True(t, dialect.HasIndex("categories", "categories_id_index"))
 	assert.True(t, dialect.HasIndex("categories", "categories_name_idx"))
 
-	assert.True(t, gormDB.HasTable("workitemtype_categories"))
-	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_id_idx"))
-	assert.True(t, dialect.HasIndex("workitemtype_categories", "workitemtype_categories_idx"))
+	assert.True(t, gormDB.HasTable("work_item_type_categories"))
+	assert.True(t, dialect.HasIndex("work_item_type_categories", "work_item_type_categories_id_idx"))
+	assert.True(t, dialect.HasIndex("work_item_type_categories", "work_item_type_categories_idx"))
 
-	assert.True(t, dialect.HasColumn("workitemtype_categories", "category_id"))
-	assert.True(t, dialect.HasColumn("workitemtype_categories", "workitemtype_id"))
+	assert.True(t, dialect.HasColumn("work_item_type_categories", "category_id"))
+	assert.True(t, dialect.HasColumn("work_item_type_categories", "workitemtype_id"))
 
 	// These script execution has to fail
 	assert.NotNil(t, runSQLscript(sqlDB, "055-insert-category-no-name-fail.sql"))

@@ -55,7 +55,7 @@ type WorkItemTypeCategoryRelationship struct {
 // TableName overrides the table name settings in Gorm to force a specific table name
 // in the database.
 func (m *WorkItemTypeCategoryRelationship) TableName() string {
-	return "workitemtype_categories"
+	return "work_item_type_categories"
 }
 
 // Ensure fields implements the Equaler interface
@@ -118,7 +118,7 @@ func (m *GormRepository) List(ctx context.Context) ([]*Category, error) {
 func (m *GormRepository) CreateRelationship(ctx context.Context, relationship *WorkItemTypeCategoryRelationship) error {
 	db := m.db.Create(relationship)
 	if db.Error != nil {
-		if gormsupport.IsUniqueViolation(db.Error, "workitemtype_categories_idx") {
+		if gormsupport.IsUniqueViolation(db.Error, "work_item_type_categories_idx") {
 			return errors.NewBadParameterError("category+workitemtype", relationship.CategoryID).Expected("unique")
 		}
 		return errors.NewInternalError(db.Error.Error())
