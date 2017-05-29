@@ -196,25 +196,27 @@ func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	_ = test.DeleteWorkItemLinkTypeOK(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *workItemLinkType.Data.Relationships.Space.Data.ID, *workItemLinkType.Data.ID)
 }
 
-// func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequest() {
-// 	createPayload := s.createDemoLinkType("") // empty name causes bad request
-// 	createPayload.Validate()
-// 	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-// }
-
-//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToEmptyTopology() {
-//	createPayload := s.createDemoLinkType(s.linkTypeName)
-//	emptyTopology := ""
-//	createPayload.Data.Attributes.Topology = &emptyTopology
-//	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-//}
-
-//func (s *workItemLinkTypeSuite) TestCreateWorkItemLinkTypeBadRequestDueToWrongTopology() {
-//	createPayload := s.createDemoLinkType(s.linkTypeName)
-//	wrongTopology := "wrongtopology"
-//	createPayload.Data.Attributes.Topology = &wrongTopology
-//	_, _ = test.CreateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, createPayload)
-//}
+func (s *workItemLinkTypeSuite) TestValidateCreatePayload() {
+	s.T().Run("empty name", func(t *testing.T) {
+		t.Parallel()
+		createPayload := s.createDemoLinkType("")
+		require.NotNil(t, createPayload.Validate())
+	})
+	s.T().Run("empty topology", func(t *testing.T) {
+		t.Parallel()
+		createPayload := s.createDemoLinkType(s.linkTypeName)
+		emptyTopology := ""
+		createPayload.Data.Attributes.Topology = &emptyTopology
+		require.NotNil(t, createPayload.Validate())
+	})
+	s.T().Run("wrong topology", func(t *testing.T) {
+		t.Parallel()
+		createPayload := s.createDemoLinkType(s.linkTypeName)
+		wrongTopology := "wrongtopology"
+		createPayload.Data.Attributes.Topology = &wrongTopology
+		require.NotNil(t, createPayload.Validate())
+	})
+}
 
 func (s *workItemLinkTypeSuite) TestDeleteWorkItemLinkTypeNotFound() {
 	test.DeleteWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, space.SystemSpace, uuid.FromStringOrNil("1e9a8b53-73a6-40de-b028-5177add79ffa"))
@@ -230,17 +232,6 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeNotFound() {
 	}
 	test.UpdateWorkItemLinkTypeNotFound(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 }
-
-// func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequestDueToBadID() {
-// 	createPayload := s.createDemoLinkType(s.linkTypeName)
-// 	notExistingId := "something that is not a UUID" // This ID does not exist
-// 	createPayload.Data.ID = &notExistingId
-// 	// Wrap data portion in an update payload instead of a create payload
-// 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-// 		Data: createPayload.Data,
-// 	}
-// 	test.UpdateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-// }
 
 func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeOK() {
 	// given
@@ -289,15 +280,6 @@ func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeConflict() {
 	// when/then
 	test.UpdateWorkItemLinkTypeConflict(s.T(), s.svc.Context, s.svc, s.linkTypeCtrl, *updateLinkTypePayload.Data.Relationships.Space.Data.ID, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
 }
-
-// func (s *workItemLinkTypeSuite) TestUpdateWorkItemLinkTypeBadRequest() {
-// 	createPayload := s.createDemoLinkType(s.linkTypeName)
-// 	updateLinkTypePayload := &app.UpdateWorkItemLinkTypePayload{
-// 		Data: createPayload.Data,
-// 	}
-// 	updateLinkTypePayload.Data.Type = "This should be workitemlinktypes" // Causes bad request
-// 	test.UpdateWorkItemLinkTypeBadRequest(s.T(), nil, nil, s.linkTypeCtrl, *updateLinkTypePayload.Data.ID, updateLinkTypePayload)
-// }
 
 func (s *workItemLinkTypeSuite) createWorkItemLinkType() *app.WorkItemLinkTypeSingle {
 	createPayload := s.createDemoLinkType(s.linkTypeName)
