@@ -130,7 +130,7 @@ func ConvertWorkItemLinkTypeCominationToModel(a app.WorkItemLinkTypeCombinationD
 // model representation to the app representation.
 func ConvertWorkItemLinkTypeCombinationFromModel(appl application.Application, request *goa.RequestData, m link.WorkItemLinkTypeCombination, additional ...WorkItemLinkTypeCombinationConvertFunc) (*app.WorkItemLinkTypeCombinationData, error) {
 	spaceSelfURL := rest.AbsoluteURL(request, app.SpaceHref(m.SpaceID.String()))
-	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(m.SpaceID.String(), m.SourceTypeID.String()))
+	witTargetSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(m.SpaceID.String(), m.TargetTypeID.String()))
 	witSourceSelfURL := rest.AbsoluteURL(request, app.WorkitemtypeHref(m.SpaceID.String(), m.SourceTypeID.String()))
 	parentSelfURL := rest.AbsoluteURL(request, app.WorkItemLinkTypeCombinationHref(m.SpaceID.String(), m.SourceTypeID.String()))
 	a := &app.WorkItemLinkTypeCombinationData{
