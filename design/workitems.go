@@ -255,7 +255,7 @@ var _ = a.Resource("redirect_workitem", func() {
 			a.Param("filter[workitemtype]", d.UUID, "ID of work item type to filter work items by")
 			a.Param("filter[area]", d.String, "AreaID to filter work items")
 			a.Param("filter[workitemstate]", d.String, "work item state to filter work items by")
-
+			a.Param("filter[category]", d.String, "workitemtype category to filter workitems by")
 		})
 		a.Response(d.MovedPermanently)
 	})

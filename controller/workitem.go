@@ -121,9 +121,14 @@ func (c *WorkitemController) List(ctx *app.ListWorkitemContext) error {
 			}
 			return nil
 		})
-		// for each workitemtype associated with the category, build the query expression
-		exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[0].WorkitemtypeID)))
-		if len(relationships) > 1 {
+		if len(relationships) == 0 {
+			log.Info(ctx, map[string]interface{}{
+				"category": *ctx.FilterCategory,
+			}, "no workitems belong to category: %s", *ctx.FilterCategory)
+			return nil
+		} else {
+			exp = criteria.And(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[0].WorkitemtypeID)))
+			// for each workitemtype associated with the category, build the query expression
 			for i := 1; i < len(relationships); i++ {
 				exp = criteria.Or(exp, criteria.Equals(criteria.Field("Type"), criteria.Literal(relationships[i].WorkitemtypeID)))
 			}
