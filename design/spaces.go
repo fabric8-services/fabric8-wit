@@ -126,6 +126,7 @@ var _ = a.Resource("space", func() {
 	})
 
 	a.Action("list", func() {
+		a.Security("jwt")
 		a.Routing(
 			a.GET(""),
 		)
@@ -139,6 +140,7 @@ var _ = a.Resource("space", func() {
 		a.Response(d.NotModified)
 		a.Response(d.BadRequest, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
+		a.Response(d.Unauthorized, JSONAPIErrors)
 	})
 
 	a.Action("create", func() {
@@ -186,6 +188,7 @@ var _ = a.Resource("space", func() {
 			a.Media(spaceSingle)
 		})
 		a.Response(d.BadRequest, JSONAPIErrors)
+		a.Response(d.Conflict, JSONAPIErrors)
 		a.Response(d.InternalServerError, JSONAPIErrors)
 		a.Response(d.NotFound, JSONAPIErrors)
 		a.Response(d.Unauthorized, JSONAPIErrors)
