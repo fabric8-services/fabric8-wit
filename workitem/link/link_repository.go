@@ -96,6 +96,48 @@ func (r *GormWorkItemLinkRepository) ValidateCorrectSourceAndTargetType(ctx cont
 	return nil
 }
 
+// CheckParentExists returns error if there is an attempt to create more than 1 parent of a workitem.
+func (r *GormWorkItemLinkRepository) CheckParentExists(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) (bool, error) {
+	query := fmt.Sprintf(`
+		SELECT EXISTS (
+			SELECT 1 FROM %[1]s
+			WHERE
+				link_type_id=$1
+				AND target_id=$2
+				AND deleted_at IS NULL
+		)`, WorkItemLink{}.TableName())
+	row := r.db.CommonDB().QueryRow(query, linkType.ID, targetID)
+	var exists bool
+	if err := row.Scan(&exists); err != nil {
+		return false, errs.Wrapf(err, "failed to check if a parent exists for the work item %d", targetID)
+	}
+	return exists, nil
+}
+
+func (r *GormWorkItemLinkRepository) ValidateTopology(ctx context.Context, targetID uint64, linkType *WorkItemLinkType) error {
+	// check to disallow multiple parents in tree topology
+	if linkType.Topology == TopologyTree {
+		parentExists, err := r.CheckParentExists(ctx, targetID, linkType)
+		if err != nil {
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":   linkType.ID,
+				"target_id": targetID,
+				"err":       err,
+			}, "failed to check if the work item %s has a parent work item", targetID)
+			return errs.Wrapf(err, "failed to check if the work item %s has a parent work item", targetID)
+		}
+		if parentExists {
+			log.Error(ctx, map[string]interface{}{
+				"wilt_id":   linkType.ID,
+				"target_id": targetID,
+				"err":       err,
+			}, "unable to create work item link because a topology of type \"%s\" only allows one parent to exist and the target %d already a parent", TopologyTree, targetID)
+			return errors.NewBadParameterError("linkTypeID + targetID", fmt.Sprintf("%s + %d", linkType.ID, targetID)).Expected("single parent in tree topology")
+		}
+	}
+	return nil
+}
+
 // Create creates a new work item link in the repository.
 // Returns BadParameterError, ConversionError or InternalError
 func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targetID uuid.UUID, linkTypeID uuid.UUID, creatorID uuid.UUID) (*WorkItemLink, error) {
@@ -107,9 +149,21 @@ func (r *GormWorkItemLinkRepository) Create(ctx context.Context, sourceID, targe
 	if err := link.CheckValidForCreation(); err != nil {
 		return nil, errs.WithStack(err)
 	}
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkTypeID); err != nil {
+
+	// Fetch the link type
+	linkType, err := r.workItemLinkTypeRepo.Load(ctx, linkTypeID)
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load link type")
+	}
+
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, sourceID, targetID, linkType.ID); err != nil {
 		return nil, errs.WithStack(err)
 	}
+
+	if err := r.ValidateTopology(ctx, targetID, linkType); err != nil {
+		return nil, errs.WithStack(err)
+	}
+
 	db := r.db.Create(link)
 	if db.Error != nil {
 		if gormsupport.IsUniqueViolation(db.Error, "work_item_links_unique_idx") {
@@ -251,9 +305,20 @@ func (r *GormWorkItemLinkRepository) Save(ctx context.Context, linkToSave WorkIt
 		return nil, errors.NewVersionConflictError("version conflict")
 	}
 	linkToSave.Version = linkToSave.Version + 1
-	if err := r.ValidateCorrectSourceAndTargetType(ctx, existingLink.SourceID, existingLink.TargetID, existingLink.LinkTypeID); err != nil {
+
+	linkTypeToSave, err := r.workItemLinkTypeRepo.Load(ctx, linkToSave.LinkTypeID)
+	if err != nil {
+		return nil, errs.Wrap(err, "failed to load link type")
+	}
+
+	if err := r.ValidateCorrectSourceAndTargetType(ctx, linkToSave.SourceID, linkToSave.TargetID, linkTypeToSave.ID); err != nil {
 		return nil, errs.WithStack(err)
 	}
+
+	if err := r.ValidateTopology(ctx, linkToSave.TargetID, linkTypeToSave); err != nil {
+		return nil, errs.WithStack(err)
+	}
+
 	// save
 	db = r.db.Save(&linkToSave)
 	if db.Error != nil {
