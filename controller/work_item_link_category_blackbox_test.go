@@ -533,9 +533,3 @@ func (s *workItemLinkCategorySuite) TestUnauthorizeWorkItemLinkCategoryCUD() {
 		return nil
 	})
 }
-
-func TestNewWorkItemLinkCategoryControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemLinkCategoryController(nil, nil)
-	})
-}

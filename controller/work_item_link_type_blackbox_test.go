@@ -170,12 +170,6 @@ func TestSuiteWorkItemLinkType(t *testing.T) {
 	suite.Run(t, new(workItemLinkTypeSuite))
 }
 
-func TestNewWorkItemLinkTypeControllerDBNull(t *testing.T) {
-	require.Panics(t, func() {
-		NewWorkItemLinkTypeController(nil, nil, nil)
-	})
-}
-
 // TestCreateWorkItemLinkType tests if we can create the s.linkTypeName work item link type
 func (s *workItemLinkTypeSuite) TestCreateAndDeleteWorkItemLinkType() {
 	createPayload := s.createDemoLinkType(s.linkTypeName)
